@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-project</artifactId>
+        <version>1.9.6-SNAPSHOT</version>
+        <relativePath>../../../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.sun.grizzly.samples</groupId>
+    <artifactId>grizzly-nio-migration-guide</artifactId>
+    <packaging>pom</packaging>
+    <version>${grizzly-version}</version>
+    <name>grizzly-nio-migration-guide</name>
+    <url>https://grizzly.dev.java.net</url>
+    <modules>
+        <module>demo1/</module>
+        <module>demo2/</module>
+        <module>demo3/</module>
+    </modules>
+</project>

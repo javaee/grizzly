@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<driver name="TCPProtocolEchoDriver" normal="true" xmlns="http://www.sun.com/japex/testSuite">
+    <param name="japex.driverClass" value="com.sun.grizzlypex.GrizzlyTCPEchoDriver"/>
+    <param name="description" value="Grizzly TCP echo driver"/>
+    <param name="protocol" value="TCP"/>
+
+    <xi:include href="grizzly-classpath.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+</driver>

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<diagrams>
+  <diagram name="GrizzlyOSGiHttpService">
+    <command command-class="de.frag.umlplugin.uml.command.AddClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.AddUsingClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectClassesUsedCommand" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectClassesCommand" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectSingleClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.util.Logger" />
+    <command command-class="de.frag.umlplugin.uml.command.AddExtendedClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiServletAdapter" />
+    <command command-class="de.frag.umlplugin.uml.command.AddExtendedClassesCommand" psi-class="com.sun.grizzly.http.servlet.ServletAdapter" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiServletAdapter" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.util.Logger" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiServletContext" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.util.Logger" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiResourceAdapter" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.tcp.http11.GrizzlyOutputStream" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.util.Logger" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.http.servlet.HttpServletRequestImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.http.servlet.HttpServletResponseImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.tcp.http11.GrizzlyRequest" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceFactory" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.util.Logger" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.tcp.http11.GrizzlyResponse" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpContextImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectClassesCommand" />
+    <command command-class="de.frag.umlplugin.uml.command.AddFieldClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpContextImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectSingleClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpContextImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiResourceAdapter" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.util.Logger" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.tcp.http11.GrizzlyResponse" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.http.servlet.HttpServletResponseImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.tcp.http11.GrizzlyOutputStream" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.tcp.http11.GrizzlyRequest" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="com.sun.grizzly.http.servlet.HttpServletRequestImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.AddExtendedClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpContextImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectSingleClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiResourceAdapter" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.HashMap" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.io.InputStream" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.lang.IllegalArgumentException" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.net.MalformedURLException" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.Enumeration" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.concurrent.ConcurrentHashMap" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.ArrayList" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.net.URL" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.lang.StringBuilder" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.lang.Exception" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.io.IOException" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.lang.String" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="org.osgi.framework.ServiceRegistration" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.lang.Object" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="javax.servlet.http.HttpServletRequest" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="javax.servlet.http.HttpServletResponse" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="org.osgi.framework.Bundle" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="org.osgi.framework.ServiceFactory" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.concurrent.ConcurrentMap" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.concurrent.locks.ReadWriteLock" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.concurrent.ConcurrentLinkedQueue" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.Dictionary" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="javax.servlet.ServletException" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="org.osgi.service.http.NamespaceException" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.util.concurrent.locks.ReentrantReadWriteLock" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="java.net.URLConnection" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectClassesCommand" />
+    <command command-class="de.frag.umlplugin.uml.command.AddExtendingClassesCommand" psi-class="com.sun.grizzly.http.servlet.ServletContextImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.AddExtendedClassesCommand" psi-class="com.sun.grizzly.http.servlet.ServletContextImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectSingleClassCommand" psi-class="javax.servlet.ServletContext" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="javax.servlet.ServletContext" />
+    <command command-class="de.frag.umlplugin.uml.command.RemoveClassCommand" psi-class="javax.servlet.Servlet" />
+    <command command-class="de.frag.umlplugin.uml.command.AddUsingClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiAuthFilter" />
+    <command command-class="de.frag.umlplugin.uml.command.AddFieldClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiAuthFilter" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectSingleClassExtendedCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiAuthFilter" />
+    <command command-class="de.frag.umlplugin.uml.command.AddUsingClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.OSGiAuthFilter" />
+    <compartment-visibility />
+  </diagram>
+</diagrams>
+

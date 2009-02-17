@@ -1,0 +1,85 @@
+<!DOCTYPE network-config SYSTEM "../../main/resources/dtd/grizzly-config.dtd">
+<network-config>
+    <transports>
+        <!-- Transport describes network transport and its properties.-->
+
+        <!-- Optional. Those apply to all transport element-->
+        <selection-key-handler name="defSelectionKeyHandler" classname="com.sun.grizzly.DefaultSelectionKeyHandler"/>
+
+        <!-- Declare new my-tcp transport -->
+        <transport name="my-tcp" classname="com.sun.grizzly.TCPSelectorHandler" enable-snoop="true"
+                   selection-key-handler="defSelectionKeyHandler" read-timeout="5000"  idle-key-timeout="30"/>
+
+        <!-- Overwrite predefined TLS transport settings -->
+        <transport name="tls" selection-key-handler="defSelectionKeyHandler" idle-key-timeout="30"/>
+    </transports>
+    <protocols>
+        <protocol name="http">
+            <protocol-chain-instance-handler>
+                <protocol-chain>
+                    <protocol-filter classname="com.sun.grizzly.filter.HttpProtocolFilter"/>
+                </protocol-chain>
+            </protocol-chain-instance-handler>
+        </protocol>
+        <protocol name="iiop">
+            <protocol-chain-instance-handler>
+                <protocol-chain>
+                    <protocol-filter classname="com.sun.grizzly.filter.IiopProtocolFilter"/>
+                </protocol-chain>
+            </protocol-chain-instance-handler>
+        </protocol>
+        <protocol name="multi-protocols">
+
+            <!-- Optional -->
+            <!-- Port Unification section describes high-level protocols
+                 and there Finders.
+                 Several protocols can share the same listener using port
+                unification mechanism.
+            -->
+            <port-unification>
+                <!-- Mandatory -->
+                <!-- The order is important here. If a Finder is successful The next Finder will not be invoked,
+                     but instead the associated the protocol will be called -->
+                <protocol-finder classname="com.custom.MyHttpFinder" protocol="http">
+                    <property name="someproperty" value="somevalue"/>
+                </protocol-finder>
+                <protocol-finder classname="com.custom.MyIIOPFinder" protocol="iiop">
+                    <property name="someproperty" value="somevalue"/>
+                </protocol-finder>
+            </port-unification>
+        </protocol>
+        <protocol name="https">
+            <property name="-Dcom.sun....maxSelector" value="30"/>
+            <ssl cert-nickname="s1as" client-auth-enabled="false" ssl2-enabled="false" ssl3-enabled="true"
+                tls-enabled="true" key-store="keyStorePath/" trust-store="trustStorePath/" tls-rollback-enabled="true">
+            </ssl>
+            <protocol-chain-instance-handler>
+                <protocol-chain>
+                    <protocol-filter classname="com.sun.grizzly.filter.HttpsProtocolFilter"/>
+                </protocol-chain>
+            </protocol-chain-instance-handler>
+        </protocol>
+    </protocols>
+    <network-listeners>
+        <!-- Listener binds Transport  to the specific port and declares
+	     Protocol(s), listener -->
+        <thread-pool thread-pool-id="defaultThreadPool" classname="com.sun.grizzly.util.DefaultThreadPool"
+                     min-thread-pool-size="2" max-thread-pool-size="5"/>
+        <network-listener name="http-listener" address="localhost" port="8080"
+                          transport="my-tcp" protocol="http"
+                          thread-pool="defaultThreadPool">
+            <!-- Mandatory -->
+            <property name="reuseAddress" value="true"/>
+        </network-listener>
+        <network-listener name="https-listener" port="8181" transport="tls"
+                          protocol="https" thread-pool="defaultThreadPool">
+            <!-- Optional list of properties -->
+            <property name="root" value="${user.home}/"/>
+        </network-listener>
+        <network-listener name="multi-listener" address="localhost" port="8080"
+                          transport="my-tcp" protocol="multi-protocols"
+                          thread-pool="defaultThreadPool">
+            <property name="reuseAddress" value="true"/>
+        </network-listener>
+    </network-listeners>
+</network-config>

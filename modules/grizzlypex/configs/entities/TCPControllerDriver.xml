@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<driver name="TCPControllerDriver" normal="true" xmlns="http://www.sun.com/japex/testSuite">
+    <param name="japex.driverClass" value="com.sun.grizzlypex.GrizzlyControllerDriver"/>
+    <param name="description" value="Grizzly controller TCP driver"/>
+    <param name="protocol" value="TCP"/>
+    <xi:include href="grizzly-classpath.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
+</driver>
