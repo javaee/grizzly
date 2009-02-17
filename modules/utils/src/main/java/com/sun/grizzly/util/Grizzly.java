@@ -47,7 +47,7 @@ public class Grizzly {
 
     private static final int major = 1;
     private static final int minor = 9;
-    private static final int minorMinor = 61;
+    private static final int minorMinor = 6;
     
     
     /**
