@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<paramGroup xmlns="http://www.sun.com/japex/testSuite"> 
-    <param name="japex.classPath" value="./build/classes/"/>    
-    <param name="japex.classPath" value="./lib/*.jar"/>
-</paramGroup>
