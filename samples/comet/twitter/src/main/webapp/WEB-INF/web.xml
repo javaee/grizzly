@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="2.4" xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:j2ee="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee    http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd">
+    
+    <description>Twitter</description>
+    <display-name>Griztter</display-name>
+    <servlet>
+        <description>Twitter Servlet</description>
+        <servlet-name>TwitterServlet</servlet-name>
+        <servlet-class>com.sun.grizzly.samples.comet.TwitterServlet</servlet-class>
+        <init-param>
+            <description>
+                The URL pattern used to register and enable Grizzly Comet long
+                polling support.
+            </description>
+            <param-name>cometUrlPattern</param-name>
+            <param-value>/griztter</param-value>
+        </init-param>    
+        <init-param>    
+            <description>
+                expirationDelay is the long delay before a request is
+                resumed. Default is 600000.
+            </description>
+            <param-name>expirationDelay</param-name>
+            <param-value>600000</param-value>
+        </init-param>
+        <load-on-startup>0</load-on-startup>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>TwitterServlet</servlet-name>
+        <url-pattern>/griztter</url-pattern>
+    </servlet-mapping>
+    <session-config>
+        <session-timeout>9999</session-timeout>
+    </session-config>
+</web-app>

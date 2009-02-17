@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-project</artifactId>
+        <version>1.9.6-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.sun.grizzly.samples</groupId>
+    <artifactId>grizzly-samples</artifactId>
+    <packaging>pom</packaging>
+    <version>${grizzly-version}</version>
+    <name>grizzly-samples</name>
+    <url>https://grizzly.dev.java.net</url>
+    <modules>
+        <module>comet/comet-chat</module>
+        <module>comet/comet-chat-iframe</module>
+        <module>comet/comet-counter</module>
+        <module>comet/comet-jmaki</module>
+        <module>comet/comet-hidden</module>
+        <module>comet/cometd-chat</module>
+        <module>comet/cometd-echo</module>
+        <module>comet/cometd-javaapiupdate-chat</module>
+        <module>comet/twitter</module>
+        <module>grizzlet/chat</module>
+        <module>grizzlet/jmaki</module>
+        <module>messagesbus/messagesbus-jmaki</module>
+        <module>framework/filters-samples</module>
+        <!-- This sample requires JDK6. Comments it out for now
+        <module>framework/nio-migration-guide</module>
+        -->
+        <module>http/http-embed</module>
+        <module>http/multiple-adapter</module>
+    </modules>
+</project>

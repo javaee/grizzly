@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testSuite name="GrizzlyPex" xmlns="http://www.sun.com/japex/testSuite"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+    
+    <param name="japex.warmupTime" value="10"/>
+    <param name="japex.runTime"    value="10"/>
+    
+    <param name="japex.warmupsPerDriver" value="1"/>
+    <param name="japex.runsPerDriver" value="2"/>
+
+    <param name="japex.reportsDirectory" value="./reports/echo"/>
+    
+    <param name="port" value="19999"/>
+    <param name="readThreadsCount" value="0"/>
+    <xi:include href="entities/UDPProtocolEchoDriver.xml"/>
+    <xi:include href="entities/TCPProtocolEchoDriver.xml"/>
+    <xi:include href="entities/SSLProtocolEchoDriver.xml"/>
+    
+    <testCase name="echoOneByte">
+        <param name="size" value="1"/>
+    </testCase>
+
+    <testCase name="echo1K">
+        <param name="size" value="1024"/>
+    </testCase>
+
+    <testCase name="echo8K">
+        <param name="size" value="8192"/>
+    </testCase>
+</testSuite>

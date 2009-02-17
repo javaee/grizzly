@@ -1,0 +1,433 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- boolean -->
+<!--
+  network-config element contains complete Grizzly configuration.
+  Element property: declares public Grizzly configuration properties
+  Element transports: describes low level transports configuration.
+          Like tcp, udp, ssl transports configuration
+  Element protocols: describes higher level protocols like: http, https,
+          iiop
+  Element network-listeners: binds protocols with lower level transports
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" elementFormDefault="qualified">
+  <xs:element name="network-config">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+        <xs:element ref="transports"/>
+        <xs:element ref="protocols"/>
+        <xs:element ref="network-listeners"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="description" type="xs:string"/>
+  <!--
+    property element defines some implementation specific properties, they
+    could be different from implementation to implementation, so it's not
+    possible to define them neither like element nor attribute
+    Attribute name: property name
+    Attribute value: property value
+  -->
+  <xs:element name="property">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" ref="description"/>
+      </xs:sequence>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="value" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    Transports section describes network transports and its properties.
+    Element property: declares network-config public properties
+    Element selection-key-handler: defines public SelectionKey handler,
+            which could be referenced within transport
+    Element transport: defines one specific transport.
+  -->
+  <xs:element name="transports">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="selection-key-handler"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="transport"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    selection-key-handler elements defines transport's SelectionKey handling
+    logic
+    Element property: declares selection-key-handler specific properties
+    Attribute name: SelectionKey handler name, which could be used as
+    	  reference
+    Attribute classname: SelectionKey handler implementation class
+    Attribute idle-key-timeout: timeout, after which idle key will be
+    	  cancelled and channel closed
+  -->
+  <xs:element name="selection-key-handler">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+      </xs:sequence>
+      <xs:attribute name="name"/>
+      <xs:attribute name="classname"/>
+      <xs:attribute name="idle-key-timeout"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    Transport element defines one specific transport and its properties
+    Element property: declares transport specific properties
+    Attribute name: transport's name, which could be used as reference
+    Attribute acceptor-threads: the number of acceptor threads listening
+              for the transport's events events
+    Attribute max-connections-count: the max number of connections
+              the transport should handle at the same time
+    Attribute classname: name of class, which implements transport logic
+    Attribute selection-key-handler: use public SelectionKey handler, which
+              was defined earlier in the document.
+  -->
+  <xs:element name="transport">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+      </xs:sequence>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="acceptor-threads"/>
+      <xs:attribute name="max-connections-count"/>
+      <xs:attribute name="classname"/>
+      <xs:attribute name="selection-key-handler"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    Protocols element contains the description of higher level protocols
+    like: http, https, iiop, etc.
+    Element property: declares properties, associated with the protocols
+            element
+    Element protocol: defines one specific protocol
+  -->
+  <xs:element name="protocols">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="protocol"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    Protocol element defines one single high-level protocol like: http,
+    https, iiop, etc.
+    Element property: declares properties, associated with the protocol
+    Element ssl: protocol security (ssl) configuration.
+    Element port-unification: defines port-unification logic, if it is
+    	required to handle more than one high level protocol on a single
+    	network-listener.
+    Element protocol-chain-instance-handler: protocol chain instance handler
+    	logic.
+    Attribute name: protocol name, which could be used as reference
+    Attribute security-enabled: true means the protocol is secured and ssl
+    	  element will be used to initialize security settings. False means
+    	  that protocol is not secured and ssl element, if present,
+    	  will be ignored.
+    Attribute max-selectors: maximum size of a temporary selector pool,
+    	  used for blocking read/write operations
+    Attribute byte-buffer-type: type of ByteBuffer, which will be used with
+    	  transport. Possible values are: HEAP and DIRECT
+    Attribute read-timeout: read operation timeout
+    Attribute write-timeout: write operation timeout
+    Attribute oob-inline: when the oob-inline option is set, any TCP urgent
+    	  data received on the socket will be received through
+    	  the socket input stream. Boolean attribute, possible
+    	  values are true or false
+  -->
+  <xs:element name="protocol">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+        <xs:element minOccurs="0" ref="ssl"/>
+        <xs:element minOccurs="0" ref="port-unification"/>
+        <xs:element minOccurs="0" ref="protocol-chain-instance-handler"/>
+      </xs:sequence>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="security-enabled" default="false" type="xs:boolean"/>
+      <xs:attribute name="max-selectors"/>
+      <xs:attribute name="byte-buffer-type" default="HEAP">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="HEAP"/>
+            <xs:enumeration value="DIRECT"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="read-timeout"/>
+      <xs:attribute name="write-timeout"/>
+      <xs:attribute name="oob-inline" default="true" type="xs:boolean"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    protocol-chain-instance-handler defines protocol chain instantiation and
+    releasing logic
+    Element property: set of protocol chain instance handler properties
+    Element protocol-chain: defines protocol chain configuration
+    Attribute name: protocol chain instance handler name, which could be used
+              as reference
+    Attribute classname: Protocol chain instance handler implementation class
+  -->
+  <xs:element name="protocol-chain-instance-handler">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+        <xs:element ref="protocol-chain"/>
+      </xs:sequence>
+      <xs:attribute name="name"/>
+      <xs:attribute name="classname"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    protocol-chain element defines the type of protocol chain and
+    describes protocol filters, which will participate in request
+    processing
+    Element property: set of protocol chain properties
+    Element protocol-filter: defines protocol filter sequence, which will
+            process a request.
+    Attribute name: protocol chain name, which could be used as reference
+    Attribute type: protocol chain type. Could be STATEFUL or STATELESS
+  -->
+  <xs:element name="protocol-chain">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="protocol-filter"/>
+      </xs:sequence>
+      <xs:attribute name="name"/>
+      <xs:attribute name="classname"/>
+      <xs:attribute name="type" default="STATELESS">
+        <xs:simpleType>
+          <xs:restriction base="xs:token">
+            <xs:enumeration value="STATELESS"/>
+            <xs:enumeration value="STATEFUL"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    protocol-filter defines single protocol filter in a sequence
+    Element property: properties, associated with the protocol-filter
+    Attribute name: protocol filter name, which could be used as reference
+    Attribute classname: protocol filter implementation class
+  -->
+  <xs:element name="protocol-filter">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+      </xs:sequence>
+      <xs:attribute name="name"/>
+      <xs:attribute name="classname" use="required"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    port-unification defines logic of hosting several protocol on a single
+    tcp port.
+    Element property: set of port-unification properties
+    Element protocol-finder: set of protocol finders, which will be responsible
+            for protocol recognition
+    Attribute name: port-unification name, which could be used as reference
+    Attribute property: set of port-unification properties
+    Attribute classname: port unification logic implementation class
+  -->
+  <xs:element name="port-unification">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="protocol-finder"/>
+      </xs:sequence>
+      <xs:attribute name="name"/>
+      <xs:attribute name="classname"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    protocol-finder describes a protocol finder/recognizer, which is able to
+    recognize whether incoming request belongs to the specific protocol
+    or not. If yes - protocol-finder forwards request processing to a
+    specific protocol.
+    Element property: set of finder properties
+    Attribute name: finder name, which could be used as reference
+    Attribute protocol: reference to a protocol, which was defined before.
+    Attribute classname: finder logic implementation class
+  -->
+  <xs:element name="protocol-finder">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+      </xs:sequence>
+      <xs:attribute name="name"/>
+      <xs:attribute name="protocol"/>
+      <xs:attribute name="classname"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    ssl
+      Define SSL processing parameters
+    
+    attributes
+      name
+    
+          name of this SSL configuration
+      cert-nickname
+    
+          nickname of the server certificate in the certificate
+          database or the PKCS#11 token. In the certificate, the name
+          format is tokenname:nickname. Including the tokenname: part
+          of the name in this attribute is optional.
+      client-auth-enabled
+    
+          Determines whether SSL3 client authentication is performed on
+          every request, independent of ACL-based access control.
+      ssl2-ciphers
+    
+          A comma-separated list of the SSL2 ciphers used, with the
+          prefix + to enable or - to disable, for example +rc4. Allowed
+          values are rc4, rc4export, rc2, rc2export, idea, des,
+          desede3. If no value is specified, all supported ciphers are
+          assumed to be enabled. NOT Used in PE
+      ssl2-enabled
+    
+          Determines whether SSL2 is enabled. NOT Used in PE. SSL2 is
+          not supported by either iiop or web-services. When this
+          element is used as a child of the iiop-listener element then
+          the only allowed value for this attribute is "false".
+      ssl3-enabled
+    
+          Determines whether SSL3 is enabled.
+    
+          If both SSL2 and SSL3 are enabled for a virtual server, the server
+    
+          tries SSL3 encryption first. If that fails, the server tries SSL2
+    
+          encryption.
+    
+    
+      ssl3-tls-ciphers
+    
+          A comma-separated list of the SSL3 ciphers used, with the
+          prefix + to enable or - to disable, for example
+          +SSL_RSA_WITH_RC4_128_MD5. Allowed SSL3/TLS values are those
+          that are supported by the JVM for the given security provider
+          and security service configuration. If no value is specified,
+          all supported ciphers are assumed to be enabled.
+      tls-enabled
+    
+          Determines whether TLS is enabled.
+      tls-rollback-enabled
+    
+          Determines whether TLS rollback is enabled. TLS rollback
+          should be enabled for Microsoft Internet Explorer 5.0 and
+          5.5. NOT Used in PE
+    
+    Used in:
+      http-listener, iiop-listener, jmx-connector, ssl-client-config
+  -->
+  <xs:element name="ssl">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+      </xs:sequence>
+      <xs:attribute name="name"/>
+      <xs:attribute name="cert-nickname" use="required"/>
+      <xs:attribute name="ssl2-enabled" default="false" type="xs:boolean"/>
+      <xs:attribute name="ssl2-ciphers"/>
+      <xs:attribute name="ssl3-enabled" default="true" type="xs:boolean"/>
+      <xs:attribute name="ssl3-tls-ciphers"/>
+      <xs:attribute name="tls-enabled" default="true" type="xs:boolean"/>
+      <xs:attribute name="tls-rollback-enabled" default="true" type="xs:boolean"/>
+      <xs:attribute name="client-auth-enabled" default="false" type="xs:boolean"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    network-listeners element contains set of network-listener, which bind
+    protocol to a specific endpoint to listen on
+    Element property: set of properties, common for all network-listeners
+    Element thread-pool: defines public thread-pool(s), which could be
+                         referenced within network-listener element(s)
+    Element network-listener: declares one single network-listener
+  -->
+  <xs:element name="network-listeners">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="thread-pool"/>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="network-listener"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    network-listener element binds protocol to a specific endpoint to listen on
+    Element property: set of network-listener properties
+    Attribute name: network-listener name, which could be used as reference
+    Attribute transport: reference to a low-level transport
+    Attribute protocol: reference to a protocol
+    Attribute thread-pool: reference to a thread-pool, defined earlier
+              in the document.
+    Attribute host: IP address to listen on
+    Attribute port: port to listen on
+  -->
+  <xs:element name="network-listener">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+      </xs:sequence>
+      <xs:attribute name="name" use="required"/>
+      <xs:attribute name="transport" use="required"/>
+      <xs:attribute name="protocol" use="required"/>
+      <xs:attribute name="thread-pool"/>
+      <xs:attribute name="address"/>
+      <xs:attribute name="port"/>
+    </xs:complexType>
+  </xs:element>
+  <!--
+    thread-pool
+    
+    attributes
+      idle-thread-timeout-in-seconds
+          idle threads are removed from pool, after this time
+      max-thread-pool-size
+          Maximum number of threads in the threadpool servicing
+          requests in this queue. This is the upper bound on the no. of
+          threads that exist in the threadpool.
+      min-thread-pool-size
+          Minimum number of threads in the threadpool servicing
+          requests in this queue. These are created up front when this
+          threadpool is instantiated
+      thread-increment
+          The increment in the no of threads when all available threads are
+          consumed and total number of consumed threads is less than
+          max-thread-pool-size
+      num-work-queues
+          This denotes the total number of work queues that are
+          serviced by this threadpool.
+      thread-pool-id
+          This is an id for the work-queue e.g. "thread-pool-1",
+          "thread-pool-2" etc
+      max-queue-size
+          The maxim number of tasks, which could be queued on the thread pool
+      classname
+          the classname of a thread pool implementation
+    
+    Used in:
+      thread-pools
+  -->
+  <xs:element name="thread-pool">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element minOccurs="0" maxOccurs="unbounded" ref="property"/>
+      </xs:sequence>
+      <xs:attribute name="thread-pool-id" use="required"/>
+      <xs:attribute name="min-thread-pool-size" default="0"/>
+      <xs:attribute name="max-thread-pool-size" default="200"/>
+      <xs:attribute name="thread-increment" default="10"/>
+      <xs:attribute name="idle-thread-timeout-in-seconds" default="120"/>
+      <xs:attribute name="num-work-queues" default="1"/>
+      <xs:attribute name="max-queue-size" default="-1"/>
+      <xs:attribute name="classname"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

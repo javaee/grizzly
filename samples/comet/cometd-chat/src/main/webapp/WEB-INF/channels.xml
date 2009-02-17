@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE properties SYSTEM "http://java.sun.com/dtd/properties.dtd">
+<properties>
+	<entry key="/meta/handshake">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.meta.MetaHandshakeChannel</entry>
+	<entry key="/meta/reconnect">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.meta.MetaReconnectChannel</entry>
+	<entry key="/meta/connect">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.meta.MetaConnectChannel</entry>
+	<entry key="/meta/subscribe">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.meta.MetaSubscribeChannel</entry>
+	<entry key="/meta/unsubscribe">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.meta.MetaUnsubscribeChannel</entry>
+	<entry key="/meta/disconnect">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.meta.MetaDisconnectChannel</entry>
+	<entry key="/meta/status">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.meta.MetaStatusChannel</entry>
+	<entry key="/meta/ping">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.meta.MetaPingChannel</entry>
+	
+	<entry key="/chat/demo">com.sun.enterprise.web.connector.grizzly.cometd.bayeux.DefaultChannel</entry>
+</properties>

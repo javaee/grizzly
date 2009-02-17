@@ -1,0 +1,5 @@
+To test the sample, just do:
+
+% java -jar target/grizzly....jar -p 8080 -a /tmp
+
+

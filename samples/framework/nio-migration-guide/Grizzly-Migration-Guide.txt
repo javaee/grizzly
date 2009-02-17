@@ -1,0 +1,2 @@
+This tutorial can be browsed online:
+http://www.sebastiendionne.ca/grizzly/grizzly-migration-guide-part-1.html

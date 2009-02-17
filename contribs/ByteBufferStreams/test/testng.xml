@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+    Document   : testng.xml.xml
+    Created on : September 17, 2008, 3:12 PM
+    Author     : ken
+    Description:
+        TestNG configutration file for running tests.
+-->
+
+<!DOCTYPE suite SYSTEM 'http://testng.org/testng-1.0.dtd'>
+<suite name="ByteStreamsTestSuite" verbose="1">
+    <test name="StreamsTest">
+        <classes>
+            <class name="org.glassfish.grizzly.bbs.test.AllocatorTest"/>
+            <class name="org.glassfish.grizzly.bbs.test.ByteBufferTest"/>
+        </classes>
+    </test>
+</suite>

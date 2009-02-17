@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-project</artifactId>
+        <version>1.9.6-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.sun.grizzly</groupId>
+    <artifactId>grizzly-http-servlet</artifactId>
+    <packaging>bundle</packaging>
+    <version>${grizzly-version}</version>
+    <name>grizzly-http-servlet</name>
+    <url>https://grizzly.dev.java.net</url>
+    <build>
+        <defaultGoal>install</defaultGoal>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Import-Package>*</Import-Package>
+                        <Export-Package>com.sun.grizzly.http.servlet.*</Export-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-utils</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>${servlet-version}</version>
+        </dependency>
+    </dependencies>
+</project>

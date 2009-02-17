@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<diagrams>
+  <diagram name="HttpServiceImpl">
+    <command command-class="de.frag.umlplugin.uml.command.AddClassCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.AddUsingClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceImpl" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectClassesUsedCommand" />
+    <command command-class="de.frag.umlplugin.uml.command.ConnectClassesExtendedCommand" />
+    <command command-class="de.frag.umlplugin.uml.command.AddDependentClassesCommand" psi-class="com.sun.grizzly.osgi.httpservice.HttpServiceImpl" />
+    <compartment-visibility />
+  </diagram>
+</diagrams>
+

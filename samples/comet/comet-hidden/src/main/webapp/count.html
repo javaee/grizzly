@@ -1,0 +1,19 @@
+<html>
+  <head>
+    <script type='text/javascript'>
+      function updateCount(c) {
+        document.getElementById('count').innerHTML = c;
+        // comment location.href if it is Http Streaming 
+        parent.hidden.location.href = "hidden_comet";
+      };
+    </script>
+  </head>
+  <body>
+    <center>
+      <h3>Comet Example: Counter with Hidden Frame</h3>
+      <p>
+      <b id="count">&nbsp;</b>
+      <p>
+    </center>
+  </body>
+</html>

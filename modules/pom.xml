@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-project</artifactId>
+        <version>1.9.6-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.sun.grizzly</groupId>
+    <artifactId>grizzly-modules</artifactId>
+    <packaging>pom</packaging>
+    <version>${grizzly-version}</version>
+    <name>grizzly-modules</name>
+    <url>https://grizzly.dev.java.net</url>
+    <modules>
+        <module>utils</module>
+        <module>grizzly</module>
+        <module>rcm</module>
+        <module>http-servlet</module>
+        <module>http</module>
+        <module>comet</module>
+        <module>cometd</module>
+        <module>portunif</module>
+        <module>compat</module>
+        <module>grizzlet</module>
+        <module>messages-bus</module>
+        <module>bundles</module>
+    </modules>
+</project>

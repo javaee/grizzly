@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testSuite name="GrizzlyPex" xmlns="http://www.sun.com/japex/testSuite"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+    
+    <param name="japex.warmupIterations" value="2"/>
+    <param name="japex.runIterations" value="10"/>
+    
+    <param name="japex.warmupsPerDriver" value="1"/>
+    <param name="japex.runsPerDriver" value="2"/>
+
+    <param name="japex.reportsDirectory" value="./reports/controller"/>
+    
+    <param name="japex.resultUnit" value="ms"/>
+
+    <param name="port" value="19999"/>
+    <param name="readThreadsCount" value="0"/>
+    <xi:include href="entities/UDPControllerDriver.xml"/>
+    <xi:include href="entities/TCPControllerDriver.xml"/>
+    <xi:include href="entities/SSLControllerDriver.xml"/>
+    
+    <testCase name="startController">
+        <param name="methodName" value="startController"/>
+    </testCase>
+
+    <testCase name="readyController">
+        <param name="methodName" value="readyController"/>
+    </testCase>
+
+    <testCase name="stopController">
+        <param name="methodName" value="stopController"/>
+    </testCase>
+</testSuite>
