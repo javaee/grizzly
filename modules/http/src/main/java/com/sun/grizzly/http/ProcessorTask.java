@@ -701,9 +701,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             }
           
             WorkerThread workerThread = (WorkerThread)Thread.currentThread();
-            workerThread.getAttachment().setTimeout(transactionTimeout
-                    + System.currentTimeMillis());
-            
+            KeepAliveThreadAttachment k = 
+                    (KeepAliveThreadAttachment) workerThread.getAttachment();
+            k.setActiveThreadTimeout(transactionTimeout);
+
             inputBuffer.parseHeaders();
         
             if ( SelectorThread.isEnableNioLogging() ){                               

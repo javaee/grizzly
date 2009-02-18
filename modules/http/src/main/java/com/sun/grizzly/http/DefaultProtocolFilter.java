@@ -140,8 +140,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
 
             KeepAliveThreadAttachment k = (KeepAliveThreadAttachment)
                     workerThread.getAttachment();
-            k.setTimeout(processorTask.getTransactionTimeout() 
-                    + System.currentTimeMillis());
+            k.setTimeout(System.currentTimeMillis());
             KeepAliveStats ks = selectorThread.getKeepAliveStats();
             k.setKeepAliveStats(ks);
             

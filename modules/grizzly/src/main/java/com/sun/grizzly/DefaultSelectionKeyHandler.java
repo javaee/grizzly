@@ -256,7 +256,7 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
      * 
      * @param {@link SelectionKey}
      */
-    private void addExpirationStamp(SelectionKey key) {
+    protected void addExpirationStamp(SelectionKey key) {
         long currentTime = System.currentTimeMillis();
         Object attachment = key.attachment();
         if (attachment == null) {
