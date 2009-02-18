@@ -45,6 +45,7 @@
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
             <version>${grizzly-version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
