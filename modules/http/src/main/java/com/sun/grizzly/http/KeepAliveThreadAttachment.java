@@ -46,9 +46,6 @@ import com.sun.grizzly.util.ThreadAttachment;
  * @author Jeanfrancois Arcand
  */
 public class KeepAliveThreadAttachment extends ThreadAttachment{
-    
-    private long idleTimeout = Long.MIN_VALUE;
-    
     private int keepAliveCount = 0;
     
      /**
@@ -91,12 +88,4 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
         keepAliveCount = 0;
     }
 
-    @Override
-    public long getIdleTimeoutDelay(){
-        return idleTimeout;
-    }   
-    
-    public void setIdleTimeoutDelay(long idleTimeout){
-        this.idleTimeout = idleTimeout;
-    } 
 }
