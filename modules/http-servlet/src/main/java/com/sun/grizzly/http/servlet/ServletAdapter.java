@@ -314,19 +314,20 @@ public class ServletAdapter extends GrizzlyAdapter {
             }
         
             if (servletInstance == null){
-               String servletClassName = System.getProperty("com.sun.grizzly.servletClass");
+                String servletClassName = System.getProperty("com.sun.grizzly.servletClass");
                 if (servletClassName != null) {
                     servletInstance = (Servlet)ClassLoaderUtil.load(servletClassName);
                 }
 
-                if (servletInstance == null) {
-                    throw new RuntimeException("Invalid Servlet defined");
-                }                                              
-                logger.info("Loading Servlet: " + servletInstance.getClass().getName());                    
+                if (servletInstance != null) {                                       
+                    logger.info("Loading Servlet: " + servletInstance.getClass().getName());  
+                }
             }
 
-            servletInstance.init(servletConfig);
-            filterChain.setServlet(servletConfig, servletInstance);
+            if (servletInstance != null){
+                servletInstance.init(servletConfig);
+            }
+            filterChain.setServlet(servletConfig, servletInstance);           
             filterChain.init();
  
             filterChainConfigured = true;
