@@ -17,8 +17,8 @@
         <module>utils</module>
         <module>grizzly</module>
         <module>rcm</module>
-        <module>http-servlet</module>
         <module>http</module>
+        <module>http-servlet</module>
         <module>comet</module>
         <module>cometd</module>
         <module>portunif</module>
