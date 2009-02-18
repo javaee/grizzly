@@ -51,11 +51,5 @@
             <artifactId>grizzly-portunif</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-http-servlet</artifactId>
-            <version>${grizzly-version}</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 </project>

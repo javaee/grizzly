@@ -255,7 +255,7 @@ public class IdleHttpThreadTest extends TestCase {
     }
     
     public void testKillLoopingWhileThread() throws IOException {
-        System.out.println("Test: testKillIdleThread");
+        System.out.println("Test: testKillLoopingWhileThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
         String response = testString;
