@@ -46,14 +46,10 @@ import com.sun.grizzly.tcp.Constants;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.ClassLoaderUtil;
-import com.sun.grizzly.util.ExpandJar;
 import com.sun.grizzly.util.IntrospectionUtils;
 import com.sun.grizzly.util.http.Cookie;
 
-import java.io.File;
 import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
