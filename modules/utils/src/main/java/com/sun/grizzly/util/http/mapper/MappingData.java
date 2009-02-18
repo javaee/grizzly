@@ -51,7 +51,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
 package com.sun.grizzly.util.http.mapper;
 
 import com.sun.grizzly.util.buf.MessageBytes;
@@ -70,12 +69,10 @@ public class MappingData {
     // START GlassFish 1024
     public boolean isDefaultContext = false;
     // END GlassFish 1024
-
     public MessageBytes contextPath = MessageBytes.newInstance();
     public MessageBytes requestPath = MessageBytes.newInstance();
     public MessageBytes wrapperPath = MessageBytes.newInstance();
     public MessageBytes pathInfo = MessageBytes.newInstance();
-
     public MessageBytes redirectPath = MessageBytes.newInstance();
 
     public void recycle() {
@@ -90,7 +87,20 @@ public class MappingData {
         jspWildCard = false;
         // START GlassFish 1024
         isDefaultContext = false;
-        // END GlassFish 1024
+    // END GlassFish 1024
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("host: " + host);
+        sb.append("\ncontext: " + context);
+        sb.append("\nwrapper: " + wrapper);
+        sb.append("\ncontextPath: " + contextPath);
+        sb.append("\nrequestPath: " + requestPath);
+        sb.append("\nwrapperPath: " + wrapperPath);
+        sb.append("\npathInfo: " + pathInfo);
+        sb.append("\nredirectPath: " + redirectPath);
+        return sb.toString();
+    }
 }
