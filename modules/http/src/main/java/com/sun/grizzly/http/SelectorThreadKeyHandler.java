@@ -45,6 +45,7 @@ import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import java.nio.channels.SelectionKey;
 import java.util.Iterator;
+import java.util.logging.Level;
 
 /**
  * Default HTTP {@link SelectionKeyHandler} implementation
@@ -79,7 +80,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                 return;
             }
             KeepAliveThreadAttachment k = (KeepAliveThreadAttachment)attachment;
-            k.setTimeout(currentTime + System.currentTimeMillis());    
+            k.setTimeout(currentTime);    
         } else if (attachment == null) {
             key.attach(currentTime);
         }   
@@ -91,7 +92,8 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
        if (key == null) return;
        Object attachment = key.attachment();
        if (attachment instanceof KeepAliveThreadAttachment) {
-            ((KeepAliveThreadAttachment)attachment).resetKeepAliveCount();
+           KeepAliveThreadAttachment k = (KeepAliveThreadAttachment)attachment;
+           k.resetKeepAliveCount();
        }
        super.cancel(key);
     }
@@ -124,12 +126,20 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                 long expire = getExpirationStamp(attachment);
                 if (expire == Long.MIN_VALUE)
                     continue;
-                long idleLimit;
-                if (attachment instanceof SelectionKeyAttachment){
-                    idleLimit = ((SelectionKeyAttachment) attachment).getIdleTimeoutDelay();
-                    if (idleLimit == Long.MIN_VALUE) {
-                        //this is true when attachment class dont have idletimeoutdelay configured.
-                        idleLimit = timeout;
+                
+                long idleLimit, activeThreadTimeout;
+                if (attachment instanceof KeepAliveThreadAttachment){
+                    activeThreadTimeout = ((KeepAliveThreadAttachment) attachment)
+                            .getActiveThreadTimeout();
+                    
+                    if (activeThreadTimeout != Long.MIN_VALUE) {
+                        idleLimit = activeThreadTimeout;
+                    }  else {                 
+                        idleLimit = ((SelectionKeyAttachment) attachment).getIdleTimeoutDelay();
+                        if (idleLimit == Long.MIN_VALUE) {
+                            //this is true when attachment class dont have idletimeoutdelay configured.
+                            idleLimit = timeout;
+                        }
                     }
                 } else {
                     idleLimit = timeout;
@@ -137,19 +147,30 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                 if (idleLimit == -1){
                     continue;
                 }
-                
+ 
                 if (currentTime - expire >= idleLimit) {
                     if (attachment instanceof Response.ResponseAttachment) {
                         ((ResponseAttachment) attachment).timeout();
                         key.attach(null);
                         continue;
                     }
+
+                    if (attachment instanceof KeepAliveThreadAttachment) {
+                        KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) attachment;
+                        if (k.activeThread() != null) {
+                            if (logger.isLoggable(Level.WARNING)) {
+                                logger.log(Level.WARNING, "Interrupting idle Thread: "
+                                        + k.activeThread().getName());
+                            }
+                            k.activeThread().interrupt();
+                        }
+                    }
                     cancel(key);
                 }
             }
         }
     }
-
+    
 
     /**
      * Gets expiration timeout stamp from the {@link SelectionKey}

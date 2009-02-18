@@ -41,11 +41,13 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.util.ThreadAttachment;
 
 /**
- * Add keep alibe counting mechanism to the {@link ThreadAttachement}.
+ * Add keep alive counting mechanism to the {@link ThreadAttachement}.
  * 
  * @author Jeanfrancois Arcand
  */
 public class KeepAliveThreadAttachment extends ThreadAttachment{
+    
+    private long idleTimeout = Long.MIN_VALUE;
     
     private int keepAliveCount = 0;
     
@@ -53,7 +55,6 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
      * The stats object used to gather statistics.
      */
     private KeepAliveStats keepAliveStats;
-    
     
     
     /**
@@ -92,6 +93,10 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
 
     @Override
     public long getIdleTimeoutDelay(){
-        return getTimeout();
-    }    
+        return idleTimeout;
+    }   
+    
+    public void setIdleTimeoutDelay(long idleTimeout){
+        this.idleTimeout = idleTimeout;
+    } 
 }

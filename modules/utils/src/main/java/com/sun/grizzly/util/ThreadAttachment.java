@@ -53,6 +53,11 @@ import javax.net.ssl.SSLEngine;
  */
 public class ThreadAttachment extends SelectionKeyActionAttachment 
         implements AttributeHolder {
+    
+    /**
+     * The maximum time this object can be associated with an active {@link Thread}
+     */
+    private long activeThreadTimeout;
 
     public static class Mode {
         public static int ATTRIBUTES_ONLY = 0;
@@ -67,7 +72,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     
     private ReentrantLock threadLock = new ReentrantLock();
     
-    private String threadId;
+    private String threadName;
     
     
     private Map<String, Object> attributes; 
@@ -98,6 +103,12 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
      */
     private int mode;
 
+    
+    /**
+     * The current {@link ThreadFactory} used to execute this instance.
+     */
+    private Thread activeThread = null;
+    
     
     public ThreadAttachment(){
         attributes = new HashMap<String,Object>();
@@ -208,15 +219,15 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
      * Return the name of the Thread on which this instance is binded.
      */
     public String getThreadId() {
-        return threadId;
+        return threadName;
     }
 
     
     /**
      * Set the Thread's name on which this instance is binded.
      */
-    public void setThreadId(String threadId) {
-        this.threadId = threadId;
+    public void setThreadId(String threadName) {
+        this.threadName = threadName;
     }
 
     /**
@@ -224,7 +235,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
      */
     public void associate() {
         if (!threadLock.isHeldByCurrentThread()) {
-            threadLock.lock();
+            threadLock.lock();            
         }
     }
 
@@ -234,6 +245,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     public void deassociate() {
         if (threadLock.isHeldByCurrentThread()) {
             threadLock.unlock();
+            activeThread = null;
         }
     }
 
@@ -258,7 +270,8 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         byteBuffer = null;
         sslEngine = null;
         inputBB = null;
-        outputBB = null;        
+        outputBB = null;      
+        activeThreadTimeout = Long.MIN_VALUE;
     }
     
     @Override
@@ -274,7 +287,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     public String toString() {
         StringBuilder sb = new StringBuilder(256);
         sb.append("ThreadAttachment[mode=").append(mode);
-        sb.append(", threadId=").append(threadId);
+        sb.append(", threadName=").append(threadName);
         sb.append(", byteBuffer=").append(byteBuffer);
         sb.append(", sslEngine=").append(sslEngine);
         sb.append(", inputBB=").append(inputBB);
@@ -282,5 +295,32 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         sb.append(", attributes=").append(attributes);
         sb.append(']');
         return sb.toString();
+    }
+    
+    /**
+     * Return the current {@link Thread} which is executing this object.
+     * @return the current {@link Thread} which is executing this object.
+     */
+    public Thread activeThread(){
+        return activeThread;
+    }
+    
+    /**
+     * Set the time, in milliseconds, this object can be attached to a {@link Thread}
+     * @param the time, in milliseconds, this object can be attached to a {@link Thread}
+     */
+    public void setActiveThreadTimeout(long activeThreadTimeout){
+        this.activeThreadTimeout = activeThreadTimeout;
+        
+        // As soon as we get invoked we grab the Thread
+        activeThread= Thread.currentThread();
+    }
+    
+    /**
+     * Return the time, in milliseconds, this object can be attached to a {@link Thread}
+     * @return the time, in milliseconds, this object can be attached to a {@link Thread}
+     */  
+    public long getActiveThreadTimeout(){
+        return activeThreadTimeout;
     }
 }
