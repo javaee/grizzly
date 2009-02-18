@@ -967,10 +967,15 @@ public class Mapper {
             if (!checkWelcomeFiles) {
                 char[] buf = path.getBuffer();
                 checkWelcomeFiles = (buf[pathEnd - 1] == '/');
+            System.out.println(new String(buf));
+ 
             }
+                       System.out.println("checkWelcomeFiles: " + checkWelcomeFiles);
+ 
             if (checkWelcomeFiles) {
                 for (int i = 0; (i < context.welcomeResources.length)
                          && (mappingData.wrapper == null); i++) {
+                    System.out.println("-1-");
                     path.setOffset(pathOffset);
                     path.setEnd(pathEnd);
                     path.append(context.welcomeResources[i], 0,
@@ -1015,11 +1020,13 @@ public class Mapper {
                                 mappingData.wrapperPath.setString(pathStr);
                             }
                         }
-                    }
+                    } 
                 }
 
                 path.setOffset(servletPath);
                 path.setEnd(pathEnd);
+            } else {
+                           Thread.dumpStack();
             }
                                         
         }
