@@ -53,8 +53,7 @@ import java.util.logging.Logger;
 /**
  * Basic Response.setHeader test.
  *
- * @author Hubert Iwaniuk
- * @since Jan 22, 2009
+ * @author Jeanfrancois Arcand
  */
 public class SetHeaderTest extends TestCase {
 
