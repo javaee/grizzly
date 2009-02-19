@@ -289,6 +289,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         sb.append("ThreadAttachment[mode=").append(mode);
         sb.append(", threadName=").append(threadName);
         sb.append(", byteBuffer=").append(byteBuffer);
+        sb.append(", timeout=").append(getTimeout());
         sb.append(", sslEngine=").append(sslEngine);
         sb.append(", inputBB=").append(inputBB);
         sb.append(", outputBB=").append(outputBB);
