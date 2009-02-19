@@ -121,7 +121,7 @@ public class IdleHttpThreadTest extends TestCase {
         System.out.println("Test: testKillIdleThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
-        String response = testString;
+        String response = "";
         
         try {
             createSelectorThread();
@@ -134,6 +134,10 @@ public class IdleHttpThreadTest extends TestCase {
                         Thread.currentThread().join();
                     } catch (Throwable t) {
                         t.printStackTrace();
+                    } finally {
+                        ByteChunk bc = new ByteChunk();
+                        bc.append(testString.getBytes(), 0, testString.length());
+                        res.doWrite(bc);
                     }
                 }
 
@@ -173,14 +177,13 @@ public class IdleHttpThreadTest extends TestCase {
 
                 while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    if (line.length() > 1)
-                        response = line;
+                    response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
                 System.out.println("Timeout!");                
             }
-            assertEquals(testString, response);
+            assertNotSame(testString, response);
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
@@ -259,7 +262,7 @@ public class IdleHttpThreadTest extends TestCase {
         System.out.println("Test: testKillLoopingWhileThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
-        String response = testString;
+        String response = "";
         
         try {
             createSelectorThread();
@@ -274,6 +277,10 @@ public class IdleHttpThreadTest extends TestCase {
                         }
                     } catch (Throwable t) {
                         t.printStackTrace();
+                    } finally {
+                        ByteChunk bc = new ByteChunk();
+                        bc.append(testString.getBytes(), 0, testString.length());
+                        res.doWrite(bc);
                     }
                 }
 
@@ -313,14 +320,13 @@ public class IdleHttpThreadTest extends TestCase {
 
                 while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    if (line.length() > 1)
-                        response = line;
+                    response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
                 System.out.println("Timeout!");                
             }
-            assertEquals(testString, response);
+            assertNotSame(testString, response);
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
@@ -331,7 +337,7 @@ public class IdleHttpThreadTest extends TestCase {
         System.out.println("Test: testKillBlockingQueueThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
-        String response = testString;
+        String response = "";
         
         try {
             createSelectorThread();
@@ -344,6 +350,10 @@ public class IdleHttpThreadTest extends TestCase {
                         q.take();
                     } catch (Throwable t) {
                         t.printStackTrace();
+                    } finally {
+                        ByteChunk bc = new ByteChunk();
+                        bc.append(testString.getBytes(), 0, testString.length());
+                        res.doWrite(bc);
                     }
                 }
 
@@ -383,14 +393,13 @@ public class IdleHttpThreadTest extends TestCase {
 
                 while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    if (line.length() > 1)
-                        response = line;
+                    response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
                 System.out.println("Timeout!");                
             }
-            assertEquals(testString, response);
+            assertNotSame(testString, response);
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
