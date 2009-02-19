@@ -173,7 +173,8 @@ public class IdleHttpThreadTest extends TestCase {
 
                 while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    response = line;
+                    if (line.length() > 1)
+                        response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
@@ -312,7 +313,8 @@ public class IdleHttpThreadTest extends TestCase {
 
                 while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    response = line;
+                    if (line.length() > 1)
+                        response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
@@ -381,7 +383,8 @@ public class IdleHttpThreadTest extends TestCase {
 
                 while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    response = line;
+                    if (line.length() > 1)
+                        response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
