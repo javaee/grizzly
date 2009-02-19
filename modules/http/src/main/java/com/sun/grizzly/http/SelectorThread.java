@@ -289,13 +289,7 @@ public class SelectorThread implements Runnable, MBeanRegistration{
      * Number of seconds before idle keep-alive connections expire
      */
     protected int keepAliveTimeoutInSeconds = 30;
-    
-    
-    /**
-     * Recycle the {@link Task} after running them
-     */
-    protected boolean recycleTasks = Constants.DEFAULT_RECYCLE;
-    
+        
     
     /**
      * The {@link Selector} timeout value. By default, it is set to 60000
@@ -934,7 +928,6 @@ public class SelectorThread implements Runnable, MBeanRegistration{
         task.setMaxHttpHeaderSize(maxHttpHeaderSize);
         task.setBufferSize(requestBufferSize);
         task.setSelectorThread(this);               
-        task.setRecycle(recycleTasks);
         task.setDefaultResponseType(defaultResponseType);
         task.setForcedRequestType(forcedRequestType);
         task.setMaxPostSize(maxPostSize);
@@ -977,9 +970,7 @@ public class SelectorThread implements Runnable, MBeanRegistration{
      */
     public ProcessorTask getProcessorTask(){
         ProcessorTask processorTask = null;
-        if (recycleTasks) {
-            processorTask = processorTasks.poll();
-        }
+        processorTask = processorTasks.poll();
         
         if (processorTask == null){
             processorTask = newProcessorTask(false);

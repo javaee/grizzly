@@ -293,7 +293,7 @@ public class CometContext<E> {
         CometTask cometTask = new CometTask();
         cometTask.setCometContext(this);
         cometTask.setCometHandler(handler);
-        cometTask.setRecycle(alreadySuspended);
+        cometTask.setSuspended(alreadySuspended);
         CometEngine.updatedContexts.set(cometTask);
         
         return handler.hashCode();

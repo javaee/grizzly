@@ -371,8 +371,8 @@ public class CometEngine {
         CometTask cometTask = updatedContexts.get();
         if (cometTask != null) {
             updatedContexts.set(null);
-            if (cometTask.isRecycle()){  //alreadySuspended)
-                cometTask.setRecycle(false);
+            if (cometTask.isSuspended()){  //alreadySuspended)
+                cometTask.setSuspended(false);
                 cometTask.getCometContext().addActiveHandler(cometTask.getCometHandler(), dumykey);
                 return false;
             }
