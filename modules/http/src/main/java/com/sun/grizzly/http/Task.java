@@ -67,13 +67,6 @@ public interface Task extends Runnable, Callable{
      */
     public void doTask() throws IOException;
 
-
-    /**
-     * Cancel the task.
-     */
-    public void cancelTask(String message, String httpCode);
-
-
     /**
      * Set the {@link SelectionKey}
      */
@@ -112,24 +105,6 @@ public interface Task extends Runnable, Callable{
      */
     public void setSelectorHandler(SelectorHandler selectorHandler);
 
-    /**
-     * Gets the {@link RequestGroupInfo} from this task.
-     */    
-    public RequestGroupInfo getRequestGroupInfo();
-
-
-    /**
-     * Returns <tt>true</tt> if monitoring has been enabled, false
-     * otherwise.
-     */
-    public boolean isMonitoringEnabled();
-
-
-    /**
-     * Gets the <code>KeepAliveStats</code> associated with this task.
-     */
-    public KeepAliveStats getKeepAliveStats();
-
     
     /**
      * Execute this task by using the associated {@link ExecutorService}.
@@ -143,18 +118,7 @@ public interface Task extends Runnable, Callable{
      * Recycle this task.
      */
     public void recycle();
-    
-   /**
-     * Recycle the Task after every doTask invokation.
-     */
-    public void setRecycle(boolean recycle);
-
-
-    /**
-     * Return <tt>true</tt> if this {@link Task} will be recycled.
-     */
-    public boolean getRecycle();
-
+        
     
     /**
      * Set the thread pool on which Worker Threads will synchronize.

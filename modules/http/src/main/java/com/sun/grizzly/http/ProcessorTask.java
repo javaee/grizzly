@@ -55,7 +55,6 @@ package com.sun.grizzly.http;
 
 
 import com.sun.grizzly.arp.AsyncHandler;
-import com.sun.grizzly.arp.AsynchronousOutputBuffer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InterruptedIOException;
@@ -64,8 +63,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
 import java.util.logging.Level;
 
 import com.sun.grizzly.tcp.ActionCode;
@@ -534,14 +531,14 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     protected void configPreProcess() throws Exception {
                    
-        if( isMonitoringEnabled() 
+        if(selectorThread.isMonitoringEnabled() 
                 && !hasRequestInfoRegistered ) {
             registerMonitoring();
-        } else if (!isMonitoringEnabled() && hasRequestInfoRegistered) {
+        } else if (!selectorThread.isMonitoringEnabled() && hasRequestInfoRegistered) {
             unregisterMonitoring();
         } 
         
-        if (isMonitoringEnabled()) {
+        if (selectorThread.isMonitoringEnabled()) {
             requestInfo = request.getRequestProcessor();
             requestInfo.setWorkerThreadID(Thread.currentThread().getId());
         }
@@ -589,12 +586,12 @@ public class ProcessorTask extends TaskBase implements Processor,
             WorkerThread wt = (WorkerThread)Thread.currentThread();
             wt.getAttachment().setAttribute("suspend",Boolean.TRUE);
 
-            ((SelectorThreadKeyHandler) selectorHandler.getSelectionKeyHandler()).resetExpiration();
+            ((SelectorThreadKeyHandler) selectorHandler.
+                    getSelectionKeyHandler()).resetExpiration();
             key.attach(response.getResponseAttachment());
              
             return;
-        }
-        
+        }        
         
         try {
             adapter.afterService(request,response);
@@ -635,7 +632,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             response.setStatus(500);
         }
         
-        if (isMonitoringEnabled()) {
+        if (selectorThread.isMonitoringEnabled()) {
             request.updateCounters();            
         }
         
@@ -685,7 +682,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         try { 
 
             inputBuffer.parseRequestLine();
-            if (isMonitoringEnabled()) {
+            if (selectorThread.isMonitoringEnabled()) {
                 request.getRequestProcessor().setRequestCompletionTime(0);
             }
 
@@ -757,20 +754,9 @@ public class ProcessorTask extends TaskBase implements Processor,
             return;
         }
         
-        if (!recycle){
-            started = false;
-            inputBuffer = null;
-            outputBuffer = null;
-            response = null;
-            if (isMonitoringEnabled()) {
-                request.getRequestProcessor().setWorkerThreadID(0);           
-            }
-            request = null;
-        } else {
-            inputBuffer.recycle();
-            outputBuffer.recycle();
-        }
-
+        inputBuffer.recycle();
+        outputBuffer.recycle();
+        
         // Recycle ssl info
         sslSupport = null;
 
@@ -910,17 +896,6 @@ public class ProcessorTask extends TaskBase implements Processor,
                         sm.getString("processorTask.nonBlockingError"), e);
                 // Set error flag
                 error = true;
-            }
-
-            if (key != null) {
-                try {
-                    ((SocketChannelOutputBuffer) outputBuffer).flushBuffer();
-                } catch (IOException ioe) {
-                    if(logger.isLoggable(Level.FINEST)){
-                        logger.log(Level.FINEST, "ACTION_POST_REQUEST", ioe);
-                    }
-                    error = true;
-                }
             }
         } else if (actionCode == ActionCode.ACTION_RESET) {
 
@@ -1663,7 +1638,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         
         requestInfo = request.getRequestProcessor();
         // Add RequestInfo to RequestGroupInfo
-        requestInfo.setGlobalProcessor(getRequestGroupInfo());
+        requestInfo.setGlobalProcessor(selectorThread.getRequestGroupInfo());
 
         if ( selectorThread.getManagement() == null ) return;
       
@@ -1741,18 +1716,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     public int getBufferSize(){
         return requestBufferSize;
     }
-    
-
-    /**
-     * Return the current {@link Socket} used by this instance
-     * @return socket the current {@link Socket} used by this instance
-     */
-    @Override
-    public Socket getSocket(){
-        return socket;
-    }   
-    
-    
+      
     /**
      * Enable or disable the keep-alive mechanism. Setting this value
      * to <tt>false</tt> will automatically add the following header to the

@@ -40,11 +40,9 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.util.http.HtmlHelper;
 import java.io.IOException;
-import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.util.ArrayList;
 import java.util.logging.Level;
 
 import com.sun.grizzly.tcp.RequestGroupInfo;
@@ -76,12 +74,6 @@ public abstract class TaskBase implements Task{
      * The {@link SelectionKey} used by this task.
      */
     protected SelectionKey key;
-    
-    
-    /**
-     * Recycle this task
-     */
-    protected boolean recycle = true;
     
     
     /**
@@ -168,34 +160,6 @@ public abstract class TaskBase implements Task{
     
     
     /**
-     * Gets the {@link RequestGroupInfo} from this task.
-     */
-    public RequestGroupInfo getRequestGroupInfo() {
-        return (selectorThread != null?
-            selectorThread.getRequestGroupInfo() : null);
-    }
-    
-    
-    /**
-     * Returns <tt>true</tt> if monitoring has been enabled, false
-     * otherwise.
-     */
-    public boolean isMonitoringEnabled(){
-        return (selectorThread != null ?
-            selectorThread.isMonitoringEnabled() : false);
-    }
-    
-    
-    /**
-     * Gets the <code>KeepAliveStats</code> associated with this task.
-     */
-    public KeepAliveStats getKeepAliveStats() {
-        return (selectorThread != null?
-            selectorThread.getKeepAliveStats() : null);
-    }
-    
-    
-    /**
      * Execute the task based on its {@link ExecutorService}. If the
      * {@link ExecutorService} is null, then execute the task on using the
      * calling thread.
@@ -227,82 +191,6 @@ public abstract class TaskBase implements Task{
             throw new RuntimeException(ex);
         }
     }
-    
-    
-    /**
-     * Declare whether this {@link Task} is recyclable. If so, this
-     * {@link Task} will be recycled after every invocation of
-     * <code>doTask()</code>.
-     */
-    public void setRecycle(boolean recycle){
-        this.recycle = recycle;
-    }
-    
-    
-    /**
-     * Return <tt>true</tt> if this {@link Task} is recyclable.
-     */
-    public boolean getRecycle(){
-        return recycle;
-    }
-    
-    
-    /**
-     * Return the current {@link Socket} used by this instance
-     * @return socket the current {@link Socket} used by this instance
-     */
-    public Socket getSocket(){
-        return null;
-    }
-    
-    
-    /**
-     * Return the underlying {@link Channel}, independent of the NIO
-     * mode we are using.
-     */
-    private SocketChannel getChannel(){
-        if ( key == null ) {
-            return getSocket().getChannel();
-        } else {
-            return (SocketChannel)key.channel();
-        }
-    }
-    
-    
-    /**
-     * Cancel the task.
-     * @param message the HTTP message to included within the html page
-     * @param code The http code to use. If null, automatically close the
-     *             connection without sending an error page.
-     */
-    public void cancelTask(String message, String code){
-        SocketChannel channel = getChannel();
-        
-        if (code != null) {
-            SelectorThread.logger().log(Level.WARNING,message);
-            try {
-                ByteBuffer byteBuffer = HtmlHelper.getErrorPage(message, code, SelectorThread.SERVER_NAME);
-                OutputWriter.flushChannel(channel,byteBuffer);
-            } catch (IOException ex){
-                SelectorThread.logger().log(Level.FINE,"CancelTask failed", ex);
-            }
-        }
-        
-        if ( SelectorThread.isEnableNioLogging() ){
-            SelectorThread.logger().log(Level.INFO, "Cancelling SocketChannel "
-                    + getChannel());
-        }
-        
-        if ( key != null){
-            selectorThread.cancelKey(key);
-        } else if ( getSocket() != null ){
-            try{
-                getSocket().close();
-            } catch (IOException ex){
-            }
-        }
-    }
-    
     
     /**
      * By default, do nothing when a <code>Callable</code> is invoked.

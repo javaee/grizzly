@@ -61,6 +61,7 @@ import java.util.logging.Level;
  * @author Jeanfrancois Arcand
  */
 public class CometTask extends TaskBase{
+
     
     public enum OP_EVENT { READ, WRITE }
     
@@ -141,6 +142,11 @@ public class CometTask extends TaskBase{
      */
     private boolean asyncReadSupported ;
     
+    
+    /**
+     * Is this Task suspended.
+     */
+    private boolean isSuspended = false;
     
     /**
      * New {@link CometTask}.
@@ -324,7 +330,7 @@ public class CometTask extends TaskBase{
      */
     @Override
     public void recycle(){
-        super.recycle();
+        isSuspended = false;
         key = null;
         cometContext = null;
         asyncReadSupported = false;
@@ -412,10 +418,6 @@ public class CometTask extends TaskBase{
         return expdelay != -1 && timestamp - expireTime >= expdelay;
     }
 
-    public boolean isRecycle() {
-        return recycle;
-    }
-
     public AsyncProcessorTask getAsyncProcessorTask() {
         return asyncProcessorTask;
     }
@@ -431,4 +433,12 @@ public class CometTask extends TaskBase{
     public void setCometHandler(CometHandler cometHandler) {
         this.cometHandler = cometHandler;
     }    
+    
+    public boolean isSuspended() {
+        return isSuspended;
+    }
+
+    public void setSuspended(boolean isSuspended) {
+        this.isSuspended = isSuspended;
+    }
 }
