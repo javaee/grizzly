@@ -212,7 +212,7 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
 
 
             long expire = getExpirationStamp(key);
-            if (expire != Long.MIN_VALUE){
+            if (expire != SelectionKeyAttachment.UNLIMITED_TIMEOUT){
                 if (currentTime - expire >= timeout) {
                     cancel(key);
                 } else if (expire + timeout < nextKeysExpiration) {
@@ -245,7 +245,8 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             if (attachment instanceof Long) {
                 key.attach(null);
             } else if (attachment instanceof SelectionKeyAttachment) {
-                ((SelectionKeyAttachment) attachment).setTimeout(Long.MIN_VALUE);
+                ((SelectionKeyAttachment) attachment).setTimeout(
+                        SelectionKeyAttachment.UNLIMITED_TIMEOUT);
             }
         }
     }
@@ -294,6 +295,6 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             }
         }
 
-        return Long.MIN_VALUE;
+        return SelectionKeyAttachment.UNLIMITED_TIMEOUT;
     }
 }
