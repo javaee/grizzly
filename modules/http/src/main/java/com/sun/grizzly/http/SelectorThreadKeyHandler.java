@@ -81,8 +81,8 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
             }
             KeepAliveThreadAttachment k = (KeepAliveThreadAttachment)attachment;
             k.setTimeout(currentTime);    
-        } else if (attachment == null) {
-            key.attach(currentTime);
+        } else {
+            addExpirationStamp(key);
         }   
         key.interestOps(key.interestOps() | ops);    
     }
@@ -124,7 +124,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
             Object attachment = key.attachment();
             if (attachment != null){
                 long expire = getExpirationStamp(attachment);
-                if (expire == Long.MIN_VALUE)
+                if (expire == SelectionKeyAttachment.UNLIMITED_TIMEOUT)
                     continue;
                 
                 long idleLimit, activeThreadTimeout;
@@ -132,11 +132,11 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                     activeThreadTimeout = ((KeepAliveThreadAttachment) attachment)
                             .getActiveThreadTimeout();
                     
-                    if (activeThreadTimeout != Long.MIN_VALUE) {
+                    if (activeThreadTimeout != SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
                         idleLimit = activeThreadTimeout;
                     }  else {                 
                         idleLimit = ((SelectionKeyAttachment) attachment).getIdleTimeoutDelay();
-                        if (idleLimit == Long.MIN_VALUE) {
+                        if (idleLimit == SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
                             //this is true when attachment class dont have idletimeoutdelay configured.
                             idleLimit = timeout;
                         }
@@ -184,7 +184,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
         } else if (attachment instanceof Response.ResponseAttachment) {
             return ((Response.ResponseAttachment) attachment).getExpirationTime() - timeout;
         }
-        return Long.MIN_VALUE;
+        return SelectionKeyAttachment.UNLIMITED_TIMEOUT;
     }
 
 }

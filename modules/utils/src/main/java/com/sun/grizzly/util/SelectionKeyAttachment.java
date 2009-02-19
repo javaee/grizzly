@@ -47,7 +47,9 @@ import java.nio.channels.SelectionKey;
  * @author Alexey Stashok
  */
 public abstract class SelectionKeyAttachment {
-    private long timeout;
+    public static final long UNLIMITED_TIMEOUT = Long.MIN_VALUE;
+    
+    private long timeout = UNLIMITED_TIMEOUT;
 
     public static Object getAttachment(SelectionKey key) {
         Object attachment = key.attachment();
@@ -70,7 +72,7 @@ public abstract class SelectionKeyAttachment {
      * @return
      */
     public long getIdleTimeoutDelay(){
-        return Long.MIN_VALUE;
+        return UNLIMITED_TIMEOUT;
     }
 
     public void setTimeout(long timeout) {
@@ -78,6 +80,6 @@ public abstract class SelectionKeyAttachment {
     }
 
     public void release(SelectionKey selectionKey) {
-        timeout = Long.MIN_VALUE;
+        timeout = UNLIMITED_TIMEOUT;
     }
 }
