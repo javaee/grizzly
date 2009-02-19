@@ -38,52 +38,79 @@
 
 package com.sun.grizzly.util;
 
+import java.util.ResourceBundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Class contains information about Grizzly framework
- * 
+ *
  * @author Charlie Hunt
+ * @author Hubert Iwaniuk
  */
 public class Grizzly {
 
-    private static final int major = 1;
-    private static final int minor = 9;
-    private static final int minorMinor = 6;
-    
-    
+    private static final String BUNDLE_NAME = "version";
+    private static final Pattern versionPattern = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)(?:-(.+))?");
+    private static final ResourceBundle info = ResourceBundle.getBundle(BUNDLE_NAME);
+    private static final String version = info.getString("grizzly.version");
+
+    /**
+     * Reads version from properties and parses it.
+     */
+    public Grizzly() {
+        Matcher matcher = versionPattern.matcher(version);
+        if (matcher.matches()) {
+            major = Integer.parseInt(matcher.group(1));
+            minor = Integer.parseInt(matcher.group(2));
+            minorMinor = Integer.parseInt(matcher.group(3));
+        } else {
+        }
+    }
+
+    private static int major = 1;
+    private static int minor = 9;
+    private static int minorMinor = 6;
+
+
     /**
      * Return the dotted version of the curent release.
+     *
+     * @return like "2.0.1"
      */
-    public static String getDotedVersion(){
+    public static String getDotedVersion() {
+        // TODO: could we replace it by maven version?
+        // return version
         return major + "." + minor + "." + minorMinor;
     }
-    
-    
+
+
     /**
      * Get Grizzly framework major version
-     * 
+     *
      * @return Grizzly framework major version
      */
     public static int getMajorVersion() {
         return major;
     }
-    
+
     /**
      * Get Grizzly framework minor version
-     * 
+     *
      * @return Grizzly framework minor version
      */
-    public static int getMinorVersion(){
+    public static int getMinorVersion() {
         return minor;
     }
-    
+
     /**
      * Checks if current Grizzly framework version equals to one passed
-     * 
+     *
      * @param major Grizzly framework major version
      * @param minor Grizzly framework minor version
      * @return true, if versions are equal; false otherwise
      */
     public static boolean equalVersion(int major, int minor) {
         return minor == Grizzly.minor && major == Grizzly.major;
-    } 
+    }
 }
