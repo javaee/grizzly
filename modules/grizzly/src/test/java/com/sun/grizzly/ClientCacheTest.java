@@ -179,9 +179,8 @@ public class ClientCacheTest extends TestCase {
                     ex.printStackTrace();
                     return;
                 }
-                controller.registerKey(key,
-                        SelectionKey.OP_READ,
-                        Controller.Protocol.TCP);
+                ioEvent.attachment().getSelectorHandler().register(key,
+                        SelectionKey.OP_READ);
             }
             
             public void onRead(IOEvent<Context> ioEvent) {
@@ -198,7 +197,8 @@ public class ClientCacheTest extends TestCase {
                     }
                 } catch (IOException ex){
                     ex.printStackTrace();
-                    controller.cancelKey(key);
+                    ioEvent.attachment().getSelectorHandler().
+                            getSelectionKeyHandler().cancel(key);
                 }
             }
             
@@ -219,7 +219,8 @@ public class ClientCacheTest extends TestCase {
                     tcpConnector.read(readBB,false);
                 } catch (IOException ex){
                     ex.printStackTrace();
-                    controller.cancelKey(key);
+                    ioEvent.attachment().getSelectorHandler().
+                            getSelectionKeyHandler().cancel(key);
                 }
                 
             }
