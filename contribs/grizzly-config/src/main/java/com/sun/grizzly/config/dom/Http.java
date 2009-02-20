@@ -49,6 +49,31 @@ import org.jvnet.hk2.config.Element;
  */
 @Configured
 public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
+    @Attribute
+    String getChunkingDisabled();
+
+    void setChunkingDisabled(String disabled);
+
+    @Attribute
+    String getCompression();
+
+    void getCompression(String compression);
+
+    @Attribute
+    String getCompressableMimeType();
+
+    void setCompressableMimeType(String type);
+
+    @Attribute
+    String getCompressionMinSize();
+
+    void setCompressionMinSize(String size);
+
+    @Attribute
+    String getConnectionUploadTimeout();
+
+    void setConnectionUploadTimeout(String timeout);
+
     /**
      * Setting the default response-type. Specified as a semi-colon delimited string consisting of content-type,
      * encoding, language, charset
@@ -66,13 +91,41 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setDefaultVirtualServer(final String defaultVirtualServer);
 
+    @Attribute
+    String getDisableUploadTimeout();
+
+    void setDisableUploadTimeout(String disable);
+
     /**
-     * Enable comet support for this http instance
+     * Enable pass through of authentication from any front-end server
+     */
+    @Attribute
+    String getEnableAuthPassThrough();
+
+    void setEnableAuthPassThrough(String bool);
+
+    /**
+     * Enable comet support for this http instance.  The default for this is false until enabling comet support but not
+     * using it can be verified as harmless.  Currently it is unclear what the performance impact of enabling this
+     * feature is.
      */
     @Attribute(defaultValue = "false")
-    String enableCometSupport();
+    String getEnableCometSupport();
 
-    void setEnableCommetSupport(String enable);
+    void setEnableCometSupport(String enable);
+
+    @Attribute
+    String getEnableRcmSupport();
+
+    void setEnableRcmSupport(String enable);
+
+    /**
+     * Gets the value of the fileCache property.
+     */
+    @Element
+    FileCache getFileCache();
+
+    void setFileCache(FileCache value);
 
     /**
      * The response type to be forced if the content served cannot be matched by any of the MIME mappings for
@@ -84,6 +137,32 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     void setForcedResponseType(final String forcedResponseType);
 
     /**
+     * The size of the buffer used by the request processing threads for reading the request data
+     */
+    @Attribute(defaultValue = "4096")
+    String getHeaderBufferLength();
+
+    void setHeaderBufferLength(String length);
+
+    /**
+     * Max number of connection in the Keep Alive mode
+     */
+    @Attribute(defaultValue = "256")
+    String getMaxConnections();
+
+    void setMaxConnections(String max);
+
+    @Attribute
+    String getMaxPostSize();
+
+    void setMaxPostSize(String max);
+
+    @Attribute
+    String getNoCompressionUserAgents();
+
+    void setNoCompressionUserAgents(String agents);
+
+    /**
      * if the connector is supporting non-SSL requests and a request is received for which a matching
      * security-constraint requires SSL transport catalina will automatically redirect the request to the port number
      * specified here
@@ -92,6 +171,35 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getRedirectPort();
 
     void setRedirectPort(final String redirectPort);
+
+    /**
+     * Size of the buffer for request bodies in bytes
+     */
+    @Attribute(defaultValue = "4096")
+    String getRequestBodyBufferSize();
+
+    void setRequestBodyBufferSize(String size);
+
+    /**
+     * Time after which the request times out in seconds
+     */
+    @Attribute(defaultValue = "30")
+    String getRequestTimeout();
+
+    void setRequestTimeout(String timeout);
+
+    @Attribute
+    String getRestrictedUserAgents();
+
+    void setRestrictedUserAgents(String agents);
+
+    /**
+     * Size of the buffer for request bodies in bytes
+     */
+    @Attribute(defaultValue = "8192")
+    String getSendBufferSize();
+
+    void setSendBufferSize(String size);
 
     /**
      * Tells the server what to put in the host name section of any URLs it sends to the client. This affects URLs the
@@ -105,12 +213,30 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     void setServerName(final String serverName);
 
     /**
+     * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
+     */
+    @Attribute(defaultValue = "30")
+    String getTimeout();
+
+    void setTimeout(String timeout);
+
+    @Attribute
+    String getTraceEnabled();
+
+    void setTraceEnabled(String enabled);
+
+    @Attribute
+    String getUriEncoding();
+
+    void setUriEncoding(String encoding);
+
+    void setVersion(final String version);
+
+    /**
      * The version of the HTTP protocol used by the HTTP Service
      */
     @Attribute(defaultValue = "HTTP/1.1")
     String getVersion();
-
-    void setVersion(final String version);
 
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to
@@ -123,60 +249,4 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getXpoweredBy();
 
     void setXpoweredBy(final String xpoweredBy);
-
-    /**
-     * Gets the value of the fileCache property.
-     */
-    @Element
-    FileCache getFileCache();
-
-    void setFileCache(FileCache value);
-
-    /**
-     * Time after which the request times out in seconds
-     */
-    @Attribute(defaultValue = "30")
-    String getRequestTimeout();
-
-    void setRequestTimeout(String timeout);
-
-    /**
-     * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
-     */
-    @Attribute(defaultValue = "30")
-    String getTimeout();
-
-    void setTimeout(String timeout);
-
-    /**
-     * Max number of connection in the Keep Alive mode
-     */
-    @Attribute(defaultValue = "256")
-    String getMaxConnections();
-
-    void setMaxConnections(String max);
-
-    /**
-     * The size of the buffer used by the request processing threads for reading the request data
-     */
-    @Attribute(defaultValue = "4096")
-    String getHeaderBufferLength();
-
-    void setHeaderBufferLength(String length);
-
-    /**
-     * Size of the buffer for request bodies in bytes
-     */
-    @Attribute(defaultValue = "4096")
-    String getRequestBodyBufferSize();
-
-    void setRequestBodyBufferSize(String size);
-
-    /**
-     * Size of the buffer for request bodies in bytes
-     */
-    @Attribute(defaultValue = "8192")
-    String getSendBufferSize();
-
-    void setSendBufferSize(String size);
 }

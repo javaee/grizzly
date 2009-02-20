@@ -64,6 +64,23 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     void setName(String value);
 
     /**
+     * Defines port-unification logic.  If it is required to handle more than one high level protocol on a single
+     * network-listener.
+     */
+    @Element
+    PortUnification getPortUnification();
+
+    void setPortUnification(PortUnification value);
+
+    /**
+     * Protocol chain instance handler logic.
+     */
+    @Element
+    ProtocolChainInstanceHandler getProtocolChainInstanceHandler();
+
+    void setProtocolChainInstanceHandler(ProtocolChainInstanceHandler value);
+
+    /**
      * True means the protocol is secured and ssl element will be used to
      *  initialize security settings. False means that protocol is not
      *  secured and ssl element, if present, will be ignored.
@@ -80,21 +97,4 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     Ssl getSsl();
 
     void setSsl(Ssl value);
-
-    /**
-     * Defines port-unification logic.  If it is required to handle more than one high level protocol on a single
-     * network-listener.
-     */
-    @Element
-    PortUnification getPortUnification();
-
-    void setPortUnification(PortUnification value);
-
-    /**
-     * Protocol chain instance handler logic.
-     */
-    @Element
-    ProtocolChainInstanceHandler getProtocolChainInstanceHandler();
-
-    void setProtocolChainInstanceHandler(ProtocolChainInstanceHandler value);
 }
