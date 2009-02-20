@@ -17,6 +17,81 @@
     <version>${grizzly-version}</version>
     <name>grizzly-config</name>
     <url>https://grizzly.dev.java.net</url>
+    <repositories>
+        <!-- first hits nexus repo for any artifact request, then falls to the next repo in the list / order -->
+        <repository>
+            <id>glassfish-repo-archive</id>
+            <name>Nexus repository collection for Glassfish</name>
+            <url>http://maven.glassfish.org/content/groups/glassfish</url>
+            <snapshots>
+                <updatePolicy>never</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <!-- first hits nexus repo for any artifact request, then falls to the next repo in the list / order -->
+        <pluginRepository>
+            <id>glassfish-repo-archive</id>
+            <name>Nexus repository collection for Glassfish</name>
+            <url>http://maven.glassfish.org/content/groups/glassfish</url>
+            <snapshots>
+                <updatePolicy>never</updatePolicy>
+            </snapshots>
+        </pluginRepository>
+        <!--
+                <pluginRepository>
+                    <id>glassfish-repository-wsinterop</id>
+                    <name>Java.net Repository for Glassfish</name>
+                    <url>http://maven.dyndns.org/glassfish/</url>
+                    <snapshots>
+                        <updatePolicy>never</updatePolicy>
+                    </snapshots>
+                </pluginRepository>
+                <pluginRepository>
+                    <id>glassfish-repository</id>
+                    <name>Java.net Repository for Glassfish</name>
+                    <url>http://download.java.net/maven/glassfish</url>
+                    <snapshots>
+                        <updatePolicy>never</updatePolicy>
+                    </snapshots>
+                </pluginRepository>
+                <pluginRepository>
+                    <id>EclipseLink Repo</id>
+                    <name>EclipseLink maven repo</name>
+                    <!- <url>http://www.eclipse.org/downloads/download.php?r=1&amp;nf=1&amp;file=/technology/eclipselink/maven.repo</url> ->
+                     <url>http://download.eclipse.org/rt/eclipselink/maven.repo</url>
+                    <snapshots>
+                        <updatePolicy>never</updatePolicy>
+                    </snapshots>
+                </pluginRepository>
+                <pluginRepository>
+                    <id>glassfish-repo-archive-dummy</id>
+                    <name>Nexus repository collection for Glassfish</name>
+                    <url>http://maven.glassfish.org/content/groups/glassfish</url>
+                    <snapshots>
+                        <updatePolicy>never</updatePolicy>
+                    </snapshots>
+                </pluginRepository>
+
+                <pluginRepository>
+                    <id>maven2.java.net</id>
+                    <name>Java.net Repository for Maven 2</name>
+                    <url>http://download.java.net/maven/2</url>
+                    <snapshots>
+                        <updatePolicy>never</updatePolicy>
+                    </snapshots>
+                </pluginRepository>
+                <pluginRepository>
+                    <id>maven2.java.net-backup</id>
+                    <name>Java.net Repository for Maven 2</name>
+                    <url>https://maven2-repository.dev.java.net/nonav/repository</url>
+                    <snapshots>
+                        <updatePolicy>never</updatePolicy>
+                    </snapshots>
+                </pluginRepository>
+        -->
+    </pluginRepositories>
+
     <build>
         <defaultGoal>package</defaultGoal>
         <pluginManagement>
@@ -24,7 +99,7 @@
                 <plugin>
                     <groupId>com.sun.enterprise</groupId>
                     <artifactId>hk2-maven-plugin</artifactId>
-                    <version>${hk2.version}</version>
+                    <version>${hk2.plugin.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -64,33 +139,33 @@
                     <target>1.6</target>
                 </configuration>
             </plugin>
-<!--
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>xml-maven-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>validate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <validationSets>
-                        <validationSet>
-                            <dir>src/main/resources</dir>
-                            <includes><include>domain.xml</include></includes>
-                            <systemId>src/main/resources/dtd/glassfish-config.dtd</systemId>
-                        </validationSet>
-                        <validationSet>
-                            <dir>src/test/resources</dir>
-                            <includes><include>grizzly-config.xml</include></includes>
-                            <systemId>src/main/resources/dtd/grizzly-config.dtd</systemId>
-                        </validationSet>
-                    </validationSets>
-                </configuration>
-            </plugin>
--->
+            <!--
+                        <plugin>
+                            <groupId>org.codehaus.mojo</groupId>
+                            <artifactId>xml-maven-plugin</artifactId>
+                            <executions>
+                                <execution>
+                                    <goals>
+                                        <goal>validate</goal>
+                                    </goals>
+                                </execution>
+                            </executions>
+                            <configuration>
+                                <validationSets>
+                                    <validationSet>
+                                        <dir>src/main/resources</dir>
+                                        <includes><include>domain.xml</include></includes>
+                                        <systemId>src/main/resources/dtd/glassfish-config.dtd</systemId>
+                                    </validationSet>
+                                    <validationSet>
+                                        <dir>src/test/resources</dir>
+                                        <includes><include>grizzly-config.xml</include></includes>
+                                        <systemId>src/main/resources/dtd/grizzly-config.dtd</systemId>
+                                    </validationSet>
+                                </validationSets>
+                            </configuration>
+                        </plugin>
+            -->
 
             <plugin>
                 <groupId>com.sun.enterprise</groupId>
@@ -150,7 +225,7 @@
         <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>hk2</artifactId>
-            <version>0.3.36</version>
+            <version>${hk2.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.common</groupId>
@@ -166,6 +241,11 @@
         </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.41</hk2.version>
+        <!--
+          <hk2.version>0.3.41</hk2.version>
+          <hk2.plugin.version>0.3.41</hk2.plugin.version>
+            -->
+        <hk2.version>0.3.37-b01</hk2.version>
+        <hk2.plugin.version>0.3.37-b01</hk2.plugin.version>
     </properties>
 </project>
