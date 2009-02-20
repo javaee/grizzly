@@ -39,6 +39,7 @@
 package com.sun.grizzly.util;
 
 import java.util.ResourceBundle;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,27 +52,27 @@ import java.util.regex.Pattern;
 public class Grizzly {
 
     private static final String BUNDLE_NAME = "version";
-    private static final Pattern versionPattern = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)(?:-(.+))?");
-    private static final ResourceBundle info = ResourceBundle.getBundle(BUNDLE_NAME);
+    private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(?:-(.+))?");
+    private static final ResourceBundle info = ResourceBundle.getBundle(BUNDLE_NAME, Locale.US);
     private static final String version = info.getString("grizzly.version");
 
-    /**
-     * Reads version from properties and parses it.
-     */
-    public Grizzly() {
+    private static final String dotedVersion;
+    private static final int major;
+    private static final int minor;
+
+    /** Reads version from properties and parses it. */
+    static {
         Matcher matcher = versionPattern.matcher(version);
         if (matcher.matches()) {
-            major = Integer.parseInt(matcher.group(1));
-            minor = Integer.parseInt(matcher.group(2));
-            minorMinor = Integer.parseInt(matcher.group(3));
+            dotedVersion = matcher.group(1);
+            major = Integer.parseInt(matcher.group(2));
+            minor = Integer.parseInt(matcher.group(3));
         } else {
+            dotedVersion = "no.version";
+            major = -1;
+            minor = -1;
         }
     }
-
-    private static int major = 1;
-    private static int minor = 9;
-    private static int minorMinor = 6;
-
 
     /**
      * Return the dotted version of the curent release.
@@ -79,9 +80,7 @@ public class Grizzly {
      * @return like "2.0.1"
      */
     public static String getDotedVersion() {
-        // TODO: could we replace it by maven version?
-        // return version
-        return major + "." + minor + "." + minorMinor;
+        return dotedVersion;
     }
 
 
