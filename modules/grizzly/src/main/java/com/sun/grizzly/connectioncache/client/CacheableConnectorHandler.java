@@ -39,6 +39,7 @@
 package com.sun.grizzly.connectioncache.client;
 
 import com.sun.grizzly.CallbackHandler;
+import com.sun.grizzly.CallbackHandlerSelectionKeyAttachment;
 import com.sun.grizzly.ConnectorHandler;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
@@ -61,10 +62,9 @@ import java.nio.channels.Selector;
  * @author Alexey Stashok
  */
 public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandler, CallbackHandler>,
-        ContactInfo<ConnectorHandler>, CallbackHandler {
+        CallbackHandler {
     private SocketAddress targetAddress;
     private Protocol protocol;
-    private SelectorHandler selectorHandler;
     
     private CacheableConnectorHandlerPool parentPool;
     private ConnectorHandler underlyingConnectorHandler;
@@ -149,10 +149,12 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
      */
     private void doConnect(SocketAddress targetAddress) throws IOException {
         this.targetAddress = targetAddress;
-        selectorHandler = connectExecutor.selectorHandler;
         underlyingCallbackHandler = connectExecutor.callbackHandler;
         underlyingConnectorHandler = parentPool.
-                getOutboundConnectionCache().get(this, parentPool.getConnectionFinder());
+                getOutboundConnectionCache().get(
+                new CacheableConnectorInfo(parentPool, connectExecutor,
+                protocol, targetAddress),
+                parentPool.getConnectionFinder());
         
         /* check whether NEW connection was created, or taken from cache */
         if (!connectExecutor.wasCalled()) { // if taken from cache
@@ -178,7 +180,7 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
     public void finishConnect(SelectionKey key) {
         // Call underlying finishConnect only if connection was just established
         if (connectExecutor.wasCalled()) {
-            try{
+            try {
                 underlyingConnectorHandler.finishConnect(key);
             } catch (IOException ex){
                 Controller.logger().severe(ex.getMessage());
@@ -212,54 +214,7 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
     
     public SelectorHandler getSelectorHandler() {
         return underlyingConnectorHandler.getSelectorHandler();
-    }
-    
-    
-    //---------------------- ContactInfo implementation --------------------------------
-    public ConnectorHandler createConnection() throws IOException {
-        underlyingConnectorHandler = parentPool.getProtocolConnectorHandlerPool().acquireConnectorHandler(protocol);
-        
-        connectExecutor.setConnectorHandler(underlyingConnectorHandler);
-        connectExecutor.invokeProtocolConnect();
-        return underlyingConnectorHandler;
-    }
-    
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(getClass().getName());
-        sb.append(" targetAddress: ");
-        sb.append(targetAddress);
-        sb.append(" protocol: ");
-        sb.append(protocol);
-        sb.append(" hashCode: ");
-        sb.append(super.hashCode());
-        return sb.toString();
-    }
-    
-    //----- Override hashCode(), equals() as part of ContactInfo implementation -----------
-    @Override
-    public int hashCode() {
-        return targetAddress.hashCode() ^ protocol.hashCode();
-    }
-    
-    @Override
-    public boolean equals(Object o) {
-        if (o instanceof CacheableConnectorHandler) {
-            CacheableConnectorHandler handler = (CacheableConnectorHandler) o;
-            if (selectorHandler == null || handler.selectorHandler == null) {
-                return targetAddress.equals(handler.targetAddress) &&
-                        protocol.equals(handler.protocol);
-            } else {
-                return targetAddress.equals(handler.targetAddress) &&
-                        protocol.equals(handler.protocol) &&
-                        selectorHandler == handler.selectorHandler;
-            }
-        }
-        
-        return false;
-    }
-    
+    }    
     
     private void notifyCallbackHandlerPseudoConnect() throws ClosedChannelException {
         Selector protocolSelector = underlyingConnectorHandler.getSelectorHandler().getSelector();
@@ -272,6 +227,7 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
         
         assert key != null;
         
+        key.attach(CallbackHandlerSelectionKeyAttachment.create(this));
         final Context context = parentPool.getController().pollContext(key);
         onConnect(new IOEvent.DefaultIOEvent<Context>(context));
     }
@@ -283,8 +239,7 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
                 public void onConnect(IOEvent<Context> ioEvent) {
                     SelectionKey key = ioEvent.attachment().getSelectionKey();
                     finishConnect(key);
-                    getController().registerKey(key,SelectionKey.OP_WRITE,
-                            protocol);
+                    ioEvent.attachment().getSelectorHandler().register(key,SelectionKey.OP_READ);
                 }
                 public void onRead(IOEvent<Context> ioEvent) {}
                 public void onWrite(IOEvent<Context> ioEvent) {}
@@ -308,7 +263,6 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
      */
     private class ConnectExecutor {
         private int methodNumber;
-        private ConnectorHandler connectorHandler;
         private SocketAddress remoteAddress;
         private SocketAddress localAddress;
         private SelectorHandler selectorHandler;
@@ -316,7 +270,7 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
         private boolean wasCalled;
         
         public void setConnectorHandler(ConnectorHandler connectorHandler) {
-            this.connectorHandler = connectorHandler;
+            underlyingConnectorHandler = connectorHandler;
         }
         
         public void setParameters(SocketAddress remoteAddress, CallbackHandler callbackHandler, SelectorHandler selectorHandler) {
@@ -360,18 +314,103 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
         public void invokeProtocolConnect() throws IOException {
             wasCalled = true;
             switch(methodNumber) {
-            case 1: connectorHandler.connect(remoteAddress, CacheableConnectorHandler.this, selectorHandler);
+            case 1: underlyingConnectorHandler.connect(remoteAddress, CacheableConnectorHandler.this, selectorHandler);
             break;
             case 2:
-            case 3: connectorHandler.connect(remoteAddress, CacheableConnectorHandler.this);
+            case 3: underlyingConnectorHandler.connect(remoteAddress, CacheableConnectorHandler.this);
             break;
-            case 4: connectorHandler.connect(remoteAddress, localAddress, CacheableConnectorHandler.this, selectorHandler);
+            case 4: underlyingConnectorHandler.connect(remoteAddress, localAddress, CacheableConnectorHandler.this, selectorHandler);
             break;
             case 5:
-            case 6: connectorHandler.connect(remoteAddress, localAddress, CacheableConnectorHandler.this);
+            case 6: underlyingConnectorHandler.connect(remoteAddress, localAddress, CacheableConnectorHandler.this);
             break;
             default: throw new IllegalStateException("Can not find appropriate connect method: " + methodNumber);
             }
         }
+    }
+
+    //---------------------- ContactInfo implementation --------------------------------
+    private static class CacheableConnectorInfo implements ContactInfo<ConnectorHandler> {
+        private SelectorHandler selectorHandler;
+        private CacheableConnectorHandlerPool parentPool;
+        private ConnectExecutor connectExecutor;
+        private Protocol protocol;
+        private SocketAddress targetAddress;
+
+        public CacheableConnectorInfo(CacheableConnectorHandlerPool parentPool,
+                ConnectExecutor connectExecutor,
+                Protocol protocol, SocketAddress targetAddress) {
+            this.parentPool = parentPool;
+            this.connectExecutor = connectExecutor;
+            this.protocol = protocol;
+            this.targetAddress = targetAddress;
+        }
+        
+
+        public ConnectorHandler createConnection() throws IOException {
+            ConnectorHandler connectorHandler =
+                    parentPool.getProtocolConnectorHandlerPool().
+                    acquireConnectorHandler(protocol);
+
+            connectExecutor.setConnectorHandler(connectorHandler);
+            connectExecutor.invokeProtocolConnect();
+
+            selectorHandler = connectorHandler.getSelectorHandler();
+            return connectorHandler;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(getClass().getName());
+            sb.append(" targetAddress: ");
+            sb.append(targetAddress);
+            sb.append(" protocol: ");
+            sb.append(protocol);
+            sb.append(" hashCode: ");
+            sb.append(super.hashCode());
+            return sb.toString();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            final CacheableConnectorInfo other = (CacheableConnectorInfo) obj;
+            if (this.selectorHandler != null && other.selectorHandler != null) {
+                if (this.selectorHandler != other.selectorHandler &&
+                        !this.selectorHandler.equals(other.selectorHandler)) {
+                    return false;
+                }
+            }
+            if (this.protocol != other.protocol) {
+                return false;
+            }
+            if (this.targetAddress != other.targetAddress &&
+                    (this.targetAddress == null ||
+                    !this.targetAddress.equals(other.targetAddress))) {
+                return false;
+            }
+            return true;
+        }
+
+        @Override
+        public int hashCode() {
+            int hash = 3;
+            hash = 47 * hash + 
+                    (this.protocol != null ?
+                        this.protocol.hashCode() : 0);
+            hash = 47 * hash +
+                    (this.targetAddress != null ?
+                        this.targetAddress.hashCode() : 0);
+            return hash;
+        }
+
+        //----- Override hashCode(), equals() as part of ContactInfo implementation -----------
+
     }
 }
