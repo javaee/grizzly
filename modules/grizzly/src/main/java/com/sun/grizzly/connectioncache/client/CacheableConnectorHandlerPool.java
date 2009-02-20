@@ -88,7 +88,11 @@ public class CacheableConnectorHandlerPool implements
     }
     
     public void releaseConnectorHandler(CacheableConnectorHandler connectorHandler) {
-        connectorInstanceHandler.release(connectorHandler);
+        /*
+         * Do nothing here, because CacheableConnectorHandler should be
+         * returned to pool, only when it will be really diassociated with
+         * OutboundConnectionCache
+         */
     }
     
     OutboundConnectionCache<ConnectorHandler> getOutboundConnectionCache() {
