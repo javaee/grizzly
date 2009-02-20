@@ -1,4 +1,3 @@
-<!DOCTYPE network-config SYSTEM "../../main/resources/dtd/grizzly-config.dtd">
 <network-config>
     <transports>
         <!-- Transport describes network transport and its properties.-->

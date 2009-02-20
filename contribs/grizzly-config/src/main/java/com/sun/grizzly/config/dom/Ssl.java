@@ -64,6 +64,10 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setClientAuthEnabled(String value);
 
+    @Attribute
+    String getCrlFile();
+    void setCrlFile(String crlFile);
+
     /**
      * Location of the keystore file
      */
@@ -136,6 +140,14 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     String getTlsRollbackEnabled();
 
     void setTlsRollbackEnabled(String value);
+
+    @Attribute
+    String getTrustAlgorithm();
+    void setTrustAlgorithm(String algorithm);
+
+    @Attribute
+    String getTrustMaxCertLength();
+    void setTrustMaxCertLength(String maxLength);
 
     @Attribute
     String getTrustStore();

@@ -36,30 +36,9 @@
  */
 package com.sun.grizzly.config;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-
-import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.Controller;
-import com.sun.grizzly.DefaultProtocolChain;
-import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
-import com.sun.grizzly.Role;
-import com.sun.grizzly.TCPSelectorHandler;
-import com.sun.grizzly.util.DefaultThreadPool;
-import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
-import com.sun.grizzly.config.dom.NetworkListeners;
-import com.sun.grizzly.config.dom.Protocol;
-import com.sun.grizzly.config.dom.ProtocolChain;
-import com.sun.grizzly.config.dom.ProtocolChainInstanceHandler;
-import com.sun.grizzly.config.dom.SelectionKeyHandler;
-import com.sun.grizzly.config.dom.ThreadPool;
-import com.sun.grizzly.config.dom.Transport;
-import com.sun.grizzly.config.dom.Transports;
 import org.jvnet.hk2.component.Habitat;
 
 /**
@@ -70,123 +49,23 @@ import org.jvnet.hk2.component.Habitat;
 public class GrizzlyConfig {
     private final Controller controller = new Controller();
     private final NetworkConfig config;
-    private final Map<String, TCPSelectorHandler> selectorHandlers = new HashMap<String, TCPSelectorHandler>();
-    private final Map<String, SelectionKeyHandler> selectionKeyHandlers = new HashMap<String, SelectionKeyHandler>();
-    private final Map<String, ExecutorService> pools = new HashMap<String, ExecutorService>();
+    private Habitat habitat;
 
-    public GrizzlyConfig(final String file) throws Exception {
-        final Habitat habitat = Utils.getHabitat(file);
+    public GrizzlyConfig(final String file) {
+        habitat = Utils.getHabitat(file);
         config = habitat.getComponent(NetworkConfig.class);
+
     }
 
     public void setupNetwork() {
-        final NetworkListeners listeners = config.getNetworkListeners();
-        for (final ThreadPool threadPool : listeners.getThreadPool()) {
-            final ExtendedThreadPool pool = (ExtendedThreadPool) createFromClassname(threadPool.getClassname(),
-                DefaultThreadPool.class.getName());
-            pool.setMaximumPoolSize(Integer.parseInt(threadPool.getMaxThreadPoolSize()));
-            pool.setCorePoolSize(Integer.parseInt(threadPool.getMinThreadPoolSize()));
-            pool.setName(threadPool.getThreadPoolId());
-            pools.put(pool.getName(), (ExecutorService) pool);
-        }
-        final Transports list = config.getTransports();
-        for (final SelectionKeyHandler handler : list.getSelectionKeyHandler()) {
-            logSelectionKeyHandler(handler);
-        }
-        for (final NetworkListener listener : listeners.getNetworkListener()) {
+        for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
             createListener(listener);
         }
     }
 
-    private void createListener(final NetworkListener listener) {
-        try {
-            final TCPSelectorHandler handler = getSelectorHandler(listener.getTransport());
-            handler.setPort(Integer.parseInt(listener.getPort()));
-            handler.setInet(InetAddress.getByName(listener.getAddress()));
-            handler.setProtocolChainInstanceHandler(findProtocol(listener.getProtocol()));
-        } catch (UnknownHostException e) {
-            throw new GrizzlyConfigException(e.getMessage(), e);
-        }
-    }
-
-    private com.sun.grizzly.ProtocolChainInstanceHandler findProtocol(final String protocolName) {
-        for (final Protocol protocol : config.getProtocols().getProtocol()) {
-            if (protocolName.equals(protocol.getName())) {
-                return configureProtocol(protocol);
-            }
-        }
-        return null;
-    }
-
-    private com.sun.grizzly.ProtocolChainInstanceHandler configureProtocol(final Protocol protocol) {
-        final ProtocolChainInstanceHandler chainInstanceHandler = protocol.getProtocolChainInstanceHandler();
-        final com.sun.grizzly.ProtocolChainInstanceHandler handler
-            = (com.sun.grizzly.ProtocolChainInstanceHandler) createFromClassname(
-            chainInstanceHandler == null ? null : chainInstanceHandler.getClassname(),
-            DefaultProtocolChainInstanceHandler.class.getName());
-        final com.sun.grizzly.ProtocolChain chain = getProtocolChain(chainInstanceHandler);
-        return handler;
-    }
-
-    private com.sun.grizzly.ProtocolChain getProtocolChain(
-        final ProtocolChainInstanceHandler chainInstanceHandler) {
-        final ProtocolChain protocolChain = chainInstanceHandler == null ? null : chainInstanceHandler.getProtocolChain();
-        final com.sun.grizzly.ProtocolChain chain = (com.sun.grizzly.ProtocolChain) createFromClassname(
-            protocolChain == null ? null : protocolChain.getClassname(),
-            DefaultProtocolChain.class.getName());
-//        chain.addFilter(getProtocolFilter())
-        return chain;
-    }
-
-    private TCPSelectorHandler getSelectorHandler(final String name) {
-        if (name == null) {
-            throw new GrizzlyConfigException("The transport can not be null");
-        }
-        for (final Transport transport : config.getTransports().getTransport()) {
-            if (name.equals(transport.getName())) {
-                return createSelectorHandler(transport);
-            }
-        }
-        return null;//createSelectorHandler(new Transport());
-    }
-
-    private void logSelectionKeyHandler(final SelectionKeyHandler handler) {
-        selectionKeyHandlers.put(handler.getName(), handler);
-    }
-
-    private TCPSelectorHandler createSelectorHandler(final Transport transport) {
-        final TCPSelectorHandler handler = (TCPSelectorHandler) createFromClassname(transport.getClassname(),
-            TCPSelectorHandler.class.getName());
-        handler.setRole(Role.SERVER);
-        handler.setSelectionKeyHandler(getKeySelectionHandler(transport, handler));
-        controller.addSelectorHandler(handler);
-        selectorHandlers.put(transport.getName(), handler);
-        return handler;
-    }
-
-    private Object createFromClassname(final String classname, final String defaultClassName) {
-        try {
-            return Class.forName(classname == null ? defaultClassName : classname).newInstance();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new GrizzlyConfigException(e.getMessage(), e);
-        }
-    }
-
-    private com.sun.grizzly.SelectionKeyHandler getKeySelectionHandler(final Transport transport,
-        final TCPSelectorHandler selectorHandler) {
-        final com.sun.grizzly.SelectionKeyHandler keyHandler;
-        final String name = transport.getSelectionKeyHandler();
-        if (name == null) {
-            keyHandler = new BaseSelectionKeyHandler();
-        } else {
-            final SelectionKeyHandler handler = selectionKeyHandlers.get(name);
-            final String classname = handler.getClassname();
-            keyHandler = (com.sun.grizzly.SelectionKeyHandler) createFromClassname(classname,
-                BaseSelectionKeyHandler.class.getName());
-        }
-        keyHandler.setSelectorHandler(selectorHandler);
-        selectorHandler.setSelectionKeyHandler(keyHandler);
-        return keyHandler;
+    private GrizzlyServiceListener createListener(final NetworkListener listener) {
+        final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(controller);
+        grizzlyListener.configure(config, listener, true, habitat, new GrizzlyMappingAdapter());
+        return grizzlyListener;
     }
 }

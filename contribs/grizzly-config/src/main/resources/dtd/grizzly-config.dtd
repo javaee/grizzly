@@ -84,13 +84,13 @@
             dump the requests/response information in server.log. Useful for debugging purpose,
             but significantly reduce performance as the request/response bytes are translated to String.
         idle-key-timeout
-            timeout, after which idle key will be cancelled and channel closed
+            timeout in seconds, after which idle key will be cancelled and channel closed
         name
             transport's name, which could be used as reference
         max-connections-count
             the max number of connections the transport should handle at the same time
         read-timeout
-            read operation timeout
+            read operation timeout in seconds
         selection-key-handler
             use public SelectionKey handler, which was defined earlier in the document.
         selector-poll-timeout
@@ -278,8 +278,8 @@
         be matched by any of the MIME mappings for extensions.
         Specified as a semi-colon delimited string consisting of
         content-type, encoding, language, charset
-    header-buffer-length-in-bytes
-        The size of the buffer used by the request processing threads
+    header-buffer-length
+        The size in bytes of the buffer used by the request processing threads
         for reading the request data
     max-connections
         Max no of connection in the Keep Alive mode
@@ -289,11 +289,11 @@
         SSL transport catalina will automatically redirect the
         request to the port number specified here
     request-body-buffer-size
-        size of the buffer for request bodies
+        size in bytes of the buffer for request bodies
     request-timeout
-        Time after which the request times out
+        Time in seconds after which the request times out
     send-buffer-size
-        size of the buffer for responses
+        size in bytes of the buffer for responses
     server-name
         Tells the server what to put in the host name section of any
         URLs it sends to the client. This affects URLs the server
@@ -303,7 +303,7 @@
         a colon and port number, that port will be used in URLs the
         server sends to the client.
     timeout
-        Keep Alive timeout , max time a connection can be deemed as
+        Keep Alive timeout in seconds, max time a connection can be deemed as
         idle and kept in the keep-alive state
     version
         The version of the HTTP protocol used by the HTTP Service
@@ -345,9 +345,9 @@
         max-files-count
             Maximum no. of files in the file cache.
         max-age
-            How old files can get before aging out of cache
+            How old files can get in seconds before aging out of cache
         max-cache-size
-            Maximum cache size on the disk
+            Maximum cache size in bytes on the disk
 -->
 <!ELEMENT file-cache EMPTY>
 
@@ -473,7 +473,7 @@
         classname
             the classname of a thread pool implementation
         idle-thread-timeout
-            idle threads are removed from pool, after this time
+            idle threads are removed from pool after this time in seconds
         max-queue-size
             The maxim number of tasks, which could be queued on the thread pool
         max-thread-pool-size

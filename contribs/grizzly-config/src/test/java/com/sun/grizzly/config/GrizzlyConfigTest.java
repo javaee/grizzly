@@ -1,5 +1,7 @@
 package com.sun.grizzly.config;
 
+import java.util.logging.Logger;
+
 import org.testng.annotations.Test;
 
 /**
@@ -9,7 +11,9 @@ import org.testng.annotations.Test;
  */
 @Test
 public class GrizzlyConfigTest {
-    public void processConfig() throws Exception {
+    private static final Logger log = Logger.getLogger(GrizzlyConfigTest.class.getName());
+
+    public void processConfig() {
         final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         grizzlyConfig.setupNetwork();
     }

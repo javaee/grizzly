@@ -54,6 +54,11 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setAcceptorThreads(String value);
 
+    @Attribute
+    String getBufferSize();
+
+    void setBufferSize(String size);
+
     /**
      * Type of ByteBuffer, which will be used with transport. Possible values are: HEAP and DIRECT
      */
@@ -136,6 +141,11 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setSelectorPollTimeout(String timeout);
 
+    @Attribute
+    String getUseNioDirectByteBuffer();
+
+    void setUseNioDirectByteBuffer(String useDirectByteBuffer);
+
     /**
      * Write operation timeout
      */
@@ -143,4 +153,8 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     String getWriteTimeout();
 
     void setWriteTimeout(String value);
+
+    @Attribute
+    String getTcpNoDelay();
+    void setTcpNoDelay(String noDelay);
 }
