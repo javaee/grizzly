@@ -24,7 +24,7 @@
                 <plugin>
                     <groupId>com.sun.enterprise</groupId>
                     <artifactId>hk2-maven-plugin</artifactId>
-                    <version>${hk2.plugin.version}</version>
+                    <version>${hk2.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -34,7 +34,7 @@
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>1.4.3</version>
                 <configuration>
-                    <Export-Package>org.grizzly.contribs.config*</Export-Package>
+                    <Export-Package>com.sun.grizzly.config*</Export-Package>
                     <supportedProjectTypes>
                         <supportedProjectType>hk2-jar</supportedProjectType>
                         <supportedProjectType>bundle</supportedProjectType>
@@ -103,6 +103,17 @@
                     </archive>
                 </configuration>
             </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+
+                <configuration>
+                    <!-- Remove or comment out this plugin element to re-enable tests.
+                       <skipTests>true</skipTests>
+                    -->
+                    <argLine>-Xms256m -Xmx512m</argLine>
+                </configuration>
+            </plugin>
+
         </plugins>
     </build>
     <reporting>
@@ -112,6 +123,14 @@
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <subpackages>com.sun.grizzly.config.dom</subpackages>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>2.4.3</version>
+                <configuration>
+                    <linkXRef>false</linkXRef>
                 </configuration>
             </plugin>
         </plugins>
@@ -124,9 +143,19 @@
             <version>${grizzly-version}</version>
         </dependency>
         <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-utils</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>hk2</artifactId>
-            <version>${hk2.version}</version>
+            <version>0.3.36</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.common</groupId>
+            <artifactId>common-util</artifactId>
+            <version>3.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
@@ -137,7 +166,6 @@
         </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.35</hk2.version>
-        <hk2.plugin.version>0.3.35</hk2.plugin.version>
+        <hk2.version>0.3.41</hk2.version>
     </properties>
 </project>
