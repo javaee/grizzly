@@ -38,12 +38,21 @@
 
 package com.sun.grizzly.ssl;
 
+import com.sun.grizzly.async.AsyncQueueDataProcessor;
+import com.sun.grizzly.async.AsyncQueueWriteUnit;
+import com.sun.grizzly.async.AsyncWriteCallbackHandler;
 import com.sun.grizzly.http.SocketChannelOutputBuffer;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.util.ByteBufferFactory;
 import com.sun.grizzly.util.SSLOutputWriter;
+import com.sun.grizzly.util.WorkerThread;
+import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.Future;
+import java.util.logging.Level;
+import javax.net.ssl.SSLEngine;
 
 
 /**
@@ -54,7 +63,14 @@ import java.nio.channels.SocketChannel;
  * @author Jean-Francois Arcand
  */
 public class SSLOutputBuffer extends SocketChannelOutputBuffer {
-    
+
+    /**
+     * {@link AsyncWriteCallbackHandler} implementation, which is responsible
+     * for returning cloned ByteBuffers to the pool
+     */
+    private static final AsyncWriteCallbackHandler asyncHttpWriteCallbackHandler =
+            new SSLOutputBuffer.AsyncWriteCallbackHandlerImpl();
+
     /**
      * Alternate constructor.
      */
@@ -63,7 +79,6 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer {
         super(response,headerBufferSize,useSocketBuffer);     
     }    
         
-    
     /**
      * Flush the buffer by looping until the {@link ByteBuffer} is empty
      * using {@link SSLOutputBuffer}
@@ -71,7 +86,64 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer {
      */   
     @Override
     public void flushChannel(ByteBuffer bb) throws IOException{
-        SSLOutputWriter.flushChannel((SocketChannel)channel, bb);
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.finest("SSLOutputBuffer.flushChannel isAsyncHttpWriteEnabled=" +
+                    isAsyncHttpWriteEnabled + " bb=" + bb);
+        }
+
+        if (!isAsyncHttpWriteEnabled) {
+            SSLOutputWriter.flushChannel((SocketChannel) channel, bb);
+        } else if (asyncQueueWriter != null) {
+            WorkerThread workerThread = (WorkerThread) Thread.currentThread();
+            SSLEngine sslEngine = workerThread.getSSLEngine();
+
+            checkMaxBufferSize(sslEngine);
+            ByteBuffer outputBB = workerThread.getOutputBB();
+            
+            Future future = asyncQueueWriter.write(selectionKey, bb,
+                    asyncHttpWriteCallbackHandler,
+                    new SSLWritePreProcessor(sslEngine, outputBB),
+                    asyncHttpByteBufferCloner);
+
+            if (!future.isDone()) {
+                // Replace outputBB, associated with thread
+                ByteBuffer buffer = bufferPool.poll();
+                int requiredBBSize = sslEngine.getSession().getPacketBufferSize();
+                if (buffer != null && buffer.capacity() >= requiredBBSize) {
+                    // take one from pool, if it matches
+                    buffer.limit(buffer.position());
+                    workerThread.setOutputBB(buffer);
+                } else {
+                    // creaate new one
+                    if (buffer != null) {
+                        bufferPool.offer(buffer);
+                    }
+                    
+                    workerThread.setOutputBB(ByteBufferFactory.allocateView(
+                            requiredBBSize * 2, outputBB.isDirect()));
+                }
+            }
+
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest("SSLOutputBuffer.async flushChannel isDone="
+                        + future.isDone());
+            }
+
+            if (!bb.hasRemaining()) {
+                bb.clear();
+            }
+        } else {
+           logger.warning(
+                    "HTTPS async write is enabled, but AsyncWriter is null.");
+        }
+    }
+
+    private void checkMaxBufferSize(SSLEngine sslEngine) {
+        int packetBufferSize = sslEngine.getSession().getPacketBufferSize();
+        if (packetBufferSize > maxBufferedBytes && maxBufferedBytes == MAX_BUFFERED_BYTES) {
+            maxBufferedBytes = packetBufferSize;
+        }
+
     }
 
     /**
@@ -80,5 +152,56 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer {
     @Override
     public boolean isSupportFileSend() {
         return false;
+    }
+    
+    private static class SSLWritePreProcessor implements AsyncQueueDataProcessor {
+
+        private SSLEngine sslEngine;
+        private ByteBuffer securedOutputBuffer;
+
+        public SSLWritePreProcessor(SSLEngine sslEngine, ByteBuffer securedOutputBuffer) {
+            this.sslEngine = sslEngine;
+            this.securedOutputBuffer = securedOutputBuffer;
+        }
+
+        public ByteBuffer getInternalByteBuffer() {
+            return securedOutputBuffer;
+        }
+
+        public void process(ByteBuffer byteBuffer) throws IOException {
+            if (!byteBuffer.hasRemaining() || securedOutputBuffer.hasRemaining()) {
+                return;
+            }
+
+            securedOutputBuffer.clear();
+
+            try {
+                sslEngine.wrap(byteBuffer, securedOutputBuffer);
+                securedOutputBuffer.flip();
+            } catch (Exception e) {
+                securedOutputBuffer.position(securedOutputBuffer.limit());
+                throw new IOException(e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * {@link AsyncWriteCallbackHandler} implementation, which is responsible
+     * for returning cloned ByteBuffers to the pool
+     */
+    protected static class AsyncWriteCallbackHandlerImpl
+            extends SocketChannelOutputBuffer.AsyncWriteCallbackHandlerImpl {
+
+        @Override
+        protected boolean releaseAsyncWriteUnit(AsyncQueueWriteUnit unit) {
+            if (unit.isCloned()) {
+                SSLWritePreProcessor processor =
+                        (SSLWritePreProcessor) unit.getWritePreProcessor();
+                returnBuffer(processor.getInternalByteBuffer());
+            }
+
+            return super.releaseAsyncWriteUnit(unit);
+        }
+
     }
 }
