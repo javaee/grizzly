@@ -72,16 +72,16 @@ import java.util.logging.Logger;
  */
 public class SocketChannelOutputBuffer extends InternalOutputBuffer
         implements FileOutputBuffer {
-    private static Logger logger = SelectorThread.logger();
+    protected static Logger logger = SelectorThread.logger();
 
-    private static final int DEFAULT_BUFFER_POOL_SIZE = 16384;
+    protected static final int DEFAULT_BUFFER_POOL_SIZE = 16384;
 
-    private static int maxBufferPoolSize = DEFAULT_BUFFER_POOL_SIZE;
+    protected static int maxBufferPoolSize = DEFAULT_BUFFER_POOL_SIZE;
 
     /**
      * ByteBuffer pool to be used with async write
      */
-    private static Queue<ByteBuffer> bufferPool =
+    protected static Queue<ByteBuffer> bufferPool =
             new ArrayBlockingQueue<ByteBuffer>(maxBufferPoolSize);
 
     /**
@@ -91,7 +91,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * This implementation tries to get temporary ByteBuffer from the pool,
      * if no ByteBuffer is available - then new one will be created.
      */
-    private final ByteBufferCloner asyncHttpByteBufferCloner =
+    protected final ByteBufferCloner asyncHttpByteBufferCloner =
             new ByteBufferClonerImpl();
 
     /**
@@ -431,7 +431,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * {@link AsyncWriteCallbackHandler} implementation, which is responsible
      * for returning cloned ByteBuffers to the pool
      */
-    private static final class AsyncWriteCallbackHandlerImpl implements
+    protected static class AsyncWriteCallbackHandlerImpl implements
             AsyncWriteCallbackHandler {
         public void onWriteCompleted(SelectionKey key,
                 AsyncQueueWriteUnit writtenRecord) {
@@ -441,7 +441,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
             }
             
             if (writtenRecord.isCloned()) {
-                returnBuffer(writtenRecord.getByteBuffer());
+                releaseAsyncWriteUnit(writtenRecord);
             }
         }
 
@@ -454,13 +454,17 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
             returnBuffer(buffer);
             
             for(AsyncQueueWriteUnit unit : remainingQueue) {
-                returnBuffer(unit.getByteBuffer());
+                releaseAsyncWriteUnit(unit);
             }
         }
 
-        private boolean returnBuffer(ByteBuffer buffer) {
+        protected boolean releaseAsyncWriteUnit(AsyncQueueWriteUnit unit) {
+            return returnBuffer(unit.getByteBuffer());
+        }
+
+        protected boolean returnBuffer(ByteBuffer buffer) {
             buffer.clear();
-            int size = buffer.remaining();
+            int size = buffer.capacity();
             if (logger.isLoggable(Level.FINEST)) {
                 logger.finest("return buffer buffer=" + buffer + " maxSize=" +
                         maxBufferedBytes);
@@ -486,7 +490,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * This implementation tries to get temporary ByteBuffer from the pool,
      * if no ByteBuffer is available - then new one will be created.
      */
-    private final class ByteBufferClonerImpl
+    protected final class ByteBufferClonerImpl
             implements ByteBufferCloner {
         
         public ByteBuffer clone(ByteBuffer originalByteBuffer) {
