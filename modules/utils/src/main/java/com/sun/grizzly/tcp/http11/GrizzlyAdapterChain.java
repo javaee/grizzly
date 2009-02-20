@@ -19,7 +19,7 @@
  * accompanied this code.  If applicable, add the following below the License
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
- * [name of copyright owner]"
+ * [mapping of copyright owner]"
  * 
  * Contributor(s):
  * 
@@ -172,10 +172,14 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
 
                 // Map the request to its Adapter
                 mapper.map(req.serverName(), decodedURI, mappingData);
-
+               
                 GrizzlyAdapter adapter = null;
                 if (mappingData.context != null && mappingData.context instanceof GrizzlyAdapter) {
-                    adapter = (GrizzlyAdapter)mappingData.context;
+                    if (mappingData.wrapper != null){
+                        adapter = (GrizzlyAdapter)mappingData.wrapper;
+                    } else {
+                        adapter = (GrizzlyAdapter)mappingData.context;
+                    }
                     // We already decoded the URL.
                     adapter.setDecodeUrl(false);
                     adapter.service(request.getRequest(), response.getResponse());
@@ -226,12 +230,35 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
             addGrizzlyAdapter(adapter);
         } else {
             adapters.put(adapter,mappings);
-            for(String mapping: mappings){
-                mapper.addContext(LOCAL_HOST, mapping, adapter, null, null);
+            for(String mapping: mappings){   
+                String ctx = getContextPath(mapping);
+                
+                mapper.addContext(LOCAL_HOST, ctx, adapter,
+                        new String[] {"index.html", "index.htm"}, null);
+                mapper.addWrapper(LOCAL_HOST, ctx,mapping, adapter);
             }
         }
     }
 
+    private String getContextPath(String mapping){
+       String ctx = "";
+        int slash = mapping.indexOf("/",1);
+        if (slash != -1) {
+            ctx = mapping.substring(0,slash);
+        } else {
+            ctx = mapping;
+        }
+        
+        if (ctx.startsWith("/*")){
+            ctx= "";
+        }
+        
+        // Special case for the root context
+        if (ctx.equals("/")) {
+            ctx = "";
+        }
+        return ctx;
+    }
     
     @Override
     public void destroy(){
@@ -249,7 +276,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
         String[] mappings = adapters.remove(adapter);
         if (mappings != null){
             for (String mapping : mappings){
-                mapper.removeContext(LOCAL_HOST,mapping); 
+                String ctx = getContextPath(mapping);
+                mapper.removeContext(LOCAL_HOST,ctx); 
             }
             adapter.destroy();
         }
