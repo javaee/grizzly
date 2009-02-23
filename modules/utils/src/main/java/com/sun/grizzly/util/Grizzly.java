@@ -56,11 +56,15 @@ public class Grizzly {
     private static final int major;
     private static final int minor;
 
+    public static void main(String[] args) {
+        System.out.println(Grizzly.getDotedVersion());
+    }
+
     /** Reads version from properties and parses it. */
     static {
         Properties prop = new Properties();
         try {
-            prop.load(Grizzly.class.getResourceAsStream("/version.properties"));
+            prop.load(Grizzly.class.getResourceAsStream("version.properties"));
         } catch (IOException e) {
             e.printStackTrace();
         }
