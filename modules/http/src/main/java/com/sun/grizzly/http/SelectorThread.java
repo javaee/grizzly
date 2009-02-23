@@ -240,6 +240,12 @@ public class SelectorThread implements Runnable, MBeanRegistration{
      * The timeout used by the thread when processing a request.
      */
     protected int transactionTimeout = Constants.DEFAULT_TIMEOUT;
+    
+        
+    /**
+     * Use chunking.
+     */
+    private boolean useChunking = true;
 
     
     /**
@@ -935,6 +941,7 @@ public class SelectorThread implements Runnable, MBeanRegistration{
         task.setDisableUploadTimeout(disableUploadTimeout);
         task.setAsyncHttpWriteEnabled(isAsyncHttpWriteEnabled);
         task.setTransactionTimeout(transactionTimeout);
+        task.setUseChunking(useChunking);
         
         // Asynch extentions
         if ( asyncExecution ) {
@@ -2228,6 +2235,22 @@ public class SelectorThread implements Runnable, MBeanRegistration{
      */
     public void setTransactionTimeout(int transactionTimeout) {
         this.transactionTimeout = transactionTimeout;
+    }
+    /**
+     * Is chunking encoding used. Default is true;
+     * @return Is chunking encoding used.
+     */
+    public boolean isUseChunking() {
+        return useChunking;
+    }
+
+    
+    /**
+     * Enable chunking the http response. Default is true.
+     * @param useChunking
+     */
+    public void setUseChunking(boolean useChunking) {
+        this.useChunking = useChunking;
     }
     
     // --------------------------------------------------------------------- //
