@@ -40,7 +40,7 @@ package com.sun.grizzly.config;
 /**
  * Created Jan 5, 2009
  *
- * @author <a href="mailto:jlee@antwerkz.com">Justin Lee</a>
+ * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
 public class GrizzlyConfigException extends RuntimeException {
     public GrizzlyConfigException(String message) {

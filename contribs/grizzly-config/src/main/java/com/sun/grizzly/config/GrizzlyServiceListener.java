@@ -30,8 +30,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,11 +49,13 @@ import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.Ssl;
 import com.sun.grizzly.config.dom.ThreadPool;
 import com.sun.grizzly.config.dom.Transport;
+import com.sun.grizzly.http.StatsThreadPool;
 import com.sun.grizzly.http.portunif.HttpProtocolFinder;
 import com.sun.grizzly.portunif.PUPreProcessor;
 import com.sun.grizzly.portunif.ProtocolFinder;
 import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.portunif.TLSPUPreProcessor;
+import com.sun.grizzly.util.DefaultThreadPool;
 import org.jvnet.hk2.component.Habitat;
 
 /**
@@ -285,6 +285,7 @@ public class GrizzlyServiceListener {
 
     /**
      * Enable Comet/Poll request support.
+     *
      * @param habitat
      */
     private final void configureComet(final Habitat habitat) {
@@ -356,15 +357,7 @@ public class GrizzlyServiceListener {
         if (http.getChunkingDisabled() != null) {
             embeddedHttp.setProperty("chunking-disabled", toBoolean(http.getChunkingDisabled()));
         }
-        if (ssl.getCrlFile() != null) {
-            embeddedHttp.setProperty("crlFile", ssl.getCrlFile());
-        }
-        if (ssl.getTrustAlgorithm() != null) {
-            embeddedHttp.setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
-        }
-        if (ssl.getTrustMaxCertLength() != null) {
-            embeddedHttp.setProperty("trustMaxCertLength", ssl.getTrustMaxCertLength());
-        }
+        configSslOptions(ssl);
         if (http.getUriEncoding() != null) {
             embeddedHttp.setProperty("uriEncoding", http.getUriEncoding());
         }
@@ -376,6 +369,20 @@ public class GrizzlyServiceListener {
         }
         if (http.getTraceEnabled() != null) {
             embeddedHttp.setProperty("traceEnabled", toBoolean(http.getTraceEnabled()));
+        }
+    }
+
+    private void configSslOptions(final Ssl ssl) {
+        if (ssl != null) {
+            if (ssl.getCrlFile() != null) {
+                embeddedHttp.setProperty("crlFile", ssl.getCrlFile());
+            }
+            if (ssl.getTrustAlgorithm() != null) {
+                embeddedHttp.setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
+            }
+            if (ssl.getTrustMaxCertLength() != null) {
+                embeddedHttp.setProperty("trustMaxCertLength", ssl.getTrustMaxCertLength());
+            }
         }
     }
 
@@ -524,8 +531,13 @@ public class GrizzlyServiceListener {
                 : Integer.parseInt(threadPool.getMaxQueueSize());
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
-            embeddedHttp.setThreadPool(new ThreadPoolExecutor(minThreads, maxThreads, maxQueueSize,
-                TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>(maxQueueSize)));
+            final int keepAlive = Integer.parseInt(http.getTimeout());
+
+            final DefaultThreadPool pool = new StatsThreadPool(minThreads, maxThreads, maxQueueSize,
+                keepAlive, TimeUnit.SECONDS) {
+            };
+
+            embeddedHttp.setThreadPool(pool);
             embeddedHttp.setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLength()));
 
         } catch (NumberFormatException ex) {

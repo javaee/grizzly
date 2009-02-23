@@ -54,7 +54,7 @@ import org.jvnet.hk2.config.DomDocument;
 /**
  * Created Dec 18, 2008
  *
- * @author <a href="mailto:jlee@antwerkz.com">Justin Lee</a>
+ * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
 public class Utils {
     private final static String habitatName = "default";

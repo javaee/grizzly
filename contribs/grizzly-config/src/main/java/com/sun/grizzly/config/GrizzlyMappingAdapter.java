@@ -51,14 +51,13 @@ import com.sun.grizzly.util.http.mapper.MappingData;
 public class GrizzlyMappingAdapter extends StaticResourcesAdapter {
     protected ContextMapper mapper;
     private GrizzlyEmbeddedHttp grizzlyEmbeddedHttp;
-    private ConcurrentLinkedQueue<HttpParserState> parserStates;
+    private ConcurrentLinkedQueue<HttpParserState> parserStates = new ConcurrentLinkedQueue<HttpParserState>();
     protected UDecoder urlDecoder = new UDecoder();
     private String defaultHostName = "server";
 
-    public GrizzlyMappingAdapter() {
-        parserStates = new ConcurrentLinkedQueue<HttpParserState>();
-        logger = GrizzlyEmbeddedHttp.logger();
-        setRootFolder(GrizzlyEmbeddedHttp.getWebAppRootPath());
+    @Override
+    public String getRootFolder() {
+        return GrizzlyEmbeddedHttp.getWebAppRootPath();
     }
 
     /**
