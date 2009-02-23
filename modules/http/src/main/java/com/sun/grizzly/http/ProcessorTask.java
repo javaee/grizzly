@@ -415,6 +415,12 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     private int transactionTimeout = Constants.DEFAULT_TIMEOUT;
     
+    /**
+     * Use chunking.
+     */
+    private boolean useChunking = true;
+    
+    
     // ----------------------------------------------------- Constructor ---- //
 
     public ProcessorTask(){
@@ -792,12 +798,13 @@ public class ProcessorTask extends TaskBase implements Processor,
                 event.attach(this);
                 getTaskListener().taskEvent(event);
                 event.attach(null);
-                asyncSemaphore.release();
-            }
+            } 
         } catch (InterruptedException ex) {
-            if (logger.isLoggable(Level.FINE)){
-                logger.log(Level.FINE,sm.getString("terminateProcess"),ex);
+            if (logger.isLoggable(Level.WARNING)){
+                logger.log(Level.WARNING,sm.getString("terminateProcess"),ex);
             }
+        } finally {            
+            asyncSemaphore.release();
         }
     }
     
@@ -1396,7 +1403,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 (outputFilters[Constants.IDENTITY_FILTER]);
             contentDelimitation = true;
         } else {
-            if (entityBody && http11 && keepAlive) {
+            if (useChunking && entityBody && http11 && keepAlive) {
                 outputBuffer.addActiveFilter
                     (outputFilters[Constants.CHUNKED_FILTER]);
                 contentDelimitation = true;
@@ -2207,6 +2214,24 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public void setTransactionTimeout(int transactionTimeout) {
         this.transactionTimeout = transactionTimeout;
+    }
+
+    
+    /**
+     * Is chunking encoding used. Default is true;
+     * @return Is chunking encoding used.
+     */
+    public boolean isUseChunking() {
+        return useChunking;
+    }
+
+    
+    /**
+     * Enable chunking the http response. Default is true.
+     * @param useChunking
+     */
+    public void setUseChunking(boolean useChunking) {
+        this.useChunking = useChunking;
     }
 }
 
