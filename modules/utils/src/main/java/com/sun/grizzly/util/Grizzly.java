@@ -38,8 +38,9 @@
 
 package com.sun.grizzly.util;
 
-import java.util.ResourceBundle;
-import java.util.Locale;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,17 +52,20 @@ import java.util.regex.Pattern;
  */
 public class Grizzly {
 
-    private static final String BUNDLE_NAME = "version";
     private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(?:-(.+))?");
-    private static final ResourceBundle info = ResourceBundle.getBundle(BUNDLE_NAME, Locale.US);
-    private static final String version = info.getString("grizzly.version");
-
     private static final String dotedVersion;
     private static final int major;
     private static final int minor;
 
     /** Reads version from properties and parses it. */
     static {
+        Properties prop = new Properties();
+        try {
+            prop.load(Grizzly.class.getResourceAsStream("/version.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String version = prop.getProperty("grizzly.version");
         Matcher matcher = versionPattern.matcher(version);
         if (matcher.matches()) {
             dotedVersion = matcher.group(1);
