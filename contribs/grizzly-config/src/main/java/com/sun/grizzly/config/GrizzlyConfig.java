@@ -36,7 +36,12 @@
  */
 package com.sun.grizzly.config;
 
+import java.io.IOException;
+import java.util.logging.Logger;
+import java.util.logging.Level;
+
 import com.sun.grizzly.Controller;
+import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
 import org.jvnet.hk2.component.Habitat;
@@ -44,9 +49,11 @@ import org.jvnet.hk2.component.Habitat;
 /**
  * Created Nov 24, 2008
  *
- * @author <a href="mailto:jlee@antwerkz.com">Justin Lee</a>
+ * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
 public class GrizzlyConfig {
+    private static final Logger logger = LoggerUtils.getLogger();
+
     private final Controller controller = new Controller();
     private final NetworkConfig config;
     private Habitat habitat;
@@ -57,15 +64,40 @@ public class GrizzlyConfig {
 
     }
 
-    public void setupNetwork() {
+    public void setupNetwork() throws IOException, InstantiationException {
         for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
-            createListener(listener);
+            final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(controller);
+            grizzlyListener.configure(config, listener, true, habitat, new GrizzlyMappingAdapter());
+
+            final Thread thread = new Thread(new ListenerRunnable(grizzlyListener));
+            thread.setDaemon(true);
+            thread.start();
+        }
+        try {
+            Thread.sleep(5000); // wait for the system to finish settin up the listener
+        } catch (InterruptedException e) {
+            logger.warning(e.getMessage());
+            throw new RuntimeException(e.getMessage());
         }
     }
 
-    private GrizzlyServiceListener createListener(final NetworkListener listener) {
-        final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(controller);
-        grizzlyListener.configure(config, listener, true, habitat, new GrizzlyMappingAdapter());
-        return grizzlyListener;
+    private static class ListenerRunnable implements Runnable {
+        private final GrizzlyServiceListener grizzlyListener;
+
+        public ListenerRunnable(final GrizzlyServiceListener grizzlyListener) {
+            this.grizzlyListener = grizzlyListener;
+        }
+
+        public void run() {
+            try {
+                grizzlyListener.start();
+            } catch (IOException e) {
+                logger.log(Level.SEVERE, e.getMessage(), e);
+                throw new RuntimeException(e.getMessage());
+            } catch (InstantiationException e) {
+                logger.log(Level.SEVERE, e.getMessage(), e);
+                throw new RuntimeException(e.getMessage());
+            }
+        }
     }
 }

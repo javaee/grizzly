@@ -44,7 +44,7 @@ import org.jvnet.hk2.config.Configured;
 /**
  * Created Jan 8, 2009
  *
- * @author <a href="mailto:jlee@antwerkz.com">Justin Lee</a>
+ * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
 @Configured
 public interface FileCache extends ConfigBeanProxy, Injectable {
