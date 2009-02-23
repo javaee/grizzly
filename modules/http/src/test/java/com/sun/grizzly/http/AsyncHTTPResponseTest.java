@@ -108,7 +108,7 @@ public class AsyncHTTPResponseTest extends TestCase {
     }
 
     public void testHTTPSSimpleAsyncResponse() throws Exception {
-        int responseLength = 1024 * 1024;
+        int responseLength = 5 * 1024 * 1024;
 
         SSLConfig sslConfig = configureSSL();
 
@@ -140,8 +140,8 @@ public class AsyncHTTPResponseTest extends TestCase {
             int code = connection.getResponseCode();
             assertEquals(code, 200);
 
-            System.out.println("Sleeping 2secs...");
-            Thread.sleep(2000);
+            System.out.println("Sleeping 5secs...");
+            Thread.sleep(5000);
             
             int length = connection.getContentLength();
             assertEquals(length, responseLength);

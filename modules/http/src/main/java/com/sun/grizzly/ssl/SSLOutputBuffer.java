@@ -119,9 +119,13 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer {
                         bufferPool.offer(buffer);
                     }
                     
-                    workerThread.setOutputBB(ByteBufferFactory.allocateView(
-                            requiredBBSize * 2, outputBB.isDirect()));
+                    ByteBuffer newBB = ByteBufferFactory.allocateView(
+                            requiredBBSize * 2, outputBB.isDirect());
+                    newBB.limit(newBB.position());
+                    workerThread.setOutputBB(newBB);
                 }
+            } else {
+                outputBB.limit(outputBB.position());
             }
 
             if (logger.isLoggable(Level.FINEST)) {
