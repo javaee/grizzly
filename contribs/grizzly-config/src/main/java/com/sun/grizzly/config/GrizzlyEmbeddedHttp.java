@@ -22,20 +22,43 @@
  */
 package com.sun.grizzly.config;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.logging.Level;
-
 import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.UDPSelectorHandler;
+import com.sun.grizzly.arp.AsyncFilter;
+import com.sun.grizzly.arp.DefaultAsyncHandler;
+import com.sun.grizzly.config.dom.FileCache;
+import com.sun.grizzly.config.dom.Http;
+import com.sun.grizzly.config.dom.NetworkConfig;
+import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.config.dom.NetworkListeners;
+import com.sun.grizzly.config.dom.Property;
+import com.sun.grizzly.config.dom.Protocol;
+import com.sun.grizzly.config.dom.Ssl;
+import com.sun.grizzly.config.dom.ThreadPool;
+import com.sun.grizzly.config.dom.Transport;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.HttpProtocolChain;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.http.StatsThreadPool;
+import com.sun.grizzly.http.portunif.HttpProtocolFinder;
+import com.sun.grizzly.portunif.PUPreProcessor;
+import com.sun.grizzly.portunif.ProtocolFinder;
+import com.sun.grizzly.portunif.ProtocolHandler;
+import com.sun.grizzly.util.DefaultThreadPool;
+import org.jvnet.hk2.component.Habitat;
+
+import java.io.IOException;
+import java.text.MessageFormat;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.ResourceBundle;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Level;
 
 /**
  * Implementation of Grizzly embedded HTTP listener
@@ -52,6 +75,11 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     private UDPSelectorHandler udpSelectorHandler;
     private static final Object LOCK_OBJECT = new Object();
     public static String DEFAULT_ALGORITHM_CLASS_NAME = DEFAULT_ALGORITHM;
+    /**
+     * The resource bundle containing the message strings for logger.
+     */
+    protected static final ResourceBundle _rb = logger.getResourceBundle();
+    private String defaultVirtualServer;
 
     /**
      * Constructor
@@ -227,5 +255,290 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     public void setHttpSecured(final boolean httpSecured) {
         isHttpSecured = httpSecured;
+    }
+
+    public void configure(boolean isWebProfile, NetworkConfig networkConfig, NetworkListener networkListener, Habitat habitat) {
+        final Protocol httpProtocol = findProtocol(networkConfig, networkListener.getProtocol());
+        final Http http = httpProtocol.getHttp();
+        final Transport transport = findTransport(networkConfig, networkListener.getTransport());
+        final ThreadPool pool = findThreadpool(networkConfig.getNetworkListeners(), networkListener.getThreadPool());
+
+        configureNetworkingProperties(http, transport, httpProtocol.getSsl());
+        configureKeepAlive(http);
+        configureHttpProtocol(http);
+        configureThreadPool(http, pool);
+        configureFileCache(http.getFileCache());
+        defaultVirtualServer = http.getDefaultVirtualServer();
+        // acceptor-threads
+        final String acceptorThreads = transport.getAcceptorThreads();
+        try {
+            final int readController = Integer.parseInt(acceptorThreads) - 1;
+            if (readController > 0) {
+                setSelectorReadThreadsCount(readController);
+            }
+        } catch (NumberFormatException nfe) {
+            logger.log(Level.WARNING, "pewebcontainer.invalid_acceptor_threads",
+                    new Object[]{
+                            acceptorThreads,
+                            httpProtocol.getName(),
+                            Integer.toString(getMaxThreads())
+                    });
+        }
+        final Boolean enableComet = Boolean.valueOf(System.getProperty("v3.grizzly.cometSupport", "false"));
+        if (enableComet && !"admin-listener".equalsIgnoreCase(networkListener.getName())) {
+            configureComet(habitat);
+        }
+        if (!isWebProfile) {
+            configurePortUnification();
+        }
+    }
+
+    protected void configurePortUnification() {
+        // [1] Detect TLS requests.
+        // If sslContext is null, that means TLS is not enabled on that port.
+        // We need to revisit the way GlassFish is configured and make
+        // sure TLS is always enabled. We can always do what we did for
+        // GlassFish v2, which is to located the keystore/trustore by ourself.
+        // TODO: Enable TLS support on all ports using com.sun.Grizzly.SSLConfig
+        // [2] Add our supported ProtocolFinder. By default, we support http/sip
+        // TODO: The list of ProtocolFinder is retrieved using System.getProperties().
+        final List<ProtocolFinder> protocolFinders = new ArrayList<ProtocolFinder>();
+        protocolFinders.add(new HttpProtocolFinder());
+        // [3] Add our supported ProtocolHandler. By default we support http/sip.
+        final List<ProtocolHandler> protocolHandlers = new ArrayList<ProtocolHandler>();
+        protocolHandlers.add(new WebProtocolHandler(getWebProtocolHandlerMode(), this));
+        configurePortUnification(protocolFinders, protocolHandlers, getPuPreProcessors());
+    }
+
+    List<PUPreProcessor> getPuPreProcessors() {
+        return new ArrayList<PUPreProcessor>();
+    }
+
+    WebProtocolHandler.Mode getWebProtocolHandlerMode() {
+        return WebProtocolHandler.Mode.HTTP;
+    }
+
+
+    /**
+     * Enable Comet/Poll request support.
+     *
+     * @param habitat
+     */
+    private final void configureComet(final Habitat habitat) {
+        final AsyncFilter cometFilter = habitat.getComponent(AsyncFilter.class, "comet");
+        if (cometFilter != null) {
+            setEnableAsyncExecution(true);
+            asyncHandler = new DefaultAsyncHandler();
+            asyncHandler.addAsyncFilter(cometFilter);
+            setAsyncHandler(asyncHandler);
+        }
+    }
+
+    /**
+     * Configure the Grizzly FileCache mechanism
+     */
+    private void configureFileCache(final FileCache cache) {
+        if (cache == null) {
+            return;
+        }
+        final boolean enabled = toBoolean(cache.getEnabled());
+        setFileCacheIsEnabled(enabled);
+        setLargeFileCacheEnabled(enabled);
+        setSecondsMaxAge(Integer.parseInt(cache.getMaxAge()));
+        setMaxCacheEntries(Integer.parseInt(cache.getMaxFilesCount()));
+        setMaxLargeCacheSize(Integer.parseInt(cache.getMaxCacheSize()));
+    }
+
+    private void configureHttpListenerProperty(final Http http, final Transport transport, final Ssl ssl)
+            throws NumberFormatException {
+        if (transport.getBufferSize() != null) {
+            setBufferSize(Integer.parseInt(transport.getBufferSize()));
+        }
+        if (transport.getUseNioDirectByteBuffer() != null) {
+            setUseByteBufferView(toBoolean(transport.getUseNioDirectByteBuffer()));
+        }
+        if (http.getMaxConnections() != null) {
+            setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
+        }
+        if (http.getEnableAuthPassThrough() != null) {
+            setProperty("authPassthroughEnabled", toBoolean(http.getEnableAuthPassThrough()));
+        }
+        if (http.getMaxPostSize() != null) {
+            setMaxPostSize(Integer.parseInt(http.getMaxPostSize()));
+        }
+        if (http.getCompression() != null) {
+            setCompression(http.getCompression());
+        }
+        if (http.getCompressableMimeType() != null) {
+            setCompressableMimeTypes(http.getCompressableMimeType());
+        }
+        if (http.getNoCompressionUserAgents() != null) {
+            setNoCompressionUserAgents(http.getNoCompressionUserAgents());
+        }
+        if (http.getCompressionMinSize() != null) {
+            setCompressionMinSize(Integer.parseInt(http.getCompressionMinSize()));
+        }
+        if (http.getRestrictedUserAgents() != null) {
+            setRestrictedUserAgents(http.getRestrictedUserAgents());
+        }
+        if (http.getEnableRcmSupport() != null) {
+            enableRcmSupport(toBoolean(http.getEnableRcmSupport()));
+        }
+        if (http.getConnectionUploadTimeout() != null) {
+            setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeout()));
+        }
+        if (http.getDisableUploadTimeout() != null) {
+            setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
+        }
+        if (http.getChunkingDisabled() != null) {
+            setProperty("chunking-disabled", toBoolean(http.getChunkingDisabled()));
+        }
+        configSslOptions(ssl);
+        if (http.getUriEncoding() != null) {
+            setProperty("uriEncoding", http.getUriEncoding());
+        }
+//        if ("jkEnabled".equals(propName)) {
+//            setProperty(propName, propValue);
+//        }
+        if (transport.getTcpNoDelay() != null) {
+            setTcpNoDelay(toBoolean(transport.getTcpNoDelay()));
+        }
+        if (http.getTraceEnabled() != null) {
+            setProperty("traceEnabled", toBoolean(http.getTraceEnabled()));
+        }
+    }
+
+    private void configSslOptions(final Ssl ssl) {
+        if (ssl != null) {
+            if (ssl.getCrlFile() != null) {
+                setProperty("crlFile", ssl.getCrlFile());
+            }
+            if (ssl.getTrustAlgorithm() != null) {
+                setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
+            }
+            if (ssl.getTrustMaxCertLength() != null) {
+                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLength());
+            }
+        }
+    }
+
+    /**
+     * Configures the given HTTP grizzlyListener with the given http-protocol config.
+     *
+     */
+    private void configureHttpProtocol(Http http) {
+        if (http == null) {
+            return;
+        }
+        setForcedRequestType(http.getForcedResponseType());
+        setDefaultResponseType(http.getDefaultResponseType());
+    }
+
+    /**
+     * Configures the keep-alive properties on the given Connector from the given keep-alive config.
+     *
+     */
+    private void configureKeepAlive(Http http) {
+        int timeoutInSeconds = 60;
+        int maxConnections = 256;
+        if (http != null) {
+            try {
+                timeoutInSeconds = Integer.parseInt(http.getTimeout());
+            } catch (NumberFormatException ex) {
+                String msg = _rb.getString("pewebcontainer.invalidKeepAliveTimeout");
+                msg = MessageFormat.format(msg, http.getTimeout(), Integer.toString(timeoutInSeconds));
+                logger.log(Level.WARNING, msg, ex);
+            }
+            try {
+                maxConnections = Integer.parseInt(http.getMaxConnections());
+            } catch (NumberFormatException ex) {
+                String msg = _rb.getString("pewebcontainer.invalidKeepAliveMaxConnections");
+                msg = MessageFormat.format(msg, http.getMaxConnections(), Integer.toString(maxConnections));
+                logger.log(Level.WARNING, msg, ex);
+            }
+        }
+        setKeepAliveTimeoutInSeconds(timeoutInSeconds);
+        setMaxKeepAliveRequests(maxConnections);
+    }
+
+    /**
+     * Configure http-service properties.
+     */
+    private void configureNetworkingProperties(Http http, final Transport transport, final Ssl ssl) {
+        final List<Property> props = http.getProperty();
+        configureHttpListenerProperty(http, transport, ssl);
+        if (props != null) {
+            for (final Property property : props) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING, "pewebcontainer.invalid_property", property.getName());
+                }
+            }
+        }
+    }
+
+    /**
+     * Configures an HTTP grizzlyListener with the given request-processing config.
+     */
+    private void configureThreadPool(Http http, final ThreadPool threadPool) {
+        if (threadPool == null) {
+            return;
+        }
+        try {
+            final int maxQueueSize = threadPool.getMaxQueueSize() != null ? Integer.MAX_VALUE
+                    : Integer.parseInt(threadPool.getMaxQueueSize());
+            final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
+            final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
+            final int keepAlive = Integer.parseInt(http.getTimeout());
+
+            final DefaultThreadPool pool = new StatsThreadPool(minThreads, maxThreads, maxQueueSize,
+                    keepAlive, TimeUnit.SECONDS) {
+            };
+
+            setThreadPool(pool);
+            setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLength()));
+
+        } catch (NumberFormatException ex) {
+            logger.log(Level.WARNING, " Invalid request-processing attribute", ex);
+        }
+    }
+
+    private boolean toBoolean(final String value) {
+        final String v = null != value ? value.trim() : value;
+        return "true".equals(v)
+                || "yes".equals(v)
+                || "on".equals(v)
+                || "1".equals(v);
+    }
+
+    static Protocol findProtocol(final NetworkConfig networkConfig, final String name) {
+        for (final Protocol protocol : networkConfig.getProtocols().getProtocol()) {
+            if (protocol.getName().equals(name)) {
+                return protocol;
+            }
+        }
+        return null;
+    }
+
+    static ThreadPool findThreadpool(final NetworkListeners networkConfig, final String name) {
+        for (final ThreadPool threadPool : networkConfig.getThreadPool()) {
+            if (threadPool.getThreadPoolId().equals(name)) {
+                return threadPool;
+            }
+        }
+        return null;
+    }
+
+    static Transport findTransport(final NetworkConfig networkConfig, final String name) {
+        for (final Transport transport : networkConfig.getTransports().getTransport()) {
+            if (transport.getName().equals(name)) {
+                return transport;
+            }
+        }
+        return null;
+    }
+
+
+    public String getDefaultVirtualServer() {
+        return defaultVirtualServer;
     }
 }
