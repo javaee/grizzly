@@ -37,12 +37,5 @@
             <artifactId>grizzly-http</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
-        <dependency>
-            <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-servlet-webserver</artifactId>
-            <version>${grizzly-version}</version>
-            <scope>test</scope>
-            <type>bundle</type>
-        </dependency>
     </dependencies>
 </project>
