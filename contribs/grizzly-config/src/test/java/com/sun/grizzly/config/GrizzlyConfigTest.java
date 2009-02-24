@@ -1,6 +1,7 @@
 package com.sun.grizzly.config;
 
 import org.testng.annotations.Test;
+import org.testng.Assert;
 
 import java.io.IOException;
 import java.net.URL;
@@ -20,5 +21,6 @@ public class GrizzlyConfigTest {
         final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         grizzlyConfig.setupNetwork();
         final URLConnection urlConnection = new URL("http://localhost:8080").openConnection();
+        Assert.assertNotNull(urlConnection);
     }
 }

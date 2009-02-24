@@ -22,15 +22,18 @@
  */
 package com.sun.grizzly.config;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.TCPSelectorHandler;
+import com.sun.grizzly.config.dom.NetworkConfig;
+import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.config.dom.Protocol;
+import com.sun.grizzly.config.dom.Ssl;
 import com.sun.grizzly.filter.SSLReadFilter;
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.portunif.PUPreProcessor;
+import com.sun.grizzly.portunif.TLSPUPreProcessor;
 import com.sun.grizzly.ssl.SSLAsyncProcessorTask;
 import com.sun.grizzly.ssl.SSLAsyncProtocolFilter;
 import com.sun.grizzly.ssl.SSLDefaultProtocolFilter;
@@ -38,6 +41,13 @@ import com.sun.grizzly.ssl.SSLProcessorTask;
 import com.sun.grizzly.ssl.SSLSelectorThreadHandler;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.ServerSocketFactory;
+import org.jvnet.hk2.component.Habitat;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Implementation of Grizzly embedded HTTPS listener
@@ -86,6 +96,99 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     public GrizzlyEmbeddedHttps(final GrizzlyMappingAdapter adapter) {
         super(adapter);
     }
+
+    @Override
+    public void configure(boolean isWebProfile, NetworkConfig networkConfig, NetworkListener networkListener, Habitat habitat) {
+        super.configure(isWebProfile, networkConfig, networkListener, habitat);
+        configureSSL(findProtocol(networkConfig, networkListener.getProtocol()));
+    }
+
+    /**
+     * Configures the SSL properties on the given PECoyoteConnector from the SSL config of the given HTTP listener.
+     *
+     * @param http HTTP listener whose SSL config to use
+     */
+    private boolean configureSSL(final Protocol http) {
+        final Ssl sslConfig = http.getSsl();
+        final List<String> tmpSSLArtifactsList = new LinkedList<String>();
+        if (sslConfig != null) {
+            // client-auth
+            if (Boolean.parseBoolean(sslConfig.getClientAuthEnabled())) {
+                setNeedClientAuth(true);
+            }
+            // ssl protocol variants
+            if (Boolean.parseBoolean(sslConfig.getSsl2Enabled())) {
+                tmpSSLArtifactsList.add("SSLv2");
+            }
+            if (Boolean.parseBoolean(sslConfig.getSsl3Enabled())) {
+                tmpSSLArtifactsList.add("SSLv3");
+            }
+            if (Boolean.parseBoolean(sslConfig.getTlsEnabled())) {
+                tmpSSLArtifactsList.add("TLSv1");
+            }
+            if (Boolean.parseBoolean(sslConfig.getSsl3Enabled()) ||
+                    Boolean.parseBoolean(sslConfig.getTlsEnabled())) {
+                tmpSSLArtifactsList.add("SSLv2Hello");
+            }
+        }
+        if (tmpSSLArtifactsList.isEmpty()) {
+            logger.log(Level.WARNING, "pewebcontainer.all_ssl_protocols_disabled", http.getName());
+        } else {
+            final String[] protocols = new String[tmpSSLArtifactsList.size()];
+            tmpSSLArtifactsList.toArray(protocols);
+            setEnabledProtocols(protocols);
+        }
+        tmpSSLArtifactsList.clear();
+        if (sslConfig != null) {
+            // cert-nickname
+            final String certName = sslConfig.getCertNickname();
+            if (certName != null && certName.length() > 0) {
+                setCertNickname(certName);
+            }
+            // ssl3-tls-ciphers
+            final String ssl3Ciphers = sslConfig.getSsl3TlsCiphers();
+            if (ssl3Ciphers != null && ssl3Ciphers.length() > 0) {
+                final String[] ssl3CiphersArray = ssl3Ciphers.split(",");
+                for (final String cipher : ssl3CiphersArray) {
+                    tmpSSLArtifactsList.add(cipher.trim());
+                }
+            }
+            // ssl2-tls-ciphers
+            final String ssl2Ciphers = sslConfig.getSsl2Ciphers();
+            if (ssl2Ciphers != null && ssl2Ciphers.length() > 0) {
+                final String[] ssl2CiphersArray = ssl2Ciphers.split(",");
+                for (final String cipher : ssl2CiphersArray) {
+                    tmpSSLArtifactsList.add(cipher.trim());
+                }
+            }
+        }
+        if (tmpSSLArtifactsList.isEmpty()) {
+            logger.log(Level.WARNING, "pewebcontainer.all_ssl_ciphers_disabled", http.getName());
+        } else {
+            final String[] enabledCiphers = new String[tmpSSLArtifactsList.size()];
+            tmpSSLArtifactsList.toArray(enabledCiphers);
+            setEnabledCipherSuites(enabledCiphers);
+        }
+        try {
+            initializeSSL();
+            return true;
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "SSL support could not be configured!", e);
+        }
+        return false;
+    }
+
+    WebProtocolHandler.Mode getWebProtocolHandlerMode() {
+        return WebProtocolHandler.Mode.HTTPS;
+    }
+
+    @Override
+    List<PUPreProcessor> getPuPreProcessors() {
+        final List<PUPreProcessor> preProcessors = super.getPuPreProcessors();
+        preProcessors.add(new TLSPUPreProcessor(sslContext));
+        return preProcessors;
+    }
+
 
     /**
      * {@inheritDoc}
@@ -145,8 +248,8 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     @Override
     protected ProcessorTask newProcessorTask(final boolean initialize) {
         return asyncExecution
-            ? new SSLAsyncProcessorTask(initialize, getBufferResponse())
-            : new SSLProcessorTask(initialize, getBufferResponse());
+                ? new SSLAsyncProcessorTask(initialize, getBufferResponse())
+                : new SSLProcessorTask(initialize, getBufferResponse());
     }
 
     /**
