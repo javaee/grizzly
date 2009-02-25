@@ -45,13 +45,13 @@ import com.sun.jersey.api.client.WebResource;
 import junit.framework.TestCase;
 
 
-public class JerserServletAdapterNoServletTest extends TestCase {
+public class JerseyrNoServletTest extends TestCase {
 
     private SelectorThread threadSelector;
     
     private WebResource r;
 
-    public JerserServletAdapterNoServletTest(String testName) {
+    public JerseyrNoServletTest(String testName) {
         super(testName);
     }
 
