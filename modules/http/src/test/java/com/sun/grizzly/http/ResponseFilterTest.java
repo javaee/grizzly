@@ -192,4 +192,76 @@ public class ResponseFilterTest extends TestCase {
             pe.shutdown();
         }
      }
+      
+     public void testCompleteNewBCResponseFilter() throws IOException {
+        System.out.println("Test: testResponseFilter");
+        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
+        final String testString = "Added after invoking Adapter";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread();
+            st.setAdapter(new StaticResourcesAdapter() {
+
+                @Override
+                public void service(final Request req, final Response res) throws IOException {
+                    //res.flushHeaders();
+                    res.addResponseFilter(new ResponseFilter() {
+                        public void filter(ByteChunk bc) {
+                            bc.setBytes("AppendingNewBytes".getBytes(), 0,
+                                    "AppendingNewBytes".getBytes().length);        
+                        }
+                    });
+                    ByteChunk bc = new ByteChunk();
+                    bc.append("7777777\n".getBytes(), 0,"7777777\n".length());
+                    res.doWrite(bc);
+                    res.flush();
+                }
+
+                @Override
+                public void afterService(final Request req, final Response res) {
+                    try {
+                        super.afterService(req, res);
+                        return;
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            });
+
+            try {
+                st.listen();
+                st.enableMonitoring();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+             Socket s = new Socket("localhost", PORT);
+            s.setSoTimeout(500000);
+            OutputStream os = s.getOutputStream();
+
+            System.out.println(("GET / HTTP/1.1\n"));
+            os.write(("GET / HTTP/1.1\n").getBytes());
+            os.write(("Host: localhost:" + PORT + "\n").getBytes());
+            os.write("\n".getBytes());
+
+            try{
+                InputStream is = new DataInputStream(s.getInputStream());
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                String line = null;
+                while( (line = br.readLine()) != null){
+                    System.out.println("-> " + line);
+                    if (line.contains("AppendingNewBytes"))   {
+                        assertTrue(true);
+                        return;
+                    }
+                }
+            } catch (IOException ex){
+                ex.printStackTrace();
+                assertFalse(false);
+            }
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+            pe.shutdown();
+        }
+     }
 }
