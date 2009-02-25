@@ -70,6 +70,7 @@ public class HttpServiceImpl implements HttpService {
     private final GrizzlyWebServer ws;
     private final Logger logger;
     private final Bundle bundle;
+    private final OSGiMainAdapter mainAdapter = new OSGiMainAdapter();
 
     /**
      * {@link HttpService} constructor.
@@ -82,6 +83,7 @@ public class HttpServiceImpl implements HttpService {
         Bundle bundle, final GrizzlyWebServer ws, final Logger logger) {
         this.bundle = bundle;
         this.ws = ws;
+        this.ws.addGrizzlyAdapter(mainAdapter, new String[]{"/"});
         this.logger = logger;
         contextToServletAdapterMap = new HashMap<HttpContext, LinkedList<OSGiServletAdapter>>(16, 0.75f);
         localyRegisteredAliases = new ConcurrentLinkedQueue<String>();
@@ -118,6 +120,7 @@ public class HttpServiceImpl implements HttpService {
             logger.debug("Initializing Servlet been registered");
             servletAdapter.startServlet(); // this might throw ServletException, throw it to offending bundle.
 
+            // TODO: invoke once it's done: mainAdapter.addGrizzlyAdapter(alias, servletAdapter);
             ws.addGrizzlyAdapter(servletAdapter, new String[]{alias});
             storeRegistrationData(alias, servlet, servletAdapter);
         } finally {
