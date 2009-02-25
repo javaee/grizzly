@@ -59,9 +59,30 @@ import java.util.logging.Logger;
  */
 public class MapperTest extends TestCase {
 
-    public static final int PORT = 8080;
+    public static final int PORT = 18080;
     private static Logger logger = Logger.getLogger("grizzly.test");
     private GrizzlyWebServer gws;
+  
+    
+   public void testOverlapingMapping() throws IOException {
+        System.out.println("testOverlapingMapping");
+        try {
+            startGrizzlyWebServer(PORT);
+            String[] aliases = new String[]{"/aaa/bbb", "/aaa/ccc"};
+            for (String alias : aliases) {
+                addAdapter(alias);
+            }
+
+            for (String alias : aliases) {
+                HttpURLConnection conn = getConnection(alias);
+                assertEquals(HttpServletResponse.SC_OK,
+                        getResponseCodeFromAlias(conn));
+                assertEquals(alias, readResponse(conn));
+            }
+        } finally {
+            stopGrizzlyWebServer();
+        }
+   }
     
     public void testRootMapping() throws IOException {
         System.out.println("testRootMapping");
@@ -149,7 +170,7 @@ public class MapperTest extends TestCase {
             protected void doGet(
                     HttpServletRequest req, HttpServletResponse resp)
                     throws ServletException, IOException {
-                logger.info(alias + " received request " + req.getRequestURI());
+                logger.info("Servlet : " + alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(alias);
             }
