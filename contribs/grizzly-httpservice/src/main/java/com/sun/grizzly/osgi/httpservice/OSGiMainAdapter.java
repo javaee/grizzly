@@ -41,9 +41,10 @@ import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.*;
 
 /**
  * OSGi Main Adapter.
@@ -53,33 +54,44 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  * @author Hubert Iwaniuk
  */
 public class OSGiMainAdapter extends GrizzlyAdapter {
+    private CleanMapper cm;
+    private static Map<String, GrizzlyAdapter> registrations = new HashMap<String, GrizzlyAdapter>();
 
-    public void service(GrizzlyRequest request, GrizzlyResponse response) {
-        // TODO implement
+    public OSGiMainAdapter() {
+        this.cm = new CleanMapper();
     }
 
-    public static void main(String[] args) {
-        CleanMapper cm = new CleanMapper();
-        cm.add("/a/b");
-        cm.add("/a");
-        cm.add("/a/b/c");
-
-        long start;
-        for (int j = 0; j < 10; j++) {
-            start = System.currentTimeMillis();
-            for (int i = 0; i < 100000; i++) {
-                String s = "/a/b/c/d" + j + "/" + i;
-                while (true) {
-                    s = cm.map(s);
-                    if (s == null) break;
-                    //                System.out.println(s);
+    public void service(GrizzlyRequest request, GrizzlyResponse response) {
+        boolean invoked = false;
+        String alias = request.getDecodedRequestURI();
+        while (true) {
+            alias = cm.map(alias);
+            if (alias == null) {
+                break;
+            } else {
+                registrations.get(alias).service(request, response);
+                invoked = true;
+                if (response.getStatus() != 404) {
+                    break;
                 }
             }
-            System.out.println("Took " + (System.currentTimeMillis() - start) + "ms.");
+        }
+        if (!invoked) {
+            // TODO: No registration matched, 404
+        }
+    }
+
+    public void addGrizzlyAdapter(String alias, GrizzlyAdapter adapter) {
+        if (!cm.contains(alias)) {
+            // shold not happend, alias shouls be checked before.
+            // TODO: signal it some how
+        } else {
+            cm.add(alias, adapter);
         }
     }
 
     static class CleanMapper {
+
         private static final ReadWriteLock lock = new ReentrantReadWriteLock();
         private TreeSet<String> aliasTree = new TreeSet<String>();
 
@@ -103,10 +115,16 @@ public class OSGiMainAdapter extends GrizzlyAdapter {
             }
         }
 
-        public boolean add(String s) {
+        public boolean add(String alias, GrizzlyAdapter adapter) {
             lock.writeLock().lock();
             try {
-                return aliasTree.add(s);
+                boolean wasNew = aliasTree.add(alias);
+                if (wasNew) {
+                    registrations.put(alias, adapter);
+                } else {
+                    // TODO already registered, wtf
+                }
+                return wasNew;
             } finally {
                 lock.writeLock().unlock();
             }
@@ -128,6 +146,72 @@ public class OSGiMainAdapter extends GrizzlyAdapter {
             } finally {
                 lock.readLock().unlock();
             }
+        }
+    }
+
+    public static void main(String[] args) throws ExecutionException, InterruptedException {
+        final CleanMapper cm = new CleanMapper();
+        cm.add("/a/b", null);
+        cm.add("/a", null);
+        cm.add("/a/b/c", null);
+
+        final CountDownLatch latch = new CountDownLatch(1);
+
+        Callable<Long> readingCallable = new Callable<Long>() {
+            public Long call() throws Exception {
+                latch.await();
+                long start = System.currentTimeMillis();
+                for (int i = 0; i < 100000; i++) {
+                    String s = "/a/b/c/d" + i + "/" + i;
+                    while (true) {
+                        s = cm.map(s);
+                        if (s == null) break;
+                    }
+                }
+                return System.currentTimeMillis() - start;
+            }
+        };
+
+        int READCOUNT = 8;
+        int WRITECOUNT = 2;
+        ExecutorService exec = Executors.newFixedThreadPool(READCOUNT + WRITECOUNT);
+        List<Future<Long>> readFutures = new ArrayList<Future<Long>>(READCOUNT);
+        List<Future<Long>> writeFutures = new ArrayList<Future<Long>>(WRITECOUNT);
+        for (int i = 0; i < READCOUNT; i++) {
+            readFutures.add(exec.submit(readingCallable));
+        }
+        for (int i = 0; i < WRITECOUNT; i++) {
+            writeFutures.add(exec.submit(new MyCallableWriter(cm, i, latch)));
+        }
+        latch.countDown();
+        for (int i = 0; i < READCOUNT; i++) {
+            System.out.println("Read (" + i + ") finished in " + readFutures.get(i).get() + "ms.");
+        }
+        for (int i = 0; i < WRITECOUNT; i++) {
+            System.out.println("Write (" + i + ") finished in " + writeFutures.get(i).get() + "ms.");
+        }
+        exec.shutdown();
+    }
+
+    private static class MyCallableWriter implements Callable<Long> {
+        private final CleanMapper cm;
+        private int j;
+        private CountDownLatch latch;
+
+        public MyCallableWriter(CleanMapper cm, int i, CountDownLatch latch) {
+            this.cm = cm;
+            j = i;
+            this.latch = latch;
+        }
+
+        public Long call() throws Exception {
+            latch.await();
+            long start = System.currentTimeMillis();
+            for (int i = 0; i < 100000; i++) {
+                String s = "/" + j + "/" + i + "/a/b/c/d";
+                cm.add(s, null);
+            }
+            return System.currentTimeMillis() - start;
         }
     }
 }
