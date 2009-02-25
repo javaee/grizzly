@@ -232,10 +232,9 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
             adapters.put(adapter,mappings);
             for(String mapping: mappings){   
                 String ctx = getContextPath(mapping);
-                
                 mapper.addContext(LOCAL_HOST, ctx, adapter,
                         new String[] {"index.html", "index.htm"}, null);
-                mapper.addWrapper(LOCAL_HOST, ctx,mapping, adapter);
+                mapper.addWrapper(LOCAL_HOST, ctx,mapping.substring(ctx.length()), adapter);
             }
         }
     }
