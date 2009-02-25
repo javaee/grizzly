@@ -47,8 +47,11 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.IntrospectionUtils;
+import com.sun.grizzly.util.buf.CharChunk;
+import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.Cookie;
 
+import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -339,6 +342,19 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @throws javax.servlet.ServletException
      */
     protected void configureServletEnv() throws ServletException{
+        MessageBytes c = MessageBytes.newInstance();
+        fullUrlPath = contextPath + servletPath;
+        if (!fullUrlPath.equals("")){
+            char[] ch = fullUrlPath.toCharArray();
+            c.setChars(ch, 0, ch.length);
+            HttpRequestURIDecoder.normalize(c);
+            fullUrlPath = c.getCharChunk().toString();
+        }
+        
+        if (fullUrlPath.equals("/")){
+            contextPath = "";
+        }
+
         servletCtx.setInitParameter(parameters);
         servletCtx.setContextPath(contextPath);  
         servletCtx.setBasePath(getRootFolder());               

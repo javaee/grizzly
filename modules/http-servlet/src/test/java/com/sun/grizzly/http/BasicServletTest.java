@@ -93,24 +93,27 @@ public class BasicServletTest extends TestCase {
             stopGrizzlyWebServer();
         }
     }
-
-     public void testDoubleSlash() throws IOException {
+    
+    public void testDoubleSlash() throws IOException {
         System.out.println("testDoubleSlash");
         try {
             newGWS(PORT);
-            String alias = "/contextPath/servletPath/*.html";
+            String alias = "/*.html";
             ServletAdapter servletAdapter = addAdapter(alias);
-            servletAdapter.setContextPath("/contextPath");
-            servletAdapter.setServletPath("/servletPath");
+            servletAdapter.setContextPath("/");
+            servletAdapter.setServletPath("/");
             gws.start();
-            HttpURLConnection conn = getConnection("/contextPath/servletPath/index.html");
+            HttpURLConnection conn = getConnection("/index.html");
+            assertEquals(HttpServletResponse.SC_OK,
+                    getResponseCodeFromAlias(conn));
             String s = conn.getHeaderField("Request-Was");
-            assertEquals(s, "/contextPath/servletPath/index.html");
+            System.out.println("s: " +s );
+            assertEquals(s, "/index.html");
         } finally {
             stopGrizzlyWebServer();
         }
     }
-    
+
     private String readResponse(HttpURLConnection conn) throws IOException {
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(conn.getInputStream()));
@@ -141,7 +144,7 @@ public class BasicServletTest extends TestCase {
                 resp.setHeader("Content-Type", header);
                 System.out.println("pathInfo -> " + req.getPathInfo());
                 resp.setHeader("Path-Info", req.getPathInfo());
-                resp.setHeader("Request-Was",req.getRequestURI());
+                resp.setHeader("Request-Was", req.getRequestURI());
                 resp.getWriter().write(alias);
             }
         });
