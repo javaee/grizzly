@@ -51,13 +51,13 @@ import java.net.URL;
 import java.util.logging.Logger;
 
 /**
- * Basic Response.setHeader test.
+ * Basic Servlet Test.
  *
  * @author Jeanfrancois Arcand
  */
-public class SetHeaderTest extends TestCase {
+public class BasicServletTest extends TestCase {
 
-    public static final int PORT = 18890+10;
+    public static final int PORT = 18890;
     private static Logger logger = Logger.getLogger("grizzly.test");
     private GrizzlyWebServer gws;
     private String header = "text/html;charset=utf8";
@@ -65,12 +65,30 @@ public class SetHeaderTest extends TestCase {
     public void testSetHeaderTest() throws IOException {
         System.out.println("testSetHeaderTest");
         try {
-            startGrizzlyWebServer(PORT);
+            newGWS(PORT);
+            gws.start();
             String alias = "/1";
             addAdapter(alias);
             HttpURLConnection conn = getConnection(alias);
             String s = conn.getHeaderField("Content-Type");
             assertEquals(s, header);
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+    
+    public void testPathInfo() throws IOException {
+        System.out.println("testPathInfo");
+        try {
+            newGWS(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletAdapter servletAdapter = addAdapter(alias);
+            servletAdapter.setContextPath("/contextPath");
+            servletAdapter.setServletPath("/servletPath");
+            gws.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo");
+            String s = conn.getHeaderField("Path-Info");
+            assertEquals(s, "/pathInfo");
         } finally {
             stopGrizzlyWebServer();
         }
@@ -104,6 +122,8 @@ public class SetHeaderTest extends TestCase {
                 logger.info(alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.setHeader("Content-Type", header);
+                System.out.println("pathInfo -> " + req.getPathInfo());
+                resp.setHeader("Path-Info", req.getPathInfo());
                 resp.getWriter().write(alias);
             }
         });
@@ -111,9 +131,8 @@ public class SetHeaderTest extends TestCase {
         return adapter;
     }
 
-    private void startGrizzlyWebServer(int port) throws IOException {
+    private void newGWS(int port) throws IOException {
         gws = new GrizzlyWebServer(port);
-        gws.start();
     }
 
     private void stopGrizzlyWebServer() {

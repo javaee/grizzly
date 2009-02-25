@@ -490,6 +490,7 @@ public class GrizzlyWebServer {
         adapters.put(grizzlyAdapter,mapping);
         adapterChains.setHandleStaticResources(false);
         if (isStarted) {
+            grizzlyAdapter.start();
             Adapter ga = st.getAdapter();
             if (ga instanceof GrizzlyAdapterChain){
                 ((GrizzlyAdapterChain)ga).addGrizzlyAdapter(grizzlyAdapter, mapping);
