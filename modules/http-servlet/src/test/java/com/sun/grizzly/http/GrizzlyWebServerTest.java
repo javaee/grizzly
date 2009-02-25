@@ -167,7 +167,9 @@ public class GrizzlyWebServerTest extends TestCase {
         System.out.println("Bound to port: " + port);
 
         try {
-            startGrizzlyWebServer(port);
+            gws = new GrizzlyWebServer(port);
+            gws.getSelectorThread().setReuseAddress(false);
+            gws.start();
             fail("Should throw exception that can't bind to port.");
         } catch (IOException e) {
             System.out.println("Ha got you this time.");
