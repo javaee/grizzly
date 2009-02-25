@@ -28,7 +28,6 @@ var room = {
         if (room._username==null)
             return;
 	dojox.cometd.startBatch();
-//XXX swap order
         dojox.cometd.publish("/chat/demo", { user: room._username, leave: true, chat : room._username+" has left"});
         dojox.cometd.unsubscribe("/chat/demo", room, "_chat");
 	dojox.cometd.endBatch();
