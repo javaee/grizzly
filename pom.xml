@@ -63,6 +63,12 @@
             <name>Java.net Repository for Grizzly</name>
             <url>http://download.java.net/maven/2</url>
         </repository>
+        <repository> 
+            <id>maven-repository.dev.java.net</id> 
+            <name>Java.net Maven 1 Repository (legacy)</name> 
+            <url>http://download.java.net/maven/1</url>
+            <layout>legacy</layout>
+        </repository>
         <repository>
             <id>java.net</id>
             <name>maven-repository.dev.java.net</name>
@@ -73,6 +79,12 @@
             <id>codehaus</id>
             <name>repository.codehaus.org</name>
             <url>http://repository.codehaus.org</url>
+        </repository>
+        <repository>
+            <id>glassfish-maven2-repository.dev.java.net</id>
+            <name>Java.net Maven 2 Repository for GlassFish</name>
+            <url>http://download.java.net/maven/glassfish/</url>
+            <layout>default</layout>
         </repository>
     </repositories>
     <pluginRepositories>
@@ -157,7 +169,7 @@
                     </archive>
                 </configuration>
             </plugin>
-<!--           <plugin>
+            <!--           <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cobertura-maven-plugin</artifactId>
                 <configuration>
@@ -244,7 +256,7 @@
                     </reportSet>
                 </reportSets>
             </plugin>
-<!--            <plugin>
+            <!--            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cobertura-maven-plugin</artifactId>
             </plugin> -->
