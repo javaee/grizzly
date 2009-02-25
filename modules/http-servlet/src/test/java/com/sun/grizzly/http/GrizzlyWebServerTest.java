@@ -215,7 +215,6 @@ public class GrizzlyWebServerTest extends TestCase {
 
     private void startGrizzlyWebServer(int port) throws IOException {
         gws = new GrizzlyWebServer(port);
-        gws.getSelectorThread().setReuseAddress(false);
         gws.start();
     }
 
