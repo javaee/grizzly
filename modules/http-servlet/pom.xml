@@ -13,6 +13,21 @@
     <version>${grizzly-version}</version>
     <name>grizzly-http-servlet</name>
     <url>https://grizzly.dev.java.net</url>
+    <profiles>
+        <profile>
+            <id>jdk-1.5</id>
+            <activation>
+                <jdk>1.5</jdk>
+            </activation>
+            <dependencies>
+                <dependency> <!-- depend on JAXB to enable WADL support -->
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-impl</artifactId>
+                    <version>2.1.10</version>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
     <build>
         <defaultGoal>install</defaultGoal>
         <plugins>
@@ -49,6 +64,12 @@
         </dependency>
         <dependency>
             <groupId>com.sun.jersey</groupId>
+            <artifactId>jersey-client</artifactId>
+            <version>1.0.3-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-server</artifactId>
             <version>1.0.3-SNAPSHOT</version>
             <scope>test</scope>
@@ -57,12 +78,6 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>3.8.2</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-client</artifactId>
-            <version>1.0.3-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
