@@ -41,7 +41,6 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.standalone.StaticStreamAlgorithm;
 import com.sun.grizzly.tcp.Adapter;
-import com.sun.jersey.api.container.grizzly.GrizzlyServerFactory;
 import com.sun.jersey.api.core.ClasspathResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import java.io.File;
