@@ -194,7 +194,7 @@ public class ResponseFilterTest extends TestCase {
      }
       
      public void testCompleteNewBCResponseFilter() throws IOException {
-        System.out.println("Test: testResponseFilter");
+        System.out.println("Test: testCompleteNewBCResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Added after invoking Adapter";
         final byte[] testData = testString.getBytes();
