@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testSuite name="GrizzlyPex" xmlns="http://www.sun.com/japex/testSuite"
+    xmlns:xi="http://www.w3.org/2001/XInclude">
+    
+    <param name="japex.warmupTime" value="10"/>
+    <param name="japex.runTime"    value="10"/>
+    
+    <param name="japex.warmupsPerDriver" value="1"/>
+    <param name="japex.runsPerDriver" value="2"/>
+
+    <param name="japex.reportsDirectory" value="./reports/echo"/>
+    
+    <param name="port" value="9011"/>
+    <xi:include href="entities/SocketEchoDriver.xml"/>
+    
+    <testCase name="echoOneByte">
+        <param name="message-size" value="1"/>
+    </testCase>
+
+    <testCase name="echo1K">
+        <param name="message-size" value="1024"/>
+    </testCase>
+
+    <testCase name="echo8K">
+        <param name="message-size" value="8192"/>
+    </testCase>
+</testSuite>

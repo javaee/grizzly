@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+        <action>
+            <actionName>test</actionName>
+            <goals>
+                <goal>test</goal>
+            </goals>
+            <properties>
+                <java.util.logging.config.file>./target/test-classes/logging.properties</java.util.logging.config.file>
+            </properties>
+        </action>
+        <action>
+            <actionName>test.single</actionName>
+            <goals>
+                <goal>test-compile</goal>
+                <goal>surefire:test</goal>
+            </goals>
+            <properties>
+                <java.util.logging.config.file>./target/test-classes/logging.properties</java.util.logging.config.file>
+                <test>${className}</test>
+            </properties>
+        </action>
+    </actions>

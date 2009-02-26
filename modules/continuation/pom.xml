@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-project</artifactId>
+        <version>2dot0</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.sun.grizzly</groupId>
+    <artifactId>grizzly-continuation</artifactId>
+    <packaging>jar</packaging>
+    <version>${grizzly-version}</version>
+    <name>grizzly-continuation</name>
+    <url>https://grizzly.dev.java.net</url>
+    <build>
+        <defaultGoal>install</defaultGoal>
+        <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.5</source>
+                    <target>1.5</target>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <repositories>
+        <repository>
+            <id>java.net</id>
+            <url>https://maven-repository.dev.java.net/nonav/repository</url>
+            <layout>legacy</layout>
+        </repository>
+    </repositories>
+    <dependencies>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-comet</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+         <dependency>
+            <groupId>grizzly</groupId>
+            <artifactId>grizzly</artifactId>
+            <version>1.0.19</version>
+            <scope>compile</scope>
+        </dependency>       
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit-version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+</project>

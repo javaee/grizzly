@@ -1,0 +1,68 @@
+GrizzlyPex framework is based on Japex and targeted to measure benchmark of Grizzly framework.
+
+a. File structure
+|-build                 GrizzlyPex classes directory
+|-configs               GrizzlyPex testcases, drivers
+|-lib			GrizzlyPex libraries. Includes Japex and Grizzly framework libraries.
+|-nbproject		NetBeans 5.5.1 project files
+|-reports		Directory, where GrizzlyPex reports are stored
+|-src/main/java		GrizzlyPex source files
+
+
+b. Test cases:
+
+1. Echo test case.
+
+Client sends data buffer to server and server replies with the same data. Test measures the number of request/reply 
+cycles passed in certain time interval, not including time spent on connect, close phases - just request/reply.
+There are 3 data set, which are tested: 1byte, 1K and 8K. Tests are executed against 3 protocols: TCP, UDP, SSL - so
+we can compare them.
+
+To run the echo test, run:
+ant -Dconfig=configs/grizzly-echo.xml run
+
+
+2. Controller test case.
+
+Test is supposed to measure the speed Controller starts, gets ready and stops. Test result is number of millis Controller
+operations start/get ready/stop took. 
+
+Controller start interval includes steps 1-2 (see *Controller lifecycle)
+Controller ready interval includes steps 1-3 (see *Controller lifecycle)
+Controller stop interval includes steps 5-6 (see *Controller lifecycle)
+
+*Controller lifecycle:
+
+1) start controller thread ("new Thread(controller).start();")
+2) initialize controller: pipeline, instance handler, selection key handler, read controllers.
+3) initiate all selector handlers. Each Controller SelectorHandler is initialized by calling 
+SelectorHandler.preSelect()
+4) SelectorHandler select loop
+5) deinitialize controller: pipeline, read controllers.
+6) stop controller thread
+
+It's possible to run Controller test against different protocols: TCP, UDP, SSL. For different protocols Controller start
+time will be approx. the same, however other values (controller ready, stop intervals) are interesting to compare.
+
+To run the controller test, run:
+ant -Dconfig=configs/grizzly-controller.xml run
+
+
+c. Test case results
+
+Test results are located in reports directory:
+reports/echo/${DATETIME} for echo tests
+reports/controller/${DATETIME} for controller tests
+
+d. Trends
+
+Each separately taken test result gives possibility to see the current value for certain test case. But it's also
+interesting dynamic, how this value changes in time. For example, after making some change in code it's interesting
+to see how it will be reflected on protocol speed or on controller start time. Trend reports solves this.
+Trend report could be built on top of existed single reports.
+
+To build the trend report, run:
+ant -Dreports=reports/echo generate-trends (for echo test case)
+ant -Dreports=reports/controller generate-trends (for controller test case)
+
+Trends will be built correspondingly in reports/echo/trends and reports/controller/trends directories.

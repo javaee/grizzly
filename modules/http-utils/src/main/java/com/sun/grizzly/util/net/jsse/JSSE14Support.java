@@ -1,0 +1,177 @@
+
+
+/*
+ * The contents of this file are subject to the terms
+ * of the Common Development and Distribution License
+ * (the "License").  You may not use this file except
+ * in compliance with the License.
+ *
+ * You can obtain a copy of the license at
+ * glassfish/bootstrap/legal/CDDLv1.0.txt or
+ * https://glassfish.dev.java.net/public/CDDLv1.0.html.
+ * See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * When distributing Covered Code, include this CDDL
+ * HEADER in each file and include the License file at
+ * glassfish/bootstrap/legal/CDDLv1.0.txt.  If applicable,
+ * add the following below this CDDL HEADER, with the
+ * fields enclosed by brackets "[]" replaced with your
+ * own identifying information: Portions Copyright [yyyy]
+ * [name of copyright owner]
+ *
+ * Copyright 2005 Sun Microsystems, Inc. All rights reserved.
+ *
+ * Portions Copyright Apache Software Foundation.
+ */ 
+
+package com.sun.grizzly.util.net.jsse;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.SocketException;
+import java.security.cert.X509Certificate;
+import java.security.cert.Certificate;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLException;
+import javax.net.ssl.HandshakeCompletedListener;
+import javax.net.ssl.HandshakeCompletedEvent;
+import java.security.cert.CertificateFactory;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+// START SJSAS 6439313
+import javax.net.ssl.SSLEngine;
+// END SJSAS 6439313
+
+/* JSSESupport
+
+   Concrete implementation class for JSSE
+   Support classes.
+
+   This will only work with JDK 1.2 and up since it
+   depends on JDK 1.2's certificate support
+
+   @author EKR
+   @author Craig R. McClanahan
+   Parts cribbed from JSSECertCompat       
+   Parts cribbed from CertificatesValve
+*/
+
+class JSSE14Support extends JSSESupport {
+
+    /**
+     * Default Logger.
+     */
+    private final static Logger logger = Logger.getLogger("grizzly");
+
+    Listener listener = new Listener();
+
+    public JSSE14Support(SSLSocket sock){
+        super(sock);
+        sock.addHandshakeCompletedListener(listener);
+    }
+
+    // START SJSAS 6439313
+    public JSSE14Support(SSLEngine sslEngine){
+        super(sslEngine);
+    }
+    // END SJSAS 6439313
+    
+    protected void handShake() throws IOException {
+        ssl.setNeedClientAuth(true);
+        synchronousHandshake(ssl);        
+    }
+
+    /**
+     * JSSE in JDK 1.4 has an issue/feature that requires us to do a
+     * read() to get the client-cert.  As suggested by Andreas
+     * Sterbenz
+     */
+    private  void synchronousHandshake(SSLSocket socket) 
+        throws IOException {
+        InputStream in = socket.getInputStream();
+        int oldTimeout = socket.getSoTimeout();
+        socket.setSoTimeout(1000);
+        byte[] b = new byte[0];
+        listener.reset();
+        socket.startHandshake();
+        int maxTries = 60; // 60 * 1000 = example 1 minute time out
+        for (int i = 0; i < maxTries; i++) {
+	    if(logger.isLoggable(Level.FINE)) 
+                logger.log(Level.FINE,"Reading for try #" +i);
+            try {
+                int x = in.read(b);
+            } catch(SSLException sslex) {
+                logger.log(Level.INFO,"SSL Error getting client Certs",sslex);
+                throw sslex;
+            } catch (IOException e) {
+                // ignore - presumably the timeout
+            }
+            if (listener.completed) {
+                break;
+            }
+        }
+        socket.setSoTimeout(oldTimeout);
+        if (listener.completed == false) {
+            throw new SocketException("SSL Cert handshake timeout");
+        }
+    }
+
+    /** Return the X509certificates or null if we can't get them.
+     *  XXX We should allow unverified certificates 
+     */ 
+    protected X509Certificate [] getX509Certificates(SSLSession session) 
+	throws IOException 
+    {
+        Certificate [] certs=null;
+        try {
+	    certs = session.getPeerCertificates();
+        } catch( Throwable t ) {
+            if (logger.isLoggable(Level.FINEST))
+                logger.log(Level.FINEST,"Error getting client certs",t);
+            return null;
+        }
+        if( certs==null ) return null;
+        
+        X509Certificate [] x509Certs = new X509Certificate[certs.length];
+	for(int i=0; i < certs.length; i++) {
+	    if( certs[i] instanceof X509Certificate ) {
+		// always currently true with the JSSE 1.1.x
+		x509Certs[i] = (X509Certificate)certs[i];
+	    } else {
+		try {
+		    byte [] buffer = certs[i].getEncoded();
+		    CertificateFactory cf =
+			CertificateFactory.getInstance("X.509");
+		    ByteArrayInputStream stream =
+			new ByteArrayInputStream(buffer);
+		    x509Certs[i] = (X509Certificate)
+			cf.generateCertificate(stream);
+		} catch(Exception ex) { 
+		    logger.log(Level.INFO,"Error translating cert " + certs[i], ex);
+		    return null;
+		}
+	    }
+	    if(logger.isLoggable(Level.FINE)) 
+                logger.log(Level.FINE,"Cert #" + i + " = " + x509Certs[i]);
+	}
+	if(x509Certs.length < 1)
+	    return null;
+	return x509Certs;
+    }
+
+
+    private static class Listener implements HandshakeCompletedListener {
+        volatile boolean completed = false;
+        public void handshakeCompleted(HandshakeCompletedEvent event) {
+            completed = true;
+        }
+        void reset() {
+            completed = false;
+        }
+    }
+
+}
+
