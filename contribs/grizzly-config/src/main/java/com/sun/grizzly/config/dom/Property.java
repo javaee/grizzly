@@ -41,6 +41,8 @@ import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 
+import java.beans.PropertyVetoException;
+
 /**
  * Defines some implementation specific properties.  they could be different from implementation to implementation, so
  * it's not possible to define them neither like element nor attribute
@@ -75,7 +77,7 @@ public interface Property extends ConfigBeanProxy, Injectable {
      *
      * @param value allowed object is {@link String }
      */
-    void setValue(String value);
+    void setValue(String value) throws PropertyVetoException;
 
     /**
      * Gets the value of the description property.

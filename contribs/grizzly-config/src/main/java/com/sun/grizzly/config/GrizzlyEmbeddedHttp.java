@@ -46,6 +46,7 @@ import com.sun.grizzly.http.portunif.HttpProtocolFinder;
 import com.sun.grizzly.portunif.PUPreProcessor;
 import com.sun.grizzly.portunif.ProtocolFinder;
 import com.sun.grizzly.portunif.ProtocolHandler;
+import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.util.DefaultThreadPool;
 import org.jvnet.hk2.component.Habitat;
 
@@ -84,14 +85,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Constructor
      */
-    public GrizzlyEmbeddedHttp(final GrizzlyMappingAdapter httpAdapter) {
-        adapter = httpAdapter;
+    public GrizzlyEmbeddedHttp() {
         setClassLoader(getClass().getClassLoader());
-    }
-
-    @Override
-    public GrizzlyMappingAdapter getAdapter() {
-        return (GrizzlyMappingAdapter)super.getAdapter();
     }
 
     /**
@@ -257,7 +252,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         isHttpSecured = httpSecured;
     }
 
-    public void configure(boolean isWebProfile, NetworkConfig networkConfig, NetworkListener networkListener, Habitat habitat) {
+    public void configure(boolean isWebProfile, NetworkConfig networkConfig, NetworkListener networkListener,
+                          Habitat habitat) {
         final Protocol httpProtocol = findProtocol(networkConfig, networkListener.getProtocol());
         final Http http = httpProtocol.getHttp();
         final Transport transport = findTransport(networkConfig, networkListener.getTransport());
@@ -356,6 +352,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
         if (transport.getUseNioDirectByteBuffer() != null) {
             setUseByteBufferView(toBoolean(transport.getUseNioDirectByteBuffer()));
+        }
+        try {
+            final String adapterName = http.getAdapter();
+            setAdapter((Adapter)Class.forName(adapterName).newInstance());
+        } catch (Exception e) {
+            throw new GrizzlyConfigException(e.getMessage(), e);
         }
         if (http.getMaxConnections() != null) {
             setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
@@ -465,8 +467,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      * Configure http-service properties.
      */
     private void configureNetworkingProperties(Http http, final Transport transport, final Ssl ssl) {
-        final List<Property> props = http.getProperty();
         configureHttpListenerProperty(http, transport, ssl);
+        final List<Property> props = http.getProperty();
         if (props != null) {
             for (final Property property : props) {
                 if (logger.isLoggable(Level.WARNING)) {

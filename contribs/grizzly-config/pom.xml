@@ -10,16 +10,16 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-config</artifactId>
-    <packaging>bundle</packaging>
-    <!--<packaging>hk2-jar</packaging>-->
+    <!--<packaging>bundle</packaging>-->
+    <packaging>hk2-jar</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-config</name>
     <url>https://grizzly.dev.java.net</url>
     <repositories>
         <repository>
-            <id>glassfish-repo-archive</id>
+            <id>glassfish</id>
             <name>Nexus repository collection for Glassfish</name>
-            <url>http://maven.glassfish.org/content/groups/glassfish</url>
+            <url>http://download.java.net/maven/glassfish</url>
             <snapshots>
                 <updatePolicy>never</updatePolicy>
             </snapshots>
@@ -27,9 +27,9 @@
     </repositories>
     <pluginRepositories>
         <pluginRepository>
-            <id>glassfish-repo-archive</id>
+            <id>glassfish</id>
             <name>Nexus repository collection for Glassfish</name>
-            <url>http://maven.glassfish.org/content/groups/glassfish</url>
+            <url>http://download.java.net/maven/glassfish</url>
             <snapshots>
                 <updatePolicy>never</updatePolicy>
             </snapshots>
@@ -51,22 +51,22 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-					 <version>${felix-version}</version>
+                <version>${felix-version}</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
-							  <Export-Package>
-								  com.sun.grizzly.config,
-								  com.sun.grizzly.config.dom,
-							  </Export-Package>
-							  <supportedProjectTypes>
-									<supportedProjectType>hk2-jar</supportedProjectType>
-									<supportedProjectType>bundle</supportedProjectType>
-							  </supportedProjectTypes>
-									<!-- Read all the configuration from osgi.bundle file, if it exists.
-										  See Felix-699 to find out why we use ${basedir}.
-									-->
-								<_include>-${basedir}/osgi.bundle</_include>
+                        <Export-Package>
+                            com.sun.grizzly.config,
+                            com.sun.grizzly.config.dom
+                        </Export-Package>
+                        <supportedProjectTypes>
+                            <supportedProjectType>hk2-jar</supportedProjectType>
+                            <supportedProjectType>bundle</supportedProjectType>
+                        </supportedProjectTypes>
+                        <!-- Read all the configuration from osgi.bundle file, if it exists.
+                             See Felix-699 to find out why we use ${basedir}.
+                        -->
+                        <_include>-${basedir}/osgi.bundle</_include>
                     </instructions>
                 </configuration>
                 <executions>
@@ -81,11 +81,16 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
-                </configuration>
+                <artifactId>maven-source-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>com.sun.enterprise</groupId>
@@ -94,7 +99,6 @@
             </plugin>
             <plugin>
                 <artifactId>maven-surefire-plugin</artifactId>
-
                 <configuration>
                     <argLine>-Xms256m -Xmx512m</argLine>
                 </configuration>
