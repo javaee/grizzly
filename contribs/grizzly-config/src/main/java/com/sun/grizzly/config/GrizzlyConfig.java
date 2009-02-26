@@ -36,15 +36,15 @@
  */
 package com.sun.grizzly.config;
 
-import java.io.IOException;
-import java.util.logging.Logger;
-import java.util.logging.Level;
-
 import com.sun.grizzly.Controller;
-import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.util.LoggerUtils;
 import org.jvnet.hk2.component.Habitat;
+
+import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created Nov 24, 2008
@@ -67,7 +67,7 @@ public class GrizzlyConfig {
     public void setupNetwork() throws IOException, InstantiationException {
         for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
             final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(controller);
-            grizzlyListener.configure(config, listener, true, habitat, new GrizzlyMappingAdapter());
+            grizzlyListener.configure(config, listener, true, habitat);
 
             final Thread thread = new Thread(new ListenerRunnable(grizzlyListener));
             thread.setDaemon(true);

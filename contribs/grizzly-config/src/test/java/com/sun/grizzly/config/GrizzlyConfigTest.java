@@ -18,9 +18,14 @@ public class GrizzlyConfigTest {
     private static final Logger log = Logger.getLogger(GrizzlyConfigTest.class.getName());
 
     public void processConfig() throws IOException, InstantiationException {
-        final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
-        grizzlyConfig.setupNetwork();
-        final URLConnection urlConnection = new URL("http://localhost:8080").openConnection();
-        Assert.assertNotNull(urlConnection);
+        try {
+            final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+            grizzlyConfig.setupNetwork();
+            final URLConnection urlConnection = new URL("http://localhost:8080").openConnection();
+            Assert.assertNotNull(urlConnection);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }

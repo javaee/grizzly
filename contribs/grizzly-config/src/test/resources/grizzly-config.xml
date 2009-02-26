@@ -14,8 +14,7 @@
     </transports>
     <protocols>
         <protocol name="http">
-            <http>
-            </http>
+            <http/>
             <protocol-chain-instance-handler>
                 <protocol-chain>
                     <protocol-filter classname="com.sun.grizzly.filter.HttpProtocolFilter"/>

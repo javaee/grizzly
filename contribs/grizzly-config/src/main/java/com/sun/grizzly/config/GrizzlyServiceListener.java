@@ -68,8 +68,7 @@ public class GrizzlyServiceListener {
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
     public void configure(final NetworkConfig networkConfig, final NetworkListener networkListener,
-                          final boolean isWebProfile, final Habitat habitat,
-                          final GrizzlyMappingAdapter adapter) {
+                          final boolean isWebProfile, final Habitat habitat) {
         if (System.getProperty("product.name") == null) {
             System.setProperty("product.name", "Grizzly");
         }
@@ -78,23 +77,21 @@ public class GrizzlyServiceListener {
         // TODO: This is not the right way to do.
         GrizzlyEmbeddedHttp.setWebAppRootPath(System.getProperty("com.sun.aas.instanceRoot") + "/docroot");
 
-        initializeEmbeddedHttp(networkConfig, adapter, networkListener);
-        embeddedHttp.configure(isWebProfile, networkConfig, networkListener, habitat);
+        initializeListener(isWebProfile, networkConfig, networkListener, habitat);
         setName(networkListener.getName());
         GrizzlyEmbeddedHttp.setLogger(logger);
     }
 
-    private void initializeEmbeddedHttp(final NetworkConfig networkConfig, final GrizzlyMappingAdapter adapter,
-                                        final NetworkListener networkListener) {
-        final boolean isSecure = Boolean.parseBoolean(
+    private void initializeListener(boolean webProfile, final NetworkConfig networkConfig,
+                                    final NetworkListener networkListener, Habitat habitat) {
+        isEmbeddedHttpSecured = Boolean.parseBoolean(
                 GrizzlyEmbeddedHttp.findProtocol(networkConfig, networkListener.getProtocol()).getSecurityEnabled());
-        if (isSecure) {
-            embeddedHttp = new GrizzlyEmbeddedHttps(adapter);
-            isEmbeddedHttpSecured = true;
+        if (isEmbeddedHttpSecured) {
+            embeddedHttp = new GrizzlyEmbeddedHttps();
         } else {
-            embeddedHttp = new GrizzlyEmbeddedHttp(adapter);
-            isEmbeddedHttpSecured = false;
+            embeddedHttp = new GrizzlyEmbeddedHttp();
         }
+        embeddedHttp.configure(webProfile, networkConfig, networkListener, habitat);
     }
 
     public void start() throws IOException, InstantiationException {

@@ -90,13 +90,6 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     private String certNickname = null;
     // ---------------------------------------------------------------------/.
 
-    /**
-     * Constructor
-     */
-    public GrizzlyEmbeddedHttps(final GrizzlyMappingAdapter adapter) {
-        super(adapter);
-    }
-
     @Override
     public void configure(boolean isWebProfile, NetworkConfig networkConfig, NetworkListener networkListener, Habitat habitat) {
         super.configure(isWebProfile, networkConfig, networkListener, habitat);

@@ -22,13 +22,6 @@
  */
 package com.sun.grizzly.config;
 
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
-import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.logging.Level;
-
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.http.HttpProtocolChain;
 import com.sun.grizzly.http.HttpWorkerThread;
@@ -42,6 +35,13 @@ import com.sun.grizzly.util.buf.UDecoder;
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import com.sun.grizzly.util.http.mapper.Mapper;
 import com.sun.grizzly.util.http.mapper.MappingData;
+
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
+import java.util.List;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.logging.Level;
 
 /**
  * Created Feb 19, 2009
@@ -58,6 +58,14 @@ public class GrizzlyMappingAdapter extends StaticResourcesAdapter {
     @Override
     public String getRootFolder() {
         return GrizzlyEmbeddedHttp.getWebAppRootPath();
+    }
+
+    public GrizzlyEmbeddedHttp getGrizzlyEmbeddedHttp() {
+        return grizzlyEmbeddedHttp;
+    }
+
+    public void setGrizzlyEmbeddedHttp(GrizzlyEmbeddedHttp embeddedHttp) {
+        grizzlyEmbeddedHttp = embeddedHttp;
     }
 
     /**

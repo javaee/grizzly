@@ -22,18 +22,18 @@
  */
 package com.sun.grizzly.config;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.util.List;
-import java.util.logging.Level;
-
 import com.sun.grizzly.Context;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.http.HttpProtocolChain;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.http.HtmlHelper;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Abstract HTTP request handler, which parses context-root and initializes protocol filters, which will continue
@@ -86,7 +86,8 @@ public abstract class AbstractHttpHandler {
             final SelectionKey selectionKey = context.getSelectionKey();
             boolean wasMap;
             try {
-                wasMap = grizzlyEmbeddedHttp.getAdapter()
+                final Adapter adapter = grizzlyEmbeddedHttp.getAdapter();
+                wasMap = adapter instanceof GrizzlyMappingAdapter && ((GrizzlyMappingAdapter)adapter)
                     .map(selectionKey, byteBuffer, (HttpProtocolChain) context.getProtocolChain(), null,
                         fallbackContextRootInfo);
             } catch (Exception ex) {

@@ -37,19 +37,19 @@
 
 package com.sun.grizzly.config;
 
-import java.net.URL;
-import java.net.MalformedURLException;
-import java.util.logging.Logger;
-import java.util.Enumeration;
-import java.io.IOException;
-
-import com.sun.enterprise.module.bootstrap.Populator;
 import com.sun.hk2.component.Holder;
-import com.sun.hk2.component.InhabitantsScanner;
 import com.sun.hk2.component.InhabitantsParser;
+import com.sun.hk2.component.InhabitantsScanner;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigParser;
 import org.jvnet.hk2.config.DomDocument;
+
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Created Dec 18, 2008
@@ -62,30 +62,24 @@ public class Utils {
 
     public static Habitat getHabitat(final String fileURL) {
         final Habitat habitat = getNewHabitat();
-        final ConfigParser configParser = new ConfigParser(habitat);
-        new Populator() {
-            public void run(final ConfigParser parser) {
-                final long now = System.currentTimeMillis();
-                URL url = getClass().getClassLoader().getResource(fileURL);
-                if(url == null) {
-                    try {
-                        url = new URL(fileURL);
-                    } catch (MalformedURLException e) {
-                        throw new GrizzlyConfigException(e.getMessage());
-                    }
-                }
-                if (url != null) {
-                    try {
-                        final DomDocument document = parser.parse(url, new DomDocument(habitat));
-                        habitat.addComponent("document", document);
-                    } catch (Exception e) {
-                        throw new GrizzlyConfigException(e.getMessage(), e.getCause());
-                    }
-                    Logger.getAnonymousLogger()
-                        .fine("time to parse " + url + " : " + (System.currentTimeMillis() - now));
-                }
+        final ConfigParser parser = new ConfigParser(habitat);
+        URL url = Utils.class.getClassLoader().getResource(fileURL);
+        if (url == null) {
+            try {
+                url = new URL(fileURL);
+            } catch (MalformedURLException e) {
+                throw new GrizzlyConfigException(e.getMessage());
             }
-        }.run(configParser);
+        }
+        if (url != null) {
+            try {
+                final DomDocument document = parser.parse(url, new DomDocument(habitat));
+                habitat.addComponent("document", document);
+            } catch (Exception e) {
+                e.printStackTrace();
+                throw new GrizzlyConfigException(e.getMessage(), e);
+            }
+        }
         return habitat;
     }
 
