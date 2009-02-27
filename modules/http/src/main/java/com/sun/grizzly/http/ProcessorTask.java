@@ -70,6 +70,7 @@ import com.sun.grizzly.tcp.ActionHook;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.Processor;
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
@@ -83,6 +84,7 @@ import com.sun.grizzly.tcp.http11.filters.IdentityOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.VoidInputFilter;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.BufferedInputFilter;
+import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
 
@@ -419,8 +421,26 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Use chunking.
      */
     private boolean useChunking = true;
-    
-    
+
+
+    private final static String USE_KEEP_ALIVE =
+                "com.sun.grizzly.useKeepAliveAlgorithm";
+
+    private final static String BLOCKING_KEEP_ALIVE =
+                "com.sun.grizzly.keepAliveLockingThread";
+
+    private boolean useKeepAliveAlgorithm = true;
+
+    /**
+     * Max keep-alive request before timing out.
+     */
+    protected int maxKeepAliveRequests = Constants.DEFAULT_MAX_KEEP_ALIVE;
+   
+    // When true, a Thread will be reserved to serve requests for the keep-alive
+    // being time.
+    protected boolean handleKeepAliveBlockingThread = false;
+
+
     // ----------------------------------------------------- Constructor ---- //
 
     public ProcessorTask(){
@@ -471,6 +491,23 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         initializeFilters();
 
+        if (System.getProperty(USE_KEEP_ALIVE) != null) {
+            useKeepAliveAlgorithm =
+                        Boolean.valueOf(
+                            System.getProperty(USE_KEEP_ALIVE)).booleanValue();
+
+            if (!useKeepAliveAlgorithm)
+                logger.info("Keep Alive algorith will no be used");
+        }
+
+        if (System.getProperty(BLOCKING_KEEP_ALIVE) != null) {
+            handleKeepAliveBlockingThread =
+                        Boolean.valueOf(
+                            System.getProperty(BLOCKING_KEEP_ALIVE)).booleanValue();
+
+            if (!handleKeepAliveBlockingThread)
+                logger.info("Keep Alive blocking thread algorithm will no be used");
+        }   
     }
 
 
@@ -572,10 +609,40 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Process an HTTP request using a non blocking {@link Socket}
      */      
     protected boolean doProcess() throws Exception {      
-        boolean exitWhile = parseRequest();
-        if ( exitWhile ) return exitWhile;
-        invokeAdapter();
-        postResponse();  
+        if (!handleKeepAliveBlockingThread){
+            boolean exitWhile = parseRequest();
+            if ( exitWhile ) return exitWhile;
+            invokeAdapter();
+            postResponse();
+        } else {
+            int soTimeout = ((InputReader)inputStream).getReadTimeout();
+            DefaultThreadPool st =(DefaultThreadPool) getThreadPool();
+            if ( useKeepAliveAlgorithm ) {
+               float threadRatio =
+                    (float) st.getActiveCount()
+                    / (float) st.getMaximumPoolSize();
+
+                if ((threadRatio > 0.33) && (threadRatio <= 0.66)) {
+                    soTimeout = soTimeout / 2;
+                } else if (threadRatio > 0.66) {
+                    soTimeout = soTimeout / 5;
+                    keepAliveLeft = 1;
+                }
+                ((InputReader)inputStream).setReadTimeout(soTimeout);
+            }
+
+            while (started && !error && keepAlive) {
+                boolean exitWhile = parseRequest();
+
+                if (maxKeepAliveRequests > 0 && --keepAliveLeft == 0){
+                    keepAlive = false;
+                }
+                if ( exitWhile ) return exitWhile;
+
+                invokeAdapter();
+                postResponse();
+            }
+        }
         return error;
     }
 
