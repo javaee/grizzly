@@ -84,7 +84,8 @@ public class TCPNIOTransportFilter extends FilterAdapter {
         TCPNIOStreamReader reader =
                 (TCPNIOStreamReader) connection.getStreamReader();
         if (reader.getMode() != TCPNIOStreamReader.Mode.FEEDER) {
-            reader.receiveDataAsync(reader.read0());
+            Buffer buffer = reader.read0();
+            reader.receiveDataAsync(buffer);
         }
 
         if (reader.availableDataSize() > 0) {

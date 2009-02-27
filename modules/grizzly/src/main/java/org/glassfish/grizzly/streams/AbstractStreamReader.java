@@ -502,7 +502,13 @@ public abstract class AbstractStreamReader extends InputStream
 
     public Buffer getBuffer() throws IOException {
         if (current == null) {
-            ensureRead();
+            Buffer next = buffers.poll();
+            if (next != null) {
+                next.position(0);
+                queueSize.addAndGet(-next.remaining());
+            }
+
+            current = next;
         }
         
         return current;

@@ -145,8 +145,26 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
             }
 
-            if (!isFinished(connection, buffer)) {
-
+            if (isLockedByMe && isFinished(connection, buffer)) {
+                // If buffer was written directly - set next queue element as current
+                // Notify callback handler
+                onWriteCompleted(connection, record);
+                
+                AsyncWriteQueueRecord nextRecord = queue.poll();
+                if (nextRecord != null) { // if there is something in queue
+                    currentElement.set(nextRecord);
+                    isLockedByMe = false;
+                    lock.unlock();
+                    onReadyToWrite(connection);
+                } else { // if nothing in queue
+                    currentElement.set(null);
+                    isLockedByMe = false;
+                    lock.unlock();  // unlock
+                    if (queue.peek() != null) {  // check one more time
+                        onReadyToWrite(connection);
+                    }
+                }
+            } else { // If there are no bytes available for writing
                 if (cloner != null) {
                     // clone message
                     buffer = cloner.clone(connection, buffer);
@@ -173,27 +191,6 @@ public abstract class AbstractNIOAsyncQueueWriter
                 if (isRegisterForWriting) {
                     onReadyToWrite(connection);
                 }
-            } else { // If there are no bytes available for writing
-                // If buffer was written directly - set next queue element as current
-                if (isLockedByMe) {
-                    AsyncWriteQueueRecord nextRecord = queue.poll();
-                    if (nextRecord != null) { // if there is something in queue
-                        currentElement.set(nextRecord);
-                        isLockedByMe = false;
-                        lock.unlock();
-                        onReadyToWrite(connection);
-                    } else { // if nothing in queue
-                        currentElement.set(null);
-                        isLockedByMe = false;
-                        lock.unlock();  // unlock
-                        if (queue.peek() != null) {  // check one more time
-                            onReadyToWrite(connection);
-                        }
-                    }
-                }
-
-                // Notify callback handler
-                onWriteCompleted(connection, record);
             }
         } catch (IOException e) {
             onWriteFailure(connection, record, e);

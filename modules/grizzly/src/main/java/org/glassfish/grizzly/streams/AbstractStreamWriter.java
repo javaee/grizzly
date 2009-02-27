@@ -110,14 +110,18 @@ public abstract class AbstractStreamWriter implements StreamWriter {
 
         if (buffer != null) {
             future = handler.flush(buffer, completionHandler);
-            if (!future.isDone() && buffer == this.buffer) {
-                buffer = handler.newBuffer();
+            if (buffer == this.buffer) {
+                if (!future.isDone()) {
+                    buffer = handler.newBuffer();
+                }
+                
+                initBuffer(buffer);
             }
         } else {
             buffer = handler.newBuffer();
+            initBuffer(buffer);
         }
 
-        initBuffer(buffer);
         return future;
     }
 
@@ -178,7 +182,10 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         Buffer readerBuffer;
         while ((readerBuffer = readerImpl.getBuffer()) != null) {
             if (isFirstTime) {
-                overflow();
+                if (buffer != null && buffer.position() > 0) {
+                    overflow();
+                }
+                
                 isFirstTime = false;
             }
 
