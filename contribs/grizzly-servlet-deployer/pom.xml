@@ -8,10 +8,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly.contribs</groupId>
-    <artifactId>grizzly-servlet-webserver-deployer</artifactId>
+    <artifactId>grizzly-servlet-deployer</artifactId>
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
-    <name>grizzly-servlet-webserver-deployer</name>
+    <name>grizzly-servlet-deployer</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
