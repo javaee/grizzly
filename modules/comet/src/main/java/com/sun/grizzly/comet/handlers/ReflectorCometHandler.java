@@ -112,7 +112,7 @@ public class ReflectorCometHandler implements CometHandler<PrintWriter> {
      * @param event
      * @throws java.io.IOException
      */
-    public synchronized void onEvent(CometEvent event) throws IOException {
+    public void onEvent(CometEvent event) throws IOException {
         try {
             if (event.getType() != CometEvent.READ) {
                 printWriter.println(event.attachment());
