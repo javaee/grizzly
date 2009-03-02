@@ -24,7 +24,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>com.sun.grizzly.*;-split-package:=merge-first,javax.servlet.*;;-split-package:=merge-first</Export-Package>
+                        <Export-Package>com.sun.grizzly.*;-split-package:=merge-first,javax.servlet.*;-split-package:=merge-first</Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
                         <Main-Class>com.sun.grizzly.http.servlet.deployer.ServletWarDeployer</Main-Class>
                     </instructions>
@@ -37,6 +37,11 @@
             <groupId>javax.xml.bind</groupId>
             <artifactId>jaxb-api</artifactId>
             <version>2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.grizzly.contribs</groupId>
+            <artifactId>grizzly-servlet-deployer</artifactId>
+            <version>${grizzly-version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
