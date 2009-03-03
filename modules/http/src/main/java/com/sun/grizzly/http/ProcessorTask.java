@@ -1110,10 +1110,12 @@ public class ProcessorTask extends TaskBase implements Processor,
             }   
         } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) { 
             key.attach(null);
-        } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) { 
-            Response.ResponseAttachment ra = ((Response.ResponseAttachment)key.attachment());
-            if (ra != null){
-                ra.resetTimeout();
+        } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
+            if (key.attachment() instanceof Response.ResponseAttachment){
+                Response.ResponseAttachment ra = ((Response.ResponseAttachment)key.attachment());
+                if (ra != null){
+                    ra.resetTimeout();
+                }
             }
         } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) { 
             if (key != null) {
