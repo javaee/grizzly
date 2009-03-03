@@ -216,7 +216,7 @@ public class JkHandler implements MBeanRegistration, NotificationListener {
         mserver.invoke( wEnvName, "addHandler", 
                 new Object[] {name, this}, 
                 new String[] {"java.lang.String", 
-                              "org.apache.jk.core.JkHandler"});
+                              "com.sun.grizzly.http.jk.core.JkHandler"});
         return oname;
     }
     

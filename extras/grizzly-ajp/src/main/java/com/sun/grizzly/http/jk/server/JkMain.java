@@ -1,18 +1,55 @@
 /*
- *  Licensed to the Apache Software Foundation (ASF) under one or more
- *  contributor license agreements.  See the NOTICE file distributed with
- *  this work for additional information regarding copyright ownership.
- *  The ASF licenses this file to You under the Apache License, Version 2.0
- *  (the "License"); you may not use this file except in compliance with
- *  the License.  You may obtain a copy of the License at
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * The contents of this file are subject to the terms of either the GNU
+ * General Public License Version 2 only ("GPL") or the Common Development
+ * and Distribution License("CDDL") (collectively, the "License").  You
+ * may not use this file except in compliance with the License. You can obtain
+ * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
+ * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
+ * language governing permissions and limitations under the License.
+ *
+ * When distributing the software, include this License Header Notice in each
+ * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
+ * Sun designates this particular file as subject to the "Classpath" exception
+ * as provided by Sun in the GPL Version 2 section of the License file that
+ * accompanied this code.  If applicable, add the following below the License
+ * Header, with the fields enclosed by brackets [] replaced by your own
+ * identifying information: "Portions Copyrighted [year]
+ * [name of copyright owner]"
+ *
+ * Contributor(s):
+ *
+ * If you wish your version of this file to be governed by only the CDDL or
+ * only the GPL Version 2, indicate your decision by adding "[Contributor]
+ * elects to include this software in this distribution under the [CDDL or GPL
+ * Version 2] license."  If you don't indicate a single choice of license, a
+ * recipient has the option to distribute your version of this file under
+ * either the CDDL, the GPL Version 2 or to extend the choice of license to
+ * its licensees as provided above.  However, if you add GPL Version 2 code
+ * and therefore, elected the GPL Version 2 license, then the option applies
+ * only if the new code is made subject to such option by the copyright
+ * holder.
+ *
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ * Copyright 2004 The Apache Software Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package com.sun.grizzly.http.jk.server;
 
@@ -83,17 +120,17 @@ public class JkMain implements MBeanRegistration {
 
     public JkMain() {
         JkMain.jkMain = this;
-        modules.put("channelSocket", "org.apache.jk.common.ChannelSocket");
-        modules.put("channelNioSocket", "org.apache.jk.common.ChannelNioSocket");
-        modules.put("channelUnix", "org.apache.jk.common.ChannelUn");
-        modules.put("channelJni", "org.apache.jk.common.ChannelJni");
-        modules.put("apr", "org.apache.jk.apr.AprImpl");
-        modules.put("mx", "org.apache.jk.common.JkMX");
-        modules.put("modeler", "org.apache.jk.common.JkModeler");
-        modules.put("shm", "org.apache.jk.common.Shm");
-        modules.put("request", "org.apache.jk.common.HandlerRequest");
-        modules.put("container", "org.apache.jk.common.HandlerRequest");
-        modules.put("modjk", "org.apache.jk.common.ModJkMX");
+        modules.put("channelSocket", "com.sun.grizzly.http.jk.common.ChannelSocket");
+        modules.put("channelNioSocket", "com.sun.grizzly.http.jk.common.ChannelNioSocket");
+        modules.put("channelUnix", "com.sun.grizzly.http.jk.common.ChannelUn");
+        modules.put("channelJni", "com.sun.grizzly.http.jk.common.ChannelJni");
+        modules.put("apr", "com.sun.grizzly.http.jk.apr.AprImpl");
+        modules.put("mx", "com.sun.grizzly.http.jk.common.JkMX");
+        modules.put("modeler", "com.sun.grizzly.http.jk.common.JkModeler");
+        modules.put("shm", "com.sun.grizzly.http.jk.common.Shm");
+        modules.put("request", "com.sun.grizzly.http.jk.common.HandlerRequest");
+        modules.put("container", "com.sun.grizzly.http.jk.common.HandlerRequest");
+        modules.put("modjk", "com.sun.grizzly.http.jk.common.ModJkMX");
 
     }
 
