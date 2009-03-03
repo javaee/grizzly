@@ -1042,8 +1042,7 @@ public class SuspendTest extends TestCase {
         }
     }
 
-    
-     public void testSuspendResumeNoArgs() throws IOException {
+         public void testSuspendResumeNoArgs() throws IOException {
         System.out.println("Test: testSuspendNoArgs");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Resuming the response";
@@ -1056,6 +1055,52 @@ public class SuspendTest extends TestCase {
                 public void service(final Request req, final Response res) throws IOException {
                     res.suspend();
                     res.getChannel().write(ByteBuffer.wrap(testData));
+                    res.resume();
+                }
+
+                @Override
+                public void afterService(final Request req, final Response res) {
+                    if (res.isSuspended()) {
+                        try {
+                            super.afterService(req, res);
+                            return;
+                        } catch (Exception ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                }
+            });
+
+            try {
+                st.listen();
+                st.enableMonitoring();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            sendRequest(testData, testString);
+
+
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+            pe.shutdown();
+        }
+    }
+    
+     public void testSuspendResumeOneTransaction() throws IOException {
+        System.out.println("Test: testSuspendResumeOneTransaction");
+        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
+        final String testString = "Resuming the response";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread();
+            st.setAdapter(new StaticResourcesAdapter() {
+
+                @Override
+                public void service(final Request req, final Response res) throws IOException {
+                    res.suspend();
+                    res.getChannel().write(ByteBuffer.wrap(testData));
+                    res.flush();
                     res.resume();
                 }
 
