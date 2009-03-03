@@ -331,6 +331,7 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler {
     public void copyTo(Copyable copy) {
         BaseSelectionKeyHandler copyHandler = (BaseSelectionKeyHandler) copy;
         copyHandler.selectorHandler = selectorHandler;
+        copyHandler.cch = cch;
     }
     
     public Logger getLogger() {
