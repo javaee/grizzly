@@ -573,10 +573,12 @@ public class GrizzlyWebServer {
     private void updateGrizzlyAdapters() {
         adapterChains = new GrizzlyAdapterChain();
         if (adapters.size() == 0){
+            adapterChains.setRootFolder(webResourcesPath);
             adapterChains.setHandleStaticResources(true);
             st.setAdapter(adapterChains);
         } else if (adapters.size() == 1){
             st.setAdapter(adapters.keySet().iterator().next());
+            adapters.keySet().iterator().next().setRootFolder(webResourcesPath);
         } else {          
             for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
                 // For backward compatibility
