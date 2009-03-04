@@ -42,18 +42,23 @@ import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import java.io.BufferedReader;
+import java.io.DataInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.logging.Level;
 import junit.framework.TestCase;
 
 
 import java.net.HttpURLConnection;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.logging.Logger;
 
 /**
- * Basic Servlet Test.
+ * Basic Comet Test.
  *
  * @author Jeanfrancois Arcand
  */
@@ -62,21 +67,21 @@ public class BasicCometTest extends TestCase {
     public static final int PORT = 18890;
     private static Logger logger = Logger.getLogger("grizzly.test");
     private GrizzlyWebServer gws;
-    private String onInitialize = "onInitialize";
-    private String onTerminate = "onTerminate";
-    private String onInterrupt = "onInterrupt";
-    private String onEvent = "onEvent";
+    final static String onInitialize = "onInitialize";
+    final static String onTerminate = "onTerminate";
+    final static String onInterrupt = "onInterrupt";
+    final static String onEvent = "onEvent";
     final CometContext test = CometEngine.getEngine().register("GrizzlyAdapter");
 
     public void testOnEvent() throws IOException {
         System.out.println("testOnEvent - will wait 5 seconds");
         try {
             newGWS(PORT);
-            String alias = "/OnEvemt";
-            addAdapter(alias);
-
+            String alias = "/OnEvent";
+            addAdapter(alias, true);
+            test.setExpirationDelay(-1);
             gws.start();
-            new Thread(){
+            new Thread() {
 
                 @Override
                 public void run() {
@@ -101,10 +106,107 @@ public class BasicCometTest extends TestCase {
         }
     }
 
-    private String readResponse(HttpURLConnection conn) throws IOException {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream()));
-        return reader.readLine();
+    public void testOnInterruptExpirationDelay() throws IOException {
+        System.out.println("testOnInterruptExpirationDelay - will wait 5 seconds");
+        try {
+            newGWS(PORT);
+            test.setExpirationDelay(5 * 1000);
+            String alias = "/OnInterrupt";
+            addAdapter(alias, false);
+
+            gws.start();
+            HttpURLConnection conn = getConnection(alias);
+            String s = conn.getHeaderField(onInitialize);
+            assertEquals(s, onInitialize);
+
+            s = conn.getHeaderField(onInterrupt);
+            assertEquals(s, onInterrupt);
+
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+
+    public void testOnTerminate() throws IOException {
+        System.out.println("testOnTerminate - will wait 5 seconds");
+        try {
+            newGWS(PORT);
+            test.setExpirationDelay(-1);
+            String alias = "/OnTerminate";
+            addAdapter(alias, false);
+            gws.start();
+            new Thread() {
+
+                @Override
+                public void run() {
+                    try {
+                        Thread.sleep(5 * 1000);
+                        test.notify(onTerminate, CometEvent.TERMINATE);
+                    } catch (Throwable ex) {
+                        Logger.getLogger(BasicCometTest.class.getName()).log(Level.SEVERE, null, ex);
+                    }
+                }
+            }.start();
+            HttpURLConnection conn = getConnection(alias);
+            String s = conn.getHeaderField(onInitialize);
+            assertEquals(s, onInitialize);
+            s = conn.getHeaderField(onTerminate);
+            assertEquals(s, onTerminate);
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+    
+    public void testClientCloseConnection() throws IOException {
+        System.out.println("testClientCloseConnection");
+        try {
+            newGWS(PORT);
+            test.setExpirationDelay(-1);
+            String alias = "/OnClientCloseConnection";
+            final CometGrizzlyAdapter ga = addAdapter(alias, true);
+
+            gws.start();
+
+            try {
+                readResponse(alias);
+            } catch (SocketTimeoutException ex) {
+                try {
+                    ex.printStackTrace();
+                    Thread.sleep(10 * 1000);
+                    assertEquals(onInterrupt, ga.c.wasInterrupt);
+                } catch (InterruptedException ex1) {
+                    Logger.getLogger(BasicCometTest.class.getName()).log(Level.SEVERE, null, ex1);
+                }
+            }
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+
+    private void readResponse(String alias) throws IOException {
+        InputStream is = null;
+        BufferedReader br = null;
+        try{
+            Socket s = new Socket("localhost", PORT);
+
+            s.setSoTimeout(10 * 1000);
+            OutputStream os = s.getOutputStream();
+
+            System.out.println(("GET " + alias + " HTTP/1.1\n"));
+            os.write(("GET " + alias + " HTTP/1.1\n").getBytes());
+            os.write(("Host: localhost:" + PORT + "\n").getBytes());
+            os.write("\n".getBytes());
+
+            is = new DataInputStream(s.getInputStream());
+            br = new BufferedReader(new InputStreamReader(is));
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                assertFalse(false);
+            }
+        } finally {
+            is.close();
+            br.close();
+        }
     }
 
     private HttpURLConnection getConnection(String alias) throws IOException {
@@ -119,18 +221,10 @@ public class BasicCometTest extends TestCase {
         return urlConn.getResponseCode();
     }
 
-    private GrizzlyAdapter addAdapter(final String alias) {
-        GrizzlyAdapter adapter = new GrizzlyAdapter() {
-
-            @Override
-            public void service(GrizzlyRequest request, GrizzlyResponse response) {
-                DefaultCometHandler c = new DefaultCometHandler();
-                c.attach(response);
-                test.addCometHandler(c);
-            }
-        };
-        gws.addGrizzlyAdapter(adapter, new String[]{alias});
-        return adapter;
+    private CometGrizzlyAdapter addAdapter(final String alias, final boolean resume) {
+        CometGrizzlyAdapter c = new CometGrizzlyAdapter(resume);
+        gws.addGrizzlyAdapter(c, new String[]{alias});
+        return c;
     }
 
     private void newGWS(int port) throws IOException {
@@ -142,37 +236,74 @@ public class BasicCometTest extends TestCase {
         gws.stop();
     }
 
+    class CometGrizzlyAdapter extends GrizzlyAdapter {
+
+        boolean resume = true;
+        DefaultCometHandler c;
+
+        public CometGrizzlyAdapter(boolean resume) {
+            this.resume = resume;
+        }
+
+        @Override
+        public void service(GrizzlyRequest request, GrizzlyResponse response) {
+            c = new DefaultCometHandler(resume);
+            c.attach(response);
+            test.addCometHandler(c);
+        }
+    }
+
     static class DefaultCometHandler implements CometHandler<GrizzlyResponse> {
 
         private GrizzlyResponse response;
+        private boolean resume = true;
+        public String wasInterrupt = "";
+
+        public DefaultCometHandler(boolean resume) {
+            this.resume = resume;
+        }
 
         public void attach(GrizzlyResponse response) {
             this.response = response;
         }
 
         public void onEvent(CometEvent event) throws IOException {
-            System.out.println("-> " + event.attachment());
+            System.out.println("-> onEvent");
             response.addHeader("onEvent", event.attachment().toString());
             response.getWriter().print("onEvent");
-            event.getCometContext().resumeCometHandler(this);
+            if (resume) {
+                event.getCometContext().resumeCometHandler(this);
+            }
         }
 
         public void onInitialize(CometEvent event) throws IOException {
+           System.out.println("-> onInitialize");
+             
             String test = (String) event.attachment();
             if (test == null) {
-                test = "onInitialize";
+                test = onInitialize;
             }
-            response.addHeader("onInitialize", test);
+            response.addHeader(onInitialize, test);
         }
 
         public void onTerminate(CometEvent event) throws IOException {
-            response.addHeader("onTerminate", event.attachment().toString());
-            response.getWriter().print("onTerminate");
+            System.out.println("-> onTerminate");
+ 
+            response.addHeader(onTerminate, event.attachment().toString());
+            response.getWriter().print(onTerminate);
+            event.getCometContext().resumeCometHandler(this);
         }
 
         public void onInterrupt(CometEvent event) throws IOException {
-            response.addHeader("onInterrupt", event.attachment().toString());
-            response.getWriter().print("onInterrupt");
+            System.out.println("-> onInterrupt");
+             
+            wasInterrupt = onInterrupt;
+            String test = (String) event.attachment();
+            if (test == null) {
+                test = onInterrupt;
+            }
+            response.addHeader(onInterrupt, test);
+            response.getWriter().print(onInterrupt);
         }
     }
 }
