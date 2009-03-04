@@ -107,6 +107,9 @@ public class DataHandler implements CometHandler<Object[]>{
                     res.write(deliverRes.toJSON());    
                     res.flush();
                     ended = deliverRes.isLast();
+                    if (deliverRes.isFinished()){
+                        event.getCometContext().resumeCometHandler(this);
+                    }
                 }
             } else if (obj instanceof End) {
                 End end = (End)obj;
