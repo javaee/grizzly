@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * OSGi Resource Adapter.
@@ -59,7 +60,8 @@ import java.net.URLConnection;
  *
  * @author Hubert Iwaniuk
  */
-public class OSGiResourceAdapter extends GrizzlyAdapter {
+public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapter {
+    private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private String alias;
     private String prefix;
     private HttpContext httpContext;
@@ -151,5 +153,19 @@ public class OSGiResourceAdapter extends GrizzlyAdapter {
      */
     private boolean authenticate(GrizzlyRequest request, GrizzlyResponse response) throws IOException {
         return httpContext.handleSecurity(new HttpServletRequestImpl(request), new HttpServletResponseImpl(response));
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public ReentrantReadWriteLock.ReadLock getProcessingLock() {
+        return lock.readLock();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public ReentrantReadWriteLock.WriteLock getRemovalLock() {
+        return lock.writeLock();
     }
 }

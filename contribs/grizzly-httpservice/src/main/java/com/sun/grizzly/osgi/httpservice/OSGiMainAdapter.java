@@ -40,36 +40,74 @@ package com.sun.grizzly.osgi.httpservice;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.osgi.httpservice.util.Logger;
 
 import java.util.*;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.*;
+
+import org.osgi.service.http.NamespaceException;
+import org.osgi.service.http.HttpContext;
+import org.osgi.service.http.HttpService;
+import org.osgi.framework.Bundle;
+
+import javax.servlet.Servlet;
+import javax.servlet.ServletException;
 
 /**
  * OSGi Main Adapter.
  * <p/>
  * Dispatching adapter.
+ * Grizzly integration.
+ * <p/>
+ * Responsibilities:
+ * <ul>
+ * <li>Manages registration data.</li>
+ * <li>Dispatching {@link GrizzlyAdapter#service(GrizzlyRequest, GrizzlyResponse)} method call to registered
+ * {@link GrizzlyAdapter}s.</li>
+ * </ul>
  *
  * @author Hubert Iwaniuk
  */
-public class OSGiMainAdapter extends GrizzlyAdapter {
-    private CleanMapper cm;
-    private static Map<String, GrizzlyAdapter> registrations = new HashMap<String, GrizzlyAdapter>();
+public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapter {
+    private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+    private Logger logger;
+    private Bundle bundle;
+    private OSGiCleanMapper mapper;
 
-    public OSGiMainAdapter() {
-        this.cm = new CleanMapper();
+    /**
+     * Constructor.
+     * @param logger Logger utility.
+     * @param bundle Bundle that we create if for, for local data reference.
+     */
+    public OSGiMainAdapter(Logger logger, Bundle bundle) {
+        this.logger = logger;
+        this.bundle = bundle;
+        this.mapper = new OSGiCleanMapper();
     }
 
+    /**
+     * Service method dispatching to registered handlers.
+     * <p/>
+     * {@inheritDoc}
+     */
     public void service(GrizzlyRequest request, GrizzlyResponse response) {
         boolean invoked = false;
         String alias = request.getDecodedRequestURI();
         while (true) {
-            alias = cm.map(alias);
+            alias = OSGiCleanMapper.map(alias);
             if (alias == null) {
                 break;
             } else {
-                registrations.get(alias).service(request, response);
+                GrizzlyAdapter adapter = OSGiCleanMapper.getAdapter(alias);
+
+                ((OSGiGrizzlyAdapter) adapter).getProcessingLock().lock();
+                try {
+                    adapter.service(request, response);
+                } finally {
+                    ((OSGiGrizzlyAdapter) adapter).getProcessingLock().unlock();
+                }
                 invoked = true;
                 if (response.getStatus() != 404) {
                     break;
@@ -77,83 +115,256 @@ public class OSGiMainAdapter extends GrizzlyAdapter {
             }
         }
         if (!invoked) {
-            // TODO: No registration matched, 404
+            response.getResponse().setStatus(404);
+            try {
+                customizedErrorPage(request.getRequest(), response.getResponse());
+            } catch (Exception e) {
+                // TODO: could not commit 404 message
+                e.printStackTrace();
+            }
         }
     }
 
-    public void addGrizzlyAdapter(String alias, GrizzlyAdapter adapter) {
-        if (!cm.contains(alias)) {
-            // shold not happend, alias shouls be checked before.
-            // TODO: signal it some how
+    /**
+     * Registers {@link com.sun.grizzly.osgi.httpservice.OSGiServletAdapter} in OSGi Http Service.
+     * <p/>
+     * Keeps truck of all registrations, takes care of thread safety.
+     *
+     * @param alias       Alias to register, if wrong value than throws {@link org.osgi.service.http.NamespaceException}.
+     * @param servlet     Servlet to register under alias, if fails to {@link javax.servlet.Servlet#init(javax.servlet.ServletConfig)}
+     *                    throws {@link javax.servlet.ServletException}.
+     * @param initparams  Initial parameters to populate {@link javax.servlet.ServletContext} with.
+     * @param context     OSGi {@link org.osgi.service.http.HttpContext}, provides mime handling, security and bundle specific resource access.
+     * @param httpService Used to {@link HttpService#createDefaultHttpContext()} if needed.
+     * @throws org.osgi.service.http.NamespaceException
+     *                                        If alias was invalid or already registered.
+     * @throws javax.servlet.ServletException If {@link javax.servlet.Servlet#init(javax.servlet.ServletConfig)} fails.
+     */
+    public void registerServletAdapter(String alias, Servlet servlet, Dictionary initparams, HttpContext context,
+                                       HttpService httpService)
+            throws NamespaceException, ServletException {
+
+        ReentrantLock lock = OSGiCleanMapper.getLock();
+        lock.lock();
+        try {
+            validateAlias4RegOk(alias);
+            validateServlet4RegOk(servlet);
+
+            if (context == null) {
+                logger.debug("No HttpContext provided, creating default");
+                context = httpService.createDefaultHttpContext();
+            }
+
+            OSGiServletAdapter servletAdapter =
+                    findOrCreateOSGiServletAdapter(servlet, context, initparams);
+
+            logger.debug("Initializing Servlet been registered");
+            servletAdapter.startServlet(); // this might throw ServletException, throw it to offending bundle.
+
+            mapper.addGrizzlyAdapter(alias, servletAdapter);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Registers {@link OSGiResourceAdapter} in OSGi Http Service.
+     * <p/>
+     * Keeps truck of all registrations, takes care of thread safety.
+     *
+     * @param alias          Alias to register, if wrong value than throws {@link NamespaceException}.
+     * @param context        OSGi {@link HttpContext}, provides mime handling, security and bundle specific resource access.
+     * @param internalPrefix Prefix to map request for this alias to.
+     * @param httpService Used to {@link HttpService#createDefaultHttpContext()} if needed.
+     * @throws NamespaceException If alias was invalid or already registered.
+     */
+    public void registerResourceAdapter(String alias, HttpContext context, String internalPrefix,
+                                        HttpService httpService)
+            throws NamespaceException {
+
+        ReentrantLock lock = OSGiCleanMapper.getLock();
+        lock.lock();
+        try {
+            validateAlias4RegOk(alias);
+
+            if (context == null) {
+                logger.debug("No HttpContext provided, creating default");
+                context = httpService.createDefaultHttpContext();
+            }
+            if (internalPrefix == null) {
+                internalPrefix = "";
+            }
+
+            mapper.addGrizzlyAdapter(alias, new OSGiResourceAdapter(alias, internalPrefix, context, logger));
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Unregisters previously registered alias.
+     * <p/>
+     * Keeps truck of all registrations, takes care of thread safety.
+     *
+     * @param alias       Alias to unregister, if not owning alias {@link IllegalArgumentException} is thrown.
+     * @throws IllegalArgumentException If alias was not registered by calling bundle.
+     */
+    public void unregisterAlias(String alias) {
+
+        ReentrantLock lock = OSGiCleanMapper.getLock();
+        lock.lock();
+        try {
+            if (mapper.isLocalyRegisteredAlias(alias)) {
+                mapper.doUnregister(alias, true);
+            } else {
+                logger.warn(
+                        new StringBuilder(128).append("Bundle: ").append(bundle)
+                                .append(" tried to unregister not owned alias '").append(alias)
+                                .append('\'').toString());
+                throw new IllegalArgumentException(
+                        new StringBuilder(64).append("Alias '").append(alias)
+                                .append("' was not registered by you.").toString());
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Unregisters all <code>alias</code>es registered by owning bundle.
+     */
+    public void uregisterAllLocal() {
+        logger.info("Unregistering all aliases registered by owning bundle");
+
+        ReentrantLock lock = OSGiCleanMapper.getLock();
+        lock.lock();
+        try {
+            for (String alias : mapper.getLocalAliases()) {
+                logger.debug(new StringBuilder().append("Unregistering '").append(alias).append("'").toString());
+                // remember not to call Servlet.destroy() owning bundle might be stopped already.
+                mapper.doUnregister(alias, false);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    /**
+     * Part of Shutdown sequence.
+     * Unregister and clean up.
+     * TODO implement it
+     */
+    public void unregisterAll() {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public ReentrantReadWriteLock.ReadLock getProcessingLock() {
+        return lock.readLock();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public ReentrantReadWriteLock.WriteLock getRemovalLock() {
+        return lock.writeLock();
+    }
+
+    /**
+     * Chek if <code>alias</code> has been already registered.
+     *
+     * @param alias Alias to check.
+     * @throws NamespaceException If <code>alias</code> has been registered.
+     */
+    private void validateAlias4RegOk(String alias) throws NamespaceException {
+        if (!alias.startsWith("/")) {
+            // have to start with "/"
+            String msg = new StringBuilder(64).append("Invalid alias '").append(alias)
+                    .append("', have to start with '/'.").toString();
+            logger.warn(msg);
+            throw new NamespaceException(msg);
+        }
+        if (alias.length() > 1 && alias.endsWith("/")) {
+            // if longer than "/", should not end with "/"
+            String msg = new StringBuilder(64).append("Alias '").append(alias)
+                    .append("' can't and with '/' with exception to alias '/'.").toString();
+            logger.warn(msg);
+            throw new NamespaceException(msg);
+        }
+        if (OSGiCleanMapper.containsAlias(alias)) {
+            String msg = "Alias: '" + alias + "', already registered";
+            logger.warn(msg);
+            throw new NamespaceException(msg);
+        }
+    }
+
+    /**
+     * Check if <code>servlet</code> has been already registered.
+     * <p/>
+     * An instance of {@link Servlet} can be registed only once, so in case of servlet been registered before will throw
+     * {@link ServletException} as specified in OSGI HttpService Spec.
+     *
+     * @param servlet {@link Servlet} to check if can be registered.
+     * @throws ServletException Iff <code>servlet</code> has been registered before.
+     */
+    private void validateServlet4RegOk(Servlet servlet) throws ServletException {
+        if (OSGiCleanMapper.contaisServlet(servlet)) {
+            String msg = new StringBuilder(64).append("Servlet: '").append(servlet).append("', already registered.")
+                    .toString();
+            logger.warn(msg);
+            throw new ServletException(msg);
+        }
+    }
+
+    /**
+     * Looks up {@link OSGiServletAdapter}.
+     * <p/>
+     * If is already registered for <code>httpContext</code> than create new instance based on already registered. Else
+     * Create new one.
+     * <p/>
+     *
+     * @param servlet     {@link Servlet} been registered.
+     * @param httpContext {@link HttpContext} used for registration.
+     * @param initparams  Init parameters that will be visible in {@link javax.servlet.ServletContext}.
+     * @return Found or created {@link OSGiServletAdapter}.
+     */
+    private OSGiServletAdapter findOrCreateOSGiServletAdapter(
+            Servlet servlet, HttpContext httpContext, Dictionary initparams) {
+        OSGiServletAdapter osgiServletAdapter;
+
+        if (mapper.containsContext(httpContext)) {
+            logger.debug("Reusing ServletAdapter");
+            // new servlet adapter for same configuration, different servlet and alias
+            List<OSGiServletAdapter> servletAdapters = mapper.getContext(httpContext);
+            osgiServletAdapter = servletAdapters.get(0).newServletAdapter(servlet);
+            servletAdapters.add(osgiServletAdapter);
         } else {
-            cm.add(alias, adapter);
-        }
-    }
-
-    static class CleanMapper {
-
-        private static final ReadWriteLock lock = new ReentrantReadWriteLock();
-        private TreeSet<String> aliasTree = new TreeSet<String>();
-
-        public String map(String resource) {
-            String match = resource;
-            while (true) {
-                int i = match.lastIndexOf('/');
-                if (i == -1) {
-                    return null;
-                } else {
-                    if (i == 0)
-                        match = "/";
-                    else
-                        match = resource.substring(0, i);
+            logger.debug("Creating new ServletAdapter");
+            HashMap<String, String> params;
+            if (initparams != null) {
+                params = new HashMap<String, String>(initparams.size());
+                Enumeration names = initparams.keys();
+                while (names.hasMoreElements()) {
+                    String name = (String) names.nextElement();
+                    params.put(name, (String) initparams.get(name));
                 }
-                if (contains(match)) {
-                    return match;
-                } else if (i == 0) {
-                    return null;
-                }
+            } else {
+                params = new HashMap<String, String>(0);
             }
+            osgiServletAdapter = new OSGiServletAdapter(servlet, httpContext, params, logger);
+            ArrayList<OSGiServletAdapter> servletAdapters = new ArrayList<OSGiServletAdapter>(1);
+            servletAdapters.add(osgiServletAdapter);
+            mapper.addContext(httpContext, servletAdapters);
         }
-
-        public boolean add(String alias, GrizzlyAdapter adapter) {
-            lock.writeLock().lock();
-            try {
-                boolean wasNew = aliasTree.add(alias);
-                if (wasNew) {
-                    registrations.put(alias, adapter);
-                } else {
-                    // TODO already registered, wtf
-                }
-                return wasNew;
-            } finally {
-                lock.writeLock().unlock();
-            }
-        }
-
-        public boolean remove(String s) {
-            lock.writeLock().lock();
-            try {
-                return aliasTree.remove(s);
-            } finally {
-                lock.writeLock().unlock();
-            }
-        }
-
-        public boolean contains(String s) {
-            lock.readLock().lock();
-            try {
-                return aliasTree.contains(s);
-            } finally {
-                lock.readLock().unlock();
-            }
-        }
+        osgiServletAdapter.addFilter(new OSGiAuthFilter(httpContext), "AuthorisationFilter", new HashMap(0));
+        return osgiServletAdapter;
     }
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
-        final CleanMapper cm = new CleanMapper();
-        cm.add("/a/b", null);
-        cm.add("/a", null);
-        cm.add("/a/b/c", null);
+        OSGiCleanMapper.registerAliasAdapter("/a/b", null);
+        OSGiCleanMapper.registerAliasAdapter("/a", null);
+        OSGiCleanMapper.registerAliasAdapter("/a/b/c", null);
 
         final CountDownLatch latch = new CountDownLatch(1);
 
@@ -163,9 +374,20 @@ public class OSGiMainAdapter extends GrizzlyAdapter {
                 long start = System.currentTimeMillis();
                 for (int i = 0; i < 100000; i++) {
                     String s = "/a/b/c/d" + i + "/" + i;
+                    int x = 3;
                     while (true) {
-                        s = cm.map(s);
+                        s = OSGiCleanMapper.map(s);
                         if (s == null) break;
+                        else --x;
+                    }
+                    if (x != 0) {
+                        System.out.println("Argh, Should have found 3 mappings.");
+                    }
+                    s = "/a";
+                    String s1 = OSGiCleanMapper.map(s);
+                    if (!s.equals(s1)) {
+                        System.out.println("Argh, Mapping is not working for simple context '/a'.");
+                        break;
                     }
                 }
                 return System.currentTimeMillis() - start;
@@ -181,7 +403,7 @@ public class OSGiMainAdapter extends GrizzlyAdapter {
             readFutures.add(exec.submit(readingCallable));
         }
         for (int i = 0; i < WRITECOUNT; i++) {
-            writeFutures.add(exec.submit(new MyCallableWriter(cm, i, latch)));
+            writeFutures.add(exec.submit(new MyCallableWriter(i, latch)));
         }
         latch.countDown();
         for (int i = 0; i < READCOUNT; i++) {
@@ -194,12 +416,10 @@ public class OSGiMainAdapter extends GrizzlyAdapter {
     }
 
     private static class MyCallableWriter implements Callable<Long> {
-        private final CleanMapper cm;
         private int j;
         private CountDownLatch latch;
 
-        public MyCallableWriter(CleanMapper cm, int i, CountDownLatch latch) {
-            this.cm = cm;
+        public MyCallableWriter(int i, CountDownLatch latch) {
             j = i;
             this.latch = latch;
         }
@@ -209,7 +429,7 @@ public class OSGiMainAdapter extends GrizzlyAdapter {
             long start = System.currentTimeMillis();
             for (int i = 0; i < 100000; i++) {
                 String s = "/" + j + "/" + i + "/a/b/c/d";
-                cm.add(s, null);
+                OSGiCleanMapper.registerAliasAdapter(s, null);
             }
             return System.currentTimeMillis() - start;
         }
