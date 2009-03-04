@@ -75,7 +75,6 @@ public class BayeuxClientLoadTest extends TestCase {
         st = new SelectorThread();
         st.setPort(PORT);
         st.setAdapter(new CometdAdapter());
-        st.setReuseAddress(false);
 
         StatsThreadPool threadPool = new StatsThreadPool();
         threadPool.setMaximumPoolSize(256);
