@@ -46,13 +46,15 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * OSGi customized {@link ServletAdapter}.
  *
  * @author Hubert Iwaniuk
  */
-public class OSGiServletAdapter extends ServletAdapter {
+public class OSGiServletAdapter extends ServletAdapter implements OSGiGrizzlyAdapter {
+    private ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private HttpContext httpContext;
     private Logger logger;
 
@@ -94,6 +96,20 @@ public class OSGiServletAdapter extends ServletAdapter {
         setResourcesContextPath(getContextPath() + getServletPath());
         // always load servlet
         loadServlet();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public ReentrantReadWriteLock.ReadLock getProcessingLock() {
+        return lock.readLock();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public ReentrantReadWriteLock.WriteLock getRemovalLock() {
+        return lock.writeLock();
     }
 
     public HttpContext getHttpContext() {

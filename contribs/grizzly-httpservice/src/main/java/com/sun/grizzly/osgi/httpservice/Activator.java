@@ -61,6 +61,7 @@ public class Activator implements BundleActivator {
     private Logger logger;
     private GrizzlyWebServer ws;
     private static final String ORG_OSGI_SERVICE_HTTP_PORT = "org.osgi.service.http.port";
+    private HttpServiceFactory serviceFactory;
 
     /**
      * {@inheritDoc}
@@ -83,8 +84,9 @@ public class Activator implements BundleActivator {
             }
         }
         startGrizzly(port);
+        serviceFactory = new HttpServiceFactory(ws, logger, bundleContext.getBundle());
         registration = bundleContext.registerService(
-                HttpService.class.getName(), new HttpServiceFactory(ws, logger),
+                HttpService.class.getName(), serviceFactory,
                 new Properties());
     }
 
@@ -100,6 +102,7 @@ public class Activator implements BundleActivator {
      */
     public void stop(final BundleContext bundleContext) throws Exception {
         logger.info("Stopping Grizzly OSGi HttpService");
+        serviceFactory.stop();
         if (registration != null) {
             registration.unregister();
         }
