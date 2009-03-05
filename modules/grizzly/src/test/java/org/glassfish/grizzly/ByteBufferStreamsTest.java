@@ -1000,7 +1000,6 @@ public class ByteBufferStreamsTest extends TestCase {
 
         AbstractStreamReader reader=new AbstractStreamReader() {
 
-            @Override
             public Future notifyCondition(Condition condition, CompletionHandler completionHandler) {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
