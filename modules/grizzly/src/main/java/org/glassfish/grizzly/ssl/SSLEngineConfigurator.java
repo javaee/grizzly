@@ -80,7 +80,7 @@ public class SSLEngineConfigurator {
     private boolean isCipherConfigured = false;
 
     public SSLEngineConfigurator(SSLContext sslContext) {
-        this(sslContext, false, false, false);
+        this(sslContext, true, false, false);
     }
 
     public SSLEngineConfigurator(SSLContext sslContext, boolean clientMode,

@@ -40,8 +40,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.util.conditions.Condition;
 
 /** Interface that defines methods for reading primitive types and arrays
  * of primitive types from a stream.  A stream is implemented as a sequence
@@ -51,15 +54,22 @@ import org.glassfish.grizzly.CompletionHandler;
  * @author Ken Cavanaugh
  */
 public interface StreamReader extends Closeable {
-
+    public enum Mode {
+        NON_BLOCKING, BLOCKING, FEEDER;
+    }
+    
     public Future notifyAvailable(int length);
 
     public Future notifyAvailable(int length, CompletionHandler completionHandler);
 
-    /** If this returns true, methods will block (possibly with a timeout)
-     * until enough data is available.  If false, methods throw java.nio.BufferUnderflowException.
-     */
-    boolean isBlockingStream();
+    public Future notifyCondition(Condition<StreamReader> condition);
+
+    public Future notifyCondition(Condition<StreamReader> condition,
+            CompletionHandler completionHandler);
+
+    public Mode getMode();
+
+    public void setMode(Mode mode);
 
     /**
      * Add more data to the stream.
@@ -173,8 +183,19 @@ public interface StreamReader extends Closeable {
 
     boolean isClosed();
 
+    Buffer readBuffer() throws IOException;
+    
     Buffer getBuffer() throws IOException;
 
     void finishBuffer();
+
+    Connection getConnection();
+
+    int getBufferSize();
+
+    void setBufferSize(int size);
+
+    long getTimeout(TimeUnit timeunit);
+    void setTimeout(long timeout, TimeUnit timeunit);
 }
 

@@ -40,43 +40,23 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteOrder;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 
 /** Write the primitive Java types and arrays of primitives to some data sink.  
  * This may include internal buffering for efficiency reasons.
  * @author Ken Cavanaugh
  */
 public interface StreamWriter extends Closeable {
-
-    /** Interface that defines how full buffers are handled.  Typically this
-     * implies some kind of IO, and eventual disposition of the used buffer.
-     */
-    interface BufferHandler {
-
-        /**
-         * Returns new Buffer, which will written to from position to limit.
-         * @return allocated Buffer
-         */
-        Buffer newBuffer();
-        
-        /**
-         * Flushes of the current Buffer and return Future to control
-         * an operation completion.
-         * Note that current may be null.
-         */
-        Future flush(Buffer current, CompletionHandler completionHandler) throws IOException;
-
-        /**
-         * Dispose of the current ByteBuffer.
-         * Used when closing a StreamWriter.
-         */
-        Future close(Buffer current, CompletionHandler completionHandler) throws IOException;
+    public enum Mode {
+        NON_BLOCKING, BLOCKING;
     }
 
-    /** Get the BufferHandler in use for this stream.
-     */
-    BufferHandler bufferHandler();
+    public Mode getMode();
+
+    public void setMode(Mode mode);
 
     /** Return the ByteOrder of the stream.
      * All streams default to big endian byte order.
@@ -145,7 +125,18 @@ public interface StreamWriter extends Closeable {
      */
     void writeStream(StreamReader stream) throws IOException;
 
-    /* We need a means to remember positions within the stream that 
+    Connection getConnection();
+
+    Buffer getBuffer();
+
+    int getBufferSize();
+
+    void setBufferSize(int size);
+
+    long getTimeout(TimeUnit timeunit);
+    void setTimeout(long timeout, TimeUnit timeunit);
+
+    /* We need a means to remember positions within the stream that
      *  can be restored
      * later, so that we can 
      *

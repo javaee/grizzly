@@ -41,14 +41,19 @@ package org.glassfish.grizzly.nio.transport;
 import java.io.EOFException;
 import java.io.IOException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
+import org.glassfish.grizzly.nio.tmpselectors.AbstractTemporarySelectorReader;
 import org.glassfish.grizzly.streams.AbstractStreamReader;
+import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.util.conditions.Condition;
 
 
 /**
@@ -56,26 +61,8 @@ import org.glassfish.grizzly.streams.AbstractStreamReader;
  * @author oleksiys
  */
 public class TCPNIOStreamReader extends AbstractStreamReader {
-
-    public enum Mode {
-        NON_BLOCKING, BLOCKING, FEEDER;
-    }
-
-    private TCPNIOConnection connection;
-    private Mode mode;
-
     public TCPNIOStreamReader(TCPNIOConnection connection) {
-        this.connection = connection;
-//        mode = Mode.FEEDER;
-        mode = connection.isBlocking() ? Mode.BLOCKING : Mode.NON_BLOCKING;
-    }
-
-    public Mode getMode() {
-        return mode;
-    }
-
-    public void setMode(Mode mode) {
-        this.mode = mode;
+        super(connection);
     }
 
     @Override
@@ -87,8 +74,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         return super.receiveData(buffer);
     }
 
-    @Override
-    public synchronized Future notifyAvailable(int size,
+    public synchronized Future notifyCondition(Condition<StreamReader> condition,
             CompletionHandler completionHandler) {
 
         if (notifyObject != null) {
@@ -105,7 +91,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         }
 
         int availableDataSize = availableDataSize();
-        if (availableDataSize >= size) {
+        if (condition.check(this)) {
             if (completionHandler != null) {
                 completionHandler.completed(null, availableDataSize);
             }
@@ -113,25 +99,27 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
             return new ReadyFutureImpl(availableDataSize);
         } else {
 
-            switch (mode) {
+            switch (getMode()) {
                 case NON_BLOCKING:
-                    return notifyAvailableNonBlocking(size, completionHandler);
+                    return notifyConditionNonBlocking(condition, completionHandler);
                 case BLOCKING:
-                    return notifyAvailableBlocking(size, completionHandler);
+                    return notifyConditionBlocking(condition, completionHandler);
                 case FEEDER:
-                    return notifyAvailableFeeder(size, completionHandler);
+                    return notifyConditionFeeder(condition, completionHandler);
             }
             return null;
         }
-
     }
     
-    private Future notifyAvailableNonBlocking(final int size,
+
+    private Future notifyConditionNonBlocking(
+            final Condition<StreamReader> condition,
             CompletionHandler completionHandler) {
 
         final FutureImpl future = new FutureImpl();
-        notifyObject = new NotifyObject(future, completionHandler, size);
+        notifyObject = new NotifyObject(future, completionHandler, condition);
 
+        Connection connection = getConnection();
         TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
         try {
             transport.getAsyncQueueIO().getReader().read(connection, null, null,
@@ -166,11 +154,11 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         return future;
     }
 
-    private Future notifyAvailableBlocking(int size,
+    private Future notifyConditionBlocking(Condition<StreamReader> condition,
             CompletionHandler completionHandler) {
 
         FutureImpl future = new FutureImpl();
-        notifyObject = new NotifyObject(future, completionHandler, size);
+        notifyObject = new NotifyObject(future, completionHandler, condition);
 
         try {
             while (!future.isDone()) {
@@ -184,21 +172,22 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         return future;
     }
 
-    private Future notifyAvailableFeeder(int size,
+    private Future notifyConditionFeeder(Condition<StreamReader> condition,
             CompletionHandler completionHandler) {
         FutureImpl future = new FutureImpl();
-        notifyObject = new NotifyObject(future, completionHandler, size);
+        notifyObject = new NotifyObject(future, completionHandler, condition);
         return future;
     }
     
     @Override
     protected Buffer read0() throws IOException {
-        switch(mode) {
+        Connection connection = getConnection();
+        
+        switch(getMode()) {
             case NON_BLOCKING:
             {
                 TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-                Buffer buffer = transport.getMemoryManager().allocate(
-                        connection.getReadBufferSize());
+                Buffer buffer = newBuffer(bufferSize);
 
                 try {
                     int readBytes = transport.read(connection, buffer);
@@ -222,13 +211,14 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
             case BLOCKING:
             {
                 TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-                Buffer buffer = transport.getMemoryManager().allocate(
-                        connection.getReadBufferSize());
+                Buffer buffer = newBuffer(bufferSize);
 
                 try {
-                    Future future =
-                            transport.getTemporarySelectorIO().getReader().read(
-                            connection, buffer);
+                    AbstractTemporarySelectorReader reader =
+                            (AbstractTemporarySelectorReader)
+                            transport.getTemporarySelectorIO().getReader();
+                    Future future = reader.read(connection, buffer, null, null,
+                            timeoutMillis, TimeUnit.MILLISECONDS);
                     future.get();
                     buffer.trim();
                 } catch (Exception e) {

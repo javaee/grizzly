@@ -50,6 +50,11 @@ public interface ProcessorLock {
     /**
      * Acquires the lock.
      */
+    public void lock();
+
+    /**
+     * Acquires the lock.
+     */
     public void lock(Processor processor);
 
     /**

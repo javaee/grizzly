@@ -73,7 +73,8 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
         decoder = new SSLDecoderTransformer();
         encoder = new SSLEncoderTransformer();
 
-        serverSSLEngineConfig = new SSLEngineConfigurator(sslContext);
+        serverSSLEngineConfig = new SSLEngineConfigurator(sslContext, false,
+                false, false);
         clientSSLEngineConfig = new SSLEngineConfigurator(sslContext, true,
                 false, false);
         
@@ -127,6 +128,7 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
 
     public Future<SSLEngine> handshake(Connection connection,
             SSLEngineConfigurator configurator) throws IOException {
-        return sslHandshaker.handshake(connection, configurator);
+        return null;
+//        return sslHandshaker.handshake(connection, configurator);
     }
 }

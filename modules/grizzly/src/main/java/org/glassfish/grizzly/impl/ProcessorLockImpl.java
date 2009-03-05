@@ -38,7 +38,6 @@
 
 package org.glassfish.grizzly.impl;
 
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.glassfish.grizzly.Connection;
@@ -53,8 +52,8 @@ import org.glassfish.grizzly.ProcessorLock;
 public class ProcessorLockImpl implements ProcessorLock {
     private Connection connection;
     private IOEvent ioEvent;
-    private AtomicReference<Processor> lockedProcessor =
-            new AtomicReference<Processor>();
+    private volatile Processor lockedProcessor;
+    private boolean isLocked;
     protected ReadWriteLock internalUpdateLock = new ReentrantReadWriteLock();
 
     // Flag, which signals, if IOEvent updates came at time, when lock was acquired
@@ -65,12 +64,15 @@ public class ProcessorLockImpl implements ProcessorLock {
         this.ioEvent = ioEvent;
     }
 
+    public void lock() {
+        lock(null);
+    }
+
     public void lock(Processor processor) {
-        assert processor != null;
-        
         internalUpdateLock.writeLock().lock();
         try {
-            lockedProcessor.set(processor);
+            isLocked = true;
+            lockedProcessor = processor;
         } finally {
             internalUpdateLock.writeLock().unlock();
         }
@@ -79,18 +81,19 @@ public class ProcessorLockImpl implements ProcessorLock {
     public void unlock() {
         internalUpdateLock.writeLock().lock();
         try {
-            lockedProcessor.set(null);
+            isLocked = false;
+            lockedProcessor = null;
         } finally {
             internalUpdateLock.writeLock().unlock();
         }
     }
 
     public Processor getProcessor() {
-        return lockedProcessor.get();
+        return lockedProcessor;
     }
 
     public boolean isLocked() {
-        return lockedProcessor.get() != null;
+        return isLocked;
     }
 
     public ReadWriteLock getInternalUpdateLock() {
@@ -110,7 +113,7 @@ public class ProcessorLockImpl implements ProcessorLock {
         StringBuilder sb = new StringBuilder(64);
         sb.append("ProcessorLock[ connection=").append(connection);
         sb.append(", ioEvent=").append(ioEvent);
-        sb.append(", processor=").append(lockedProcessor.get());
+        sb.append(", processor=").append(lockedProcessor);
         sb.append(']');
         return sb.toString();
     }

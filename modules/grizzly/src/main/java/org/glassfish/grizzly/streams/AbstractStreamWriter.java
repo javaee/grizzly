@@ -47,8 +47,10 @@ import java.nio.LongBuffer;
 import java.nio.FloatBuffer;
 import java.nio.DoubleBuffer;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 
 /**
  * Write the primitive Java type to the current ByteBuffer.  If it doesn't
@@ -59,8 +61,14 @@ import org.glassfish.grizzly.CompletionHandler;
  * @author Ken Cavanaugh
  */
 public abstract class AbstractStreamWriter implements StreamWriter {
-    protected BufferHandler handler;
-    private volatile Buffer buffer;
+    protected Connection connection;
+    protected Mode mode;
+
+    protected int bufferSize = 8192;
+    
+    protected volatile Buffer buffer;
+    private long timeoutMillis = 30000;
+    
     private boolean isClosed = false;
     private ByteOrder byteOrder;
 
@@ -71,16 +79,20 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /** Create a new ByteBufferWriter.  An instance maintains a current buffer
      * for use in writing.  Whenever the current buffer is insufficient to hold
      * the required data, the BufferHandler is called, and the result of the
-     * handler is the new current buffer. The handler is responsible for 
+     * handler is the new current buffer. The handler is responsible for
      * the disposition of the contents of the old buffer.
      */
-    public AbstractStreamWriter(final BufferHandler handler) {
-        this.handler = handler;
+    protected AbstractStreamWriter(final Connection connection) {
+        setConnection(connection);
         byteOrder = ByteOrder.BIG_ENDIAN;
     }
 
-    public BufferHandler bufferHandler() {
-        return handler;
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(Mode mode) {
+        this.mode = mode;
     }
 
     public ByteOrder order() {
@@ -91,34 +103,34 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         this.byteOrder = byteOrder;
     }
 
-    private Future overflow() throws IOException {
+    protected Future overflow() throws IOException {
         return overflow(buffer, null);
     }
 
-    private Future overflow(Buffer buffer) throws IOException {
+    protected Future overflow(Buffer buffer) throws IOException {
         return overflow(buffer, null);
     }
 
-    private Future overflow(CompletionHandler completionHandler) throws IOException {
+    protected Future overflow(CompletionHandler completionHandler) throws IOException {
         return overflow(buffer, completionHandler);
     }
 
-    private Future overflow(Buffer buffer, CompletionHandler completionHandler)
+    protected Future overflow(Buffer buffer, CompletionHandler completionHandler)
             throws IOException {
         // Why was this here: buffer.underlying().limit( buffer.underlying().position() ) ;
         Future future = null;
 
         if (buffer != null) {
-            future = handler.flush(buffer, completionHandler);
+            future = flush0(buffer, completionHandler);
             if (buffer == this.buffer) {
                 if (!future.isDone()) {
-                    buffer = handler.newBuffer();
+                    buffer = newBuffer(bufferSize);
                 }
                 
                 initBuffer(buffer);
             }
         } else {
-            buffer = handler.newBuffer();
+            buffer = newBuffer(bufferSize);
             initBuffer(buffer);
         }
 
@@ -152,7 +164,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
 
     public Future close(CompletionHandler completionHandler) throws IOException {
         try {
-            return handler.close(buffer, completionHandler);
+            return close0(completionHandler);
         } finally {
             buffer = null;
             isClosed = true;
@@ -180,18 +192,21 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         boolean isFirstTime = true;
         AbstractStreamReader readerImpl = (AbstractStreamReader) streamReader;
         Buffer readerBuffer;
-        while ((readerBuffer = readerImpl.getBuffer()) != null) {
-            if (isFirstTime) {
-                if (buffer != null && buffer.position() > 0) {
-                    overflow();
-                }
-                
-                isFirstTime = false;
-            }
+        while ((readerBuffer = readerImpl.readBuffer()) != null) {
+            try {
+                if (isFirstTime) {
+                    if (buffer != null && buffer.position() > 0) {
+                        overflow();
+                    }
 
-            readerBuffer.position(readerBuffer.limit());
-            overflow(readerBuffer);
-            readerImpl.finishBuffer();
+                    isFirstTime = false;
+                }
+
+                readerBuffer.position(readerBuffer.limit());
+                overflow(readerBuffer);
+            } catch (Exception e) {
+                readerBuffer.dispose();
+            }
         }
     }
 
@@ -383,5 +398,47 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             overflow();
         }
     }
+
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public void setConnection(Connection connection) {
+        if (connection != null) {
+            bufferSize = connection.getWriteBufferSize();
+            mode = connection.isBlocking() ? Mode.BLOCKING : Mode.NON_BLOCKING;
+        }
+        this.connection = connection;
+    }
+
+    public Buffer getBuffer() {
+        return buffer;
+    }
+
+    protected Buffer newBuffer(int size) {
+        return getConnection().getTransport().getMemoryManager().allocate(size);
+    }
+
+    public int getBufferSize() {
+        return bufferSize;
+    }
+
+    public void setBufferSize(int size) {
+        this.bufferSize = size;
+    }
+
+    public long getTimeout(TimeUnit timeunit) {
+        return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public void setTimeout(long timeout, TimeUnit timeunit) {
+        timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+    }
+
+    protected abstract Future flush0(Buffer buffer,
+            CompletionHandler completionHandler) throws IOException;
+
+    protected abstract Future close0(CompletionHandler completionHandler)
+            throws IOException;
 }
 

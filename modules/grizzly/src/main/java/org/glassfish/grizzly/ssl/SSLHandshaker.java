@@ -40,7 +40,6 @@ package org.glassfish.grizzly.ssl;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import javax.net.ssl.SSLEngine;
-import org.glassfish.grizzly.Connection;
 
 /**
  * Implementation is responsible to perform SSL handshake.
@@ -49,6 +48,8 @@ import org.glassfish.grizzly.Connection;
  * @author Alexey Stashok
  */
 public interface SSLHandshaker {
-    public Future<SSLEngine> handshake(Connection connection,
+    public Future<SSLEngine> handshake(
+            SSLStreamReader reader,
+            SSLStreamWriter writer,
             SSLEngineConfigurator configurator) throws IOException;
 }

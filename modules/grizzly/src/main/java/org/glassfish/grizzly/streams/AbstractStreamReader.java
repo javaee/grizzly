@@ -50,9 +50,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.nio.transport.TCPNIOStreamReader;
+import org.glassfish.grizzly.util.conditions.Condition;
 
 /** Each method reads data from the current ByteBuffer.  If not enough data
  * is present in the current ByteBuffer, discard is called on the current
@@ -74,6 +75,13 @@ public abstract class AbstractStreamReader extends InputStream
     private static final boolean DEBUG = false;
     private static Logger logger = Grizzly.logger;
 
+    private Mode mode;
+
+    private Connection connection;
+    protected int bufferSize = 8192;
+
+    protected long timeoutMillis = 30000;
+    
     private static void msg(final String msg) {
         logger.info("READERSTREAM:DEBUG:" + msg);
     }
@@ -109,7 +117,7 @@ public abstract class AbstractStreamReader extends InputStream
     protected NotifyObject notifyObject;
 
     public AbstractStreamReader() {
-        this(0);
+        this(null);
     }
 
     /**
@@ -118,7 +126,8 @@ public abstract class AbstractStreamReader extends InputStream
      * never block.
      * @throws TimeoutException when a read operation times out waiting for more data.
      */
-    public AbstractStreamReader(final long timeout) {
+    protected AbstractStreamReader(Connection connection) {
+        setConnection(connection);
         buffers = new LinkedBlockingQueue<Buffer>();
         queueSize = new AtomicInteger();
         current = null;
@@ -127,12 +136,15 @@ public abstract class AbstractStreamReader extends InputStream
             throw new IllegalArgumentException(
                     "Timeout must not be negative.");
         }
-        this.timeout = timeout;
         this.byteOrder = ByteOrder.BIG_ENDIAN;
     }
 
-    public boolean isBlockingStream() {
-        return timeout > 0;
+    public Mode getMode() {
+        return mode;
+    }
+
+    public void setMode(Mode mode) {
+        this.mode = mode;
     }
 
     public ByteOrder order() {
@@ -162,15 +174,12 @@ public abstract class AbstractStreamReader extends InputStream
             
             queueSize.addAndGet(buffer.remaining());
 
-            int availableDataSize;
-
-            if (notifyObject != null &&
-                    (availableDataSize = availableDataSize()) >= notifyObject.size) {
+            if (notifyObject != null && notifyObject.condition.check(this)) {
                 NotifyObject localNotifyAvailObject = notifyObject;
                 notifyObject = null;
                 notifySuccess(localNotifyAvailObject.future,
                         localNotifyAvailObject.completionHandler,
-                        availableDataSize);
+                        availableDataSize());
             }
         }
 
@@ -253,36 +262,32 @@ public abstract class AbstractStreamReader extends InputStream
     // After this call, current must contain at least size bytes.
     // This call may block until more data is available.
     protected void ensureRead() throws IOException {
+        ensureRead(true);
+    }
+
+    // After this call, current must contain at least size bytes.
+    // This call may block until more data is available.
+    protected void ensureRead(boolean readIfEmpty) throws IOException {
         if (closed) {
             throw new IllegalStateException("ByteBufferReader is closed");
         }
         // First ensure that there is enough space
 
-        Buffer next;
-        if (timeout > 0) {
-            try {
-                next = buffers.poll(timeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException exc) {
-                throw new RuntimeException(exc);
-            }
-            if (next == null) {
-                next = read0();
-                if (next == null) {
-                    throw new RuntimeException(
-                            "Timed out in read while waiting for more data");
+        Buffer next = pollBuffer();
+
+        if (next == null) {
+            if (readIfEmpty) {
+                Buffer buffer = read0();
+                if (buffer != null) {
+                    receiveData(buffer);
+                    next = pollBuffer();
                 }
-            } else {
-                queueSize.addAndGet(-next.remaining());
-            }
-        } else {
-            next = buffers.poll();
-            if (next == null) {
-                next = read0();
+
                 if (next == null) {
                     throw new BufferUnderflowException();
                 }
             } else {
-                queueSize.addAndGet(-next.remaining());
+                return;
             }
         }
 
@@ -298,6 +303,28 @@ public abstract class AbstractStreamReader extends InputStream
         }
     }
 
+    protected Buffer pollBuffer() {
+        Buffer buffer;
+        if (timeout > 0) {
+            try {
+                buffer = buffers.poll(timeout, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException exc) {
+                throw new RuntimeException(exc);
+            }
+
+            if (buffer != null) {
+                queueSize.addAndGet(-buffer.remaining());
+            }
+        } else {
+            buffer = buffers.poll();
+            if (buffer != null) {
+                queueSize.addAndGet(-buffer.remaining());
+            }
+        }
+
+        return buffer;
+    }
+    
     public int availableDataSize() {
         return queueSize.get() + currentAvailable();
     }
@@ -479,8 +506,18 @@ public abstract class AbstractStreamReader extends InputStream
         return notifyAvailable(size, null);
     }
 
-    public abstract Future notifyAvailable(int size,
-            CompletionHandler completionHandler);
+    public Future notifyAvailable(final int size,
+            CompletionHandler completionHandler) {
+        return notifyCondition(new Condition<StreamReader>() {
+            public boolean check(StreamReader reader) {
+                return reader.availableDataSize() >= size;
+            }
+        }, completionHandler);
+    }
+
+    public Future notifyCondition(Condition<StreamReader> condition) {
+        return notifyCondition(condition, null);
+    }
 
     private void notifySuccess(FutureImpl future,
             CompletionHandler completionHandler, int size) {
@@ -500,17 +537,19 @@ public abstract class AbstractStreamReader extends InputStream
         future.failure(e);
     }
 
+    public Buffer readBuffer() throws IOException {
+        checkRemaining(1);
+        Buffer retBuffer = current;
+        current = null;
+        return retBuffer;
+    }
+
+
     public Buffer getBuffer() throws IOException {
         if (current == null) {
-            Buffer next = buffers.poll();
-            if (next != null) {
-                next.position(0);
-                queueSize.addAndGet(-next.remaining());
-            }
-
-            current = next;
+            ensureRead(false);
         }
-        
+
         return current;
     }
 
@@ -524,17 +563,51 @@ public abstract class AbstractStreamReader extends InputStream
         current = next;
     }
 
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public void setConnection(Connection connection) {
+        if (connection != null) {
+            bufferSize = connection.getReadBufferSize();
+            mode = connection.isBlocking() ? Mode.BLOCKING : Mode.NON_BLOCKING;
+        }
+        
+        this.connection = connection;
+    }
+
+    protected Buffer newBuffer(int size) {
+        return getConnection().getTransport().getMemoryManager().allocate(size);
+    }
+
+    public int getBufferSize() {
+        return bufferSize;
+    }
+
+    public void setBufferSize(int size) {
+        this.bufferSize = size;
+    }
+
+    public long getTimeout(TimeUnit timeunit) {
+        return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public void setTimeout(long timeout, TimeUnit timeunit) {
+        timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+    }
+
     protected static class NotifyObject {
 
         private FutureImpl future;
         private CompletionHandler completionHandler;
-        private int size;
+        private Condition<StreamReader> condition;
 
         public NotifyObject(FutureImpl future,
-                CompletionHandler completionHandler, int size) {
+                CompletionHandler completionHandler,
+                Condition<StreamReader> condition) {
             this.future = future;
             this.completionHandler = completionHandler;
-            this.size = size;
+            this.condition = condition;
         }
     }
 

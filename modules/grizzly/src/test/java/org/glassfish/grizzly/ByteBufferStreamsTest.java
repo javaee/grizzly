@@ -63,6 +63,7 @@ import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.memory.SlabMemoryManagerFactory;
 import org.glassfish.grizzly.streams.AbstractStreamReader;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
+import org.glassfish.grizzly.util.conditions.Condition;
 
 /**
  * Basic idea:
@@ -997,10 +998,10 @@ public class ByteBufferStreamsTest extends TestCase {
         for (int ctr=0; ctr<testdata.length; ctr++)
             testdata[ctr] = (byte)((ctr + 10) & 255) ;
 
-        AbstractStreamReader reader=new AbstractStreamReader(0) {
+        AbstractStreamReader reader=new AbstractStreamReader() {
 
             @Override
-            public Future notifyAvailable(int size, CompletionHandler completionHandler) {
+            public Future notifyCondition(Condition condition, CompletionHandler completionHandler) {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
 

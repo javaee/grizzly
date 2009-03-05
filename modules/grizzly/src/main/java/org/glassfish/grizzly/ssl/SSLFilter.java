@@ -39,7 +39,7 @@
 package org.glassfish.grizzly.ssl;
 
 import java.io.IOException;
-import java.util.logging.Level;
+import java.util.concurrent.Future;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
@@ -53,6 +53,8 @@ import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.StopAction;
+import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.threadpool.WorkerThread;
 
 /**
@@ -97,47 +99,28 @@ public class SSLFilter extends FilterAdapter implements CodecFilter {
             sslResourceAccessor.setSSLEngine(connection, sslEngine);
         }
 
-        Buffer appBuffer = sslResourceAccessor.obtainAppBuffer(connection);
-        if (logger.isLoggable(Level.FINE)) {
-            logger.fine("connection=" + connection +
-                    " engine=" + sslEngine +
-                    " handshakeStatus=" + sslEngine.getHandshakeStatus() +
-                    " message=" + ctx.getMessage() +
-                    " appBuffer=" + appBuffer);
+        StreamReader connectionReader = connection.getStreamReader();
+        StreamWriter connectionWriter = connection.getStreamWriter();
+
+        SSLStreamReader sslStreamReader = new SSLStreamReader(connectionReader);
+        SSLStreamWriter sslStreamWriter = new SSLStreamWriter(connectionWriter);
+
+        sslStreamReader.unwrapAll();
+        sslStreamReader.handshakeUnwrap(null);
+
+        if (SSLUtils.isHandshaking(sslEngine)) {
+            Future future = sslCodec.getSslHandshaker().handshake(sslStreamReader,
+                    sslStreamWriter, sslCodec.getServerSSLEngineConfig());
+            if (!future.isDone()) {
+                return new StopAction();
+            }
         }
 
-        Buffer sourceMessage = (Buffer) ctx.getMessage();
-
-        /*
-         * Assuming sourceMessage is currently associated with this WorkerThread
-         */
-        sourceMessage = checkSecuredInputBuffer(connection);
-
-        TransformationResult<Buffer> result =
-                sslCodec.getDecoder().transform(connection,
-                sourceMessage, appBuffer);
-
-        if (logger.isLoggable(Level.FINE)) {
-            logger.fine("transformed. connection=" + connection +
-                    " result=" + result +
-                    " engine=" + sslEngine +
-                    " handshakeStatus=" + sslEngine.getHandshakeStatus() +
-                    " message=" + ctx.getMessage() +
-                    " appBuffer=" + appBuffer);
-        }
-
-        switch (result.getStatus()) {
-            case COMPLETED:
-            case INCOMPLED:
-                tryHandshake(connection, sslEngine);
-                if (result.getMessage().hasRemaining()) {
-                    ctx.setMessage(result.getMessage());
-                } else {
-                    nextAction = new StopAction();
-                }
-                break;
-            default:
-                nextAction = processTransformationError(ctx, nextAction);
+        if (sslStreamReader.availableDataSize() > 0) {
+            ctx.setStreamReader(sslStreamReader);
+            ctx.setStreamWriter(sslStreamWriter);
+        } else {
+            nextAction = new StopAction();
         }
 
         return nextAction;

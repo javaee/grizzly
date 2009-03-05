@@ -39,12 +39,13 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.streams.StreamWriter.BufferHandler;
+import org.glassfish.grizzly.nio.tmpselectors.AbstractTemporarySelectorWriter;
 import org.glassfish.grizzly.streams.AbstractStreamWriter;
 
 /**
@@ -52,102 +53,80 @@ import org.glassfish.grizzly.streams.AbstractStreamWriter;
  * @author Alexey Stashok
  */
 public class TCPNIOStreamWriter extends AbstractStreamWriter {
-    public enum Mode {
-        NON_BLOCKING, BLOCKING;
-    }
-
-    private TCPNIOConnection connection;
-    private Mode mode;
-
     public TCPNIOStreamWriter(TCPNIOConnection connection) {
-        super();
-        this.connection = connection;
-        handler = new TCPNIOBufferHandler();
-        mode = connection.isBlocking() ? Mode.BLOCKING : Mode.NON_BLOCKING;
+        super(connection);
     }
-
-    public Mode getMode() {
-        return mode;
-    }
-
-    public void setMode(Mode mode) {
-        this.mode = mode;
-    }
-
-    public class TCPNIOBufferHandler implements BufferHandler {
-
-        public Buffer newBuffer() {
-            return connection.getTransport().getMemoryManager().allocate(
-                    connection.getWriteBufferSize());
-        }
-
-        public Future flush(Buffer current, CompletionHandler completionHandler) throws IOException {
-            current.flip();
-            if (current.hasRemaining()) {
-                TCPNIOTransport transport = (TCPNIOTransport)
-                        connection.getTransport();
-                if (mode == Mode.BLOCKING) {
-                    return transport.getTemporarySelectorIO().getWriter().write(
-                            connection, current, completionHandler);
-                } else {
-                    return transport.getAsyncQueueIO().getWriter().write(
-                            connection, current, completionHandler);
-                }
+    
+    protected Future flush0(Buffer current,
+            CompletionHandler completionHandler) throws IOException {
+        current.flip();
+        if (current.hasRemaining()) {
+            TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
+            if (mode == Mode.BLOCKING) {
+                AbstractTemporarySelectorWriter writer =
+                        (AbstractTemporarySelectorWriter)
+                        transport.getTemporarySelectorIO().getWriter();
+                return writer.write(connection, null, current,
+                        completionHandler, null,
+                        getTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
             } else {
-                if (completionHandler != null) {
-                    completionHandler.completed(null, TCPNIOStreamWriter.this);
-                }
-                
-                return new ReadyFutureImpl(TCPNIOStreamWriter.this);
+                return transport.getAsyncQueueIO().getWriter().write(
+                        connection, current, completionHandler);
             }
+        } else {
+            if (completionHandler != null) {
+                completionHandler.completed(null, TCPNIOStreamWriter.this);
+            }
+
+            return new ReadyFutureImpl(TCPNIOStreamWriter.this);
         }
+    }
 
-        public Future close(Buffer current,
-                final CompletionHandler completionHandler) throws IOException {
-            if (current != null && current.position() > 0) {
-                final FutureImpl<TCPNIOStreamWriter> future =
-                        new FutureImpl<TCPNIOStreamWriter>();
-                
-                try {
-                    flush(current, new CompletionHandler() {
+    protected Future close0(final CompletionHandler completionHandler)
+            throws IOException {
+        if (buffer != null && buffer.position() > 0) {
+            final FutureImpl<TCPNIOStreamWriter> future =
+                    new FutureImpl<TCPNIOStreamWriter>();
 
-                        public void cancelled(Connection connection) {
-                            close();
+            try {
+                overflow(buffer, new CompletionHandler() {
+
+                    public void cancelled(Connection connection) {
+                        close();
+                    }
+
+                    public void failed(Connection connection, Throwable throwable) {
+                        close();
+                    }
+
+                    public void completed(Connection connection, Object result) {
+                        close();
+                    }
+
+                    public void updated(Connection connection, Object result) {
+                    }
+
+                    public void close() {
+                        try {
+                            connection.close();
+                        } catch (IOException e) {
+                        } finally {
+                            completionHandler.completed(null,
+                                    TCPNIOStreamWriter.this);
+                            future.setResult(TCPNIOStreamWriter.this);
                         }
-
-                        public void failed(Connection connection, Throwable throwable) {
-                            close();
-                        }
-
-                        public void completed(Connection connection, Object result) {
-                            close();
-                        }
-
-                        public void updated(Connection connection, Object result) {
-                        }
-
-                        public void close() {
-                            try {
-                                connection.close();
-                            } catch (IOException e) {
-                            } finally {
-                                completionHandler.completed(null,
-                                        TCPNIOStreamWriter.this);
-                                future.setResult(TCPNIOStreamWriter.this);
-                            }
-                        }
-                    });
-                } catch (IOException e) {
-                }
-                
-                return future;
-            } else {
-                if (completionHandler != null) {
-                    completionHandler.completed(null, TCPNIOStreamWriter.this);
-                }
-
-                return new ReadyFutureImpl(TCPNIOStreamWriter.this);
+                    }
+                });
+            } catch (IOException e) {
             }
+
+            return future;
+        } else {
+            if (completionHandler != null) {
+                completionHandler.completed(null, TCPNIOStreamWriter.this);
+            }
+
+            return new ReadyFutureImpl(TCPNIOStreamWriter.this);
         }
     }
 }
