@@ -100,7 +100,6 @@ public class SSLStreamReader extends AbstractStreamReader {
         return underlyingReader.getConnection();
     }
 
-    @Override
     public synchronized Future notifyCondition(Condition<StreamReader> condition,
             CompletionHandler completionHandler) {
         if (notifyObject != null) {
