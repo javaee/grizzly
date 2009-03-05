@@ -98,6 +98,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     
     
     private void init(){
+        loadFilters();
         if (sharedAsyncFilters != null){
             for (String filterName: sharedAsyncFilters){
                 asyncFilters.add((AsyncFilter)ClassLoaderUtil.load(filterName));
