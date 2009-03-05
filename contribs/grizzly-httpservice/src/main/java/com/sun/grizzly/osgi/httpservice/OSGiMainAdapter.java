@@ -94,7 +94,7 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
         String alias = request.getDecodedRequestURI();
         String originalAlias = alias;
         logger.debug("Serviceing URI: " + alias);
-        // fist lookup needs to be done fo full match.
+        // first lookup needs to be done for full match.
         boolean cutOff = false;
         while (true) {
             alias = OSGiCleanMapper.map(alias, cutOff);
@@ -128,8 +128,7 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
             try {
                 customizedErrorPage(request.getRequest(), response.getResponse());
             } catch (Exception e) {
-                // TODO: could not commit 404 message
-                e.printStackTrace();
+                logger.warn("Failed to commit 404 status.", e);
             }
         }
     }

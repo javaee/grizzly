@@ -125,6 +125,8 @@ public class Activator implements BundleActivator {
         }
         service.registerServlet("/1", genericServlet, new Properties(), null);
         service.registerResources("/2", "", null);
+        service.registerResources("/10", "", null);
+        service.registerResources("/10/2", "", null);
     }
 
     /**

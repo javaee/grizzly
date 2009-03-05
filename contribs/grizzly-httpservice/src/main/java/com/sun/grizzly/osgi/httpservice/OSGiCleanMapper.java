@@ -63,6 +63,13 @@ class OSGiCleanMapper {
 
     /**
      * Performs mapping of requested URI to registered alias if any.
+     * <p/>
+     * Works in two modes:
+     * <ul>
+     * <li>Full match - Checks for full match of resource (cutAfterSlash == false),</li>
+     * <li>Reducing match - Checks {@link String#substring(int, int)} (0, {@link String#lastIndexOf(String)} ('/'))
+     * for match (cutAfterSlash == true).</li>
+     * </ul>
      *
      * @param resource      Resource to be mapped.
      * @param cutAfterSlash Should cut off after last '/' before looking up.

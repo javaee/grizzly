@@ -4,11 +4,11 @@
             <item name="Grizzly" href="https://grizzly.dev.java.net/"/>
             <item name="JavaDev" href="https://dev.java.net"/>
         </links>
+        <menu name="Intro">
+            <item name="Quick start" href="qstart.html"/>
+        </menu>
         <menu name="Usage">
             <item name="TODO" href=""/>
-        </menu>
-        <menu name="Internals">
-            <item name="Internals" href="internals.html"/>
         </menu>
         <menu ref="reports"/>
     </body>
