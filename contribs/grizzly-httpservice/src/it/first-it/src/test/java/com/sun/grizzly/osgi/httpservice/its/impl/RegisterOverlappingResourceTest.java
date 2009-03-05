@@ -78,13 +78,13 @@ public class RegisterOverlappingResourceTest {
                 ),
                 systemProperty("org.osgi.service.http.port").value("8080"),
                 provision(
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-framework").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-portunif").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-rcm").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly.osgi").artifactId("grizzly-httpservice").version("1.9.6-SNAPSHOT"),
+                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.9-SNAPSHOT"),
+                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.9-SNAPSHOT"),
+                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.9-SNAPSHOT"),
+                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-framework").version("1.9.9-SNAPSHOT"),
+                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-portunif").version("1.9.9-SNAPSHOT"),
+                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-rcm").version("1.9.9-SNAPSHOT"),
+                        mavenBundle().groupId("com.sun.grizzly.osgi").artifactId("grizzly-httpservice").version("1.9.9-SNAPSHOT"),
                         mavenBundle().groupId("com.sun.grizzly.osgi.httpservice.its").artifactId("first-it").version("1.0-SNAPSHOT")
                 )
         );

@@ -47,30 +47,48 @@ import org.osgi.service.log.LogService;
  * @since Jan 20, 2009
  */
 public class Logger {
-  private final ServiceTracker logTracker;
+    private final ServiceTracker logTracker;
 
-  public Logger(final ServiceTracker logTracker) {
-    this.logTracker = logTracker;
-  }
-
-  private void log(final int logLevel, final String msg) {
-    LogService log = (LogService) logTracker.getService();
-    if (log == null) {
-      System.out.println(msg);
-    } else {
-      log.log(logLevel, msg);
+    public Logger(final ServiceTracker logTracker) {
+        this.logTracker = logTracker;
     }
-  }
 
-  public void info(String msg) {
-    log(LogService.LOG_INFO, msg);
-  }
+    private void log(final int logLevel, final String msg) {
+        LogService log = (LogService) logTracker.getService();
+        if (log == null) {
+            System.out.println(msg);
+        } else {
+            log.log(logLevel, msg);
+        }
+    }
 
-  public void debug(String msg) {
-    log(LogService.LOG_DEBUG, msg);
-  }
+    private void log(final int logLevel, final String msg, final Throwable e) {
+        LogService log = (LogService) logTracker.getService();
+        if (log == null) {
+            System.out.println(msg);
+            e.printStackTrace(System.out);
+        } else {
+            log.log(logLevel, msg, e);
+        }
+    }
 
-  public void warn(String msg) {
-    log(LogService.LOG_WARNING, msg);
-  }
+    public void info(String msg) {
+        log(LogService.LOG_INFO, msg);
+    }
+
+    public void debug(String msg) {
+        log(LogService.LOG_DEBUG, msg);
+    }
+
+    public void warn(String msg) {
+        log(LogService.LOG_WARNING, msg);
+    }
+
+    public void warn(String msg, Throwable e) {
+        log(LogService.LOG_WARNING, msg, e);
+    }
+
+    public void error(String msg, Throwable e) {
+        log(LogService.LOG_ERROR, msg, e);
+    }
 }
