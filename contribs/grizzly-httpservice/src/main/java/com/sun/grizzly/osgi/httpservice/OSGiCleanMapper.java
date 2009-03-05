@@ -61,19 +61,29 @@ class OSGiCleanMapper {
     private HashMap<HttpContext, ArrayList<OSGiServletAdapter>> contextServletAdapterMap =
             new HashMap<HttpContext, ArrayList<OSGiServletAdapter>>(3);
 
-    public static String map(String resource) {
+    /**
+     * Performs mapping of requested URI to registered alias if any.
+     *
+     * @param resource      Resource to be mapped.
+     * @param cutAfterSlash Should cut off after last '/' before looking up.
+     * @return First matching alias, or <code>null</code> if no match has been found.
+     */
+    public static String map(String resource, boolean cutAfterSlash) {
         String result;
         String match = resource;
         while (true) {
-            int i = match.lastIndexOf('/');
-            if (i == -1) {
-                result = null;
-                break;
-            } else {
-                if (i == 0)
-                    match = "/";
-                else
-                    match = resource.substring(0, i);
+            int i = 0;
+            if (cutAfterSlash) {
+                i = match.lastIndexOf('/');
+                if (i == -1) {
+                    result = null;
+                    break;
+                } else {
+                    if (i == 0)
+                        match = "/";
+                    else
+                        match = resource.substring(0, i);
+                }
             }
             if (containsAlias(match)) {
                 result = match;
@@ -86,24 +96,43 @@ class OSGiCleanMapper {
         return result;
     }
 
+    /**
+     * Checks if alias has been registered.
+     *
+     * @param alias Alias to check.
+     * @return <code>true</code> iff alias has been registered, else <code>false</code>.
+     */
+    public static boolean containsAlias(String alias) {
+        return aliasTree.contains(alias);
+    }
+
+    /**
+     * Checks if {@link Servlet} has been registered.
+     *
+     * @param servlet Servlet instance to check.
+     * @return <code>true</code> iff alias has been registered, else <code>false</code>.
+     */
     public static boolean contaisServlet(Servlet servlet) {
         return registeredServlets.contains(servlet);
     }
 
-    public static boolean registerAliasAdapter(String alias, GrizzlyAdapter adapter) {
-        boolean wasNew = aliasTree.add(alias);
-        if (wasNew) {
-            registrations.put(alias, adapter);
-        } else {
-            // TODO already registered, wtf
-        }
-        return wasNew;
+    /**
+     * Gets mappers {@link ReentrantLock}.
+     * <p/>
+     * This {@link java.util.concurrent.locks.Lock} should protect mappers state.
+     *
+     * @return {@link java.util.concurrent.locks.Lock} to protect operations on mapper.
+     */
+    public static ReentrantLock getLock() {
+        return lock;
     }
 
-    public static GrizzlyAdapter removeAdapter(String alias) {
-        return registrations.remove(alias);
-    }
-
+    /**
+     * Looksup {@link GrizzlyAdapter} registered under alias.
+     *
+     * @param alias Registered alias.
+     * @return {@link GrizzlyAdapter} registered under alias.
+     */
     static GrizzlyAdapter getAdapter(String alias) {
         return registrations.get(alias);
     }
@@ -116,88 +145,15 @@ class OSGiCleanMapper {
     public void recycleRegistrationData(String alias) {
         if (containsAlias(alias)) {
             // global cleanup
-            removeAlias(alias);
-            GrizzlyAdapter adapter = removeAdapter(alias);
+            aliasTree.remove(alias);
+            GrizzlyAdapter adapter = registrations.remove(alias);
             adapter.destroy();
 
             // local cleanup
-            removeLocalAlias(alias);
+            localAliases.remove(alias);
         } else {
             // already gone
         }
-    }
-
-    public static boolean removeAlias(String s) {
-        return aliasTree.remove(s);
-    }
-
-    public static boolean containsAlias(String s) {
-        return aliasTree.contains(s);
-    }
-
-    public static void addServlet(Servlet servlet) {
-        registeredServlets.add(servlet);
-    }
-
-    public static void removeServlet(Servlet servlet) {
-        registeredServlets.remove(servlet);
-    }
-
-    public boolean isLocalyRegisteredAlias(String alias) {
-        return localAliases.contains(alias);
-    }
-
-    public void addLocalAlias(String alias) {
-        localAliases.add(alias);
-    }
-
-    public boolean removeLocalAlias(String alias) {
-        return localAliases.remove(alias);
-    }
-
-    public Set<String> getLocalAliases() {
-        return Collections.unmodifiableSet(localAliases);
-    }
-
-    /**
-     * Executes unregistering of <code>alias</code> optionally calling {@link javax.servlet.Servlet#destroy()}.
-     *
-     * @param alias                Alias to unregister.
-     * @param callDestroyOnServlet If <code>true</code> call {@link javax.servlet.Servlet#destroy()}, else don't call.
-     */
-    public void doUnregister(String alias, boolean callDestroyOnServlet) {
-        if (containsAlias(alias)) {
-            GrizzlyAdapter adapter = getAdapter(alias);
-            if (adapter instanceof OSGiServletAdapter) {
-                ((OSGiGrizzlyAdapter) adapter).getRemovalLock().lock();
-                try {
-                    Servlet servlet = ((OSGiServletAdapter) adapter).getServletInstance();
-                    removeServlet(servlet);
-                    if (callDestroyOnServlet) {
-                        servlet.destroy();
-                    }
-                } finally {
-                    ((OSGiGrizzlyAdapter) adapter).getRemovalLock().unlock();
-                }
-            }
-        }
-        recycleRegistrationData(alias);
-    }
-
-    public boolean containsContext(HttpContext httpContext) {
-        return contextServletAdapterMap.containsKey(httpContext);
-    }
-
-    public List<OSGiServletAdapter> getContext(HttpContext httpContext) {
-        return contextServletAdapterMap.get(httpContext);
-    }
-
-    public void addContext(HttpContext httpContext, ArrayList<OSGiServletAdapter> servletAdapters) {
-        contextServletAdapterMap.put(httpContext, servletAdapters);
-    }
-
-    public static ReentrantLock getLock() {
-        return lock;
     }
 
     /**
@@ -214,9 +170,81 @@ class OSGiCleanMapper {
         } else {
             registerAliasAdapter(alias, adapter);
             if (adapter instanceof OSGiServletAdapter) {
-                addServlet(((OSGiServletAdapter) adapter).getServletInstance());
+                registeredServlets.add(((OSGiServletAdapter) adapter).getServletInstance());
             }
-            addLocalAlias(alias);
+            localAliases.add(alias);
         }
+    }
+
+    /**
+     * Checks if alias was registered by calling bundle.
+     *
+     * @param alias Alias to check for local registration.
+     * @return <code>true</code> iff alias was registered localy, else <code>false</code>.
+     */
+    public boolean isLocalyRegisteredAlias(String alias) {
+        return localAliases.contains(alias);
+    }
+
+    /**
+     * Executes unregistering of <code>alias</code> optionally calling {@link javax.servlet.Servlet#destroy()}.
+     *
+     * @param alias                Alias to unregister.
+     * @param callDestroyOnServlet If <code>true</code> call {@link javax.servlet.Servlet#destroy()}, else don't call.
+     */
+    public void doUnregister(String alias, boolean callDestroyOnServlet) {
+        if (containsAlias(alias)) {
+            GrizzlyAdapter adapter = getAdapter(alias);
+            if (adapter instanceof OSGiServletAdapter) {
+                ((OSGiGrizzlyAdapter) adapter).getRemovalLock().lock();
+                try {
+                    Servlet servlet = ((OSGiServletAdapter) adapter).getServletInstance();
+                    registeredServlets.remove(servlet);
+                    if (callDestroyOnServlet) {
+                        servlet.destroy();
+                    }
+                } finally {
+                    ((OSGiGrizzlyAdapter) adapter).getRemovalLock().unlock();
+                }
+            }
+        }
+        recycleRegistrationData(alias);
+    }
+
+    /**
+     * Gets localy registered aliases.
+     *
+     * @return Unmodidiable {@link Set} of localy registered aliases.
+     */
+    public Set<String> getLocalAliases() {
+        return Collections.unmodifiableSet(localAliases);
+    }
+
+    /**
+     * Checks if {@link HttpContext} has been registered..
+     *
+     * @param httpContext Context to check.
+     * @return <code>true</code> iff httpContext has been registered.
+     */
+    public boolean containsContext(HttpContext httpContext) {
+        return contextServletAdapterMap.containsKey(httpContext);
+    }
+
+    public List<OSGiServletAdapter> getContext(HttpContext httpContext) {
+        return contextServletAdapterMap.get(httpContext);
+    }
+
+    public void addContext(HttpContext httpContext, ArrayList<OSGiServletAdapter> servletAdapters) {
+        contextServletAdapterMap.put(httpContext, servletAdapters);
+    }
+
+    private static boolean registerAliasAdapter(String alias, GrizzlyAdapter adapter) {
+        boolean wasNew = aliasTree.add(alias);
+        if (wasNew) {
+            registrations.put(alias, adapter);
+        } else {
+            // TODO already registered, wtf
+        }
+        return wasNew;
     }
 }

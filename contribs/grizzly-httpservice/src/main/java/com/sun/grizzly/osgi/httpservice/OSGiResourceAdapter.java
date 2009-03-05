@@ -91,12 +91,12 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
      */
     public void service(GrizzlyRequest request, GrizzlyResponse response) {
         String requestURI = request.getDecodedRequestURI();
-        logger.debug(new StringBuilder(128).append("requestURI: ").append(requestURI).toString());
+        logger.debug(new StringBuilder(128).append("OSGiResourceAdapter requestURI: ").append(requestURI).toString());
         String path = requestURI.replaceFirst(alias, prefix);
         try {
             // authentication
             if (!authenticate(request, response)) {
-                logger.debug("Request not authenticated (" + requestURI + ").");
+                logger.debug("OSGiResourceAdapter Request not authenticated (" + requestURI + ").");
                 return;
             }
         } catch (IOException e) {
@@ -106,7 +106,7 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
         // find resource
         URL resource = httpContext.getResource(path);
         if (resource == null) {
-            logger.debug(new StringBuilder(128).append('\'').append(alias).append("\' Haven't found '").append(path)
+            logger.debug(new StringBuilder(128).append("OSGiResourceAdapter \'").append(alias).append("\' Haven't found '").append(path)
                     .append("'.").toString());
             try {
                 response.setStatus(404);

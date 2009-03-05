@@ -37,23 +37,20 @@
  */
 package com.sun.grizzly.osgi.httpservice;
 
+import com.sun.grizzly.osgi.httpservice.util.Logger;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.osgi.httpservice.util.Logger;
-
-import java.util.*;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.*;
-
-import org.osgi.service.http.NamespaceException;
+import org.osgi.framework.Bundle;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.http.HttpService;
-import org.osgi.framework.Bundle;
+import org.osgi.service.http.NamespaceException;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
+import java.util.*;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * OSGi Main Adapter.
@@ -95,10 +92,22 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
     public void service(GrizzlyRequest request, GrizzlyResponse response) {
         boolean invoked = false;
         String alias = request.getDecodedRequestURI();
+        String originalAlias = alias;
+        logger.debug("Serviceing URI: " + alias);
+        // fist lookup needs to be done fo full match.
+        boolean cutOff = false;
         while (true) {
-            alias = OSGiCleanMapper.map(alias);
+            alias = OSGiCleanMapper.map(alias, cutOff);
             if (alias == null) {
-                break;
+                if (cutOff) {
+                    // not found
+                    break;
+                } else {
+                    // switching to reducing mapping mode (removing after last '/' and searching)
+                    logger.debug("Swithcing to reducing mapping mode.");
+                    cutOff = true;
+                    alias = originalAlias;
+                }
             } else {
                 GrizzlyAdapter adapter = OSGiCleanMapper.getAdapter(alias);
 
@@ -359,79 +368,5 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
         }
         osgiServletAdapter.addFilter(new OSGiAuthFilter(httpContext), "AuthorisationFilter", new HashMap(0));
         return osgiServletAdapter;
-    }
-
-    public static void main(String[] args) throws ExecutionException, InterruptedException {
-        OSGiCleanMapper.registerAliasAdapter("/a/b", null);
-        OSGiCleanMapper.registerAliasAdapter("/a", null);
-        OSGiCleanMapper.registerAliasAdapter("/a/b/c", null);
-
-        final CountDownLatch latch = new CountDownLatch(1);
-
-        Callable<Long> readingCallable = new Callable<Long>() {
-            public Long call() throws Exception {
-                latch.await();
-                long start = System.currentTimeMillis();
-                for (int i = 0; i < 100000; i++) {
-                    String s = "/a/b/c/d" + i + "/" + i;
-                    int x = 3;
-                    while (true) {
-                        s = OSGiCleanMapper.map(s);
-                        if (s == null) break;
-                        else --x;
-                    }
-                    if (x != 0) {
-                        System.out.println("Argh, Should have found 3 mappings.");
-                    }
-                    s = "/a";
-                    String s1 = OSGiCleanMapper.map(s);
-                    if (!s.equals(s1)) {
-                        System.out.println("Argh, Mapping is not working for simple context '/a'.");
-                        break;
-                    }
-                }
-                return System.currentTimeMillis() - start;
-            }
-        };
-
-        int READCOUNT = 8;
-        int WRITECOUNT = 2;
-        ExecutorService exec = Executors.newFixedThreadPool(READCOUNT + WRITECOUNT);
-        List<Future<Long>> readFutures = new ArrayList<Future<Long>>(READCOUNT);
-        List<Future<Long>> writeFutures = new ArrayList<Future<Long>>(WRITECOUNT);
-        for (int i = 0; i < READCOUNT; i++) {
-            readFutures.add(exec.submit(readingCallable));
-        }
-        for (int i = 0; i < WRITECOUNT; i++) {
-            writeFutures.add(exec.submit(new MyCallableWriter(i, latch)));
-        }
-        latch.countDown();
-        for (int i = 0; i < READCOUNT; i++) {
-            System.out.println("Read (" + i + ") finished in " + readFutures.get(i).get() + "ms.");
-        }
-        for (int i = 0; i < WRITECOUNT; i++) {
-            System.out.println("Write (" + i + ") finished in " + writeFutures.get(i).get() + "ms.");
-        }
-        exec.shutdown();
-    }
-
-    private static class MyCallableWriter implements Callable<Long> {
-        private int j;
-        private CountDownLatch latch;
-
-        public MyCallableWriter(int i, CountDownLatch latch) {
-            j = i;
-            this.latch = latch;
-        }
-
-        public Long call() throws Exception {
-            latch.await();
-            long start = System.currentTimeMillis();
-            for (int i = 0; i < 100000; i++) {
-                String s = "/" + j + "/" + i + "/a/b/c/d";
-                OSGiCleanMapper.registerAliasAdapter(s, null);
-            }
-            return System.currentTimeMillis() - start;
-        }
     }
 }
