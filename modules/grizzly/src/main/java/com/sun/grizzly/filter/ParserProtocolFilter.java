@@ -170,7 +170,7 @@ public abstract class ParserProtocolFilter extends ReadFilter {
             return true;
         }
 
-        if (parser != null && parser.hasMoreBytesToParse()) {
+        if (parser.hasMoreBytesToParse()) {
             // Need to say that we read successfully since bytes are left
             context.setAttribute(ProtocolChain.PROTOCOL_CHAIN_POST_INSTRUCTION,
                     ProtocolChainInstruction.REINVOKE);
