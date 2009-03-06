@@ -45,12 +45,7 @@
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-cometd-webserver</artifactId>
-            <version>${grizzly-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-servlet-webserver</artifactId>
+            <artifactId>grizzly-webserver</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
     </dependencies>
