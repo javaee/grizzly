@@ -1,0 +1,5 @@
+
+<adapters>
+    <adapter context-root="/cometd" class-name="com.sun.grizzly.cometd.standalone.CometdAdapter">
+    </adapter>
+</adapters>
