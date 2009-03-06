@@ -545,9 +545,13 @@ public abstract class AbstractStreamReader extends InputStream
     }
 
 
-    public Buffer getBuffer() throws IOException {
+    public Buffer getBuffer() {
         if (current == null) {
-            ensureRead(false);
+            try {
+                ensureRead(false);
+            } catch (IOException e) {
+                throw new IllegalStateException("Unexpected exception");
+            }
         }
 
         return current;

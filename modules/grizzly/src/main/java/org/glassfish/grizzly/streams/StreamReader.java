@@ -185,7 +185,7 @@ public interface StreamReader extends Closeable {
 
     Buffer readBuffer() throws IOException;
     
-    Buffer getBuffer() throws IOException;
+    Buffer getBuffer();
 
     void finishBuffer();
 

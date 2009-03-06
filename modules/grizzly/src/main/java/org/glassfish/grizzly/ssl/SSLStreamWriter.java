@@ -43,17 +43,15 @@ import java.util.concurrent.Future;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.streams.AbstractStreamWriter;
 import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.streams.StreamWriterDecorator;
 
 /**
  *
  * @author oleksiys
  */
-public class SSLStreamWriter extends AbstractStreamWriter {
+public class SSLStreamWriter extends StreamWriterDecorator {
 
-    protected StreamWriter underlyingWriter;
     protected SSLEngineConfigurator engineConfigurator;
 
     public SSLStreamWriter() {
@@ -68,32 +66,20 @@ public class SSLStreamWriter extends AbstractStreamWriter {
 
     public SSLStreamWriter(StreamWriter underlyingWriter,
             SSLEngineConfigurator engineConfigurator) {
-
+        super(underlyingWriter);
         setUnderlyingWriter(underlyingWriter);
         this.engineConfigurator = engineConfigurator;
     }
 
-    public StreamWriter getUnderlyingWriter() {
-        return underlyingWriter;
-    }
-
+    @Override
     public void setUnderlyingWriter(StreamWriter underlyingWriter) {
-        this.underlyingWriter = underlyingWriter;
+        super.setUnderlyingWriter(underlyingWriter);
+        
         try {
             checkBuffers();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    @Override
-    public Mode getMode() {
-        return underlyingWriter.getMode();
-    }
-
-    @Override
-    public void setMode(Mode mode) {
-        underlyingWriter.setMode(mode);
     }
 
     public SSLEngineConfigurator getEngineConfigurator() {
@@ -104,10 +90,6 @@ public class SSLStreamWriter extends AbstractStreamWriter {
         this.engineConfigurator = engineConfigurator;
     }
 
-    @Override
-    public Connection getConnection() {
-        return underlyingWriter.getConnection();
-    }
 
     public SSLEngine getSSLEngine() {
         SSLResourcesAccessor resourceAccessor =
@@ -126,15 +108,17 @@ public class SSLStreamWriter extends AbstractStreamWriter {
         SSLEngine sslEngine = getSSLEngine();
 
         if (sslEngine != null) {
-            int underlyingBufferSize = sslEngine.getSession().getPacketBufferSize();
-            if (underlyingWriter.getBufferSize() < underlyingBufferSize) {
-                underlyingWriter.setBufferSize(underlyingBufferSize);
-            }
+            if (underlyingWriter != null) {
+                int underlyingBufferSize = sslEngine.getSession().getPacketBufferSize();
+                if (underlyingWriter.getBufferSize() < underlyingBufferSize) {
+                    underlyingWriter.setBufferSize(underlyingBufferSize);
+                }
 
-            Buffer underlyingBuffer = underlyingWriter.getBuffer();
-            if (underlyingBuffer == null ||
-                    (underlyingBuffer.remaining() < underlyingBufferSize)) {
-                underlyingWriter.flush();
+                Buffer underlyingBuffer = underlyingWriter.getBuffer();
+                if (underlyingBuffer == null ||
+                        (underlyingBuffer.remaining() < underlyingBufferSize)) {
+                    underlyingWriter.flush();
+                }
             }
 
             int appBufferSize = sslEngine.getSession().getApplicationBufferSize();
@@ -173,11 +157,5 @@ public class SSLStreamWriter extends AbstractStreamWriter {
         }
 
         return lastWriterFuture;
-    }
-
-    @Override
-    protected Future close0(CompletionHandler completionHandler) throws IOException {
-        flush();
-        return underlyingWriter.close(completionHandler);
     }
 }

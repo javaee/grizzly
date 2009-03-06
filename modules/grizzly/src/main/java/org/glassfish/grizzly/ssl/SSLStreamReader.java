@@ -38,7 +38,6 @@
 
 package org.glassfish.grizzly.ssl;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.Future;
@@ -48,82 +47,29 @@ import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.streams.AbstractStreamReader;
 import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamReader.Mode;
+import org.glassfish.grizzly.streams.StreamReaderDecorator;
 import org.glassfish.grizzly.util.conditions.Condition;
 
 /**
  *
  * @author oleksiys
  */
-public class SSLStreamReader extends AbstractStreamReader {
-    protected StreamReader underlyingReader;
-
+public class SSLStreamReader extends StreamReaderDecorator {
     public SSLStreamReader() {
+        this(null);
     }
 
     public SSLStreamReader(StreamReader underlyingReader) {
-        setUnderlyingReader(underlyingReader);
+        super(underlyingReader);
     }
 
-    public StreamReader getUnderlyingReader() {
-        return underlyingReader;
-    }
-
+    @Override
     public void setUnderlyingReader(StreamReader underlyingReader) {
-        this.underlyingReader = underlyingReader;
+        super.setUnderlyingReader(underlyingReader);
+        
         if (underlyingReader != null) {
             checkBuffers();
-        }
-    }
-
-    @Override
-    public Mode getMode() {
-        return underlyingReader.getMode();
-    }
-
-    @Override
-    public void setMode(Mode mode) {
-        underlyingReader.setMode(mode);
-    }
-
-    @Override
-    public Connection getConnection() {
-        return underlyingReader.getConnection();
-    }
-
-    public synchronized Future notifyCondition(Condition<StreamReader> condition,
-            CompletionHandler completionHandler) {
-        if (notifyObject != null) {
-            throw new IllegalStateException("Only one available listener allowed!");
-        }
-
-        if (isClosed()) {
-            EOFException exception = new EOFException();
-            if (completionHandler != null) {
-                completionHandler.failed(null, exception);
-            }
-
-            return new ReadyFutureImpl(exception);
-        }
-
-        int availableDataSize = availableDataSize();
-        if (condition.check(this)) {
-            if (completionHandler != null) {
-                completionHandler.completed(null, availableDataSize);
-            }
-
-            return new ReadyFutureImpl(availableDataSize);
-        } else {
-            FutureImpl future = new FutureImpl();
-            notifyObject = new NotifyObject(future, completionHandler, condition);
-            underlyingReader.notifyAvailable(1,
-                    new FeederCompletionHandler(future, completionHandler));
-            return future;
         }
     }
 
@@ -150,7 +96,7 @@ public class SSLStreamReader extends AbstractStreamReader {
             if (result.getStatus() == Status.OK ||
                     result.getStatus() == Status.CLOSED) {
                 if (result.bytesProduced() > 0 || result.bytesConsumed() > 0) {
-                    newBuffer.flip();
+                    newBuffer.trim();
                     wasAdded = super.receiveData(newBuffer);
                 } else {
                     wasAdded = false;
@@ -174,14 +120,6 @@ public class SSLStreamReader extends AbstractStreamReader {
         SSLResourcesAccessor resourceAccessor =
                 SSLResourcesAccessor.getInstance();
         return resourceAccessor.getSSLEngine(getConnection());
-    }
-
-    protected void unwrapAll() throws IOException {
-        Buffer underlyingBuffer;
-        while((underlyingBuffer = underlyingReader.getBuffer()) != null) {
-            receiveData(underlyingBuffer);
-            underlyingReader.finishBuffer();
-        }
     }
 
     Future handshakeUnwrap(CompletionHandler completionHandler) throws IOException {
@@ -213,49 +151,5 @@ public class SSLStreamReader extends AbstractStreamReader {
                 bufferSize = appBufferSize;
             }
         }
-    }
-
-    protected class FeederCompletionHandler implements CompletionHandler {
-        private FutureImpl future;
-        private CompletionHandler completionHandler;
-
-        public FeederCompletionHandler(FutureImpl future, CompletionHandler completionHandler) {
-            this.future = future;
-            this.completionHandler = completionHandler;
-        }
-
-        
-        public void cancelled(Connection connection) {
-            if (completionHandler != null) {
-                completionHandler.cancelled(connection);
-            }
-            future.cancel(true);
-        }
-
-        public void failed(Connection connection, Throwable throwable) {
-            if (completionHandler != null) {
-                completionHandler.failed(connection, throwable);
-            }
-            future.failure(throwable);
-        }
-
-        public void completed(Connection connection, Object result) {
-            try {
-                Buffer buffer = underlyingReader.getBuffer();
-                if (receiveData(buffer)) {
-                    underlyingReader.finishBuffer();
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-
-            if (!future.isDone()) {
-                underlyingReader.notifyAvailable(1, this);
-            }
-        }
-
-        public void updated(Connection connection, Object result) {
-        }
-
     }
 }

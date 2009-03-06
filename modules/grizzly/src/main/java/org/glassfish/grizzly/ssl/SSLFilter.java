@@ -105,7 +105,7 @@ public class SSLFilter extends FilterAdapter implements CodecFilter {
         SSLStreamReader sslStreamReader = new SSLStreamReader(connectionReader);
         SSLStreamWriter sslStreamWriter = new SSLStreamWriter(connectionWriter);
 
-        sslStreamReader.unwrapAll();
+        sslStreamReader.pull();
         sslStreamReader.handshakeUnwrap(null);
 
         if (SSLUtils.isHandshaking(sslEngine)) {
