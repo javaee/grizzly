@@ -179,7 +179,9 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
      * @param {@link SelectionKey}
      */
     private long getExpirationStamp(Object attachment) {
-        if (attachment instanceof SelectionKeyAttachment) {
+        if (attachment instanceof Long){
+            return (Long)attachment;
+        } else if (attachment instanceof SelectionKeyAttachment) {
             return ((SelectionKeyAttachment) attachment).getTimeout();
         } else if (attachment instanceof Response.ResponseAttachment) {
             return ((Response.ResponseAttachment) attachment).getExpirationTime() - timeout;
