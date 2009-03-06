@@ -77,11 +77,7 @@ public class SSLStreamReader extends AbstractStreamReader {
     public void setUnderlyingReader(StreamReader underlyingReader) {
         this.underlyingReader = underlyingReader;
         if (underlyingReader != null) {
-            try {
-                checkBuffers();
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
+            checkBuffers();
         }
     }
 
@@ -135,6 +131,7 @@ public class SSLStreamReader extends AbstractStreamReader {
     public synchronized boolean receiveData(Buffer buffer) {
         if (buffer == null) return false;
         
+        checkBuffers();
         boolean wasAdded = true;
         SSLEngine sslEngine = getSSLEngine();
         while(wasAdded && buffer.hasRemaining()) {
@@ -202,7 +199,7 @@ public class SSLStreamReader extends AbstractStreamReader {
         return underlyingReader.readBuffer();
     }
 
-    private void checkBuffers() throws IOException {
+    private void checkBuffers() {
         SSLEngine sslEngine = getSSLEngine();
 
         if (sslEngine != null) {
