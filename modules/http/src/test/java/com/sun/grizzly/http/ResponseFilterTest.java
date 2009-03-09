@@ -117,8 +117,7 @@ public class ResponseFilterTest extends TestCase {
 
     }
 
- 
-     public void testResponseFilter() throws IOException {
+    public void testResponseFilter() throws IOException {
         System.out.println("Test: testResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Added after invoking Adapter";
@@ -131,16 +130,17 @@ public class ResponseFilterTest extends TestCase {
                 public void service(final Request req, final Response res) throws IOException {
                     //res.flushHeaders();
                     res.addResponseFilter(new ResponseFilter() {
+
                         public void filter(ByteChunk bc) {
-                            try{
+                            try {
                                 bc.append(testData, 0, testData.length);
-                            } catch (IOException ex){
+                            } catch (IOException ex) {
                                 ex.printStackTrace();
                             }
                         }
                     });
                     ByteChunk bc = new ByteChunk();
-                    bc.append("7777777\n".getBytes(), 0,"7777777\n".length());
+                    bc.append("7777777\n".getBytes(), 0, "7777777\n".length());
                     res.doWrite(bc);
                     res.flush();
                 }
@@ -163,7 +163,7 @@ public class ResponseFilterTest extends TestCase {
                 ex.printStackTrace();
             }
 
-             Socket s = new Socket("localhost", PORT);
+            Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(500000);
             OutputStream os = s.getOutputStream();
 
@@ -172,18 +172,18 @@ public class ResponseFilterTest extends TestCase {
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            try{
+            try {
                 InputStream is = new DataInputStream(s.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 String line = null;
-                while( (line = br.readLine()) != null){
+                while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    if (line.contains(testString))   {
+                    if (line.contains(testString)) {
                         assertTrue(true);
                         return;
                     }
                 }
-            } catch (IOException ex){
+            } catch (IOException ex) {
                 ex.printStackTrace();
                 assertFalse(false);
             }
@@ -191,9 +191,9 @@ public class ResponseFilterTest extends TestCase {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
         }
-     }
-      
-     public void testCompleteNewBCResponseFilter() throws IOException {
+    }
+
+    public void testCompleteNewBCResponseFilter() throws IOException {
         System.out.println("Test: testCompleteNewBCResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Added after invoking Adapter";
@@ -206,13 +206,14 @@ public class ResponseFilterTest extends TestCase {
                 public void service(final Request req, final Response res) throws IOException {
                     //res.flushHeaders();
                     res.addResponseFilter(new ResponseFilter() {
+
                         public void filter(ByteChunk bc) {
                             bc.setBytes("AppendingNewBytes".getBytes(), 0,
-                                    "AppendingNewBytes".getBytes().length);        
+                                    "AppendingNewBytes".getBytes().length);
                         }
                     });
                     ByteChunk bc = new ByteChunk();
-                    bc.append("7777777\n".getBytes(), 0,"7777777\n".length());
+                    bc.append("7777777\n".getBytes(), 0, "7777777\n".length());
                     res.doWrite(bc);
                     res.flush();
                 }
@@ -235,7 +236,7 @@ public class ResponseFilterTest extends TestCase {
                 ex.printStackTrace();
             }
 
-             Socket s = new Socket("localhost", PORT);
+            Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(500000);
             OutputStream os = s.getOutputStream();
 
@@ -244,18 +245,18 @@ public class ResponseFilterTest extends TestCase {
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            try{
+            try {
                 InputStream is = new DataInputStream(s.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 String line = null;
-                while( (line = br.readLine()) != null){
+                while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    if (line.contains("AppendingNewBytes"))   {
+                    if (line.contains("AppendingNewBytes")) {
                         assertTrue(true);
                         return;
                     }
                 }
-            } catch (IOException ex){
+            } catch (IOException ex) {
                 ex.printStackTrace();
                 assertFalse(false);
             }
@@ -263,5 +264,79 @@ public class ResponseFilterTest extends TestCase {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
         }
-     }
+    }
+
+    public void testComplexByteChunkManipulation() throws IOException {
+        System.out.println("Test: testComplexByteChunkManipulation");
+        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
+        final String testString = "Added after invoking Adapter";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread();
+            st.setAdapter(new StaticResourcesAdapter() {
+
+                @Override
+                public void service(final Request req, final Response res) throws IOException {
+                    //res.flushHeaders();
+                    res.addResponseFilter(new ResponseFilter() {
+
+                        public void filter(ByteChunk bc) {
+                            bc.recycle();
+                            bc.setBytes("AppendingNewBytes".getBytes(), 0,
+                                    "AppendingNewBytes".getBytes().length);
+                        }
+                    });
+                    ByteChunk bc = new ByteChunk();
+                    bc.append("7777777\n".getBytes(), 0, "7777777\n".length());
+                    res.doWrite(bc);
+                    res.flush();
+                }
+
+                @Override
+                public void afterService(final Request req, final Response res) {
+                    try {
+                        super.afterService(req, res);
+                        return;
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
+            });
+
+            try {
+                st.listen();
+                st.enableMonitoring();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+
+            Socket s = new Socket("localhost", PORT);
+            s.setSoTimeout(500000);
+            OutputStream os = s.getOutputStream();
+
+            System.out.println(("GET / HTTP/1.1\n"));
+            os.write(("GET / HTTP/1.1\n").getBytes());
+            os.write(("Host: localhost:" + PORT + "\n").getBytes());
+            os.write("\n".getBytes());
+
+            try {
+                InputStream is = new DataInputStream(s.getInputStream());
+                BufferedReader br = new BufferedReader(new InputStreamReader(is));
+                String line = null;
+                while ((line = br.readLine()) != null) {
+                    System.out.println("-> " + line);
+                    if (line.contains(testString)) {
+                        assertTrue(true);
+                        return;
+                    }
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+                assertFalse(false);
+            }
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+            pe.shutdown();
+        }
+    }
 }
