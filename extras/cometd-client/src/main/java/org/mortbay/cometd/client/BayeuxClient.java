@@ -650,7 +650,9 @@ public class BayeuxClient extends MessagePool implements Client
                                 //else
                                 //{
                                 	//Try connecting again
+                                if (!_disconnecting) {
                                 	_pull=new Connect();
+                                }
                                 //}
                             }
                             else
