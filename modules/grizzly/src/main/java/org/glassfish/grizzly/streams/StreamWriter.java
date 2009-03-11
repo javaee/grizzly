@@ -127,6 +127,8 @@ public interface StreamWriter extends Closeable {
 
     Connection getConnection();
 
+    public void writeBuffer(Buffer buffer) throws IOException;
+
     Buffer getBuffer();
 
     int getBufferSize();

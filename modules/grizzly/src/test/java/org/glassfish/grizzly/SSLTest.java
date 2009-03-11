@@ -44,7 +44,7 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.ssl.DefaultSSLHandshaker;
+import org.glassfish.grizzly.ssl.BlockingSSLHandshaker;
 import org.glassfish.grizzly.ssl.SSLCodec;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
@@ -68,15 +68,14 @@ public class SSLTest extends TestCase {
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
         
-        SSLCodec sslCodec = new SSLCodec(createSSLContextConfigurator());
-
         SSLEngineConfigurator clientSSLEngineConfigurator =
-                new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+                new SSLEngineConfigurator(
+                sslContextConfigurator.createSSLContext());
 
         TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new SSLFilter(sslCodec));
+        transport.getFilterChain().add(new SSLFilter());
         transport.getFilterChain().add(new EchoFilter());
 
         SSLStreamReader reader = null;
@@ -100,7 +99,7 @@ public class SSLTest extends TestCase {
             reader.setMode(StreamReader.Mode.BLOCKING);
             writer.setMode(StreamWriter.Mode.BLOCKING);
 
-            SSLHandshaker handshaker = new DefaultSSLHandshaker();
+            SSLHandshaker handshaker = new BlockingSSLHandshaker();
             
             Future handshakeFuture = handshaker.handshake(reader, writer,
                     clientSSLEngineConfigurator);
@@ -125,6 +124,84 @@ public class SSLTest extends TestCase {
 
             reader.readByteArray(receivedMessage);
             
+            String sentString = new String(sentMessage);
+            String receivedString = new String(receivedMessage);
+            assertEquals(sentString, receivedString);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }  finally {
+            if (reader != null) {
+                reader.close();
+            }
+
+            if (writer != null) {
+                writer.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testSimpleAsyncSSL() throws Exception {
+        Connection connection = null;
+        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
+
+        SSLEngineConfigurator clientSSLEngineConfigurator =
+                new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+
+        TCPNIOTransport transport =
+                TransportFactory.getInstance().createTCPTransport();
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new SSLFilter());
+        transport.getFilterChain().add(new EchoFilter());
+
+        SSLStreamReader reader = null;
+        SSLStreamWriter writer = null;
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            transport.configureBlocking(true);
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.setProcessor(null);
+
+            reader = new SSLStreamReader(connection.getStreamReader());
+            writer = new SSLStreamWriter(connection.getStreamWriter());
+
+            SSLHandshaker handshaker = new BlockingSSLHandshaker();
+
+            Future handshakeFuture = handshaker.handshake(reader, writer,
+                    clientSSLEngineConfigurator);
+
+            handshakeFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(handshakeFuture.isDone());
+
+            byte[] sentMessage = "Hello world!".getBytes();
+
+            // aquire read lock to not allow incoming data to be processed by Processor
+            writer.writeByteArray(sentMessage);
+            Future writeFuture = writer.flush();
+
+            writeFuture.get(10, TimeUnit.SECONDS);
+            assertTrue("Write timeout", writeFuture.isDone());
+
+            byte[] receivedMessage = new byte[sentMessage.length];
+
+            Future readFuture = reader.notifyAvailable(receivedMessage.length);
+            readFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(readFuture.isDone());
+
+            reader.readByteArray(receivedMessage);
+
             String sentString = new String(sentMessage);
             String receivedString = new String(receivedMessage);
             assertEquals(sentString, receivedString);
@@ -399,6 +476,8 @@ public class SSLTest extends TestCase {
             sslContextConfigurator.setKeyStoreFile(keystoreUrl.getFile());
         }
 
+        SSLContextConfigurator.DEFAULT_CONFIG = sslContextConfigurator;
+        
         return sslContextConfigurator;
     }
 }

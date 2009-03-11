@@ -48,6 +48,7 @@ import java.nio.FloatBuffer;
 import java.nio.DoubleBuffer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
@@ -188,22 +189,24 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    public void writeBuffer(Buffer b) throws IOException {
+        if (buffer != null && buffer.position() > 0) {
+            overflow();
+        }
+        
+        if (b != null && b.hasRemaining()) {
+            b.position(b.limit());
+            overflow(b);
+        }
+    }
+
     public void writeStream(StreamReader streamReader) throws IOException {
-        boolean isFirstTime = true;
         AbstractStreamReader readerImpl = (AbstractStreamReader) streamReader;
         Buffer readerBuffer;
-        while ((readerBuffer = readerImpl.readBuffer()) != null) {
+        while ((readerBuffer = readerImpl.getBuffer()) != null) {
             try {
-                if (isFirstTime) {
-                    if (buffer != null && buffer.position() > 0) {
-                        overflow();
-                    }
-
-                    isFirstTime = false;
-                }
-
-                readerBuffer.position(readerBuffer.limit());
-                overflow(readerBuffer);
+                readerImpl.finishBuffer();
+                writeBuffer(readerBuffer);
             } catch (Exception e) {
                 readerBuffer.dispose();
             }

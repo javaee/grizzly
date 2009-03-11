@@ -40,13 +40,18 @@ package org.glassfish.grizzly.ssl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.Status;
 import javax.net.ssl.SSLException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamReaderDecorator;
 import org.glassfish.grizzly.util.conditions.Condition;
@@ -56,6 +61,9 @@ import org.glassfish.grizzly.util.conditions.Condition;
  * @author oleksiys
  */
 public class SSLStreamReader extends StreamReaderDecorator {
+    public static Attribute<BlockingQueue> sslAttribute =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("SSL_REMAINDER");
+    
     public SSLStreamReader() {
         this(null);
     }
@@ -70,6 +78,7 @@ public class SSLStreamReader extends StreamReaderDecorator {
         
         if (underlyingReader != null) {
             checkBuffers();
+            attach();
         }
     }
 
@@ -120,6 +129,28 @@ public class SSLStreamReader extends StreamReaderDecorator {
         SSLResourcesAccessor resourceAccessor =
                 SSLResourcesAccessor.getInstance();
         return resourceAccessor.getSSLEngine(getConnection());
+    }
+
+
+    protected void attach() {
+        Connection connection = getConnection();
+        if (connection == null || connection.getAttributes() == null) {
+            return;
+        }
+        
+        BlockingQueue attachedBuffers = sslAttribute.remove(connection.getAttributes());
+        if (attachedBuffers != null) {
+            buffers = attachedBuffers;
+        } else if (buffers == null) {
+            buffers = new LinkedBlockingQueue<Buffer>();
+        }
+    }
+
+    protected void detach() {
+        if (buffers != null && !buffers.isEmpty()) {
+            sslAttribute.set(getConnection().obtainAttributes(), buffers);
+            buffers = null;
+        }
     }
 
     Future handshakeUnwrap(CompletionHandler completionHandler) throws IOException {

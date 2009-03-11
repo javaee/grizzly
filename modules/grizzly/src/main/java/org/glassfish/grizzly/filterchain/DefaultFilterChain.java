@@ -38,6 +38,7 @@
 
 package org.glassfish.grizzly.filterchain;
 
+import java.io.IOException;
 import org.glassfish.grizzly.ProcessorResult;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,7 +99,12 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
                         direction, ctx);
 
                 postExecuteChain(ctx);
+            } catch (IOException e) {
+                logger.log(Level.FINE, "Exception during FilterChain execution", e);
+                throwChain(ctx, e);
+                throw e;
             } catch (Exception e) {
+                logger.log(Level.WARNING, "Exception during FilterChain execution", e);
                 throwChain(ctx, e);
                 throw e;
             }

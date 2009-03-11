@@ -78,7 +78,7 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
         clientSSLEngineConfig = new SSLEngineConfigurator(sslContext, true,
                 false, false);
         
-        sslHandshaker = new DefaultSSLHandshaker();
+        sslHandshaker = new BlockingSSLHandshaker();
     }
 
     /**

@@ -40,47 +40,53 @@ package org.glassfish.grizzly.ssl;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
+import java.util.logging.Filter;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.Transformer;
-import org.glassfish.grizzly.filterchain.CodecFilter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.StopAction;
+import org.glassfish.grizzly.filterchain.StreamTransformerFilter;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
-import org.glassfish.grizzly.threadpool.WorkerThread;
 
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
  * 
  * @author Alexey Stashok
  */
-public class SSLFilter extends FilterAdapter implements CodecFilter {
+public class SSLFilter extends FilterAdapter implements StreamTransformerFilter {
     private Logger logger = Grizzly.logger;
     
-    private SSLCodec sslCodec;
+    private SSLEngineConfigurator sslEngineConfigurator;
+    private SSLHandshaker sslHandshaker;
 
     public SSLFilter() {
         this(null);
     }
     
-    public SSLFilter(SSLCodec sslCodec) {
-        this.sslCodec = sslCodec;
+    public SSLFilter(SSLEngineConfigurator sslEngineConfigurator) {
+        this(sslEngineConfigurator, null);
     }
 
-    public SSLCodec getSslCodec() {
-        return sslCodec;
-    }
+    public SSLFilter(SSLEngineConfigurator sslEngineConfigurator,
+            SSLHandshaker sslHandshaker) {
+        if (sslEngineConfigurator == null) {
+            sslEngineConfigurator = new SSLEngineConfigurator(
+                    SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
+                    false, false, false);
+        }
+        this.sslEngineConfigurator = sslEngineConfigurator;
 
-    public void setSslCodec(SSLCodec sslCodec) {
-        this.sslCodec = sslCodec;
+        if (sslHandshaker == null) {
+            sslHandshaker = new BlockingSSLHandshaker();
+        }
+
+        this.sslHandshaker = sslHandshaker;
     }
 
     @Override
@@ -94,61 +100,61 @@ public class SSLFilter extends FilterAdapter implements CodecFilter {
 
         if (sslEngine == null) {
             // Initialize SSLEngine
-            sslEngine =
-                    sslCodec.getServerSSLEngineConfig().createSSLEngine();
+            sslEngine = sslEngineConfigurator.createSSLEngine();
             sslResourceAccessor.setSSLEngine(connection, sslEngine);
         }
 
-        StreamReader connectionReader = connection.getStreamReader();
-        StreamWriter connectionWriter = connection.getStreamWriter();
+        StreamReader parentReader = ctx.getStreamReader();
+        StreamWriter parentWriter = ctx.getStreamWriter();
 
-        SSLStreamReader sslStreamReader = new SSLStreamReader(connectionReader);
-        SSLStreamWriter sslStreamWriter = new SSLStreamWriter(connectionWriter);
+        SSLStreamReader sslStreamReader = new SSLStreamReader(parentReader);
+        SSLStreamWriter sslStreamWriter = new SSLStreamWriter(parentWriter);
+
+        ctx.setStreamReader(sslStreamReader);
+        ctx.setStreamWriter(sslStreamWriter);
 
         sslStreamReader.pull();
-        sslStreamReader.handshakeUnwrap(null);
 
         if (SSLUtils.isHandshaking(sslEngine)) {
-            Future future = sslCodec.getSslHandshaker().handshake(sslStreamReader,
-                    sslStreamWriter, sslCodec.getServerSSLEngineConfig());
+            Future future = sslHandshaker.handshake(sslStreamReader,
+                    sslStreamWriter, sslEngineConfigurator);
             if (!future.isDone()) {
                 return new StopAction();
             }
         }
 
-        if (sslStreamReader.availableDataSize() > 0) {
-            ctx.setStreamReader(sslStreamReader);
-            ctx.setStreamWriter(sslStreamWriter);
-        } else {
+
+        if (sslStreamReader.availableDataSize() <= 0) {
             nextAction = new StopAction();
         }
-
         return nextAction;
     }
 
     @Override
     public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
+        SSLStreamReader sslStreamReader = (SSLStreamReader) ctx.getStreamReader();
+        SSLStreamWriter sslStreamWriter = (SSLStreamWriter) ctx.getStreamWriter();
+
+        sslStreamReader.detach();
+
+        ctx.setStreamReader(sslStreamReader.getUnderlyingReader());
+        ctx.setStreamWriter(sslStreamWriter.getUnderlyingWriter());
+        
         return nextAction;
     }
 
     @Override
     public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
-        Connection connection = ctx.getConnection();
-        TransformationResult<Buffer> result =
-                sslCodec.getEncoder().transform(connection,
-                (Buffer) ctx.getMessage(), null);
+        StreamWriter writer = ctx.getStreamWriter();
 
-        TransformationResult.Status status = result.getStatus();
-        if (status == TransformationResult.Status.COMPLETED) {
-            ctx.setMessage(result.getMessage());
-        } else if (status == TransformationResult.Status.INCOMPLED) {
-            nextAction = new StopAction();
-        } else {
-            nextAction = processTransformationError(ctx, nextAction);
+        Object message = ctx.getMessage();
+
+        if (message instanceof Buffer) {
+            writer.writeBuffer((Buffer) message);
         }
-
+        writer.flush();
 
         return nextAction;
     }
@@ -166,41 +172,11 @@ public class SSLFilter extends FilterAdapter implements CodecFilter {
         return nextAction;
     }
 
-    public Transformer<Buffer, Buffer> getDecoder() {
-        return sslCodec.getDecoder();
+    public StreamReader getStreamReader(StreamReader parentStreamReader) {
+        return new SSLStreamReader(parentStreamReader);
     }
 
-    public Transformer<Buffer, Buffer> getEncoder() {
-        return sslCodec.getEncoder();
-    }
-
-    protected NextAction processTransformationError(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        ctx.getConnection().close();
-        return new StopAction();
-    }
-
-    private Buffer checkSecuredInputBuffer(Connection connection) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        Buffer obtainedBuffer = accessor.obtainSecuredInBuffer(connection);
-        
-        WorkerThread workerThread = (WorkerThread) Thread.currentThread();
-        Buffer workerThreadBuffer = accessor.getSecuredInBuffer(workerThread);
-        if (workerThreadBuffer != obtainedBuffer) {
-            accessor.setSecuredInBuffer(workerThread, obtainedBuffer);
-        }
-
-        return obtainedBuffer;
-    }
-
-    private void tryHandshake(Connection connection, SSLEngine sslEngine)
-            throws IOException {
-        
-        HandshakeStatus status = sslEngine.getHandshakeStatus();
-        if (status != HandshakeStatus.FINISHED &&
-                status != HandshakeStatus.NOT_HANDSHAKING) {
-            sslCodec.handshake(connection,
-                    sslCodec.getServerSSLEngineConfig());
-        }
+    public StreamWriter getStreamWriter(StreamWriter parentStreamWriter) {
+        return new SSLStreamWriter(parentStreamWriter);
     }
 }

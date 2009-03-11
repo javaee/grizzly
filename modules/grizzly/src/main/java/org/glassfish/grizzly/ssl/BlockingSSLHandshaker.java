@@ -58,7 +58,7 @@ import org.glassfish.grizzly.streams.StreamWriter;
  * 
  * @author Alexey Stashok
  */
-public class DefaultSSLHandshaker implements SSLHandshaker {
+public class BlockingSSLHandshaker implements SSLHandshaker {
     private Logger logger = Grizzly.logger;
 
     public Future<SSLEngine> handshake(

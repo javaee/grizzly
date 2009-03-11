@@ -107,7 +107,7 @@ public abstract class AbstractStreamReader extends InputStream
     // since we just need to ensure the visibility of the value of current to
     // all threads.
     //
-    private BlockingQueue<Buffer> buffers;
+    protected BlockingQueue<Buffer> buffers;
     private AtomicInteger queueSize;
     private volatile Buffer current;
     private boolean closed;
@@ -169,7 +169,7 @@ public abstract class AbstractStreamReader extends InputStream
         } else {
             //byteBufferWrapper.flip();
             buffer.order(byteOrder);
-            boolean isAdded = buffers.offer(buffer);
+            boolean isAdded = !buffer.hasRemaining() || buffers.offer(buffer);
             if (!isAdded) return false;
             
             queueSize.addAndGet(buffer.remaining());

@@ -192,7 +192,6 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                 try {
                     int readBytes = transport.read(connection, buffer);
                     if (readBytes <= 0) {
-                        buffer.dispose();
                         if (readBytes == -1) {
                             throw new EOFException();
                         }
@@ -203,6 +202,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                 } catch (IOException e) {
                     buffer.dispose();
                     buffer = null;
+                    throw e;
                 }
 
                 return buffer;

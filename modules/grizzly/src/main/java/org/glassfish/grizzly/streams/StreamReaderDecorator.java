@@ -37,7 +37,6 @@
 package org.glassfish.grizzly.streams;
 
 import java.io.EOFException;
-import java.io.IOException;
 import java.util.concurrent.Future;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
@@ -77,7 +76,11 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
 
     @Override
     public Connection getConnection() {
-        return underlyingReader.getConnection();
+        if (underlyingReader != null) {
+            return underlyingReader.getConnection();
+        }
+
+        return null;
     }
 
 
