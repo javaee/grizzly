@@ -15,5 +15,6 @@
     <name>grizzly-contribs-bundles</name>
     <modules>
         <module>grizzly-servlet-webserver-deployer</module>
+        <module>grizzly-httpservice-bundle</module>
     </modules>
 </project>
