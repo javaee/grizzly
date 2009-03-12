@@ -219,7 +219,8 @@ public class SSLUtils {
                  }   
              }
         } while (inputBB.position() > 0 && result!= null &&
-                result.getStatus() != Status.BUFFER_UNDERFLOW);
+                result.getStatus() != Status.BUFFER_UNDERFLOW &&
+                result.getStatus() != Status.CLOSED);
         return byteBuffer;
     }
     
