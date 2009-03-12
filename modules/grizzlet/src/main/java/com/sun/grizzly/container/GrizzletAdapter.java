@@ -35,10 +35,7 @@
  * holder.
  *
  */
-
-
 package com.sun.grizzly.container;
-
 
 import com.sun.grizzly.comet.CometContext;
 import com.sun.grizzly.comet.CometEngine;
@@ -50,6 +47,7 @@ import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.util.ClassLoaderUtil;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
@@ -60,37 +58,30 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author Jeanfrancois Arcand
  */
 public class GrizzletAdapter extends StaticResourcesAdapter implements Adapter {
-        
-    public static final int ADAPTER_NOTES = 1;    
-    public static final int POST = 6312;    
-    public static final int GRIZZLET = 2;    
-    
-    
+
+    public static final int ADAPTER_NOTES = 5;
+    public static final int POST = 6312;
+    public static final int GRIZZLET = 6;
     /**
      * All request to that context-path will be considered as comet enabled.
      */
-    private String cometContextName = "/comet";      
-
-    
-    private ReentrantLock initializedLock = new ReentrantLock();    
-    
+    private String cometContextName = "/grizzlet";
+    private ReentrantLock initializedLock = new ReentrantLock();
     /**
      * The Grizzlet associated with this Adapter.
      */
     private Grizzlet grizzlet;
+    private String grizzletName;
 
-    
     public GrizzletAdapter() {
-        super();        
+        super();
     }
-    
-    
+
     public GrizzletAdapter(String cometContextName) {
         super();
         this.cometContextName = cometContextName;
     }
-    
-    
+
     /**
      * Route the request to the comet implementation. If the request point to
      * a static file, delegate the call to the Grizzly WebServer implementation.
@@ -98,47 +89,52 @@ public class GrizzletAdapter extends StaticResourcesAdapter implements Adapter {
     @Override
     public void service(Request req, final Response res) throws Exception {
         String uri = req.requestURI().toString();
-        File file = new File(getRootFolder(),uri);
+        File file = new File(getRootFolder(), uri);
         if (file.isDirectory()) {
             uri += "index.html";
-            file = new File(file,uri);
+            file = new File(file, uri);
         }
 
         if (file.canRead()) {
-            super.service(req,res);
+            super.service(req, res);
             return;
         }
-             
+
         CometEngine cometEngine = CometEngine.getEngine();
-        CometContext cometContext = cometEngine.getCometContext(cometContextName);  
-                
+        CometContext cometContext = cometEngine.getCometContext(cometContextName);
+
         initializedLock.lock();
-        try{        
-            if (cometContext == null){
+        try {
+            if (cometContext == null) {
                 cometContext = cometEngine.register(cometContextName);
-                cometContext.setExpirationDelay(-1);    
-                cometContext.setBlockingNotification(true);        
+                cometContext.setExpirationDelay(-1);
+                cometContext.setBlockingNotification(true);
+
             }
-        } finally{
-             initializedLock.unlock();
+
+            if (grizzlet == null && grizzletName != null) {
+                grizzlet = (Grizzlet) ClassLoaderUtil.load(grizzletName);
+            }
+        } finally {
+            initializedLock.unlock();
         }
 
         GrizzletRequest cometReq = (GrizzletRequest) req.getNote(ADAPTER_NOTES);
         GrizzletResponse cometRes = (GrizzletResponse) res.getNote(ADAPTER_NOTES);
-        AsyncConnectionImpl asyncConnection = 
+        AsyncConnectionImpl asyncConnection =
                 (AsyncConnectionImpl) req.getNote(GRIZZLET);
-        
+
         if (cometReq == null) {
-            cometReq = new GrizzletRequest(req);            
+            cometReq = new GrizzletRequest(req);
             cometRes = new GrizzletResponse(res);
             cometReq.setGrizzletResponse(cometRes);
             asyncConnection = new AsyncConnectionImpl();
-            
+
             // Set as notes so we don't create them on every request.
             req.setNote(ADAPTER_NOTES, cometReq);
             req.setNote(GRIZZLET, asyncConnection);
             res.setNote(ADAPTER_NOTES, cometRes);
-        }  else {
+        } else {
             cometReq.setRequest(req);
             cometRes.setResponse(res);
         }
@@ -147,29 +143,30 @@ public class GrizzletAdapter extends StaticResourcesAdapter implements Adapter {
         asyncConnection.setResponse(cometRes);
         asyncConnection.setGrizzlet(grizzlet);
 
-        try{
-            grizzlet.onRequest(asyncConnection); 
+        try {
+            synchronized (grizzlet){
+                grizzlet.onRequest(asyncConnection);
+            }
         } finally {
             cometReq.recycle();
             cometRes.recycle();
             asyncConnection.recycle();
         }
-    }   
-    
-        
+    }
+
     @Override
-    public void afterService(Request req, Response res) 
-        throws Exception {
-        try{
-            req.action( ActionCode.ACTION_POST_REQUEST , null);
-        }catch (Throwable t) {
+    public void afterService(Request req, Response res)
+            throws Exception {
+        try {
+            req.action(ActionCode.ACTION_POST_REQUEST, null);
+        } catch (Throwable t) {
             t.printStackTrace();
         }
-        
-        res.finish();       
+
+        res.finish();
         super.afterService(req, res);
     }
-    
+
     /**
      * Set the user defined {@link Grizzlet} implementation.
      */
@@ -177,7 +174,6 @@ public class GrizzletAdapter extends StaticResourcesAdapter implements Adapter {
         return grizzlet;
     }
 
-    
     /**
      * Return the user defined {@link Grizzlet} implementation. 
      */
@@ -185,13 +181,25 @@ public class GrizzletAdapter extends StaticResourcesAdapter implements Adapter {
         this.grizzlet = grizzlet;
     }
 
-    
     public String getCometContextName() {
         return cometContextName;
     }
 
-    
     public void setCometContextName(String cometContextName) {
         this.cometContextName = cometContextName;
+    }
+
+    /**
+     * Set the user defined {@link Grizzlet} implementation.
+     */
+    public String getGrizzletName() {
+        return grizzletName;
+    }
+
+    /**
+     * Return the user defined {@link Grizzlet} implementation.
+     */
+    public void setGrizzletName(String grizzletName) {
+        this.grizzletName = grizzletName;
     }
 }
