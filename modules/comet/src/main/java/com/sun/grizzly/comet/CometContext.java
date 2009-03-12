@@ -384,6 +384,7 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean removeCometHandler(CometHandler handler,boolean resume){
+        CometEngine.updatedContexts.set(null);
         SelectionKey key = handlers.remove(handler);
         if (key != null){
             if (resume){
@@ -404,6 +405,7 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean removeCometHandler(int hashCode){
+        CometEngine.updatedContexts.set(null);
         Iterator<CometHandler> iterator = handlers.keySet().iterator();
         CometHandler handler = null;
         while (iterator.hasNext()){
@@ -444,6 +446,7 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     protected boolean resumeCometHandler(CometHandler handler, boolean remove){
+        CometEngine.updatedContexts.set(null);
         return cometSelector.cancelKey(handlers.get(handler), false, remove, false);
     }
 
@@ -479,7 +482,7 @@ public class CometContext<E> {
      * @return true 
      */
     public boolean isActive(CometHandler handler){
-        return handlers.containsKey(handler);
+        return handlers.containsKey(handler) || CometEngine.updatedContexts.get() != null;
     }
 
     /**
