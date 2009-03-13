@@ -316,8 +316,9 @@ public class CometSelector {
      */
     protected boolean cancelKey(SelectionKey cometKey, boolean cancelMainKey,
              boolean removeCometHandler, boolean notifyInterrupt){
-        if (cometKey == null) //cometcontext.resume can give a null cometkey
-            return false;
+        if (cometKey == null){ //cometcontext.resume can give a null cometkey
+           return false;
+        }
         boolean status = true;
         CometTask cometTask = null;
         // attach is only atomic since dolphin b06 , hence we must synchronize 
@@ -340,7 +341,7 @@ public class CometSelector {
             if (cancelMainKey){                
                 cometTask.getSelectorThread().cancelKey(cometTask.getSelectionKey());
             }
-        }
+        } 
         return status;
     }
 

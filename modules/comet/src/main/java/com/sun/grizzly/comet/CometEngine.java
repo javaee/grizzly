@@ -154,7 +154,7 @@ public class CometEngine {
      */
     protected final static ThreadLocal<CometTask> updatedContexts = new ThreadLocal<CometTask>();
 
-    private static final SelectionKey dumykey = new SelectionKey() {
+    protected static final SelectionKey dumykey = new SelectionKey() {
                 public SelectableChannel channel()       {throw ISE;}
                 public int interestOps()                 {throw ISE;}
                 public SelectionKey interestOps(int ops) {throw ISE;}
