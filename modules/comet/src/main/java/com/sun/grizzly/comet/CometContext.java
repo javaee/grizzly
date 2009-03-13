@@ -451,7 +451,7 @@ public class CometContext<E> {
         CometEngine.updatedContexts.set(null);
         boolean b= cometSelector.cancelKey(handlers.get(handler), false, remove, false);
         
-        // This is an ugly fix for a thread race between the 
+        // Try a second time to locate the associated CometTask
         if (!b){
             for (CometTask cometTask:activeTasks.keySet()){
                 if (cometTask.getCometHandler() == handler){
