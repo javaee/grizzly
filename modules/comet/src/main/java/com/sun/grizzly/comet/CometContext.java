@@ -289,6 +289,7 @@ public class CometContext<E> {
         if (!CometEngine.getEngine().isCometEnabled()){
             throw cometNotEnabled;
         }
+        handlers.put(handler, CometEngine.dumykey);
         // is it ok that we only manage one adcomethandler call ?
         CometTask cometTask = new CometTask();
         cometTask.setCometContext(this);
@@ -439,7 +440,8 @@ public class CometContext<E> {
     
     
     /**
-     * Resume the Comet request.
+     * Resume the suspended response. A response can only be suspended when 
+     * {@link CometContext#addCometHandler} was called first.
      * 
      * @param handler The CometHandler associated with the current continuation.
      * @param remove true if the CometHandler needs to be removed.
@@ -447,7 +449,21 @@ public class CometContext<E> {
      */
     protected boolean resumeCometHandler(CometHandler handler, boolean remove){
         CometEngine.updatedContexts.set(null);
-        return cometSelector.cancelKey(handlers.get(handler), false, remove, false);
+        boolean b= cometSelector.cancelKey(handlers.get(handler), false, remove, false);
+        
+        // This is an ugly fix for a thread race between the 
+        if (!b){
+            for (CometTask cometTask:activeTasks.keySet()){
+                if (cometTask.getCometHandler() == handler){
+                    interrupt(cometTask, remove, false);
+                    CometEngine.getEngine().flushPostExecute(
+                            cometTask.getAsyncProcessorTask());
+                    activeTasks.remove(cometTask);
+                    return true;                 
+                }
+            }  
+        }
+        return b;
     }
 
     /**
@@ -463,7 +479,7 @@ public class CometContext<E> {
                 if (status && notifyInterrupt){
                     task.getCometHandler().onInterrupt(eventInterrupt);
                 }else{
-                    logger.finer(ALREADY_REMOVED);
+                    logger.fine(ALREADY_REMOVED);
                 }
             }
         } catch (Throwable ex){
