@@ -42,7 +42,7 @@ import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
-import org.glassfish.grizzly.util.AsyncBufferEchoFilter;
+import org.glassfish.grizzly.util.EchoFilter;
 
 /**
  *
@@ -65,7 +65,7 @@ public class TCPEchoServer {
         TCPNIOTransport transport = transportFactory.createTCPTransport();
         transport.setSelectorRunnersCount(settings.getSelectorThreads());
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new AsyncBufferEchoFilter());
+        transport.getFilterChain().add(new EchoFilter());
 
         try {
             transport.bind(settings.getHost(), settings.getPort());
