@@ -852,7 +852,6 @@ public class ProcessorTask extends TaskBase implements Processor,
              if (asyncSemaphore.tryAcquire(0, TimeUnit.SECONDS)) {
                 // Nobody is listening, avoid extra operation.
                 if (getTaskListener() == null){
-                    asyncSemaphore.release();
                     return;
                 }
                 
