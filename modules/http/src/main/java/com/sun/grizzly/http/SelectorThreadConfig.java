@@ -38,10 +38,12 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.arp.AsyncHandler;
+import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.SelectorFactory;
+import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.res.StringManager;
 import java.io.IOException;
 import java.util.StringTokenizer;
@@ -145,6 +147,12 @@ public class SelectorThreadConfig{
 
     private final static String ASYNC_HTTP_WRITE_MAX_BUFFER_POOL_SIZE =
             "com.sun.grizzly.http.asyncwrite.maxBufferPoolSize";
+
+    private final static String SSL_CONFIGURATION_WANTAUTH =
+            "com.sun.grizzly.ssl.auth";
+
+        private final static String SSL_CONFIGURATION_SSLIMPL =
+            "com.sun.grizzly.ssl.sslImplementation";
 
    /**
      * The string manager for this package.
@@ -299,7 +307,7 @@ public class SelectorThreadConfig{
         }     
         
         if (System.getProperty(SNOOP_LOGGING)!= null){
-            selectorThread.setEnableNioLogging( 
+            SelectorThread.setEnableNioLogging(
                 Boolean.valueOf(
                             System.getProperty(SNOOP_LOGGING)).booleanValue());
         }   
@@ -340,6 +348,26 @@ public class SelectorThreadConfig{
             SocketChannelOutputBuffer.setMaxBufferPoolSize(Integer.getInteger(
                     ASYNC_HTTP_WRITE_MAX_BUFFER_POOL_SIZE, -1));
         }
+
+        String auth = System.getProperty(SSL_CONFIGURATION_WANTAUTH);
+        if (auth != null) {
+            if (selectorThread instanceof SSLSelectorThread){
+                if (auth.trim().equalsIgnoreCase("want")){
+                    ((SSLSelectorThread)selectorThread).setWantClientAuth(true);
+                } else if (auth.trim().equalsIgnoreCase("need")){
+                    ((SSLSelectorThread)selectorThread).setNeedClientAuth(true);
+                } 
+            }
+        }
+
+        if (System.getProperty(SSL_CONFIGURATION_SSLIMPL) != null) {
+            SSLImplementation sslImplementation = (SSLImplementation)
+                    ClassLoaderUtil.load(System.getProperty(SSL_CONFIGURATION_SSLIMPL));
+            if (selectorThread instanceof SSLSelectorThread){
+                ((SSLSelectorThread)selectorThread).setSSLImplementation(sslImplementation);
+            }
+        }
+
     }
 
     
