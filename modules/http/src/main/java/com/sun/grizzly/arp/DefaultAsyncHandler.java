@@ -66,12 +66,6 @@ public class DefaultAsyncHandler implements AsyncHandler{
     private LinkedTransferQueue<AsyncTask>
             asyncProcessors = new LinkedTransferQueue<AsyncTask>();
     
-    
-    /**
-     * A queue used to cache interrupted {@link AsyncTask}.
-     */
-    private LinkedTransferQueue<AsyncTask>
-            interrruptedQueue = new LinkedTransferQueue<AsyncTask>();
                
     
     /**
