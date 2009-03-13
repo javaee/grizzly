@@ -33,7 +33,9 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.memory;
+package org.glassfish.grizzly.memory.slab;
+
+import org.glassfish.grizzly.memory.*;
 
 
 /**
@@ -66,7 +68,7 @@ public class SlabByteBufferWrapper extends ByteBufferWrapper {
 
     /** Allocate a buffer that contains dataSize data.
      */
-    public SlabByteBufferWrapper(final MemoryManager allocator, final Slab slab,
+    public SlabByteBufferWrapper(final ByteBufferManager allocator, final Slab slab,
             final int size) {
         this.memoryManager = allocator;
         this.slab = slab;

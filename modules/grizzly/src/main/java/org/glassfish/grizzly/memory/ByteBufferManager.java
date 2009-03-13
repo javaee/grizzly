@@ -65,10 +65,8 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper> {
         }
     }
 
-    public ByteBufferWrapper allocate(int size) {
-        ByteBuffer underlyingByteBuffer = allocate0(size);
-
-        return new ByteBufferWrapper(this, underlyingByteBuffer);
+    public ByteBufferWrapper allocate(final int size) {
+        return wrap(allocate0(size));
     }
 
     public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
@@ -88,5 +86,9 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper> {
 
     public void setDirect(boolean isDirect) {
         this.isDirect = isDirect;
+    }
+
+    protected ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
+        return new ByteBufferWrapper(this, byteBuffer);
     }
 }

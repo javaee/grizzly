@@ -185,7 +185,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
 
         if (buffer.remaining() < size) {
-            throw new RuntimeException("Newly allocated buffer is too small");
+            throw new RuntimeException("New allocated buffer is too small");
         }
     }
 

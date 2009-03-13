@@ -104,8 +104,6 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                     return notifyConditionNonBlocking(condition, completionHandler);
                 case BLOCKING:
                     return notifyConditionBlocking(condition, completionHandler);
-                case FEEDER:
-                    return notifyConditionFeeder(condition, completionHandler);
             }
             return null;
         }
@@ -169,13 +167,6 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
             future.failure(e);
         }
 
-        return future;
-    }
-
-    private Future notifyConditionFeeder(Condition<StreamReader> condition,
-            CompletionHandler completionHandler) {
-        FutureImpl future = new FutureImpl();
-        notifyObject = new NotifyObject(future, completionHandler, condition);
         return future;
     }
     

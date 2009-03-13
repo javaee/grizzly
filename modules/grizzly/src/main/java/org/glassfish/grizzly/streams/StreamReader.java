@@ -55,7 +55,7 @@ import org.glassfish.grizzly.util.conditions.Condition;
  */
 public interface StreamReader extends Closeable {
     public enum Mode {
-        NON_BLOCKING, BLOCKING, FEEDER;
+        NON_BLOCKING, BLOCKING;
     }
     
     public Future notifyAvailable(int length);

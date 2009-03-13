@@ -49,21 +49,20 @@ import org.glassfish.grizzly.Buffer;
  * @author oleksiys
  */
 public class ByteBufferWrapper implements Buffer<ByteBuffer> {
-    MemoryManager<ByteBufferWrapper> memoryManager;
+    protected ByteBufferManager memoryManager;
     
-    ByteBuffer visible;
+    protected ByteBuffer visible;
 
-    public ByteBufferWrapper(MemoryManager<ByteBufferWrapper> memoryManager,
+    protected ByteBufferWrapper() {
+        this(null, null);
+    }
+
+    public ByteBufferWrapper(ByteBufferManager memoryManager,
             ByteBuffer underlyingByteBuffer) {
         this.memoryManager = memoryManager;
         visible = underlyingByteBuffer;
     }
     
-    ByteBufferWrapper() {
-    }
-
-    
-
     public ByteBuffer prepend(final ByteBuffer header) {
         checkDispose();
         return visible;
@@ -72,12 +71,6 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
     public void trim() {
         checkDispose() ;
         flip();
-//        final int sizeNeeded = headerSize + visible.position() ;
-//        backingStore = slab.trim( slabPosition, backingStore, sizeNeeded ) ;
-//        backingStore.position( headerSize ) ;
-//
-//        visible = backingStore.slice() ;
-//        visible.position( 0 ) ;
     }
 
     public void dispose() {
@@ -100,7 +93,7 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.position();
     }
 
-    public Buffer<ByteBuffer> position(int newPosition) {
+    public ByteBufferWrapper position(int newPosition) {
         visible.position(newPosition);
         return this;
     }
@@ -109,32 +102,32 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.limit();
     }
 
-    public Buffer<ByteBuffer> limit(int newLimit) {
+    public ByteBufferWrapper limit(int newLimit) {
         visible.limit(newLimit);
         return this;
     }
 
-    public Buffer<ByteBuffer> mark() {
+    public ByteBufferWrapper mark() {
         visible.mark();
         return this;
     }
 
-    public Buffer<ByteBuffer> reset() {
+    public ByteBufferWrapper reset() {
         visible.reset();
         return this;
     }
 
-    public Buffer<ByteBuffer> clear() {
+    public ByteBufferWrapper clear() {
         visible.clear();
         return this;
     }
 
-    public Buffer<ByteBuffer> flip() {
+    public ByteBufferWrapper flip() {
         visible.flip();
         return this;
     }
 
-    public Buffer<ByteBuffer> rewind() {
+    public ByteBufferWrapper rewind() {
         visible.rewind();
         return this;
     }
@@ -151,17 +144,17 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.isReadOnly();
     }
 
-    public Buffer<ByteBuffer> slice() {
+    public ByteBufferWrapper slice() {
         ByteBuffer slice = visible.slice();
-        return new ByteBufferWrapper(memoryManager, slice);
+        return memoryManager.wrap(slice);
     }
 
-    public Buffer<ByteBuffer> duplicate() {
+    public ByteBufferWrapper duplicate() {
         ByteBuffer duplicate = visible.duplicate();
-        return new ByteBufferWrapper(memoryManager, duplicate);
+        return memoryManager.wrap(duplicate);
     }
 
-    public Buffer<ByteBuffer> asReadOnlyBuffer() {
+    public ByteBufferWrapper asReadOnlyBuffer() {
         visible.asReadOnlyBuffer();
         return this;
     }
@@ -174,42 +167,42 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.get(index);
     }
 
-    public Buffer<ByteBuffer> put(byte b) {
+    public ByteBufferWrapper put(byte b) {
         visible.put(b);
         return this;
     }
 
-    public Buffer<ByteBuffer> put(int index, byte b) {
+    public ByteBufferWrapper put(int index, byte b) {
         visible.put(index, b);
         return this;
     }
 
-    public Buffer<ByteBuffer> get(byte[] dst) {
+    public ByteBufferWrapper get(byte[] dst) {
         visible.get(dst);
         return this;
     }
 
-    public Buffer<ByteBuffer> get(byte[] dst, int offset, int length) {
+    public ByteBufferWrapper get(byte[] dst, int offset, int length) {
         visible.get(dst, offset, length);
         return this;
     }
 
-    public Buffer<ByteBuffer> put(Buffer src) {
+    public ByteBufferWrapper put(Buffer src) {
         visible.put((ByteBuffer) src.underlying());
         return this;
     }
 
-    public Buffer<ByteBuffer> put(byte[] src) {
+    public ByteBufferWrapper put(byte[] src) {
         visible.put(src);
         return this;
     }
 
-    public Buffer<ByteBuffer> put(byte[] src, int offset, int length) {
+    public ByteBufferWrapper put(byte[] src, int offset, int length) {
         visible.put(src, offset, length);
         return this;
     }
 
-    public Buffer<ByteBuffer> compact() {
+    public ByteBufferWrapper compact() {
         visible.compact();
         return this;
     }
@@ -218,7 +211,7 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.order();
     }
 
-    public Buffer<ByteBuffer> order(ByteOrder bo) {
+    public ByteBufferWrapper order(ByteOrder bo) {
         visible.order(bo);
         return this;
     }
@@ -231,12 +224,12 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.getChar(index);
     }
 
-    public Buffer<ByteBuffer> putChar(char value) {
+    public ByteBufferWrapper putChar(char value) {
         visible.putChar(value);
         return this;
     }
 
-    public Buffer<ByteBuffer> putChar(int index, char value) {
+    public ByteBufferWrapper putChar(int index, char value) {
         visible.putChar(index, value);
         return this;
     }
@@ -249,12 +242,12 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.getShort(index);
     }
 
-    public Buffer<ByteBuffer> putShort(short value) {
+    public ByteBufferWrapper putShort(short value) {
         visible.putShort(value);
         return this;
     }
 
-    public Buffer<ByteBuffer> putShort(int index, short value) {
+    public ByteBufferWrapper putShort(int index, short value) {
         visible.putShort(index, value);
         return this;
     }
@@ -267,12 +260,12 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.getInt(index);
     }
 
-    public Buffer<ByteBuffer> putInt(int value) {
+    public ByteBufferWrapper putInt(int value) {
         visible.putInt(value);
         return this;
     }
 
-    public Buffer<ByteBuffer> putInt(int index, int value) {
+    public ByteBufferWrapper putInt(int index, int value) {
         visible.putInt(index, value);
         return this;
     }
@@ -285,12 +278,12 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.getLong(index);
     }
 
-    public Buffer<ByteBuffer> putLong(long value) {
+    public ByteBufferWrapper putLong(long value) {
         visible.putLong(value);
         return this;
     }
 
-    public Buffer<ByteBuffer> putLong(int index, long value) {
+    public ByteBufferWrapper putLong(int index, long value) {
         visible.putLong(index, value);
         return this;
     }
@@ -303,12 +296,12 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.getFloat(index);
     }
 
-    public Buffer<ByteBuffer> putFloat(float value) {
+    public ByteBufferWrapper putFloat(float value) {
         visible.putFloat(value);
         return this;
     }
 
-    public Buffer<ByteBuffer> putFloat(int index, float value) {
+    public ByteBufferWrapper putFloat(int index, float value) {
         visible.putFloat(index, value);
         return this;
     }
@@ -321,12 +314,12 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return visible.getDouble(index);
     }
 
-    public Buffer<ByteBuffer> putDouble(double value) {
+    public ByteBufferWrapper putDouble(double value) {
         visible.putDouble(value);
         return this;
     }
 
-    public Buffer<ByteBuffer> putDouble(int index, double value) {
+    public ByteBufferWrapper putDouble(int index, double value) {
         visible.putDouble(index, value);
         return this;
     }

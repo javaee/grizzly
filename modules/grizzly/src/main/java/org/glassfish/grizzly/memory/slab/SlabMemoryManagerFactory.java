@@ -33,8 +33,9 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.memory;
+package org.glassfish.grizzly.memory.slab;
 
+import org.glassfish.grizzly.memory.*;
 import java.io.Closeable;
 
 /** Factory for Allocators (pooled and non-pooled) and SlabPools.

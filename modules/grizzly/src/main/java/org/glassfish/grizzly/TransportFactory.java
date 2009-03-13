@@ -45,6 +45,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.memory.ByteBufferViewManager;
+import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 import org.glassfish.grizzly.util.ConcurrentQueuePool;
@@ -135,7 +136,7 @@ public abstract class TransportFactory {
                         return context;
                     }
                 };
-        defaultMemoryManager = new ByteBufferViewManager();
+        defaultMemoryManager = new DefaultMemoryManager();
         defaultThreadPool = new DefaultThreadPool();
     }
 

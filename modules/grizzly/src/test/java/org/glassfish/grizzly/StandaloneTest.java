@@ -101,8 +101,7 @@ public class StandaloneTest extends TestCase {
 
 
             Future readFuture = reader.notifyAvailable(messageSize);
-            // Wait until whole buffer will be filled out (we use MinBufferSizeCondition)
-            readFuture.get(10, TimeUnit.SECONDS);
+            readFuture.get(20, TimeUnit.SECONDS);
 
             // Read the response.
             reader.readByteArray(receiveBuffer);

@@ -33,7 +33,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.memory;
+package org.glassfish.grizzly.memory.slab;
 
 import java.nio.ByteBuffer;
 import java.util.logging.Level;

@@ -60,7 +60,7 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
-import org.glassfish.grizzly.memory.SlabMemoryManagerFactory;
+import org.glassfish.grizzly.memory.slab.SlabMemoryManagerFactory;
 import org.glassfish.grizzly.streams.AbstractStreamReader;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
 import org.glassfish.grizzly.util.conditions.Condition;

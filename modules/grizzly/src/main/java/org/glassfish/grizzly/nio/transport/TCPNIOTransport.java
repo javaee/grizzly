@@ -166,7 +166,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     private volatile Filter defaultTransportFilter;
     protected RegisterChannelCompletionHandler registerChannelCompletionHandler;
     private EnableReadWritePostProcessor enablingReadWritePostProcessor;
-    private StreamReaderFeeder streamReaderFeeder;
     
     public TCPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -178,8 +177,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
         asyncQueueIO = new AsyncQueueIO(new TCPNIOAsyncQueueReader(this),
                 new TCPNIOAsyncQueueWriter(this));
-
-        streamReaderFeeder = new StreamReaderFeeder(this);
     }
 
     protected TCPNIOTransport(String name) {
@@ -718,20 +715,11 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         TCPNIOAsyncQueueReader asyncQueueReader =
                 (TCPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
 
-        TCPNIOStreamReader reader = (TCPNIOStreamReader) connection.getStreamReader();
-
         if (asyncQueueReader != null) {
             disabeReadWriteInterests(connection, ioEvent);
-            if (reader.getMode() == TCPNIOStreamReader.Mode.FEEDER) {
-                if (!asyncQueueReader.isReady(connection)) {
-                    asyncQueueReader.addRecord(connection, null, null,
-                            streamReaderFeeder);
-                }
-            } else {
-                if (!asyncQueueReader.isReady(connection)) {
-                    executeDefaultReadWriteProcessor(ioEvent, connection);
-                    return;
-                }
+            if (!asyncQueueReader.isReady(connection)) {
+                executeDefaultReadWriteProcessor(ioEvent, connection);
+                return;
             }
             
                 

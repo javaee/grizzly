@@ -79,16 +79,21 @@ public class ByteBufferViewManager extends ByteBufferManager {
             largeByteBuffer = allocate0(capacity);
         }
 
-        largeByteBuffer.limit(largeByteBuffer.position() + size);
-        ByteBuffer view = largeByteBuffer.slice();
-        largeByteBuffer.position(largeByteBuffer.limit());
-        
-        return new ByteBufferWrapper(this, view);
+        return wrap(slice(largeByteBuffer, size));
     }
 
     @Override
     public synchronized ByteBufferWrapper reallocate(
             ByteBufferWrapper oldBuffer, int newSize) {
         return super.reallocate(oldBuffer, newSize);
+    }
+
+    protected static ByteBuffer slice(ByteBuffer chunk, int size) {
+        chunk.limit(chunk.position() + size);
+        ByteBuffer view = chunk.slice();
+        chunk.position(chunk.limit());
+        chunk.limit(chunk.capacity());
+        
+        return view;
     }
 }

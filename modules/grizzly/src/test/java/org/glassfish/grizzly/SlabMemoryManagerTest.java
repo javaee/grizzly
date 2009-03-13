@@ -50,8 +50,8 @@ import java.io.IOException;
 import junit.framework.Assert;
 
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.memory.Slab;
-import org.glassfish.grizzly.memory.SlabMemoryManagerFactory;
+import org.glassfish.grizzly.memory.slab.Slab;
+import org.glassfish.grizzly.memory.slab.SlabMemoryManagerFactory;
 
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.NextAction;

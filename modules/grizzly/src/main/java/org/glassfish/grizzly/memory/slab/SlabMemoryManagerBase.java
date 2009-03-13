@@ -33,7 +33,7 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-package org.glassfish.grizzly.memory;
+package org.glassfish.grizzly.memory.slab;
 
 import java.nio.ByteBuffer;
 
@@ -41,6 +41,8 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeHolder;
+import org.glassfish.grizzly.memory.ByteBufferManager;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.threadpool.WorkerThread;
 
 /**
@@ -55,7 +57,7 @@ import org.glassfish.grizzly.threadpool.WorkerThread;
  * @author Ken Cavanaugh
  * @author John Vieten
  */
-public abstract class SlabMemoryManagerBase implements MemoryManager {
+public abstract class SlabMemoryManagerBase extends ByteBufferManager {
 
     private SlabAssociation slabThreadAssociation = new SlabThreadAssociation(this);
     private SlabAssociation slabWorkerThreadAssociation = new SlabWorkerThreadAssociation(this);
@@ -75,7 +77,8 @@ public abstract class SlabMemoryManagerBase implements MemoryManager {
      */
     abstract public int maxAllocationSize();
 
-    public final Buffer allocate(final int size) {
+    @Override
+    public SlabByteBufferWrapper allocate(final int size) {
         if (size > maxAllocationSize()) {
             throw new IllegalArgumentException("Request size "
                     + size + " is larger than maximum allocation size "
@@ -111,10 +114,12 @@ public abstract class SlabMemoryManagerBase implements MemoryManager {
     }
 
 
-    public void release(Buffer buffer) {
+    @Override
+    public void release(ByteBufferWrapper buffer) {
     }
 
-    public Buffer reallocate(Buffer oldBuffer, int newSize) {
+    @Override
+    public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer, int newSize) {
         return null;
     }
 
@@ -158,6 +163,7 @@ public abstract class SlabMemoryManagerBase implements MemoryManager {
         }
 
         private  class ThreadLocalSlab extends ThreadLocal {
+            @Override
             public Object initialValue() {
                 return null;
             }
