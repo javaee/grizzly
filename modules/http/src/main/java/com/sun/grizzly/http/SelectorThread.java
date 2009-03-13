@@ -2291,7 +2291,7 @@ public class SelectorThread implements Runnable, MBeanRegistration{
     }
 
     public void setCoreThreads(int coreThreads) {
-        this.coreThreads = maxThreads;
+        this.coreThreads = coreThreads;
     }
 
     public String getThreadPoolClassname() {
