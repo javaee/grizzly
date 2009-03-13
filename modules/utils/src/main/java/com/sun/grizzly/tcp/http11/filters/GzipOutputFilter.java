@@ -166,6 +166,11 @@ public class GzipOutputFilter implements OutputFilter {
      * Make the filter ready to process the next request.
      */
     public void recycle() {
+        try{
+            compressionStream.close();
+        } catch (IOException ex){
+            ;
+        }
         // Set compression stream to null
         compressionStream = null;
     }
