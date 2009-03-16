@@ -64,7 +64,8 @@
                         <Bundle-Vendor>Grizzly Devs</Bundle-Vendor>
                         <Import-Package>*</Import-Package>
                         <Export-Package>
-                            com.sun.grizzly.*;-split-package:=merge-first,javax.servlet.*;-split-package:=merge-first
+                            com.sun.grizzly.*;-split-package:=merge-first,
+                            javax.servlet.*;-split-package:=merge-first;version=2.5,
                         </Export-Package>
                         <Export-Service>
                             org.osgi.service.http.HttpService;version=1.2
