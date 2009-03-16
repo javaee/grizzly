@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -42,6 +42,7 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.filter.ReadFilter;
+import com.sun.grizzly.util.ConcurrentWeakHashMap;
 import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.Utils;
 import java.io.IOException;
@@ -49,74 +50,72 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
-import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
  * Port unification ReadFilter.
- * 
+ *
  * Could be used for usecases, where on one TCP/UDP/... port several higher level
  * protocols should be served (for example HTTP, HTTPS, IIOP).
- * 
- * If input {@link ByteBuffer} is empty - <code>ReadFilter</code> logic will 
+ *
+ * If input {@link ByteBuffer} is empty - <code>ReadFilter</code> logic will
  * be executed in order to read request data.
- * 
+ *
  * @author Jean-Francois Arcand
  * @author Alexey Stashok
  */
 public class PUReadFilter extends ReadFilter {
     public static final long DEFAULT_READ_TIMEOUT = 1000;
-    
-    public static final String PROTOCOL_FINDERS = 
+
+    public static final String PROTOCOL_FINDERS =
             "com.sun.grizzly.portunif.protocolFinders";
-    
-    public static final String PROTOCOL_HANDLERS = 
+
+    public static final String PROTOCOL_HANDLERS =
             "com.sun.grizzly.portunif.protocolHandlers";
-    
-    public static final String PU_PRE_PROCESSORS = 
+
+    public static final String PU_PRE_PROCESSORS =
             "com.sun.grizzly.portunif.PUPreProcessors";
 
     private static final int MAX_FIND_TRIES = 2;
-    
-    private static final ProtocolHandler filterChainProtocolHandler = 
+
+    private static final ProtocolHandler filterChainProtocolHandler =
             new FilterChainProtocolHandler();
-    
-    private static final ProtocolHandler sslFilterChainProtocolHandler = 
+
+    private static final ProtocolHandler sslFilterChainProtocolHandler =
             new SSLFilterChainProtocolHandler();
 
     /**
      * List of available <code>ProtocolHandler</code>.
      */
-    private ConcurrentHashMap<String, ProtocolHandler> protocolHandlers = 
+    private final ConcurrentHashMap<String, ProtocolHandler> protocolHandlers =
             new ConcurrentHashMap<String, ProtocolHandler>();
-    
+
     /**
      * List of available <code>ProtocolFinder</code>.
      */
-    private LinkedTransferQueue<ProtocolFinder> protocolFinders =
+    private final LinkedTransferQueue<ProtocolFinder> protocolFinders =
             new LinkedTransferQueue<ProtocolFinder>();
-    
+
     /**
      * List of available <code>ProtocolFinder</code>.
      */
-    private volatile Map<SelectionKey, ProtocolHandler> mappedProtocols = 
-            createMappedProtocolsMap();
-    
+    private final Map<SelectionKey, ProtocolHandler> mappedProtocols =
+            new ConcurrentWeakHashMap<SelectionKey, ProtocolHandler>();
+
     /**
      * List of registered <code>PUPreProcessor</code>.
      */
     private List<PUPreProcessor> preProcessors;
-    
+
     /**
      * Time interval <code>PUReadFilter</code> will expect more data on channel.
-     * 
+     *
      * If no <code>ProtocolFinder</code> found - Filter tries to read more data
      * and rerun finders.
      */
@@ -125,41 +124,38 @@ public class PUReadFilter extends ReadFilter {
     /**
      * Logger
      */
-    private static Logger logger = Controller.logger();
+    private final static Logger logger = Controller.logger();
 
     @Override
     public boolean execute(Context context) throws IOException {
         SelectionKey selectionKey = context.getSelectionKey();
-        ProtocolHandler protocolHandler = null;
-        
-        if (mappedProtocols != null) {
-            protocolHandler = mappedProtocols.get(selectionKey);
-        }
-        
-        ProtocolRequestWorkerThreadAdapter protocolRequest = 
+        ProtocolHandler protocolHandler = mappedProtocols.get(selectionKey);
+
+        //investigate how to lower the gc overhead:
+        ProtocolRequestWorkerThreadAdapter protocolRequest =
                 new ProtocolRequestWorkerThreadAdapter();
         protocolRequest.setContext(context);
-        
+
         int readTry = 0;
         try {
             // Perform input buffer read
             // Peek correspondent ByteBuffer first
-            ByteBuffer readBuffer = protocolHandler != null ? 
+            ByteBuffer readBuffer = protocolHandler != null ?
                 protocolHandler.getByteBuffer() :
                 protocolRequest.getByteBuffer();
-            
+
             if (!super.execute(context, readBuffer)) {
                 // if ReadFilter didn't succeed - return
                 if (logger.isLoggable(Level.FINE)) {
                     logger.log(Level.FINE, "PUReadFilter. Read failed");
                 }
-                
+
                 if (protocolHandler != null &&
-                        context.getKeyRegistrationState() == 
+                        context.getKeyRegistrationState() ==
                         Context.KeyRegistrationState.CANCEL) {
                     protocolHandler.expireKey(selectionKey);
                 }
-                
+
                 return false;
             }
 
@@ -167,24 +163,24 @@ public class PUReadFilter extends ReadFilter {
                 if (logger.isLoggable(Level.FINE)) {
                     logger.log(Level.FINE, "PUReadFilter. Finding protocol...");
                 }
-                
+
                 while (readTry++ < MAX_FIND_TRIES) {
                     String protocolName = null;
-                    
+
                     if (preProcessors != null) {
-                        for (PUPreProcessor preProcessor : preProcessors) {
+                        for (int i=0;i<preProcessors.size();i++) {
+                            PUPreProcessor preProcessor = preProcessors.get(i);
                             if (logger.isLoggable(Level.FINE)) {
                                 logger.log(Level.FINE, "PUReadFilter. Apply preprocessor process: " + preProcessor);
                             }
-                            
-                            if (preProcessor.
-                                    process(context, protocolRequest)) {
+
+                            if (preProcessor.process(context, protocolRequest)) {
                                 protocolRequest.addPassedPreProcessor(
                                         preProcessor.getId());
                             }
                         }
                     }
-                    
+
                     try {
                         protocolName = findProtocol(context, protocolRequest);
                         if (logger.isLoggable(Level.FINE)) {
@@ -194,11 +190,11 @@ public class PUReadFilter extends ReadFilter {
                         if (logger.isLoggable(Level.FINE)) {
                             logger.log(Level.FINE, "PUReadFilter. IOException during protocol finding:", e);
                         }
-                        
+
                         exceptionKey(context, e);
                         return false;
                     }
-                    
+
                     // Get the associated ProtocolHandler. If the current
                     // SelectorThread can server the request, avoid redirection
                     if (protocolName != null) {
@@ -206,13 +202,13 @@ public class PUReadFilter extends ReadFilter {
                         protocolHandler = protocolHandlers.get(protocolName);
 
                         if (protocolHandler != null) {
-                            return processProtocolHandler(protocolHandler, 
-                                    context, protocolRequest, 
+                            return processProtocolHandler(protocolHandler,
+                                    context, protocolRequest,
                                     protocolRequest.isMapSelectionKey());
-                        } else { 
+                        } else {
                             // Protocol will be processed by next Filters in chain
                             if (protocolRequest.isMapSelectionKey()) {
-                                mapSelectionKey(selectionKey,
+                                mappedProtocols.put(selectionKey,
                                         getProtocolChainHandler(context, protocolRequest));
                             }
                             return true;
@@ -226,38 +222,38 @@ public class PUReadFilter extends ReadFilter {
                         // Call portProcess on each passed <code>PUPreProcessor</code>
                         if (preProcessors != null &&
                                 protocolRequest.getPassedPreProcessors() != null) {
-                            Collection<String> passedPreProcessors = 
+                            Collection<String> passedPreProcessors =
                                     protocolRequest.getPassedPreProcessors();
                             for (int i = preProcessors.size() - 1; i >= 0; i--) {
                                 PUPreProcessor preProcessor = preProcessors.get(i);
                                 if (passedPreProcessors.contains(preProcessor.getId())) {
                                     if (logger.isLoggable(Level.FINE)) {
-                                        logger.log(Level.FINE, 
-                                                "PUReadFilter. Apply preprocessor POSTProcess: " + 
+                                        logger.log(Level.FINE,
+                                                "PUReadFilter. Apply preprocessor POSTProcess: " +
                                                 preProcessor);
                                     }
-                                    
+
                                     preProcessor.postProcess(context, protocolRequest);
                                 }
                             }
                         }
-                        
+
                         // Try to read more data
                         int bytesRead = Utils.readWithTemporarySelector(
-                                selectionKey.channel(), 
+                                selectionKey.channel(),
                                 protocolRequest.getByteBuffer(), readTimeout);
-                        
+
                         if (logger.isLoggable(Level.FINE)) {
                             logger.log(Level.FINE, "PUReadFilter. Read more bytes: " + bytesRead);
                         }
-                        
+
                         if (bytesRead <= 0) {
                             return true;
                         }
                     }
                 }
             } else {
-                return processProtocolHandler(protocolHandler, context, 
+                return processProtocolHandler(protocolHandler, context,
                         protocolRequest, false);
             }
         } catch (Throwable ex) {
@@ -272,43 +268,43 @@ public class PUReadFilter extends ReadFilter {
             }
             protocolHandler = null;
         }
-        
+
         return true;
     }
 
     /**
      * Returns filter chain <code>ProtocolHandler</code>, depending on current
      * {@link Context} and <code>PUProtocolRequest</code> state
-     * 
+     *
      * @param context
      * @param protocolRequest
      * @return <code>ProtocolHandler</code>
      */
-    protected ProtocolHandler getProtocolChainHandler(Context context, 
+    protected ProtocolHandler getProtocolChainHandler(Context context,
             PUProtocolRequest protocolRequest) {
         if (protocolRequest.getSSLEngine() != null) {
             return sslFilterChainProtocolHandler;
         }
-        
+
         return filterChainProtocolHandler;
     }
-    
-    public boolean processProtocolHandler(ProtocolHandler protocolHandler, 
-            Context context, PUProtocolRequest protocolRequest, 
+
+    public boolean processProtocolHandler(ProtocolHandler protocolHandler,
+            Context context, PUProtocolRequest protocolRequest,
             boolean mapSelectionKey) throws IOException {
-        
+
         if (logger.isLoggable(Level.FINE)) {
             logger.log(Level.FINE, "PUReadFilter. Process request with handler: " + protocolHandler);
         }
-        
+
         boolean isKeepAlive = protocolHandler.handle(context, protocolRequest);
-        
+
         if (isKeepAlive && mapSelectionKey) {
-            mapSelectionKey(context.getSelectionKey(), protocolHandler);
+            mappedProtocols.put(context.getSelectionKey(), protocolHandler);
         }
-        
+
         if (protocolRequest.isExecuteFilterChain()) return true;
-        
+
         if (isKeepAlive) {
             reRegisterKey(context);
         } else {
@@ -317,7 +313,7 @@ public class PUReadFilter extends ReadFilter {
 
         return false;
     }
-    
+
     private void exceptionKey(Context context, Exception e) {
         context.setAttribute(ProtocolFilter.SUCCESSFUL_READ, Boolean.FALSE);
         context.setAttribute(Context.THROWABLE, e);
@@ -327,7 +323,7 @@ public class PUReadFilter extends ReadFilter {
     private void cancelKey(Context context) {
         context.setKeyRegistrationState(Context.KeyRegistrationState.CANCEL);
     }
-    
+
     private void reRegisterKey(Context context) {
         context.setKeyRegistrationState(Context.KeyRegistrationState.REGISTER);
     }
@@ -348,10 +344,10 @@ public class PUReadFilter extends ReadFilter {
                     result.add(artifact);
                 }
             }
-            
+
             return result;
         }
-        
+
         return null;
     }
 
@@ -360,9 +356,9 @@ public class PUReadFilter extends ReadFilter {
      */
     private static Object loadInstance(String className) {
         try {
-            Class clazz = Class.forName(className, true, 
+            Class clazz = Class.forName(className, true,
                     Thread.currentThread().getContextClassLoader());
-            
+
             return clazz.newInstance();
         } catch (Exception e) {
             logger.log(Level.WARNING, "Error initializing class: " + className, e);
@@ -375,32 +371,32 @@ public class PUReadFilter extends ReadFilter {
      * @param props <code>Properties</code>
      */
     public void configure(Properties props) {
-        List<ProtocolFinder> protocolFinders = 
+        List<ProtocolFinder> protocolFinders =
                 loadPUArtifacts(props.getProperty(PROTOCOL_FINDERS));
-        
-        List<ProtocolHandler> protocolHandlers = 
+
+        List<ProtocolHandler> protocolHandlers =
                 loadPUArtifacts(props.getProperty(PROTOCOL_HANDLERS));
-        
-        List<PUPreProcessor> puPreProcessors = 
+
+        List<PUPreProcessor> puPreProcessors =
                 loadPUArtifacts(props.getProperty(PU_PRE_PROCESSORS));
-     
+
         configure(protocolFinders, protocolHandlers, puPreProcessors);
     }
-    
-    
+
+
     /**
      * Configures port unification depending on passed <code>List</code>s
      * @param protocolFinders <code>ProtocolFinder</code>s
      * @param protocolHandlers <code>ProtocolHandler</code>s
      * @param preProcessors <code>PUPreProcessor</code>s
      */
-    public void configure(List<ProtocolFinder> protocolFinders, 
-            List<ProtocolHandler> protocolHandlers, 
+    public void configure(List<ProtocolFinder> protocolFinders,
+            List<ProtocolHandler> protocolHandlers,
             List<PUPreProcessor> preProcessors) {
-        
+
         this.protocolFinders.clear();
         this.protocolHandlers.clear();
-        
+
         if (protocolFinders != null) {
             for (ProtocolFinder protocolFinder : protocolFinders) {
                 addProtocolFinder(protocolFinder);
@@ -417,14 +413,14 @@ public class PUReadFilter extends ReadFilter {
             if (this.preProcessors != null) {
                 this.preProcessors.clear();
             }
-            
+
             for (PUPreProcessor preProcessor : preProcessors) {
                 addPreProcessor(preProcessor);
             }
         }
 
     }
-    
+
     /**
      * Add an instance of <code>ProtocolFinder</code>
      */
@@ -466,10 +462,10 @@ public class PUReadFilter extends ReadFilter {
         if (preProcessors == null) {
             preProcessors = new ArrayList<PUPreProcessor>(2);
         }
-        
+
         preProcessors.add(preProcessor);
     }
-    
+
     /**
      * Remove <code>PUPreProcessor</code> from preprocess queue
      */
@@ -478,11 +474,11 @@ public class PUReadFilter extends ReadFilter {
             preProcessors.remove(preProcessor);
         }
     }
-    
+
     /**
      * Set readTimeout.
      * Time interval <code>PUReadFilter</code> will expect more data on channel.
-     * 
+     *
      * If no <code>ProtocolFinder</code> found - Filter tries to read more data
      * and rerun finders.
      * @param readTimeout new timeout value
@@ -494,7 +490,7 @@ public class PUReadFilter extends ReadFilter {
     /**
      * Get readTimeout.
      * Time interval <code>PUReadFilter</code> will expect more data on channel.
-     * 
+     *
      * If no <code>ProtocolFinder</code> found - Filter tries to read more data
      * and rerun finders.
      * @return read timeout value
@@ -502,33 +498,18 @@ public class PUReadFilter extends ReadFilter {
     public long getReadTimeout() {
         return readTimeout;
     }
-            
+
     private String findProtocol(Context context,
             PUProtocolRequest protocolRequest) throws IOException {
-        
+
         for (ProtocolFinder protocolFinder : protocolFinders) {
             String protocolName = protocolFinder.find(context, protocolRequest);
             if (protocolName != null) {
                 return protocolName;
             }
         }
-        
+
         return null;
     }
 
-    private void mapSelectionKey(SelectionKey selectionKey, ProtocolHandler protocolHandler) {
-        if (mappedProtocols == null) {
-            synchronized(this) {
-                if (mappedProtocols == null) {
-                    mappedProtocols = createMappedProtocolsMap();
-                }
-            }
-        }
-        
-        mappedProtocols.put(selectionKey, protocolHandler);
-    }
-    
-    private static Map<SelectionKey, ProtocolHandler> createMappedProtocolsMap() {
-        return Collections.synchronizedMap(new WeakHashMap<SelectionKey, ProtocolHandler>());
-    }
 }
