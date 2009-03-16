@@ -14,7 +14,6 @@ import org.mortbay.util.ajax.JSON;
 
 import dojox.cometd.Bayeux;
 import dojox.cometd.Client;
-import dojox.cometd.Listener;
 import dojox.cometd.Message;
 import dojox.cometd.MessageListener;
 
@@ -209,11 +208,10 @@ public class BayeuxLoadGenerator
             client.start();
                 
             clients.add(client);
-            if (clients.size()%10==0)
-            {
+            Thread.sleep(5);// 200 per sec
+            if (clients.size()%50==0){
                 int i=clients.size();
                 System.err.println("clients = "+(i>=1000?"":i>=100?"0":i>=10?"00":"000")+i);
-                Thread.sleep(300);
             }
                     
             client.startBatch();
