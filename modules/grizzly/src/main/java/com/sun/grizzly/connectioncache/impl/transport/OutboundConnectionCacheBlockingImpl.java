@@ -79,9 +79,9 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
     // NEW: connection was just created; currently not queued
     // BUSY: connection queued on busyConnections queue
     // IDLE: connection queued on idleConnections queue
-    private enum ConnectionStateValue { NEW, BUSY, IDLE }
+    public enum ConnectionStateValue { NEW, BUSY, IDLE }
     
-    private static final class ConnectionState<C extends Closeable> {
+    public static final class ConnectionState<C extends Closeable> {
         ConnectionStateValue csv ;			// Indicates state of
         // connection
         final ContactInfo<C> cinfo ;			// ContactInfo used to
@@ -107,7 +107,7 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
         // in use and has no
         // outstanding requests
         
-        ConnectionState( final ContactInfo<C> cinfo, final CacheEntry<C> entry,
+        protected ConnectionState( final ContactInfo<C> cinfo, final CacheEntry<C> entry,
                 final C conn ) {
             
             this.csv = ConnectionStateValue.NEW ;
@@ -120,6 +120,7 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
             reclaimableHandle = null ;
         }
         
+        @Override
         public String toString() {
             return "ConnectionState["
                     + "cinfo=" + cinfo
@@ -133,7 +134,7 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
     // Represents an entry in the outbound connection cache.
     // This version handles normal shareable ContactInfo
     // (we also need to handle no share).
-    private static final class CacheEntry<C extends Closeable> {
+    public static final class CacheEntry<C extends Closeable> {
         final Queue<C> idleConnections = new LinkedBlockingQueue<C>() ;
         final Collection<C> idleConnectionsView =
                 Collections.unmodifiableCollection( idleConnections ) ;
@@ -695,6 +696,11 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
                 if (debug())
                     dprint( ".close: " + conn + ": Caught IOException on close:"
                             + exc ) ;
+            }
+            
+            if (cs.entry.totalConnections() == 0) {
+                ContactInfo cinfo = cs.cinfo;
+                entryMap.remove(cinfo);
             }
         } finally {
             if (debug()) {
