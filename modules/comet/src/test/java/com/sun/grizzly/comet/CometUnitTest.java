@@ -124,33 +124,17 @@ public class CometUnitTest extends TestCase {
         doActualLogic(true,false,40,20);
     }*/
 
-    public void testIdleTimeout() throws Exception{
-        System.err.println("CometIdleTimeoutTest");
-        CometTestAdapter.cometContext.setExpirationDelay(900);
-        Socket socket = newSocket(5000);
-        socket.getOutputStream().write(connectstr);
-        socket.getOutputStream().flush();
-        long t0 = System.currentTimeMillis();
-        try{
-            socket.getInputStream().read();
-        }catch(IOException e){ }
-        long delta = System.currentTimeMillis() - t0;
-        System.err.println(delta);
-        if (delta<3000 && delta>=1000){
-              assertTrue(true);
-              return;
-        }
-        fail("configured comet delay was ignored");
-    }
 
    /* public void testLongPollingNewSocket() throws Exception{
         doActualLogic(false,false,64,5);
     }
 */
-    public void testStreaming() throws Exception{
-        doActualLogic(false,true,4,4);
+
+
+    public void testStreaming2() throws Exception{
+        doActualLogic(false,true,10,4);
     }
-    
+
     protected void doActualLogic(final boolean socketreuse,final boolean streaming,
             final int secondspertest,final int threadcount) throws Exception{
         System.err.println(streaming?"STREAMING-":"LONGPOLLING-"+(socketreuse?"SOCKETREUSE":"NEWSOCKET")+" client threads: "+threadcount);
