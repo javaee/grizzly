@@ -44,11 +44,6 @@ import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.cometd.standalone.CometdAdapter;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.StatsThreadPool;
-import com.sun.grizzly.util.DefaultThreadPool;
-import java.net.InetSocketAddress;
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 
@@ -77,7 +72,7 @@ public class BayeuxClientLoadTest extends TestCase {
         st.setAdapter(new CometdAdapter());
 
         StatsThreadPool threadPool = new StatsThreadPool();
-        threadPool.setMaximumPoolSize(256);
+        threadPool.setMaximumPoolSize(600);
         st.setThreadPool(threadPool);
         
         st.setEnableAsyncExecution(true);
@@ -99,7 +94,7 @@ public class BayeuxClientLoadTest extends TestCase {
         int rooms = 100;
         int rooms_per_client = 1;
         int maxLatency = 5000;
-        int nclients = 100;
+        int nclients = 1000;
         int publish = 1000;
 
         int size = 50;
@@ -117,9 +112,10 @@ public class BayeuxClientLoadTest extends TestCase {
                 maxLatency, nclients, publish, chat, pause, burst);
 
         //XXX this is temporary
-        int expectedAtLeast = (publish * 90) / 100;
+        publish=(publish*nclients)/rooms;
+        int expectedAtLeast = (publish * 95) / 100;
         if (got != publish) {
-            System.out.println("XXX Got " + got + " messages less than expected " + publish);   
+            System.out.println("XXX Got " + got + " of " + publish);
         }
         //XXX check at least more than lower bound in this moment
         assertTrue(got > expectedAtLeast && got <= publish);
