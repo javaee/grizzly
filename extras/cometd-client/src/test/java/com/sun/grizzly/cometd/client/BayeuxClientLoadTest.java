@@ -94,7 +94,7 @@ public class BayeuxClientLoadTest extends TestCase {
         int rooms = 100;
         int rooms_per_client = 1;
         int maxLatency = 5000;
-        int nclients = 1000;
+        int nclients = 100;
         int publish = 1000;
 
         int size = 50;
@@ -113,7 +113,7 @@ public class BayeuxClientLoadTest extends TestCase {
 
         //XXX this is temporary
         publish=(publish*nclients)/rooms;
-        int expectedAtLeast = (publish * 95) / 100;
+        int expectedAtLeast = (publish * 90) / 100;
         if (got != publish) {
             System.out.println("XXX Got " + got + " of " + publish);
         }
