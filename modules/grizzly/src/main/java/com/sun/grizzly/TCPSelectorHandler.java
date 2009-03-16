@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -91,116 +91,135 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class TCPSelectorHandler implements SelectorHandler {
-    
-    
+
+
     /**
      * The ConnectorInstanceHandler used to return a new or pooled
      * ConnectorHandler
      */
     protected ConnectorInstanceHandler connectorInstanceHandler;
-    
-    
+
+
     /**
-     * The list of {@link SelectionKeyOP} to register next time the 
+     * The list of {@link SelectionKeyOP} to register next time the
      * Selector.select is invoked.
+     * can be combined read+write interest or Connect
      */
-    protected LinkedTransferQueue<SelectionKeyOP> opToRegister;
-    
+    protected final LinkedTransferQueue<SelectionKeyOP> opToRegister
+            = new LinkedTransferQueue<SelectionKeyOP>();
+
+    /**
+     *  SelectionKeys to be registered with Read interest in the next Selector.select();
+     */
+    private final LinkedTransferQueue<SelectionKey> readOpToRegister
+            = new LinkedTransferQueue<SelectionKey>();
+
+    /**
+     *  SelectionKeys to be registered with Write interest in the next Selector.select();
+     */
+    private final LinkedTransferQueue<SelectionKey> writeOpToRegister
+            = new LinkedTransferQueue<SelectionKey>();
+
+    /**
+     * SelectionKeys to be registered with Read and Write interest in the next Selector.select();
+     */
+    private final LinkedTransferQueue<SelectionKey> readWriteOpToRegister
+            = new LinkedTransferQueue<SelectionKey>();
     /**
      * The socket tcpDelay.
-     * 
+     *
      * Default value for tcpNoDelay is disabled (set to true).
      */
     protected boolean tcpNoDelay = true;
-    
-    
+
+
     /**
      * The socket reuseAddress
      */
     protected boolean reuseAddress = true;
-    
-    
+
+
     /**
      * The socket linger.
      */
     protected int linger = -1;
-    
-    
+
+
     /**
      * The socket time out
      */
     protected int socketTimeout = -1;
-    
-    
+
+
     protected Logger logger;
-    
-    
+
+
     /**
      * The server socket time out
      */
     protected int serverTimeout = 0;
-    
-    
+
+
     /**
      * The inet address to use when binding.
      */
     protected InetAddress inet;
-    
-    
+
+
     /**
      * The default TCP port.
      */
     protected int port = 18888;
-    
-    
+
+
     /**
      * The ServerSocket instance.
      */
     protected ServerSocket serverSocket;
-    
-    
+
+
     /**
      * The ServerSocketChannel.
      */
     protected ServerSocketChannel serverSocketChannel;
-    
-    
+
+
     /**
      * The single Selector.
      */
     protected Selector selector;
-    
-    
+
+
     /**
      * The Selector time out.
      */
-    protected long selectTimeout = 1000L;
-    
-    
+    protected long selectTimeout = 1000;
+
+
     /**
      * Server socket backlog.
      */
     protected int ssBackLog = 4096;
-    
-    
+
+
     /**
      * Is this used for client only or client/server operation.
      */
     protected Role role = Role.CLIENT_SERVER;
-    
-    
+
+
     /**
      * The SelectionKeyHandler associated with this SelectorHandler.
      */
     protected SelectionKeyHandler selectionKeyHandler;
-    
-    
+
+
     /**
      * The ProtocolChainInstanceHandler used by this instance. If not set, and instance
      * of the DefaultInstanceHandler will be created.
      */
     protected ProtocolChainInstanceHandler instanceHandler;
-    
+
 
     /**
      * The {@link ExecutorService} used by this instance. If null -
@@ -208,51 +227,51 @@ public class TCPSelectorHandler implements SelectorHandler {
      */
     protected ExecutorService threadPool;
 
-    
+
     /**
      * {@link AsyncQueueWriter}
      */
     protected AsyncQueueWriter asyncQueueWriter;
-    
-    
+
+
     /**
      * {@link AsyncQueueWriter}
      */
     protected AsyncQueueReader asyncQueueReader;
 
-    
+
     /**
      * Attributes, associated with the {@link SelectorHandler} instance
      */
     protected Map<String, Object> attributes;
-    
+
     /**
      * This {@link SelectorHandler} StateHolder, which is shared among
      * SelectorHandler and its clones
      */
     protected StateHolder<State> stateHolder = new StateHolder<State>(true);
-    
+
     /**
      * Flag, which shows whether shutdown was called for this {@link SelectorHandler}
      */
-    protected AtomicBoolean isShutDown = new AtomicBoolean(false);
+    protected final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
     public TCPSelectorHandler(){
         this(Role.CLIENT_SERVER);
     }
-    
-    
+
+
     /**
      * Create a TCPSelectorHandler only used with ConnectorHandler.
-     * 
-     * @param isClient true if this SelectorHandler is only used 
+     *
+     * @param isClient true if this SelectorHandler is only used
      * to handle ConnectorHandler.
      */
     public TCPSelectorHandler(boolean isClient) {
         this(boolean2Role(isClient));
     }
-    
-    
+
+
     /**
      * Create a TCPSelectorHandler only used with ConnectorHandler.
      *
@@ -269,7 +288,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         if (selectionKeyHandler != null) {
             copyHandler.setSelectionKeyHandler(Cloner.clone(selectionKeyHandler));
         }
-        
+
         copyHandler.attributes = attributes;
         copyHandler.selectTimeout = selectTimeout;
         copyHandler.serverTimeout = serverTimeout;
@@ -284,8 +303,8 @@ public class TCPSelectorHandler implements SelectorHandler {
         copyHandler.connectorInstanceHandler = connectorInstanceHandler;
         copyHandler.stateHolder = stateHolder;
     }
-    
-    
+
+
     /**
      * Return the set of SelectionKey registered on this Selector.
      */
@@ -296,8 +315,8 @@ public class TCPSelectorHandler implements SelectorHandler {
             throw new IllegalStateException("Selector is not created!");
         }
     }
-    
-    
+
+
     /**
      * Is the Selector open.
      */
@@ -308,16 +327,14 @@ public class TCPSelectorHandler implements SelectorHandler {
             return false;
         }
     }
-    
-    
+
+
     /**
      * Before invoking {@link Selector#select}, make sure the {@link ServerSocketChannel}
      * has been created. If true, then register all {@link SelectionKey} to the {@link Selector}.
      * @param ctx {@link Context}
      */
     public void preSelect(Context ctx) throws IOException {
-        initOpRegistriesIfRequired();
-        
         if (asyncQueueReader == null) {
             asyncQueueReader = new TCPAsyncQueueReader(this);
         }
@@ -325,125 +342,110 @@ public class TCPSelectorHandler implements SelectorHandler {
         if (asyncQueueWriter == null) {
             asyncQueueWriter = new TCPAsyncQueueWriter(this);
         }
-                
+
         if (selector == null){
-            try {
-                isShutDown.set(false);
-                
-                connectorInstanceHandler = new ConnectorInstanceHandler.
-                        ConcurrentQueueDelegateCIH(
-                        getConnectorInstanceHandlerDelegate());
-                
-                // Create the socket listener
-                selector = Selector.open();
-                
-                if (role != Role.CLIENT){
-                    serverSocketChannel = ServerSocketChannel.open();
-                    serverSocket = serverSocketChannel.socket();
-                    serverSocket.setReuseAddress(reuseAddress);
-                    if ( inet == null){
-                        serverSocket.bind(new InetSocketAddress(port),ssBackLog);
-                    } else {
-                        serverSocket.bind(new InetSocketAddress(inet,port),ssBackLog);
-                    }
-                    
-                    serverSocketChannel.configureBlocking(false);
-                    serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-                }
-                ctx.getController().notifyReady();
-            } catch (SocketException ex){
-                throw new BindException(ex.getMessage() + ": " + port + "=" + this);
-            }
-            
-            if (role != Role.CLIENT){
-                serverSocket.setSoTimeout(serverTimeout);
-            }
+            initSelector(ctx);
         } else {
             processPendingOperations(ctx);
         }
     }
-    
-    
-    protected void processPendingOperations(Context ctx) throws IOException {
-        if (!opToRegister.isEmpty()) {
-            SelectionKeyOP operation;
-            Iterator<SelectionKeyOP> opIterator = opToRegister.iterator();
-            while(opIterator.hasNext()) {
-                operation = opIterator.next();
-                opIterator.remove();
-                
-                if ((operation.getOp() & SelectionKey.OP_CONNECT) != 0) {
-                    onConnectOp(ctx, 
-                            (SelectionKeyOP.ConnectSelectionKeyOP) operation);
-                } else {
-                    if ((operation.getOp() & SelectionKey.OP_READ) != 0) {
-                        onReadOp(operation);
-                    }
 
-                    if ((operation.getOp() & SelectionKey.OP_WRITE) != 0) {
-                        onWriteOp(operation);
-                    }
+    /**
+     * init the Selector
+     * @param ctx
+     * @throws java.io.IOException
+     */
+    private final void initSelector(Context ctx) throws IOException{
+        try {
+            isShutDown.set(false);
+
+            connectorInstanceHandler = new ConnectorInstanceHandler.
+                    ConcurrentQueueDelegateCIH(
+                    getConnectorInstanceHandlerDelegate());
+
+            // Create the socket listener
+            selector = Selector.open();
+
+            if (role != Role.CLIENT){
+                serverSocketChannel = ServerSocketChannel.open();
+                serverSocket = serverSocketChannel.socket();
+                serverSocket.setReuseAddress(reuseAddress);
+                if ( inet == null){
+                    serverSocket.bind(new InetSocketAddress(port),ssBackLog);
+                } else {
+                    serverSocket.bind(new InetSocketAddress(inet,port),ssBackLog);
+                }
+
+                serverSocketChannel.configureBlocking(false);
+                serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+            }
+            ctx.getController().notifyReady();
+        } catch (SocketException ex){
+            throw new BindException(ex.getMessage() + ": " + port + "=" + this);
+        }
+
+        if (role != Role.CLIENT){
+            serverSocket.setSoTimeout(serverTimeout);
+        }
+    }
+
+    /**
+     *
+     * @param ctx
+     * @throws java.io.IOException
+     */
+    protected void processPendingOperations(Context ctx) throws IOException {
+        //investigate if its worthwile to swap LTQ references with a local one to completely avoid thread contention between the producers and the consumer
+        //the cost for doing so is cheap, just a reference swap. volatile for contended LTQ and normal reference for the local one.
+
+        SelectionKeyOP operation;
+        while((operation = opToRegister.poll()) != null) {
+            if ((operation.getOp() & SelectionKey.OP_CONNECT) != 0) {
+                onConnectOp(ctx, (SelectionKeyOP.ConnectSelectionKeyOP) operation);
+            } else{
+                if (operation.getChannel().isOpen()){
+                    selectionKeyHandler.register(operation.getChannel(),operation.getOp());
                 }
             }
         }
-    }
 
-    /**
-     * Handle new OP_READ ops.
-     */
-    protected void onReadOp(SelectionKeyOP selectionKeyOp) 
-            throws ClosedChannelException {
-        SelectionKey key = selectionKeyOp.getSelectionKey();
-        
-        if (key != null) {                               
+        SelectionKey key;
+        while((key=readWriteOpToRegister.poll()) != null){
             if (key.isValid()){
-                selectionKeyHandler.register(key, SelectionKey.OP_READ);
-            }
-        } else {            
-            if (selectionKeyOp.getChannel().isOpen()){
-                selectionKeyHandler.register(selectionKeyOp.getChannel(), 
-                        SelectionKey.OP_READ);
+                selectionKeyHandler.
+                        register(key, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
             }
         }
-    }
-    
-    
-    /**
-     * Handle new OP_WRITE ops.
-     */
-    protected void onWriteOp(SelectionKeyOP selectionKeyOp) 
-            throws ClosedChannelException {
-        SelectionKey key = selectionKeyOp.getSelectionKey();
         
-        if (key != null) {
+        while((key=writeOpToRegister.poll()) != null){
             if (key.isValid()){
                 selectionKeyHandler.register(key, SelectionKey.OP_WRITE);
             }
-        } else {
-            if (selectionKeyOp.getChannel().isOpen()){
-                selectionKeyHandler.register(selectionKeyOp.getChannel(), 
-                        SelectionKey.OP_WRITE);
+        }
+
+        while((key=readOpToRegister.poll()) != null){
+            if (key.isValid()){
+                selectionKeyHandler.register(key, SelectionKey.OP_READ);
             }
         }
     }
-    
-    
+
+
     /**
      * Handle new OP_CONNECT ops.
      */
-    protected void onConnectOp(Context ctx, 
+    protected void onConnectOp(Context ctx,
             SelectionKeyOP.ConnectSelectionKeyOP selectionKeyOp) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKeyOp.getChannel();
         SocketAddress remoteAddress = selectionKeyOp.getRemoteAddress();
         CallbackHandler callbackHandler = selectionKeyOp.getCallbackHandler();
 
-        CallbackHandlerSelectionKeyAttachment attachment = 
+        CallbackHandlerSelectionKeyAttachment attachment =
                 CallbackHandlerSelectionKeyAttachment.create(callbackHandler);
 
-        SelectionKey key = socketChannel.register(selector, 
-                0, attachment);
+        SelectionKey key = socketChannel.register(selector, 0, attachment);
         attachment.associateKey(key);
-        
+
         boolean isConnected;
         try {
             isConnected = socketChannel.connect(remoteAddress);
@@ -451,11 +453,11 @@ public class TCPSelectorHandler implements SelectorHandler {
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "Exception occured when tried to connect socket", e);
             }
-            
+
             // set isConnected to true to let callback handler to know about the problem happened
             isConnected = true;
         }
-        
+
         // if channel was connected immediately or exception occured
         if (isConnected) {
             onConnectInterest(key, ctx);
@@ -463,35 +465,29 @@ public class TCPSelectorHandler implements SelectorHandler {
             key.interestOps(SelectionKey.OP_CONNECT);
         }
     }
-    
-    
+
+
     /**
      * Execute the Selector.select(...) operations.
      * @param ctx {@link Context}
      * @return {@link Set} of {@link SelectionKey}
      */
-    public Set<SelectionKey> select(Context ctx) throws IOException{        
+    public Set<SelectionKey> select(Context ctx) throws IOException{
         selector.select(selectTimeout);
         return selector.selectedKeys();
     }
-    
-    
+
+
     /**
      * Invoked after Selector.select().
      * @param ctx {@link Context}
      */
     public void postSelect(Context ctx) {
-        Set<SelectionKey> readyKeys = keys();
-        if (readyKeys.isEmpty()){
-            return;
-        }
-
-        if (isOpen()) {
-            selectionKeyHandler.expire(readyKeys.iterator());
-        }            
+        //Selector.keys() performs isOpen() so we dont need to do it a second time.
+        selectionKeyHandler.expire(keys().iterator());
     }
-    
-    
+
+
     /**
      * Register a SelectionKey to this Selector.
      */
@@ -500,27 +496,26 @@ public class TCPSelectorHandler implements SelectorHandler {
             throw new NullPointerException("SelectionKey parameter is null");
         }
 
-        SelectionKeyOP keyOP = new SelectionKeyOP();
-        keyOP.setSelectionKey(key);
-        keyOP.setOp(ops);
-        initOpRegistriesIfRequired();
-        opToRegister.offer(keyOP);
+        switch(ops){
+            case SelectionKey.OP_READ: readOpToRegister.offer(key);  break;
+            case SelectionKey.OP_WRITE: writeOpToRegister.offer(key); break;
+            case SelectionKey.OP_WRITE | SelectionKey.OP_READ:
+                readWriteOpToRegister.offer(key);  break;
+            default:
+                opToRegister.offer(new SelectionKeyOP(key,ops));
+        }
         selector.wakeup();
     }
-    
+
     public void register(SelectableChannel channel, int ops) {
         if (channel == null) {
             throw new NullPointerException("SelectableChannel parameter is null");
         }
 
-        SelectionKeyOP keyOP = new SelectionKeyOP();
-        keyOP.setChannel(channel);
-        keyOP.setOp(ops);
-        initOpRegistriesIfRequired();
-        opToRegister.offer(keyOP);
+        opToRegister.offer(new SelectionKeyOP(null,ops,channel));
         selector.wakeup();
     }
-    
+
     /**
      * Register a CallBackHandler to this Selector.
      *
@@ -531,7 +526,7 @@ public class TCPSelectorHandler implements SelectorHandler {
      */
     protected void connect(SocketAddress remoteAddress, SocketAddress localAddress,
             CallbackHandler callbackHandler) throws IOException {
-        
+
         SocketChannel socketChannel = SocketChannel.open();
         socketChannel.socket().setReuseAddress(reuseAddress);
         if (localAddress != null) {
@@ -541,16 +536,15 @@ public class TCPSelectorHandler implements SelectorHandler {
         socketChannel.configureBlocking(false);
 
         SelectionKeyOP.ConnectSelectionKeyOP keyOP = new ConnectSelectionKeyOP();
-        
+
         keyOP.setOp(SelectionKey.OP_CONNECT);
         keyOP.setChannel(socketChannel);
         keyOP.setRemoteAddress(remoteAddress);
         keyOP.setCallbackHandler(callbackHandler);
-        initOpRegistriesIfRequired();
         opToRegister.offer(keyOP);
         selector.wakeup();
     }
-        
+
     /**
      * {@inheritDoc}
      */
@@ -583,14 +577,14 @@ public class TCPSelectorHandler implements SelectorHandler {
     public void shutdown() {
         // If shutdown was called for this SelectorHandler
         if (isShutDown.getAndSet(true)) return;
-        
+
         stateHolder.setState(State.STOPPED);
-        
+
         if (selector != null) {
             try {
                 for (SelectionKey selectionKey : selector.keys()) {
                     selectionKeyHandler.close(selectionKey);
-                } 
+                }
             } catch (ClosedSelectorException e) {
                 // If Selector is already closed - OK
             } catch (ConcurrentModificationException e) {
@@ -598,11 +592,11 @@ public class TCPSelectorHandler implements SelectorHandler {
                 Object[] keys = selector.keys().toArray();
                 for (Object selectionKey : keys) {
                     selectionKeyHandler.close((SelectionKey) selectionKey);
-                } 
-                
+                }
+
             }
         }
-        
+
         try{
             if (serverSocket != null)
                 serverSocket.close();
@@ -610,7 +604,7 @@ public class TCPSelectorHandler implements SelectorHandler {
             Controller.logger().log(Level.SEVERE,
                     "serverSocket.close",ex);
         }
-        
+
         try{
             if (serverSocketChannel != null)
                 serverSocketChannel.close();
@@ -618,7 +612,7 @@ public class TCPSelectorHandler implements SelectorHandler {
             Controller.logger().log(Level.SEVERE,
                     "serverSocketChannel.close",ex);
         }
-        
+
         try{
             if (selector != null)
                 selector.close();
@@ -626,7 +620,7 @@ public class TCPSelectorHandler implements SelectorHandler {
             Controller.logger().log(Level.SEVERE,
                     "selector.close",ex);
         }
-        
+
         if (asyncQueueReader != null) {
             asyncQueueReader.close();
             asyncQueueReader = null;
@@ -636,10 +630,14 @@ public class TCPSelectorHandler implements SelectorHandler {
             asyncQueueWriter.close();
             asyncQueueWriter = null;
         }
-        
+
+        readOpToRegister.clear();
+        writeOpToRegister.clear();
+        opToRegister.clear();
+
         attributes = null;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -649,7 +647,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         SocketChannel channel = server.accept();
         return channel;
     }
-    
+
     /**
      * Handle OP_ACCEPT.
      * @param ctx {@link Context}
@@ -658,7 +656,7 @@ public class TCPSelectorHandler implements SelectorHandler {
     public boolean onAcceptInterest(SelectionKey key,
             Context ctx) throws IOException{
         SelectableChannel channel = acceptWithoutRegistration(key);
-        
+
         if (channel != null) {
             configureChannel(channel);
             SelectionKey readKey =
@@ -667,60 +665,55 @@ public class TCPSelectorHandler implements SelectorHandler {
         }
         return false;
     }
-    
+
     /**
      * Handle OP_READ.
      * @param ctx {@link Context}
      * @param key {@link SelectionKey}
      * @return false if handled by a {@link CallbackHandler}, otherwise true
      */
-    public boolean onReadInterest(final SelectionKey key,final Context ctx)
-        throws IOException{
+    public boolean onReadInterest(final SelectionKey key,final Context ctx) throws IOException{
         // disable OP_READ on key before doing anything else
         key.interestOps(key.interestOps() & (~SelectionKey.OP_READ));
-        Object attach = SelectionKeyAttachment.getAttachment(key);
-        
+
         if (asyncQueueReader.isReady(key)) {
-            final Context context = pollContext(ctx, key, Context.OpType.OP_READ);
-            invokeAsyncQueueReader(context);
+            invokeAsyncQueueReader(pollContext(ctx, key, Context.OpType.OP_READ));
             return false;
-        } else if (attach instanceof CallbackHandler){
+        }
+        Object attach = SelectionKeyAttachment.getAttachment(key);
+        if (attach instanceof CallbackHandler){
             final Context context = pollContext(ctx, key, Context.OpType.OP_READ);
             invokeCallbackHandler((CallbackHandler) attach, context);
             return false;
-        } else {
-            return true;
         }
+        return true;
     }
-    
-    
+
+
     /**
      * Handle OP_WRITE.
      *
      * @param key {@link SelectionKey}
      * @param ctx {@link Context}
      */
-    public boolean onWriteInterest(final SelectionKey key,final Context ctx)
-    throws IOException{
+    public boolean onWriteInterest(final SelectionKey key,final Context ctx) throws IOException{
         // disable OP_WRITE on key before doing anything else
         key.interestOps(key.interestOps() & (~SelectionKey.OP_WRITE));
-        
-        Object attach;
+
         if (asyncQueueWriter.isReady(key)) {
-            final Context context = pollContext(ctx, key, Context.OpType.OP_WRITE);
-             invokeAsyncQueueWriter(context);
+            invokeAsyncQueueWriter(pollContext(ctx, key, Context.OpType.OP_WRITE));
             return false;
-        } else if ((attach = SelectionKeyAttachment.getAttachment(key)) 
-                instanceof CallbackHandler){
+        }
+        Object attach = SelectionKeyAttachment.getAttachment(key);
+        if (attach instanceof CallbackHandler){
             final Context context = pollContext(ctx, key, Context.OpType.OP_WRITE);
             invokeCallbackHandler((CallbackHandler) attach, context);
             return false;
-        } else {
-            return true;
         }
+        return true;
     }
-    
-    
+
+
     /**
      * Handle OP_CONNECT.
      * @param key {@link SelectionKey}
@@ -729,19 +722,24 @@ public class TCPSelectorHandler implements SelectorHandler {
     public boolean onConnectInterest(final SelectionKey key, Context ctx)
     throws IOException{
         try {
+            //logical replacement of 3 interest changes with 1 that is the complement to them.
+            //if opaccept is known to not be of interest we could 0 the interest instead.
+             key.interestOps(key.interestOps() & (SelectionKey.OP_ACCEPT) );
+             /*
             // disable OP_CONNECT on key before doing anything else
             key.interestOps(key.interestOps() & (~SelectionKey.OP_CONNECT));
-            
+
             // No OP_READ nor OP_WRITE allowed yet.
             key.interestOps(key.interestOps() & (~SelectionKey.OP_WRITE));
-            key.interestOps(key.interestOps() & (~SelectionKey.OP_READ));
+            key.interestOps(key.interestOps() & (~SelectionKey.OP_READ));*/
+
         } catch(CancelledKeyException e) {
             // Even if key was cancelled - we need to notify CallBackHandler
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "CancelledKeyException occured when tried to change key interests", e);
             }
         }
-        
+
         Object attach = SelectionKeyAttachment.getAttachment(key);
         if (attach instanceof CallbackHandler){
             final Context context = pollContext(ctx, key, Context.OpType.OP_CONNECT);
@@ -749,28 +747,28 @@ public class TCPSelectorHandler implements SelectorHandler {
         }
         return false;
     }
-    
-    
+
+
     /**
      * Invoke a CallbackHandler via a Context instance.
      * @param context {@link Context}
      * @throws java.io.IOException
      */
-    protected void invokeCallbackHandler(CallbackHandler callbackHandler, 
+    protected void invokeCallbackHandler(CallbackHandler callbackHandler,
             Context context) throws IOException {
-        
+
         if (!(context instanceof NIOContext)){
-            logger.severe("Invalid Context instance: " 
+            logger.severe("Invalid Context instance: "
                     + context.getClass().getName());
             return;
         }
-                
+
         IOEvent<Context>ioEvent = new IOEvent.DefaultIOEvent<Context>(context);
         context.setIOEvent(ioEvent);
-        
+
         // Added because of incompatibility with Grizzly 1.6.0
         ((NIOContext)context).setSelectorHandler(this);
-        
+
         CallbackHandlerContextTask task = CallbackHandlerContextTask.poll();
         task.setCallBackHandler(callbackHandler);
         boolean isRunInSeparateThread = true;
@@ -783,7 +781,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         context.execute(task, isRunInSeparateThread);
     }
 
-    
+
     /**
      * Invoke a {@link AsyncQueueReader}
      * @param context {@link Context}
@@ -795,7 +793,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         context.execute(task);
     }
 
-    
+
     /**
      * Invoke a {@link AsyncQueueWriter}
      * @param context {@link Context}
@@ -817,21 +815,21 @@ public class TCPSelectorHandler implements SelectorHandler {
         if (selector == null || !selector.isOpen()){
             throw new IllegalStateException("SelectorHandler not yet started");
         }
-        
+
         ConnectorHandler connectorHandler = connectorInstanceHandler.acquire();
         connectorHandler.setController(Controller.getHandlerController(this));
         return connectorHandler;
     }
-    
-    
+
+
     /**
      * Release a ConnectorHandler.
      */
     public void releaseConnectorHandler(ConnectorHandler connectorHandler){
         connectorInstanceHandler.release(connectorHandler);
     }
-    
-    
+
+
     /**
      * A token decribing the protocol supported by an implementation of this
      * interface
@@ -840,29 +838,20 @@ public class TCPSelectorHandler implements SelectorHandler {
         return Controller.Protocol.TCP;
     }
     // ------------------------------------------------------ Utils ----------//
-    
-    
-    /**
-     * Initializes {@link SelectionKey} operation registries
-     */
-    protected void initOpRegistriesIfRequired() {
-        if (opToRegister == null){
-            opToRegister = new LinkedTransferQueue<SelectionKeyOP>();
-        }
-    }
+
 
     /**
      * {@inheritDoc}
      */
     public void configureChannel(SelectableChannel channel) throws IOException{
         Socket socket = ((SocketChannel) channel).socket();
-        
+
         channel.configureBlocking(false);
-        
+
         if (!channel.isOpen()){
             return;
         }
-        
+
         try{
             if(socketTimeout >= 0 ) {
                 socket.setSoTimeout(socketTimeout);
@@ -884,7 +873,7 @@ public class TCPSelectorHandler implements SelectorHandler {
                         "setSoLinger exception ",ex);
             }
         }
-        
+
         try{
             socket.setTcpNoDelay(tcpNoDelay);
         } catch (SocketException ex){
@@ -893,7 +882,7 @@ public class TCPSelectorHandler implements SelectorHandler {
                         "setTcpNoDelay exception ",ex);
             }
         }
-        
+
         try{
             socket.setReuseAddress(reuseAddress);
         } catch (SocketException ex){
@@ -903,18 +892,18 @@ public class TCPSelectorHandler implements SelectorHandler {
             }
         }
     }
-    
-    
+
+
     // ------------------------------------------------------ Properties -----//
-    
+
     public final Selector getSelector() {
         return selector;
     }
-    
+
     public final void setSelector(Selector selector) {
         this.selector = selector;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -928,27 +917,27 @@ public class TCPSelectorHandler implements SelectorHandler {
     public AsyncQueueWriter getAsyncQueueWriter() {
         return asyncQueueWriter;
     }
-    
+
     public long getSelectTimeout() {
         return selectTimeout;
     }
-    
+
     public void setSelectTimeout(long selectTimeout) {
         this.selectTimeout = selectTimeout;
     }
-    
+
     public int getServerTimeout() {
         return serverTimeout;
     }
-    
+
     public void setServerTimeout(int serverTimeout) {
         this.serverTimeout = serverTimeout;
     }
-    
+
     public InetAddress getInet() {
         return inet;
     }
-    
+
     public void setInet(InetAddress inet) {
         this.inet = inet;
     }
@@ -956,9 +945,9 @@ public class TCPSelectorHandler implements SelectorHandler {
     /**
      * Gets this {@link SelectorHandler} current role.
      * <tt>TCPSelectorHandler</tt> could act as client, which corresponds to
-     * {@link Role#CLIENT} or client-server, which corresponds 
+     * {@link Role#CLIENT} or client-server, which corresponds
      * to the {@link Role#CLIENT_SERVER}
-     * 
+     *
      * @return the {@link Role}
      */
     public Role getRole() {
@@ -976,7 +965,7 @@ public class TCPSelectorHandler implements SelectorHandler {
     public void setRole(Role role) {
         this.role = role;
     }
-    
+
     /**
      * Returns port number {@link SelectorHandler} is listening on
      * Similar to <code>getPort()</code>, but getting port number directly from
@@ -991,91 +980,91 @@ public class TCPSelectorHandler implements SelectorHandler {
         if (serverSocket != null) {
             return serverSocket.getLocalPort();
         }
-        
+
         return -1;
     }
-    
+
     public int getPort() {
         return port;
     }
-    
+
     public void setPort(int port) {
         this.port = port;
     }
-    
+
     public int getSsBackLog() {
         return ssBackLog;
     }
-    
+
     public void setSsBackLog(int ssBackLog) {
         this.ssBackLog = ssBackLog;
     }
-  
-    
+
+
     /**
      * Return the tcpNoDelay value used by the underlying accepted Sockets.
-     * 
+     *
      * Also see setTcpNoDelay(boolean tcpNoDelay)
      */
     public boolean isTcpNoDelay() {
         return tcpNoDelay;
     }
-    
-    
+
+
     /**
      * Enable (true) or disable (false) the underlying Socket's
      * tcpNoDelay.
-     * 
-     * Default value for tcpNoDelay is enabled (set to true), as according to 
+     *
+     * Default value for tcpNoDelay is enabled (set to true), as according to
      * the performance tests, it performs better for most cases.
-     * 
-     * The Connector side should also set tcpNoDelay the same as it is set here 
+     *
+     * The Connector side should also set tcpNoDelay the same as it is set here
      * whenever possible.
      */
     public void setTcpNoDelay(boolean tcpNoDelay) {
         this.tcpNoDelay = tcpNoDelay;
     }
-    
+
     public int getLinger() {
         return linger;
     }
-    
+
     public void setLinger(int linger) {
         this.linger = linger;
     }
-    
+
     public int getSocketTimeout() {
         return socketTimeout;
     }
-    
+
     public void setSocketTimeout(int socketTimeout) {
         this.socketTimeout = socketTimeout;
     }
-    
+
     public Logger getLogger() {
         return logger;
     }
-    
+
     public void setLogger(Logger logger) {
         this.logger = logger;
     }
-    
+
     public boolean isReuseAddress() {
         return reuseAddress;
     }
-    
+
     public void setReuseAddress(boolean reuseAddress) {
         this.reuseAddress = reuseAddress;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     public ExecutorService getThreadPool(){
         return threadPool;
     }
-    
-    
+
+
     /**
      * {@inheritDoc}
      */
@@ -1083,7 +1072,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         this.threadPool = threadPool;
     }
 
-    
+
     /**
      * {@inheritDoc}
      */
@@ -1091,15 +1080,15 @@ public class TCPSelectorHandler implements SelectorHandler {
         return DefaultSelectionKeyHandler.class;
     }
 
-    
+
     /**
      * Get the SelectionKeyHandler associated with this SelectorHandler.
      */
     public SelectionKeyHandler getSelectionKeyHandler() {
         return selectionKeyHandler;
     }
-    
-    
+
+
     /**
      * Set SelectionKeyHandler associated with this SelectorHandler.
      */
@@ -1107,8 +1096,8 @@ public class TCPSelectorHandler implements SelectorHandler {
         this.selectionKeyHandler = selectionKeyHandler;
         this.selectionKeyHandler.setSelectorHandler(this);
     }
-    
-    
+
+
     /**
      * Set the {@link ProtocolChainInstanceHandler} to use for
      * creating instance of {@link ProtocolChain}.
@@ -1117,15 +1106,15 @@ public class TCPSelectorHandler implements SelectorHandler {
             instanceHandler){
         this.instanceHandler = instanceHandler;
     }
-    
-    
+
+
     /**
      * Return the {@link ProtocolChainInstanceHandler}
      */
     public ProtocolChainInstanceHandler getProtocolChainInstanceHandler(){
         return instanceHandler;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -1133,32 +1122,32 @@ public class TCPSelectorHandler implements SelectorHandler {
         // channel could be either SocketChannel or ServerSocketChannel
         if (channel instanceof SocketChannel) {
             Socket socket = ((SocketChannel) channel).socket();
-            
+
             try {
                 if (!socket.isInputShutdown()) socket.shutdownInput();
             } catch (IOException e) {
                 logger.log(Level.FINEST, "Unexpected exception during channel inputShutdown", e);
             }
-            
+
             try {
                 if (!socket.isOutputShutdown()) socket.shutdownOutput();
             } catch (IOException e) {
                 logger.log(Level.FINEST, "Unexpected exception during channel outputShutdown", e);
             }
-            
+
             try{
                 socket.close();
             } catch (IOException e) {
                 logger.log(Level.FINEST, "Unexpected exception during socket close", e);
             }
         }
-        
+
         try{
             channel.close();
         } catch (IOException e){
             logger.log(Level.FINEST, "Unexpected exception during channel close", e);
         }
-        
+
         if (asyncQueueReader != null) {
             asyncQueueReader.onClose(channel);
         }
@@ -1170,28 +1159,28 @@ public class TCPSelectorHandler implements SelectorHandler {
 
     /**
      * Polls {@link Context} from pool and initializes it.
-     * 
+     *
      * @param serverContext {@link Controller} context
      * @param key {@link SelectionKey}
      * @return {@link Context}
      */
-    protected Context pollContext(final Context serverContext, 
+    protected Context pollContext(final Context serverContext,
             final SelectionKey key, final Context.OpType opType) {
-        ProtocolChain protocolChain = instanceHandler != null ? 
-            instanceHandler.poll() : 
+        ProtocolChain protocolChain = instanceHandler != null ?
+            instanceHandler.poll() :
             serverContext.getController().getProtocolChainInstanceHandler().poll();
-        
-        
+
+
         final Context ctx = serverContext.getController().pollContext(key, opType);
-        
+
         if (!(ctx instanceof NIOContext)){
-            logger.severe("Invalid Context instance: " 
+            logger.severe("Invalid Context instance: "
                     + ctx.getClass().getName());
-            throw new RuntimeException("Invalid Context instance: " 
+            throw new RuntimeException("Invalid Context instance: "
                     + ctx.getClass().getName());
-        }        
-        
-        NIOContext context = (NIOContext)ctx; 
+        }
+
+        NIOContext context = (NIOContext)ctx;
         context.setSelectionKey(key);
         context.setSelectorHandler(this);
         context.setAsyncQueueReader(asyncQueueReader);
@@ -1199,7 +1188,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         context.setProtocolChain(protocolChain);
         return context;
     }
-    
+
     //--------------- ConnectorInstanceHandler -----------------------------
     /**
      * Return <Callable>factory<Callable> object, which knows how
@@ -1214,25 +1203,25 @@ public class TCPSelectorHandler implements SelectorHandler {
         };
     }
 
-    // ----------- AttributeHolder interface implementation ----------- //  
+    // ----------- AttributeHolder interface implementation ----------- //
 
     /**
      * Remove a key/value object.
      * Method is not thread safe
-     * 
+     *
      * @param key - name of an attribute
      * @return  attribute which has been removed
      */
     public Object removeAttribute(String key) {
         if (attributes == null) return null;
-        
+
         return attributes.remove(key);
     }
 
     /**
      * Set a key/value object.
      * Method is not thread safe
-     * 
+     *
      * @param key - name of an attribute
      * @param value - value of named attribute
      */
@@ -1240,14 +1229,14 @@ public class TCPSelectorHandler implements SelectorHandler {
         if (attributes == null) {
             attributes = new HashMap<String, Object>();
         }
-        
+
         attributes.put(key, value);
     }
 
     /**
      * Return an object based on a key.
      * Method is not thread safe
-     * 
+     *
      * @param key - name of an attribute
      * @return - attribute value for the <tt>key</tt>, null if <tt>key</tt>
      *           does not exist in <tt>attributes</tt>
@@ -1257,14 +1246,14 @@ public class TCPSelectorHandler implements SelectorHandler {
 
         return attributes.get(key);
     }
-    
-    
+
+
     /**
      * Set a {@link Map} of attribute name/value pairs.
      * Old {@link AttributeHolder} values will not be available.
      * Later changes of this {@link Map} will lead to changes to the current
      * {@link AttributeHolder}.
-     * 
+     *
      * @param attributes - map of name/value pairs
      */
     public void setAttributes(Map<String, Object> attributes) {
@@ -1276,7 +1265,7 @@ public class TCPSelectorHandler implements SelectorHandler {
      * Return a {@link Map} of attribute name/value pairs.
      * Updates, performed on the returned {@link Map} will be reflected in
      * this {@link AttributeHolder}
-     * 
+     *
      * @return - {@link Map} of attribute name/value pairs
      */
     public Map<String, Object> getAttributes() {

@@ -143,9 +143,9 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             return;
         }
 
-        key.interestOps(key.interestOps() | selectionKeyOps);
-        addExpirationStamp(key);
-    }
+            key.interestOps(key.interestOps() | selectionKeyOps);
+            addExpirationStamp(key);
+        }
 
     /**
      * {@inheritDoc}
