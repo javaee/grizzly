@@ -927,7 +927,7 @@ public class SuspendTest extends TestCase {
                 public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
                     try {
                         final long t1 = System.currentTimeMillis();
-                        res.suspend(5 * 1000, "foo", new CompletionHandler<String>() {
+                        res.suspend(10 * 1000, "foo", new CompletionHandler<String>() {
 
                             public void cancelled(String attachment) {
                                 try {
