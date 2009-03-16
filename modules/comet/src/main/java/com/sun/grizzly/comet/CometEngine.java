@@ -179,20 +179,20 @@ public class CometEngine {
         cometContextCache = new LinkedTransferQueue<CometContext>();
         activeContexts    = new ConcurrentHashMap<String,CometContext>(16,0.75f,64);
 
-        threadPool = new ThreadPoolExecutor(
-                8, // its a high core value, problem is that pool never invokes more then core value when we use it.
+        ThreadPoolExecutor tpe = new ThreadPoolExecutor(
+                64, 
                 64,
-                60L,
+                30L,
                 TimeUnit.SECONDS,
-                // grr not true FIFO queue seems possible for offering threads on a lock ?
                 new LinkedBlockingQueue<Runnable>(),
                 new ThreadFactory() {
                     private final AtomicInteger counter = new AtomicInteger();
                     public Thread newThread(Runnable r) {
                         return new Thread(r, "CometWorker-"+counter.incrementAndGet());
                     }
-                }
-                );
+                });
+        tpe.allowCoreThreadTimeOut(true);
+        threadPool = tpe;
     }
 
     /**
@@ -377,7 +377,7 @@ public class CometEngine {
                 return false;
             }
             SelectionKey key = apt.getAsyncExecutor().getProcessorTask().getSelectionKey();
-            key.attach(null); // Disable keep-alive           
+            key.attach("comet"); // Disable keep-alive
             cometTask.getCometContext().initialize(cometTask.getCometHandler());
             cometTask.setAsyncProcessorTask(apt);
             cometTask.setSelectionKey(key);
