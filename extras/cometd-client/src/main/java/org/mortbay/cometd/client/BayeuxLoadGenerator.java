@@ -207,11 +207,11 @@ public class BayeuxLoadGenerator
                 
             client.start();
                 
-            clients.add(client);
-            Thread.sleep(20);// 50 per sec
-            if (clients.size()%50==0){
+            clients.add(client);            
+            if (clients.size()%10==0){
                 int i=clients.size();
                 System.err.println("clients = "+(i>=1000?"":i>=100?"0":i>=10?"00":"000")+i);
+                Thread.sleep(300);
             }
                     
             client.startBatch();
