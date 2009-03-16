@@ -180,7 +180,7 @@ public class CometEngine {
         activeContexts    = new ConcurrentHashMap<String,CometContext>(16,0.75f,64);
 
         ThreadPoolExecutor tpe = new ThreadPoolExecutor(
-                64, 
+                8,
                 64,
                 30L,
                 TimeUnit.SECONDS,
@@ -191,7 +191,7 @@ public class CometEngine {
                         return new Thread(r, "CometWorker-"+counter.incrementAndGet());
                     }
                 });
-        tpe.allowCoreThreadTimeOut(true);
+        //tpe.allowCoreThreadTimeOut(true);
         threadPool = tpe;
     }
 
