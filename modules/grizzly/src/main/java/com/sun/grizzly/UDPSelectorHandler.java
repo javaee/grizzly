@@ -114,7 +114,6 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
      */
     @Override
     public void preSelect(Context ctx) throws IOException {
-        initOpRegistriesIfRequired();
 
         if (asyncQueueReader == null) {
             asyncQueueReader = new UDPAsyncQueueReader(this);
@@ -184,7 +183,6 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
         keyOP.setChannel(newDatagramChannel);
         keyOP.setRemoteAddress(remoteAddress);
         keyOP.setCallbackHandler(callbackHandler);
-        initOpRegistriesIfRequired();
         opToRegister.offer(keyOP);
         selector.wakeup();
     }

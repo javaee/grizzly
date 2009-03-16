@@ -48,12 +48,22 @@ import java.nio.channels.SelectionKey;
  */
 public class SelectionKeyOP {
     private int op;
-    private SelectionKey key;
+    private SelectionKey key;    
     private SelectableChannel channel;
 
     public SelectionKeyOP() {
     }
-    
+
+    public SelectionKeyOP(SelectionKey key, int op) {
+        this.key = key;
+        this.op = op;
+    }
+
+    public SelectionKeyOP(SelectionKey key, int op, SelectableChannel channel) {
+        this(key, op);
+        this.channel = channel;
+    }
+
     public int getOp() {
         return op;
     }

@@ -70,32 +70,17 @@ public class SelectorHandlerRunner implements Runnable {
         
         try {
             selectorHandler.getStateHolder().setState(State.STARTED);
-            
-            while (controllerStateHolder.getState(false) != State.STOPPED &&
-                    selectorHandlerStateHolder.getState(false) != State.STOPPED) {
-                
-                State controllerState = controllerStateHolder.getState(false);
-                State selectorHandlerState = selectorHandlerStateHolder.getState(false);
+
+            State controllerState;
+            State selectorHandlerState;
+            while ((controllerState = controllerStateHolder.getState(false)) != State.STOPPED &&
+                    (selectorHandlerState = selectorHandlerStateHolder.getState(false)) != State.STOPPED) {
                 
                 if (controllerState != State.PAUSED &&
                         selectorHandlerState != State.PAUSED) {
                     controller.doSelect(selectorHandler);
                 } else {
-                    CountDownLatch latch = new CountDownLatch(1);
-                    ConditionListener<State> controllerConditionListener = 
-                            registerForNotification(controllerState, 
-                            controllerStateHolder, latch);
-                    ConditionListener<State> selectorHandlerConditionListener = 
-                            registerForNotification(selectorHandlerState, 
-                            selectorHandlerStateHolder, latch);
-                    
-                    try {
-                        latch.await(5000, TimeUnit.MILLISECONDS);
-                    } catch(InterruptedException e) {
-                    } finally {
-                        controllerStateHolder.removeConditionListener(controllerConditionListener);
-                        selectorHandlerStateHolder.removeConditionListener(selectorHandlerConditionListener);
-                    }
+                    doSelectorPaused(controllerState, selectorHandlerState);
                 }
             }
         } finally {
@@ -104,6 +89,27 @@ public class SelectorHandlerRunner implements Runnable {
         }
     }
     
+    /**
+     * handle Selector paused state
+     */
+    private void doSelectorPaused(State controllerState, State selectorHandlerState){
+        CountDownLatch latch = new CountDownLatch(1);
+        ConditionListener<State> controllerConditionListener =
+                registerForNotification(controllerState,
+                controller.getStateHolder(), latch);
+        ConditionListener<State> selectorHandlerConditionListener =
+                registerForNotification(selectorHandlerState,
+                 selectorHandler.getStateHolder(), latch);
+
+        try {
+            latch.await(5000, TimeUnit.MILLISECONDS);
+        } catch(InterruptedException e) {
+        } finally {
+            controller.getStateHolder().removeConditionListener(controllerConditionListener);
+            selectorHandler.getStateHolder().removeConditionListener(selectorHandlerConditionListener);
+        }
+    }
+
     /**
      * Register <code>CountDownLatch</code> to be notified, when either Controller
      * or SelectorHandler will change their state to correspondent values
