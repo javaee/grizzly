@@ -98,10 +98,12 @@ public class SelectorThreadHandler extends TCPSelectorHandler {
               
             if (selectorThread.getThreadPool() instanceof StatsThreadPool){
                 selectorThread.getRequestGroupInfo().increaseCountOpenConnections();
-                ((StatsThreadPool)selectorThread.getThreadPool()).getStatistic()
-                        .incrementTotalAcceptCount();
-                ((StatsThreadPool)selectorThread.getThreadPool()).getStatistic()
-                        .incrementOpenConnectionsCount(readKey.channel());
+                ThreadPoolStatistic tps = ((StatsThreadPool)selectorThread
+                        .getThreadPool()).getStatistic();
+                if (tps != null){
+                    tps.incrementTotalAcceptCount();
+                    tps.incrementOpenConnectionsCount(readKey.channel());
+                }
             }
         }
         return false;
