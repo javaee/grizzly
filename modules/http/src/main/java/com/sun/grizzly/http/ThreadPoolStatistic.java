@@ -40,6 +40,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThreadImpl;
+import java.nio.channels.SelectableChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -139,7 +140,13 @@ public class ThreadPoolStatistic {
      * Total number of connections that have been accepted.
      */
     private int totalAcceptCount;
-
+    
+    
+    /**
+     * <tt>Map</tt> of open pipeline connections
+     */
+    private ConcurrentHashMap<SelectableChannel,Long> openConnections =
+            new ConcurrentHashMap<SelectableChannel,Long>();
 
     // -------------------------------------------------------------------//
     
@@ -408,5 +415,42 @@ public class ThreadPoolStatistic {
         }
     }
     
-    
+    /**
+     * Increase the number of open connections, which are being handled by the
+     * <tt>Pipeline</tt>
+     *
+     * @param channel just open channel
+     * @return <tt>true</tt>, if channel was added, <tt>false</tt> if channel
+     * was already counted in the statistics
+     */
+    public boolean incrementOpenConnectionsCount(SelectableChannel channel) {
+        Long prevValue = 
+                openConnections.putIfAbsent(channel, System.currentTimeMillis());
+        return prevValue == null;
+    }
+
+    /**
+     * Decrease the number of open connections, which are being handled by the
+     * <tt>Pipeline</tt>
+     *
+     * @param channel just closed channel
+     * @return <tt>true</tt>, if channel was removed from statics of open 
+     * channels, <tt>false</tt> if channel is not in the statistics (probably
+     * removed from statics earlier)
+     */
+    public boolean decrementOpenConnectionsCount(SelectableChannel channel) {
+        Long prevValue = openConnections.remove(channel);
+        return prevValue != null;
+    }
+
+    /**
+     * Get the current number of open channels, which are being handled by the
+     * pipeline
+     * 
+     * @return the current number of open channels, which are being handled 
+     * by the pipeline
+     */
+    public int getOpenConnectionsCount() {
+        return openConnections.size();
+    }    
 }

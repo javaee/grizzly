@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.DefaultSelectionKeyHandler;
@@ -79,29 +78,38 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                 selectorThread.cancelKey(key);
                 return;
             }
-            KeepAliveThreadAttachment k = (KeepAliveThreadAttachment)attachment;
-            k.setTimeout(currentTime);    
+            KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) attachment;
+            k.setTimeout(currentTime);
         } else {
             addExpirationStamp(key);
-        }   
-        key.interestOps(key.interestOps() | ops);    
+        }
+        key.interestOps(key.interestOps() | ops);
     }
 
     @Override
     public void cancel(SelectionKey key) {
-       if (key == null) return;
-       Object attachment = key.attachment();
-       if (attachment instanceof KeepAliveThreadAttachment) {
-           KeepAliveThreadAttachment k = (KeepAliveThreadAttachment)attachment;
-           k.resetKeepAliveCount();
-       }
-       super.cancel(key);
+        if (key == null) {
+            return;
+        }
+        if (selectorThread.getThreadPool() instanceof StatsThreadPool) {
+            if (selectorThread.isMonitoringEnabled() &&
+                    ((StatsThreadPool) selectorThread.getThreadPool()).getStatistic().decrementOpenConnectionsCount(key.channel())) {
+                selectorThread.getRequestGroupInfo().decreaseCountOpenConnections();
+            }
+        }
+
+        Object attachment = key.attachment();
+        if (attachment instanceof KeepAliveThreadAttachment) {
+            KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) attachment;
+            k.resetKeepAliveCount();
+        }
+        super.cancel(key);
     }
 
     /**
      * Reset the expiration time
      */
-    public void resetExpiration(){
+    public void resetExpiration() {
         nextKeysExpiration = 0;
     }
 
@@ -118,23 +126,23 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
         nextKeysExpiration = currentTime + 1000;
         while (iterator.hasNext()) {
             SelectionKey key = iterator.next();
-            if (!key.isValid()){
+            if (!key.isValid()) {
                 continue;
             }
             Object attachment = key.attachment();
-            if (attachment != null){
+            if (attachment != null) {
                 long expire = getExpirationStamp(attachment);
-                if (expire == SelectionKeyAttachment.UNLIMITED_TIMEOUT)
+                if (expire == SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
                     continue;
-                
+                }
+
                 long idleLimit, activeThreadTimeout;
-                if (attachment instanceof KeepAliveThreadAttachment){
-                    activeThreadTimeout = ((KeepAliveThreadAttachment) attachment)
-                            .getActiveThreadTimeout();
-                    
+                if (attachment instanceof KeepAliveThreadAttachment) {
+                    activeThreadTimeout = ((KeepAliveThreadAttachment) attachment).getActiveThreadTimeout();
+
                     if (activeThreadTimeout != SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
                         idleLimit = activeThreadTimeout;
-                    }  else {                 
+                    } else {
                         idleLimit = ((SelectionKeyAttachment) attachment).getIdleTimeoutDelay();
                         if (idleLimit == SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
                             //this is true when attachment class dont have idletimeoutdelay configured.
@@ -144,10 +152,10 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                 } else {
                     idleLimit = timeout;
                 }
-                if (idleLimit == -1){
+                if (idleLimit == -1) {
                     continue;
                 }
- 
+
                 if (currentTime - expire >= idleLimit) {
                     if (attachment instanceof Response.ResponseAttachment) {
                         ((ResponseAttachment) attachment).timeout();
@@ -159,8 +167,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                         KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) attachment;
                         if (k.activeThread() != null) {
                             if (logger.isLoggable(Level.WARNING)) {
-                                logger.log(Level.WARNING, "Interrupting idle Thread: "
-                                        + k.activeThread().getName());
+                                logger.log(Level.WARNING, "Interrupting idle Thread: " + k.activeThread().getName());
                             }
                             k.activeThread().interrupt();
                         }
@@ -170,7 +177,6 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
             }
         }
     }
-    
 
     /**
      * Gets expiration timeout stamp from the {@link SelectionKey}
@@ -179,8 +185,8 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
      * @param {@link SelectionKey}
      */
     private long getExpirationStamp(Object attachment) {
-        if (attachment instanceof Long){
-            return (Long)attachment;
+        if (attachment instanceof Long) {
+            return (Long) attachment;
         } else if (attachment instanceof SelectionKeyAttachment) {
             return ((SelectionKeyAttachment) attachment).getTimeout();
         } else if (attachment instanceof Response.ResponseAttachment) {
@@ -188,5 +194,4 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
         }
         return SelectionKeyAttachment.UNLIMITED_TIMEOUT;
     }
-
 }

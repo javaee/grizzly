@@ -37,10 +37,12 @@
  */
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.Context;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.util.Copyable;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 /**
@@ -82,5 +84,26 @@ public class SelectorThreadHandler extends TCPSelectorHandler {
         }
         
         super.configureChannel(channel);
+    }
+    
+    @Override
+    public boolean onAcceptInterest(SelectionKey key, Context ctx) throws IOException{
+        SelectableChannel channel = acceptWithoutRegistration(key);
+
+        if (channel != null) {
+            configureChannel(channel);
+            SelectionKey readKey =
+                    channel.register(selector, SelectionKey.OP_READ);
+            readKey.attach(System.currentTimeMillis());
+              
+            if (selectorThread.getThreadPool() instanceof StatsThreadPool){
+                selectorThread.getRequestGroupInfo().increaseCountOpenConnections();
+                ((StatsThreadPool)selectorThread.getThreadPool()).getStatistic()
+                        .incrementTotalAcceptCount();
+                ((StatsThreadPool)selectorThread.getThreadPool()).getStatistic()
+                        .incrementOpenConnectionsCount(readKey.channel());
+            }
+        }
+        return false;
     }
 }
