@@ -14,7 +14,7 @@
     <name>grizzly-contribs</name>
     <url>https://grizzly.dev.java.net</url>
     <modules>
-        <!--        <module>grizzly-config</module> -->
+        <module>grizzly-config</module>
         <module>grizzly-httpservice</module>
         <module>grizzly-servlet-deployer</module>
         <module>bundles/</module>
