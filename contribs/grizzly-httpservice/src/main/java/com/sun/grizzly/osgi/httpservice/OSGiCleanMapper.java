@@ -38,10 +38,17 @@
 package com.sun.grizzly.osgi.httpservice;
 
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import org.osgi.service.http.HttpContext;
 
 import javax.servlet.Servlet;
-import java.util.*;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
