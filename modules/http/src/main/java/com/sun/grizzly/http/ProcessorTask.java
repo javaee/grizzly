@@ -666,6 +666,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             return;
         }        
         
+        if (selectorThread.isMonitoringEnabled()) {
+            request.updateCounters();  
+        }
+        
         try {
             adapter.afterService(request,response);
         } catch (Exception ex) {
@@ -703,10 +707,6 @@ public class ProcessorTask extends TaskBase implements Processor,
         // and error, and update the statistics counter
         if (error) {
             response.setStatus(500);
-        }
-        
-        if (selectorThread.isMonitoringEnabled()) {
-            request.updateCounters();            
         }
         
         // Next request
