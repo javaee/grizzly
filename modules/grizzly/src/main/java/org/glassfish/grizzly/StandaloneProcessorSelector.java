@@ -41,10 +41,12 @@ package org.glassfish.grizzly;
 /**
  * {@link ProcessorSelector}, which doesn't add any {@link Processor} to process
  * occurred {@link IOEvent}.
+ * {@link Connection} I/O events should be processed explicitly by calling
+ * read/write/accept/connect methods.
  * 
  * @author Alexey Stashok
  */
-public class NullProcessorSelector implements ProcessorSelector {
+public class StandaloneProcessorSelector implements ProcessorSelector {
 
     public Processor select(IOEvent ioEvent, Connection connection) {
         return null;

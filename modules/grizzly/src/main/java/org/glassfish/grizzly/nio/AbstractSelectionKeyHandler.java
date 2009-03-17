@@ -53,6 +53,10 @@ import java.util.logging.Logger;
 public abstract class AbstractSelectionKeyHandler implements SelectionKeyHandler {
     
     private static Logger logger = Grizzly.logger;
+
+    private static final int[] ioEvent2SelectionKeyInterest = {0,
+        SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, SelectionKey.OP_READ,
+        SelectionKey.OP_WRITE, 0};
     
     public void onKeyRegistered(SelectionKey key) {
         if (logger.isLoggable(Level.FINE)) {
@@ -106,14 +110,7 @@ public abstract class AbstractSelectionKeyHandler implements SelectionKeyHandler
     }
 
     public int ioEvent2SelectionKeyInterest(IOEvent ioEvent) {
-        switch(ioEvent) {
-            case READ: return SelectionKey.OP_READ;
-            case WRITE: return SelectionKey.OP_WRITE;
-            case SERVER_ACCEPT: return SelectionKey.OP_ACCEPT;
-            case CONNECTED: return SelectionKey.OP_CONNECT;
-        }
-        
-        return 0;
+        return ioEvent2SelectionKeyInterest[ioEvent.ordinal()];
     }
 
     public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest) {

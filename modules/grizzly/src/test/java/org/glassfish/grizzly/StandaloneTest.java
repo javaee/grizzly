@@ -69,7 +69,7 @@ public class StandaloneTest extends TestCase {
 
         try {
             // Enable standalone mode
-            transport.setProcessorSelector(new NullProcessorSelector());
+            transport.setProcessorSelector(new StandaloneProcessorSelector());
 
             // Start listen on specific port
             transport.bind(PORT);

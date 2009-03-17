@@ -41,46 +41,58 @@ package org.glassfish.grizzly.nio.transport;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.ProcessorResult;
 import org.glassfish.grizzly.nio.NIOConnection;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.util.Iterator;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
 import org.glassfish.grizzly.AbstractProcessor;
 import org.glassfish.grizzly.CompletionHandlerAdapter;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ProcessorSelector;
+import org.glassfish.grizzly.StandaloneProcessorSelector;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.SelectionKeyHandler;
-import org.glassfish.grizzly.util.LinkedTransferQueue;
 
 /**
  *
  * @author oleksiys
  */
-public class TCPNIOServerConnection extends
-        TCPNIOConnection {
+public class TCPNIOServerConnection extends TCPNIOConnection {
 
-    private LinkedTransferQueue<FutureImpl> acceptListeners =
-            new LinkedTransferQueue<FutureImpl>();
+    private volatile FutureImpl acceptListener;
     
     private RegisterAcceptedChannelCompletionHandler defaultCompletionHandler;
+
+    private AcceptorEventProcessorSelector acceptorSelector;
     
     public TCPNIOServerConnection(TCPNIOTransport transport, 
             ServerSocketChannel serverSocketChannel) {
         super(transport, serverSocketChannel);
         defaultCompletionHandler =
                 new RegisterAcceptedChannelCompletionHandler();
-        setProcessor(new AcceptorEventProcessor());
+        acceptorSelector = new AcceptorEventProcessorSelector();
+    }
+
+    public void listen() throws IOException {
+        transport.getNioChannelDistributor().registerChannelAsync(
+                channel, SelectionKey.OP_ACCEPT, this,
+                ((TCPNIOTransport) transport).registerChannelCompletionHandler);
+    }
+    
+    @Override
+    public ProcessorSelector getProcessorSelector() {
+        return acceptorSelector;
     }
 
     /**
-     * Asynchronously accept a {@link Connection}
+     * Accept a {@link Connection}
      *
      * @return {@link Future}
      * @throws java.io.IOException
@@ -99,16 +111,22 @@ public class TCPNIOServerConnection extends
         }
     }
 
+    /**
+     * Asynchronously accept a {@link Connection}
+     *
+     * @return {@link Future}
+     * @throws java.io.IOException
+     */
     protected Future<Connection> acceptAsync() throws IOException {
         if (!isOpen()) throw new IOException("Connection is closed");
         
         FutureImpl future = new FutureImpl();
         SocketChannel acceptedChannel = doAccept();
         if (acceptedChannel != null) {
-            configure(acceptedChannel);
-            register(acceptedChannel, future);
+            configureAcceptedChannel(acceptedChannel);
+            registerAcceptedChannel(acceptedChannel, future);
         } else {
-            acceptListeners.offer(future);
+            acceptListener = future;
         }
 
         return future;
@@ -121,17 +139,17 @@ public class TCPNIOServerConnection extends
      *         <tt>false</tt> otherwise.
      */
     protected boolean tryAccept() throws IOException {
-        FutureImpl listener = acceptListeners.poll();
-        if (listener == null) return false;
+        if (acceptListener == null) return false;
 
         SocketChannel acceptedChannel = doAccept();
         if (acceptedChannel == null) {
-            acceptListeners.offer(listener);
+            listen();
             return false;
         }
 
-        configure(acceptedChannel);
-        register(acceptedChannel, listener);
+        configureAcceptedChannel(acceptedChannel);
+        registerAcceptedChannel(acceptedChannel, acceptListener);
+        acceptListener = null;
 
         return true;
     }
@@ -143,12 +161,12 @@ public class TCPNIOServerConnection extends
         return acceptedChannel;
     }
 
-    private void configure(SocketChannel acceptedChannel) throws IOException {
+    private void configureAcceptedChannel(SocketChannel acceptedChannel) throws IOException {
         TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
         tcpNIOTransport.configureChannel(acceptedChannel);
     }
 
-    private void register(SocketChannel acceptedChannel,
+    private void registerAcceptedChannel(SocketChannel acceptedChannel,
             FutureImpl listener) throws IOException {
         
         TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
@@ -168,18 +186,29 @@ public class TCPNIOServerConnection extends
 
     @Override
     public void preClose() {
-        for(Iterator<FutureImpl> it = acceptListeners.iterator();
-                it.hasNext(); ) {
-            FutureImpl future = it.next();
-            it.remove();
-
-            future.failure(new IOException("Connection is closed"));
+        if (acceptListener != null) {
+            acceptListener.failure(new IOException("Connection is closed"));
         }
     }
 
     protected void throwUnsupportReadWrite() {
         throw new UnsupportedOperationException("TCPNIOServerConnection " +
                 "doesn't support neither read nor write operations.");
+    }
+
+    protected class AcceptorEventProcessorSelector implements ProcessorSelector {
+        private AcceptorEventProcessor acceptorProcessor =
+                new AcceptorEventProcessor();
+
+        public Processor select(IOEvent ioEvent, Connection connection) {
+            if (ioEvent == IOEvent.SERVER_ACCEPT &&
+                    !(transport.getProcessorSelector()
+                    instanceof StandaloneProcessorSelector)) {
+                return acceptorProcessor;
+            }
+
+            return null;
+        }
     }
 
     /**
@@ -200,8 +229,8 @@ public class TCPNIOServerConnection extends
                 return null;
             }
 
-            configure(acceptedChannel);
-            register(acceptedChannel, null);
+            configureAcceptedChannel(acceptedChannel);
+            registerAcceptedChannel(acceptedChannel, null);
             return null;
         }
 

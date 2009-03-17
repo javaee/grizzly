@@ -41,11 +41,13 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 
 /**
- * {@link Processor}, which is not interested in processing I/O events
+ * {@link Processor}, which is not interested in processing I/O events.
+ * {@link Connection} lifecycle should be managed explicitly,
+ * using read/write/accept/connect methods.
  *
  * @author Alexey Stashok
  */
-public class NullProcessor extends AbstractProcessor {
+public class StandaloneProcessor extends AbstractProcessor {
 
     public ProcessorResult process(Context context) throws IOException {
         throw new IllegalStateException("NullProcessor should never be executed");

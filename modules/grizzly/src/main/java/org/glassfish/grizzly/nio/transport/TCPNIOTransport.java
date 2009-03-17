@@ -265,7 +265,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             startSelectorRunners();
 
             if (serverConnection != null) {
-                registerServerConnection();
+                serverConnection.listen();
             }
         } finally {
             state.getStateLocker().writeLock().unlock();
@@ -398,13 +398,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
         TCPNIOConnectorHandler connectorHandler = new TCPNIOConnectorHandler(this);
         return connectorHandler.connect(remoteAddress, localAddress);
-    }
-
-    protected void registerServerConnection() throws IOException {
-        nioChannelDistributor.registerChannelAsync(
-                serverConnection.getChannel(),
-                SelectionKey.OP_ACCEPT, serverConnection,
-                registerChannelCompletionHandler);
     }
 
     @Override
@@ -649,6 +642,8 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
                 if (conProcessor != null) {
                     executeProcessor(ioEvent, connection, conProcessor, null, null);
+                } else {
+                    disableInterest((NIOConnection) connection,ioEvent);
                 }
             }
         } catch (IOException e) {
@@ -709,7 +704,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 (TCPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
 
         if (asyncQueueReader != null && asyncQueueReader.isReady(connection)) {
-            disabeReadWriteInterests(connection, ioEvent);
+            disableInterest(connection, ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueReader, null, null);
         } else {
             executeDefaultReadWriteProcessor(ioEvent, connection);
@@ -722,7 +717,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         
         if (asyncQueueWriter != null &&
                 asyncQueueWriter.isReady(connection)) {
-            disabeReadWriteInterests(connection, ioEvent);
+            disableInterest(connection, ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueWriter, null, null);
         } else {
             executeDefaultReadWriteProcessor(ioEvent, connection);
@@ -733,7 +728,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     private void executeDefaultReadWriteProcessor(IOEvent ioEvent,
             TCPNIOConnection connection) throws IOException {
         
-        disabeReadWriteInterests(connection, ioEvent);
+        disableInterest(connection, ioEvent);
         Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
             executeProcessor(ioEvent, connection, conProcessor, null,
@@ -746,6 +741,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         Processor conProcessor = connection.getProcessor();
         ProcessorSelector conProcessorSelector =
                 connection.getProcessorSelector();
+
         if ((conProcessor == null || !conProcessor.isInterested(ioEvent)) &&
                 conProcessorSelector != null) {
             conProcessor = conProcessorSelector.select(ioEvent, connection);
@@ -758,34 +754,22 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         return ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE;
     }
 
-    void enableReadWriteInterests(NIOConnection connection,
-            IOEvent ioEvent) throws IOException {
-        if (isReadWriteEvent(ioEvent)) {
-            SelectionKey key = connection.getSelectionKey();
-
-            getSelectorHandler().registerKey(
-                    connection.getSelectorRunner(), key,
-                    getSelectionKeyHandler().
-                    ioEvent2SelectionKeyInterest(ioEvent));
-        }
-    }
-
-    void disabeReadWriteInterests(NIOConnection connection,
+    void enableInterest(NIOConnection connection,
             IOEvent ioEvent) throws IOException {
         SelectionKey key = connection.getSelectionKey();
 
-        switch (ioEvent) {
-            case READ:
-                getSelectorHandler().unregisterKey(
-                        connection.getSelectorRunner(), key,
-                        SelectionKey.OP_READ);
-                break;
-            case WRITE:
-                getSelectorHandler().unregisterKey(
-                        connection.getSelectorRunner(), key,
-                        SelectionKey.OP_WRITE);
-                break;
-        }
+        getSelectorHandler().registerKey(
+                connection.getSelectorRunner(), key,
+                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent));
+    }
+
+    void disableInterest(NIOConnection connection,
+            IOEvent ioEvent) throws IOException {
+        SelectionKey key = connection.getSelectionKey();
+        
+        getSelectorHandler().unregisterKey(
+                connection.getSelectorRunner(), key,
+                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent));
     }
 
     public int read(Connection connection, Buffer buffer) throws IOException {
@@ -858,7 +842,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 Context context) throws IOException {
             if (result == null || result.getStatus() == Status.OK) {
                 IOEvent ioEvent = context.getIoEvent();
-                enableReadWriteInterests(
+                enableInterest(
                         (NIOConnection) context.getConnection(), ioEvent);
             }
         }
