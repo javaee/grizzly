@@ -40,7 +40,7 @@ package org.glassfish.grizzly.samples.smart.giop;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.NullProcessorSelector;
+import org.glassfish.grizzly.StandaloneProcessorSelector;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.WriteResult;
