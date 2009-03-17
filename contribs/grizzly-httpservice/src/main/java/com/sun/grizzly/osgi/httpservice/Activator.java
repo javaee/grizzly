@@ -56,6 +56,7 @@ import java.util.Properties;
  * @since Jan 20, 2009
  */
 public class Activator implements BundleActivator {
+
     private ServiceTracker logTracker;
     private ServiceRegistration registration;
     private Logger logger;
@@ -78,9 +79,7 @@ public class Activator implements BundleActivator {
             try {
                 port = Integer.parseInt(portProp);
             } catch (NumberFormatException nfe) {
-                logger.warn(new StringBuilder().append("Couldn't parse '").append(ORG_OSGI_SERVICE_HTTP_PORT)
-                        .append("' property, going to use default (").append(port).append("). ")
-                        .append(nfe.getMessage()).toString());
+                logger.warn(new StringBuilder().append("Couldn't parse '").append(ORG_OSGI_SERVICE_HTTP_PORT).append("' property, going to use default (").append(port).append("). ").append(nfe.getMessage()).toString());
             }
         }
         startGrizzly(port);

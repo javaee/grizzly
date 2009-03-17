@@ -66,7 +66,8 @@ public class HttpServiceFactory implements ServiceFactory {
     public HttpService getService(
             Bundle bundle, ServiceRegistration serviceRegistration) {
         logger.info(new StringBuilder().append("Bundle: ").append(bundle)
-                .append(", is getting HttpService with serviceRegistration: ").append(serviceRegistration).toString());
+                .append(", is getting HttpService with serviceRegistration: ")
+                    .append(serviceRegistration).toString());
         return new HttpServiceImpl(bundle, logger);
     }
 

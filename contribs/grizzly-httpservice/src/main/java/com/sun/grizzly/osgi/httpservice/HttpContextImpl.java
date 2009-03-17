@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.osgi.httpservice;
 
+import com.sun.grizzly.osgi.httpservice.util.Logger;
 import org.osgi.service.http.HttpContext;
 import org.osgi.framework.Bundle;
 
@@ -53,27 +54,32 @@ import java.net.URL;
  * @since Jan 21, 2009
  */
 public class HttpContextImpl implements HttpContext {
-  private final Bundle bundle;
 
-  public HttpContextImpl(Bundle bundle) {
-    this.bundle = bundle;
-  }
+    private final Bundle bundle;
+    private final Logger logger;
 
-  /** {@inheritDoc} */
-  public boolean handleSecurity(
-      HttpServletRequest httpServletRequest,
-      HttpServletResponse httpServletResponse) throws IOException {
-    // By default we allow all :)
-    return true;
-  }
+    public HttpContextImpl(Bundle bundle,Logger logger) {
+        this.bundle = bundle;
+        this.logger = logger;
+    }
 
-  /** {@inheritDoc} */
-  public URL getResource(String s) {
-    return bundle.getResource(s);
-  }
+    /** {@inheritDoc} */
+    public boolean handleSecurity(
+            HttpServletRequest httpServletRequest,
+            HttpServletResponse httpServletResponse) throws IOException {
+        // By default we allow all :)
+        logger.warn("HttpService OSGi support not supported, allowing all. " +
+                "See Grizzly Issue 490");
+        return true;
+    }
 
-  /** {@inheritDoc} */
-  public String getMimeType(String s) {
-    return null;
-  }
+    /** {@inheritDoc} */
+    public URL getResource(String s) {
+        return bundle.getResource(s);
+    }
+
+    /** {@inheritDoc} */
+    public String getMimeType(String s) {
+        return null;
+    }
 }
