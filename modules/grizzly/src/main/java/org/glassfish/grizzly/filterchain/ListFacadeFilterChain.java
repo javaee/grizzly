@@ -50,7 +50,10 @@ import java.util.ListIterator;
  */
 public abstract class ListFacadeFilterChain extends AbstractFilterChain {
     
-    protected abstract List<Filter> getListImpl();
+    /**
+     * The list of Filters this chain will invoke.
+     */
+    protected List<Filter> filters;
 
     public ListFacadeFilterChain(FilterChainFactory factory) {
         super(factory);
@@ -60,10 +63,9 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public boolean add(Filter filter) {
-        List<Filter> filterListImpl = getListImpl();
-        int size = filterListImpl.size();
+        int size = filters.size();
 
-        if (filterListImpl.add(filter)) {
+        if (filters.add(filter)) {
             recalculateFilterIndexes(size);
             return true;
         }
@@ -75,9 +77,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public void add(int index, Filter filter){
-        List<Filter> filterListImpl = getListImpl();
-
-        filterListImpl.add(index, filter);
+        filters.add(index, filter);
         recalculateFilterIndexes(index);
     }
     
@@ -85,10 +85,9 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public boolean addAll(Collection<? extends Filter> c) {
-        List<Filter> filterListImpl = getListImpl();
-        int size = filterListImpl.size();
+        int size = filters.size();
 
-        if (filterListImpl.addAll(c)) {
+        if (filters.addAll(c)) {
             recalculateFilterIndexes(size);
             return true;
         }
@@ -100,9 +99,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public boolean addAll(int index, Collection<? extends Filter> c) {
-        List<Filter> filterListImpl = getListImpl();
-
-        if (filterListImpl.addAll(index, c)) {
+        if (filters.addAll(index, c)) {
             recalculateFilterIndexes(index);
             return true;
         }
@@ -115,7 +112,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     public Filter set(int index,
             Filter filter) {
-        Filter prevFilter = getListImpl().set(index, filter);
+        Filter prevFilter = filters.set(index, filter);
         
         if (filter.isIndexable()) {
             filter.setIndex(index);
@@ -128,7 +125,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public Filter get(int index) {
-        return getListImpl().get(index);
+        return filters.get(index);
     }
 
     /**
@@ -142,49 +139,49 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
             return filter.getIndex();
         }
         
-        return getListImpl().indexOf(filter);
+        return filters.indexOf(filter);
     }
     
     /**
      * {@inheritDoc}
      */
     public int lastIndexOf(Object filter) {
-        return getListImpl().lastIndexOf(filter);
+        return filters.lastIndexOf(filter);
     }
 
     /**
      * {@inheritDoc}
      */
     public boolean contains(Object filter) {
-        return getListImpl().contains(filter);
+        return filters.contains(filter);
     }
 
     /**
      * {@inheritDoc}
      */
     public boolean containsAll(Collection<?> c) {
-        return getListImpl().containsAll(c);
+        return filters.containsAll(c);
     }
 
     /**
      * {@inheritDoc}
      */
     public Object[] toArray() {
-        return getListImpl().toArray();
+        return filters.toArray();
     }
 
     /**
      * {@inheritDoc}
      */
     public <T> T[] toArray(T[] a) {
-        return getListImpl().toArray(a);
+        return filters.toArray(a);
     }
 
     /**
      * {@inheritDoc}
      */
     public boolean retainAll(Collection<?> c) {
-        if (getListImpl().retainAll(c)) {
+        if (filters.retainAll(c)) {
             recalculateFilterIndexes(0);
             return true;
         }
@@ -203,7 +200,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
             return remove(filter.getIndex()) != null;
         }
         
-        if (getListImpl().remove(filter)) {
+        if (filters.remove(filter)) {
             recalculateFilterIndexes(0);
             return true;
         }
@@ -215,7 +212,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public Filter remove(int index) {
-        Filter removingFilter = getListImpl().remove(index);
+        Filter removingFilter = filters.remove(index);
         if (removingFilter != null) {
             recalculateFilterIndexes(index);
             return removingFilter;
@@ -228,7 +225,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public boolean removeAll(Collection<?> c) {
-        if (getListImpl().removeAll(c)) {
+        if (filters.removeAll(c)) {
             recalculateFilterIndexes(0);
             return true;
         }
@@ -240,55 +237,54 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public boolean isEmpty() {
-        return getListImpl() == null || getListImpl().isEmpty();
+        return filters == null || filters.isEmpty();
     }
 
     /**
      * {@inheritDoc}
      */
     public int size() {
-        return getListImpl().size();
+        return filters.size();
     }
 
     /**
      * {@inheritDoc}
      */
     public void clear() {
-        getListImpl().clear();
+        filters.clear();
     }
 
     /**
      * {@inheritDoc}
      */
     public Iterator<Filter> iterator() {
-        return getListImpl().iterator();
+        return filters.iterator();
     }
 
     /**
      * {@inheritDoc}
      */
     public ListIterator<Filter> listIterator() {
-        return getListImpl().listIterator();
+        return filters.listIterator();
     }
 
     /**
      * {@inheritDoc}
      */
     public ListIterator<Filter> listIterator(int index) {
-        return getListImpl().listIterator(index);
+        return filters.listIterator(index);
     }
 
     /**
      * {@inheritDoc}
      */
     public List<Filter> subList(int fromIndex, int toIndex) {
-        return getListImpl().subList(fromIndex, toIndex);
+        return filters.subList(fromIndex, toIndex);
     }
 
     protected void recalculateFilterIndexes(int startPosition) {
-        List<Filter> filterListImpl = getListImpl();
-        for(int i = startPosition; i < filterListImpl.size(); i++) {
-            Filter filter = filterListImpl.get(i);
+        for(int i = startPosition; i < filters.size(); i++) {
+            Filter filter = filters.get(i);
             if (filter.isIndexable()) {
                 filter.setIndex(i);
             }

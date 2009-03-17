@@ -84,7 +84,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
     }
 
 
-    public synchronized Future notifyCondition(Condition<StreamReader> condition,
+    public Future notifyCondition(Condition<StreamReader> condition,
             CompletionHandler completionHandler) {
         if (notifyObject != null) {
             throw new IllegalStateException("Only one available listener allowed!");

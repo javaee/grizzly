@@ -38,15 +38,11 @@
 package org.glassfish.grizzly.nio;
 
 import org.glassfish.grizzly.CompletionHandler;
-import org.glassfish.grizzly.util.ConcurrentQueuePool;
-import org.glassfish.grizzly.util.ObjectPool;
-import org.glassfish.grizzly.util.PoolableObject;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -63,16 +59,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     protected long selectTimeout;
 
-    protected final ObjectPool<SelectionKeyOperation> pendingOperationPool;
-
     public DefaultSelectorHandler() {
-        pendingOperationPool =
-                new ConcurrentQueuePool<SelectionKeyOperation>() {
-                    @Override
-                    public SelectionKeyOperation newInstance() {
-                        return new SelectionKeyOperation();
-                    }
-                };
     }
 
     public long getSelectTimeout() {
@@ -103,7 +90,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             registerKey0(key, interest);
         } else {
-            SelectionKeyOperation operation = pendingOperationPool.poll();
+            SelectionKeyOperation operation = new SelectionKeyOperation();
             operation.setOpType(OpType.REG_KEY);
             operation.setSelectionKey(key);
             operation.setInterest(interest);
@@ -116,7 +103,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             unregisterKey0(key, interest);
         } else {
-            SelectionKeyOperation operation = pendingOperationPool.poll();
+            SelectionKeyOperation operation = new SelectionKeyOperation();
             operation.setOpType(OpType.UNREG_KEY);
             operation.setSelectionKey(key);
             operation.setInterest(interest);
@@ -151,7 +138,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             registerChannel0(selectorRunner, channel, interest, attachment,
                     completionHandler, future);
         } else {
-            SelectionKeyOperation operation = pendingOperationPool.poll();
+            SelectionKeyOperation operation = new SelectionKeyOperation();
             operation.setOpType(OpType.REG_CHANNEL);
             operation.setChannel(channel);
             operation.setInterest(interest);
@@ -182,13 +169,9 @@ public class DefaultSelectorHandler implements SelectorHandler {
         LinkedTransferQueue<SelectionKeyOperation> pendingSelectorOps =
                 getSelectorPendingOperations(selectorRunner);
 
-        for (Iterator<SelectionKeyOperation> it = pendingSelectorOps.iterator();
-                it.hasNext();) {
-
-            SelectionKeyOperation pendingOperation = it.next();
-            it.remove();
+        SelectionKeyOperation pendingOperation;
+        while((pendingOperation = pendingSelectorOps.poll()) != null) {
             processPendingOperation(selectorRunner, pendingOperation);
-            pendingOperationPool.offer(pendingOperation);
         }
     }
 
@@ -290,7 +273,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    protected static class SelectionKeyOperation implements PoolableObject {
+    protected static class SelectionKeyOperation {
         private OpType opType;
         private SelectionKey selectionKey;
         private SelectableChannel channel;
@@ -353,19 +336,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
         public void setCompletionHandler(CompletionHandler completionHandler) {
             this.completionHandler = completionHandler;
-        }
-
-        public void prepare() {
-        }
-
-        public void release() {
-            opType = OpType.NONE;
-            interest = 0;
-            setSelectionKey(null);
-            setChannel(null);
-            future = null;
-            completionHandler = null;
-            attachment = null;
         }
     }
 }

@@ -55,11 +55,6 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     private Logger logger = Grizzly.logger;
 
     /**
-     * The list of Filters this chain will invoke.
-     */
-    protected List<Filter> filters;
-
-    /**
      * Filter chain codec
      */
     protected DefaultFilterChainCodec codec;
@@ -80,7 +75,10 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
             execute(this, getStartingFilterIndex(this, executionDirection),
                 executionDirection, ctx);
         } catch (Exception e) {
-            // should be logged by internal execute
+            try {
+                ctx.getConnection().close();
+            } catch (IOException ioe) {
+            }
         }
 
         return null;
@@ -238,11 +236,6 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
             ctx.setCurrentFilter(filter);
             filter.exceptionOccurred(ctx, exception);
         }
-    }
-
-    @Override
-    protected List<Filter> getListImpl() {
-        return filters;
     }
 
     /**

@@ -167,12 +167,16 @@ public abstract class AbstractStreamReader extends InputStream
         if (closed) {
             buffer.dispose();
         } else {
-            //byteBufferWrapper.flip();
             buffer.order(byteOrder);
-            boolean isAdded = !buffer.hasRemaining() || buffers.offer(buffer);
-            if (!isAdded) return false;
             
-            queueSize.addAndGet(buffer.remaining());
+            if (current == null) {
+                current = buffer;
+            } else {
+                boolean isAdded = !buffer.hasRemaining() || buffers.offer(buffer);
+                if (!isAdded) return false;
+            
+                queueSize.addAndGet(buffer.remaining());
+            }
 
             if (notifyObject != null && notifyObject.condition.check(this)) {
                 NotifyObject localNotifyAvailObject = notifyObject;
@@ -215,7 +219,7 @@ public abstract class AbstractStreamReader extends InputStream
     /** Cause all subsequent method calls on this object to throw IllegalStateException.
      */
     @Override
-    public synchronized void close() {
+    public void close() {
         closed = true;
 
         if (current != null) {
@@ -557,7 +561,7 @@ public abstract class AbstractStreamReader extends InputStream
         return current;
     }
 
-    public synchronized void finishBuffer() {
+    public void finishBuffer() {
         Buffer next = buffers.poll();
         if (next != null) {
             next.position(0);

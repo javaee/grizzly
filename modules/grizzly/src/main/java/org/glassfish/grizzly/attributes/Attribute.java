@@ -81,7 +81,10 @@ public class Attribute<T> {
             } else {
                 result = defaultValue;
             }
-            set(attributeHolder, result);
+
+            if (result != null) {
+                set(attributeHolder, result);
+            }
         }
         
         return result;

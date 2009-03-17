@@ -48,7 +48,6 @@ import java.nio.FloatBuffer;
 import java.nio.DoubleBuffer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
@@ -122,13 +121,15 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         Future future = null;
 
         if (buffer != null) {
-            future = flush0(buffer, completionHandler);
             if (buffer == this.buffer) {
+                future = flush0(buffer, completionHandler);
                 if (!future.isDone()) {
                     buffer = newBuffer(bufferSize);
                 }
                 
                 initBuffer(buffer);
+            } else {
+                future = flush0(buffer, completionHandler);
             }
         } else {
             buffer = newBuffer(bufferSize);
@@ -147,19 +148,19 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * Cause the overflow handler to be called even if buffer is not full.
      */
-    public synchronized Future flush() throws IOException {
+    public Future flush() throws IOException {
         return flush(null);
     }
 
     /**
      * Cause the overflow handler to be called even if buffer is not full.
      */
-    public synchronized Future flush(CompletionHandler completionHandler)
+    public Future flush(CompletionHandler completionHandler)
             throws IOException {
         return overflow(completionHandler);
     }
 
-    public synchronized void close() throws IOException {
+    public void close() throws IOException {
         close(null);
     }
 
@@ -174,7 +175,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
 
     /** Ensure that the requested amount of space is available
      */
-    public synchronized void ensure(final int size) throws IOException {
+    public void ensure(final int size) throws IOException {
         if (isClosed) {
             throw new IllegalStateException(
                     "ByteBufferWriter is closed");
@@ -190,13 +191,18 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     }
 
     public void writeBuffer(Buffer b) throws IOException {
+        writeBuffer(b, null);
+    }
+
+    protected void writeBuffer(Buffer b, CompletionHandler completionHandler)
+            throws IOException {
         if (buffer != null && buffer.position() > 0) {
             overflow();
         }
-        
+
         if (b != null && b.hasRemaining()) {
             b.position(b.limit());
-            overflow(b);
+            overflow(b, completionHandler);
         }
     }
 
@@ -204,12 +210,8 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         AbstractStreamReader readerImpl = (AbstractStreamReader) streamReader;
         Buffer readerBuffer;
         while ((readerBuffer = readerImpl.getBuffer()) != null) {
-            try {
-                readerImpl.finishBuffer();
-                writeBuffer(readerBuffer);
-            } catch (Exception e) {
-                readerBuffer.dispose();
-            }
+            readerImpl.finishBuffer();
+            writeBuffer(readerBuffer, new DisposeBufferCompletionHandler(readerBuffer));
         }
     }
 
@@ -443,5 +445,34 @@ public abstract class AbstractStreamWriter implements StreamWriter {
 
     protected abstract Future close0(CompletionHandler completionHandler)
             throws IOException;
+
+    public static class DisposeBufferCompletionHandler
+            implements CompletionHandler {
+
+        private Buffer buffer;
+
+        public DisposeBufferCompletionHandler(Buffer buffer) {
+            this.buffer = buffer;
+        }
+        
+        public void cancelled(Connection connection) {
+            disposeBuffer();
+        }
+
+        public void failed(Connection connection, Throwable throwable) {
+            disposeBuffer();
+        }
+
+        public void completed(Connection connection, Object result) {
+            disposeBuffer();
+        }
+
+        public void updated(Connection connection, Object result) {
+        }
+
+        protected void disposeBuffer() {
+            buffer.dispose();
+        }
+    }
 }
 

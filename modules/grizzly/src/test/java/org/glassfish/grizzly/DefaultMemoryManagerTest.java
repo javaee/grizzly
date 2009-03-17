@@ -114,7 +114,7 @@ public class DefaultMemoryManagerTest extends TestCase {
                         mm.getReadyThreadBufferSize());
 
                 buffer = mm.allocate(8192);
-                assertEquals(8192,
+                assertEquals(0,
                         mm.getReadyThreadBufferSize());
 
                 buffer.dispose();

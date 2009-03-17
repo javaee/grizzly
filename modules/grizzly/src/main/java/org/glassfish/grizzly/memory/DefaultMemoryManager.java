@@ -37,6 +37,7 @@
 package org.glassfish.grizzly.memory;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -54,6 +55,9 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
     private int maxThreadBufferSize = DEFAULT_MAX_BUFFER_SIZE;
 
+    private boolean isMonitoring;
+    private AtomicLong totalBytesAllocated = new AtomicLong();
+    
     public int getMaxThreadBufferSize() {
         return maxThreadBufferSize;
     }
@@ -62,26 +66,46 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
         this.maxThreadBufferSize = maxThreadBufferSize;
     }
 
+    public boolean isMonitoring() {
+        return isMonitoring;
+    }
+
+    public void setMonitoring(boolean isMonitoring) {
+        this.isMonitoring = isMonitoring;
+    }
+
+    public long getTotalBytesAllocated() {
+        return totalBytesAllocated.get();
+    }
+
     @Override
     public ByteBufferWrapper allocate(int size) {
         if (isWorkerThread()) {
             BufferInfo bufferInfo = getThreadBuffer();
 
-            if (bufferInfo == null) {
-                return super.allocate(size);
+            if (bufferInfo == null || bufferInfo.buffer == null) {
+                return incAllocated(super.allocate(size));
             }
 
             ByteBuffer byteBuffer = bufferInfo.buffer;
             if (byteBuffer.remaining() >= size) {
-                ByteBuffer slicedByteBuffer = slice(byteBuffer, size);
-                bufferInfo.lastAllocatedBuffer = slicedByteBuffer;
-                return wrap(slicedByteBuffer);
+                ByteBuffer allocatedByteBuffer;
+                if (byteBuffer.position() == 0) {
+                    allocatedByteBuffer = byteBuffer;
+                    bufferInfo.buffer = null;
+                } else {
+                    allocatedByteBuffer = slice(byteBuffer, size);
+                }
+                
+                bufferInfo.lastAllocatedBuffer = allocatedByteBuffer;
+                return wrap(allocatedByteBuffer);
+
             } else {
-                return super.allocate(size);
+                return incAllocated(super.allocate(size));
             }
 
         } else {
-            return super.allocate(size);
+            return incAllocated(super.allocate(size));
         }
     }
 
@@ -99,9 +123,9 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
             if (prepend(bufferInfo, underlyingBuffer)) return;
 
-            if (bufferInfo == null ||
-                    (bufferInfo.buffer.capacity() < underlyingBuffer.remaining() &&
-                    bufferInfo.buffer.capacity() < maxThreadBufferSize)) {
+            if (bufferInfo == null || bufferInfo.buffer == null ||
+                    (bufferInfo.buffer.capacity() <= underlyingBuffer.capacity() &&
+                    underlyingBuffer.capacity() <= maxThreadBufferSize)) {
 
                 boolean isNewBufferInfo = false;
                 if (bufferInfo == null) {
@@ -127,7 +151,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
     public int getReadyThreadBufferSize() {
         if (isWorkerThread()) {
             BufferInfo bi = getThreadBuffer();
-            if (bi != null) {
+            if (bi != null && bi.buffer != null) {
                 return bi.buffer.remaining();
             }
         }
@@ -143,13 +167,19 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
 
     private BufferInfo getThreadBuffer() {
-        if (!isWorkerThread()) return null;
-
         WorkerThread workerThread = (WorkerThread) Thread.currentThread();
         AttributeHolder holder = workerThread.getAttributes();
         if (holder == null) return null;
 
         return threadBufferAttribute.get(holder);
+    }
+
+    private ByteBufferWrapper incAllocated(ByteBufferWrapper allocated) {
+        if (isMonitoring) {
+            totalBytesAllocated.addAndGet(allocated.capacity());
+        }
+
+        return allocated;
     }
 
     private void setThreadBuffer(BufferInfo bufferInfo) {
@@ -163,9 +193,15 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
         if (bufferInfo != null &&
                 bufferInfo.lastAllocatedBuffer == underlyingBuffer) {
             bufferInfo.lastAllocatedBuffer = null;
-            ByteBuffer chunk = bufferInfo.buffer;
-            chunk.position(chunk.position() - underlyingBuffer.capacity());
+            if (bufferInfo.buffer != null) {
+                ByteBuffer chunk = bufferInfo.buffer;
+                chunk.position(chunk.position() - underlyingBuffer.capacity());
+            } else {
+                bufferInfo.buffer = underlyingBuffer;
+            }
+
             return true;
+
         }
 
         return false;
@@ -178,6 +214,13 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
     public class BufferInfo {
         public ByteBuffer buffer;
         public ByteBuffer lastAllocatedBuffer;
+
+        @Override
+        public String toString() {
+            return "(buffer=" + buffer + " lastAllocatedBuffer=" + lastAllocatedBuffer + ")";
+        }
+
+
     }
 
     public class TrimAwareWrapper extends ByteBufferWrapper {
@@ -189,26 +232,35 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
         @Override
         public void trim() {
-            if (isWorkerThread()) {
+            int sizeToReturn = visible.capacity() - visible.position();
+
+            BufferInfo bufferInfo;
+            
+            if (sizeToReturn > 0 && isWorkerThread() &&
+                    ((bufferInfo = getThreadBuffer()) == null
+                    || bufferInfo.lastAllocatedBuffer == visible)) {
                 visible.flip();
 
-                int sizeToReturn = visible.capacity() - visible.limit();
-                if (sizeToReturn > 0) {
-                    BufferInfo bufferInfo = getThreadBuffer();
-                    ByteBuffer originalByteBuffer = visible;
-                    visible = visible.slice();
-                    if (bufferInfo == null) {
-                        bufferInfo = new BufferInfo();
-                        bufferInfo.buffer = originalByteBuffer;
-                        bufferInfo.buffer.position(originalByteBuffer.limit());
-                        bufferInfo.buffer.limit(originalByteBuffer.capacity());
-                        bufferInfo.lastAllocatedBuffer = visible;
-                        setThreadBuffer(bufferInfo);
+                ByteBuffer originalByteBuffer = visible;
+                visible = visible.slice();
+                if (bufferInfo == null) {
+                    originalByteBuffer.position(originalByteBuffer.limit());
+                    originalByteBuffer.limit(originalByteBuffer.capacity());
+                    bufferInfo = new BufferInfo();
+                    bufferInfo.buffer = originalByteBuffer;
+                    bufferInfo.lastAllocatedBuffer = visible;
+                    setThreadBuffer(bufferInfo);
 
-                    } else if (bufferInfo.lastAllocatedBuffer == originalByteBuffer) {
+                } else if (bufferInfo.lastAllocatedBuffer == originalByteBuffer) {
+                    if (bufferInfo.buffer == null) {
+                        originalByteBuffer.position(originalByteBuffer.limit());
+                        originalByteBuffer.limit(originalByteBuffer.capacity());
+                        bufferInfo.buffer = originalByteBuffer;
+                    } else {
                         bufferInfo.buffer.position(
                                 bufferInfo.buffer.position() - sizeToReturn);
                     }
+                    bufferInfo.lastAllocatedBuffer = visible;
                 }
             } else {
                 super.trim();

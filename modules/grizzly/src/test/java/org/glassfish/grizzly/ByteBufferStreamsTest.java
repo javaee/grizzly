@@ -1050,7 +1050,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         try {
 
-            poisonLatch.await();
+            poisonLatch.await(10, TimeUnit.SECONDS);
             //give filterchain some time to finisch
             synchronized(Thread.currentThread()) {
               Thread.currentThread().wait(100);
@@ -1099,6 +1099,8 @@ public class ByteBufferStreamsTest extends TestCase {
                         e.printStackTrace();
                         poisonLatch.countDown();
                     }
+
+                    assertTrue(f.isDone());
 
                     if (reader.availableDataSize() < checker.byteSize()) {
                         return new StopAction();

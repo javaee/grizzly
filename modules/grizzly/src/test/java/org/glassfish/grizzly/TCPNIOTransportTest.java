@@ -51,6 +51,7 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.StopAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOStreamReader;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -64,6 +65,12 @@ import org.glassfish.grizzly.util.EchoFilter;
 public class TCPNIOTransportTest extends TestCase {
 
     public static final int PORT = 7777;
+
+    @Override
+    protected void setUp() throws Exception {
+        ByteBufferWrapper.DEBUG_MODE = true;
+    }
+
 
     public void testStartStop() throws IOException {
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();

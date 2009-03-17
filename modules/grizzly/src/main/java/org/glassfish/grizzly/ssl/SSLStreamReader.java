@@ -83,7 +83,7 @@ public class SSLStreamReader extends StreamReaderDecorator {
     }
 
     @Override
-    public synchronized boolean receiveData(Buffer buffer) {
+    public boolean receiveData(Buffer buffer) {
         if (buffer == null) return false;
         
         checkBuffers();

@@ -163,7 +163,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     protected volatile TemporarySelectorIO temporarySelectorIO;
     protected ProcessorExecutor sameThreadProcessorExecutor;
     protected ProcessorExecutor workerThreadProcessorExecutor;
-    private volatile Filter defaultTransportFilter;
+    private Filter defaultTransportFilter;
     protected RegisterChannelCompletionHandler registerChannelCompletionHandler;
     private EnableReadWritePostProcessor enablingReadWritePostProcessor;
     
@@ -177,6 +177,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
         asyncQueueIO = new AsyncQueueIO(new TCPNIOAsyncQueueReader(this),
                 new TCPNIOAsyncQueueWriter(this));
+        defaultTransportFilter = new TCPNIOTransportFilter(this);
     }
 
     protected TCPNIOTransport(String name) {
@@ -587,14 +588,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     public Filter getDefaultTransportFilter() {
-        if (defaultTransportFilter == null) {
-            synchronized (this) {
-                if (defaultTransportFilter == null) {
-                    defaultTransportFilter = new TCPNIOTransportFilter(this);
-                }
-            }
-        }
-
         return defaultTransportFilter;
     }
 
@@ -715,14 +708,8 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         TCPNIOAsyncQueueReader asyncQueueReader =
                 (TCPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
 
-        if (asyncQueueReader != null) {
+        if (asyncQueueReader != null && asyncQueueReader.isReady(connection)) {
             disabeReadWriteInterests(connection, ioEvent);
-            if (!asyncQueueReader.isReady(connection)) {
-                executeDefaultReadWriteProcessor(ioEvent, connection);
-                return;
-            }
-            
-                
             executeProcessor(ioEvent, connection, asyncQueueReader, null, null);
         } else {
             executeDefaultReadWriteProcessor(ioEvent, connection);
@@ -745,9 +732,10 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
     private void executeDefaultReadWriteProcessor(IOEvent ioEvent,
             TCPNIOConnection connection) throws IOException {
+        
+        disabeReadWriteInterests(connection, ioEvent);
         Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
-            disabeReadWriteInterests(connection, ioEvent);
             executeProcessor(ioEvent, connection, conProcessor, null,
                     enablingReadWritePostProcessor);
         }

@@ -49,9 +49,13 @@ import org.glassfish.grizzly.Buffer;
  * @author oleksiys
  */
 public class ByteBufferWrapper implements Buffer<ByteBuffer> {
+    public static boolean DEBUG_MODE = false;
+
     protected ByteBufferManager memoryManager;
     
     protected ByteBuffer visible;
+
+    private Exception disposeStackTrace;
 
     protected ByteBufferWrapper() {
         this(null, null);
@@ -78,6 +82,10 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         memoryManager.release(this);
         memoryManager = null;
         visible = null;
+
+        if (DEBUG_MODE) {
+            disposeStackTrace = new Exception("ByteBufferWrapper was disposed from: ");
+        }
     }
 
     public ByteBuffer underlying() {
@@ -352,7 +360,9 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
 
     private void checkDispose() {
         if (visible == null) {
-            throw new IllegalStateException("BufferWrapper has already been disposed") ;
+            throw new IllegalStateException(
+                    "BufferWrapper has already been disposed",
+                    disposeStackTrace) ;
         }
     }
 

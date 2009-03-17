@@ -65,16 +65,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         super(connection);
     }
 
-    @Override
-    public synchronized boolean receiveData(final Buffer buffer) {
-        return receiveDataAsync(buffer);
-    }
-
-    public boolean receiveDataAsync(final Buffer buffer) {
-        return super.receiveData(buffer);
-    }
-
-    public synchronized Future notifyCondition(Condition<StreamReader> condition,
+    public Future notifyCondition(Condition<StreamReader> condition,
             CompletionHandler completionHandler) {
 
         if (notifyObject != null) {
@@ -186,6 +177,8 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                         if (readBytes == -1) {
                             throw new EOFException();
                         }
+                        
+                        buffer.dispose();
                         buffer = null;
                     } else {
                         buffer.trim();

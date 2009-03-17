@@ -62,20 +62,20 @@ public class FilterAdapter implements Filter {
     public final NextAction execute(FilterChainContext ctx, 
             NextAction nextAction) throws IOException {
         IOEvent ioEvent = ctx.getIoEvent();
-        switch (ioEvent) {
-            case READ :
-                return handleRead(ctx, nextAction);
-            case WRITE :
-                return handleWrite(ctx, nextAction);
-            case ACCEPTED :
-                return handleAccept(ctx, nextAction);
-            case CONNECTED :
-                return handleConnect(ctx, nextAction);
-            case CLOSED :
-                return handleClose(ctx, nextAction);
-            default :
-                throw new UnsupportedOperationException(
-                        "Unexpected I/O event: " + ioEvent);
+
+        if (ioEvent == IOEvent.READ) {
+            return handleRead(ctx, nextAction);
+        } else if (ioEvent == IOEvent.WRITE) {
+            return handleWrite(ctx, nextAction);
+        } else if (ioEvent == IOEvent.ACCEPTED) {
+            return handleAccept(ctx, nextAction);
+        } else if (ioEvent == IOEvent.CONNECTED) {
+            return handleConnect(ctx, nextAction);
+        } else if (ioEvent == IOEvent.CLOSED) {
+            return handleClose(ctx, nextAction);
+        } else {
+            throw new UnsupportedOperationException(
+                    "Unexpected I/O event: " + ioEvent);
         }
     }
 
@@ -85,20 +85,20 @@ public class FilterAdapter implements Filter {
     public final NextAction postExecute(FilterChainContext ctx, 
             NextAction nextAction) throws IOException {
         IOEvent ioEvent = ctx.getIoEvent();
-        switch (ioEvent) {
-            case READ :
-                return postRead(ctx, nextAction);
-            case WRITE :
-                return postWrite(ctx, nextAction);
-            case ACCEPTED :
-                return postAccept(ctx, nextAction);
-            case CONNECTED :
-                return postWrite(ctx, nextAction);
-            case CLOSED :
-                return postClose(ctx, nextAction);
-            default :
-                throw new UnsupportedOperationException(
-                        "Unexpected I/O event: " + ioEvent);
+
+        if (ioEvent == IOEvent.READ) {
+            return postRead(ctx, nextAction);
+        } else if (ioEvent == IOEvent.WRITE) {
+            return postWrite(ctx, nextAction);
+        } else if (ioEvent == IOEvent.ACCEPTED) {
+            return postAccept(ctx, nextAction);
+        } else if (ioEvent == IOEvent.CONNECTED) {
+            return postConnect(ctx, nextAction);
+        } else if (ioEvent == IOEvent.CLOSED) {
+            return postClose(ctx, nextAction);
+        } else {
+            throw new UnsupportedOperationException(
+                    "Unexpected I/O event: " + ioEvent);
         }
     }
 

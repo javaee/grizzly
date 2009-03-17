@@ -56,23 +56,9 @@ public class TCPNIOTransportFilter extends FilterAdapter {
 
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     private TCPNIOTransport transport;
-    private int defaultBufferSize;
 
     TCPNIOTransportFilter(TCPNIOTransport transport) {
-        this(transport, DEFAULT_BUFFER_SIZE);
-    }
-
-    TCPNIOTransportFilter(TCPNIOTransport transport, int defaultBufferSize) {
         this.transport = transport;
-        this.defaultBufferSize = defaultBufferSize;
-    }
-
-    public int getDefaultBufferSize() {
-        return defaultBufferSize;
-    }
-
-    public void setDefaultBufferSize(int defaultBufferSize) {
-        this.defaultBufferSize = defaultBufferSize;
     }
 
     @Override
@@ -84,7 +70,7 @@ public class TCPNIOTransportFilter extends FilterAdapter {
         TCPNIOStreamReader reader =
                 (TCPNIOStreamReader) connection.getStreamReader();
         Buffer buffer = reader.read0();
-        reader.receiveDataAsync(buffer);
+        reader.receiveData(buffer);
 
         if (reader.availableDataSize() > 0) {
             ctx.setStreamReader(connection.getStreamReader());
@@ -100,7 +86,6 @@ public class TCPNIOTransportFilter extends FilterAdapter {
     public NextAction postRead(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
 
-        freeBuffers(ctx);
         return nextAction;
     }
 
@@ -133,10 +118,5 @@ public class TCPNIOTransportFilter extends FilterAdapter {
             } catch (IOException e) {
             }
         }
-
-        freeBuffers(ctx);
-    }
-
-    protected void freeBuffers(FilterChainContext ctx) {
     }
 }

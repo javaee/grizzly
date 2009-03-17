@@ -131,7 +131,6 @@ public class FilterChainContext extends Context {
 
     @Override
     public void release() {
-        super.release();
         currentFilter = null;
         messageHolder.setAddress(null);
         messageHolder.setMessage(null);
@@ -139,6 +138,7 @@ public class FilterChainContext extends Context {
         streamWriter = null;
         executedFilters.clear();
         nextFiltersList.clear();
+        super.release();
     }
 
     @Override
