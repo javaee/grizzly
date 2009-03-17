@@ -8,7 +8,7 @@
     <version>1.0-SNAPSHOT</version>
 
     <properties>
-        <grizzly.version>1.9.10-SNAPSHOT</grizzly.version>
+        <grizzly.version>1.9.11-SNAPSHOT</grizzly.version>
         <felix.version>1.4.3</felix.version>
         <pax.version>1.4</pax.version>
         <org.osgi.service.http.port>8080</org.osgi.service.http.port>
