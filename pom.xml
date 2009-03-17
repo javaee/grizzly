@@ -57,6 +57,42 @@
         <name>SUN Microsystems</name>
         <url>http://www.sun.com</url>
     </organization>
+    <repositories>
+        <repository>
+            <id>java.net</id>
+            <name>Java.net Repository for Grizzly</name>
+            <url>http://download.java.net/maven/2</url>
+        </repository>
+        <repository>
+            <id>maven-repository.dev.java.net</id>
+            <name>Java.net Maven 1 Repository (legacy)</name>
+            <url>http://download.java.net/maven/1</url>
+            <layout>legacy</layout>
+        </repository>
+        <repository>
+            <id>java.net</id>
+            <name>maven-repository.dev.java.net</name>
+            <url>https://maven-repository.dev.java.net/nonav/repository/</url>
+            <layout>legacy</layout>
+        </repository>
+        <repository>
+            <id>codehaus</id>
+            <name>repository.codehaus.org</name>
+            <url>http://repository.codehaus.org</url>
+        </repository>
+        <repository>
+            <id>glassfish-maven2-repository.dev.java.net</id>
+            <name>Java.net Maven 2 Repository for GlassFish</name>
+            <url>http://download.java.net/maven/glassfish/</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>glassfish</id>
+            <url>http://download.java.net/maven/2/</url>
+        </pluginRepository>
+    </pluginRepositories>
     <build>
         <sourceDirectory>src/main/java</sourceDirectory>
         <scriptSourceDirectory>src/main/scripts</scriptSourceDirectory>
@@ -93,12 +129,22 @@
         </testResources>
         <directory>target</directory>
         <finalName>${artifactId}-${version}</finalName>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
+                    <artifactId>maven-antrun-extended-plugin</artifactId>
+                    <version>1.36</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>1.5</source>
                     <target>1.5</target>
+                    <compilerArgument>${maven.compiler.argument}</compilerArgument>
                 </configuration>
             </plugin>
             <plugin>
@@ -123,32 +169,6 @@
                     </archive>
                 </configuration>
             </plugin>
-            
-            <plugin>
-                <inherited>true</inherited>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-source-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-sources</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>attach-javadocs</id>
-                        <goals>
-                            <goal>jar</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
 <!--            <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cobertura-maven-plugin</artifactId>
@@ -160,11 +180,47 @@
             </plugin>-->
         </plugins>
     </build>
+    <profiles>
+        <profile>
+            <id>release-profile</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <inherited>true</inherited>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <configuration>
+                            <aggregate>true</aggregate>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals>
+                                    <goal>jar</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
     <modules>
         <module>modules/</module>
         <module>samples/</module>
-    </modules>
-    
+    </modules>    
     <reporting>
         <outputDirectory>target/site</outputDirectory>
         <plugins>
@@ -202,6 +258,15 @@
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>cobertura-maven-plugin</artifactId>
             </plugin> -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>findbugs-maven-plugin</artifactId>
+                <version>1.2</version>
+                <configuration>
+                    <xmlOutput>true</xmlOutput>
+                    <xmlOutputDirectory>${project.reporting.outputDirectory}</xmlOutputDirectory>
+                </configuration>
+            </plugin>
         </plugins>
     </reporting>
     <dependencyManagement>
@@ -214,28 +279,10 @@
             <dependency>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>1.4.0</version>
+                <version>${felix-version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>  
-    <repositories>
-        <repository>
-            <id>maven2.java.net</id>
-            <name>Java.net Repository for Maven 2</name>
-            <url>http://download.java.net/maven/2</url>
-        </repository>
-        <repository>
-            <id>java.net</id>
-            <name>maven-repository.dev.java.net</name>
-            <url>https://maven-repository.dev.java.net/nonav/repository/</url>
-            <layout>legacy</layout>
-        </repository>
-        <repository>
-            <id>codehaus</id>
-            <name>repository.codehaus.org</name>
-            <url>http://repository.codehaus.org</url>
-        </repository>
-    </repositories>
     <distributionManagement>
         <repository>
             <id>java.net-m2-repository</id>
@@ -253,10 +300,9 @@
     <properties>
         <grizzly-version>2.0.0-SNAPSHOT</grizzly-version>
         <grizzly-released-version>1.8.5</grizzly-released-version>
-        <felix-version>1.4.3</felix-version>
         <junit-version>3.8.1</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
+        <felix-version>1.4.3</felix-version>
     </properties>
 </project>
-
