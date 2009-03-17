@@ -75,7 +75,7 @@ public class HttpServiceImpl implements HttpService {
      * {@inheritDoc}
      */
     public HttpContext createDefaultHttpContext() {
-        return new HttpContextImpl(bundle);
+        return new HttpContextImpl(bundle,logger);
     }
 
     /**
