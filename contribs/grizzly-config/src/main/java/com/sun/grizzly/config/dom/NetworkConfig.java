@@ -39,6 +39,7 @@ package com.sun.grizzly.config.dom;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
 
 /**
@@ -70,4 +71,20 @@ public interface NetworkConfig extends ConfigBeanProxy, Injectable, PropertyBag 
     NetworkListeners getNetworkListeners();
 
     void setNetworkListeners(NetworkListeners value);
+
+    @DuckTyped
+    NetworkListener getNetworkListener(String name);
+
+    class Duck {
+        public static NetworkListener getNetworkListener(final NetworkConfig config, String name) {
+            if (name != null) {
+                for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
+                    if (listener.getName().equals(name)) {
+                        return listener;
+                    }
+                }
+            }
+            return null;
+        }
+    }
 }

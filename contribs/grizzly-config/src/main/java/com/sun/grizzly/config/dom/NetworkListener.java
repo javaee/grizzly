@@ -40,6 +40,7 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 
 /**
  * Binds protocol to a specific endpoint to listen on
@@ -78,6 +79,9 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setPort(String value);
 
+    @DuckTyped
+    Protocol findProtocol();
+
     /**
      * Reference to a protocol
      */
@@ -85,6 +89,9 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     String getProtocol();
 
     void setProtocol(String value);
+
+    @DuckTyped
+    ThreadPool findThreadPool();
 
     /**
      * Reference to a thread-pool, defined earlier in the document.
@@ -94,6 +101,9 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setThreadPool(String value);
 
+    @DuckTyped
+    Transport findTransport();
+
     /**
      * Reference to a low-level transport
      */
@@ -101,4 +111,39 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     String getTransport();
 
     void setTransport(String value);
+
+    class Duck {
+        public static Protocol findProtocol(final NetworkListener listener) {
+            String name = listener.getProtocol();
+            final NetworkConfig networkConfig = listener.getParent().getParent(NetworkConfig.class);
+            for (final Protocol protocol : networkConfig.getProtocols().getProtocol()) {
+                if (protocol.getName().equals(name)) {
+                    return protocol;
+                }
+            }
+            return null;
+        }
+
+        public static ThreadPool findThreadpool(final NetworkListener listener) {
+            final String name = listener.getThreadPool();
+            final NetworkListeners listeners = listener.getParent(NetworkListeners.class);
+            for (final ThreadPool threadPool : listeners.getThreadPool()) {
+                if (threadPool.getThreadPoolId().equals(name)) {
+                    return threadPool;
+                }
+            }
+            return null;
+        }
+
+        public static Transport findTransport(final NetworkListener listener) {
+            final String name = listener.getTransport();
+            final NetworkConfig networkConfig = listener.getParent().getParent(NetworkConfig.class);
+            for (final Transport transport : networkConfig.getTransports().getTransport()) {
+                if (transport.getName().equals(name)) {
+                    return transport;
+                }
+            }
+            return null;
+        }
+    }
 }

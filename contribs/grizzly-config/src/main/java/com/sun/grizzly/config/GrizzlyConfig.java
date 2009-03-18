@@ -39,6 +39,7 @@ package com.sun.grizzly.config;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.util.LoggerUtils;
 import org.jvnet.hk2.component.Habitat;
 
@@ -67,7 +68,7 @@ public class GrizzlyConfig {
     public void setupNetwork() throws IOException, InstantiationException {
         for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
             final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(controller);
-            grizzlyListener.configure(config, listener, true, habitat);
+            grizzlyListener.configure(listener, true, habitat);
 
             final Thread thread = new Thread(new ListenerRunnable(grizzlyListener));
             thread.setDaemon(true);
@@ -99,5 +100,10 @@ public class GrizzlyConfig {
                 throw new RuntimeException(e.getMessage());
             }
         }
+    }
+
+    public static Protocol getProtocol(NetworkListener listener) {
+
+        return null;
     }
 }

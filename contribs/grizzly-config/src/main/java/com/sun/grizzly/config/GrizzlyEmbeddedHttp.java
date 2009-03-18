@@ -30,9 +30,7 @@ import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.config.dom.FileCache;
 import com.sun.grizzly.config.dom.Http;
-import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
-import com.sun.grizzly.config.dom.NetworkListeners;
 import com.sun.grizzly.config.dom.Property;
 import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.Ssl;
@@ -252,12 +250,11 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         isHttpSecured = httpSecured;
     }
 
-    public void configure(boolean isWebProfile, NetworkConfig networkConfig, NetworkListener networkListener,
-                          Habitat habitat) {
-        final Protocol httpProtocol = findProtocol(networkConfig, networkListener.getProtocol());
+    public void configure(boolean isWebProfile, NetworkListener networkListener, Habitat habitat) {
+        final Protocol httpProtocol = networkListener.findProtocol();
         final Http http = httpProtocol.getHttp();
-        final Transport transport = findTransport(networkConfig, networkListener.getTransport());
-        final ThreadPool pool = findThreadpool(networkConfig.getNetworkListeners(), networkListener.getThreadPool());
+        final Transport transport = networkListener.findTransport();
+        final ThreadPool pool = networkListener.findThreadPool();
 
         configureNetworkingProperties(http, transport, httpProtocol.getSsl());
         configureKeepAlive(http);
@@ -511,34 +508,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                 || "on".equals(v)
                 || "1".equals(v);
     }
-
-    static Protocol findProtocol(final NetworkConfig networkConfig, final String name) {
-        for (final Protocol protocol : networkConfig.getProtocols().getProtocol()) {
-            if (protocol.getName().equals(name)) {
-                return protocol;
-            }
-        }
-        return null;
-    }
-
-    static ThreadPool findThreadpool(final NetworkListeners networkConfig, final String name) {
-        for (final ThreadPool threadPool : networkConfig.getThreadPool()) {
-            if (threadPool.getThreadPoolId().equals(name)) {
-                return threadPool;
-            }
-        }
-        return null;
-    }
-
-    static Transport findTransport(final NetworkConfig networkConfig, final String name) {
-        for (final Transport transport : networkConfig.getTransports().getTransport()) {
-            if (transport.getName().equals(name)) {
-                return transport;
-            }
-        }
-        return null;
-    }
-
 
     public String getDefaultVirtualServer() {
         return defaultVirtualServer;

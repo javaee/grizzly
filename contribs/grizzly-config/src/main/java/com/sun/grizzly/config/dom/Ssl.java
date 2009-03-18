@@ -59,7 +59,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Determines whether SSL3 client authentication is performed on every request, independent of ACL-based access
      * control.
      */
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getClientAuthEnabled();
 
     void setClientAuthEnabled(String value);
@@ -99,7 +99,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * this element is used as a child of the iiop-listener element then the only allowed value for this attribute is
      * "false".
      */
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getSsl2Enabled();
 
     void setSsl2Enabled(String value);
@@ -108,7 +108,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Determines whether SSL3 is enabled. If both SSL2 and SSL3 are enabled for a virtual server, the server tries SSL3
      * encryption first. If that fails, the server tries SSL2 encryption.
      */
-    @Attribute(defaultValue = "true")
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getSsl3Enabled();
 
     void setSsl3Enabled(String value);
@@ -127,7 +127,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Determines whether TLS is enabled.
      */
-    @Attribute(defaultValue = "true")
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getTlsEnabled();
 
     void setTlsEnabled(String value);
@@ -136,7 +136,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Determines whether TLS rollback is enabled. TLS rollback should be enabled for Microsoft Internet Explorer 5.0
      * and 5.5. NOT Used in PE
      */
-    @Attribute(defaultValue = "true")
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getTlsRollbackEnabled();
 
     void setTlsRollbackEnabled(String value);
