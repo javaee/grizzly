@@ -68,9 +68,8 @@ public class DataHandler implements CometHandler<Object[]>{
     private CometdRequest req;    
     
     private CometdResponse res; 
-
-    //removed due to not used, and would need to be weak reference if its re added
-   // private String clientId;
+   
+    private String clientId;
    
     private Collection<String> channels = new LinkedTransferQueue<String>();
 
@@ -173,13 +172,13 @@ public class DataHandler implements CometHandler<Object[]>{
         return channels.remove(channel);
     }
 
-   /* public String getClientId() {
+    public String getClientId() {
         return clientId;
     }
 
     public void setClientId(String clientId) {
         this.clientId = clientId;
-    }*/
+    }
 
     public boolean isSuspended() {
         return isSuspended;

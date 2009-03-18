@@ -61,14 +61,15 @@ import com.sun.grizzly.cometd.bayeux.UnsubscribeResponse;
 import com.sun.grizzly.cometd.bayeux.VerbBase;
 import com.sun.grizzly.cometd.bayeux.Verb.Type.*;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.util.ConcurrentReferenceHashMap;
 import com.sun.grizzly.util.LinkedTransferQueue;
+
 import com.sun.grizzly.util.buf.Base64Utils;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.AbstractQueue;
 import java.util.Map.Entry;
 import java.util.logging.Level;
@@ -102,21 +103,17 @@ public class BayeuxParser{
 
     private final SecureRandom random = new SecureRandom();
 
-    private final ConcurrentReferenceHashMap<String,AbstractQueue<String>> inactiveChannels
-            = new ConcurrentReferenceHashMap<String,AbstractQueue<String>>(16, 0.75f,64,
-            ConcurrentReferenceHashMap.ReferenceType.SOFT,ConcurrentReferenceHashMap.ReferenceType.STRONG,null);
+    private final ConcurrentHashMap<String,AbstractQueue<String>> inactiveChannels
+            = new ConcurrentHashMap<String,AbstractQueue<String>>(16, 0.75f, 64);
     
-    private final ConcurrentReferenceHashMap<String,Boolean> authenticatedUsers
-            = new ConcurrentReferenceHashMap<String,Boolean>(16, 0.75f, 64,
-            ConcurrentReferenceHashMap.ReferenceType.SOFT,ConcurrentReferenceHashMap.ReferenceType.STRONG,null);
+    private final ConcurrentHashMap<String,Boolean> authenticatedUsers
+            = new ConcurrentHashMap<String,Boolean>(16, 0.75f, 64);
     
-    private final ConcurrentReferenceHashMap<String,CometContext> activeCometContexts =
-            new ConcurrentReferenceHashMap<String,CometContext>(16, 0.75f, 64,
-            ConcurrentReferenceHashMap.ReferenceType.WEAK,ConcurrentReferenceHashMap.ReferenceType.STRONG,null);
+    private final ConcurrentHashMap<String,CometContext> activeCometContexts =
+            new ConcurrentHashMap<String,CometContext>(16, 0.75f, 64);
     
-    private final ConcurrentReferenceHashMap<String,DataHandler> activeCometHandlers =
-            new ConcurrentReferenceHashMap<String,DataHandler>(16, 0.75f, 64,
-            ConcurrentReferenceHashMap.ReferenceType.SOFT,ConcurrentReferenceHashMap.ReferenceType.STRONG,null);
+    private final ConcurrentHashMap<String,DataHandler> activeCometHandlers =
+            new ConcurrentHashMap<String,DataHandler>(16, 0.75f, 64);
 
     private final ThreadLocal<Set<String>> deliverInChannels =
         new ThreadLocal<Set<String>>() {
@@ -278,7 +275,7 @@ public class BayeuxParser{
             DataHandler dataHandler = activeCometHandlers.get(clientId);
             if (dataHandler == null) {
                 dataHandler = new DataHandler(this);
-               // dataHandler.setClientId(clientId);
+                dataHandler.setClientId(clientId);
                 activeCometHandlers.put(clientId, dataHandler);
             }
 
