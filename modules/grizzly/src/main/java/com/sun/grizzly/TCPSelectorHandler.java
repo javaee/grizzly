@@ -60,7 +60,6 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.CancelledKeyException;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -69,7 +68,6 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -582,18 +580,20 @@ public class TCPSelectorHandler implements SelectorHandler {
 
         if (selector != null) {
             try {
-                for (SelectionKey selectionKey : selector.keys()) {
-                    selectionKeyHandler.close(selectionKey);
+                boolean isContinue = true;
+                while(isContinue) {
+                    try {
+                        for(SelectionKey selectionKey : selector.keys()) {
+                            selectionKeyHandler.close(selectionKey);
+                        }
+                        
+                        isContinue = false;
+                    } catch (ConcurrentModificationException e) {
+                        // ignore
+                    }
                 }
             } catch (ClosedSelectorException e) {
                 // If Selector is already closed - OK
-            } catch (ConcurrentModificationException e) {
-                // Someone else works with keys. Create copy
-                Object[] keys = selector.keys().toArray();
-                for (Object selectionKey : keys) {
-                    selectionKeyHandler.close((SelectionKey) selectionKey);
-                }
-
             }
         }
 
