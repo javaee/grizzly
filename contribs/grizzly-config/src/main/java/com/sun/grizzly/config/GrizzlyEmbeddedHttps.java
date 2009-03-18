@@ -26,7 +26,6 @@ import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.TCPSelectorHandler;
-import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.Ssl;
@@ -91,9 +90,9 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     // ---------------------------------------------------------------------/.
 
     @Override
-    public void configure(boolean isWebProfile, NetworkConfig networkConfig, NetworkListener networkListener, Habitat habitat) {
-        super.configure(isWebProfile, networkConfig, networkListener, habitat);
-        configureSSL(findProtocol(networkConfig, networkListener.getProtocol()));
+    public void configure(boolean isWebProfile, NetworkListener networkListener, Habitat habitat) {
+        super.configure(isWebProfile, networkListener, habitat);
+        configureSSL(networkListener.findProtocol());
     }
 
     /**

@@ -73,7 +73,7 @@ public class GrizzlyMappingAdapter extends StaticResourcesAdapter {
      *
      * @param defaultHost
      */
-    protected void setDefaultHost(final String defaultHost) {
+    public void setDefaultHost(final String defaultHost) {
         defaultHostName = defaultHost;
     }
 
@@ -82,14 +82,14 @@ public class GrizzlyMappingAdapter extends StaticResourcesAdapter {
      *
      * @param mapper
      */
-    protected void setMapper(final ContextMapper mapper) {
+    public void setMapper(final ContextMapper mapper) {
         this.mapper = mapper;
     }
 
     /**
      * Configure the {@link Mapper}.
      */
-    protected synchronized void configureMapper() {
+    public synchronized void configureMapper() {
         mapper.setDefaultHostName(defaultHostName);
         // Container deployed have the right to override the default setting.
         Mapper.setAllowReplacement(true);
