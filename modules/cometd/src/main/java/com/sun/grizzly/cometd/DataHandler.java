@@ -67,9 +67,7 @@ public class DataHandler implements CometHandler<Object[]>{
     
     private CometdRequest req;    
     
-    private CometdResponse res; 
-   
-    private String clientId;
+    private CometdResponse res;    
    
     private Collection<String> channels = new LinkedTransferQueue<String>();
 
@@ -170,14 +168,6 @@ public class DataHandler implements CometHandler<Object[]>{
     public synchronized boolean removeChannel(String channel) {
         unmodifiableChannels = null;
         return channels.remove(channel);
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
     }
 
     public boolean isSuspended() {
