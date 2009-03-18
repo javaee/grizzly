@@ -37,7 +37,6 @@
  */
 package com.sun.grizzly.osgi.httpservice;
 
-import com.sun.grizzly.osgi.httpservice.util.Logger;
 import org.osgi.service.http.HttpContext;
 import org.osgi.framework.Bundle;
 
@@ -56,11 +55,9 @@ import java.net.URL;
 public class HttpContextImpl implements HttpContext {
 
     private final Bundle bundle;
-    private final Logger logger;
 
-    public HttpContextImpl(Bundle bundle,Logger logger) {
+    public HttpContextImpl(Bundle bundle) {
         this.bundle = bundle;
-        this.logger = logger;
     }
 
     /** {@inheritDoc} */
@@ -68,8 +65,6 @@ public class HttpContextImpl implements HttpContext {
             HttpServletRequest httpServletRequest,
             HttpServletResponse httpServletResponse) throws IOException {
         // By default we allow all :)
-        logger.warn("HttpService OSGi support not supported, allowing all. " +
-                "See Grizzly Issue 490");
         return true;
     }
 
