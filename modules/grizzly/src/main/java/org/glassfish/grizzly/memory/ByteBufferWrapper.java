@@ -334,7 +334,7 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("ByteBufferWrapper [");
+        StringBuilder sb = new StringBuilder("ByteBufferWrapper " + super.hashCode() + "[");
         sb.append("visible=[").append(visible).append(']');
         sb.append(']');
         return sb.toString();

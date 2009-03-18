@@ -38,27 +38,17 @@
 
 package org.glassfish.grizzly;
 
+import java.io.IOException;
+
 /**
- * <tt>ProcessorExecutorSelector</tt> is responsible for selecting an
- * appropriate {@link ProcessorExecutor}, which will execute a {@link Processor}
- * to process an occurred {@link IOEvent}.
- * <tt>ProcessorExecutorSelector</tt> basically can choose whether a
- * {@link Processor} will be run in a current, worker thread, or any other
- * cutstom thread.
  *
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public interface ProcessorExecutorSelector {
-    /**
-     * Gets the {@link ProcessorExecutor}, which will run the {@link Processor}
-     * to process the {@link IOEvent}, which occurred on the {@link Connection}.
-     *
-     * @param ioEvent I/O event, occurred on the connection
-     * @param connection {@link Connection}
-     * @param processor {@link Processor} to process the event
-     * 
-     * @return {@link ProcessorExecutor}
-     */
-    public ProcessorExecutor getProcessorExecutor(IOEvent ioEvent,
-            Connection connection, Processor processor);
+public interface Strategy<E> {
+    public E prepare(Connection connection, IOEvent ioEvent);
+    
+    public void executeProcessor(E strategyContext, Context processorContext)
+            throws IOException;
+
+    public boolean isTerminateThread(E strategyContext);
 }

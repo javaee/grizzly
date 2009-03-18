@@ -38,6 +38,7 @@
 
 package org.glassfish.grizzly.nio;
 
+import org.glassfish.grizzly.Strategy;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
@@ -51,8 +52,8 @@ import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
@@ -73,7 +74,7 @@ public class SelectorRunner implements Runnable {
     private LinkedTransferQueue pendingOperations;
     private Selector selector;
     private Thread selectorRunnerThread;
-    
+
     public SelectorRunner(NIOTransport transport) {
         this(transport, null);
     }
@@ -108,6 +109,11 @@ public class SelectorRunner implements Runnable {
         return stateHolder.getState();
     }
     
+    public void postpone() {
+        selectorRunnerThread = null;
+        isResume = true;
+    }
+
     public void start() {
         if (stateHolder.getState() != State.STOP) {
             Grizzly.logger.log(Level.WARNING,
@@ -140,16 +146,20 @@ public class SelectorRunner implements Runnable {
     
     public void run() {
         selectorRunnerThread = Thread.currentThread();
+        if (!isResume) {
         selectorRunnerThread.setName(selectorRunnerThread.getName() +
                 " SelectorRunner");
 
         stateHolder.setState(State.START);
+        }
         StateHolder<State> transportStateHolder = transport.getState();
+
+        boolean isSkipping = false;
         
         try {
-            while (!isStop(false)) {
+            while (!isSkipping && !isStop(false)) {
                 if (transportStateHolder.getState(false) != State.PAUSE) {
-                    doSelect();
+                    isSkipping = !doSelect();
                 } else {
                     try {
                         waitUntilStateEqual(transportStateHolder, State.PAUSE,
@@ -159,11 +169,25 @@ public class SelectorRunner implements Runnable {
                 }
             }
         } finally {
-            stateHolder.setState(State.STOP);
-            selectorRunnerThread = null;
+            if (!isSkipping) {
+                stateHolder.setState(State.STOP);
+                selectorRunnerThread = null;
+            }
         }
     }
     
+    boolean isResume;
+
+    SelectorHandler selectorHandler;
+    SelectionKeyHandler selectionKeyHandler;
+    Strategy strategy;
+    
+    ArrayList<IOEvent> ioEventsChain = new ArrayList<IOEvent>();
+    SelectionKey key = null;
+    Set<SelectionKey> readyKeys;
+    Iterator<SelectionKey> iterator;
+    int selectorState;
+
     /**
      * This method handle the processing of all Selector's interest op
      * (OP_ACCEPT,OP_READ,OP_WRITE,OP_CONNECT) by delegating to its Handler.
@@ -173,19 +197,20 @@ public class SelectorRunner implements Runnable {
      * by InstanceHandler.
      * @param selectorHandler - the <code>SelectorHandler</code>
      */
-    protected void doSelect() {
-        Collection<IOEvent> ioEventsChain = new ArrayList<IOEvent>();
-        
-        SelectorHandler selectorHandler = transport.getSelectorHandler();
-        SelectionKeyHandler selectionKeyHandler =
-                transport.getSelectionKeyHandler();
-        
-        SelectionKey key = null;
-        Set<SelectionKey> readyKeys;
-        Iterator<SelectionKey> iterator;
-        int selectorState;
+    protected boolean doSelect() {
+        selectorHandler = transport.getSelectorHandler();
+        selectionKeyHandler = transport.getSelectionKeyHandler();
+        strategy = transport.getStrategy();
         
         try {
+
+            if (isResume) {
+                // If resume SelectorRunner - finish postponed keys
+                isResume = false;
+                if (!iterateKeyEvents(ioEventsChain)) return false;
+                if (!iterateKeys()) return false;
+            }
+
             selectorState = 0;
             
             selectorHandler.preSelect(this);
@@ -195,43 +220,9 @@ public class SelectorRunner implements Runnable {
             
             if (selectorState != 0) {
                 iterator = readyKeys.iterator();
-                while (iterator.hasNext()) {
-                    try {
-                        key = iterator.next();
-                        iterator.remove();
-                        if (key.isValid()) {
-                            Collection<IOEvent> execIoEventsChain =
-                                    selectionKeyHandler.onKeyEvent(key,
-                                    ioEventsChain);
-                            Connection connection =
-                                    selectionKeyHandler.getConnectionForKey(key);
-                            
-                            if (execIoEventsChain != null) {
-                                for(IOEvent ioEvent : execIoEventsChain) {
-                                    transport.fireIOEvent(ioEvent, connection);
-                                }
-                            }
-                        } else {
-                            selectionKeyHandler.cancel(key);
-                        }
-                    } catch (IOException e) {
-                        notifyConnectionException(key, 
-                                "Unexpected IOException. Channel " + 
-                                    key.channel() + " will be closed.", e, 
-                                    Severity.CONNECTION, Level.WARNING,
-                                    Level.FINE);
-                    } catch (CancelledKeyException e) {
-                        notifyConnectionException(key, 
-                                "Unexpected CancelledKeyException. Channel " + 
-                                    key.channel() + " will be closed.", e, 
-                                    Severity.CONNECTION, Level.WARNING,
-                                    Level.FINE);
-                    } finally {
-                        ioEventsChain.clear();
-                    }
-                }
+                if (!iterateKeys()) return false;
             }
-            
+
             selectorHandler.postSelect(this);
         } catch (ClosedSelectorException e) {
             notifyConnectionException(key,
@@ -245,6 +236,49 @@ public class SelectorRunner implements Runnable {
             logger.log(Level.SEVERE,"doSelect exception", t);
             transport.notifyException(Severity.FATAL, t);
         }
+
+        return true;
+    }
+
+    private boolean iterateKeys() {
+        while (iterator.hasNext()) {
+            try {
+                key = iterator.next();
+                iterator.remove();
+                if (key.isValid()) {
+                    List<IOEvent> execIoEventsChain =
+                            selectionKeyHandler.onKeyEvent(key, ioEventsChain);
+                    
+                    if (!iterateKeyEvents(execIoEventsChain)) return false;
+                } else {
+                    selectionKeyHandler.cancel(key);
+                }
+                
+                ioEventsChain.clear();
+            } catch (IOException e) {
+                ioEventsChain.clear();
+                notifyConnectionException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Severity.CONNECTION, Level.WARNING, Level.FINE);
+            } catch (CancelledKeyException e) {
+                ioEventsChain.clear();
+                notifyConnectionException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Severity.CONNECTION, Level.WARNING, Level.FINE);
+            }
+        }
+        return true;
+    }
+
+
+    private boolean iterateKeyEvents(List<IOEvent> execIoEventsChain)
+            throws IOException {
+        Connection connection = selectionKeyHandler.getConnectionForKey(key);
+        if (execIoEventsChain != null) {
+            for (int i = execIoEventsChain.size() - 1; i >= 0; i--) {
+                IOEvent ioEvent = execIoEventsChain.remove(i);
+                Object context = strategy.prepare(connection, ioEvent);
+                transport.fireIOEvent(ioEvent, connection, context);
+                return !strategy.isTerminateThread(context);
+            }
+        }
+        return true;
     }
 
     public LinkedTransferQueue getPendingOperations() {
@@ -317,7 +351,7 @@ public class SelectorRunner implements Runnable {
             throw new TimeoutException();
         }
     }
-    
+
     /**
      * Notify transport about the {@link Exception} happened, log it and cancel
      * the {@link SelectionKey}, if it is not null

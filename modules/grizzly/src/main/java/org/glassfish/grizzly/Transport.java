@@ -76,11 +76,6 @@ public interface Transport extends ExceptionHandler {
 
     public void setProcessorSelector(ProcessorSelector selector);
 
-    public ProcessorExecutorSelector getProcessorExecutorSelector();
-
-    public void setProcessorExecutorSelector(
-            ProcessorExecutorSelector processorExecutorSelector);
-
     public MemoryManager getMemoryManager();
 
     public void setMemoryManager(MemoryManager memoryManager);
@@ -171,6 +166,16 @@ public interface Transport extends ExceptionHandler {
      */
     public void fireIOEvent(IOEvent ioEvent, Connection connection)
             throws IOException;
+
+    /**
+     * Fires specific {@link IOEvent} on the {@link Connection}
+     *
+     * @param ioEvent I/O event
+     * @param connection {@link Connection}, on which we fire the event.
+     * @param strategyContext {@link Strategy} state
+     */
+    public void fireIOEvent(IOEvent ioEvent, Connection connection,
+            Object strategyContext) throws IOException;
 
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,

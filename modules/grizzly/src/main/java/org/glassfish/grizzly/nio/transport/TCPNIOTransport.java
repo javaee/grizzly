@@ -37,6 +37,7 @@
  */
 package org.glassfish.grizzly.nio.transport;
 
+import org.glassfish.grizzly.strategies.WorkerThreadStrategy;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueIO;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 import org.glassfish.grizzly.nio.RoundRobinConnectionDistributor;
@@ -65,8 +66,6 @@ import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import org.glassfish.grizzly.util.ConcurrentQueuePool;
-import org.glassfish.grizzly.util.CurrentThreadExecutor;
-import org.glassfish.grizzly.util.WorkerThreadExecutor;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -86,7 +85,6 @@ import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandlerAdapter;
 import org.glassfish.grizzly.PostProcessor;
-import org.glassfish.grizzly.ProcessorExecutorSelector;
 import org.glassfish.grizzly.ProcessorResult;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.ProcessorSelector;
@@ -161,11 +159,9 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
      * Server socket backlog.
      */
     protected volatile TemporarySelectorIO temporarySelectorIO;
-    protected ProcessorExecutor sameThreadProcessorExecutor;
-    protected ProcessorExecutor workerThreadProcessorExecutor;
     private Filter defaultTransportFilter;
     protected RegisterChannelCompletionHandler registerChannelCompletionHandler;
-    private EnableReadWritePostProcessor enablingReadWritePostProcessor;
+    private EnableInterestPostProcessor enablingInterestPostProcessor;
     
     public TCPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -173,7 +169,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         writeBufferSize = DEFAULT_WRITE_BUFFER_SIZE;
         
         registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
-        enablingReadWritePostProcessor = new EnableReadWritePostProcessor();
+        enablingInterestPostProcessor = new EnableInterestPostProcessor();
 
         asyncQueueIO = new AsyncQueueIO(new TCPNIOAsyncQueueReader(this),
                 new TCPNIOAsyncQueueWriter(this));
@@ -219,11 +215,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 processor = getFilterChainFactory().create();
             }
 
-            if (processorExecutorSelector == null) {
-                processorExecutorSelector =
-                        new DefaultProcessorExecutorSelector();
-            }
-
             if (selectorRunnersCount <= 0) {
                 selectorRunnersCount = DEFAULT_SELECTOR_RUNNERS_COUNT;
             }
@@ -232,18 +223,14 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 nioChannelDistributor = new RoundRobinConnectionDistributor(this);
             }
 
-            if (sameThreadProcessorExecutor == null) {
-                sameThreadProcessorExecutor = new CurrentThreadExecutor();
+            if (strategy == null) {
+                strategy = new WorkerThreadStrategy(this);
             }
-
-            if (workerThreadProcessorExecutor == null) {
-                workerThreadProcessorExecutor =
-                        new WorkerThreadExecutor(this);
-            }
-
+            
             if (internalThreadPool == null) {
-                internalThreadPool = new DefaultThreadPool(selectorRunnersCount,
-                        selectorRunnersCount * 2, 1, 5, TimeUnit.SECONDS);
+                internalThreadPool = new DefaultThreadPool(
+                        selectorRunnersCount * 2,
+                        selectorRunnersCount * 4, 1, 5, TimeUnit.SECONDS);
             }
 
             if (workerThreadPool == null) {
@@ -624,8 +611,8 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         acquireTemporarySelectorIO().setSelectorPool(temporarySelectorPool);
     }
 
-    public void fireIOEvent(IOEvent ioEvent, Connection connection)
-            throws IOException {
+    public void fireIOEvent(IOEvent ioEvent, Connection connection,
+            Object strategyContext) throws IOException {
 
         try {
             // First of all try operations, which could run in standalone mode
@@ -634,14 +621,17 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             }
 
             if (ioEvent == IOEvent.READ) {
-                processReadIoEvent(ioEvent, (TCPNIOConnection) connection);
+                processReadIoEvent(ioEvent, (TCPNIOConnection) connection,
+                        strategyContext);
             } else if (ioEvent == IOEvent.WRITE) {
-                processWriteIoEvent(ioEvent, (TCPNIOConnection) connection);
+                processWriteIoEvent(ioEvent, (TCPNIOConnection) connection,
+                        strategyContext);
             } else {
                 Processor conProcessor = getConnectionProcessor(connection, ioEvent);
 
                 if (conProcessor != null) {
-                    executeProcessor(ioEvent, connection, conProcessor, null, null);
+                    executeProcessor(ioEvent, connection, conProcessor,
+                            null, null, strategyContext);
                 } else {
                     disableInterest((NIOConnection) connection,ioEvent);
                 }
@@ -651,10 +641,12 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                     "connection=" + connection + " event=" + ioEvent);
             throw e;
         } catch (Exception e) {
-            String text = "Unexpected exception occurred fireIOEvent()." +
-                    "connection=" + connection + " event=" + ioEvent;
+            String text = new StringBuilder(256).
+                    append("Unexpected exception occurred fireIOEvent().").
+                    append("connection=").append(connection).
+                    append(" event=").append(ioEvent).toString();
 
-            logger.log(Level.SEVERE, text, e);
+            logger.log(Level.WARNING, text, e);
             throw new IOException(e.getClass() + ": " + text);
         }
 
@@ -662,7 +654,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
     protected void executeProcessor(IOEvent ioEvent, Connection connection,
             Processor processor, ProcessorExecutor executor,
-            PostProcessor postProcessor)
+            PostProcessor postProcessor, Object strategyContext)
             throws IOException {
 
         Context context = processor.context();
@@ -670,21 +662,13 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             context = defaultContextPool.poll();
         }
 
-        if (executor == null) {
-            executor = processorExecutorSelector.getProcessorExecutor(ioEvent,
-                    connection, processor);
-        }
-
         context.setIoEvent(ioEvent);
         context.setConnection(connection);
         context.setProcessor(processor);
-        context.setProcessorExecutor(executor);
         context.setPostProcessor(postProcessor);
 
         processor.beforeProcess(context);
-
-        Runnable task = context.getProcessorRunnable();
-        executor.execute(task);
+        strategy.executeProcessor(strategyContext, context);
     }
 
 
@@ -697,7 +681,8 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         return false;
     }
 
-    private void processReadIoEvent(IOEvent ioEvent, TCPNIOConnection connection)
+    private void processReadIoEvent(IOEvent ioEvent,
+            TCPNIOConnection connection, Object strategyContext)
             throws IOException {
 
         TCPNIOAsyncQueueReader asyncQueueReader =
@@ -705,34 +690,38 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
         if (asyncQueueReader != null && asyncQueueReader.isReady(connection)) {
             disableInterest(connection, ioEvent);
-            executeProcessor(ioEvent, connection, asyncQueueReader, null, null);
+            executeProcessor(ioEvent, connection, asyncQueueReader,
+                    null, null, strategyContext);
         } else {
-            executeDefaultReadWriteProcessor(ioEvent, connection);
+            executeDefaultProcessor(ioEvent, connection, strategyContext);
         }
     }
 
     private void processWriteIoEvent(IOEvent ioEvent,
-            TCPNIOConnection connection) throws IOException {
+            TCPNIOConnection connection, Object strategyContext)
+            throws IOException {
         AsyncQueueWriter asyncQueueWriter = getAsyncQueueIO().getWriter();
         
         if (asyncQueueWriter != null &&
                 asyncQueueWriter.isReady(connection)) {
             disableInterest(connection, ioEvent);
-            executeProcessor(ioEvent, connection, asyncQueueWriter, null, null);
+            executeProcessor(ioEvent, connection, asyncQueueWriter,
+                    null, null, strategyContext);
         } else {
-            executeDefaultReadWriteProcessor(ioEvent, connection);
+            executeDefaultProcessor(ioEvent, connection, strategyContext);
         }
     }
 
 
-    private void executeDefaultReadWriteProcessor(IOEvent ioEvent,
-            TCPNIOConnection connection) throws IOException {
+    private void executeDefaultProcessor(IOEvent ioEvent,
+            TCPNIOConnection connection, Object strategyContext)
+            throws IOException {
         
         disableInterest(connection, ioEvent);
         Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
             executeProcessor(ioEvent, connection, conProcessor, null,
-                    enablingReadWritePostProcessor);
+                    enablingInterestPostProcessor, strategyContext);
         }
     }
 
@@ -748,10 +737,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         }
 
         return conProcessor;
-    }
-
-    boolean isReadWriteEvent(IOEvent ioEvent) {
-        return ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE;
     }
 
     void enableInterest(NIOConnection connection,
@@ -835,7 +820,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    public class EnableReadWritePostProcessor
+    public class EnableInterestPostProcessor
             implements PostProcessor {
 
         public void process(ProcessorResult result,
@@ -869,23 +854,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 Grizzly.logger.log(Level.FINE, "Exception happened, when " +
                         "trying to register the channel", e);
             }
-        }
-    }
-
-    protected class DefaultProcessorExecutorSelector
-            implements ProcessorExecutorSelector {
-
-        /**
-         * {@inheritDoc}
-         */
-        public ProcessorExecutor getProcessorExecutor(IOEvent ioEvent,
-                Connection connection, Processor processor) {
-            if (ioEvent == IOEvent.CONNECTED ||
-                    ioEvent == IOEvent.SERVER_ACCEPT) {
-                return sameThreadProcessorExecutor;
-            }
-
-            return workerThreadProcessorExecutor;
         }
     }
 }

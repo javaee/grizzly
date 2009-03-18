@@ -128,7 +128,8 @@ public class UDPNIOTransport extends AbstractNIOTransport implements SocketAccep
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    public void fireIOEvent(IOEvent ioEvent, Connection connection) {
+    public void fireIOEvent(IOEvent ioEvent, Connection connection,
+            Object strategyContext) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 }

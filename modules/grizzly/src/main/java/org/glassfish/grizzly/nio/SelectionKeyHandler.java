@@ -41,7 +41,7 @@ package org.glassfish.grizzly.nio;
 import org.glassfish.grizzly.IOEvent;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.Collection;
+import java.util.List;
 
 /**
  * {@link SelectionKeyHandler} implementations are responsible for handling
@@ -52,8 +52,8 @@ import java.util.Collection;
 public interface SelectionKeyHandler {
     public void onKeyRegistered(SelectionKey key);
     
-    public Collection<IOEvent> onKeyEvent(SelectionKey key,
-            Collection<IOEvent> ioEvents) throws IOException;
+    public List<IOEvent> onKeyEvent(SelectionKey key,
+            List<IOEvent> ioEvents) throws IOException;
     
     public void cancel(SelectionKey key) throws IOException;
     

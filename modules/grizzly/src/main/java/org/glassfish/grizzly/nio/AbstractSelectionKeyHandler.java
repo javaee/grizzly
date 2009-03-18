@@ -42,7 +42,7 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.Collection;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -64,42 +64,41 @@ public abstract class AbstractSelectionKeyHandler implements SelectionKeyHandler
         }
     }
     
-    public Collection<IOEvent> onKeyEvent(SelectionKey key, 
-            Collection<IOEvent> ioEvents) throws IOException {
+    public List<IOEvent> onKeyEvent(SelectionKey key,
+            List<IOEvent> ioEvents) throws IOException {
         
-        if ((key.readyOps() & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT) {
+        final int readyOps = key.readyOps();
+        
+        if ((readyOps & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT) {
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "OP_ACCEPT on " + key);
             }
 
-            onAcceptInterest(key, ioEvents);
+            ioEvents = onAcceptInterest(key, ioEvents);
         }
 
-        if ((key.readyOps() & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT) {
+        if ((readyOps & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT) {
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "OP_CONNECT on " + key);
             }
 
-            onConnectInterest(key, ioEvents);
+            ioEvents = onConnectInterest(key, ioEvents);
         }
 
-        if ((key.readyOps() & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
+        if ((readyOps & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "OP_READ on " + key);
             }
             
-            onReadInterest(key, ioEvents);
+            ioEvents = onReadInterest(key, ioEvents);
         }
 
-        // The OP_READ processing might have closed the 
-        // Selection, hence we must make sure the
-        // SelectionKey is still valid.
-        if ((key.readyOps() & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE) {
+        if ((readyOps & SelectionKey.OP_WRITE) == SelectionKey.OP_WRITE) {
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "OP_WRITE on " + key);
             }
             
-            onWriteInterest(key, ioEvents);
+            ioEvents = onWriteInterest(key, ioEvents);
         }
 
         return ioEvents;
@@ -128,15 +127,15 @@ public abstract class AbstractSelectionKeyHandler implements SelectionKeyHandler
     }
 
     
-    protected abstract Collection<IOEvent> onAcceptInterest(SelectionKey key,
-            Collection<IOEvent> ioEvents) throws IOException;
+    protected abstract List<IOEvent> onAcceptInterest(SelectionKey key,
+            List<IOEvent> ioEvents) throws IOException;
 
-    protected abstract Collection<IOEvent> onConnectInterest(SelectionKey key,
-            Collection<IOEvent> ioEvents) throws IOException;
+    protected abstract List<IOEvent> onConnectInterest(SelectionKey key,
+            List<IOEvent> ioEvents) throws IOException;
 
-    protected abstract Collection<IOEvent> onReadInterest(SelectionKey key,
-            Collection<IOEvent> ioEvents) throws IOException;
+    protected abstract List<IOEvent> onReadInterest(SelectionKey key,
+            List<IOEvent> ioEvents) throws IOException;
     
-    protected abstract Collection<IOEvent> onWriteInterest(SelectionKey key,
-            Collection<IOEvent> ioEvents) throws IOException;
+    protected abstract List<IOEvent> onWriteInterest(SelectionKey key,
+            List<IOEvent> ioEvents) throws IOException;
 }

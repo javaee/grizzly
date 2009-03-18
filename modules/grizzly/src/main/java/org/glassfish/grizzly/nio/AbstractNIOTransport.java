@@ -57,7 +57,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
     protected SelectorRunner[] selectorRunners;
     
     protected NIOChannelDistributor nioChannelDistributor;
-    
+
     public AbstractNIOTransport(String name) {
         super(name);
     }

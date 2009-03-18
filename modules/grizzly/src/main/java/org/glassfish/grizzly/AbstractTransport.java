@@ -58,7 +58,7 @@ public abstract class AbstractTransport implements Transport {
     protected ObjectPool<Context> defaultContextPool;
     protected Processor processor;
     protected ProcessorSelector processorSelector;
-    protected ProcessorExecutorSelector processorExecutorSelector;
+    protected Strategy strategy;
     protected MemoryManager memoryManager;
     protected ExecutorService workerThreadPool;
     protected ExecutorService internalThreadPool;
@@ -142,15 +142,13 @@ public abstract class AbstractTransport implements Transport {
         processorSelector = selector;
     }
 
-    public ProcessorExecutorSelector getProcessorExecutorSelector() {
-        return processorExecutorSelector;
+    public Strategy getStrategy() {
+        return strategy;
     }
 
-    public void setProcessorExecutorSelector(
-            ProcessorExecutorSelector processorExecutorSelector) {
-        this.processorExecutorSelector = processorExecutorSelector;
+    public void setStrategy(Strategy strategy) {
+        this.strategy = strategy;
     }
-
 
     public MemoryManager getMemoryManager() {
         return memoryManager;
@@ -207,8 +205,15 @@ public abstract class AbstractTransport implements Transport {
         for(ExceptionHandler exceptionHandler : exceptionHandlers) {
             exceptionHandler.notifyException(severity, throwable);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void fireIOEvent(IOEvent ioEvent, Connection connection) throws IOException {
+        fireIOEvent(ioEvent, connection, null);
     }    
-    
+
     /**
      * Close the connection, managed by Transport
      * 

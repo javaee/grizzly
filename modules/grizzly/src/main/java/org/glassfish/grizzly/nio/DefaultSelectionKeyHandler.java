@@ -41,7 +41,7 @@ package org.glassfish.grizzly.nio;
 import org.glassfish.grizzly.IOEvent;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.Collection;
+import java.util.List;
 
 /**
  * Default <code>SelectionKeyHandler</code> implementation
@@ -53,27 +53,27 @@ public class DefaultSelectionKeyHandler extends AbstractSelectionKeyHandler {
     public DefaultSelectionKeyHandler() {
     }
     
-    protected Collection<IOEvent> onAcceptInterest(SelectionKey key,
-            Collection<IOEvent> ioEvents) throws IOException {
+    protected List<IOEvent> onAcceptInterest(SelectionKey key,
+            List<IOEvent> ioEvents) throws IOException {
         ioEvents.add(IOEvent.SERVER_ACCEPT);
         return ioEvents;
     }
 
-    protected Collection<IOEvent> onConnectInterest(SelectionKey key,
-            Collection<IOEvent> ioEvents)
+    protected List<IOEvent> onConnectInterest(SelectionKey key,
+            List<IOEvent> ioEvents)
             throws IOException {
         ioEvents.add(IOEvent.CONNECTED);
         return ioEvents;
     }
 
-    protected Collection<IOEvent> onReadInterest(SelectionKey key,
-            Collection<IOEvent> ioEvents) {
+    protected List<IOEvent> onReadInterest(SelectionKey key,
+            List<IOEvent> ioEvents) {
         ioEvents.add(IOEvent.READ);
         return ioEvents;
     }
     
-    protected Collection<IOEvent> onWriteInterest(SelectionKey key,
-            Collection<IOEvent> ioEvents) {
+    protected List<IOEvent> onWriteInterest(SelectionKey key,
+            List<IOEvent> ioEvents) {
         ioEvents.add(IOEvent.WRITE);
         return ioEvents;
     }

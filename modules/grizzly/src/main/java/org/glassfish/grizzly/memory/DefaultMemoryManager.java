@@ -72,6 +72,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
     public void setMonitoring(boolean isMonitoring) {
         this.isMonitoring = isMonitoring;
+        ByteBufferWrapper.DEBUG_MODE = isMonitoring;
     }
 
     public long getTotalBytesAllocated() {
