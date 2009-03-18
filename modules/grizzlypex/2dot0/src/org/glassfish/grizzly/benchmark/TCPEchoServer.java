@@ -38,8 +38,12 @@
 
 package org.glassfish.grizzly.benchmark;
 
+import java.lang.reflect.Constructor;
+import org.glassfish.grizzly.Strategy;
+import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 import org.glassfish.grizzly.util.EchoFilter;
@@ -55,6 +59,10 @@ public class TCPEchoServer {
         
         TransportFactory transportFactory = TransportFactory.getInstance();
 
+        DefaultMemoryManager memoryManager = (DefaultMemoryManager)
+                transportFactory.getDefaultMemoryManager();
+        memoryManager.setMonitoring(true);
+
         DefaultThreadPool threadPool = (DefaultThreadPool)
                 transportFactory.getDefaultThreadPool();
         int poolSize = (settings.getWorkerThreads() + settings.getSelectorThreads());
@@ -67,6 +75,10 @@ public class TCPEchoServer {
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(new EchoFilter());
 
+        Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
+
+        transport.setStrategy(strategy);
+
         try {
             transport.bind(settings.getHost(), settings.getPort());
             transport.start();
@@ -76,6 +88,28 @@ public class TCPEchoServer {
         } finally {
             transport.stop();
             TransportFactory.getInstance().close();
+        }
+
+        System.out.println("Totaly allocated " + memoryManager.getTotalBytesAllocated() + " bytes");
+    }
+
+    public static Strategy loadStrategy(Class<? extends Strategy> strategy,
+            Transport transport) {
+        try {
+            return strategy.newInstance();
+        } catch (Exception e) {
+            try {
+                Constructor[] cs = strategy.getConstructors();
+                for (Constructor c : cs) {
+                    if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(transport.getClass())) {
+                        return (Strategy) c.newInstance(transport);
+                    }
+                }
+
+                throw new IllegalStateException("Can not initialize strategy: " + strategy);
+            } catch (Exception ee) {
+                throw new IllegalStateException("Can not initialize strategy: " + strategy + ". Error: " + ee.getClass() + ": " + ee.getMessage());
+            }
         }
     }
 }

@@ -38,6 +38,9 @@
 
 package org.glassfish.grizzly.benchmark;
 
+import org.glassfish.grizzly.Strategy;
+import org.glassfish.grizzly.strategies.WorkerThreadStrategy;
+
 /**
  *
  * @author oleksiys
@@ -50,7 +53,9 @@ public class Settings {
     private int workerThreads = 5;
 
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
-    
+
+    private Class<? extends Strategy> strategyClass = WorkerThreadStrategy.class;
+
     private Settings() {
     }
 
@@ -81,6 +86,16 @@ public class Settings {
             } else if ("-selectorThreads".equalsIgnoreCase(param)) {
                 int selectorThreads = Integer.parseInt(value);
                 settings.selectorThreads = selectorThreads;
+            } else if ("-strategy".equalsIgnoreCase(param)) {
+                String strategyClass = value;
+                try {
+                    settings.strategyClass =
+                            (Class<? extends Strategy>) Class.forName(strategyClass);
+                } catch (Exception e) {
+                    System.out.println("Warning strategy class: " +
+                            strategyClass + " was not found. Default strategy: " +
+                            settings.strategyClass + " will be used instead.");
+                }
             }
         }
 
@@ -123,6 +138,14 @@ public class Settings {
         this.workerThreads = workerThreads;
     }
 
+    public Class<? extends Strategy> getStrategyClass() {
+        return strategyClass;
+    }
+
+    public void setStrategyClass(Class<? extends Strategy> strategyClass) {
+        this.strategyClass = strategyClass;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -131,6 +154,7 @@ public class Settings {
         sb.append("\nPort: ").append(port);
         sb.append("\nWorker threads: ").append(workerThreads);
         sb.append("\nSelector threads: ").append(selectorThreads);
+        sb.append("\nStrategy class: ").append(strategyClass);
 
         return sb.toString();
     }
