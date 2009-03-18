@@ -61,6 +61,8 @@ import com.sun.grizzly.cometd.bayeux.UnsubscribeResponse;
 import com.sun.grizzly.cometd.bayeux.VerbBase;
 import com.sun.grizzly.cometd.bayeux.Verb.Type.*;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.tcp.http11.GrizzlyRequest;
+import com.sun.grizzly.util.ConcurrentWeakHashMap;
 import com.sun.grizzly.util.LinkedTransferQueue;
 
 import com.sun.grizzly.util.buf.Base64Utils;
@@ -69,10 +71,10 @@ import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.AbstractQueue;
 import java.util.Map.Entry;
 import java.util.logging.Level;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * This class implement the Bayeux Server side protocol. 
@@ -103,17 +105,17 @@ public class BayeuxParser{
 
     private final SecureRandom random = new SecureRandom();
 
-    private final ConcurrentHashMap<String,AbstractQueue<String>> inactiveChannels
-            = new ConcurrentHashMap<String,AbstractQueue<String>>(16, 0.75f, 64);
+    private final ConcurrentWeakHashMap<String,AbstractQueue<String>> inactiveChannels
+            = new ConcurrentWeakHashMap<String,AbstractQueue<String>>(16, 0.75f, 64);
     
-    private final ConcurrentHashMap<String,Boolean> authenticatedUsers
-            = new ConcurrentHashMap<String,Boolean>(16, 0.75f, 64);
+    private final ConcurrentWeakHashMap<String,Boolean> authenticatedUsers
+            = new ConcurrentWeakHashMap<String,Boolean>(16, 0.75f, 64);
     
-    private final ConcurrentHashMap<String,CometContext> activeCometContexts =
-            new ConcurrentHashMap<String,CometContext>(16, 0.75f, 64);
+    private final ConcurrentWeakHashMap<String,CometContext> activeCometContexts =
+            new ConcurrentWeakHashMap<String,CometContext>(16, 0.75f, 64);
     
-    private final ConcurrentHashMap<String,DataHandler> activeCometHandlers =
-            new ConcurrentHashMap<String,DataHandler>(16, 0.75f, 64);
+    private final ConcurrentWeakHashMap<String,DataHandler> activeCometHandlers =
+            new ConcurrentWeakHashMap<String,DataHandler>(16, 0.75f, 64);
 
     private final ThreadLocal<Set<String>> deliverInChannels =
         new ThreadLocal<Set<String>>() {
@@ -173,6 +175,18 @@ public class BayeuxParser{
                 random.nextBytes(ba);
                 clientId = Base64Utils.encodeToString(ba,false);
             }while(authenticatedUsers.putIfAbsent(clientId,Boolean.TRUE) != null);
+            //storing clientID in httpsession to prevent memleak
+            //we use weak references for clientID inside cometD
+            Object obj = cometdContext.getRequest().getRequest();
+            if (obj instanceof HttpServletRequest){
+                ((HttpServletRequest)obj).getSession().setAttribute("cometD", clientId);
+            }
+            else if (obj instanceof GrizzlyRequest){
+                ((GrizzlyRequest)obj).getSession().setAttribute("cometD", clientId);
+            }else{
+                this.log("CometD could not detect httpsession:" +
+                        " weak references of clientID now risks to be collected too early");
+            }
             handshakeRes.setClientId(clientId);
         } else {
             handshakeRes.setSuccessful(false);
@@ -186,7 +200,7 @@ public class BayeuxParser{
     
     
     public void onConnect(CometdContext cometdContext) throws IOException {        
-        CometdRequest req = cometdContext.getRequest();
+        CometdRequest  req = cometdContext.getRequest();
         CometdResponse res = cometdContext.getResponse();
         ConnectRequest connectReq = (ConnectRequest)cometdContext.getVerb();
         
@@ -275,7 +289,6 @@ public class BayeuxParser{
             DataHandler dataHandler = activeCometHandlers.get(clientId);
             if (dataHandler == null) {
                 dataHandler = new DataHandler(this);
-                dataHandler.setClientId(clientId);
                 activeCometHandlers.put(clientId, dataHandler);
             }
 
