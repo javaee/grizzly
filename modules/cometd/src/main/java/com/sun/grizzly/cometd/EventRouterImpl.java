@@ -80,7 +80,7 @@ public class EventRouterImpl implements EventRouter{
      * Route a CometD message.
      */    
     @SuppressWarnings("unchecked")
-    public synchronized void route(final CometdRequest req,final CometdResponse res)
+    public synchronized void route(final CometdRequest req,final CometdResponse res) 
             throws IOException {
 
         String[] messages = req.getParameterValues(JSON_MESSAGES); 
