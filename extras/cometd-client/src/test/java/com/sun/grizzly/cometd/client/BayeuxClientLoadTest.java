@@ -111,13 +111,7 @@ public class BayeuxClientLoadTest extends TestCase {
         long got = generator.generateLoad(uri, base, rooms, rooms_per_client,
                 maxLatency, nclients, publish, chat, pause, burst);
 
-        //XXX this is temporary
         publish=(publish*nclients)/rooms;
-        int expectedAtLeast = (publish * 90) / 100;
-        if (got != publish) {
-            System.out.println("XXX Got " + got + " of " + publish);
-        }
-        //XXX check at least more than lower bound in this moment
-        assertTrue(got > expectedAtLeast && got <= publish);
+        assertTrue(got == publish);
     }
 }
