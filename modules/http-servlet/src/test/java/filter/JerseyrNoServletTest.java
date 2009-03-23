@@ -83,9 +83,8 @@ public class JerseyrNoServletTest extends TestCase {
     /**
      * Test if a WADL document is available at the relative path
      * "application.wadl".
-     * TODO: Works only on Java6
      */
-    public void _testApplicationWadl() {
+    public void testApplicationWadl() {
         String serviceWadl = r.path("application.wadl").
                 accept(MediaTypes.WADL).get(String.class);
                 
