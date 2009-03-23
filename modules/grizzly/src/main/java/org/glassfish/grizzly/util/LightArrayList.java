@@ -5,7 +5,6 @@
 
 package org.glassfish.grizzly.util;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -59,13 +58,15 @@ public class LightArrayList<E> implements List<E> {
     }
 
     public Object[] toArray() {
-        return Arrays.copyOfRange(array, offset, offset + size);
+        Object[] result = new Object[size];
+        System.arraycopy(array, offset, result, 0, size);
+        return result;
     }
 
     public <T> T[] toArray(T[] a) {
-        if (a.length < size) // Make a new array of a's runtime type, but my contents:
-        {
-            return (T[]) Arrays.copyOfRange(array, offset, offset + size, a.getClass());
+        if (a.length < size) {
+            a = (T[]) java.lang.reflect.Array.newInstance(
+                    a.getClass().getComponentType(), size);
         }
         System.arraycopy(array, offset, a, 0, size);
         if (a.length > size) {
