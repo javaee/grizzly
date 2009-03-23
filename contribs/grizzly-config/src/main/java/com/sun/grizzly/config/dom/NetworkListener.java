@@ -124,7 +124,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
             return null;
         }
 
-        public static ThreadPool findThreadpool(final NetworkListener listener) {
+        public static ThreadPool findThreadPool(final NetworkListener listener) {
             final String name = listener.getThreadPool();
             final NetworkListeners listeners = listener.getParent(NetworkListeners.class);
             for (final ThreadPool threadPool : listeners.getThreadPool()) {
