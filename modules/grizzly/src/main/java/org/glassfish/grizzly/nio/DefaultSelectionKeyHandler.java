@@ -38,44 +38,67 @@
 
 package org.glassfish.grizzly.nio;
 
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Default <code>SelectionKeyHandler</code> implementation
- * 
- * @author Alexey Stashok
+ *
+ * @author oleksiys
  */
-public class DefaultSelectionKeyHandler extends AbstractSelectionKeyHandler {
+public class DefaultSelectionKeyHandler implements SelectionKeyHandler {
+    
+    private static Logger logger = Grizzly.logger;
 
-    public DefaultSelectionKeyHandler() {
+    private static final int[] ioEvent2SelectionKeyInterest = {0,
+        SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, SelectionKey.OP_READ,
+        SelectionKey.OP_WRITE, 0};
+    
+    public void onKeyRegistered(SelectionKey key) {
+        if (logger.isLoggable(Level.FINE)) {
+            logger.log(Level.FINE, "KEY IS REGISTERED: " + key);
+        }
     }
     
-    protected List<IOEvent> onAcceptInterest(SelectionKey key,
-            List<IOEvent> ioEvents) throws IOException {
-        ioEvents.add(IOEvent.SERVER_ACCEPT);
-        return ioEvents;
+    public void cancel(SelectionKey key) throws IOException {
+        key.cancel();
     }
 
-    protected List<IOEvent> onConnectInterest(SelectionKey key,
-            List<IOEvent> ioEvents)
-            throws IOException {
-        ioEvents.add(IOEvent.CONNECTED);
-        return ioEvents;
+    public int ioEvent2SelectionKeyInterest(IOEvent ioEvent) {
+        return ioEvent2SelectionKeyInterest[ioEvent.ordinal()];
     }
 
-    protected List<IOEvent> onReadInterest(SelectionKey key,
-            List<IOEvent> ioEvents) {
-        ioEvents.add(IOEvent.READ);
-        return ioEvents;
+    public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest) {
+        if ((selectionKeyInterest & SelectionKey.OP_READ) != 0) {
+            return IOEvent.READ;
+        } else if ((selectionKeyInterest & SelectionKey.OP_WRITE) != 0) {
+            return IOEvent.WRITE;
+        } else if ((selectionKeyInterest & SelectionKey.OP_ACCEPT) != 0) {
+            return IOEvent.SERVER_ACCEPT;
+        } else if ((selectionKeyInterest & SelectionKey.OP_CONNECT) != 0) {
+            return IOEvent.CONNECTED;
+        }
+
+        return IOEvent.NONE;
     }
     
-    protected List<IOEvent> onWriteInterest(SelectionKey key,
-            List<IOEvent> ioEvents) {
-        ioEvents.add(IOEvent.WRITE);
-        return ioEvents;
+    public boolean onAcceptInterest(SelectionKey key) throws IOException {
+        return true;
+    }
+
+    public boolean onConnectInterest(SelectionKey key) throws IOException {
+        return true;
+    }
+
+    public boolean onReadInterest(SelectionKey key) throws IOException {
+        return true;
+    }
+    
+    public boolean onWriteInterest(SelectionKey key) throws IOException {
+        return true;
     }
 
     public NIOConnection getConnectionForKey(SelectionKey selectionKey) {
