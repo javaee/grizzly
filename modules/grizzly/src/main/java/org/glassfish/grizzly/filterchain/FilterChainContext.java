@@ -38,11 +38,11 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import java.util.ArrayList;
 import java.util.List;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.util.LightArrayList;
 import org.glassfish.grizzly.util.MessageHolder;
 import org.glassfish.grizzly.util.ObjectPool;
 
@@ -64,8 +64,8 @@ public class FilterChainContext extends Context {
     public FilterChainContext(ObjectPool parentPool) {
         super(parentPool);
         messageHolder = new MessageHolder();
-        executedFilters = new ArrayList<Filter>();
-        nextFiltersList = new ArrayList<Filter>();
+        executedFilters = new LightArrayList<Filter>();
+        nextFiltersList = new LightArrayList<Filter>();
     }
 
     

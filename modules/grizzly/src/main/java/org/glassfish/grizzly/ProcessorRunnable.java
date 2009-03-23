@@ -48,43 +48,74 @@ import java.util.logging.Level;
  */
 public class ProcessorRunnable implements Runnable {
 
-    protected Context context;
+    private IOEvent ioEvent;
+    private Connection connection;
+    private Processor processor;
+    private PostProcessor postProcessor;
 
-    public ProcessorRunnable() {
+    public ProcessorRunnable(IOEvent ioEvent, Connection connection, Processor processor, PostProcessor postProcessor) {
+        this.ioEvent = ioEvent;
+        this.connection = connection;
+        this.processor = processor;
+        this.postProcessor = postProcessor;
     }
 
-    public ProcessorRunnable(Context context) {
-        this.context = context;
+    public IOEvent getIoEvent() {
+        return ioEvent;
     }
 
-    public Context getContext() {
-        return context;
+    public void setIoEvent(IOEvent ioEvent) {
+        this.ioEvent = ioEvent;
     }
 
-    public void setContext(Context context) {
-        this.context = context;
+    public Connection getConnection() {
+        return connection;
+    }
+
+    public void setConnection(Connection connection) {
+        this.connection = connection;
+    }
+
+    public Processor getProcessor() {
+        return processor;
+    }
+
+    public void setProcessor(Processor processor) {
+        this.processor = processor;
+    }
+
+    public PostProcessor getPostProcessor() {
+        return postProcessor;
+    }
+
+    public void setPostProcessor(PostProcessor postProcessor) {
+        this.postProcessor = postProcessor;
     }
 
     public void run() {
-        Processor processor = context.getProcessor();
+        Context context = createContext();
+        initContext(context);
+
         ProcessorResult result = null;
 
         try {
+            processor.beforeProcess(context);
+
             do {
                 result = processor.process(context);
             } while (result != null &&
                     result.getStatus() == Status.RERUN);
         } catch (IOException e) {
             result = new ProcessorResult(Status.ERROR, e);
-            logException(e);
+            logException(context, e);
         } catch (Throwable t) {
-            logException(t);
+            logException(context, t);
             throw new RuntimeException(t);
         } finally {
             try {
                 processor.afterProcess(context);
             } catch (IOException e) {
-                logException(e);
+                logException(context, e);
             }
 
             PostProcessor ioEventPostProcessor = context.getPostProcessor();
@@ -92,7 +123,7 @@ public class ProcessorRunnable implements Runnable {
                 try {
                     ioEventPostProcessor.process(result, context);
                 } catch (IOException e) {
-                    logException(e);
+                    logException(context, e);
                 }
             }
 
@@ -100,8 +131,23 @@ public class ProcessorRunnable implements Runnable {
         }
     }
 
-    private void logException(Throwable e) {
-        Processor processor = context.getProcessor();
+    protected Context createContext() {
+        Context context = processor.context();
+        if (context == null) {
+            context = new Context();
+        }
+
+        return context;
+    }
+
+    protected void initContext(Context context) {
+        context.setIoEvent(ioEvent);
+        context.setConnection(connection);
+        context.setProcessor(processor);
+        context.setPostProcessor(postProcessor);
+    }
+
+    private void logException(Context context, Throwable e) {
         State transportState = context.getConnection().getTransport().
                 getState().getState(false);
 

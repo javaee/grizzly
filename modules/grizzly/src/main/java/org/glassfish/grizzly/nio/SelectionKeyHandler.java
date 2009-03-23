@@ -41,7 +41,6 @@ package org.glassfish.grizzly.nio;
 import org.glassfish.grizzly.IOEvent;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.List;
 
 /**
  * {@link SelectionKeyHandler} implementations are responsible for handling
@@ -52,9 +51,14 @@ import java.util.List;
 public interface SelectionKeyHandler {
     public void onKeyRegistered(SelectionKey key);
     
-    public List<IOEvent> onKeyEvent(SelectionKey key,
-            List<IOEvent> ioEvents) throws IOException;
-    
+    public boolean onAcceptInterest(SelectionKey key) throws IOException;
+
+    public boolean onConnectInterest(SelectionKey key) throws IOException;
+
+    public boolean onReadInterest(SelectionKey key) throws IOException;
+
+    public boolean onWriteInterest(SelectionKey key) throws IOException;
+
     public void cancel(SelectionKey key) throws IOException;
     
     public NIOConnection getConnectionForKey(SelectionKey selectionKey);

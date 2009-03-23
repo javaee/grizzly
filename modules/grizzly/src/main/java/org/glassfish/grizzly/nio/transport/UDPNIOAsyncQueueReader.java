@@ -48,7 +48,6 @@ import java.nio.channels.SelectionKey;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -70,21 +69,6 @@ public class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
 //        return nioConnection.readNow(buffer);
         return -1;
     }
-
-    @Override
-    protected AsyncQueue<AsyncReadQueueRecord> getAsyncReadQueue(
-            Connection connection) {
-        AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
-        return nioConnection.getAsyncReadQueue();
-    }
-
-    @Override
-    protected AsyncQueue<AsyncReadQueueRecord> obtainAsyncReadQueue(
-            Connection connection) {
-        AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
-        return nioConnection.obtainAsyncReadQueue();    }
 
     @Override
     protected void onReadyToRead(Connection connection) throws IOException {

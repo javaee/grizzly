@@ -49,11 +49,9 @@ import java.nio.channels.SelectionKey;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Interceptor;
-import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.impl.FutureImpl;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -81,23 +79,8 @@ public class TCPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
         record.set(buffer, new FutureImpl(),
                 new ReadResult(connection),
                 completionHandler, interceptor);
-        obtainAsyncReadQueue(connection).getQueue().add(record);
+        ((TCPNIOConnection) connection).obtainAsyncReadQueue().getQueue().add(record);
     }
-
-    @Override
-    protected AsyncQueue<AsyncReadQueueRecord> getAsyncReadQueue(
-            Connection connection) {
-        AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
-        return nioConnection.getAsyncReadQueue();
-    }
-
-    @Override
-    protected AsyncQueue<AsyncReadQueueRecord> obtainAsyncReadQueue(
-            Connection connection) {
-        AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
-        return nioConnection.obtainAsyncReadQueue();    }
 
     @Override
     protected void onReadyToRead(Connection connection) throws IOException {

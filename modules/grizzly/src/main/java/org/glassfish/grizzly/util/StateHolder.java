@@ -47,7 +47,6 @@ import org.glassfish.grizzly.util.conditions.NotEqualCondition;
 import org.glassfish.grizzly.util.conditions.OneTimeConditionListener;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,7 +60,7 @@ import java.util.logging.Logger;
 public class StateHolder<E> {
     private static Logger _logger = Grizzly.logger;
     
-    private AtomicReference<E> stateRef;
+    private volatile E state;
     
     private ReentrantReadWriteLock readWriteLock;
     private volatile boolean isLockEnabled;
@@ -81,7 +80,6 @@ public class StateHolder<E> {
      * @param isLockEnabled locking mode
      */
     public StateHolder(boolean isLockEnabled) {
-        stateRef = new AtomicReference<E>();
         readWriteLock = new ReentrantReadWriteLock();
         conditionListeners = new LinkedTransferQueue<ConditionListener<E, ?>>();
         this.isLockEnabled = isLockEnabled;
@@ -92,7 +90,7 @@ public class StateHolder<E> {
      * @param isLockEnabled locking mode
      */
     public StateHolder(boolean isLockEnabled, E initialState) {
-        stateRef = new AtomicReference<E>(initialState);
+        state = initialState;
         readWriteLock = new ReentrantReadWriteLock();
         conditionListeners = new LinkedTransferQueue<ConditionListener<E, ?>>();
         this.isLockEnabled = isLockEnabled;
@@ -117,7 +115,7 @@ public class StateHolder<E> {
             readWriteLock.readLock().lock();
         }
         
-        E retState = stateRef.get();
+        E retState = state;
         
         if (locked) {
             readWriteLock.readLock().unlock();
@@ -144,7 +142,7 @@ public class StateHolder<E> {
             readWriteLock.writeLock().lock();
         }
         
-        stateRef.set(state);
+        this.state = state;
         
         // downgrading lock to read
         if (locked) {
@@ -203,7 +201,7 @@ public class StateHolder<E> {
         
         ConditionListener<E, Object> conditionListener = null;
 
-        if (stateRef.get().equals(state)) {
+        if (this.state.equals(state)) {
             DefaultConditionListener.notifyListenerObject(notificationObject);
         } else {
             conditionListener = new OneTimeConditionListener<E>();
@@ -238,7 +236,7 @@ public class StateHolder<E> {
         
         ConditionListener<E, Object> conditionListener = null;
 
-        if (!stateRef.get().equals(state)) {
+        if (!this.state.equals(state)) {
             DefaultConditionListener.notifyListenerObject(notificationObject);
         } else {
             conditionListener = new OneTimeConditionListener<E>();
@@ -273,7 +271,7 @@ public class StateHolder<E> {
         
         ConditionListener<E, Object> conditionListener = null;
 
-        if (condition.check(stateRef.get())) {
+        if (condition.check(state)) {
             DefaultConditionListener.notifyListenerObject(notificationObject);
         } else {
             conditionListener = new OneTimeConditionListener<E>();
@@ -300,7 +298,7 @@ public class StateHolder<E> {
             getStateLocker().writeLock().lock();
         }
         
-        if (conditionListener.checkConditionAndNotify(stateRef.get())) {
+        if (conditionListener.checkConditionAndNotify(state)) {
             if (conditionListener.isKeepAlive()) {
                 conditionListeners.add(conditionListener);
             }

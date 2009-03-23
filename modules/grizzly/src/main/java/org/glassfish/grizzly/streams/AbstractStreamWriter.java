@@ -39,7 +39,6 @@ package org.glassfish.grizzly.streams;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.IntBuffer;
 import java.nio.ShortBuffer;
@@ -62,15 +61,15 @@ import org.glassfish.grizzly.Connection;
  */
 public abstract class AbstractStreamWriter implements StreamWriter {
     protected Connection connection;
+
     protected Mode mode;
 
     protected int bufferSize = 8192;
     
-    protected volatile Buffer buffer;
+    protected Buffer buffer;
     private long timeoutMillis = 30000;
     
     private boolean isClosed = false;
-    private ByteOrder byteOrder;
 
     protected AbstractStreamWriter() {
         this(null);
@@ -84,7 +83,6 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      */
     protected AbstractStreamWriter(final Connection connection) {
         setConnection(connection);
-        byteOrder = ByteOrder.BIG_ENDIAN;
     }
 
     public Mode getMode() {
@@ -93,14 +91,6 @@ public abstract class AbstractStreamWriter implements StreamWriter {
 
     public void setMode(Mode mode) {
         this.mode = mode;
-    }
-
-    public ByteOrder order() {
-        return byteOrder;
-    }
-
-    public void order(final ByteOrder byteOrder) {
-        this.byteOrder = byteOrder;
     }
 
     protected Future overflow() throws IOException {
@@ -142,7 +132,6 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     private void initBuffer(final Buffer buffer) {
         this.buffer = buffer;
         buffer.clear();
-        buffer.order(byteOrder);
     }
 
     /**
@@ -413,6 +402,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             bufferSize = connection.getWriteBufferSize();
             mode = connection.isBlocking() ? Mode.BLOCKING : Mode.NON_BLOCKING;
         }
+        
         this.connection = connection;
     }
 
@@ -421,7 +411,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     }
 
     protected Buffer newBuffer(int size) {
-        return getConnection().getTransport().getMemoryManager().allocate(size);
+         return getConnection().getTransport().getMemoryManager().allocate(size);
     }
 
     public int getBufferSize() {

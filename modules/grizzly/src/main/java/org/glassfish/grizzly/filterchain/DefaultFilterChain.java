@@ -40,11 +40,11 @@ package org.glassfish.grizzly.filterchain;
 
 import java.io.IOException;
 import org.glassfish.grizzly.ProcessorResult;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.util.LightArrayList;
 
 /**
  * Default {@link FilterChain} implementation
@@ -52,6 +52,97 @@ import org.glassfish.grizzly.Grizzly;
  * @author Alexey Stashok
  */
 public class DefaultFilterChain extends ListFacadeFilterChain {
+    
+    /**
+     * NONE,
+     * SERVER_ACCEPT,
+     * ACCEPTED,
+     * CONNECTED,
+     * READ,
+     * WRITE,
+     * CLOSED
+     *
+     * Filter executors array
+     */
+    private static final FilterExecutor[] filterExecutors = {
+        null, null,
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.handleAccept(context, nextAction);
+            }
+        },
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.handleConnect(context, nextAction);
+            }
+        },
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.handleRead(context, nextAction);
+            }
+        },
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.handleWrite(context, nextAction);
+            }
+        },
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.handleClose(context, nextAction);
+            }
+        },
+    };
+
+    /**
+     * NONE,
+     * SERVER_ACCEPT,
+     * ACCEPTED,
+     * CONNECTED,
+     * READ,
+     * WRITE,
+     * CLOSED
+     *
+     * Filter post executors array
+     */
+    private static final FilterExecutor[] filterPostExecutors = {
+        null, null,
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.postAccept(context, nextAction);
+            }
+        },
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.postConnect(context, nextAction);
+            }
+        },
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.postRead(context, nextAction);
+            }
+        },
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.postWrite(context, nextAction);
+            }
+        },
+        new FilterExecutor() {
+            public NextAction execute(Filter filter, FilterChainContext context,
+                    NextAction nextAction) throws IOException {
+                return filter.postClose(context, nextAction);
+            }
+        },
+    };
+
     private Logger logger = Grizzly.logger;
 
     /**
@@ -61,7 +152,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
 
     public DefaultFilterChain(FilterChainFactory factory) {
         super(factory);
-        filters = new ArrayList<Filter>();
+        filters = new LightArrayList<Filter>();
         codec = new DefaultFilterChainCodec(this);
     }
     
@@ -93,10 +184,11 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
             Direction direction, FilterChainContext ctx) throws Exception {
         if (chain.size() > 0) {
             try {
+                int ioEventIndex = ctx.getIoEvent().ordinal();
                 executeChain(chain, offset,
-                        direction, ctx);
+                        direction, ctx, filterExecutors[ioEventIndex]);
 
-                postExecuteChain(ctx);
+                postExecuteChain(ctx, filterPostExecutors[ioEventIndex]);
             } catch (IOException e) {
                 logger.log(Level.FINE, "Exception during FilterChain execution", e);
                 throwChain(ctx, e);
@@ -120,7 +212,8 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * @return position of the last executed {@link Filter}
      */
     protected void executeChain(List<Filter> chain, int offset,
-            Direction direction, FilterChainContext ctx) throws Exception {
+            Direction direction, FilterChainContext ctx,
+            FilterExecutor executor) throws Exception {
 
         // check startPosition and chain size
         int size = chain.size();
@@ -149,7 +242,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
                         " context=" + ctx);
             }
             // execute the task
-            nextAction = currentFilter.execute(ctx, nextAction);
+            nextAction = executor.execute(currentFilter, ctx, nextAction);
 
             if (logger.isLoggable(Level.FINEST)) {
                 logger.fine("after execute filter. filter=" + currentFilter +
@@ -171,23 +264,24 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * @param ctx {@link FilterChainContext}
      * @return position of the last executed {@link Filter}
      */
-    protected void postExecuteChain(FilterChainContext ctx) throws Exception {
+    protected void postExecuteChain(FilterChainContext ctx,
+            FilterExecutor executor) throws Exception {
         List<Filter> chain = ctx.getExecutedFilters();
         int offset = chain.size() - 1;
         // check startPosition and chain size
         if (offset < 0) return;
 
-        List<Filter> nextFiltersList = ctx.getNextFiltersList();
-        nextFiltersList.clear();
-        nextFiltersList.addAll(chain);
+//        List<Filter> nextFiltersList = ctx.getNextFiltersList();
+//        nextFiltersList.clear();
+//        nextFiltersList.addAll(chain);
 
-        NextAction nextAction = new InvokeAction(nextFiltersList);
+        NextAction nextAction = new InvokeAction(null);
 
         for(int i = chain.size() - 1; i >= 0; i--) {
             // current Filter to be executed
             Filter currentFilter = chain.get(i);
 
-            nextFiltersList.remove(i);
+//            nextFiltersList.remove(i);
 
             // save current filter to the context
             ctx.setCurrentFilter(currentFilter);
@@ -197,7 +291,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
                         " context=" + ctx);
             }
             // execute the task
-            nextAction = currentFilter.postExecute(ctx, nextAction);
+            nextAction = executor.execute(currentFilter, ctx, nextAction);
 
             if (logger.isLoggable(Level.FINEST)) {
                 logger.fine("after PostExecute filter. filter=" + currentFilter +
@@ -208,8 +302,8 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
                 List<Filter> tmpExecutedFilters = ctx.getExecutedFilters();
                 List<Filter> tmpNextFilters = ctx.getNextFiltersList();
 
-                ctx.setExecutedFilters(new ArrayList<Filter>());
-                ctx.setNextFiltersList(new ArrayList<Filter>());
+                ctx.setExecutedFilters(new LightArrayList<Filter>());
+                ctx.setNextFiltersList(new LightArrayList<Filter>());
                 try {
                     execute(chain, i, Direction.FORWARD, ctx);
                 } finally {
@@ -244,5 +338,10 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      */
     public FilterChainCodec getCodec() {
         return codec;
+    }
+
+    public interface FilterExecutor {
+        public NextAction execute(Filter filter, FilterChainContext context,
+                NextAction nextAction) throws IOException;
     }
 }

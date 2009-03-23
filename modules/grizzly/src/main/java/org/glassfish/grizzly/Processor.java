@@ -56,8 +56,8 @@ public interface Processor<E extends Context> {
     public E context();
 
     /**
-     * Method will be called by framework before passing this {@link Processor}
-     * to worker thread.
+     * Method will be called by framework before executing
+     * this {@link Processor}.
      *
      * @param context processing context
      * @throws java.io.IOException

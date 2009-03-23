@@ -87,6 +87,7 @@ import org.glassfish.grizzly.CompletionHandlerAdapter;
 import org.glassfish.grizzly.PostProcessor;
 import org.glassfish.grizzly.ProcessorResult;
 import org.glassfish.grizzly.ProcessorResult.Status;
+import org.glassfish.grizzly.ProcessorRunnable;
 import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.SocketConnectorHandler;
@@ -616,10 +617,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
         try {
             // First of all try operations, which could run in standalone mode
-            if (tryAccept(ioEvent, connection)) {
-                return;
-            }
-
             if (ioEvent == IOEvent.READ) {
                 processReadIoEvent(ioEvent, (TCPNIOConnection) connection,
                         strategyContext);
@@ -627,6 +624,11 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 processWriteIoEvent(ioEvent, (TCPNIOConnection) connection,
                         strategyContext);
             } else {
+                if (ioEvent == IOEvent.SERVER_ACCEPT &&
+                        serverConnection.tryAccept()) {
+                    return;
+                }
+
                 Processor conProcessor = getConnectionProcessor(connection, ioEvent);
 
                 if (conProcessor != null) {
@@ -657,28 +659,10 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             PostProcessor postProcessor, Object strategyContext)
             throws IOException {
 
-        Context context = processor.context();
-        if (context == null) {
-            context = defaultContextPool.poll();
-        }
+        ProcessorRunnable processorRunnable = new ProcessorRunnable(ioEvent,
+                connection, processor, postProcessor);
 
-        context.setIoEvent(ioEvent);
-        context.setConnection(connection);
-        context.setProcessor(processor);
-        context.setPostProcessor(postProcessor);
-
-        processor.beforeProcess(context);
-        strategy.executeProcessor(strategyContext, context);
-    }
-
-
-    private boolean tryAccept(IOEvent ioEvent, Connection connection)
-            throws IOException {
-        if (ioEvent == IOEvent.SERVER_ACCEPT) {
-            return serverConnection.tryAccept();
-        }
-
-        return false;
+        strategy.executeProcessor(strategyContext, processorRunnable);
     }
 
     private void processReadIoEvent(IOEvent ioEvent,
@@ -688,12 +672,12 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         TCPNIOAsyncQueueReader asyncQueueReader =
                 (TCPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
 
-        if (asyncQueueReader != null && asyncQueueReader.isReady(connection)) {
+        if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
+            executeDefaultProcessor(ioEvent, connection, strategyContext);
+        } else {
             disableInterest(connection, ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueReader,
                     null, null, strategyContext);
-        } else {
-            executeDefaultProcessor(ioEvent, connection, strategyContext);
         }
     }
 
@@ -702,13 +686,12 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             throws IOException {
         AsyncQueueWriter asyncQueueWriter = getAsyncQueueIO().getWriter();
         
-        if (asyncQueueWriter != null &&
-                asyncQueueWriter.isReady(connection)) {
+        if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
+            executeDefaultProcessor(ioEvent, connection, strategyContext);
+        } else {
             disableInterest(connection, ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueWriter,
                     null, null, strategyContext);
-        } else {
-            executeDefaultProcessor(ioEvent, connection, strategyContext);
         }
     }
 
@@ -743,9 +726,9 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             IOEvent ioEvent) throws IOException {
         SelectionKey key = connection.getSelectionKey();
 
-        getSelectorHandler().registerKey(
+        selectorHandler.registerKey(
                 connection.getSelectorRunner(), key,
-                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent));
+                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
     }
 
     void disableInterest(NIOConnection connection,

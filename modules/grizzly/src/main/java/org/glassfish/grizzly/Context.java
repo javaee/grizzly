@@ -58,8 +58,6 @@ public class Context implements PoolableObject {
 
     private AttributeHolder attributes;
     
-    private volatile Runnable processorRunnable;
-
     private ProcessorExecutor processorExecutor;
     
     private final ObjectPool<Context> parentPool;
@@ -86,30 +84,6 @@ public class Context implements PoolableObject {
 
     public void setConnection(Connection connection) {
         this.connection = connection;
-    }
-
-    /**
-     * Get the {@link Runnable}, which could be used to execute this context's
-     * {@link Processor}
-     * 
-     * @return {@link Runnable}
-     */
-    public Runnable getProcessorRunnable() {
-        if (processorRunnable == null) {
-            processorRunnable = new ProcessorRunnable(this);
-        }
-        return processorRunnable;
-    }
-    
-    /**
-     * Set the {@link Runnable}, which could be used to execute this context's
-     * {@link Processor}
-     * 
-     * @param processorRunnable {@link Runnable}
-     */
-    protected synchronized void setProcessorRunnable(
-            Runnable processorRunnable) {
-        this.processorRunnable = processorRunnable;
     }
 
     public ProcessorExecutor getProcessorExecutor() {
@@ -144,19 +118,15 @@ public class Context implements PoolableObject {
 
     public AttributeHolder obtainAttributes() {
         if (attributes == null) {
-            synchronized(this) {
-                if (attributes == null) {
-                    if (connection == null) {
-                        throw new IllegalStateException(
-                                "Can not obtain an attributes. " +
-                                "Connection is not set for this context object!");
-                    }
-                    
-                    attributes = initializeAttributeHolder();
-                }
-
+            if (connection == null) {
+                throw new IllegalStateException(
+                        "Can not obtain an attributes. " +
+                        "Connection is not set for this context object!");
             }
+
+            attributes = initializeAttributeHolder();
         }
+
 
         return attributes;
     }

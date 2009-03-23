@@ -38,9 +38,9 @@
 
 package org.glassfish.grizzly.attributes;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import org.glassfish.grizzly.util.LightArrayList;
 
 /**
  *
@@ -48,14 +48,14 @@ import java.util.Set;
  */
 public class IndexedAttributeHolder implements AttributeHolder {
     
-    protected ArrayList<Object> attributeValues;
+    protected LightArrayList<Object> attributeValues;
     protected DefaultAttributeBuilder attributeBuilder;
     
     protected IndexedAttributeAccessor indexedAttributeAccessor;
 
     public IndexedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
-        attributeValues = new ArrayList<Object>();
+        attributeValues = new LightArrayList<Object>();
         indexedAttributeAccessor = new IndexedAttributeAccessorImpl();
     }
     
@@ -136,14 +136,10 @@ public class IndexedAttributeHolder implements AttributeHolder {
                 // Number of 'fake' null elements to add to the attributeValues
                 int fakeElementsToAdd = index - attrCount;
 
-                attributeValues.ensureCapacity(fakeElementsToAdd + 1);
+                attributeValues.size(index + 1);
                 for (int i = 0; i < fakeElementsToAdd; i++) {
-                    attributeValues.add(null);
+                    attributeValues.set(attrCount + i, null);
                 }
-
-                attributeValues.add(value);
-
-                return;
             }
 
             attributeValues.set(index, value);

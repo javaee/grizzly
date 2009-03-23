@@ -38,7 +38,6 @@ package org.glassfish.grizzly.streams;
 import java.io.Closeable;
 
 import java.io.IOException;
-import java.nio.ByteOrder;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
@@ -57,15 +56,6 @@ public interface StreamWriter extends Closeable {
     public Mode getMode();
 
     public void setMode(Mode mode);
-
-    /** Return the ByteOrder of the stream.
-     * All streams default to big endian byte order.
-     */
-    ByteOrder order();
-
-    /** Set the ByteOrder of the stream.
-     */
-    void order(ByteOrder byteOrder);
 
     /**
      * Make sure that all data that has been written is

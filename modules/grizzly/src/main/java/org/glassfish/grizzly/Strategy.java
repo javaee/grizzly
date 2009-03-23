@@ -47,8 +47,8 @@ import java.io.IOException;
 public interface Strategy<E> {
     public E prepare(Connection connection, IOEvent ioEvent);
     
-    public void executeProcessor(E strategyContext, Context processorContext)
-            throws IOException;
+    public void executeProcessor(E strategyContext,
+            ProcessorRunnable processorRunnable) throws IOException;
 
     public boolean isTerminateThread(E strategyContext);
 }

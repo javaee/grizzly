@@ -39,7 +39,6 @@
 package org.glassfish.grizzly.filterchain;
 
 import java.io.IOException;
-import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.Context;
 
 /**
@@ -56,53 +55,6 @@ public class FilterAdapter implements Filter {
 
     private int index;
     
-    /**
-     * {@inheritDoc}
-     */
-    public final NextAction execute(FilterChainContext ctx, 
-            NextAction nextAction) throws IOException {
-        IOEvent ioEvent = ctx.getIoEvent();
-
-        if (ioEvent == IOEvent.READ) {
-            return handleRead(ctx, nextAction);
-        } else if (ioEvent == IOEvent.WRITE) {
-            return handleWrite(ctx, nextAction);
-        } else if (ioEvent == IOEvent.ACCEPTED) {
-            return handleAccept(ctx, nextAction);
-        } else if (ioEvent == IOEvent.CONNECTED) {
-            return handleConnect(ctx, nextAction);
-        } else if (ioEvent == IOEvent.CLOSED) {
-            return handleClose(ctx, nextAction);
-        } else {
-            throw new UnsupportedOperationException(
-                    "Unexpected I/O event: " + ioEvent);
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public final NextAction postExecute(FilterChainContext ctx, 
-            NextAction nextAction) throws IOException {
-        IOEvent ioEvent = ctx.getIoEvent();
-
-        if (ioEvent == IOEvent.READ) {
-            return postRead(ctx, nextAction);
-        } else if (ioEvent == IOEvent.WRITE) {
-            return postWrite(ctx, nextAction);
-        } else if (ioEvent == IOEvent.ACCEPTED) {
-            return postAccept(ctx, nextAction);
-        } else if (ioEvent == IOEvent.CONNECTED) {
-            return postConnect(ctx, nextAction);
-        } else if (ioEvent == IOEvent.CLOSED) {
-            return postClose(ctx, nextAction);
-        } else {
-            throw new UnsupportedOperationException(
-                    "Unexpected I/O event: " + ioEvent);
-        }
-    }
-
-
     /**
      * Execute a unit of processing work to be performed, when channel will 
      * become available for reading. 

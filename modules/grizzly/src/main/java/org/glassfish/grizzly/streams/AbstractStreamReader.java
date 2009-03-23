@@ -38,7 +38,6 @@ package org.glassfish.grizzly.streams;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteOrder;
 import java.nio.BufferUnderflowException;
 
 import java.util.concurrent.Future;
@@ -112,7 +111,6 @@ public abstract class AbstractStreamReader extends InputStream
     private volatile Buffer current;
     private boolean closed;
     private long timeout;
-    private ByteOrder byteOrder;//Large enough to hold the largest primitive type.
     public static final int HEADER_SIZE = 8;
     protected NotifyObject notifyObject;
 
@@ -136,7 +134,6 @@ public abstract class AbstractStreamReader extends InputStream
             throw new IllegalArgumentException(
                     "Timeout must not be negative.");
         }
-        this.byteOrder = ByteOrder.BIG_ENDIAN;
     }
 
     public Mode getMode() {
@@ -145,14 +142,6 @@ public abstract class AbstractStreamReader extends InputStream
 
     public void setMode(Mode mode) {
         this.mode = mode;
-    }
-
-    public ByteOrder order() {
-        return byteOrder;
-    }
-
-    public void order(final ByteOrder byteOrder) {
-        this.byteOrder = byteOrder;
     }
 
     /**
@@ -167,8 +156,6 @@ public abstract class AbstractStreamReader extends InputStream
         if (closed) {
             buffer.dispose();
         } else {
-            buffer.order(byteOrder);
-            
             if (current == null) {
                 current = buffer;
             } else {
@@ -351,46 +338,28 @@ public abstract class AbstractStreamReader extends InputStream
         if (checkRemaining(2)) {
             return current.getChar();
         }
-        if (order() == ByteOrder.BIG_ENDIAN) {
-            return (char) ((readByte() & 0xff) << 8 | readByte() & 0xff);
-        } else {
-            return (char) (readByte() & 0xff | (readByte() & 0xff) << 8);
-        }
+        return (char) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
 
     public short readShort() throws IOException {
         if (checkRemaining(2)) {
             return current.getShort();
         }
-        if (order() == ByteOrder.BIG_ENDIAN) {
-            return (short) ((readByte() & 0xff) << 8 | readByte() & 0xff);
-        } else {
-            return (short) (readByte() & 0xff | (readByte() & 0xff) << 8);
-        }
-
-
+        return (short) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
 
     public int readInt() throws IOException {
         if (checkRemaining(4)) {
             return current.getInt();
         }
-        if (order() == ByteOrder.BIG_ENDIAN) {
-            return (readShort() & 0xffff) << 16 | readShort() & 0xffff;
-        } else {
-            return readShort() & 0xFFFF | (readShort() & 0xFFFF) << 16;
-        }
+        return (readShort() & 0xffff) << 16 | readShort() & 0xffff;
     }
 
     public long readLong() throws IOException {
         if (checkRemaining(8)) {
             return current.getLong();
         }
-        if (order() == ByteOrder.BIG_ENDIAN) {
-            return (readInt() & 0xffffffffL) << 32 | readInt() & 0xffffffffL;
-        } else {
-            return readInt() & 0xFFFFFFFFL | (readInt() & 0xFFFFFFFFL) << 32;
-        }
+        return (readInt() & 0xffffffffL) << 32 | readInt() & 0xffffffffL;
     }
 
     final public float readFloat() throws IOException {

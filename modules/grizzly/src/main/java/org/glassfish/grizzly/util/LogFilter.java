@@ -89,17 +89,82 @@ public class LogFilter implements Filter {
         this.level = level;
     }
 
-    public NextAction execute(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        logger.log(level, "LogFilter execute. Connection=" + 
+
+    public NextAction handleRead(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter handleRead. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
         return nextAction;
     }
 
-    public NextAction postExecute(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        logger.log(level, "LogFilter postExecute. Connection=" + 
+    public NextAction postRead(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter postRead. Connection=" +
+                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
+                " message=" + ctx.getMessage());
+        return nextAction;
+    }
+
+    public NextAction handleWrite(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter handleWrite. Connection=" +
+                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
+                " message=" + ctx.getMessage());
+        return nextAction;
+    }
+
+    public NextAction postWrite(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter postWrite. Connection=" +
+                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
+                " message=" + ctx.getMessage());
+        return nextAction;
+    }
+
+    public NextAction handleConnect(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter handleConnect. Connection=" +
+                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
+                " message=" + ctx.getMessage());
+        return nextAction;
+    }
+
+    public NextAction postConnect(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter postConnect. Connection=" +
+                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
+                " message=" + ctx.getMessage());
+        return nextAction;
+    }
+
+    public NextAction handleAccept(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter handleAccept. Connection=" +
+                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
+                " message=" + ctx.getMessage());
+        return nextAction;
+    }
+
+    public NextAction postAccept(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter postAccept. Connection=" +
+                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
+                " message=" + ctx.getMessage());
+        return nextAction;
+    }
+
+    public NextAction handleClose(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter handleClose. Connection=" +
+                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
+                " message=" + ctx.getMessage());
+        return nextAction;
+    }
+
+    public NextAction postClose(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        logger.log(level, "LogFilter postClose. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
         return nextAction;

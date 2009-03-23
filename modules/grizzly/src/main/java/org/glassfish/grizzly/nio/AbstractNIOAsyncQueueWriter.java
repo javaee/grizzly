@@ -115,7 +115,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         // Get connection async write queue
         AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
-                obtainAsyncWriteQueue(connection);
+                ((AbstractNIOConnection) connection).obtainAsyncWriteQueue();
 
         LinkedTransferQueue<AsyncWriteQueueRecord> queue =
                 connectionQueue.getQueue();
@@ -208,7 +208,8 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     public boolean isReady(Connection connection) {
-        AsyncQueue connectionQueue = getAsyncWriteQueue(connection);
+        AsyncQueue connectionQueue =
+                ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
         return connectionQueue != null &&
                 (connectionQueue.getCurrentElement().get() != null ||
@@ -221,7 +222,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     public void processAsync(Connection connection) throws IOException {
         AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
-                obtainAsyncWriteQueue(connection);
+                ((AbstractNIOConnection) connection).obtainAsyncWriteQueue();
 
         LinkedTransferQueue<AsyncWriteQueueRecord> queue =
                 connectionQueue.getQueue();
@@ -453,12 +454,6 @@ public abstract class AbstractNIOAsyncQueueWriter
             SocketAddress dstAddress, Buffer buffer,
             WriteResult<Buffer, SocketAddress> currentResult)
             throws IOException;
-
-    protected abstract AsyncQueue<AsyncWriteQueueRecord> getAsyncWriteQueue(
-            Connection connection);
-
-    protected abstract AsyncQueue<AsyncWriteQueueRecord> obtainAsyncWriteQueue(
-            Connection connection);
 
     protected abstract void onReadyToWrite(Connection connection)
             throws IOException;

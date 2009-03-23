@@ -50,11 +50,8 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
-import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import org.glassfish.grizzly.asyncqueue.MessageCloner;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -90,22 +87,6 @@ public class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             WriteResult<Buffer, SocketAddress> currentResult)
             throws IOException {
         return ((TCPNIOTransport) transport).write(connection, buffer, currentResult);
-    }
-
-    @Override
-    protected AsyncQueue<AsyncWriteQueueRecord> getAsyncWriteQueue(
-            Connection connection) {
-        AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
-        return nioConnection.getAsyncWriteQueue();
-    }
-
-    @Override
-    protected AsyncQueue<AsyncWriteQueueRecord> obtainAsyncWriteQueue(
-            Connection connection) {
-        AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
-        return nioConnection.obtainAsyncWriteQueue();
     }
 
     protected void onReadyToWrite(Connection connection) throws IOException {

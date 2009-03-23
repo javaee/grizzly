@@ -112,7 +112,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
         // Get connection async read queue
         AsyncQueue<AsyncReadQueueRecord> connectionQueue =
-                obtainAsyncReadQueue(connection);
+                ((AbstractNIOConnection) connection).obtainAsyncReadQueue();
 
         LinkedTransferQueue<AsyncReadQueueRecord> queue =
                 connectionQueue.getQueue();
@@ -216,7 +216,8 @@ public abstract class AbstractNIOAsyncQueueReader
      * {@inheritDoc}
      */
     public boolean isReady(Connection connection) {
-        AsyncQueue connectionQueue = getAsyncReadQueue(connection);
+        AsyncQueue connectionQueue =
+                ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
         return connectionQueue != null &&
                 (connectionQueue.getCurrentElement().get() != null ||
@@ -229,7 +230,7 @@ public abstract class AbstractNIOAsyncQueueReader
      */
     public void processAsync(Connection connection) throws IOException {
         AsyncQueue<AsyncReadQueueRecord> connectionQueue =
-                obtainAsyncReadQueue(connection);
+                ((AbstractNIOConnection) connection).obtainAsyncReadQueue();
 
         LinkedTransferQueue<AsyncReadQueueRecord> queue =
                 connectionQueue.getQueue();
@@ -494,12 +495,6 @@ public abstract class AbstractNIOAsyncQueueReader
 
     protected abstract int read0(Connection connection, Buffer buffer,
             ReadResult<Buffer, SocketAddress> currentResult)throws IOException;
-
-    protected abstract AsyncQueue<AsyncReadQueueRecord> getAsyncReadQueue(
-            Connection connection);
-
-    protected abstract AsyncQueue<AsyncReadQueueRecord> obtainAsyncReadQueue(
-            Connection connection);
 
     protected abstract void onReadyToRead(Connection connection)
             throws IOException;

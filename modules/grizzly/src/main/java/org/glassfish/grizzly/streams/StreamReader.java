@@ -38,7 +38,6 @@ package org.glassfish.grizzly.streams;
 import java.io.Closeable;
 
 import java.io.IOException;
-import java.nio.ByteOrder;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
@@ -77,15 +76,6 @@ public interface StreamReader extends Closeable {
      * or false otherwise
      */
     boolean receiveData(Buffer buffer);
-
-    /** Return the ByteOrder of the stream.
-     * All streams default to big endian byte order.
-     */
-    ByteOrder order();
-
-    /** Set the ByteOrder of the stream.
-     */
-    void order(ByteOrder byteOrder);
 
     /** Return the number of bytes available for get calls.  An attempt to 
      * get more data than is present in the stream will either result in 

@@ -71,28 +71,173 @@ import org.glassfish.grizzly.attributes.Attribute;
 public interface Filter {
     
     /**
-     * Execute a unit of processing work to be performed. This {@link Filter}
-     * may either complete the required processing, or delegate remaining
-     * processing to the next {@link Filter} in a {@link FilterChain} containing
-     * this {@link Filter}, by returning correspondent {@link NextAction} object.
+     * Execute a unit of processing work to be performed, when channel will
+     * become available for reading.
+     * This {@link Filter} may either complete the required processing and
+     * return false, or delegate remaining processing to the next
+     * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
+     * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction
-     * @return {@link NextAction}
-     * @throws java.io.IOException 
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
      */
-    public NextAction execute(FilterChainContext ctx, NextAction nextAction)
+    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException;
-    
-    
+
     /**
-     * Execute any cleanup activities, such as releasing resources that were 
-     * acquired during the {@link Filter#execute()} method of this
-     * {@link Filter} instance.
+     * Execute any cleanup activities, such as releasing
+     * resources that were acquired during the execution of
+     * {@link Filter#handleRead(com.sun.grizzly.FilterChainContext)} method of
+     * this {@link Filter} instance.
      * @param ctx {@link FilterChainContext}
-     * @return {@link NextAction}
-     * @throws java.io.IOException 
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
      */
-    public NextAction postExecute(FilterChainContext ctx, NextAction nextAction)
+    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
+            throws IOException;
+
+    /**
+     * Execute a unit of processing work to be performed, when channel will
+     * become available for writing.
+     * This {@link Filter} may either complete the required processing and
+     * return false, or delegate remaining processing to the next
+     * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
+     * by returning true.
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
+            throws IOException;
+
+    /**
+     * Execute any cleanup activities, such as releasing
+     * resources that were acquired during the execution of
+     * {@link Filter#handleWrite(com.sun.grizzly.FilterChainContext)} method of
+     * this {@link Filter} instance.
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction postWrite(FilterChainContext ctx, NextAction nextAction)
+            throws IOException;
+
+    /**
+     * Execute a unit of processing work to be performed, when channel gets
+     * connected.
+     * This {@link Filter} may either complete the required processing and
+     * return false, or delegate remaining processing to the next
+     * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
+     * by returning true.
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction handleConnect(FilterChainContext ctx, NextAction nextAction)
+            throws IOException;
+
+    /**
+     * Execute any cleanup activities, such as releasing
+     * resources that were acquired during the execution of
+     * {@link Filter#handleConnect(com.sun.grizzly.FilterChainContext)} method of
+     * this {@link Filter} instance.
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction postConnect(FilterChainContext ctx, NextAction nextAction)
+            throws IOException;
+
+    /**
+     * Execute a unit of processing work to be performed, when server channel
+     * has accepted the client connection.
+     * This {@link Filter} may either complete the required processing and
+     * return false, or delegate remaining processing to the next
+     * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
+     * by returning true.
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction handleAccept(FilterChainContext ctx, NextAction nextAction)
+            throws IOException;
+
+    /**
+     * Execute any cleanup activities, such as releasing
+     * resources that were acquired during the execution of
+     * {@link Filter#handleAccept(com.sun.grizzly.FilterChainContext)} method of
+     * this {@link Filter} instance.
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction postAccept(FilterChainContext ctx, NextAction nextAction)
+            throws IOException;
+
+    /**
+     * Execute a unit of processing work to be performed, when connection
+     * has been closed.
+     * This {@link Filter} may either complete the required processing and
+     * return false, or delegate remaining processing to the next
+     * {@link Filter} in a {@link FilterChain} containing this {@link Filter}
+     * by returning true.
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction handleClose(FilterChainContext ctx, NextAction nextAction)
+            throws IOException;
+
+    /**
+     * Execute any cleanup activities, such as releasing
+     * resources that were acquired during the execution of
+     * {@link Filter#handleClose(com.sun.grizzly.FilterChainContext)} method of
+     * this {@link Filter} instance.
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction}, which Filter
+     *        could change in order to control how
+     *        {@link FilterChain} will continue the execution
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
+    public NextAction postClose(FilterChainContext ctx, NextAction nextAction)
             throws IOException;
 
     

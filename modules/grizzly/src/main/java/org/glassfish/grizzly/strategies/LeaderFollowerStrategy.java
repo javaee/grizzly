@@ -40,8 +40,8 @@ package org.glassfish.grizzly.strategies;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ProcessorRunnable;
 import org.glassfish.grizzly.Strategy;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.NIOTransport;
@@ -75,20 +75,19 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
     }
 
     public void executeProcessor(Boolean strategyContext,
-            Context processorContext) throws IOException {
+            ProcessorRunnable processorRunnable) throws IOException {
 
         if (strategyContext != null && strategyContext) {
             NIOConnection nioConnection =
-                    (NIOConnection) processorContext.getConnection();
+                    (NIOConnection) processorRunnable.getConnection();
             SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
             nioConnection.getTransport().getWorkerThreadPool().execute(runner);
         }
 
-        Runnable task = processorContext.getProcessorRunnable();
         Executor executor = getProcessorExecutor(strategyContext);
 
-        executor.execute(task);
+        executor.execute(processorRunnable);
     }
 
     public boolean isTerminateThread(Boolean strategyContext) {

@@ -38,17 +38,17 @@
 
 package org.glassfish.grizzly.attributes;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.glassfish.grizzly.util.LightArrayList;
 
 /**
  *
  * @author Alexey Stashok
  */
 public class DefaultAttributeBuilder implements AttributeBuilder {
-    protected List<Attribute> attributes = new ArrayList<Attribute>();
+    protected List<Attribute> attributes = new LightArrayList<Attribute>();
     protected Map<String, Attribute> name2Attribute = new HashMap<String, Attribute>();
     
     /**

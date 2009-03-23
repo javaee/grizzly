@@ -47,6 +47,7 @@ import org.glassfish.grizzly.util.ArrayIOEventMask;
 import org.glassfish.grizzly.util.ConcurrentQueuePool;
 import org.glassfish.grizzly.util.ObjectPool;
 import java.io.IOException;
+import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 
 /**
  * Abstract {@link FilterChain} implementation,
@@ -89,6 +90,36 @@ public abstract class AbstractFilterChain implements FilterChain {
         @Override
         public FilterChainContext newInstance() {
             return new FilterChainContext(filterChainContextPool);
+        }
+
+        @Override
+        public void offer(FilterChainContext object) {
+            Thread thread = Thread.currentThread();
+
+            if (thread instanceof DefaultWorkerThread) {
+                object.release();
+                ((DefaultWorkerThread) thread).setCachedContext(object);
+                return;
+            }
+
+            super.offer(object);
+        }
+
+        @Override
+        public FilterChainContext poll() {
+            Thread thread = Thread.currentThread();
+
+            if (thread instanceof DefaultWorkerThread) {
+                DefaultWorkerThread workerThread = (DefaultWorkerThread) thread;
+                Context context = workerThread.getCachedContext();
+                if (context instanceof FilterChainContext) {
+                    context.prepare();
+                    workerThread.setCachedContext(null);
+                    return (FilterChainContext) context;
+                }
+            }
+
+            return super.poll();
         }
     };
 

@@ -60,7 +60,7 @@ public class TransportFilter extends FilterAdapter {
                 ctx.getConnection().getTransport());
 
         if (defaultTransportFilter != null) {
-            return defaultTransportFilter.execute(ctx, nextAction);
+            return defaultTransportFilter.handleRead(ctx, nextAction);
         }
         
         return null;
@@ -73,7 +73,7 @@ public class TransportFilter extends FilterAdapter {
                 ctx.getConnection().getTransport());
 
         if (defaultTransportFilter != null) {
-            return defaultTransportFilter.execute(ctx, nextAction);
+            return defaultTransportFilter.handleWrite(ctx, nextAction);
         }
 
         return null;
@@ -86,7 +86,7 @@ public class TransportFilter extends FilterAdapter {
                 ctx.getConnection().getTransport());
 
         if (defaultTransportFilter != null) {
-            return defaultTransportFilter.postExecute(ctx, nextAction);
+            return defaultTransportFilter.postRead(ctx, nextAction);
         }
         
         return null;
@@ -99,7 +99,7 @@ public class TransportFilter extends FilterAdapter {
                 ctx.getConnection().getTransport());
 
         if (defaultTransportFilter != null) {
-            return defaultTransportFilter.execute(ctx, nextAction);
+            return defaultTransportFilter.postWrite(ctx, nextAction);
         }
 
         return null;

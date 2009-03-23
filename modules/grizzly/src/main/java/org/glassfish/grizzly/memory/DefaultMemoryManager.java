@@ -38,10 +38,7 @@ package org.glassfish.grizzly.memory;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.threadpool.WorkerThread;
+import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 
 /**
  *
@@ -50,9 +47,6 @@ import org.glassfish.grizzly.threadpool.WorkerThread;
 public class DefaultMemoryManager extends ByteBufferViewManager {
     public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 64;
     
-    private static Attribute<BufferInfo> threadBufferAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("ThreadBuffer");
-
     private int maxThreadBufferSize = DEFAULT_MAX_BUFFER_SIZE;
 
     private boolean isMonitoring;
@@ -81,7 +75,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
     @Override
     public ByteBufferWrapper allocate(int size) {
-        if (isWorkerThread()) {
+        if (isDefaultWorkerThread()) {
             BufferInfo bufferInfo = getThreadBuffer();
 
             if (bufferInfo == null || bufferInfo.buffer == null) {
@@ -117,7 +111,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
     @Override
     public void release(ByteBufferWrapper buffer) {
-        if (isWorkerThread()) {
+        if (isDefaultWorkerThread()) {
             ByteBuffer underlyingBuffer = buffer.underlying();
             
             BufferInfo bufferInfo = getThreadBuffer();
@@ -150,7 +144,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
     }
 
     public int getReadyThreadBufferSize() {
-        if (isWorkerThread()) {
+        if (isDefaultWorkerThread()) {
             BufferInfo bi = getThreadBuffer();
             if (bi != null && bi.buffer != null) {
                 return bi.buffer.remaining();
@@ -168,11 +162,9 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
 
     private BufferInfo getThreadBuffer() {
-        WorkerThread workerThread = (WorkerThread) Thread.currentThread();
-        AttributeHolder holder = workerThread.getAttributes();
-        if (holder == null) return null;
-
-        return threadBufferAttribute.get(holder);
+        DefaultWorkerThread workerThread =
+                (DefaultWorkerThread) Thread.currentThread();
+        return workerThread.getAssociatedBuffer();
     }
 
     private ByteBufferWrapper incAllocated(ByteBufferWrapper allocated) {
@@ -184,10 +176,9 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
     }
 
     private void setThreadBuffer(BufferInfo bufferInfo) {
-        if (!isWorkerThread()) return;
-
-        WorkerThread workerThread = (WorkerThread) Thread.currentThread();
-        threadBufferAttribute.set(workerThread.obtainAttributes(), bufferInfo);
+        DefaultWorkerThread workerThread =
+                (DefaultWorkerThread) Thread.currentThread();
+        workerThread.setAssociatedBuffer(bufferInfo);
     }
 
     private boolean prepend(BufferInfo bufferInfo, ByteBuffer underlyingBuffer) {
@@ -208,8 +199,8 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
         return false;
     }
 
-    private boolean isWorkerThread() {
-        return Thread.currentThread() instanceof WorkerThread;
+    private boolean isDefaultWorkerThread() {
+        return Thread.currentThread() instanceof DefaultWorkerThread;
     }
 
     public class BufferInfo {
@@ -237,7 +228,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
             BufferInfo bufferInfo;
             
-            if (sizeToReturn > 0 && isWorkerThread() &&
+            if (sizeToReturn > 0 && isDefaultWorkerThread() &&
                     ((bufferInfo = getThreadBuffer()) == null
                     || bufferInfo.lastAllocatedBuffer == visible)) {
                 visible.flip();

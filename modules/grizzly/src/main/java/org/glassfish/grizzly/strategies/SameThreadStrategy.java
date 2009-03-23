@@ -41,8 +41,8 @@ package org.glassfish.grizzly.strategies;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ProcessorRunnable;
 import org.glassfish.grizzly.Strategy;
 import org.glassfish.grizzly.util.CurrentThreadExecutor;
 
@@ -63,11 +63,9 @@ public class SameThreadStrategy implements Strategy {
     }
 
     public void executeProcessor(Object strategyContext,
-            Context processorContext) throws IOException {
+            ProcessorRunnable processorRunnable) throws IOException {
 
-        Runnable task = processorContext.getProcessorRunnable();
-
-        sameThreadProcessorExecutor.execute(task);
+        sameThreadProcessorExecutor.execute(processorRunnable);
     }
 
     public boolean isTerminateThread(Object strategyContext) {

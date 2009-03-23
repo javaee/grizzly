@@ -48,7 +48,6 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -71,22 +70,6 @@ public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 //        return nioConnection.writeNow(dstAddress, buffer).getWrittenSize();
 
         return -1;
-    }
-    
-    @Override
-    protected AsyncQueue<AsyncWriteQueueRecord> getAsyncWriteQueue(
-            Connection connection) {
-        AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
-        return nioConnection.getAsyncWriteQueue();
-    }
-
-    @Override
-    protected AsyncQueue<AsyncWriteQueueRecord> obtainAsyncWriteQueue(
-            Connection connection) {
-        AbstractNIOConnection nioConnection =
-                (AbstractNIOConnection) connection;
-        return nioConnection.obtainAsyncWriteQueue();
     }
 
     protected void onReadyToWrite(Connection connection)
