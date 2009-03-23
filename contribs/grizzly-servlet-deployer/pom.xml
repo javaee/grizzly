@@ -26,7 +26,7 @@
                         <Import-Package>*</Import-Package>
                         <Export-Package>com.sun.grizzly.*;-split-package:=merge-first,javax.servlet.*;;-split-package:=merge-first</Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
-                        <Main-Class>com.sun.grizzly.http.servlet.deployer.ServletWarDeployer</Main-Class>
+                        <Main-Class>com.sun.grizzly.http.servlet.deployer.GrizzlyWebServerDeployer</Main-Class>
                     </instructions>
                 </configuration>
             </plugin>
