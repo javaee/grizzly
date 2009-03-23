@@ -75,7 +75,7 @@ public class JerseyrNoServletTest extends TestCase {
     /**
      * Test to see that the message "Got it!" is sent in the response.
      */
-    public void _testMyResource() {
+    public void testMyResource() {
         String responseMsg = r.path("myresource").get(String.class);
         assertEquals("Got it!", responseMsg);
     }
@@ -83,8 +83,9 @@ public class JerseyrNoServletTest extends TestCase {
     /**
      * Test if a WADL document is available at the relative path
      * "application.wadl".
+     * TODO: Works only on Java6
      */
-    public void testApplicationWadl() {
+    public void _testApplicationWadl() {
         String serviceWadl = r.path("application.wadl").
                 accept(MediaTypes.WADL).get(String.class);
                 
