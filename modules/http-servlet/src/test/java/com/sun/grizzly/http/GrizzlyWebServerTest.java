@@ -179,6 +179,24 @@ public class GrizzlyWebServerTest extends TestCase {
         }
     }
 
+    /**
+     * Tests that {@link GrizzlyWebServer} should not start if default {@link com.sun.grizzly.SSLConfig} is supposed to
+     * be used but it could not be created.
+     */
+    public void testStartSecureFailDefault() {
+        System.out.println("testStartSecureFailDefault");
+        gws = new GrizzlyWebServer(PORT, ".", true);
+        try {
+            gws.start();
+            fail("Should not be able to start if default ssl configuration was not created.");
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail("Could not bind to port: " + PORT+ ". " + e.getMessage());
+        } catch (RuntimeException e) {
+            // expected
+        }
+    }
+
     private String readResponse(HttpURLConnection conn) throws IOException {
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(conn.getInputStream()));

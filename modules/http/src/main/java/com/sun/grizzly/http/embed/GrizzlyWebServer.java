@@ -44,14 +44,15 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
+import javax.net.ssl.SSLContext;
 
 
 /**
  * <p>
  * This class creates a WebServer that listen for http request. By default, 
  * creating an instance of this class can be used as it is to synchronously serve resources located 
- * under {@link #webResourcesPath}. By default, the {@link StaticResourcesAdapter} is
- * used when there is no {@link GrizzlyAdapter} specified.  The {@link StaticResourcesAdapter}
+ * under {@link #webResourcesPath}. By default, the {@link com.sun.grizzly.tcp.StaticResourcesAdapter} is
+ * used when there is no {@link GrizzlyAdapter} specified.  The {@link com.sun.grizzly.tcp.StaticResourcesAdapter}
  * allow servicing of static resources like html files, images files, etc. 
  * 
  * The {@link GrizzlyAdapter} provides developpers with a simple and consistent mechanism for extending 
@@ -60,7 +61,7 @@ import javax.management.ObjectName;
  * http based protocol. 
  * </p><p>You can extend the GrizzlyWebServer by adding one or serveral
  * {@link GrizzlyAdapter}. If more that one are used, the {@link GrizzlyAdapterChain}
- * will be used to map the request to its associated {@link GrizzlyAdapter}s, using a {@link Mapper}.
+ * will be used to map the request to its associated {@link GrizzlyAdapter}s, using a {@link com.sun.grizzly.util.http.mapper.Mapper}.
  * A {@link GrizzlyAdapter} gets invoked
  * as soon as the http request has been parsed and 
  * decoded. The  {@link GrizzlyAdapter#service(com.sun.grizzly.tcp.http11.GrizzlyRequest, com.sun.grizzly.tcp.http11.GrizzlyResponse)}
@@ -70,10 +71,10 @@ import javax.management.ObjectName;
  * executed. 
  * </p><p>Asynchronous request processing is automatically enabled
  * as soon as one or several {@link AsyncFilter} are added, using the 
- * {@link #addAsyncHandler} method. {@link AsyncFilter} can be used when 
+ * {@link #addAsyncFilter} method. {@link AsyncFilter} can be used when
  * asynchronous operation are required, like suspending the current http request,
  * delaying the invokation of {@link GrizzlyAdapter} etc. The state of the 
- * request processing can be managed using {@link AsyncExecutor}, like resuming 
+ * request processing can be managed using {@link com.sun.grizzly.arp.AsyncExecutor}, like resuming
  * the process so {@link GrizzlyAdapter}s can be invoked.
  * </p><p>
  * The following picture describes how {@link AsyncFilter} and {@link GrizzlyAdapter}
@@ -545,10 +546,22 @@ public class GrizzlyWebServer {
     /**
      * Start the GrizzlyWebServer and start listening for http requests. Calling 
      * this method several time has no effect once GrizzlyWebServer has been started.
-     * @throws java.io.IOException
+     * @throws java.io.IOException If can't startup.
      */
     public void start() throws IOException{
         if (isStarted) return;
+        if (st instanceof SSLSelectorThread) {
+            // if needed create default SSLContext
+            SSLSelectorThread sslST = (SSLSelectorThread) st;
+            if (sslST.getSSLContext() == null) {
+                SSLConfig sslConfig = new SSLConfig(true);
+                if (sslConfig.getKeyStoreFile() == null) {
+                    // failed to create default
+                    throw new RuntimeException("Failed to create default SSLConfig.");
+                }
+                sslST.setSSLContext(sslConfig.createSSLContext());
+            }
+        }
         isStarted = true;
 
         // Use the default
