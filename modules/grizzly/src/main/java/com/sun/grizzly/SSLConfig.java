@@ -272,17 +272,18 @@ public class SSLConfig {
     }
     
     public void retrieve(Properties props) {
-        trustStoreType = System.getProperty(TRUST_STORE_TYPE, "JKS");
-        keyStoreType = System.getProperty(KEY_STORE_TYPE, "JKS");
+        trustStoreType = props.getProperty(TRUST_STORE_TYPE, "JKS");
+        keyStoreType = props.getProperty(KEY_STORE_TYPE, "JKS");
     
         trustStorePass = 
-                System.getProperty(TRUST_STORE_PASSWORD, "changeit").toCharArray();
+                props.getProperty(TRUST_STORE_PASSWORD, "changeit").toCharArray();
     
         keyStorePass = 
-                System.getProperty(KEY_STORE_PASSWORD, "changeit").toCharArray();
-    
-        trustStoreFile = System.getProperty(TRUST_STORE_FILE);
-        keyStoreFile = System.getProperty(KEY_STORE_FILE);
+                props.getProperty(KEY_STORE_PASSWORD, "changeit").toCharArray();
+
+        // TODO provide default file locations
+        trustStoreFile = props.getProperty(TRUST_STORE_FILE);
+        keyStoreFile = props.getProperty(KEY_STORE_FILE);
     
         trustStoreAlgorithm = "SunX509";
         keyStoreAlgorithm = "SunX509";
