@@ -157,17 +157,17 @@ public class DefaultSelectorHandler implements SelectorHandler {
     protected void addPendingOperation(SelectorRunner selectorRunner,
             SelectionKeyOperation operation) {
         LinkedTransferQueue<SelectionKeyOperation> pendingSelectorOps =
-                getSelectorPendingOperations(selectorRunner);
+                selectorRunner.getPendingOperations();
         pendingSelectorOps.offer(operation);
 
-        selectorRunner.getSelector().wakeup();
+        selectorRunner.wakeupSelector();
     }
 
     protected void processPendingOperations(SelectorRunner selectorRunner)
             throws IOException {
 
         LinkedTransferQueue<SelectionKeyOperation> pendingSelectorOps =
-                getSelectorPendingOperations(selectorRunner);
+                selectorRunner.getPendingOperations();
 
         SelectionKeyOperation pendingOperation;
         while((pendingOperation = pendingSelectorOps.poll()) != null) {
@@ -198,11 +198,6 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 throw new IllegalStateException("Unknown operation type: " +
                         opType);
         }
-    }
-
-    protected LinkedTransferQueue<SelectionKeyOperation>
-            getSelectorPendingOperations(SelectorRunner selectorRunner) {
-        return selectorRunner.getPendingOperations();
     }
 
     private void registerKey0(SelectionKey selectionKey, int interest) {
