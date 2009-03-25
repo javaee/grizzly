@@ -45,15 +45,12 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.BlockingSSLHandshaker;
-import org.glassfish.grizzly.ssl.SSLCodec;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLHandshaker;
 import org.glassfish.grizzly.ssl.SSLStreamReader;
 import org.glassfish.grizzly.ssl.SSLStreamWriter;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.util.EchoFilter;
 
 /**
@@ -96,8 +93,8 @@ public class SSLTest extends TestCase {
             reader = new SSLStreamReader(connection.getStreamReader());
             writer = new SSLStreamWriter(connection.getStreamWriter());
 
-            reader.setMode(StreamReader.Mode.BLOCKING);
-            writer.setMode(StreamWriter.Mode.BLOCKING);
+            reader.setBlocking(true);
+            writer.setBlocking(true);
 
             SSLHandshaker handshaker = new BlockingSSLHandshaker();
             
@@ -127,8 +124,6 @@ public class SSLTest extends TestCase {
             String sentString = new String(sentMessage);
             String receivedString = new String(receivedMessage);
             assertEquals(sentString, receivedString);
-        } catch (Exception e) {
-            e.printStackTrace();
         }  finally {
             if (reader != null) {
                 reader.close();
@@ -205,8 +200,6 @@ public class SSLTest extends TestCase {
             String sentString = new String(sentMessage);
             String receivedString = new String(receivedMessage);
             assertEquals(sentString, receivedString);
-        } catch (Exception e) {
-            e.printStackTrace();
         }  finally {
             if (reader != null) {
                 reader.close();

@@ -39,7 +39,7 @@
 package org.glassfish.grizzly.filterchain;
 
 public class RerunChainAction extends AbstractNextAction {
-    public static final int TYPE = 5;
+    public static final int TYPE = 4;
 
     public RerunChainAction() {
         super(TYPE);

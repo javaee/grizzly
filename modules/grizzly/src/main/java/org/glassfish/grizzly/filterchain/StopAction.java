@@ -38,8 +38,14 @@
 
 package org.glassfish.grizzly.filterchain;
 
+/**
+ * {@link NextAction}, which instructs {@link FilterChain} to stop executing
+ * phase and start post executing filters.
+ * 
+ * @author Alexey Stashok
+ */
 public class StopAction extends AbstractNextAction {
-    public static final int TYPE = 2;
+    public static final int TYPE = 1;
 
     public StopAction() {
         super(TYPE);

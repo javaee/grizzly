@@ -40,9 +40,8 @@ package org.glassfish.grizzly.ssl;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.BlockingQueue;
+import java.util.LinkedList;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.Status;
@@ -61,7 +60,7 @@ import org.glassfish.grizzly.util.conditions.Condition;
  * @author oleksiys
  */
 public class SSLStreamReader extends StreamReaderDecorator {
-    public static Attribute<BlockingQueue> sslAttribute =
+    public static Attribute<LinkedList> sslAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("SSL_REMAINDER");
     
     public SSLStreamReader() {
@@ -138,11 +137,11 @@ public class SSLStreamReader extends StreamReaderDecorator {
             return;
         }
         
-        BlockingQueue attachedBuffers = sslAttribute.remove(connection.getAttributes());
+        LinkedList<Buffer> attachedBuffers = sslAttribute.remove(connection.getAttributes());
         if (attachedBuffers != null) {
             buffers = attachedBuffers;
         } else if (buffers == null) {
-            buffers = new LinkedBlockingQueue<Buffer>();
+            buffers = new LinkedList<Buffer>();
         }
     }
 

@@ -45,7 +45,7 @@ package org.glassfish.grizzly;
  */
 public class ProcessorResult {
     public enum Status {
-        OK, ERROR, RERUN;
+        OK, ERROR, RERUN, TERMINATE;
     }
     
     private Status status;

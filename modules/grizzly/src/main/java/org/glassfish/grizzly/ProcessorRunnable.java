@@ -48,10 +48,16 @@ import java.util.logging.Level;
  */
 public class ProcessorRunnable implements Runnable {
 
+    private Context context;
+
     private IOEvent ioEvent;
     private Connection connection;
     private Processor processor;
     private PostProcessor postProcessor;
+
+    public ProcessorRunnable(Context context) {
+        this.context = context;
+    }
 
     public ProcessorRunnable(IOEvent ioEvent, Connection connection, Processor processor, PostProcessor postProcessor) {
         this.ioEvent = ioEvent;
@@ -92,9 +98,19 @@ public class ProcessorRunnable implements Runnable {
         this.postProcessor = postProcessor;
     }
 
+    public Context getContext() {
+        return context;
+    }
+
+    public void setContext(Context context) {
+        this.context = context;
+    }
+
     public void run() {
-        Context context = createContext();
-        initContext(context);
+        if (context == null) {
+            createContext();
+            initContext();
+        }
 
         ProcessorResult result = null;
 
@@ -105,42 +121,29 @@ public class ProcessorRunnable implements Runnable {
                 result = processor.process(context);
             } while (result != null &&
                     result.getStatus() == Status.RERUN);
+            
+            if (result == null || result.getStatus() != Status.TERMINATE) {
+                postProcess(context, result);
+            }
         } catch (IOException e) {
             result = new ProcessorResult(Status.ERROR, e);
+            postProcess(context, result);
             logException(context, e);
         } catch (Throwable t) {
             logException(context, t);
+            postProcess(context, result);
             throw new RuntimeException(t);
-        } finally {
-            try {
-                processor.afterProcess(context);
-            } catch (IOException e) {
-                logException(context, e);
-            }
-
-            PostProcessor ioEventPostProcessor = context.getPostProcessor();
-            if (ioEventPostProcessor != null) {
-                try {
-                    ioEventPostProcessor.process(result, context);
-                } catch (IOException e) {
-                    logException(context, e);
-                }
-            }
-
-            context.offerToPool();
         }
     }
 
-    protected Context createContext() {
-        Context context = processor.context();
+    protected void createContext() {
+        context = processor.context();
         if (context == null) {
             context = new Context();
         }
-
-        return context;
     }
 
-    protected void initContext(Context context) {
+    protected void initContext() {
         context.setIoEvent(ioEvent);
         context.setConnection(connection);
         context.setProcessor(processor);
@@ -162,5 +165,22 @@ public class ProcessorRunnable implements Runnable {
                     " Processor: " +
                     processor + " Context: " + context, e);
         }
+    }
+
+    private void postProcess(Context context, ProcessorResult result) {
+        try {
+            processor.afterProcess(context);
+        } catch (IOException e) {
+            logException(context, e);
+        }
+        PostProcessor ioEventPostProcessor = context.getPostProcessor();
+        if (ioEventPostProcessor != null) {
+            try {
+                ioEventPostProcessor.process(result, context);
+            } catch (IOException e) {
+                logException(context, e);
+            }
+        }
+        context.offerToPool();
     }
 }

@@ -53,10 +53,6 @@ import org.glassfish.grizzly.util.conditions.Condition;
  * @author Ken Cavanaugh
  */
 public interface StreamReader extends Closeable {
-    public enum Mode {
-        NON_BLOCKING, BLOCKING;
-    }
-    
     public Future notifyAvailable(int length);
 
     public Future notifyAvailable(int length, CompletionHandler completionHandler);
@@ -66,10 +62,10 @@ public interface StreamReader extends Closeable {
     public Future notifyCondition(Condition<StreamReader> condition,
             CompletionHandler completionHandler);
 
-    public Mode getMode();
+    public boolean isBlocking();
 
-    public void setMode(Mode mode);
-
+    public void setBlocking(boolean isBlocking);
+    
     /**
      * Add more data to the beginning of the stream.
      * @return true, if buffer was prepended to the {@link StreamReader},

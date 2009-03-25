@@ -62,7 +62,7 @@ import org.glassfish.grizzly.Connection;
 public abstract class AbstractStreamWriter implements StreamWriter {
     protected Connection connection;
 
-    protected Mode mode;
+    private boolean isBlocking;
 
     protected int bufferSize = 8192;
     
@@ -85,12 +85,12 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         setConnection(connection);
     }
 
-    public Mode getMode() {
-        return mode;
+    public boolean isBlocking() {
+        return isBlocking;
     }
 
-    public void setMode(Mode mode) {
-        this.mode = mode;
+    public void setBlocking(boolean isBlocking) {
+        this.isBlocking = isBlocking;
     }
 
     protected Future overflow() throws IOException {
@@ -400,7 +400,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     public void setConnection(Connection connection) {
         if (connection != null) {
             bufferSize = connection.getWriteBufferSize();
-            mode = connection.isBlocking() ? Mode.BLOCKING : Mode.NON_BLOCKING;
+            isBlocking = connection.isBlocking();
         }
         
         this.connection = connection;

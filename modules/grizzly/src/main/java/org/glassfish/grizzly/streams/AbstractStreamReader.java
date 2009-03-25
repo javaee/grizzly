@@ -40,12 +40,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.BufferUnderflowException;
 
+import java.util.LinkedList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
@@ -74,7 +72,7 @@ public abstract class AbstractStreamReader extends InputStream
     private static final boolean DEBUG = false;
     private static Logger logger = Grizzly.logger;
 
-    private Mode mode;
+    private boolean isBlocking;
 
     private Connection connection;
     protected int bufferSize = 8192;
@@ -96,8 +94,9 @@ public abstract class AbstractStreamReader extends InputStream
         msg("\tposition()     = " + wrapper.position());
         msg("\tlimit()        = " + wrapper.limit());
         msg("\tcapacity()     = " + wrapper.capacity());
-    }    // Concurrency considerations:
-    // Only one thread (the consumer) may invoke the getXXX methods.
+    }
+    // Concurrency considerations:
+    // Only one thread (the consumer) may invoke the readXXX methods.
     // dataReceived and close may be invoked by a producer thread.
     // The consumer thread will invoke readXXX methods far more often
     // than a typical producer will call dataReceived or (possibly) close.
@@ -106,12 +105,10 @@ public abstract class AbstractStreamReader extends InputStream
     // since we just need to ensure the visibility of the value of current to
     // all threads.
     //
-    protected BlockingQueue<Buffer> buffers;
-    private AtomicInteger queueSize;
-    private volatile Buffer current;
+    protected LinkedList<Buffer> buffers;
+    private int queueSize;
+    private Buffer current;
     private boolean closed;
-    private long timeout;
-    public static final int HEADER_SIZE = 8;
     protected NotifyObject notifyObject;
 
     public AbstractStreamReader() {
@@ -126,29 +123,48 @@ public abstract class AbstractStreamReader extends InputStream
      */
     protected AbstractStreamReader(Connection connection) {
         setConnection(connection);
-        buffers = new LinkedBlockingQueue<Buffer>();
-        queueSize = new AtomicInteger();
+        buffers = new LinkedList<Buffer>();
+        queueSize = 0;
         current = null;
         closed = false;
-        if (timeout < 0) {
+        if (timeoutMillis < 0) {
             throw new IllegalArgumentException(
                     "Timeout must not be negative.");
         }
     }
 
-    public Mode getMode() {
-        return mode;
+    public boolean isBlocking() {
+        return isBlocking;
     }
 
-    public void setMode(Mode mode) {
-        this.mode = mode;
+    public void setBlocking(boolean isBlocking) {
+        this.isBlocking = isBlocking;
     }
 
     /**
      * {@inheritDoc}
      */
     public boolean prependBuffer(Buffer buffer) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        if (buffer == null) {
+            return false;
+        }
+
+        if (closed) {
+            buffer.dispose();
+        } else {
+            if (buffer.hasRemaining()) {
+                if (current == null) {
+                    current = buffer;
+                } else {
+                    buffers.addFirst(buffer);
+                    queueSize += buffer.remaining();
+                }
+            }
+
+            notifyCondition();
+        }
+
+        return true;
     }
 
     /**
@@ -162,25 +178,28 @@ public abstract class AbstractStreamReader extends InputStream
         if (closed) {
             buffer.dispose();
         } else {
-            if (current == null) {
-                current = buffer;
-            } else {
-                boolean isAdded = !buffer.hasRemaining() || buffers.offer(buffer);
-                if (!isAdded) return false;
-            
-                queueSize.addAndGet(buffer.remaining());
+            if (buffer.hasRemaining()) {
+                if (current == null) {
+                    current = buffer;
+                } else {
+                    buffers.addLast(buffer);
+                    queueSize += buffer.remaining();
+                }
             }
 
-            if (notifyObject != null && notifyObject.condition.check(this)) {
-                NotifyObject localNotifyAvailObject = notifyObject;
-                notifyObject = null;
-                notifySuccess(localNotifyAvailObject.future,
-                        localNotifyAvailObject.completionHandler,
-                        availableDataSize());
-            }
+            notifyCondition();
         }
 
         return true;
+    }
+
+    private void notifyCondition() {
+        if (notifyObject != null && notifyObject.condition.check(this)) {
+            NotifyObject localNotifyAvailObject = notifyObject;
+            notifyObject = null;
+            notifySuccess(localNotifyAvailObject.future,
+                    localNotifyAvailObject.completionHandler, availableDataSize());
+        }
     }
 
     @Override
@@ -226,7 +245,7 @@ public abstract class AbstractStreamReader extends InputStream
             }
             buffers = null;
         }
-        queueSize.set(0);
+        queueSize = 0;
 
         if (notifyObject != null) {
             NotifyObject localNotifyAvailObject = notifyObject;
@@ -301,29 +320,17 @@ public abstract class AbstractStreamReader extends InputStream
     }
 
     protected Buffer pollBuffer() {
-        Buffer buffer;
-        if (timeout > 0) {
-            try {
-                buffer = buffers.poll(timeout, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException exc) {
-                throw new RuntimeException(exc);
-            }
-
-            if (buffer != null) {
-                queueSize.addAndGet(-buffer.remaining());
-            }
-        } else {
-            buffer = buffers.poll();
-            if (buffer != null) {
-                queueSize.addAndGet(-buffer.remaining());
-            }
+        if (!buffers.isEmpty()) {
+            Buffer buffer = buffers.removeFirst();
+            queueSize -= buffer.remaining();
+            return buffer;
         }
 
-        return buffer;
+        return null;
     }
     
     public int availableDataSize() {
-        return queueSize.get() + currentAvailable();
+        return queueSize + currentAvailable();
     }
 
     public boolean readBoolean() throws IOException {
@@ -386,7 +393,7 @@ public abstract class AbstractStreamReader extends InputStream
     }
 
     private void arraySizeCheck(final int sizeInBytes) {
-        if ((timeout == 0) && (sizeInBytes > availableDataSize())) {
+        if ((timeoutMillis == 0) && (sizeInBytes > availableDataSize())) {
             throw new BufferUnderflowException();
         }
     }
@@ -540,7 +547,7 @@ public abstract class AbstractStreamReader extends InputStream
         Buffer next = buffers.poll();
         if (next != null) {
             next.position(0);
-            queueSize.addAndGet(-next.remaining());
+            queueSize -= next.remaining();
         }
         
         current = next;
@@ -553,7 +560,7 @@ public abstract class AbstractStreamReader extends InputStream
     public void setConnection(Connection connection) {
         if (connection != null) {
             bufferSize = connection.getReadBufferSize();
-            mode = connection.isBlocking() ? Mode.BLOCKING : Mode.NON_BLOCKING;
+            isBlocking = connection.isBlocking();
         }
         
         this.connection = connection;

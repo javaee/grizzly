@@ -65,13 +65,13 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
     }
 
     @Override
-    public Mode getMode() {
-        return underlyingReader.getMode();
+    public boolean isBlocking() {
+        return underlyingReader.isBlocking();
     }
 
     @Override
-    public void setMode(Mode mode) {
-        underlyingReader.setMode(mode);
+    public void setBlocking(boolean isBlocking) {
+        underlyingReader.setBlocking(isBlocking);
     }
 
     @Override

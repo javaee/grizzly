@@ -40,7 +40,7 @@ package org.glassfish.grizzly.filterchain;
 import java.util.List;
 
 public class InvokeAction extends AbstractNextAction {
-    public static final int TYPE = 1;
+    public static final int TYPE = 0;
     
     public InvokeAction() {
         this(null);

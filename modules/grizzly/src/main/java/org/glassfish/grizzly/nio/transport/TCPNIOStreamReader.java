@@ -89,14 +89,11 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
 
             return new ReadyFutureImpl(availableDataSize);
         } else {
-
-            switch (getMode()) {
-                case NON_BLOCKING:
-                    return notifyConditionNonBlocking(condition, completionHandler);
-                case BLOCKING:
-                    return notifyConditionBlocking(condition, completionHandler);
+            if (isBlocking()) {
+                return notifyConditionBlocking(condition, completionHandler);
+            } else {
+                return notifyConditionNonBlocking(condition, completionHandler);
             }
-            return null;
         }
     }
     
@@ -165,56 +162,48 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
     protected Buffer read0() throws IOException {
         Connection connection = getConnection();
         
-        switch(getMode()) {
-            case NON_BLOCKING:
-            {
-                TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-                Buffer buffer = newBuffer(bufferSize);
+        if (isBlocking()) {
+            TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
+            Buffer buffer = newBuffer(bufferSize);
 
-                try {
-                    int readBytes = transport.read(connection, buffer);
-                    if (readBytes <= 0) {
-                        if (readBytes == -1) {
-                            throw new EOFException();
-                        }
-                        
-                        buffer.dispose();
-                        buffer = null;
-                    } else {
-                        buffer.trim();
+            try {
+                AbstractTemporarySelectorReader reader =
+                        (AbstractTemporarySelectorReader)
+                        transport.getTemporarySelectorIO().getReader();
+                Future future = reader.read(connection, buffer, null, null,
+                        timeoutMillis, TimeUnit.MILLISECONDS);
+                future.get();
+                buffer.trim();
+            } catch (Exception e) {
+                buffer.dispose();
+                throw new EOFException();
+            }
+
+            return buffer;
+            
+        } else {
+            TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
+            Buffer buffer = newBuffer(bufferSize);
+
+            try {
+                int readBytes = transport.read(connection, buffer);
+                if (readBytes <= 0) {
+                    if (readBytes == -1) {
+                        throw new EOFException();
                     }
-                } catch (IOException e) {
+
                     buffer.dispose();
                     buffer = null;
-                    throw e;
-                }
-
-                return buffer;
-            }
-
-            case BLOCKING:
-            {
-                TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-                Buffer buffer = newBuffer(bufferSize);
-
-                try {
-                    AbstractTemporarySelectorReader reader =
-                            (AbstractTemporarySelectorReader)
-                            transport.getTemporarySelectorIO().getReader();
-                    Future future = reader.read(connection, buffer, null, null,
-                            timeoutMillis, TimeUnit.MILLISECONDS);
-                    future.get();
+                } else {
                     buffer.trim();
-                } catch (Exception e) {
-                    buffer.dispose();
-                    throw new EOFException();
                 }
-
-                return buffer;
+            } catch (IOException e) {
+                buffer.dispose();
+                buffer = null;
+                throw e;
             }
 
-            default:
-                return null;
+            return buffer;
         }
     }
 }

@@ -49,13 +49,9 @@ import org.glassfish.grizzly.Connection;
  * @author Ken Cavanaugh
  */
 public interface StreamWriter extends Closeable {
-    public enum Mode {
-        NON_BLOCKING, BLOCKING;
-    }
+    public boolean isBlocking();
 
-    public Mode getMode();
-
-    public void setMode(Mode mode);
+    public void setBlocking(boolean isBlocking);
 
     /**
      * Make sure that all data that has been written is

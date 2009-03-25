@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.util.LightArrayList;
 
 /**
@@ -143,6 +144,16 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
         },
     };
 
+    /*
+     * InvokeAction = 0
+     * StopAction = 1
+     * SuspendAction = 2
+     * TerminateAction = 3
+     * RerunChainAction = 4
+     */
+    private static final boolean[] isContinueExecution = new boolean[] {true,
+                                                    false, false, false, true};
+    
     private Logger logger = Grizzly.logger;
 
     public DefaultFilterChain(FilterChainFactory factory) {
@@ -158,9 +169,10 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     public ProcessorResult execute(FilterChainContext ctx) {
         try {
             int ioEventIndex = ctx.getIoEvent().ordinal();
-            executeChain(ctx, filterExecutors[ioEventIndex]);
-
-            postExecuteChain(ctx, filterPostExecutors[ioEventIndex]);
+            if (!executeChain(ctx, filterExecutors[ioEventIndex]) ||
+                    !postExecuteChain(ctx, filterPostExecutors[ioEventIndex])) {
+                return new ProcessorResult(Status.TERMINATE);
+            }
         } catch (IOException e) {
             try {
                 logger.log(Level.FINE, "Exception during FilterChain execution", e);
@@ -186,9 +198,10 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * @param offset position of the first filter in the chain to be executed
      * @param direction direction of execution
      * @param ctx {@link FilterChainContext}
-     * @return position of the last executed {@link Filter}
+     * @return <tt>false</tt> to terminate exectution, or <tt>true</tt> for
+     *         normal exection process
      */
-    protected void executeChain(FilterChainContext ctx,
+    protected boolean executeChain(FilterChainContext ctx,
             FilterExecutor executor) throws Exception {
 
         List<Filter> chain = ctx.getFilters();
@@ -226,34 +239,32 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
 
             ctx.getExecutedFilters().add(currentFilter);
 
-            if (nextAction.type() == StopAction.TYPE ||
-                    nextAction.type() == SuspendAction.TYPE)
-                break;
+            if (!isContinueExecution[nextAction.type()]) {
+                return nextAction.type() != TerminateAction.TYPE;
+            }
 
             chain = nextAction.getFilters();
             currentFilterIdx = nextAction.getNextFilterIdx();
 
             ctx.setFilters(chain);
             ctx.setCurrentFilterIdx(currentFilterIdx);
-
         }
+
+        return true;
     }
         
     /**
      * Execute the {@link Filter#postExecute()} method.
      * @param ctx {@link FilterChainContext}
-     * @return position of the last executed {@link Filter}
+     * @return <tt>false</tt> to terminate exectution, or <tt>true</tt> for
+     *         normal exection process
      */
-    protected void postExecuteChain(FilterChainContext ctx,
+    protected boolean postExecuteChain(FilterChainContext ctx,
             FilterExecutor executor) throws Exception {
         List<Filter> chain = ctx.getExecutedFilters();
         int offset = chain.size() - 1;
         // check startPosition and chain size
-        if (offset < 0) return;
-
-//        List<Filter> nextFiltersList = ctx.getNextFiltersList();
-//        nextFiltersList.clear();
-//        nextFiltersList.addAll(chain);
+        if (offset < 0) return true;
 
         NextAction nextAction = new InvokeAction(chain);
 
@@ -294,8 +305,9 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
                     ctx.setCurrentFilterIdx(tmpCurrentFilterIdx);
                 }
             }
-
         }
+
+        return true;
     }    
 
     /**

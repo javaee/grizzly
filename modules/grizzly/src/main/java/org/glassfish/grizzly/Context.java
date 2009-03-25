@@ -38,6 +38,7 @@
 
 package org.glassfish.grizzly;
 
+import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.util.ObjectPool;
@@ -58,7 +59,7 @@ public class Context implements PoolableObject {
 
     private AttributeHolder attributes;
     
-    private ProcessorExecutor processorExecutor;
+    private ExecutorService processorExecutor;
     
     private final ObjectPool<Context> parentPool;
 
@@ -86,12 +87,12 @@ public class Context implements PoolableObject {
         this.connection = connection;
     }
 
-    public ProcessorExecutor getProcessorExecutor() {
+    public ExecutorService getProcessorExecutor() {
         return processorExecutor;
     }
 
     public void setProcessorExecutor(
-            ProcessorExecutor processorExecutor) {
+            ExecutorService processorExecutor) {
         this.processorExecutor = processorExecutor;
     }
 

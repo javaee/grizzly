@@ -39,7 +39,6 @@
 package org.glassfish.grizzly.impl;
 
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -51,67 +50,106 @@ import java.util.concurrent.TimeoutException;
  */
 public class FutureImpl<R> implements Future<R> {
 
+    private final Object sync;
+    
+    private boolean isDone;
+    
     private boolean isCancelled;
     private Throwable failure;
     
     protected R result;
-    
-    protected CountDownLatch latch = new CountDownLatch(1);
+
+    public FutureImpl() {
+        this(new Object());
+    }
+
+    public FutureImpl(Object sync) {
+        this.sync = sync;
+    }
 
     public R getResult() {
-        return result;
+        synchronized(sync) {
+            return result;
+        }
     }
 
     public void setResult(R result) {
-        this.result = result;
-        notifyHaveResult();
+        synchronized(sync) {
+            this.result = result;
+            notifyHaveResult();
+        }
     }
 
     public boolean cancel(boolean mayInterruptIfRunning) {
-        isCancelled = true;
-        notifyHaveResult();
-        return true;
+        synchronized(sync) {
+            isCancelled = true;
+            notifyHaveResult();
+            return true;
+        }
     }
 
     public boolean isCancelled() {
-        return isCancelled;
+        synchronized(sync) {
+            return isCancelled;
+        }
     }
 
     public boolean isDone() {
-        return latch.getCount() <= 0;
+        synchronized(sync) {
+            return isDone;
+        }
     }
 
     public R get() throws InterruptedException, ExecutionException {
-        latch.await();
-        if (isCancelled) {
-            throw new CancellationException();
-        } else if (failure != null) {
-            throw new ExecutionException(failure);
-        }
+        synchronized (sync) {
+            for (;;) {
+                if (isDone) {
+                    if (isCancelled) {
+                        throw new CancellationException();
+                    } else if (failure != null) {
+                        throw new ExecutionException(failure);
+                    } else if (result != null) {
+                        return result;
+                    }
+                }
 
-        return result;
+                sync.wait();
+            }
+        }
     }
 
     public R get(long timeout, TimeUnit unit) throws
             InterruptedException, ExecutionException, TimeoutException {
-        latch.await(timeout, unit);
-        if (isCancelled) {
-            throw new CancellationException();
-        } else if (failure != null) {
-            throw new ExecutionException(failure);
-        } else if (result != null) {
-            return result;
-        } else {
-            throw new TimeoutException();
+        long startTime = System.currentTimeMillis();
+        long timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, unit);
+        synchronized (sync) {
+            for (;;) {
+                if (isDone) {
+                    if (isCancelled) {
+                        throw new CancellationException();
+                    } else if (failure != null) {
+                        throw new ExecutionException(failure);
+                    } else if (result != null) {
+                        return result;
+                    }
+                } else if (System.currentTimeMillis() - startTime > timeoutMillis) {
+                    throw new TimeoutException();
+                }
+
+                sync.wait(timeoutMillis);
+            }
         }
     }
 
     public void failure(Throwable failure) {
-        this.failure = failure;
-        notifyHaveResult();
+        synchronized(sync) {
+            this.failure = failure;
+            notifyHaveResult();
+        }
     }
 
     protected void notifyHaveResult() {
-        latch.countDown();
+        isDone = true;
+        sync.notifyAll();
     }
 }

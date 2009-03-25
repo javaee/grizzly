@@ -62,7 +62,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
         current.flip();
         if (current.hasRemaining()) {
             TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-            if (mode == Mode.BLOCKING) {
+            if (isBlocking()) {
                 AbstractTemporarySelectorWriter writer =
                         (AbstractTemporarySelectorWriter)
                         transport.getTemporarySelectorIO().getWriter();

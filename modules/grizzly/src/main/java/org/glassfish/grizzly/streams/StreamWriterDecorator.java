@@ -67,15 +67,14 @@ public abstract class StreamWriterDecorator extends AbstractStreamWriter {
     }
 
     @Override
-    public Mode getMode() {
-        return underlyingWriter.getMode();
+    public boolean isBlocking() {
+        return underlyingWriter.isBlocking();
     }
 
     @Override
-    public void setMode(Mode mode) {
-        underlyingWriter.setMode(mode);
+    public void setBlocking(boolean isBlocking) {
+        underlyingWriter.setBlocking(isBlocking);
     }
-
 
     @Override
     protected Future close0(CompletionHandler completionHandler) throws IOException {
