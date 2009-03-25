@@ -1019,10 +1019,10 @@ public class ByteBufferStreamsTest extends TestCase {
         buffer3.put(testdata, 250,125);
         Buffer<ByteBuffer> buffer4 = alloc.allocate(125) ;
         buffer4.put(testdata, 375,125);
-        reader.receiveData((ByteBufferWrapper)buffer1.flip());
-        reader.receiveData((ByteBufferWrapper)buffer2.flip());
-        reader.receiveData((ByteBufferWrapper)buffer3.flip());
-        reader.receiveData((ByteBufferWrapper)buffer4.flip());
+        reader.appendBuffer((ByteBufferWrapper)buffer1.flip());
+        reader.appendBuffer((ByteBufferWrapper)buffer2.flip());
+        reader.appendBuffer((ByteBufferWrapper)buffer3.flip());
+        reader.appendBuffer((ByteBufferWrapper)buffer4.flip());
 
         byte[] checkArray = new byte[500];
         try {

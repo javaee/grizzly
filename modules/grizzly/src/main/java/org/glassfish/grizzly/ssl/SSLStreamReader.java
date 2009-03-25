@@ -83,7 +83,7 @@ public class SSLStreamReader extends StreamReaderDecorator {
     }
 
     @Override
-    public boolean receiveData(Buffer buffer) {
+    public boolean appendBuffer(Buffer buffer) {
         if (buffer == null) return false;
         
         checkBuffers();
@@ -106,7 +106,7 @@ public class SSLStreamReader extends StreamReaderDecorator {
                     result.getStatus() == Status.CLOSED) {
                 if (result.bytesProduced() > 0 || result.bytesConsumed() > 0) {
                     newBuffer.trim();
-                    wasAdded = super.receiveData(newBuffer);
+                    wasAdded = super.appendBuffer(newBuffer);
                 } else {
                     wasAdded = false;
                     newBuffer.dispose();

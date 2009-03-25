@@ -145,15 +145,9 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
 
     private Logger logger = Grizzly.logger;
 
-    /**
-     * Filter chain codec
-     */
-    protected DefaultFilterChainCodec codec;
-
     public DefaultFilterChain(FilterChainFactory factory) {
         super(factory);
         filters = new LightArrayList<Filter>();
-        codec = new DefaultFilterChainCodec(this);
     }
     
     /**
@@ -163,10 +157,21 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      */
     public ProcessorResult execute(FilterChainContext ctx) {
         try {
-            execute(this, getStartingFilterIndex(this, executionDirection),
-                executionDirection, ctx);
+            int ioEventIndex = ctx.getIoEvent().ordinal();
+            executeChain(ctx, filterExecutors[ioEventIndex]);
+
+            postExecuteChain(ctx, filterPostExecutors[ioEventIndex]);
+        } catch (IOException e) {
+            try {
+                logger.log(Level.FINE, "Exception during FilterChain execution", e);
+                throwChain(ctx, e);
+                ctx.getConnection().close();
+            } catch (IOException ioe) {
+            }
         } catch (Exception e) {
             try {
+                logger.log(Level.WARNING, "Exception during FilterChain execution", e);
+                throwChain(ctx, e);
                 ctx.getConnection().close();
             } catch (IOException ioe) {
             }
@@ -174,34 +179,6 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
 
         return null;
     }    
-    
-    /**
-     * Execute this FilterChain.
-     * @param ctx {@link FilterChainContext}
-     * @throws java.lang.Exception
-     */
-    public ProcessorResult execute(List<Filter> chain, int offset,
-            Direction direction, FilterChainContext ctx) throws Exception {
-        if (chain.size() > 0) {
-            try {
-                int ioEventIndex = ctx.getIoEvent().ordinal();
-                executeChain(chain, offset,
-                        direction, ctx, filterExecutors[ioEventIndex]);
-
-                postExecuteChain(ctx, filterPostExecutors[ioEventIndex]);
-            } catch (IOException e) {
-                logger.log(Level.FINE, "Exception during FilterChain execution", e);
-                throwChain(ctx, e);
-                throw e;
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "Exception during FilterChain execution", e);
-                throwChain(ctx, e);
-                throw e;
-            }
-        }
-
-        return null;
-    }
 
     /**
      * Execute the {@link Filter#execute()} method.
@@ -211,28 +188,26 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * @param ctx {@link FilterChainContext}
      * @return position of the last executed {@link Filter}
      */
-    protected void executeChain(List<Filter> chain, int offset,
-            Direction direction, FilterChainContext ctx,
+    protected void executeChain(FilterChainContext ctx,
             FilterExecutor executor) throws Exception {
 
-        // check startPosition and chain size
-        int size = chain.size();
-        if (size <= 0 || offset < 0 || offset >= size) return;
+        List<Filter> chain = ctx.getFilters();
+        int currentFilterIdx = ctx.getCurrentFilterIdx();
 
-        List<Filter> nextFiltersList = ctx.getNextFiltersList();
-        nextFiltersList.clear();
-        // fill next filters list
-        for(int i=offset; i<size; i++) nextFiltersList.add(chain.get(i));
+        if (chain == null) {
+            ctx.setFilters(filters);
+            ctx.setCurrentFilterIdx(0);
+            chain = filters;
+            currentFilterIdx = 0;
+        }
 
-        NextAction nextAction = new InvokeAction(nextFiltersList);
+        NextAction nextAction = new InvokeAction(chain);
         
-        do {
-
-            int currentPosition = getStartingFilterIndex(nextFiltersList,
-                    direction);
+        while(currentFilterIdx < chain.size()) {
+            ((AbstractNextAction) nextAction).setNextFilterIdx(currentFilterIdx + 1);
 
             // current Filter to be executed
-            Filter currentFilter = nextFiltersList.remove(currentPosition);
+            Filter currentFilter = chain.get(currentFilterIdx);
 
             // save current filter to the context
             ctx.setCurrentFilter(currentFilter);
@@ -255,8 +230,13 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
                     nextAction.type() == SuspendAction.TYPE)
                 break;
 
+            chain = nextAction.getFilters();
+            currentFilterIdx = nextAction.getNextFilterIdx();
 
-        } while(nextFiltersList.size() > 0);
+            ctx.setFilters(chain);
+            ctx.setCurrentFilterIdx(currentFilterIdx);
+
+        }
     }
         
     /**
@@ -275,7 +255,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
 //        nextFiltersList.clear();
 //        nextFiltersList.addAll(chain);
 
-        NextAction nextAction = new InvokeAction(null);
+        NextAction nextAction = new InvokeAction(chain);
 
         for(int i = chain.size() - 1; i >= 0; i--) {
             // current Filter to be executed
@@ -299,16 +279,19 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
             }
 
             if (nextAction.type() == RerunChainAction.TYPE) {
-                List<Filter> tmpExecutedFilters = ctx.getExecutedFilters();
-                List<Filter> tmpNextFilters = ctx.getNextFiltersList();
+                List<Filter> tmpExecutedFilters = chain;
+                List<Filter> tmpNextFilters = ctx.getFilters();
+                int tmpCurrentFilterIdx = ctx.getCurrentFilterIdx();
 
                 ctx.setExecutedFilters(new LightArrayList<Filter>());
-                ctx.setNextFiltersList(new LightArrayList<Filter>());
+                ctx.setFilters(chain);
+                ctx.setCurrentFilterIdx(0);
                 try {
-                    execute(chain, i, Direction.FORWARD, ctx);
+                    execute(ctx);
                 } finally {
                     ctx.setExecutedFilters(tmpExecutedFilters);
-                    ctx.setNextFiltersList(tmpNextFilters);
+                    ctx.setFilters(tmpNextFilters);
+                    ctx.setCurrentFilterIdx(tmpCurrentFilterIdx);
                 }
             }
 
@@ -337,7 +320,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * @return filter chain codec
      */
     public FilterChainCodec getCodec() {
-        return codec;
+        return null;
     }
 
     public interface FilterExecutor {

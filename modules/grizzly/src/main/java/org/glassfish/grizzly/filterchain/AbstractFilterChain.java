@@ -38,7 +38,6 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import java.util.Collection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.util.IOEventMask;
@@ -57,33 +56,11 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
  * @author Alexey Stashok
  */
 public abstract class AbstractFilterChain implements FilterChain {
-    public enum Direction {
-        FORWARD(1),
-        BACK(-1);
-
-        private int direction;
-        Direction(int direction) {
-            this.direction = direction;
-        }
-
-        public int getDirection() {return direction;}
-
-        public Direction opposite() {
-            if (direction == FORWARD.direction) {
-                return BACK;
-            }
-
-            return FORWARD;
-        }
-    };
-    
     protected FilterChainFactory factory;
     
     // By default interested in all client connection related events
     protected IOEventMask interestedIoEventsMask = new ArrayIOEventMask(
             IOEventMask.CLIENT_EVENTS_MASK).xor(new ArrayIOEventMask(IOEvent.WRITE));
-
-    protected Direction executionDirection = Direction.FORWARD;
 
     protected final ObjectPool<FilterChainContext> filterChainContextPool =
             new ConcurrentQueuePool<FilterChainContext>() {
@@ -126,26 +103,6 @@ public abstract class AbstractFilterChain implements FilterChain {
     public AbstractFilterChain(FilterChainFactory factory) {
         this.factory = factory;
     }
-    
-    /**
-     * Get the {@link Direction}, this {@link FilterChain} will follow when
-     * executing the {@link Filter}s.
-     *
-     * @return the {@link Direction}
-     */
-    public Direction getDirection() {
-        return executionDirection;
-    }
-
-    /**
-     * Set the {@link Direction}, this {@link FilterChain} will follow when
-     * executing the {@link Filter}s.
-     *
-     * @param executionDirection the {@link Direction}
-     */
-    public void setDirection(Direction executionDirection) {
-        this.executionDirection = executionDirection;
-    }
 
     public boolean isInterested(IOEvent ioEvent) {
         return interestedIoEventsMask.isInterested(ioEvent);
@@ -176,14 +133,4 @@ public abstract class AbstractFilterChain implements FilterChain {
     
     public abstract ProcessorResult execute(FilterChainContext context)
             throws IOException;
-    
-    protected static int getStartingFilterIndex(Collection collection,
-            Direction direction) {
-        
-        if (direction == Direction.FORWARD) {
-            return 0;
-        }
-
-        return collection.size() - 1;
-    }
 }

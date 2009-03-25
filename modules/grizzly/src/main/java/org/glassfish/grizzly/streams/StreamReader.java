@@ -71,11 +71,18 @@ public interface StreamReader extends Closeable {
     public void setMode(Mode mode);
 
     /**
-     * Add more data to the stream.
+     * Add more data to the beginning of the stream.
+     * @return true, if buffer was prepended to the {@link StreamReader},
+     * or false otherwise
+     */
+    boolean prependBuffer(Buffer buffer);
+
+    /**
+     * Add more data to the end of the stream.
      * @return true, if buffer was appended to the {@link StreamReader},
      * or false otherwise
      */
-    boolean receiveData(Buffer buffer);
+    boolean appendBuffer(Buffer buffer);
 
     /** Return the number of bytes available for get calls.  An attempt to 
      * get more data than is present in the stream will either result in 
@@ -175,6 +182,10 @@ public interface StreamReader extends Closeable {
 
     Buffer readBuffer() throws IOException;
     
+    /**
+     * Return the current {@link StreamReader}'s source {@link Buffer}.
+     * @return the current {@link StreamReader}'s source {@link Buffer}.
+     */
     Buffer getBuffer();
 
     void finishBuffer();

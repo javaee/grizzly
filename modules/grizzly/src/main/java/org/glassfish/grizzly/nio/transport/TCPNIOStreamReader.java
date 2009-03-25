@@ -124,7 +124,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                                 }
 
                                 buffer.flip();
-                                receiveData(buffer);
+                                appendBuffer(buffer);
 
                                 if (future.isDone()) {
                                     return Interceptor.COMPLETED;
@@ -152,7 +152,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         try {
             while (!future.isDone()) {
                 Buffer buffer = read0();
-                receiveData(buffer);
+                appendBuffer(buffer);
             }
         } catch (Exception e) {
             future.failure(e);

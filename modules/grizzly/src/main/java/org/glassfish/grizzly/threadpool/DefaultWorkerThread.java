@@ -39,6 +39,7 @@
 package org.glassfish.grizzly.threadpool;
 
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.memory.DefaultMemoryManager.BufferInfo;
@@ -50,16 +51,16 @@ import org.glassfish.grizzly.memory.DefaultMemoryManager.BufferInfo;
  */
 public class DefaultWorkerThread extends Thread implements WorkerThread {
 
-    private DefaultThreadPool pool;
+    private AttributeBuilder attrBuilder;
     private AttributeHolder attributes;
 
     private BufferInfo associatedBuffer;
     private Context cachedContext;
 
-    public DefaultWorkerThread(DefaultThreadPool pool, String name,
+    public DefaultWorkerThread(AttributeBuilder attrBuilder, String name,
             Runnable runTask) {
         super(runTask, name);
-        this.pool = pool;
+        this.attrBuilder = attrBuilder;
         attributes = createAttributeHolder();
     }
 
@@ -102,6 +103,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     }
 
     protected AttributeHolder createAttributeHolder() {
-        return new IndexedAttributeHolder(pool.getAttributeBuilder());
+        return new IndexedAttributeHolder(attrBuilder);
     }
 }

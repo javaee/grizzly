@@ -123,7 +123,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
 
         Buffer buffer;
         while((buffer = underlyingReader.getBuffer()) != null) {
-            boolean wasAdded = receiveData(buffer);
+            boolean wasAdded = appendBuffer(buffer);
             if (wasAdded) {
                 underlyingReader.finishBuffer();
             } else {
@@ -158,7 +158,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
 
         public void completed(Connection connection, Object result) {
             Buffer buffer = underlyingReader.getBuffer();
-            if (receiveData(buffer)) {
+            if (appendBuffer(buffer)) {
                 underlyingReader.finishBuffer();
             }
 

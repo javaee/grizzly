@@ -49,5 +49,7 @@ import java.util.List;
 public interface NextAction {
     public int type();
 
-    public List<Filter> getNextFilters();
+    public List<Filter> getFilters();
+
+    public int getNextFilterIdx();
 }

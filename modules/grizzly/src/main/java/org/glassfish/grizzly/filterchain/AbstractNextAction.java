@@ -43,7 +43,8 @@ import java.util.List;
 public abstract class AbstractNextAction implements NextAction {
 
     protected int type;
-    protected List<Filter> nextFilters;
+    protected List<Filter> filters;
+    protected int nextFilterIdx;
 
     protected AbstractNextAction(int type) {
         super();
@@ -54,7 +55,19 @@ public abstract class AbstractNextAction implements NextAction {
         return type;
     }
 
-    public List<Filter> getNextFilters() {
-        return nextFilters;
+    public List<Filter> getFilters() {
+        return filters;
+    }
+
+    public void setFilters(List<Filter> nextFilters) {
+        this.filters = nextFilters;
+    }
+
+    public int getNextFilterIdx() {
+        return nextFilterIdx;
+    }
+    
+    public void setNextFilterIdx(int nextFilterIdx) {
+        this.nextFilterIdx = nextFilterIdx;
     }
 }

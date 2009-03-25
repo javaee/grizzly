@@ -145,10 +145,16 @@ public abstract class AbstractStreamReader extends InputStream
     }
 
     /**
-     * Add more data for the reader thread to read.
-     * Data is assumed to be present from position() to limit().
+     * {@inheritDoc}
      */
-    public boolean receiveData(final Buffer buffer) {
+    public boolean prependBuffer(Buffer buffer) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public boolean appendBuffer(final Buffer buffer) {
         if (buffer == null) {
             return false;
         }
@@ -270,7 +276,7 @@ public abstract class AbstractStreamReader extends InputStream
             if (readIfEmpty) {
                 Buffer buffer = read0();
                 if (buffer != null) {
-                    receiveData(buffer);
+                    appendBuffer(buffer);
                     next = pollBuffer();
                 }
 

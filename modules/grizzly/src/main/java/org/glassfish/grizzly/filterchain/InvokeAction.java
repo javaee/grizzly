@@ -43,15 +43,16 @@ public class InvokeAction extends AbstractNextAction {
     public static final int TYPE = 1;
     
     public InvokeAction() {
-        super(TYPE);
+        this(null);
     }
 
-    public InvokeAction(List<Filter> nextFiltersList) {
-        super(TYPE);
-        setNextFilters(nextFilters);
+    public InvokeAction(List<Filter> filters) {
+        this(filters, 0);
     }
 
-    public void setNextFilters(List<Filter> nextFilters) {
-        this.nextFilters = nextFilters;
+    public InvokeAction(List<Filter> filters, int nextFilterIdx) {
+        super(TYPE);
+        setFilters(filters);
+        setNextFilterIdx(nextFilterIdx);
     }
 }

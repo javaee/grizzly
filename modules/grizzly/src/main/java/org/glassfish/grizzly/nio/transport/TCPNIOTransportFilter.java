@@ -70,7 +70,7 @@ public class TCPNIOTransportFilter extends FilterAdapter {
         TCPNIOStreamReader reader =
                 (TCPNIOStreamReader) connection.getStreamReader();
         Buffer buffer = reader.read0();
-        reader.receiveData(buffer);
+        reader.appendBuffer(buffer);
 
         if (reader.availableDataSize() > 0) {
             ctx.setStreamReader(connection.getStreamReader());

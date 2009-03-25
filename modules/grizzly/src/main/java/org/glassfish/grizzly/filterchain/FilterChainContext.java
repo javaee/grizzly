@@ -59,30 +59,39 @@ public class FilterChainContext extends Context {
 
     private List<Filter> executedFilters;
 
-    private List<Filter> nextFiltersList;
+    private int currentFilterIdx;
+    private List<Filter> filters;
     
     public FilterChainContext(ObjectPool parentPool) {
         super(parentPool);
         messageHolder = new MessageHolder();
         executedFilters = new LightArrayList<Filter>();
-        nextFiltersList = new LightArrayList<Filter>();
+        currentFilterIdx = 0;
     }
 
     
-    protected List<Filter> getExecutedFilters() {
+    public List<Filter> getExecutedFilters() {
         return executedFilters;
     }
 
-    public void setExecutedFilters(List<Filter> executedFilters) {
+    protected void setExecutedFilters(List<Filter> executedFilters) {
         this.executedFilters = executedFilters;
     }
 
-    protected List<Filter> getNextFiltersList() {
-        return nextFiltersList;
+    protected List<Filter> getFilters() {
+        return filters;
     }
 
-    public void setNextFiltersList(List<Filter> nextFiltersList) {
-        this.nextFiltersList = nextFiltersList;
+    protected void setFilters(List<Filter> nextFilters) {
+        this.filters = nextFilters;
+    }
+
+    public int getCurrentFilterIdx() {
+        return currentFilterIdx;
+    }
+
+    protected void setCurrentFilterIdx(int currentFilterIdx) {
+        this.currentFilterIdx = currentFilterIdx;
     }
 
     public FilterChain getFilterChain() {
@@ -136,8 +145,8 @@ public class FilterChainContext extends Context {
         messageHolder.setMessage(null);
         streamReader = null;
         streamWriter = null;
+        filters = null;
         executedFilters.clear();
-        nextFiltersList.clear();
         super.release();
     }
 

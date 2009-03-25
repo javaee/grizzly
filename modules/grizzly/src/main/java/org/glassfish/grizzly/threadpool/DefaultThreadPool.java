@@ -155,9 +155,10 @@ public class DefaultThreadPool extends ThreadPoolExecutor
         public DefaultWorkerThreadFactory(DefaultThreadPool threadPool) {
             this.threadPool = threadPool;
         }
-        
+
         public Thread newThread(Runnable r) {
-            Thread thread = new DefaultWorkerThread(threadPool,
+            Thread thread = new DefaultWorkerThread(
+                    threadPool.getAttributeBuilder(),
                     threadPool.getName() + "-WorkerThread(" + 
                     threadPool.workerThreadCounter.getAndIncrement() + ")", r);
             thread.setUncaughtExceptionHandler(threadPool);
