@@ -260,9 +260,23 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
     /**
      * Part of Shutdown sequence.
      * Unregister and clean up.
-     * TODO implement it
      */
     public void unregisterAll() {
+        logger.info("Unregistering all registered aliases");
+
+        ReentrantLock lock = OSGiCleanMapper.getLock();
+        lock.lock();
+        try {
+            Set<String> aliases = OSGiCleanMapper.getAllAliases();
+            while (!aliases.isEmpty()) {
+                String alias = ((TreeSet<String>) aliases).first();
+                logger.debug(new StringBuilder().append("Unregistering '").append(alias).append("'").toString());
+                // remember not to call Servlet.destroy() owning bundle might be stopped already.
+                mapper.doUnregister(alias, false);
+            }
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**

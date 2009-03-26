@@ -179,7 +179,7 @@ class OSGiCleanMapper {
      */
     public void addGrizzlyAdapter(String alias, GrizzlyAdapter adapter) {
         if (containsAlias(alias)) {
-            // shold not happend, alias shouls be checked before.
+            // should not happend, alias should be checked before.
             // TODO: signal it some how
         } else {
             registerAliasAdapter(alias, adapter);
@@ -234,6 +234,14 @@ class OSGiCleanMapper {
         return Collections.unmodifiableSet(localAliases);
     }
 
+    /**
+     * Gets all registered aliases.
+     *
+     * @return {@link Set} of all registered aliases.
+     */
+    /*package*/ static Set<String> getAllAliases() {
+        return aliasTree;
+    }
     /**
      * Checks if {@link HttpContext} has been registered..
      *

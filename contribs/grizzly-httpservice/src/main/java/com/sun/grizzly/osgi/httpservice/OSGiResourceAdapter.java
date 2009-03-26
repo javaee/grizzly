@@ -100,7 +100,7 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
                 return;
             }
         } catch (IOException e) {
-            e.printStackTrace();  // TODO: should close connection by spec.
+            logger.warn("Error while authenticating request: " + request, e);
         }
 
         // find resource
@@ -108,12 +108,7 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
         if (resource == null) {
             logger.debug(new StringBuilder(128).append("OSGiResourceAdapter \'").append(alias).append("\' Haven't found '").append(path)
                     .append("'.").toString());
-            try {
-                response.setStatus(404);
-            } catch (Exception e) {
-                // TODO: review exception handling
-                e.printStackTrace();
-            }
+            response.setStatus(404);
             return;
         }
 
