@@ -76,7 +76,7 @@ public interface NetworkConfig extends ConfigBeanProxy, Injectable, PropertyBag 
     NetworkListener getNetworkListener(String name);
 
     class Duck {
-        public static NetworkListener getNetworkListener(final NetworkConfig config, String name) {
+        public static NetworkListener getNetworkListener(NetworkConfig config, String name) {
             if (name != null) {
                 for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
                     if (listener.getName().equals(name)) {

@@ -36,12 +36,12 @@
  */
 package com.sun.grizzly.config.dom;
 
-import java.util.List;
-
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
+
+import java.util.List;
 
 /**
  * Contains the description of higher level protocols like: http, https, iiop, etc.
@@ -51,6 +51,6 @@ public interface Protocols extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * List of Protocol implementations
      */
-    @Element("*")
+    @Element
     List<Protocol> getProtocol();
 }

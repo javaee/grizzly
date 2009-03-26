@@ -39,7 +39,6 @@ package com.sun.grizzly.config;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
-import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.util.LoggerUtils;
 import org.jvnet.hk2.component.Habitat;
 
@@ -62,7 +61,10 @@ public class GrizzlyConfig {
     public GrizzlyConfig(final String file) {
         habitat = Utils.getHabitat(file);
         config = habitat.getComponent(NetworkConfig.class);
+    }
 
+    public NetworkConfig getConfig() {
+        return config;
     }
 
     public void setupNetwork() throws IOException, InstantiationException {
@@ -75,7 +77,7 @@ public class GrizzlyConfig {
             thread.start();
         }
         try {
-            Thread.sleep(5000); // wait for the system to finish settin up the listener
+            Thread.sleep(1000); // wait for the system to finish setting up the listener
         } catch (InterruptedException e) {
             logger.warning(e.getMessage());
             throw new RuntimeException(e.getMessage());
@@ -100,10 +102,5 @@ public class GrizzlyConfig {
                 throw new RuntimeException(e.getMessage());
             }
         }
-    }
-
-    public static Protocol getProtocol(NetworkListener listener) {
-
-        return null;
     }
 }

@@ -1,7 +1,8 @@
 package com.sun.grizzly.config;
 
-import org.testng.annotations.Test;
+import com.sun.grizzly.config.dom.ThreadPool;
 import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.net.URL;
@@ -27,5 +28,11 @@ public class GrizzlyConfigTest {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    public void defaults() {
+        final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+        final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
+        Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "200"); 
     }
 }

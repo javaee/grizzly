@@ -50,7 +50,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     /**
      * IP address to listen on
      */
-    @Attribute(defaultValue = "localhost")
+    @Attribute(defaultValue = "0.0.0.0")
     String getAddress();
 
     void setAddress(String value);

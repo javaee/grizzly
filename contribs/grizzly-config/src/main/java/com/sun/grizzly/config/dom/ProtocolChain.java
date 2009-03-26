@@ -76,6 +76,6 @@ public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag 
     /**
      * Defines protocol filter sequence, which will process a request.
      */
-    @Element("*")
+    @Element
     List<ProtocolFilter> getProtocolFilter();
 }

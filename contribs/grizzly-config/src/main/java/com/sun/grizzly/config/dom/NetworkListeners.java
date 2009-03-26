@@ -36,12 +36,12 @@
  */
 package com.sun.grizzly.config.dom;
 
-import java.util.List;
-
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
+
+import java.util.List;
 
 /**
  * Contains set of network-listener, which bind protocol to a specific endpoint to listen on
@@ -51,12 +51,12 @@ public interface NetworkListeners extends ConfigBeanProxy, Injectable, PropertyB
     /**
      * Defines public thread-pool(s), which could be referenced within network-listener element(s)
      */
-    @Element("*")
+    @Element
     List<ThreadPool> getThreadPool();
 
     /**
      * Defines network listeners
      */
-    @Element("*")
+    @Element
     List<NetworkListener> getNetworkListener();
 }
