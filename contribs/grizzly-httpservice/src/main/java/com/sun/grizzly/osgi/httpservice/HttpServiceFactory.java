@@ -89,7 +89,6 @@ public class HttpServiceFactory implements ServiceFactory {
      */
     public void stop() {
         logger.info("Stoping main adapter");
-        // TODO: Implement OSGiMainAdapter#unregisterAll method
         mainAdapter.unregisterAll();
     }
 }
