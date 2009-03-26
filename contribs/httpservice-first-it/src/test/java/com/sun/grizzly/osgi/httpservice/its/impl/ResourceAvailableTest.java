@@ -64,7 +64,7 @@ public class ResourceAvailableTest {
         return options(
                 repositories(
                         repository("http://repository.springsource.com/maven/bundles/external"),
-                        repository("http://repository.ops4j.org/mvn-snapshots").disableReleases().allowSnapshots(),
+                        repository("http://repository.ops4j.org/maven2"),
                         repository("http://repo1.maven.org/maven2/")
                 ),
                 logProfile(),
@@ -72,16 +72,16 @@ public class ResourceAvailableTest {
                         felix()
                 ),
                 systemProperty("org.osgi.service.http.port").value("8080"),
-                provision(
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-framework").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-portunif").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-rcm").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly.osgi").artifactId("grizzly-httpservice").version("1.9.6-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly.osgi.httpservice.its").artifactId("first-it").version("1.0-SNAPSHOT")
-                )
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-framework").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-portunif").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-rcm").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly.osgi").artifactId("grizzly-httpservice").version(
+                        "1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly.osgi.httpservice.its").artifactId("first-it").version(
+                        "1.0-SNAPSHOT")
         );
     }
 

@@ -69,29 +69,30 @@ public class RegisterOverlappingResourceTest {
         return options(
                 repositories(
                         repository("http://repository.springsource.com/maven/bundles/external"),
-                        repository("http://repository.ops4j.org/mvn-snapshots").disableReleases().allowSnapshots(),
+                        repository("http://repository.ops4j.org/maven2"),
                         repository("http://repo1.maven.org/maven2/")
                 ),
+//                vmOption("-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=5005"),
+//                timeout(0),
                 logProfile(),
                 frameworks(
                         felix()
                 ),
                 systemProperty("org.osgi.service.http.port").value("8080"),
-                provision(
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.9-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.9-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.9-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-framework").version("1.9.9-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-portunif").version("1.9.9-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-rcm").version("1.9.9-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly.osgi").artifactId("grizzly-httpservice").version("1.9.9-SNAPSHOT"),
-                        mavenBundle().groupId("com.sun.grizzly.osgi.httpservice.its").artifactId("first-it").version("1.0-SNAPSHOT")
-                )
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-framework").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-portunif").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-rcm").version("1.9.11-SNAPSHOT"),
+                mavenBundle().groupId("com.sun.grizzly.osgi").artifactId("grizzly-httpservice").version(
+                        "1.9.11-SNAPSHOT")
         );
     }
 
     @Test
-    public void registerOverlappingResource(final BundleContext bc) throws InterruptedException, NamespaceException, IOException {
+    public void registerOverlappingResource(final BundleContext bc)
+            throws InterruptedException, NamespaceException, IOException {
         final ServiceTracker tracker = new ServiceTracker(bc, HttpService.class.getName(), null);
         tracker.open();
         tracker.waitForService(1000);
