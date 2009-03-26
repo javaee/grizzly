@@ -79,6 +79,8 @@ public abstract class AbstractStreamReader extends InputStream
 
     protected long timeoutMillis = 30000;
     
+    protected final Object sync = new Object();
+    
     private static void msg(final String msg) {
         logger.info("READERSTREAM:DEBUG:" + msg);
     }
@@ -194,11 +196,14 @@ public abstract class AbstractStreamReader extends InputStream
     }
 
     private void notifyCondition() {
-        if (notifyObject != null && notifyObject.condition.check(this)) {
-            NotifyObject localNotifyAvailObject = notifyObject;
-            notifyObject = null;
-            notifySuccess(localNotifyAvailObject.future,
-                    localNotifyAvailObject.completionHandler, availableDataSize());
+        synchronized(sync) {
+            if (notifyObject != null && notifyObject.condition.check(this)) {
+                NotifyObject localNotifyAvailObject = notifyObject;
+                notifyObject = null;
+                notifySuccess(localNotifyAvailObject.future,
+                        localNotifyAvailObject.completionHandler,
+                        availableDataSize());
+            }
         }
     }
 

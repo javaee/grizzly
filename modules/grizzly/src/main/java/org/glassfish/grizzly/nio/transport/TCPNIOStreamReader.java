@@ -102,41 +102,44 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
             final Condition<StreamReader> condition,
             CompletionHandler completionHandler) {
 
-        final FutureImpl future = new FutureImpl();
-        notifyObject = new NotifyObject(future, completionHandler, condition);
+        final FutureImpl future = new FutureImpl(sync);
+        synchronized (sync) {
+            try {
+                notifyObject = new NotifyObject(future, completionHandler, condition);
 
-        Connection connection = getConnection();
-        TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-        try {
-            transport.getAsyncQueueIO().getReader().read(connection, null, null,
-                    new Interceptor() {
-                        public int intercept(int event, Object context, Object result) {
-                            if (event == Reader.AFTER_READ_EVENT) {
-                                ReadResult readResult = (ReadResult) result;
-                                Buffer buffer = (Buffer) readResult.getMessage();
-                                readResult.setMessage(null);
+                Connection connection = getConnection();
+                TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
+                transport.getAsyncQueueIO().getReader().read(connection, null, null,
+                        new Interceptor() {
 
-                                if (buffer == null) {
+                            public int intercept(int event, Object context, Object result) {
+                                if (event == Reader.AFTER_READ_EVENT) {
+                                    ReadResult readResult = (ReadResult) result;
+                                    Buffer buffer = (Buffer) readResult.getMessage();
+                                    readResult.setMessage(null);
+
+                                    if (buffer == null) {
+                                        return Interceptor.INCOMPLETED;
+                                    }
+
+                                    buffer.flip();
+                                    appendBuffer(buffer);
+
+                                    if (future.isDone()) {
+                                        return Interceptor.COMPLETED;
+                                    }
+
                                     return Interceptor.INCOMPLETED;
                                 }
 
-                                buffer.flip();
-                                appendBuffer(buffer);
-
-                                if (future.isDone()) {
-                                    return Interceptor.COMPLETED;
-                                }
-
-                                return Interceptor.INCOMPLETED;
+                                return Interceptor.DEFAULT;
                             }
-
-                            return Interceptor.DEFAULT;
-                        }
-                    });
-        } catch (IOException e) {
-            future.failure(e);
+                        });
+            } catch (IOException e) {
+                future.failure(e);
+            }
         }
-
+        
         return future;
     }
 
