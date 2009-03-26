@@ -421,6 +421,7 @@ public class LightArrayList<E> implements List<E> {
             int newLength = Math.max(newCapacity, size * 2);
             Object[] newArray = new Object[newLength];
             System.arraycopy(array, 0, newArray, 0, size);
+            array = newArray;
         }
     }
 

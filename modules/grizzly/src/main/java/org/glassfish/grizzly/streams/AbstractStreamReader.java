@@ -219,18 +219,27 @@ public abstract class AbstractStreamReader extends InputStream
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
-        int doneBytes = 0;
-        while (doneBytes < len) {
-            if (!checkRemaining(1)) {
-                ensureRead();
-            }
-            int read = Math.min(current.remaining(), len - doneBytes);
-
-            current.get(b, off + (doneBytes), read);
-            doneBytes += read;
-
+        if (isClosed()) {
+            return -1;
         }
-        return doneBytes;
+
+        int bytesToTransfer = Math.min(len, availableDataSize());
+        int transferred = 0;
+
+        while(bytesToTransfer > 0) {
+            Buffer buffer = getBuffer();
+            int bufferBytesToTransfer = Math.min(buffer.remaining(),
+                    bytesToTransfer);
+            buffer.get(b, transferred + off, bufferBytesToTransfer);
+            bytesToTransfer -= bufferBytesToTransfer;
+            transferred += bufferBytesToTransfer;
+
+            if (bufferBytesToTransfer == buffer.remaining()) {
+                finishBuffer();
+            }
+        }
+
+        return transferred;
     }
 
     /** Cause all subsequent method calls on this object to throw IllegalStateException.
@@ -549,9 +558,8 @@ public abstract class AbstractStreamReader extends InputStream
     }
 
     public void finishBuffer() {
-        Buffer next = buffers.poll();
+        Buffer next = pollBuffer();
         if (next != null) {
-            next.position(0);
             queueSize -= next.remaining();
         }
         

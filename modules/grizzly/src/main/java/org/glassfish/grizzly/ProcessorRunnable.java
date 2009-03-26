@@ -110,6 +110,8 @@ public class ProcessorRunnable implements Runnable {
         if (context == null) {
             createContext();
             initContext();
+        } else {
+            initFromContext();
         }
 
         ProcessorResult result = null;
@@ -148,6 +150,13 @@ public class ProcessorRunnable implements Runnable {
         context.setConnection(connection);
         context.setProcessor(processor);
         context.setPostProcessor(postProcessor);
+    }
+
+    private void initFromContext() {
+        ioEvent = context.getIoEvent();
+        connection = context.getConnection();
+        processor = context.getProcessor();
+        postProcessor = context.getPostProcessor();
     }
 
     private void logException(Context context, Throwable e) {

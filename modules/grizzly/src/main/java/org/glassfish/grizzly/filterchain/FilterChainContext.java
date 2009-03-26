@@ -78,11 +78,11 @@ public class FilterChainContext extends Context {
         this.executedFilters = executedFilters;
     }
 
-    protected List<Filter> getFilters() {
+    public List<Filter> getFilters() {
         return filters;
     }
 
-    protected void setFilters(List<Filter> nextFilters) {
+    public void setFilters(List<Filter> nextFilters) {
         this.filters = nextFilters;
     }
 
@@ -90,7 +90,7 @@ public class FilterChainContext extends Context {
         return currentFilterIdx;
     }
 
-    protected void setCurrentFilterIdx(int currentFilterIdx) {
+    public void setCurrentFilterIdx(int currentFilterIdx) {
         this.currentFilterIdx = currentFilterIdx;
     }
 

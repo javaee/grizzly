@@ -39,6 +39,7 @@
 package org.glassfish.grizzly.memory;
 
 import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 
@@ -69,5 +70,10 @@ public class MemoryUtils {
         buffer.put(array);
         buffer.flip();
         return buffer;
+    }
+
+    public static Buffer wrap(ByteBufferManager memoryManager,
+            ByteBuffer byteBuffer) {
+        return memoryManager.wrap(byteBuffer);
     }
 }
