@@ -70,7 +70,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Name of class, which implements transport logic
      */
-    @Attribute
+    @Attribute(defaultValue = "com.sun.grizzly.TCPSelectorHandler")
     String getClassname();
 
     void setClassname(String value);
@@ -96,7 +96,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Timeout, after which idle key will be cancelled and channel closed
      */
-    @Attribute
+    @Attribute(defaultValue = "30")
     String getIdleKeyTimeout();
 
     void setIdleKeyTimeout(String value);

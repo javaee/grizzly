@@ -36,24 +36,24 @@
  */
 package com.sun.grizzly.config.dom;
 
-import java.util.List;
-
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
+
+import java.util.List;
 
 @Configured
 public interface Transports extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Defines public SelectionKey handler, which could be referenced within transport
      */
-    @Element("*")
+    @Element
     List<SelectionKeyHandler> getSelectionKeyHandler();
 
     /**
      * Defines the transports
      */
-    @Element("*")
+    @Element
     List<Transport> getTransport();
 }
