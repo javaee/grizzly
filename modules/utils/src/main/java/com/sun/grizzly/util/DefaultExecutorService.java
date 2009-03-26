@@ -337,6 +337,8 @@ public class DefaultExecutorService extends AbstractExecutorService{
         /** Per-thread task counter */
         volatile long completedTasks;
 
+        private transient Thread exclusiveOwnerThread;
+
         /**
          * Creates with given first task and thread from ThreadFactory.
          * @param firstTask the first task (null if none)
@@ -362,14 +364,15 @@ public class DefaultExecutorService extends AbstractExecutorService{
 
         protected boolean tryAcquire(int unused) {
             if (compareAndSetState(0, 1)) {
-                setExclusiveOwnerThread(Thread.currentThread());
+                exclusiveOwnerThread = Thread.currentThread();
                 return true;
             }
             return false;
         }
 
         protected boolean tryRelease(int unused) {
-            setExclusiveOwnerThread(null);
+            //setExclusiveOwnerThread(null);
+            exclusiveOwnerThread = null;
             setState(0);
             return true;
         }
