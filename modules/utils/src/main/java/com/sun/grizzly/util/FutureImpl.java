@@ -39,7 +39,6 @@
 package com.sun.grizzly.util;
 
 import java.util.concurrent.CancellationException;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -50,71 +49,108 @@ import java.util.concurrent.TimeoutException;
  *
  * @author Alexey Stashok
  */
-public class FutureImpl<E> implements Future<E> {
-    private CountDownLatch latch = new CountDownLatch(1);
-    private E result;
+public class FutureImpl<R> implements Future<R> {
+
+    private final Object sync;
+
+    private boolean isDone;
+
     private boolean isCancelled;
-    private Throwable exception;
+    private Throwable failure;
+
+    protected R result;
+
+    public FutureImpl() {
+        this(new Object());
+    }
+
+    public FutureImpl(Object sync) {
+        this.sync = sync;
+    }
+
+    public R getResult() {
+        synchronized(sync) {
+            return result;
+        }
+    }
+
+    public void setResult(R result) {
+        synchronized(sync) {
+            this.result = result;
+            notifyHaveResult();
+        }
+    }
 
     public boolean cancel(boolean mayInterruptIfRunning) {
-        if (isDone()) return false;
-
-        isCancelled = true;
-        notifyResult();
-
-        return true;
+        synchronized(sync) {
+            isCancelled = true;
+            notifyHaveResult();
+            return true;
+        }
     }
 
     public boolean isCancelled() {
-        return isCancelled;
+        synchronized(sync) {
+            return isCancelled;
+        }
     }
 
     public boolean isDone() {
-        return latch.getCount() < 1;
-    }
-
-    public E get() throws InterruptedException, ExecutionException {
-        latch.await();
-        if (isCancelled) {
-            throw new CancellationException();
-        } else if (exception != null) {
-            throw new ExecutionException(exception);
+        synchronized(sync) {
+            return isDone;
         }
-
-        return result;
     }
 
-    public E get(long timeout, TimeUnit unit) throws InterruptedException,
-            ExecutionException, TimeoutException {
-        latch.await(timeout, unit);
-        if (isCancelled) {
-            throw new CancellationException();
-        } else if (exception != null) {
-            throw new ExecutionException(exception);
+    public R get() throws InterruptedException, ExecutionException {
+        synchronized (sync) {
+            for (;;) {
+                if (isDone) {
+                    if (isCancelled) {
+                        throw new CancellationException();
+                    } else if (failure != null) {
+                        throw new ExecutionException(failure);
+                    } else if (result != null) {
+                        return result;
+                    }
+                }
+
+                sync.wait();
+            }
         }
-
-        return result;
     }
 
-    public E getResult() {
-        return result;
+    public R get(long timeout, TimeUnit unit) throws
+            InterruptedException, ExecutionException, TimeoutException {
+        long startTime = System.currentTimeMillis();
+        long timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, unit);
+        synchronized (sync) {
+            for (;;) {
+                if (isDone) {
+                    if (isCancelled) {
+                        throw new CancellationException();
+                    } else if (failure != null) {
+                        throw new ExecutionException(failure);
+                    } else if (result != null) {
+                        return result;
+                    }
+                } else if (System.currentTimeMillis() - startTime > timeoutMillis) {
+                    throw new TimeoutException();
+                }
+
+                sync.wait(timeoutMillis);
+            }
+        }
     }
 
-    public void setResult(E result) {
-        this.result = result;
-        notifyResult();
+    public void setException(Throwable failure) {
+        synchronized(sync) {
+            this.failure = failure;
+            notifyHaveResult();
+        }
     }
 
-    public Throwable getException() {
-        return exception;
-    }
-
-    public void setException(Throwable exception) {
-        this.exception = exception;
-        notifyResult();
-    }
-
-    protected void notifyResult() {
-        latch.countDown();
+    protected void notifyHaveResult() {
+        isDone = true;
+        sync.notifyAll();
     }
 }
