@@ -58,7 +58,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class FixedThreadPool extends AbstractExecutorService{
 
-    protected static final Poison poison = new Poison();
+    protected static final Runnable poison = new Runnable(){public void run(){}};
     
     protected final ConcurrentHashMap<WorkerThread,Boolean> workers
             = new ConcurrentHashMap<WorkerThread,Boolean>();
@@ -137,10 +137,14 @@ public class FixedThreadPool extends AbstractExecutorService{
         synchronized(shutdownlock){
             List<Runnable> drained = new ArrayList<Runnable>();
             if (running){
+                running = false;
                 workQueue.drainTo(drained);
-                shutdown();
-                for (WorkerThread w:workers.keySet()){
-                    //try to interrupt their current work so they can get their poison fast
+                int size = workers.size();
+                while(size-->0){
+                    workQueue.offer(poison);
+                }
+                //try to interrupt their current work so they can get their poison fast
+                for (WorkerThread w:workers.keySet()){                    
                     w.t.interrupt();
                 }
             }
@@ -212,10 +216,4 @@ public class FixedThreadPool extends AbstractExecutorService{
 
     }
 
-    
-   protected static final class Poison implements Runnable{
-        public void run() {
-            throw new UnsupportedOperationException("Not supported yet.");
-        }
-   }
 }
