@@ -50,11 +50,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * minimalistic fixed threadpool.
- * uses  WorkerThreadImpl by default
+ * uses  WorkerThreadImpl by default.<br>
+ * LTQ is used by default for its nice scalability over the lock based alternatives.<br>
+ * LTQ gives FIFO per producer.<br>
+ *
  * @author gustav trede
  */
 public class FixedThreadPool extends AbstractExecutorService{
 
+    protected static final Poison poison = new Poison();
+    
     protected final ConcurrentHashMap<WorkerThread,Boolean> workers
             = new ConcurrentHashMap<WorkerThread,Boolean>();
 
@@ -129,28 +134,29 @@ public class FixedThreadPool extends AbstractExecutorService{
      * {@inheritDoc}
      */
     public List<Runnable> shutdownNow() {
-        //using volatile boolean since its faster then AtomicBoolean
-        //all but the shutdown logic benefits from that,
-        //the scalability of shutdown is not important and hence synchronized is ok.
         synchronized(shutdownlock){
             List<Runnable> drained = new ArrayList<Runnable>();
             if (running){
-                running = false;
-                for (WorkerThread wt:workers.keySet()){
-                    wt.t.interrupt();
-                }
                 workQueue.drainTo(drained);
-                }
+                shutdown();
+            }
             return drained;
         }
     }
 
     /**
-     *  not supported due to its overhead.<br>
-     * use shutdownNow
+     * {@inheritDoc}
      */
     public void shutdown() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        synchronized(shutdownlock){
+            if (running){
+                running = false;
+                int size = workers.size();
+                while(size-->0){
+                    workQueue.offer(poison);
+                }
+            }
+        }
     }
     
     /**
@@ -185,13 +191,14 @@ public class FixedThreadPool extends AbstractExecutorService{
         }
 
         public void run() {
-            while(running){
-                if (Thread.interrupted() && !running){
-                    workers.remove(this);
-                    break;
-                }
+            while(true){                
                 try {
+                    Thread.interrupted();
                     Runnable r = workQueue.take();
+                    if (r == poison){
+                        workers.remove(this);
+                        return;
+                    }
                     r.run();
                 }catch(Throwable throwable){
 
@@ -201,4 +208,10 @@ public class FixedThreadPool extends AbstractExecutorService{
 
     }
 
+    
+   protected static final class Poison implements Runnable{
+        public void run() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+   }
 }
