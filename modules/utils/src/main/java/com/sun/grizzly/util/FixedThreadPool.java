@@ -139,6 +139,10 @@ public class FixedThreadPool extends AbstractExecutorService{
             if (running){
                 workQueue.drainTo(drained);
                 shutdown();
+                for (WorkerThread w:workers.keySet()){
+                    //try to interrupt their current work so they can get their poison fast
+                    w.t.interrupt();
+                }
             }
             return drained;
         }
