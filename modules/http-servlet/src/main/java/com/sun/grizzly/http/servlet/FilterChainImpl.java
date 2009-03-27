@@ -247,4 +247,11 @@ public final class FilterChainImpl implements FilterChain {
         return configImpl;
     }
 
+    public void destroy() {
+        for (FilterConfigImpl filter : filters) {
+            if (filter != null)
+                filter.recycle();
+        }
+        filters = null;
+    }
 }

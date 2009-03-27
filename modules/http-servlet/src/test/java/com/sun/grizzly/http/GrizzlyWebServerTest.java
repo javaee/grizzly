@@ -42,6 +42,11 @@ import com.sun.grizzly.http.servlet.ServletAdapter;
 import junit.framework.TestCase;
 
 import javax.servlet.ServletException;
+import javax.servlet.Filter;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -51,6 +56,7 @@ import java.net.URL;
 import java.net.Socket;
 import java.net.InetSocketAddress;
 import java.util.logging.Logger;
+import java.util.HashMap;
 
 /**
  * {@link GrizzlyWebServer} tests.
@@ -195,6 +201,43 @@ public class GrizzlyWebServerTest extends TestCase {
         } catch (RuntimeException e) {
             // expected
         }
+    }
+
+    /**
+     * Tests if {@link Filter
+     * @throws java.io.IOException Couldn't start {@link GrizzlyWebServer}.
+     */
+    public void testServletFilterDestroy() throws IOException {
+
+        gws = new GrizzlyWebServer(PORT, ".", false);
+        final boolean init[] = new boolean[]{false};
+        final boolean filter[] = new boolean[]{false};
+        final boolean destroy[] = new boolean[]{false};
+
+        ServletAdapter sa = new ServletAdapter();
+        sa.addFilter(new Filter() {
+            public void init(final FilterConfig filterConfig)
+                throws ServletException {
+                init[0] = true;
+            }
+
+            public void doFilter(
+                final ServletRequest request, final ServletResponse response,
+                final FilterChain chain) throws IOException, ServletException {
+                filter[0] = true;
+                chain.doFilter(request, response);
+            }
+
+            public void destroy() {
+                destroy[0] = true;
+            }
+        }, "filter", new HashMap(0));
+
+        gws.addGrizzlyAdapter(sa, new String[]{"/"});
+        gws.start();
+
+        gws.stop();
+        assertTrue(destroy[0]);
     }
 
     private String readResponse(HttpURLConnection conn) throws IOException {
