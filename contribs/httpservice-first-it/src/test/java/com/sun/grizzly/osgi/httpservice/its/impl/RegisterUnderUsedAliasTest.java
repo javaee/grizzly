@@ -71,7 +71,7 @@ public class RegisterUnderUsedAliasTest {
                 frameworks(
                         felix()
                 ),
-                systemProperty("org.osgi.service.http.port").value("8080"),
+                systemProperty("org.osgi.service.http.port").value("8989"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.11-SNAPSHOT"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.11-SNAPSHOT"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.11-SNAPSHOT"),

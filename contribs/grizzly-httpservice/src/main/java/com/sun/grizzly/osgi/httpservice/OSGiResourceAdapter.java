@@ -110,6 +110,8 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
                     .append("'.").toString());
             response.setStatus(404);
             return;
+        } else {
+            response.setStatus(200);
         }
 
         // MIME handling

@@ -71,7 +71,7 @@ public class ResourceAvailableTest {
                 frameworks(
                         felix()
                 ),
-                systemProperty("org.osgi.service.http.port").value("8080"),
+                systemProperty("org.osgi.service.http.port").value("8989"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.11-SNAPSHOT"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.11-SNAPSHOT"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.11-SNAPSHOT"),
@@ -87,7 +87,7 @@ public class ResourceAvailableTest {
 
     @Test
     public void isResourceAvailable() throws IOException {
-        URL url = new URL("http://localhost:8080/2/index.html");
+        URL url = new URL("http://localhost:8989/2/index.html");
         final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         Assert.assertEquals("Status code should be the same.", 200, conn.getResponseCode());
     }
