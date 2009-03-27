@@ -574,6 +574,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     public void destroy(){
         super.destroy();
         servletCtx.destroyListeners();
+        filterChain.destroy();
     }
      
     
