@@ -80,7 +80,7 @@ public class RegisterSevletTest {
                 frameworks(
                         felix()
                 ),
-                systemProperty("org.osgi.service.http.port").value("8080"),
+                systemProperty("org.osgi.service.http.port").value("8989"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.11-SNAPSHOT"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.11-SNAPSHOT"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.11-SNAPSHOT"),
@@ -108,12 +108,12 @@ public class RegisterSevletTest {
                     response.getWriter().write("Grizzly");
                 }
             }, null, null);
-            URL url = new URL("http://localhost:8080/testServlet");
+            URL url = new URL("http://localhost:8989/testServlet");
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             Assert.assertEquals("Status code should be the same.", 200, conn.getResponseCode());
 
             hs.unregister("/testServlet");
-            URL url1 = new URL("http://localhost:8080/testServlet");
+            URL url1 = new URL("http://localhost:8989/testServlet");
             HttpURLConnection conn1 = (HttpURLConnection) url1.openConnection();
             Assert.assertEquals("Status code should be the same.", 404, conn1.getResponseCode());
         } finally {

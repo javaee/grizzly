@@ -84,7 +84,7 @@ public class AuthenticationTest {
                 frameworks(
                         felix()
                 ),
-                systemProperty("org.osgi.service.http.port").value("8080"),
+                systemProperty("org.osgi.service.http.port").value("8989"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http-servlet").version("1.9.11-SNAPSHOT"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-http").version("1.9.11-SNAPSHOT"),
                 mavenBundle().groupId("com.sun.grizzly").artifactId("grizzly-utils").version("1.9.11-SNAPSHOT"),
@@ -138,7 +138,7 @@ public class AuthenticationTest {
                 }
             }, null, context);
 
-            URL url2 = new URL("http://localhost:8080/testServlet");
+            URL url2 = new URL("http://localhost:8989/testServlet");
             HttpURLConnection conn2 = (HttpURLConnection) url2.openConnection();
             Assert.assertEquals("Status code should be the same.", 401, conn2.getResponseCode());
 
@@ -148,7 +148,7 @@ public class AuthenticationTest {
                     return new PasswordAuthentication("tester", "pass".toCharArray());
                 }
             });
-            URL url1 = new URL("http://localhost:8080/testServlet");
+            URL url1 = new URL("http://localhost:8989/testServlet");
             HttpURLConnection conn1 = (HttpURLConnection) url1.openConnection();
             Assert.assertEquals("Status code should be the same.", 200, conn1.getResponseCode());
 
