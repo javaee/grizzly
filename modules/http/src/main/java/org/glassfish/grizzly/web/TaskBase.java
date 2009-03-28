@@ -37,17 +37,10 @@
  */
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.SelectorHandler;
-import com.sun.grizzly.util.http.HtmlHelper;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
-import java.util.logging.Level;
 
-import com.sun.grizzly.tcp.RequestGroupInfo;
-import com.sun.grizzly.util.OutputWriter;
 import java.util.concurrent.ExecutorService;
+import org.glassfish.grizzly.Connection;
 
 /**
  * Abstract implementation of a {@link Task} object.
@@ -58,12 +51,6 @@ public abstract class TaskBase implements Task{
     
     
     /**
-     * This number represent a specific implementation of a {@link Task}
-     * instance.
-     */
-    protected int type;    
-    
-    /**
      * The {@link ExecutorService} object associated with this
      * {@link Task}
      */
@@ -71,20 +58,9 @@ public abstract class TaskBase implements Task{
     
     
     /**
-     * The {@link SelectionKey} used by this task.
+     * The {@link Connection} used by this task.
      */
-    protected SelectionKey key;
-    
-    
-    /**
-     * The {@link SelectorThread} who created this task.
-     */
-    protected SelectorThread selectorThread;
-
-    /**
-     * {@link SelectorHandler}, which handles this {@link SelectionKey} I/O events
-     */
-    protected SelectorHandler selectorHandler;
+    protected Connection connection;
     
     /**
      * A {@link TaskListener} associated with this instance.
@@ -93,39 +69,6 @@ public abstract class TaskBase implements Task{
     
     // ------------------------------------------------------------------//
     
-    public int getType(){
-        return type;
-    }
-    
-    
-    /**
-     * Set the {@link SelectorThread} object.
-     */
-    public void setSelectorThread(SelectorThread selectorThread){
-        this.selectorThread = selectorThread;
-    }
-    
-    
-    /**
-     * Return the {@link SelectorThread}
-     */
-    public SelectorThread getSelectorThread(){
-        return selectorThread;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public SelectorHandler getSelectorHandler() {
-        return selectorHandler;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void setSelectorHandler(SelectorHandler selectorHandler) {
-        this.selectorHandler = selectorHandler;
-    }
     
     /**
      * Set the thread pool on which Worker Threads will synchronize.
@@ -141,21 +84,13 @@ public abstract class TaskBase implements Task{
     public ExecutorService getThreadPool(){
         return threadPool;
     }
-    
-    
-    /**
-     * Set the {@link SelectionKey}
-     */
-    public void setSelectionKey(SelectionKey key){
-        this.key = key;
+
+    public Connection getConnection() {
+        return connection;
     }
-    
-    
-    /**
-     * Return the {@link SelectionKey} associated with this task.
-     */
-    public SelectionKey getSelectionKey(){
-        return key;
+
+    public void setConnection(Connection connection) {
+        this.connection = connection;
     }
     
     

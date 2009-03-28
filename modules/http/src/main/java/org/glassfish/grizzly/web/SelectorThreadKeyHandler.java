@@ -38,8 +38,8 @@
 package org.glassfish.grizzly.web;
 
 import com.sun.grizzly.DefaultSelectionKeyHandler;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.Response.ResponseAttachment;
+import org.glassfish.grizzly.web.container.Response;
+import org.glassfish.grizzly.web.container.Response.ResponseAttachment;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import java.nio.channels.SelectionKey;

@@ -37,13 +37,10 @@
  */
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.SelectorHandler;
 import java.io.IOException;
-import java.nio.channels.SelectionKey;
-import java.util.ArrayList;
 import java.util.concurrent.Callable;
-import com.sun.grizzly.tcp.RequestGroupInfo;
 import java.util.concurrent.ExecutorService;
+import org.glassfish.grizzly.Connection;
 
 /**
  * Wrapper object used by the WorkerThread
@@ -51,60 +48,10 @@ import java.util.concurrent.ExecutorService;
  * @author Jean-Francois Arcand
  */
 public interface Task extends Runnable, Callable{
-      
-    // Simple flag to avoid calling instanceof
-    public static int ACCEPT_TASK = 0;
-    public static int READ_TASK = 1;
-    public static int PROCESSOR_TASK = 2;
-
-    /**
-     * Return this <code>Tash</code> type.
-     */
-    public int getType();
-    
     /**
      * Execute the task.
      */
     public void doTask() throws IOException;
-
-    /**
-     * Set the {@link SelectionKey}
-     */
-    public void setSelectionKey(SelectionKey key);
-    
-    
-    /**
-     * Return the {@link SelectionKey} associated with this tasks.
-     */
-    public SelectionKey getSelectionKey();
-
-    
-    /**
-     * Set the {@link SelectorThread} used by this task.
-     */
-    public void setSelectorThread(SelectorThread selectorThread);
-    
-    
-    /**
-     * Returns the {@link SelectorThread} used by this task.
-     */
-    public SelectorThread getSelectorThread();
-
-
-    /**
-     * Returns {@link SelectorHandler}, which handles this taks's {@link SelectionKey}
-     * 
-     * @return {@link SelectorHandler}, which handles this taks's {@link SelectionKey}
-     */
-    public SelectorHandler getSelectorHandler();
-
-    /**
-     * Sets {@link SelectorHandler}, which handles this taks's {@link SelectionKey}
-     *
-     * @param  {@link SelectorHandler}, which handles this taks's {@link SelectionKey}
-     */
-    public void setSelectorHandler(SelectorHandler selectorHandler);
-
     
     /**
      * Execute this task by using the associated {@link ExecutorService}.
@@ -113,6 +60,9 @@ public interface Task extends Runnable, Callable{
      */   
     public void execute();
     
+    public Connection getConnection();
+
+    public void setConnection(Connection connection);
     
     /**
      * Recycle this task.

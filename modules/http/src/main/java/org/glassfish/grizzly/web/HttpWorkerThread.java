@@ -38,99 +38,39 @@
 
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.WorkerThreadImpl;
-
-import com.sun.grizzly.util.StreamAlgorithm;
-import com.sun.grizzly.util.ThreadAttachment;
+import org.glassfish.grizzly.attributes.AttributeBuilder;
+import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 
 /**
  * Specialized WorkerThread.
  *
  * @author Jeanfrancois Arcand
  */
-public class HttpWorkerThread extends WorkerThreadImpl {
+public class HttpWorkerThread extends DefaultWorkerThread {
     
-    private ProcessorTask processorTask;
+    private ProcessorTask processorTask;    
     
+    private StreamReader streamReader;
     
-    private StreamAlgorithm streamAlgorithm;   
-    
-    
-    private InputReader inputStream = new InputReader();    
-    
-    
-    /** 
-     * Create a Thread that will synchronizes/block on 
-     * {@link StatsThreadPool} instance.
-     * @param threadGroup <code>ThreadGroup</code>
-     * @param runnable <code>Runnable</code>
-     */
-    public HttpWorkerThread(ThreadGroup threadGroup, Runnable runnable){
-        super(threadGroup, runnable);                    
-    }    
-    
-    
-    /** 
-     * Create a Thread that will synchronizes/block on 
-     * {@link StatsThreadPool} instance.
-     * @param threadPool {@link StatsThreadPool}
-     * @param name <code>String</code>
-     */
-    public HttpWorkerThread(StatsThreadPool threadPool, String name){
-        super(threadPool, name);
+    public HttpWorkerThread(AttributeBuilder attrBuilder, String name,
+            Runnable runTask) {
+        super(attrBuilder, name, runTask);
     }
 
-    /**
-     * Create a Thread
-     * @param threadPool {@link StatsThreadPool} instance
-     * @param name thread name
-     * @param runnable task to execute
-     * @param initialByteBufferSize initial size of thread associated
-     * {@link ByteBuffer}
-     */
-    public HttpWorkerThread(StatsThreadPool threadPool, String name, Runnable runnable,
-            int initialByteBufferSize) {
-        super(threadPool, name, runnable, initialByteBufferSize);
+    public StreamReader getStreamReader() {
+        return streamReader;
     }
 
-    
-    public StreamAlgorithm getStreamAlgorithm() {
-        return streamAlgorithm;
+    public void setStreamReader(StreamReader streamReader) {
+        this.streamReader = streamReader;
     }
-
-    
-    public void setStreamAlgorithm(StreamAlgorithm streamAlgorithm) {
-        this.streamAlgorithm = streamAlgorithm;
-    }
-
-    
-    public InputReader getInputStream() {
-        return inputStream;
-    }
-
-    
-    public void setInputStream(InputReader inputStream) {
-        this.inputStream = inputStream;
-    }
-
     
     public ProcessorTask getProcessorTask() {
         return processorTask;
     }
-
     
     public void setProcessorTask(ProcessorTask processorTask) {
         this.processorTask = processorTask;
     }   
-    
-    
-    @Override
-    public ThreadAttachment getAttachment() {
-       if (threadAttachment == null) {
-            threadAttachment = new KeepAliveThreadAttachment();
-            threadAttachment.associate();
-        }
-        return threadAttachment;
-    }
 }
