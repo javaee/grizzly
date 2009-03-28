@@ -46,7 +46,7 @@ import com.sun.grizzly.http.SelectorThread;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
-import com.sun.grizzly.tcp.Request;
+import org.glassfish.grizzly.web.container.Request;
 import com.sun.grizzly.util.buf.Ascii;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;

@@ -42,7 +42,7 @@ import com.sun.grizzly.async.AsyncQueueDataProcessor;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
 import org.glassfish.grizzly.web.SocketChannelOutputBuffer;
-import com.sun.grizzly.tcp.Response;
+import org.glassfish.grizzly.web.container.Response;
 import com.sun.grizzly.util.ByteBufferFactory;
 import com.sun.grizzly.util.SSLOutputWriter;
 import com.sun.grizzly.util.WorkerThread;

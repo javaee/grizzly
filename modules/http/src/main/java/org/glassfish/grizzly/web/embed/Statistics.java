@@ -27,7 +27,7 @@ import org.glassfish.grizzly.web.KeepAliveStats;
 import org.glassfish.grizzly.web.StatsThreadPool;
 import org.glassfish.grizzly.web.ThreadPoolStatistic;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.tcp.RequestGroupInfo;
+import org.glassfish.grizzly.web.container.RequestGroupInfo;
 
 /**
  * <p>This class can be used to monitor the {@link GrizzlyWebServer}. The statistics

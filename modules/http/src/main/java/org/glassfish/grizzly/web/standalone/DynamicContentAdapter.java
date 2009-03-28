@@ -38,8 +38,8 @@
 
 package org.glassfish.grizzly.web.standalone;
 
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
+import org.glassfish.grizzly.web.container.Request;
+import org.glassfish.grizzly.web.container.Response;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.buf.ByteChunk;
 
@@ -51,8 +51,6 @@ import java.util.Date;
 import java.util.Locale;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
-
-import com.sun.grizzly.http.SelectorThread;
 
 /**
  * Abstract Adapter that contains all the common behaviour of the Adapter implmentation

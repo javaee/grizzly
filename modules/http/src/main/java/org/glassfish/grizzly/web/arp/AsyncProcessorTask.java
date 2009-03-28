@@ -38,9 +38,9 @@
 package org.glassfish.grizzly.web.arp;
 
 import org.glassfish.grizzly.web.ProcessorTask;
-import com.sun.grizzly.http.SelectorThread;
 import org.glassfish.grizzly.web.TaskBase;
 import java.util.logging.Level;
+import org.glassfish.grizzly.web.WebFilter;
 
 /**
  * A {@link Task} that wraps the execution of an asynchronous execution
@@ -97,7 +97,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                         return;
                 }
             } catch (Throwable t) {
-                SelectorThread.logger().log(Level.SEVERE, t.getMessage(), t);
+                WebFilter.logger().log(Level.SEVERE, t.getMessage(), t);
                 if (stage <= AsyncTask.INTERRUPTED) {
                     // We must close the connection.
                     stage = AsyncTask.POST_EXECUTE;

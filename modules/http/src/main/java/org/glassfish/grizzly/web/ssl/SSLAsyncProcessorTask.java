@@ -38,9 +38,9 @@
 
 package org.glassfish.grizzly.web.ssl;
 
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.InternalInputBuffer;
+import org.glassfish.grizzly.web.container.Request;
+import org.glassfish.grizzly.web.container.Response;
+import org.glassfish.grizzly.web.container.http11.InternalInputBuffer;
 
 /**
  * Simple {@link ProcessorTask} that configure the {@link OutputBuffer}

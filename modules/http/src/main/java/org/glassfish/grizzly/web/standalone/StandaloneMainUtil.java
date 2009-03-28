@@ -38,7 +38,7 @@
 package org.glassfish.grizzly.web.standalone;
 
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.tcp.Adapter;
+import org.glassfish.grizzly.web.container.Adapter;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.ExpandJar;
 import java.io.File;

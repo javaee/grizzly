@@ -42,7 +42,7 @@ import com.sun.grizzly.http.SelectorThread;
 import org.glassfish.grizzly.web.SocketChannelOutputBuffer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import com.sun.grizzly.tcp.Response;
+import org.glassfish.grizzly.web.container.Response;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 

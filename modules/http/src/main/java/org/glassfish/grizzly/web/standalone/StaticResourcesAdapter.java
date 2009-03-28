@@ -45,11 +45,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
-import com.sun.grizzly.tcp.ActionCode;
+import org.glassfish.grizzly.web.container.ActionCode;
 
-import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
+import org.glassfish.grizzly.web.container.Adapter;
+import org.glassfish.grizzly.web.container.Request;
+import org.glassfish.grizzly.web.container.Response;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 

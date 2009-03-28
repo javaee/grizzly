@@ -39,9 +39,9 @@ package org.glassfish.grizzly.web.arp;
 
 import org.glassfish.grizzly.web.ProcessorTask;
 import org.glassfish.grizzly.web.Task;
-import com.sun.grizzly.util.LinkedTransferQueue;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
+import org.glassfish.grizzly.util.LinkedTransferQueue;
 
 /**
  * Default implementation of {@link AsyncHandler}. This class handle 
@@ -136,7 +136,6 @@ public class DefaultAsyncHandler implements AsyncHandler{
         if (task instanceof ProcessorTask){
             AsyncTask apt = getAsyncProcessorTask();
             apt.setThreadPool(task.getThreadPool());
-            apt.setSelectorThread(task.getSelectorThread());
             apt.getAsyncExecutor().setProcessorTask((ProcessorTask)task);
             apt.execute();
         } else {
