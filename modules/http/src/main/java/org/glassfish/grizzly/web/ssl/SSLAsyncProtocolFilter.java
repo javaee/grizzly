@@ -45,8 +45,8 @@ import org.glassfish.grizzly.web.ProcessorTask;
 import com.sun.grizzly.util.ByteBufferFactory;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
-import com.sun.grizzly.util.net.SSLImplementation;
-import com.sun.grizzly.util.net.SSLSupport;
+import org.glassfish.grizzly.web.container.util.net.SSLImplementation;
+import org.glassfish.grizzly.web.container.util.net.SSLSupport;
 import java.io.InputStream;
 
 /**

@@ -40,8 +40,8 @@ package org.glassfish.grizzly.web.standalone;
 
 import org.glassfish.grizzly.web.container.Request;
 import org.glassfish.grizzly.web.container.Response;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.buf.ByteChunk;
+import org.glassfish.grizzly.web.container.util.buf.MessageBytes;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 
 import java.io.File;
 import java.io.IOException;

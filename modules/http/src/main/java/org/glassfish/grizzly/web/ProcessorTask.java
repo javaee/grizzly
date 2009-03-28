@@ -89,15 +89,15 @@ import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
 
 import com.sun.grizzly.util.WorkerThread;
-import com.sun.grizzly.util.buf.Ascii;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.HexUtils;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.FastHttpDateFormat;
-import com.sun.grizzly.util.http.MimeHeaders;
-import com.sun.grizzly.util.net.SSLSupport;
+import org.glassfish.grizzly.web.container.util.buf.Ascii;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
+import org.glassfish.grizzly.web.container.util.buf.HexUtils;
+import org.glassfish.grizzly.web.container.util.buf.MessageBytes;
+import org.glassfish.grizzly.web.container.util.http.FastHttpDateFormat;
+import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
+import org.glassfish.grizzly.web.container.util.net.SSLSupport;
 
-import com.sun.grizzly.util.res.StringManager;
+import org.glassfish.grizzly.web.container.util.res.StringManager;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;

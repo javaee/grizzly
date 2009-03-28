@@ -53,7 +53,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import com.sun.grizzly.util.http.MimeHeaders;
+import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
 
 
 /**

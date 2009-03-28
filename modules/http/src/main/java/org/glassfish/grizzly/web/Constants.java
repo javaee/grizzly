@@ -53,7 +53,7 @@
 
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.util.buf.ByteChunk;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 
 /**
  * Constants. Inspired from class com.sun.grizzly.tcp.http11.Constants

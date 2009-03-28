@@ -48,7 +48,7 @@ import org.glassfish.grizzly.web.container.http11.Constants;
 import org.glassfish.grizzly.web.container.http11.InputFilter;
 import org.glassfish.grizzly.web.container.http11.InternalInputBuffer;
 import org.glassfish.grizzly.web.container.http11.filters.BufferedInputFilter;
-import com.sun.grizzly.util.net.SSLSupport;
+import org.glassfish.grizzly.web.container.util.net.SSLSupport;
 import java.util.logging.Level;
 
 /**

@@ -50,8 +50,8 @@ import org.glassfish.grizzly.web.container.ActionCode;
 import org.glassfish.grizzly.web.container.Adapter;
 import org.glassfish.grizzly.web.container.Request;
 import org.glassfish.grizzly.web.container.Response;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
+import org.glassfish.grizzly.web.container.util.buf.MessageBytes;
 
 /**
  * Simple HTTP based Web Server. Part of this class is from Tomcat sandbox code

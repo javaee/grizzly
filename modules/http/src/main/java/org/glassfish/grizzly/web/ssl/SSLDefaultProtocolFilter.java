@@ -42,8 +42,8 @@ import org.glassfish.grizzly.web.DefaultProtocolFilter;
 import org.glassfish.grizzly.web.HttpWorkerThread;
 import org.glassfish.grizzly.web.ProcessorTask;
 import com.sun.grizzly.util.Interceptor;
-import com.sun.grizzly.util.net.SSLImplementation;
-import com.sun.grizzly.util.net.SSLSupport;
+import org.glassfish.grizzly.web.container.util.net.SSLImplementation;
+import org.glassfish.grizzly.web.container.util.net.SSLSupport;
 
 /**
  * SSL support over NIO. This {@link Task} handles the SSL requests

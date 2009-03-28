@@ -47,10 +47,10 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
 import org.glassfish.grizzly.web.container.Request;
-import com.sun.grizzly.util.buf.Ascii;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.MimeHeaders;
+import org.glassfish.grizzly.web.container.util.buf.Ascii;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
+import org.glassfish.grizzly.web.container.util.buf.MessageBytes;
+import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
 /**
  * This {@link Interceptor} is invoked after the request line has been parsed. 
  * 

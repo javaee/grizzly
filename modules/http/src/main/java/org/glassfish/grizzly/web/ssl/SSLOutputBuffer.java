@@ -46,7 +46,7 @@ import org.glassfish.grizzly.web.container.Response;
 import com.sun.grizzly.util.ByteBufferFactory;
 import com.sun.grizzly.util.SSLOutputWriter;
 import com.sun.grizzly.util.WorkerThread;
-import com.sun.grizzly.util.buf.ByteChunk;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;

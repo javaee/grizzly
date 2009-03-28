@@ -35,7 +35,7 @@ import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
 import org.glassfish.grizzly.web.container.http11.GrizzlyAdapterChain;
 import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
 import org.glassfish.grizzly.web.container.http11.GrizzlyResponse;
-import com.sun.grizzly.util.net.jsse.JSSEImplementation;
+import org.glassfish.grizzly.web.container.util.net.jsse.JSSEImplementation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;

@@ -45,7 +45,7 @@ import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.filter.SSLReadFilter;
 import org.glassfish.grizzly.web.ProcessorTask;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.util.net.SSLImplementation;
+import org.glassfish.grizzly.web.container.util.net.SSLImplementation;
 import javax.net.ssl.SSLContext;
 
 /**
