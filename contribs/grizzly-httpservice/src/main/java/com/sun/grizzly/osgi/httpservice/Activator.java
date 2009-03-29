@@ -62,6 +62,7 @@ public class Activator implements BundleActivator {
     private Logger logger;
     private GrizzlyWebServer ws;
     private static final String ORG_OSGI_SERVICE_HTTP_PORT = "org.osgi.service.http.port";
+    private static final String ORG_OSGI_SERVICE_HTTPS_PORT = "org.osgi.service.http.port.secure";
     private HttpServiceFactory serviceFactory;
 
     /**
@@ -73,20 +74,28 @@ public class Activator implements BundleActivator {
         logger = new Logger(logTracker);
         logger.info("Starting Grizzly OSGi HttpService");
 
-        String portProp = bundleContext.getProperty(ORG_OSGI_SERVICE_HTTP_PORT);
-        int port = 80;
-        if (portProp != null) {
-            try {
-                port = Integer.parseInt(portProp);
-            } catch (NumberFormatException nfe) {
-                logger.warn(new StringBuilder().append("Couldn't parse '").append(ORG_OSGI_SERVICE_HTTP_PORT).append("' property, going to use default (").append(port).append("). ").append(nfe.getMessage()).toString());
-            }
+        int port = readIntProperty(bundleContext, ORG_OSGI_SERVICE_HTTP_PORT, 80);
+        if (bundleContext.getProperty(ORG_OSGI_SERVICE_HTTPS_PORT) != null) {
+            logger.warn("HTTPS not supported yet.");
         }
         startGrizzly(port);
         serviceFactory = new HttpServiceFactory(ws, logger, bundleContext.getBundle());
         registration = bundleContext.registerService(
                 HttpService.class.getName(), serviceFactory,
                 new Properties());
+    }
+
+    private int readIntProperty(BundleContext bundleContext, String propertyName, int defaultPropertyValue) {
+        String portProp = bundleContext.getProperty(propertyName);
+        int port = defaultPropertyValue;
+        if (portProp != null) {
+            try {
+                port = Integer.parseInt(portProp);
+            } catch (NumberFormatException nfe) {
+                logger.warn(new StringBuilder().append("Couldn't parse '").append(propertyName).append("' property, going to use default (").append(port).append("). ").append(nfe.getMessage()).toString());
+            }
+        }
+        return port;
     }
 
     private void startGrizzly(int port) throws IOException {
