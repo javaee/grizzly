@@ -37,30 +37,25 @@
  */
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import junit.framework.TestCase;
 
-import javax.servlet.ServletException;
-import javax.servlet.Filter;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.FilterChain;
+import javax.net.ssl.*;
+import javax.servlet.*;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSession;
 import java.io.*;
 import java.net.*;
-import java.util.logging.Logger;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 /**
  * {@link GrizzlyWebServer} tests.
@@ -209,21 +204,27 @@ public class GrizzlyWebServerTest extends TestCase {
 
     /**
      * Tests that {@link GrizzlyWebServer} will start properly in secure mode with modified configuration.
-     * TODO: work in progress
      *
      * @throws java.io.IOException Not much to say here.
      * @throws java.net.URISyntaxException Could not find keystore file.
+     * @throws java.security.GeneralSecurityException Security failure.
      */
-    public void _testStartSecureWithConfiguration() throws IOException, URISyntaxException {
+    public void testStartSecureWithConfiguration()
+            throws IOException, URISyntaxException, GeneralSecurityException {
         System.out.println("testStartSecureWithConfiguration");
         URL resource = getClass().getClassLoader().getResource("test-keystore.jks");
+        SSLConfig cfg = new SSLConfig(true);
         if (resource != null) {
             URI uri = resource.toURI();
-            System.setProperty(SSLConfig.KEY_STORE_FILE, new File(uri).getAbsolutePath());
+            String path = new File(uri).getAbsolutePath();
+            cfg.setKeyStoreFile(path);
+        } else {
+            fail("Couldn't find keystore");
         }
         gws = new GrizzlyWebServer(PORT, ".", true);
+        gws.setSSLConfig(cfg);
         gws.addGrizzlyAdapter(new GrizzlyAdapter() {
-            @Override public void service(GrizzlyRequest request, GrizzlyResponse response) {
+            public void service(GrizzlyRequest request, GrizzlyResponse response) {
                 response.setStatus(200);
                 try {
                     response.getOutputBuffer().write("Secured.");
@@ -241,15 +242,30 @@ public class GrizzlyWebServerTest extends TestCase {
             fail("Should be able to start in secure mode.");
         }
         try {
-            HttpsURLConnection conn =
-                    (HttpsURLConnection) new URL("https", "localhost", PORT, "/sec").openConnection();
-            conn.setHostnameVerifier(new HostnameVerifier() {
+            URL res = getClass().getClassLoader().getResource("test-truststore.jks");
+            if (res != null) {
+                URI uri = res.toURI();
+                KeyStore trustStore = KeyStore.getInstance("JKS");
+                String path = new File(uri).getAbsolutePath();
+                trustStore.load(new FileInputStream(path), "changeit".toCharArray());
+                TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
+                trustManagerFactory.init(trustStore);
+                SSLContext context = SSLContext.getInstance("TLS");
+                context.init(null, trustManagerFactory.getTrustManagers(), null);
+                HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
+            } else {
+                fail("Couldn't find truststore");
+            }
+
+            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
                 public boolean verify(String s, SSLSession sslSession) {
                     return true;
                 }
             });
+            HttpURLConnection conn =
+                    (HttpURLConnection) new URL("https", "localhost", PORT, "/sec").openConnection();
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
-            assertEquals("Secured.", getResponseCodeFromAlias(conn));
+            assertEquals("Secured.", readResponse(conn));
         } finally {
             gws.stop();
         }
