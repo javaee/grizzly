@@ -60,9 +60,9 @@ public class TestThreadPool extends FixedThreadPool{
 
     private final AtomicInteger queueSize = new AtomicInteger();
     
-    private final int corePoolsize;    
-    private final long idleTimeout;
-    private final TimeUnit timeUnit;
+    protected final int corePoolsize;
+    protected final long idleTimeout;
+    protected final TimeUnit timeUnit;
 
     /**
      *
@@ -85,7 +85,7 @@ public class TestThreadPool extends FixedThreadPool{
             private final AtomicInteger c = new AtomicInteger();
             @Override
             public Thread newThread(Runnable r) {
-                Thread t = new WorkerThreadImpl(workerprefixname+c.incrementAndGet(),r);
+                Thread t = new WorkerThreadImpl(null, workerprefixname, r,0);
                 t.setDaemon(true);
                 return t;
             }
@@ -164,9 +164,9 @@ public class TestThreadPool extends FixedThreadPool{
                 return;
             }
         }
-        if (running){
+        if (running){            
+            workQueue.offer(task);
             queueSize.incrementAndGet();
-            workQueue.offer(task);            
         }
     }
 
@@ -209,7 +209,7 @@ public class TestThreadPool extends FixedThreadPool{
     }
   
 
-    public int getCorePoolsize() {
+    public int getCorePoolSize() {
         return corePoolsize;
     }
 
@@ -217,7 +217,7 @@ public class TestThreadPool extends FixedThreadPool{
      * 
      * @param maxPoolSize
      */
-    public void setMaxPoolSize(int maxPoolSize) {
+    public void setMaximumPoolSize(int maxPoolSize) {
         synchronized(statelock){
             validateNewPoolsize(corePoolsize, maxPoolSize);
             this.maxPoolSize = maxPoolSize;
@@ -225,7 +225,7 @@ public class TestThreadPool extends FixedThreadPool{
     }
 
 
-    public int getMaxPoolSize() {
+    public int getMaximumPoolSize() {
         return maxPoolSize;
     }
 
