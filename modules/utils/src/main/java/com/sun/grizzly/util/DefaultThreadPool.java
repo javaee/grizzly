@@ -39,7 +39,6 @@
 package com.sun.grizzly.util;
 
 import com.sun.grizzly.util.ByteBufferFactory.ByteBufferType;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -53,7 +52,7 @@ import java.util.logging.Level;
  * @author Alexey Stashok
  */
 public class DefaultThreadPool extends ThreadPoolExecutor
-        implements ExecutorService, ExtendedThreadPool,
+        implements ExtendedThreadPool,
         Thread.UncaughtExceptionHandler {
     // Min number of worker threads in a pool
     public static int DEFAULT_MIN_THREAD_COUNT = 5;
