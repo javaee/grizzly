@@ -128,8 +128,7 @@ public abstract class ParserProtocolFilter extends ReadFilter {
             }
 
 
-            boolean continueExecution = isSkipRead ||
-                    ((sslReadFilter==null)? super.execute(ctx) : sslReadFilter.execute(ctx));
+            boolean continueExecution = isSkipRead || superExecute(ctx);
             WorkerThread workerThread = (WorkerThread) Thread.currentThread();
             ByteBuffer byteBuffer = workerThread.getByteBuffer();
             parser.startBuffer(byteBuffer);
@@ -189,7 +188,7 @@ public abstract class ParserProtocolFilter extends ReadFilter {
                 saveByteBuffer(key);
 
                 // Register to get more bytes.
-                context.getSelectorHandler().register(key, SelectionKey.OP_READ);
+                superPostExecute(context);
                 return false;
             }
 
@@ -200,9 +199,24 @@ public abstract class ParserProtocolFilter extends ReadFilter {
             parser.releaseBuffer();
         }
 
-        return super.postExecute(context);
+        return superPostExecute(context);
     }
 
+    private boolean superExecute(Context context) throws IOException {
+        if (sslReadFilter == null) {
+            return super.execute(context);
+        } else {
+            return sslReadFilter.execute(context);
+        }
+    }
+
+    private boolean superPostExecute(Context context) throws IOException {
+        if (sslReadFilter == null) {
+            return super.postExecute(context);
+        } else {
+            return sslReadFilter.postExecute(context);
+        }
+    }
     /**
      * Return a new or cached ProtocolParser instance.
      */

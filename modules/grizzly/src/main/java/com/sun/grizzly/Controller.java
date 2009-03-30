@@ -44,6 +44,7 @@ import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.SupportStateHolder;
@@ -643,6 +644,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     public static void setLogger(Logger l){
         logger = l;
+        LoggerUtils.setLogger(l);
     }
 
     // ------------------------------------------------------ Handlers ------//
