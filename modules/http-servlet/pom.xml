@@ -30,7 +30,6 @@
         </profile>
     </profiles>
     <build>
-        <defaultGoal>install</defaultGoal>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
