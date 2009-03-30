@@ -142,7 +142,7 @@ public abstract class AbstractTemporarySelectorReader
             if (readBytes <= 0) {
                 currentFuture.failure(new TimeoutException());
             } else if (interceptor != null) {
-                isCompleted = (interceptor.intercept(Reader.AFTER_READ_EVENT,
+                isCompleted = (interceptor.intercept(Reader.READ_EVENT,
                         null, currentResult) & Interceptor.COMPLETED) != 0;
             }
         }

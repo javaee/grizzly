@@ -113,7 +113,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                         new Interceptor() {
 
                             public int intercept(int event, Object context, Object result) {
-                                if (event == Reader.AFTER_READ_EVENT) {
+                                if (event == Reader.READ_EVENT) {
                                     ReadResult readResult = (ReadResult) result;
                                     Buffer buffer = (Buffer) readResult.getMessage();
                                     readResult.setMessage(null);

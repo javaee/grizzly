@@ -156,7 +156,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
 
     @Override
-    protected ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
+    public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
         return new TrimAwareWrapper(this, byteBuffer);
     }
 

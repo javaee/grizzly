@@ -142,7 +142,7 @@ public abstract class AbstractNIOAsyncQueueReader
             }
 
             int interceptInstructions = intercept(connection,
-                    Reader.AFTER_READ_EVENT, record,
+                    Reader.READ_EVENT, record,
                     currentResult);
 
             boolean registerForReadingInstr = interceptor == null ||
@@ -268,7 +268,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 Interceptor<ReadResult> interceptor = queueRecord.getInterceptor();
                 // check if message was completely read
                 int interceptInstructions = intercept(connection,
-                        Reader.AFTER_READ_EVENT, queueRecord,
+                        Reader.READ_EVENT, queueRecord,
                         currentResult);
                 
                 boolean registerForReadingInstr = interceptor == null ||

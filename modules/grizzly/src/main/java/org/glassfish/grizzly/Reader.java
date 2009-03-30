@@ -46,7 +46,7 @@ import java.util.concurrent.Future;
  * @author oleksiys
  */
 public interface Reader<L> {
-    public static final int AFTER_READ_EVENT = 1;
+    public static final int READ_EVENT = 1;
     public static final int COMPLETE_EVENT = 2;
     public static final int INCOMPLETE_EVENT = 3;
     /**

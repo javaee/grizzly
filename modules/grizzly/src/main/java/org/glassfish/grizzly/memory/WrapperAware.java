@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -38,81 +38,18 @@
 
 package org.glassfish.grizzly.memory;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import org.glassfish.grizzly.Buffer;
 
 /**
- * The simple Buffer manager implementation, 
  *
- * @author Jean-Francois Arcand
- * @author Alexey Stashok
+ * @author oleksiys
  */
-public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
-        WrapperAware<ByteBufferWrapper> {
-    protected boolean isDirect;
-    
-    public ByteBufferManager() {
-        this(false);
-    }
-
-    public ByteBufferManager(boolean isDirect) {
-        this.isDirect = isDirect;
-    }
-
-    protected ByteBuffer allocate0(int size) {
-        if (isDirect) {
-            return ByteBuffer.allocateDirect(size);
-        } else {
-            return ByteBuffer.allocate(size);
-        }
-    }
-
-    public ByteBufferWrapper allocate(final int size) {
-        return wrap(allocate0(size));
-    }
-
-    public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
-            int newSize) {
-        ByteBufferWrapper newBuffer = allocate(newSize);
-        oldBuffer.flip();
-        newBuffer.put(oldBuffer);
-        return newBuffer;
-    }
-
-    public void release(ByteBufferWrapper buffer) {
-    }
-
-    public boolean isDirect() {
-        return isDirect;
-    }
-
-    public void setDirect(boolean isDirect) {
-        this.isDirect = isDirect;
-    }
-
-    public ByteBufferWrapper wrap(byte[] data) {
-        return wrap(data, 0, data.length);
-    }
-
-    public ByteBufferWrapper wrap(byte[] data, int offset, int length) {
-        return wrap(ByteBuffer.wrap(data, offset, length));
-    }
-
-    public ByteBufferWrapper wrap(String s) {
-        return wrap(s, Charset.defaultCharset());
-    }
-
-    public ByteBufferWrapper wrap(String s, Charset charset) {
-        try {
-            byte[] byteRepresentation = s.getBytes(charset.name());
-            return wrap(byteRepresentation);
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
-        return new ByteBufferWrapper(this, byteBuffer);
-    }
+public interface WrapperAware<E extends Buffer> {
+    public E wrap(byte[] data);
+    public E wrap(byte[] data, int offset, int length);
+    public E wrap(String s);
+    public E wrap(String s, Charset charset);
+    public E wrap(ByteBuffer byteBuffer);
 }

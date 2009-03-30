@@ -66,14 +66,27 @@ public class MemoryUtils {
 
     public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
             byte[] array) {
-        E buffer = memoryManager.allocate(array.length);
-        buffer.put(array);
+        return wrap(memoryManager, array, 0, array.length);
+    }
+
+    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
+            byte[] array, int offset, int length) {
+        if (memoryManager instanceof WrapperAware) {
+            return ((WrapperAware<E>) memoryManager).wrap(array, offset, length);
+        }
+        
+        E buffer = memoryManager.allocate(length);
+        buffer.put(array, offset, length);
         buffer.flip();
         return buffer;
     }
 
-    public static Buffer wrap(ByteBufferManager memoryManager,
+    public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
             ByteBuffer byteBuffer) {
-        return memoryManager.wrap(byteBuffer);
+        if (memoryManager instanceof WrapperAware) {
+            return ((WrapperAware<E>) memoryManager).wrap(byteBuffer);
+        }
+
+        throw new IllegalStateException("Can not wrap ByteBuffer");
     }
 }
