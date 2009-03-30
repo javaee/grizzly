@@ -50,80 +50,117 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * minimalistic fixed threadpool.
- * uses  WorkerThreadImpl by default.<br>
- * LTQ is used by default for its nice scalability over the lock based alternatives.<br>
- * LTQ gives FIFO per producer.<br>
+ * by default: {@link WorkerThreadImpl} is used,
+ * {@link LinkedTransferQueue} is used as workQueue for its nice scalability over the lock based alternatives.<br>
+ * {@link LinkedTransferQueue} gives FIFO per producer.<br>
  *
  * @author gustav trede
  */
 public class FixedThreadPool extends AbstractExecutorService{
 
-    protected static final Runnable poison = new Runnable(){public void run(){}};
+    protected static final Runnable poison = new Runnable(){public void run(){}};    
     
-    protected final ConcurrentHashMap<WorkerThread,Boolean> workers
-            = new ConcurrentHashMap<WorkerThread,Boolean>();
+    protected final ConcurrentHashMap<BasicWorker,Boolean> workers
+            = new ConcurrentHashMap<BasicWorker,Boolean>();
 
+    /**
+     * exits for use by subclasses, does not impact the performance of fixed pool
+     */
+    protected final AtomicInteger aliveworkerCount = new AtomicInteger();
+    
     protected final BlockingQueue<Runnable> workQueue;
 
     protected final ThreadFactory threadFactory;
+    
+    protected final Object statelock = new Object();
 
-    private volatile boolean running = true;
+    protected volatile int maxPoolSize;
 
-    private final Object shutdownlock = new Object();
+    protected volatile boolean running = true;
+    
 
     /**
-     *  {@link LinkedTransferQueue} is used as workQueue
+     * creates a fixed pool of size 8
+     */
+    public FixedThreadPool() {
+        this(8);
+    }
+
+    /**
+     *  
      * @param size
      */
     public FixedThreadPool(int size) {
-        this(size, "WorkerThread");
+        this(size, "GrizzlyWorker");
     }
 
     /**
-     *  {@link LinkedTransferQueue} is used as workQueue
      * 
      * @param size
-     * @param threadprefixname
+     * @param workerprefixname 
      */
-    public FixedThreadPool(int size, final String threadprefixname) {
-        this(size, new ThreadFactory() {
-            private AtomicInteger c = new AtomicInteger();
+    public FixedThreadPool(int size, final String workerprefixname) {
+        this(size, new ThreadFactory(){
+            private final AtomicInteger c = new AtomicInteger();
+            @Override
             public Thread newThread(Runnable r) {
-                return new WorkerThreadImpl(null,threadprefixname+c.incrementAndGet(), r, 0);
+                Thread t = new WorkerThreadImpl(workerprefixname+c.incrementAndGet(),r);
+                t.setDaemon(true);
+                return t;
             }
         });
     }
+
     /**
-     *  {@link LinkedTransferQueue} is used as workQueue
+     *
      * @param size
+     * @param threadfactory {@link ThreadFactory}
      */
     public FixedThreadPool(int size, ThreadFactory threadfactory) {
-        this(size, threadfactory, new LinkedTransferQueue());
+        this(size, new LinkedTransferQueue(), threadfactory);
     }
     /**
      *
      * @param fixedsize
      * @param workQueue
      */
-    public FixedThreadPool(int fixedsize, ThreadFactory threadfactory,
-            BlockingQueue<Runnable> workQueue) {
+    public FixedThreadPool(int fixedsize,BlockingQueue<Runnable> workQueue,
+                ThreadFactory threadfactory) {
         if (threadfactory == null)
-            throw new IllegalArgumentException("threadfactory parameter is null");
+            throw new IllegalArgumentException("threadfactory == null");
         if (workQueue == null)
-            throw new IllegalArgumentException("workQueue parameter is null");
+            throw new IllegalArgumentException("workQueue == null");
+        if (fixedsize < 1)
+            throw new IllegalArgumentException("fixedsize < 1");
         this.threadFactory = threadfactory;
-        this.workQueue = workQueue;
+        this.workQueue   = workQueue;
+        this.maxPoolSize = fixedsize;
         while(fixedsize-->0){
-            WorkerThread wt = new WorkerThread();
-            workers.put(wt, Boolean.TRUE);
-            wt.t.start();
+            aliveworkerCount.incrementAndGet();
+            startWorker(new BasicWorker());
         }
     }
 
+    protected FixedThreadPool(BlockingQueue<Runnable> workQueue,ThreadFactory threadFactory){
+        if (workQueue == null)
+            throw new IllegalArgumentException("workQueue == null");
+        if (threadFactory == null)
+            throw new IllegalArgumentException("threadFactory == null");
+        this.workQueue     = workQueue;
+        this.threadFactory = threadFactory;
+    }
+
+
+    protected void startWorker(BasicWorker wt){        
+        wt.t = threadFactory.newThread(wt);
+        workers.put(wt, Boolean.TRUE);
+        wt.t.start();
+    }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public void execute(Runnable command) {
         if (running){
             workQueue.offer(command);
@@ -133,18 +170,16 @@ public class FixedThreadPool extends AbstractExecutorService{
     /**
      * {@inheritDoc}
      */
+    @Override
     public List<Runnable> shutdownNow() {
-        synchronized(shutdownlock){
+        synchronized(statelock){
             List<Runnable> drained = new ArrayList<Runnable>();
             if (running){
                 running = false;
                 workQueue.drainTo(drained);
-                int size = workers.size();
-                while(size-->0){
-                    workQueue.offer(poison);
-                }
+                poisonAll();
                 //try to interrupt their current work so they can get their poison fast
-                for (WorkerThread w:workers.keySet()){                    
+                for (BasicWorker w:workers.keySet()){
                     w.t.interrupt();
                 }
             }
@@ -155,21 +190,28 @@ public class FixedThreadPool extends AbstractExecutorService{
     /**
      * {@inheritDoc}
      */
+    @Override
     public void shutdown() {
-        synchronized(shutdownlock){
+        synchronized(statelock){
             if (running){
                 running = false;
-                int size = workers.size();
-                while(size-->0){
-                    workQueue.offer(poison);
-                }
+                poisonAll();
             }
+        }
+    }
+
+    
+    private void poisonAll(){
+        int size = Math.max(maxPoolSize, aliveworkerCount.get()) * 4/3;
+        while(size-->0){
+            workQueue.offer(poison);
         }
     }
     
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isShutdown() {
         return !running;
     }
@@ -177,6 +219,7 @@ public class FixedThreadPool extends AbstractExecutorService{
     /**
      * not supported
      */
+    @Override
     public boolean isTerminated() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
@@ -184,27 +227,34 @@ public class FixedThreadPool extends AbstractExecutorService{
     /**
      * not supported
      */
+    @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    
+    protected class BasicWorker implements Runnable{
+        Thread t;
 
-
-    protected class WorkerThread implements Runnable{
-        final Thread t;
-
-        public WorkerThread() {
-            this.t = threadFactory.newThread(this);
-            t.setDaemon(true);
+        public BasicWorker() {            
         }
 
-        public void run() {
-            while(true){                
+        @Override
+        public void run() {            
+            try{
+                dowork();
+            }finally{
+                aliveworkerCount.decrementAndGet();
+                workers.remove(this);
+            }
+        }
+
+        protected void dowork(){
+            while(true){
                 try {
                     Thread.interrupted();
-                    Runnable r = workQueue.take();
-                    if (r == poison){
-                        workers.remove(this);
+                    Runnable r = getTask();
+                    if (r == poison || r == null){
                         return;
                     }
                     r.run();
@@ -214,6 +264,9 @@ public class FixedThreadPool extends AbstractExecutorService{
             }
         }
 
+        protected Runnable getTask() throws InterruptedException{
+            return workQueue.take();
+        }
     }
 
 }
