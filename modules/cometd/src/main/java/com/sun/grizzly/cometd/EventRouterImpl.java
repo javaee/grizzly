@@ -41,6 +41,8 @@ package com.sun.grizzly.cometd;
 import com.sun.grizzly.cometd.bayeux.Verb;
 import com.sun.grizzly.cometd.bayeux.VerbUtils;
 import com.sun.grizzly.cometd.util.JSONParser;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.IOException;
 import java.util.List;
 
@@ -83,7 +85,7 @@ public class EventRouterImpl implements EventRouter{
     public synchronized void route(final CometdRequest req,final CometdResponse res) 
             throws IOException {
 
-        String[] messages = req.getParameterValues(JSON_MESSAGES); 
+        String[] messages = getMessages(req);
         CometdContext cometdContext = null;
         if (messages != null && messages.length > 0){
             for(String message: messages){
@@ -112,4 +114,34 @@ public class EventRouterImpl implements EventRouter{
              throw new IOException("Invalid request");
         }
     }   
+
+    private String[] getMessages(CometdRequest req) throws IOException {
+        String contentType = req.getContentType();
+        String[] messages = null;
+        if (contentType != null) {
+            int semicolon = contentType.indexOf(';');
+            if (semicolon >= 0) {
+                contentType = contentType.substring(0, semicolon).trim();
+            } else {
+                contentType = contentType.trim();
+            }
+
+            if ("application/x-www-form-urlencoded".equalsIgnoreCase(contentType)) {
+                messages = req.getParameterValues(JSON_MESSAGES); 
+            } else if ("text/json".equalsIgnoreCase(contentType)) {
+                int len = req.getContentLength();
+                ByteArrayOutputStream baos = new ByteArrayOutputStream(1024);
+                int s = -1;
+                byte[] b = new byte[1024];
+                InputStream is = req.getInputStream();
+                while (len > 0 && (s = is.read(b)) > 0) {
+                    baos.write(b, 0, s);
+                    len -= s;
+                }
+                messages = new String[] { baos.toString(req.getCharacterEncoding()) };
+            }
+        }
+
+        return messages;
+    }
 }

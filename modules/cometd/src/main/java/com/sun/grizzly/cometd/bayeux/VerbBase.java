@@ -49,6 +49,9 @@ package com.sun.grizzly.cometd.bayeux;
  * @author Jeanfrancois Arcand
  */
 public abstract class VerbBase implements Verb{
+    public static final String ARRAY_START = "[";
+
+    public static final String ARRAY_END = "]";
     
     protected String id = "0";
     
@@ -197,7 +200,7 @@ public abstract class VerbBase implements Verb{
     protected String getJSONPrefix() {
         String prefix = null;
         if (first) {
-            prefix = "/*[";
+            prefix = ARRAY_START;
         } else if (follow) {
             prefix = ", ";
         } else {
@@ -207,7 +210,7 @@ public abstract class VerbBase implements Verb{
     }
 
     protected String getJSONPostfix() {
-        return ((last)? "]*/" : "");
+        return ((last)? ARRAY_END : "");
     }
     
     public String getClientId() {

@@ -99,7 +99,7 @@ public class BayeuxParser{
         }
     }
     
-    public final static String DEFAULT_CONTENT_TYPE ="application/json-comment-filtered";
+    public final static String DEFAULT_CONTENT_TYPE ="text/json";
 
     private final SecureRandom random = new SecureRandom();
 

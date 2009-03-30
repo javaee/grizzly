@@ -42,6 +42,7 @@ import com.sun.grizzly.cometd.CometdRequest;
 import com.sun.grizzly.cometd.CometdResponse;
 import com.sun.grizzly.cometd.EventRouter;
 import com.sun.grizzly.cometd.EventRouterImpl;
+import java.io.InputStream;
 import java.io.IOException;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -86,17 +87,24 @@ public class CometdServlet extends HttpServlet {
                     return request.getParameterValues(s);
                 }
 
-                @Override
                 public int getRemotePort() {
                     return request.getRemotePort();
                 }
 
-                public void setAttribute(String key, Object obj) {
-                    request.setAttribute(key, obj);
+                public String getCharacterEncoding() {
+                    return request.getCharacterEncoding();
                 }
 
-                public Object getAttribute(String key) {
-                    return request.getAttribute(key);
+                public int getContentLength() {
+                    return request.getContentLength();
+                }
+
+                public String getContentType() {
+                    return request.getContentType();
+                }
+
+                public InputStream getInputStream() throws IOException {
+                    return request.getInputStream();
                 }
             };
 
