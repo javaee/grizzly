@@ -38,7 +38,6 @@
 
 package org.glassfish.grizzly.web.ssl;
 
-import com.sun.grizzly.Context;
 import org.glassfish.grizzly.web.arp.AsyncProtocolFilter;
 import org.glassfish.grizzly.web.HttpWorkerThread;
 import org.glassfish.grizzly.web.ProcessorTask;

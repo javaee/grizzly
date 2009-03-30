@@ -37,7 +37,6 @@
  */
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.DefaultSelectionKeyHandler;
 import org.glassfish.grizzly.web.container.Response;
 import org.glassfish.grizzly.web.container.Response.ResponseAttachment;
 import org.glassfish.grizzly.web.container.util.Copyable;

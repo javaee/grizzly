@@ -37,15 +37,10 @@
  */
 package org.glassfish.grizzly.web;
 
-import org.glassfish.grizzly.web.arp.AsyncHandler;
-import org.glassfish.grizzly.web.arp.AsyncProtocolFilter;
-import org.glassfish.grizzly.web.FileCache.FileCacheEntry;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.logging.Logger;
 import java.util.logging.Level;
-import java.util.concurrent.ConcurrentHashMap;
 
 import java.io.File;
 import javax.management.ObjectName;
@@ -55,15 +50,21 @@ import javax.management.MBeanRegistration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
+import javax.naming.Context;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.threadpool.WorkerThread;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
 import org.glassfish.grizzly.web.container.Adapter;
 import org.glassfish.grizzly.web.container.RequestGroupInfo;
+import org.glassfish.grizzly.web.container.RequestInfo;
+import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
+import org.glassfish.grizzly.web.container.util.InputReader;
+import org.glassfish.grizzly.web.container.util.Interceptor;
 import org.glassfish.grizzly.web.container.util.res.StringManager;
 
 
@@ -93,20 +94,16 @@ import org.glassfish.grizzly.web.container.util.res.StringManager;
  * @author Jean-Francois Arcand
  */
 public class WebFilter extends FilterAdapter implements MBeanRegistration{
-            
-    public final static String SERVER_NAME = 
-            System.getProperty("product.name") != null 
-                ? System.getProperty("product.name") : "grizzly";
-    
-        
-    // ----------------------------------------------------- JMX Support ---/
-    
     /**
      * The logger used by the grizzly classes.
      */
     protected static Logger logger = Grizzly.logger;
-    
+
+            
     protected String name;
+
+    // ----------------------------------------------------- JMX Support ---/
+    
     protected String domain;
     protected ObjectName oname;
     protected ObjectName globalRequestProcessorName;
@@ -115,6 +112,10 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
     private ObjectName fileCacheMbeanName;
     protected MBeanServer mserver;
     protected ObjectName processorWorkerThreadName;
+    /**
+     * The JMX Management class.
+     */
+    private Management jmxManagement = null;
 
 
     // ------------------------------------------------------Socket setting --/
@@ -232,9 +233,16 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
     
     
     /**
+     * The Classloader used to load instance of StreamAlgorithm.
+     */
+    private ClassLoader classLoader;
+
+    /**
      * The root folder where application are deployed
      */
-    protected static String rootFolder = "";
+    protected String rootFolder = "";
+
+    protected Interceptor interceptor;
     
     
     // ---------------------------------------------------- Object pools --//
@@ -257,12 +265,6 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
     
     // -----------------------------------------  Multi-Selector supports --//
 
-    /**
-     * The number of {@link SelectorReadThread}
-     */
-    protected int readThreadsCount = 0;
-
-    
     /**
      * The string manager for this package.
      */
@@ -294,39 +296,6 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
      */
     protected boolean isFileCacheEnabled;
     
-    // --------------------------------------------- Asynch supports -----//
-    
-    /**
-     * Is asynchronous mode enabled?
-     */
-    protected boolean asyncExecution = false;
-    
-    
-    /**
-     * When the asynchronous mode is enabled, the execution of this object
-     * will be delegated to the {@link AsyncHandler}
-     */
-    protected AsyncHandler asyncHandler;
-    
-    
-    /**
-     * Is the DEFAULT_ALGORITHM used.
-     */
-    protected static boolean defaultAlgorithmInstalled = true;
-    
-    
-    /**
-     * The JMX Management class.
-     */
-    private Management jmxManagement = null;
-    
-    
-    /**
-     * The Classloader used to load instance of StreamAlgorithm.
-     */
-    private ClassLoader classLoader;
-
-    
     // ---------------------------------------------------- Constructor --//
     
     
@@ -351,19 +320,19 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
     public NextAction handleRead(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
         HttpWorkerThread workerThread =
-                ((HttpWorkerThread)Thread.currentThread());
+                ((HttpWorkerThread) Thread.currentThread());
 
         boolean keepAlive = false;
 
         ProcessorTask processorTask = workerThread.getProcessorTask();
         if (processorTask == null) {
-            processorTask = getProcessorTask();
+            processorTask = getProcessorTask(ctx);
             workerThread.setProcessorTask(processorTask);
         }
 
         KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) workerThread.getAttachment();
         k.setTimeout(System.currentTimeMillis());
-        KeepAliveStats ks = selectorThread.getKeepAliveStats();
+        KeepAliveStats ks = getKeepAliveStats();
         k.setKeepAliveStats(ks);
 
         // Bind the Attachment to the SelectionKey
@@ -378,7 +347,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
         }
 
         configureProcessorTask(processorTask, ctx, workerThread,
-                streamAlgorithm.getHandler());
+                interceptor);
 
         try {
             keepAlive = processorTask.process(inputStream, null);
@@ -390,34 +359,21 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
         Object ra = workerThread.getAttachment().getAttribute("suspend");
         if (ra != null){
             // Detatch anything associated with the Thread.
-            workerThread.setInputStream(new InputReader());
-            workerThread.setByteBuffer(null);
+            workerThread.setStreamReader(null);
             workerThread.setProcessorTask(null);
 
-            ctx.setKeyRegistrationState(
-                    Context.KeyRegistrationState.REGISTER);
-            return true;
+            return nextAction;
         }
 
         if (processorTask != null){
             processorTask.recycle();
         }
 
-        if (keepAlive){
-            ctx.setKeyRegistrationState(
-                    Context.KeyRegistrationState.REGISTER);
-        } else {
-            ctx.setKeyRegistrationState(
-                    Context.KeyRegistrationState.CANCEL);
+        if (!keepAlive) {
+            ctx.getConnection().close();
         }
 
         // Last filter.
-        return nextAction;
-    }
-
-    @Override
-    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
         return nextAction;
     }
 
@@ -451,18 +407,14 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
         this.name = name;
     }
 
-    /**
-     * Create HTTP parser {@link ProtocolFilter}
-     * @return HTTP parser {@link ProtocolFilter}
-     */
-    protected Filter createHttpParserFilter() {
-        if (asyncExecution){
-            return new AsyncProtocolFilter(algorithmClass,port);
-        } else {
-            return new DefaultProtocolFilter(algorithmClass, port);
-        }
+    public Interceptor getInterceptor() {
+        return interceptor;
     }
-    
+
+    public void setInterceptor(Interceptor interceptor) {
+        this.interceptor = interceptor;
+    }
+
     /**
      * Injects {@link ThreadPoolStatistic} into every
      * {@link ExecutorService}, for monitoring purposes.
@@ -536,46 +488,27 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
         task.setTransactionTimeout(transactionTimeout);
         task.setUseChunking(useChunking);
         
-        // Asynch extentions
-        if ( asyncExecution ) {
-            task.setEnableAsyncExecution(asyncExecution);
-            task.setAsyncHandler(asyncHandler);          
-        }
-                
-        task.setThreadPool(threadPool);
         configureCompression(task);
         
         return (ProcessorTask)task;        
     }
- 
-    
-    /**
-     * Reconfigure Grizzly Asynchronous Request Processing(ARP) internal 
-     * objects.
-     */
-    protected void reconfigureAsyncExecution(){
-        for(ProcessorTask task : processorTasks) {
-            if (task instanceof ProcessorTask) {
-                ((ProcessorTask)task)
-                    .setEnableAsyncExecution(asyncExecution);
-                ((ProcessorTask)task).setAsyncHandler(asyncHandler);  
-            }
-        }
-    }
+
     
  
     /**
      * Return a {@link ProcessorTask} from the pool. If the pool is empty,
      * create a new instance.
      */
-    public ProcessorTask getProcessorTask(){
+    public ProcessorTask getProcessorTask(FilterChainContext ctx) {
         ProcessorTask processorTask = null;
         processorTask = processorTasks.poll();
         
         if (processorTask == null){
             processorTask = newProcessorTask(false);
         } 
-        
+
+        processorTask.setThreadPool(
+                ctx.getConnection().getTransport().getWorkerThreadPool());
         if ( isMonitoringEnabled() ){
            activeProcessorTasks.offer(processorTask); 
         }        
@@ -594,7 +527,6 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
         
         initProcessorTask(maxPoolSize);
 
-        initialized = true;     
         if (adapter instanceof GrizzlyAdapter){
             ((GrizzlyAdapter)adapter).start();
         }
@@ -602,13 +534,10 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
     
     
     public void release() {
-        synchronized(lock){
-            // Wait for the main thread to stop.
-            clearTasks();
-        }
+        processorTasks.clear();
 
         if (adapter instanceof GrizzlyAdapter){
-            ((GrizzlyAdapter)adapter).destroy();
+            ((GrizzlyAdapter) adapter).destroy();
         }
     }
 
@@ -618,25 +547,13 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
     public void returnTask(Task task){
         // Returns the object to the pool.
         if (task != null) {
-            if (task.getType() == Task.PROCESSOR_TASK){
-                                
-                if ( isMonitoringEnabled() ){
-                   activeProcessorTasks.remove(((ProcessorTask)task));
-                }  
-                
-                processorTasks.offer((ProcessorTask)task);
-            } 
+            if (isMonitoringEnabled()) {
+                activeProcessorTasks.remove(((ProcessorTask) task));
+            }
+
+            processorTasks.offer((ProcessorTask) task);
         }
     }
-
-    
-    /**
-     * Clear all cached <code>Tasks</code> 
-     */
-    protected void clearTasks(){
-        processorTasks.clear();
-    }
-
     
     // ------------------------------------------------------ Connector Methods
 
@@ -965,42 +882,6 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
         this.fileCacheFactory = fileCacheFactory;
     }
 
-    // ---------------------------- Async-------------------------------//
-    
-    /**
-     * Enable the {@link AsyncHandler} used when asynchronous
-     */
-    public void setEnableAsyncExecution(boolean asyncExecution){
-        this.asyncExecution = asyncExecution;     
-        reconfigureAsyncExecution();
-    }
-    
-       
-    /**
-     * Return true when asynchronous execution is 
-     * enabled.
-     */    
-    public boolean getEnableAsyncExecution(){
-        return asyncExecution;
-    }
-    
-    
-    /**
-     * Set the {@link AsyncHandler} used when asynchronous execution is 
-     * enabled.
-     */
-    public void setAsyncHandler(AsyncHandler asyncHandler){
-        this.asyncHandler = asyncHandler;     
-    }
-    
-       
-    /**
-     * Return the {@link AsyncHandler} used when asynchronous execution is 
-     * enabled.
-     */    
-    public AsyncHandler getAsyncHandler(){
-        return asyncHandler;
-    }
     
     // ------------------------------------------------------------------- //
     
@@ -1024,7 +905,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
     /**
      * Set the document root folder
      */
-    public static void setWebAppRootPath(String rf){
+    public void setWebAppRootPath(String rf){
         rootFolder = rf;
     }
     
@@ -1032,7 +913,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
     /**
      * Return the folder's root where application are deployed.
      */
-    public static String getWebAppRootPath(){
+    public String getWebAppRootPath(){
         return rootFolder;
     }
     
@@ -1061,8 +942,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
                     + new File(rootFolder).getAbsolutePath()                        
                     + "\n\t Adapter : "                        
                     + (adapter == null ? null : adapter.getClass().getName() )      
-                    + "\n\t Asynchronous Request Processing enabled: " 
-                    + asyncExecution); 
+                    + "\n\t Processing mode: synchronous");
         }
     }
 

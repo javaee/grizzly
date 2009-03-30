@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -38,69 +38,46 @@
 
 package org.glassfish.grizzly.web.arp;
 
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.web.HttpWorkerThread;
-import org.glassfish.grizzly.web.ProcessorTask;
-import org.glassfish.grizzly.web.container.util.Interceptor;
-import org.glassfish.grizzly.web.container.util.StreamAlgorithm;
-import org.glassfish.grizzly.web.TaskEvent;
-import org.glassfish.grizzly.web.TaskListener;
-import org.glassfish.grizzly.web.container.util.ByteBufferFactory;
-import org.glassfish.grizzly.web.container.util.InputReader;
-import org.glassfish.grizzly.web.container.util.LinkedTransferQueue;
-import org.glassfish.grizzly.web.container.util.SelectionKeyAttachment;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
-import java.util.logging.Logger;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.filterchain.FilterAdapter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.StopAction;
+import org.glassfish.grizzly.web.HttpWorkerThread;
+import org.glassfish.grizzly.web.ProcessorTask;
+import org.glassfish.grizzly.web.TaskEvent;
+import org.glassfish.grizzly.web.TaskListener;
+import org.glassfish.grizzly.web.WebFilter;
+import org.glassfish.grizzly.web.container.util.Interceptor;
 
 /**
- * A ProtocolFilter that allow asynchronous http request processing.
  *
- * @author Jeanfrancois Arcand
+ * @author Alexey Stashok
  */
-public class AsyncProtocolFilter extends FilterAdapter implements TaskListener {
-    
+public class AsyncWebFilter extends WebFilter implements TaskListener {
+
+    // --------------------------------------------- Asynch supports -----//
+
     /**
-     * The {@link StreamAlgorithm} classes.
+     * Is asynchronous mode enabled?
      */
-    private Class algorithmClass;
-    
-    
+    protected boolean asyncExecution = false;
+
+
     /**
-     * The current TCP port.
+     * When the asynchronous mode is enabled, the execution of this object
+     * will be delegated to the {@link AsyncHandler}
      */
-    private int port;
-    
-    
-    private final static Logger logger = Grizzly.logger;
-    
-    
-    /**
-     * When Asynchronous Request Processing is enabled, the byteBuffer
-     * per thread mechanism cannot be used as the execution will
-     * free the thread hence the ByteBuffer will be re-used.
-     */
-    private LinkedTransferQueue<InputReader> byteBufferStreams
-            = new LinkedTransferQueue<InputReader>();
-    
-    
+    protected AsyncHandler asyncHandler;
+
+
     /**
      * Default size for ByteBuffer.
      */
     protected int bbSize = 4096;
-    
-    
-    public AsyncProtocolFilter(Class algorithmClass,int port) {
-        this.algorithmClass = algorithmClass;
-        this.port = port;
-    }
+
 
     /**
      * Execute a unit of processing work to be performed. This ProtocolFilter
@@ -112,28 +89,26 @@ public class AsyncProtocolFilter extends FilterAdapter implements TaskListener {
     public NextAction handleRead(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
         HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());
-        
+
 //        setSelectionKeyTimeout(ctx.getSelectionKey(), Long.MAX_VALUE);
-        
-        ProcessorTask processor =
-                selectorThread.getProcessorTask();
+
+        ProcessorTask processor = getProcessorTask(ctx);
         configureProcessorTask(processor, ctx, workerThread,
-                streamAlgorithm.getHandler(), inputStream);
+                interceptor, (InputStream) ctx.getStreamReader());
 
         try {
-            selectorThread.getAsyncHandler().handle(processor);
+            getAsyncHandler().handle(processor);
         } catch (Throwable ex) {
             logger.log(Level.INFO, "Processor exception", ex);
-            ctx.setKeyRegistrationState(
-                    Context.KeyRegistrationState.CANCEL);
-            return false;
+            ctx.getConnection().close();
+            return new StopAction();
         }
-        
+
         // Last filter.
-        return true;
+        return nextAction;
     }
-    
-    
+
+
     /**
      * Called when the Asynchronous Request Processing is resuming.
      */
@@ -141,13 +116,13 @@ public class AsyncProtocolFilter extends FilterAdapter implements TaskListener {
         if (event.getStatus() == TaskEvent.COMPLETED
                 || event.getStatus() == TaskEvent.ERROR){
             ProcessorTask processor = (ProcessorTask) event.attachement();
-                                     
+
             // Should never happens.
             if (processor.getConnection() == null){
                 logger.log(Level.WARNING,"AsyncProtocolFilter invalid state.");
                 return;
-            }          
-            
+            }
+
             if (processor.isKeepAlive() && !processor.isError()){
 //                setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
             } else {
@@ -156,19 +131,11 @@ public class AsyncProtocolFilter extends FilterAdapter implements TaskListener {
                 } catch (IOException e) {
                 }
             }
-            
+
             processor.recycle();
         }
     }
 
-    /**
-     * Execute any cleanup activities, such as releasing resources that were
-     * acquired during the execute() method of this ProtocolFilter instance.
-     */
-    @Override
-    public NextAction postRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
-        return nextAction;
-    }
 
     /**
      * Configure {@link SSLProcessorTask}.
@@ -179,7 +146,7 @@ public class AsyncProtocolFilter extends FilterAdapter implements TaskListener {
         processorTask.setConnection(context.getConnection());
         processorTask.setTaskListener(this);
         processorTask.setInputStream(inputStream);
-        processorTask.setHandler(handler);      
+        processorTask.setHandler(handler);
     }
 
     /**
@@ -199,4 +166,92 @@ public class AsyncProtocolFilter extends FilterAdapter implements TaskListener {
             ((SelectionKeyAttachment) attachment).setTimeout(timeout);
         }
     }
+
+    @Override
+    protected void configureProcessorTask(ProcessorTask processorTask,
+            FilterChainContext context, HttpWorkerThread workerThread,
+            Interceptor handler) {
+        super.configureProcessorTask(processorTask, context, workerThread, handler);
+        processorTask.setEnableAsyncExecution(asyncExecution);
+        processorTask.setAsyncHandler(asyncHandler);
+    }
+
+
+
+    /**
+     * Reconfigure Grizzly Asynchronous Request Processing(ARP) internal
+     * objects.
+     */
+    protected void reconfigureAsyncExecution(){
+        for(ProcessorTask task : processorTasks) {
+            task.setEnableAsyncExecution(asyncExecution);
+            task.setAsyncHandler(asyncHandler);
+        }
+    }
+
+    // ---------------------------- Async-------------------------------//
+
+    /**
+     * Enable the {@link AsyncHandler} used when asynchronous
+     */
+    public void setEnableAsyncExecution(boolean asyncExecution){
+        this.asyncExecution = asyncExecution;
+        reconfigureAsyncExecution();
+    }
+
+
+    /**
+     * Return true when asynchronous execution is
+     * enabled.
+     */
+    public boolean getEnableAsyncExecution(){
+        return asyncExecution;
+    }
+
+
+    /**
+     * Set the {@link AsyncHandler} used when asynchronous execution is
+     * enabled.
+     */
+    public void setAsyncHandler(AsyncHandler asyncHandler){
+        this.asyncHandler = asyncHandler;
+    }
+
+
+    /**
+     * Return the {@link AsyncHandler} used when asynchronous execution is
+     * enabled.
+     */
+    public AsyncHandler getAsyncHandler(){
+        return asyncHandler;
+    }
+
+    // ------------------------------------------------------ Debug ---------//
+
+
+    /**
+     * Display the Grizzly configuration parameters.
+     */
+    private void displayConfiguration(){
+       if (displayConfiguration){
+            logger.log(Level.INFO,
+                    "\n Grizzly configuration"
+                    + "\n\t name"
+                    + name
+                    + "\n\t maxHttpHeaderSize: "
+                    + maxHttpHeaderSize
+                    + "\n\t maxKeepAliveRequests: "
+                    + maxKeepAliveRequests
+                    + "\n\t keepAliveTimeoutInSeconds: "
+                    + keepAliveTimeoutInSeconds
+                    + "\n\t Static File Cache enabled: "
+                    + isFileCacheEnabled
+                    + "\n\t Static resources directory: "
+                    + new File(rootFolder).getAbsolutePath()
+                    + "\n\t Adapter : "
+                    + (adapter == null ? null : adapter.getClass().getName() )
+                    + "\n\t Processing mode: asynchronous");
+        }
+    }
+
 }

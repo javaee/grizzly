@@ -62,7 +62,7 @@ import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
  * @author Jeanfrancois Arcand
  * @author Scott Oaks
  */
-public class FileCache{
+public class FileCache {
     
     public final static String DEFAULT_SERVLET_NAME = "default";
    
@@ -70,8 +70,8 @@ public class FileCache{
     /**
      * A {@link ByteBuffer} cache of static pages.
      */   
-    private final ConcurrentHashMap<String,FileCacheEntry> fileCache = 
-            new ConcurrentHashMap<String,FileCacheEntry>();
+    private final ConcurrentHashMap<String, FileCacheEntry> fileCache =
+            new ConcurrentHashMap<String, FileCacheEntry>();
     
     
     /**
@@ -105,9 +105,9 @@ public class FileCache{
     public final static String OK = "HTTP/1.1 200 OK" + NEWLINE;    
 
     /**
-     * The port associated with this cache.
+     * The name associated with this cache.
      */
-    private int port = 8080;    
+    private String name;
     
     
     /**
@@ -257,6 +257,14 @@ public class FileCache{
      * The Header ByteBuffer default size.
      */
     private int headerBBSize = 4096;
+
+    public FileCache() {
+        this("8080");
+    }
+
+    public FileCache(String name) {
+        this.name = name;
+    }
 
     // ---------------------------------------------------- Methods ----------//
              

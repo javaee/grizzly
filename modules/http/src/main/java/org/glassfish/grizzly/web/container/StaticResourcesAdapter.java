@@ -52,6 +52,9 @@ import org.glassfish.grizzly.web.container.util.http.MimeType;
 import java.nio.ByteBuffer;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.memory.MemoryUtils;
+import org.glassfish.grizzly.streams.StreamWriter;
 
 /**
  * Simple {@link Adapter} that map the {@link Request} URI to a local file. The 
@@ -252,8 +255,11 @@ public class StaticResourcesAdapter implements Adapter {
         ByteBuffer bb = HtmlHelper.getErrorPage("Not Found","HTTP/1.1 404 Not Found\r\n", "Grizzly");
         res.setContentLength(bb.limit());
         res.setContentType("text/html");
-        res.flushHeaders();        
-        res.getChannel().write(bb);
+        res.flushHeaders();
+        Connection connection = res.getConnection();
+        StreamWriter writer = connection.getStreamWriter();
+        writer.writeBuffer(MemoryUtils.wrap(
+                connection.getTransport().getMemoryManager(), bb));
         req.setNote(14, "SkipAfterService");
     }
 

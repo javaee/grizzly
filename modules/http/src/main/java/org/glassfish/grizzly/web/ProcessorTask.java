@@ -62,8 +62,8 @@ import java.io.InterruptedIOException;
 import java.io.OutputStream;
 
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 
 import org.glassfish.grizzly.web.container.ActionCode;
@@ -104,6 +104,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import javax.management.ObjectName;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 
 /**
@@ -219,9 +220,9 @@ public class ProcessorTask extends TaskBase implements Processor,
 
 
     /**
-     * Socket associated with the current connection.
+     * Connection associated with the current task.
      */
-    protected Socket socket;
+    protected Connection connection;
 
 
     /**
@@ -477,7 +478,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         response = new Response();
         response.setHook(this);
         
-        inputBuffer = new InternalInputBuffer(request,requestBufferSize); 
+        inputBuffer = new InternalInputBuffer(request, requestBufferSize);
         
         outputBuffer = new SocketChannelOutputBuffer(response, 
                                                      maxHttpHeaderSize,
@@ -776,11 +777,11 @@ public class ProcessorTask extends TaskBase implements Processor,
         
             if ( SelectorThread.isEnableNioLogging() ){                               
                 logger.log(Level.INFO, 
-                        "SocketChannel request line" + key.channel() + " is: " 
+                        "Connection request line" + connection + " is: "
                         + request);
                 
-                logger.log(Level.INFO, "SocketChannel headers" 
-                        + key.channel() + " are: "
+                logger.log(Level.INFO, "Connection headers"
+                        + connection + " are: "
                         + request.getMimeHeaders());
             }                       
         } catch (IOException e) {
@@ -1015,8 +1016,8 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         } else if (actionCode == ActionCode.ACTION_REQ_HOST_ADDR_ATTRIBUTE) {
 
-            if ((remoteAddr == null) && (socket != null)) {
-                InetAddress inetAddr = socket.getInetAddress();
+            if ((remoteAddr == null) && (connection != null)) {
+                InetAddress inetAddr = ((InetSocketAddress) connection.getPeerAddress()).getAddress();
                 if (inetAddr != null) {
                     remoteAddr = inetAddr.getHostAddress();
                 }   
@@ -1025,8 +1026,8 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_NAME_ATTRIBUTE) {
             
-            if ((localName == null) && (socket != null)) {
-                InetAddress inetAddr = socket.getLocalAddress();
+            if ((localName == null) && (connection != null)) {
+                InetAddress inetAddr = ((InetSocketAddress) connection.getLocalAddress()).getAddress();
                 if (inetAddr != null) {
                     localName = inetAddr.getHostName();
                 }
@@ -1035,8 +1036,8 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         } else if (actionCode == ActionCode.ACTION_REQ_HOST_ATTRIBUTE) {
             
-            if ((remoteHost == null) && (socket != null)) {
-                InetAddress inetAddr = socket.getInetAddress();
+            if ((remoteHost == null) && (connection != null)) {
+                InetAddress inetAddr = ((InetSocketAddress) connection.getPeerAddress()).getAddress();
                 if (inetAddr != null) {
                     remoteHost = inetAddr.getHostName();
                 }
@@ -1054,21 +1055,21 @@ public class ProcessorTask extends TaskBase implements Processor,
         } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE) {
                        
             if (localAddr == null)
-               localAddr = socket.getLocalAddress().getHostAddress();
+               localAddr = ((InetSocketAddress) connection.getLocalAddress()).getAddress().getHostAddress();
 
             request.localAddr().setString(localAddr);
             
         } else if (actionCode == ActionCode.ACTION_REQ_REMOTEPORT_ATTRIBUTE) {
             
-            if ((remotePort == -1 ) && (socket !=null)) {
-                remotePort = socket.getPort(); 
+            if ((remotePort == -1 ) && (connection !=null)) {
+                remotePort = ((InetSocketAddress) connection.getPeerAddress()).getPort();
             }    
             request.setRemotePort(remotePort);
 
         } else if (actionCode == ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE) {
             
-            if ((localPort == -1 ) && (socket !=null)) {
-                localPort = socket.getLocalPort(); 
+            if ((localPort == -1 ) && (connection !=null)) {
+                localPort = ((InetSocketAddress) connection.getLocalAddress()).getPort();
             }            
             request.setLocalPort(localPort);
        
@@ -1329,8 +1330,8 @@ public class ProcessorTask extends TaskBase implements Processor,
             // HTTP/1.0
             // Default is what the socket tells us. Overriden if a host is 
             // found/parsed
-            request.setServerPort(socket.getLocalPort());
-            InetAddress localAddress = socket.getLocalAddress();
+            request.setServerPort(((InetSocketAddress) connection.getLocalAddress()).getPort());
+            InetAddress localAddress = ((InetSocketAddress) connection.getLocalAddress()).getAddress();
             // Setting the socket-related fields. The adapter doesn't know 
             // about socket.
             request.setLocalHost(localAddress.getHostName());
@@ -1664,14 +1665,6 @@ public class ProcessorTask extends TaskBase implements Processor,
 
 
     /**
-     * Set the socket associated with this HTTP connection.
-     */
-    public void setSocket(Socket socket){
-        this.socket = socket;
-    }
-
-    
-    /**
      * Set the upload uploadTimeout.
      */
     public void setTimeout( int timeouts ) {
@@ -1908,9 +1901,8 @@ public class ProcessorTask extends TaskBase implements Processor,
     @Override
     public void recycle(){
         setTaskListener(null);
-        socket = null;
+        connection = null;
         dropConnection = false;
-        key = null;
     }
     
     // ----------------------------------------------------- Compression ----//
