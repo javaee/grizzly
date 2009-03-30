@@ -38,7 +38,7 @@
 
 package org.glassfish.grizzly.web.standalone;
 
-import com.sun.grizzly.util.Interceptor;
+import org.glassfish.grizzly.web.container.util.Interceptor;
 import com.sun.grizzly.http.algorithms.StreamAlgorithmBase;
 import java.nio.ByteBuffer;
 

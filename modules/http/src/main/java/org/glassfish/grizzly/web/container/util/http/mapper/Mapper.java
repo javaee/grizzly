@@ -54,7 +54,7 @@
 
 package org.glassfish.grizzly.web.container.util.http.mapper;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 

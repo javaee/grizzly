@@ -54,6 +54,7 @@
 package org.glassfish.grizzly.web;
 
 
+import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.web.arp.AsyncHandler;
 import java.io.IOException;
 import java.io.InputStream;
@@ -84,11 +85,11 @@ import org.glassfish.grizzly.web.container.http11.filters.IdentityOutputFilter;
 import org.glassfish.grizzly.web.container.http11.filters.VoidInputFilter;
 import org.glassfish.grizzly.web.container.http11.filters.VoidOutputFilter;
 import org.glassfish.grizzly.web.container.http11.filters.BufferedInputFilter;
-import com.sun.grizzly.util.DefaultThreadPool;
-import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.Interceptor;
+import org.glassfish.grizzly.web.container.util.DefaultThreadPool;
+import org.glassfish.grizzly.web.container.util.InputReader;
+import org.glassfish.grizzly.web.container.util.Interceptor;
 
-import com.sun.grizzly.util.WorkerThread;
+import org.glassfish.grizzly.web.container.util.WorkerThread;
 import org.glassfish.grizzly.web.container.util.buf.Ascii;
 import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 import org.glassfish.grizzly.web.container.util.buf.HexUtils;
@@ -103,6 +104,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import javax.management.ObjectName;
+import org.glassfish.grizzly.Grizzly;
 
 /**
  * Process HTTP request. This class is based on
@@ -113,7 +115,7 @@ import javax.management.ObjectName;
 public class ProcessorTask extends TaskBase implements Processor, 
         ActionHook {
 
-    private final static Logger logger = SelectorThread.logger();
+    private final static Logger logger = Grizzly.logger;
 
     private boolean isSecurityEnabled;
     
@@ -449,7 +451,6 @@ public class ProcessorTask extends TaskBase implements Processor,
        
     
     public ProcessorTask(boolean init){    
-        type = PROCESSOR_TASK;
         if (init) {
             initialize();
         }
@@ -459,7 +460,6 @@ public class ProcessorTask extends TaskBase implements Processor,
     public ProcessorTask(boolean init, boolean bufferResponse){    
         this.bufferResponse = bufferResponse;
 
-        type = PROCESSOR_TASK;
         if (init) {
             initialize();
         }
@@ -538,7 +538,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Pre process the request by decoding the request line and the header.
      */ 
     public void preProcess() throws Exception {
-        preProcess(inputStream,outputStream);
+        preProcess(inputStream, outputStream);
     }
     
     
@@ -556,15 +556,12 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
         // Setting up the I/O
         inputBuffer.setInputStream(input);
-        if ( key != null ) {
-            inputStream = (InputReader)input;
-            outputBuffer.setAsyncHttpWriteEnabled(
-                    isAsyncHttpWriteEnabled);
-            outputBuffer.setAsyncQueueWriter(
-                    selectorHandler.getAsyncQueueWriter());
-            outputBuffer.setSelectionKey(key);
-	     response.setChannel((SocketChannel)key.channel());
-        } 
+        inputStream = (InputReader) input;
+        outputBuffer.setAsyncHttpWriteEnabled(
+                isAsyncHttpWriteEnabled);
+        StreamWriter streamWriter = (StreamWriter) output;
+        outputBuffer.setStreamWriter(streamWriter);
+        response.setConnection(streamWriter.getConnection());
         configPreProcess();
     }
         
@@ -1117,7 +1114,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 }
             }
         } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) { 
-            if (key != null) {
+            if (connection != null) {
                 try{
                    outputBuffer.flush();
                 } catch (IOException ex){

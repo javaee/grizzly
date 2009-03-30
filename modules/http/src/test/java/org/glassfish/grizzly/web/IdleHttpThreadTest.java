@@ -39,10 +39,10 @@ package org.glassfish.grizzly.web;
 
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import org.glassfish.grizzly.web.utils.SelectorThreadUtils;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.StaticResourcesAdapter;
-import com.sun.grizzly.util.buf.ByteChunk;
+import org.glassfish.grizzly.web.container.Request;
+import org.glassfish.grizzly.web.container.Response;
+import org.glassfish.grizzly.web.container.StaticResourcesAdapter;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.IOException;

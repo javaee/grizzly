@@ -38,8 +38,8 @@
 
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.util.ExtendedThreadPool;
-import com.sun.grizzly.util.WorkerThreadImpl;
+import org.glassfish.grizzly.web.container.util.ExtendedThreadPool;
+import org.glassfish.grizzly.web.container.util.WorkerThreadImpl;
 import java.nio.channels.SelectableChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -59,7 +59,7 @@ public class ThreadPoolStatistic {
     /**
      * The port of which we gather statistics
      */
-    private int port = -1;
+    private String name;
     
     
     /**
@@ -157,8 +157,8 @@ public class ThreadPoolStatistic {
      * @param port Port number for which thread pool (connection) stats will be
      * gathered
      */
-    public ThreadPoolStatistic(int port) {
-        this.port = port;
+    public ThreadPoolStatistic(String name) {
+        this.name = name;
         
         countAverageExecutor = new ScheduledThreadPoolExecutor(3,
             new ThreadFactory(){

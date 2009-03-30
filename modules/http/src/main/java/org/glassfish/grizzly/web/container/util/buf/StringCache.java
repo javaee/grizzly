@@ -56,7 +56,7 @@
 
 package org.glassfish.grizzly.web.container.util.buf;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;

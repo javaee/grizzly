@@ -51,6 +51,7 @@ import java.util.Date;
 import java.util.Locale;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
+import org.glassfish.grizzly.web.WebFilter;
 
 /**
  * Abstract Adapter that contains all the common behaviour of the Adapter implmentation
@@ -140,8 +141,8 @@ abstract public class DynamicContentAdapter extends StaticResourcesAdapter {
                 serviceDynamicContent(req, res);
             }
         } catch (Exception e) {
-            if (SelectorThread.logger().isLoggable(Level.SEVERE)) {
-                SelectorThread.logger().log(Level.SEVERE, e.getMessage());
+            if (WebFilter.logger().isLoggable(Level.SEVERE)) {
+                WebFilter.logger().log(Level.SEVERE, e.getMessage());
             }
             
             throw e;

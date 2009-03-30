@@ -157,7 +157,7 @@ public class FileCacheFactory{
         ConcurrentLinkedQueue<FileCacheEntry> cacheManager =
             new  ConcurrentLinkedQueue<FileCacheEntry>();
         fileCacheFactory.setCacheManager(cacheManager);
-        fileCacheFactory.fileCacheClass = fcc;
+        FileCacheFactory.fileCacheClass = fcc;
 
         return fileCacheFactory;
     }
@@ -193,9 +193,9 @@ public class FileCacheFactory{
             try {
                 fileCache = fileCacheClass.newInstance();
             } catch (InstantiationException ex) {
-                SelectorThread.logger().severe(ex.getMessage());
+                WebFilter.logger.severe(ex.getMessage());
             } catch (IllegalAccessException ex) {
-                SelectorThread.logger().severe(ex.getMessage());
+                WebFilter.logger.severe(ex.getMessage());
             }
             fileCache.setIsEnabled(isEnabled);
             fileCache.setLargeFileCacheEnabled(isLargeFileCacheEnabled);

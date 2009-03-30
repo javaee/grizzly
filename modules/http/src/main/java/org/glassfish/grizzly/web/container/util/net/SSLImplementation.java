@@ -54,7 +54,7 @@
 
 package org.glassfish.grizzly.web.container.util.net;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -111,7 +111,7 @@ abstract public class SSLImplementation {
 	    // Class.forName(..) fails without creating class using new.
 	    // This is an ugly workaround. 
 	    if( JSSEImplementationClass.equals(className) ) {
-		return new com.sun.grizzly.util.net.jsse.JSSEImplementation();
+		return new org.glassfish.grizzly.web.container.util.net.jsse.JSSEImplementation();
 	    }
 	    Class clazz=Class.forName(className);
 	    return (SSLImplementation)clazz.newInstance();

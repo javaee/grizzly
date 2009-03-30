@@ -37,7 +37,7 @@
  */
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.util.DefaultThreadPool;
+import org.glassfish.grizzly.web.container.util.DefaultThreadPool;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 

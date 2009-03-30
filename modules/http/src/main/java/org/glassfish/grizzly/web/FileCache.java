@@ -38,8 +38,8 @@
 
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.util.OutputWriter;
-import com.sun.grizzly.util.WorkerThreadImpl;
+import org.glassfish.grizzly.web.container.util.OutputWriter;
+import org.glassfish.grizzly.web.container.util.WorkerThreadImpl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -433,13 +433,13 @@ public class FileCache{
                 return true;
             }
         } catch (IOException ex){
-            SelectorThread.logger()
+            WebFilter.logger
                 .fine("File Cache: " + ex.getMessage());
             return true;
         } catch (Throwable t){
             // If an unexpected exception occurs, try to serve the page
             // as if it wasn't in a cache.
-            SelectorThread.logger()
+            WebFilter.logger
                 .fine("File Cache thread race: " + t.getMessage());
         }
         return false;

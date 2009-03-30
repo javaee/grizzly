@@ -39,8 +39,8 @@ package org.glassfish.grizzly.web.standalone;
 
 import com.sun.grizzly.http.SelectorThread;
 import org.glassfish.grizzly.web.container.Adapter;
-import com.sun.grizzly.util.ClassLoaderUtil;
-import com.sun.grizzly.util.ExpandJar;
+import org.glassfish.grizzly.web.container.util.ClassLoaderUtil;
+import org.glassfish.grizzly.web.container.util.ExpandJar;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;

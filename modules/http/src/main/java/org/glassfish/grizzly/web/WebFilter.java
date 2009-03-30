@@ -59,7 +59,12 @@ import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
+import org.glassfish.grizzly.web.container.Adapter;
+import org.glassfish.grizzly.web.container.RequestGroupInfo;
+import org.glassfish.grizzly.web.container.util.res.StringManager;
 
 
 
@@ -341,6 +346,102 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
 
         displayConfiguration();
     }
+
+    @Override
+    public NextAction handleRead(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        HttpWorkerThread workerThread =
+                ((HttpWorkerThread)Thread.currentThread());
+
+        boolean keepAlive = false;
+
+        ProcessorTask processorTask = workerThread.getProcessorTask();
+        if (processorTask == null) {
+            processorTask = getProcessorTask();
+            workerThread.setProcessorTask(processorTask);
+        }
+
+        KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) workerThread.getAttachment();
+        k.setTimeout(System.currentTimeMillis());
+        KeepAliveStats ks = selectorThread.getKeepAliveStats();
+        k.setKeepAliveStats(ks);
+
+        // Bind the Attachment to the SelectionKey
+        ctx.getSelectionKey().attach(k);
+
+        int count = k.increaseKeepAliveCount();
+        if (count > getMaxKeepAliveRequests() && ks != null) {
+            ks.incrementCountRefusals();
+            processorTask.setDropConnection(true);
+        } else {
+            processorTask.setDropConnection(false);
+        }
+
+        configureProcessorTask(processorTask, ctx, workerThread,
+                streamAlgorithm.getHandler());
+
+        try {
+            keepAlive = processorTask.process(inputStream, null);
+        } catch (Throwable ex) {
+            logger.log(Level.INFO, "ProcessorTask exception", ex);
+            keepAlive = false;
+        }
+
+        Object ra = workerThread.getAttachment().getAttribute("suspend");
+        if (ra != null){
+            // Detatch anything associated with the Thread.
+            workerThread.setInputStream(new InputReader());
+            workerThread.setByteBuffer(null);
+            workerThread.setProcessorTask(null);
+
+            ctx.setKeyRegistrationState(
+                    Context.KeyRegistrationState.REGISTER);
+            return true;
+        }
+
+        if (processorTask != null){
+            processorTask.recycle();
+        }
+
+        if (keepAlive){
+            ctx.setKeyRegistrationState(
+                    Context.KeyRegistrationState.REGISTER);
+        } else {
+            ctx.setKeyRegistrationState(
+                    Context.KeyRegistrationState.CANCEL);
+        }
+
+        // Last filter.
+        return nextAction;
+    }
+
+    @Override
+    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
+            throws IOException {
+        return nextAction;
+    }
+
+    /**
+     * Configure {@link ProcessorTask}.
+     */
+    protected void configureProcessorTask(ProcessorTask processorTask,
+            FilterChainContext context, HttpWorkerThread workerThread,
+            Interceptor handler) {
+        processorTask.setConnection(context.getConnection());
+
+        if (processorTask.getHandler() == null){
+            processorTask.setHandler(handler);
+        }
+    }
+
+    /**
+     * Is {@link ProtocolFilter} secured
+     * @return is {@link ProtocolFilter} secured
+     */
+    protected boolean isSecure() {
+        return false;
+    }
+
 
     public String getName() {
         return name;
@@ -791,14 +892,8 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration{
      */
     protected void initMonitoringLevel() {
         if (threadPoolStat != null) return;
-        threadPoolStat = new ThreadPoolStatistic(port);
-        int maxQueuedTasks = -1;
-        if (threadPool instanceof ExtendedThreadPool) {
-            maxQueuedTasks =
-                    ((ExtendedThreadPool) threadPool).getMaxQueuedTasksCount();
-        }
-
-        threadPoolStat.setQueueSizeInBytes(maxQueuedTasks);
+        threadPoolStat = new ThreadPoolStatistic(name);
+        threadPoolStat.setThreadPool(threadPool);
     }
  
     // ------------------------------------------- Config ------------------//

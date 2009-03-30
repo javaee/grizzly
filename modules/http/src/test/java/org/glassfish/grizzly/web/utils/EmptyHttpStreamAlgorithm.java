@@ -40,8 +40,8 @@ package org.glassfish.grizzly.web.utils;
 
 import com.sun.grizzly.http.SelectorThread;
 import org.glassfish.grizzly.web.standalone.StaticStreamAlgorithm;
-import com.sun.grizzly.util.OutputWriter;
-import com.sun.grizzly.util.SSLOutputWriter;
+import org.glassfish.grizzly.web.container.util.OutputWriter;
+import org.glassfish.grizzly.web.container.util.SSLOutputWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;

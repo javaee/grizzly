@@ -38,13 +38,13 @@
 
 package org.glassfish.grizzly.web.arp;
 
-import com.sun.grizzly.http.SelectorThread;
 import org.glassfish.grizzly.web.SocketChannelOutputBuffer;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.glassfish.grizzly.web.container.Response;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
 
 /**
  * Thread-Safe {@link SocketChannelOutputBuffer} used when Comet is used.
@@ -75,7 +75,7 @@ public class AsynchronousOutputBuffer extends SocketChannelOutputBuffer{
     
      
     @Override
-    public void flushChannel(ByteBuffer bb) throws IOException{
+    public void flushChannel(Buffer bb) throws IOException{
         try{
             byteBufferWriteLock.lock();
             super.flushChannel(bb);
@@ -87,8 +87,8 @@ public class AsynchronousOutputBuffer extends SocketChannelOutputBuffer{
             if (msg!= null && !msg.startsWith("Illegal")){
                 throw ex;
             } else {
-                if (SelectorThread.logger().isLoggable(Level.FINEST)){
-                    SelectorThread.logger().log(Level.FINEST,"",ex);
+                if (Grizzly.logger.isLoggable(Level.FINEST)){
+                    Grizzly.logger.log(Level.FINEST,"",ex);
                 }
             }
             

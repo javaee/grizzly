@@ -39,9 +39,9 @@ package org.glassfish.grizzly.web;
 
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import org.glassfish.grizzly.web.utils.SelectorThreadUtils;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
+import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
+import org.glassfish.grizzly.web.container.http11.GrizzlyResponse;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.IOException;

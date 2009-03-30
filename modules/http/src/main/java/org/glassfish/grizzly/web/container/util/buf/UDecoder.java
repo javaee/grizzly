@@ -53,7 +53,7 @@
  */
 package org.glassfish.grizzly.web.container.util.buf;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import java.io.CharConversionException;
 import java.io.IOException;
 import java.util.logging.Level;

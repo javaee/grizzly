@@ -40,9 +40,8 @@ package org.glassfish.grizzly.web.standalone;
 
 import org.glassfish.grizzly.web.Constants;
 import org.glassfish.grizzly.web.FileCacheFactory;
-import com.sun.grizzly.util.Interceptor;
+import org.glassfish.grizzly.web.container.util.Interceptor;
 import org.glassfish.grizzly.web.FileCache;
-import com.sun.grizzly.http.SelectorThread;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 

@@ -38,20 +38,18 @@
 
 package org.glassfish.grizzly.web.arp;
 
-import com.sun.grizzly.Context;
-import com.sun.grizzly.ProtocolFilter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.web.HttpWorkerThread;
 import org.glassfish.grizzly.web.ProcessorTask;
-import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.util.Interceptor;
-import com.sun.grizzly.util.StreamAlgorithm;
+import org.glassfish.grizzly.web.container.util.Interceptor;
+import org.glassfish.grizzly.web.container.util.StreamAlgorithm;
 import org.glassfish.grizzly.web.TaskEvent;
 import org.glassfish.grizzly.web.TaskListener;
-import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
-import com.sun.grizzly.util.ByteBufferFactory;
-import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.LinkedTransferQueue;
-import com.sun.grizzly.util.SelectionKeyAttachment;
+import org.glassfish.grizzly.web.container.util.ByteBufferFactory;
+import org.glassfish.grizzly.web.container.util.InputReader;
+import org.glassfish.grizzly.web.container.util.LinkedTransferQueue;
+import org.glassfish.grizzly.web.container.util.SelectionKeyAttachment;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -59,13 +57,15 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.filterchain.FilterAdapter;
 
 /**
  * A ProtocolFilter that allow asynchronous http request processing.
  *
  * @author Jeanfrancois Arcand
  */
-public class AsyncProtocolFilter implements ProtocolFilter,TaskListener{
+public class AsyncProtocolFilter extends FilterAdapter implements TaskListener {
     
     /**
      * The {@link StreamAlgorithm} classes.
@@ -79,7 +79,7 @@ public class AsyncProtocolFilter implements ProtocolFilter,TaskListener{
     private int port;
     
     
-    private final static Logger logger = SelectorThread.logger();
+    private final static Logger logger = Grizzly.logger;
     
     
     /**
@@ -101,78 +101,32 @@ public class AsyncProtocolFilter implements ProtocolFilter,TaskListener{
         this.algorithmClass = algorithmClass;
         this.port = port;
     }
-    
+
     /**
      * Execute a unit of processing work to be performed. This ProtocolFilter
      * may either complete the required processing and return false,
      * or delegate remaining processing to the next ProtocolFilter in a
      * ProtocolChain containing this ProtocolFilter by returning true.
      */
-    public boolean execute(Context ctx) throws IOException{
+    @Override
+    public NextAction handleRead(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
         HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());
         
-        setSelectionKeyTimeout(ctx.getSelectionKey(), Long.MAX_VALUE);
+//        setSelectionKeyTimeout(ctx.getSelectionKey(), Long.MAX_VALUE);
         
-        StreamAlgorithm streamAlgorithm =
-                workerThread.getStreamAlgorithm();
-        if (streamAlgorithm == null){
-            try{
-                streamAlgorithm = (StreamAlgorithm)algorithmClass
-                        .newInstance();
-            } catch (InstantiationException ex){
-                logger.log(Level.WARNING,
-                        "Unable to instantiate Algorithm: "+ algorithmClass.getName());
-            } catch (IllegalAccessException ex){
-                logger.log(Level.WARNING,
-                        "Unable to instantiate Algorithm: " + algorithmClass.getName());
-            } finally {
-                if ( streamAlgorithm == null){
-                    streamAlgorithm = new NoParsingAlgorithm();
-                }
-            }
-            streamAlgorithm.setPort(port);
-            workerThread.setStreamAlgorithm(streamAlgorithm);
-        }
-        
-        SelectorThread selectorThread = SelectorThread.getSelector(port);
-        bbSize = SelectorThread.getSelector(port).getMaxHttpHeaderSize();
-        
-        InputReader inputStream = byteBufferStreams.poll();
-        if (inputStream == null) {
-            inputStream = createByteBufferInputStream();
-        }
-        configureByteBufferInputStream(inputStream, ctx, workerThread);
-        
-        SelectionKey key = ctx.getSelectionKey();
-        SocketChannel socketChannel = (SocketChannel) key.channel();
-        streamAlgorithm.setChannel(socketChannel);
-        
-        /**
-         * Switch ByteBuffer since we are asynchronous.
-         */
-        ByteBuffer nextBuffer = inputStream.getByteBuffer();
-        nextBuffer.clear();
-        ByteBuffer byteBuffer = workerThread.getByteBuffer();
-        workerThread.setByteBuffer(nextBuffer);
-        inputStream.setByteBuffer(byteBuffer);
-        
-        byteBuffer = streamAlgorithm.preParse(byteBuffer);
-        ctx.setKeyRegistrationState(Context.KeyRegistrationState.NONE);
+        ProcessorTask processor =
+                selectorThread.getProcessorTask();
+        configureProcessorTask(processor, ctx, workerThread,
+                streamAlgorithm.getHandler(), inputStream);
 
-        if (streamAlgorithm.parse(byteBuffer)){
-            ProcessorTask processor =
-                    selectorThread.getProcessorTask();
-            configureProcessorTask(processor, ctx, workerThread, 
-                    streamAlgorithm.getHandler(), inputStream);
-            
-            try{
-                selectorThread.getAsyncHandler().handle(processor);
-            } catch (Throwable ex){
-                logger.log(Level.INFO,"Processor exception",ex);
-                ctx.setKeyRegistrationState(
-                        Context.KeyRegistrationState.CANCEL);
-                return false;
-            }
+        try {
+            selectorThread.getAsyncHandler().handle(processor);
+        } catch (Throwable ex) {
+            logger.log(Level.INFO, "Processor exception", ex);
+            ctx.setKeyRegistrationState(
+                    Context.KeyRegistrationState.CANCEL);
+            return false;
         }
         
         // Last filter.
@@ -183,87 +137,57 @@ public class AsyncProtocolFilter implements ProtocolFilter,TaskListener{
     /**
      * Called when the Asynchronous Request Processing is resuming.
      */
-    public void taskEvent(TaskEvent event){
+    public void taskEvent(TaskEvent event) {
         if (event.getStatus() == TaskEvent.COMPLETED
                 || event.getStatus() == TaskEvent.ERROR){
             ProcessorTask processor = (ProcessorTask) event.attachement();
                                      
             // Should never happens.
-            if (processor.getSelectionKey() == null){
+            if (processor.getConnection() == null){
                 logger.log(Level.WARNING,"AsyncProtocolFilter invalid state.");
                 return;
             }          
             
-            InputReader is = (InputReader) processor.getInputStream();
-            is.getByteBuffer().clear();
-            byteBufferStreams.offer(is);
-           
-            SelectorThread selectorThread = processor.getSelectorThread();
             if (processor.isKeepAlive() && !processor.isError()){
-                setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
-
-                selectorThread.registerKey(processor.getSelectionKey());
+//                setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
             } else {
-                selectorThread.cancelKey(processor.getSelectionKey());
+                try {
+                    processor.getConnection().close();
+                } catch (IOException e) {
+                }
             }
+            
             processor.recycle();
-            selectorThread.returnTask(processor);
         }
     }
-    
-    
+
     /**
      * Execute any cleanup activities, such as releasing resources that were
      * acquired during the execute() method of this ProtocolFilter instance.
      */
-    public boolean postExecute(Context ctx) throws IOException{
-        return true;
+    @Override
+    public NextAction postRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
+        return nextAction;
     }
-    
-    
+
     /**
      * Configure {@link SSLProcessorTask}.
      */
     protected void configureProcessorTask(ProcessorTask processorTask,
-            Context context, HttpWorkerThread workerThread,
+            FilterChainContext context, HttpWorkerThread workerThread,
             Interceptor handler, InputStream inputStream) {
-        SelectionKey key = context.getSelectionKey();
-        
-        processorTask.setSelectionKey(key);
-        processorTask.setSelectorHandler(context.getSelectorHandler());
-        processorTask.setSocket(((SocketChannel) key.channel()).socket());
+        processorTask.setConnection(context.getConnection());
         processorTask.setTaskListener(this);
         processorTask.setInputStream(inputStream);
         processorTask.setHandler(handler);      
     }
-    
-    /**
-     * Configure {@link InputReader}
-     * @param {@link InputReader}
-     */
-    protected void configureByteBufferInputStream(
-            InputReader inputStream, Context context, 
-            HttpWorkerThread workerThread) {
-        inputStream.setSelectionKey(context.getSelectionKey());
-        inputStream.setSecure(false);
-    }
-    
-    
+
     /**
      * Is {@link ProtocolFilter} secured
      * @return is {@link ProtocolFilter} secured
      */
     protected boolean isSecure() {
         return false;
-    }
-
-    
-    /**
-     * Creates {@link InputReader}
-     */
-    protected InputReader createByteBufferInputStream() {
-        return new InputReader(
-                    ByteBufferFactory.allocateView(bbSize,false));
     }
 
     private void setSelectionKeyTimeout(SelectionKey selectionKey,

@@ -54,7 +54,7 @@
 
 package org.glassfish.grizzly.web.container.util.http;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import java.io.IOException;
 import java.util.Enumeration;
 /* START PWC 6057385

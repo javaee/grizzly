@@ -38,8 +38,8 @@
 
 package org.glassfish.grizzly.web.ssl;
 
-import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.SSLUtils;
+import org.glassfish.grizzly.web.container.util.InputReader;
+import org.glassfish.grizzly.web.container.util.SSLUtils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;

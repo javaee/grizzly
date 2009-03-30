@@ -38,7 +38,7 @@
 package org.glassfish.grizzly.web.arp;
 
 import org.glassfish.grizzly.web.ProcessorTask;
-import com.sun.grizzly.util.ClassLoaderUtil;
+import org.glassfish.grizzly.web.container.util.ClassLoaderUtil;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 

@@ -38,28 +38,25 @@
 
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.async.AsyncQueueWriteUnit;
-import com.sun.grizzly.async.AsyncQueueWriter;
-import com.sun.grizzly.async.AsyncWriteCallbackHandler;
-import com.sun.grizzly.async.ByteBufferCloner;
 import org.glassfish.grizzly.web.container.FileOutputBuffer;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.SocketChannel;
-import com.sun.grizzly.util.OutputWriter;
+import org.glassfish.grizzly.web.container.util.OutputWriter;
 import org.glassfish.grizzly.web.container.Response;
 import org.glassfish.grizzly.web.container.http11.InternalOutputBuffer;
-import com.sun.grizzly.util.ByteBufferFactory;
-import java.nio.channels.Channel;
-import java.nio.channels.SelectionKey;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.WritableByteChannel;
-import java.util.Queue;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.Future;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.memory.MemoryUtils;
+import org.glassfish.grizzly.nio.NIOConnection;
+import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 
 /**
  * Output buffer.
@@ -72,67 +69,26 @@ import java.util.logging.Logger;
  */
 public class SocketChannelOutputBuffer extends InternalOutputBuffer
         implements FileOutputBuffer {
-    protected static Logger logger = SelectorThread.logger();
-
-    protected static final int DEFAULT_BUFFER_POOL_SIZE = 16384;
-
-    protected static int maxBufferPoolSize = DEFAULT_BUFFER_POOL_SIZE;
+    protected static Logger logger = Grizzly.logger;
 
     /**
-     * ByteBuffer pool to be used with async write
+     * {@link StreamWriter}, which will be used to write data.
      */
-    protected static Queue<ByteBuffer> bufferPool =
-            new ArrayBlockingQueue<ByteBuffer>(maxBufferPoolSize);
-
-    /**
-     * {@link ByteBufferCloner} implementation, which is called by Grizzly
-     * framework at the time, when asynchronous write queue can not write
-     * the buffer direcly on socket and instead will put it in queue.
-     * This implementation tries to get temporary ByteBuffer from the pool,
-     * if no ByteBuffer is available - then new one will be created.
-     */
-    protected final ByteBufferCloner asyncHttpByteBufferCloner =
-            new ByteBufferClonerImpl();
-
-    /**
-     * {@link AsyncWriteCallbackHandler} implementation, which is responsible
-     * for returning cloned ByteBuffers to the pool
-     */
-    private static final AsyncWriteCallbackHandler asyncHttpWriteCallbackHandler =
-            new AsyncWriteCallbackHandlerImpl();
-
-    /**
-     * Underlying output channel.
-     */
-    protected Channel channel;
-
-    /**
-     * Underlying selection key of the output channel.
-     */
-    protected SelectionKey selectionKey;
-
-    /**
-     * Flag, which indicates if async HTTP write is enabled
-     */
-    protected boolean isAsyncHttpWriteEnabled;
+    protected StreamWriter connectionStreamWriter;
     
     /**
-     * Asynchronous queue writer, which will be used if asyncHttp mode
-     * is enabled
+     * Underlying {@link Buffer}
      */
-    protected AsyncQueueWriter asyncQueueWriter;
-    
-    /**
-     * Underlying ByteByteBuffer
-     */
-    protected ByteBuffer outputByteBuffer;
+    protected Buffer outputBuffer;
 
     
     /**
      * ACK static bytes.
      */
-    protected final static ByteBuffer ACK = 
-            ByteBuffer.wrap("HTTP/1.1 100 Continue\r\n\r\n".getBytes());
+    protected final static Buffer ACK = 
+            MemoryUtils.wrap(
+            TransportFactory.getInstance().getDefaultMemoryManager(),
+            "HTTP/1.1 100 Continue\r\n\r\n");
     
     
     
@@ -156,11 +112,11 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      */
     public SocketChannelOutputBuffer(Response response, 
             int headerBufferSize, boolean useSocketBuffer) {
-        super(response,headerBufferSize, useSocketBuffer); 
+        super(response, headerBufferSize, useSocketBuffer);
         
         if (!useSocketBuffer){
             outputStream = new NIOOutputStream();
-            outputByteBuffer = createByteBuffer(headerBufferSize * 16);
+            outputBuffer = createBuffer(headerBufferSize * 16);
         }
     }
 
@@ -169,45 +125,32 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
 
     
     /**
-     * Create the output {@link ByteBuffer}
+     * Create the output {@link Buffer}
      */
-    protected ByteBuffer createByteBuffer(int size){
-        return ByteBuffer.allocate(size);
+    protected Buffer createBuffer(int size) {
+        if (connectionStreamWriter != null) {
+            return connectionStreamWriter.getConnection().
+                    getTransport().getMemoryManager().allocate(size);
+        }
+
+        return TransportFactory.getInstance().
+                getDefaultMemoryManager().allocate(size);
     }
 
 
     /**
-     * Set the underlying socket output stream.
+     * Set the underlying {@link StreamWriter}.
      */
-    public void setChannel(Channel channel) {
-        this.channel = channel;
-    }
-
-    
-    /**
-     * Return the underlying SocketChannel
-     */
-    public Channel getChannel(){
-        return channel;
-    }
-
-
-    /**
-     * Gets the underlying selection key of the output channel.
-     * @return the underlying selection key of the output channel.
-     */
-    public SelectionKey getSelectionKey() {
-        return selectionKey;
+    public void setStreamWriter(StreamWriter streamWriter) {
+        this.connectionStreamWriter = streamWriter;
     }
 
     
     /**
-     * Sets the underlying selection key of the output channel.
-     * @param selectionKey the underlying selection key of the output channel.
+     * Return the underlying {@link StreamWriter}.
      */
-    public void setSelectionKey(SelectionKey selectionKey) {
-        this.selectionKey = selectionKey;
-        channel = selectionKey.channel();
+    public StreamWriter getStreamWriter() {
+        return connectionStreamWriter;
     }
 
     /**
@@ -216,7 +159,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * otherwise.
      */
     public boolean isAsyncHttpWriteEnabled() {
-        return isAsyncHttpWriteEnabled;
+        return !connectionStreamWriter.isBlocking();
     }
 
     /**
@@ -225,32 +168,9 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * enabled, or <tt>false</tt> otherwise.
      */
     public void setAsyncHttpWriteEnabled(boolean isAsyncHttpWriteEnabled) {
-        this.isAsyncHttpWriteEnabled = isAsyncHttpWriteEnabled;
-    }
-
-    /**
-     * Gets the asynchronous queue writer, which will be used if asyncHttp mode
-     * is enabled
-     * 
-     * @return The asynchronous queue writer, which will be used if asyncHttp
-     * mode is enabled
-     */
-    protected AsyncQueueWriter getAsyncQueueWriter() {
-        return asyncQueueWriter;
-    }
-
-    /**
-     * Sets the asynchronous queue writer, which will be used if asyncHttp mode
-     * is enabled
-     * 
-     * @param asyncQueueWriter The asynchronous queue writer, which will be
-     * used if asyncHttp mode is enabled
-     */
-    protected void setAsyncQueueWriter(AsyncQueueWriter asyncQueueWriter) {
-        this.asyncQueueWriter = asyncQueueWriter;
+        connectionStreamWriter.setBlocking(!isAsyncHttpWriteEnabled);
     }
     
-
     // --------------------------------------------------------- Public Methods
 
     /**
@@ -271,25 +191,28 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         throws IOException {
         if (len > 0) {
             if (!useSocketBuffer){
-                int remaining = outputByteBuffer.remaining();
+                int remaining = outputBuffer.remaining();
                 if (len > remaining){                
-                    if (outputByteBuffer.capacity() >= maxBufferedBytes){
-                        outputByteBuffer.put(cbuf,off,remaining);
+                    if (outputBuffer.capacity() >= maxBufferedBytes){
+                        outputBuffer.put(cbuf,off,remaining);
                         flush();
                         realWriteBytes(cbuf,off+remaining,len-remaining);
                         return;
                     } else {                
-                        int size = Math.max(outputByteBuffer.capacity() * 2,
-                                            len + outputByteBuffer.position());
-                        ByteBuffer tmp = ByteBuffer.allocate(size);
-                        outputByteBuffer.flip();
-                        tmp.put(outputByteBuffer);
-                        outputByteBuffer = tmp;
+                        int size = Math.max(outputBuffer.capacity() * 2,
+                                            len + outputBuffer.position());
+                        Buffer tmp = createBuffer(size);
+                        outputBuffer.flip();
+                        tmp.put(outputBuffer);
+                        outputBuffer = tmp;
                     }
                 }
-                outputByteBuffer.put(cbuf, off, len);
+                outputBuffer.put(cbuf, off, len);
             } else {
-                flushChannel(ByteBuffer.wrap(cbuf,off,len));
+                flushChannel(MemoryUtils.wrap(
+                        connectionStreamWriter.getConnection().
+                        getTransport().getMemoryManager(),
+                        buf, off, len));
             }
         }
     }
@@ -299,30 +222,10 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * Flush the buffer by looping until the {@link ByteBuffer} is empty
      * @param bb the ByteBuffer to write.
      */   
-    public void flushChannel(ByteBuffer bb) throws IOException {
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.finest("flushChannel isAsyncHttpWriteEnabled=" +
-                    isAsyncHttpWriteEnabled + " bb=" + bb);
-        }
-
-        if (!isAsyncHttpWriteEnabled) {
-            OutputWriter.flushChannel(((SocketChannel) channel), bb);
-            bb.clear();
-        } else if (asyncQueueWriter != null) {
-            Future future = asyncQueueWriter.write(selectionKey, bb,
-                    asyncHttpWriteCallbackHandler, null,
-                    asyncHttpByteBufferCloner);
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("async flushChannel isDone=" + future.isDone());
-            }
-
-            if (!bb.hasRemaining()) {
-                bb.clear();
-            }
-        } else {
-           logger.warning(
-                    "HTTP async write is enabled, but AsyncWriter is null.");
-        }
+    public void flushChannel(Buffer bb) throws IOException {
+        connectionStreamWriter.writeBuffer(bb);
+        connectionStreamWriter.flush();
+        bb.clear();
     }
 
     /**
@@ -338,6 +241,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      */
     public long sendFile(FileChannel fileChannel, long position,
             long length) throws IOException {
+        Connection connection = connectionStreamWriter.getConnection();
+        SelectableChannel channel = ((NIOConnection) connection).getChannel();
         return fileChannel.transferTo(position, length,
                 (WritableByteChannel) channel);
     }
@@ -369,10 +274,10 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * Writes bytes to the underlying channel.
      */
     public void flushBuffer() throws IOException{
-        if (!useSocketBuffer && outputByteBuffer.position() != 0){
-            outputByteBuffer.flip();
-            flushChannel(outputByteBuffer);
-            outputByteBuffer.clear();
+        if (!useSocketBuffer && outputBuffer.position() != 0){
+            outputBuffer.flip();
+            flushChannel(outputBuffer);
+            outputBuffer.clear();
         }
     }
 
@@ -389,11 +294,11 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         lastActiveFilter = -1;
         committed = false;
         finished = false;
-        if (outputByteBuffer != null){
-            outputByteBuffer.clear();
+        if (outputBuffer != null){
+            outputBuffer.clear();
         }
 
-        channel = null;
+        connectionStreamWriter = null;
     }
 
     
@@ -414,125 +319,17 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         }
         
         public void write(byte b) throws IOException {
-            if(!outputByteBuffer.hasRemaining()) {
-                ByteBuffer tmp = ByteBuffer.allocate(
-                        outputByteBuffer.capacity() * 2);
-                outputByteBuffer.flip();
-                tmp.put(outputByteBuffer);
-                outputByteBuffer = tmp;
+            if(!outputBuffer.hasRemaining()) {
+                Buffer tmp = createBuffer(outputBuffer.capacity() * 2);
+                outputBuffer.flip();
+                tmp.put(outputBuffer);
+                outputBuffer = tmp;
             }
-            outputByteBuffer.put(b);
+            outputBuffer.put(b);
             return;
         }
     }
 
-
-    /**
-     * {@link AsyncWriteCallbackHandler} implementation, which is responsible
-     * for returning cloned ByteBuffers to the pool
-     */
-    protected static class AsyncWriteCallbackHandlerImpl implements
-            AsyncWriteCallbackHandler {
-        public void onWriteCompleted(SelectionKey key,
-                AsyncQueueWriteUnit writtenRecord) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("onWriteCompleted isCloned=" +
-                        writtenRecord.isCloned());
-            }
-            
-            if (writtenRecord.isCloned()) {
-                releaseAsyncWriteUnit(writtenRecord);
-            }
-        }
-
-        public void onException(Exception exception, SelectionKey key,
-                ByteBuffer buffer, Queue<AsyncQueueWriteUnit> remainingQueue) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("onException key=" + key +
-                        " exception=" + exception);
-            }
-            returnBuffer(buffer);
-            
-            for(AsyncQueueWriteUnit unit : remainingQueue) {
-                releaseAsyncWriteUnit(unit);
-            }
-        }
-
-        protected boolean releaseAsyncWriteUnit(AsyncQueueWriteUnit unit) {
-            return returnBuffer(unit.getByteBuffer());
-        }
-
-        protected boolean returnBuffer(ByteBuffer buffer) {
-            buffer.clear();
-            int size = buffer.capacity();
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("return buffer buffer=" + buffer + " maxSize=" +
-                        maxBufferedBytes);
-            }
-
-            if (size <= maxBufferedBytes) {
-                boolean wasReturned = bufferPool.offer(buffer);
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.finest("return buffer to pool. result=" + wasReturned);
-                }
-
-                return wasReturned;
-            }
-
-            return false;
-        }
-    }
-
-    /**
-     * {@link ByteBufferCloner} implementation, which is called by Grizzly
-     * framework at the time, when asynchronous write queue can not write
-     * the buffer direcly on socket and instead will put it in queue.
-     * This implementation tries to get temporary ByteBuffer from the pool,
-     * if no ByteBuffer is available - then new one will be created.
-     */
-    protected final class ByteBufferClonerImpl
-            implements ByteBufferCloner {
-        
-        public ByteBuffer clone(ByteBuffer originalByteBuffer) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("clone buffer=" + originalByteBuffer +
-                        " maxBufferedBytes=" + maxBufferedBytes);
-            }
-            
-            int size = originalByteBuffer.remaining();
-
-            ByteBuffer clone = null;
-            
-            if (size <= maxBufferedBytes) {
-                clone = bufferPool.poll();
-            }
-
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.finest("clone buffer from pool=" + clone);
-            }
-            
-            if (clone == null || clone.remaining() < size) {
-                int allocateSize = Math.max(size, maxBufferedBytes / 2);
-                clone = createByteBuffer(allocateSize,
-                        originalByteBuffer.isDirect());
-            }
-
-            /**
-             * If originalByteBuffer is SocketChannelOutputBuffer's
-             * outputByteBuffer - then we can avoid copying bytes.
-             */
-            if (originalByteBuffer == outputByteBuffer) {
-                outputByteBuffer = clone;
-                outputByteBuffer.limit(outputByteBuffer.position());
-                clone = originalByteBuffer;
-            } else {
-                clone.put(originalByteBuffer);
-                clone.flip();
-            }
-            return clone;
-        }
-    }
-    
     /**
      * Reset current response.
      * 
@@ -541,59 +338,6 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     @Override
     public void reset() {
         super.reset();
-        outputByteBuffer.clear();
-    }
-    
-    
-    /**
-     * Create an instance of {@link ByteBuffer}
-     * @param size
-     * @param isDirect
-     * @return
-     */
-    private static ByteBuffer createByteBuffer(int size, boolean isDirect) {
-        return ByteBufferFactory.allocateView(size, isDirect);
-    }
-
-    /**
-     * Return the maximum of buffered bytes.
-     * @return
-     */
-    public static int getMaxBufferedBytes() {
-        return maxBufferedBytes;
-    }
-    
-    /**
-     * Set the maximum number of bytes before flushing the {@link ByteBuffer}
-     * content.
-     * 
-     * @param aMaxBufferedBytes
-     */
-    public static void setMaxBufferedBytes(int aMaxBufferedBytes) {
-        maxBufferedBytes = aMaxBufferedBytes;
-    }
-
-    /**
-     * Set the maximum size of cached {@link ByteBuffer} when async
-     * write is enabled.
-     * 
-     * @param size
-     */
-    public static void setMaxBufferPoolSize(int size) {
-        int poolSize = (size >= 0) ? size : DEFAULT_BUFFER_POOL_SIZE;
-
-        if (maxBufferPoolSize == poolSize) return;
-        
-        maxBufferPoolSize = poolSize;
-
-        bufferPool = new ArrayBlockingQueue<ByteBuffer>(maxBufferPoolSize);
-    }
-
-    /**
-     * Return the maximum number of cached {@link ByteBuffer}
-     * @return
-     */
-    public static int getMaxBufferPoolSize() {
-        return maxBufferPoolSize;
+        outputBuffer.clear();
     }
 }

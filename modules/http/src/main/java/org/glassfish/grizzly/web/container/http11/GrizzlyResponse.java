@@ -58,7 +58,7 @@ package org.glassfish.grizzly.web.container.http11;
 import org.glassfish.grizzly.web.container.CompletionHandler;
 import org.glassfish.grizzly.web.container.Response;
 import org.glassfish.grizzly.web.container.ResponseFilter;
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import org.glassfish.grizzly.web.container.util.buf.CharChunk;
 import org.glassfish.grizzly.web.container.util.buf.MessageBytes;
 import org.glassfish.grizzly.web.container.util.buf.UEncoder;

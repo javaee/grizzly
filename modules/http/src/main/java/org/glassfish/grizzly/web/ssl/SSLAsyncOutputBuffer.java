@@ -40,7 +40,7 @@ package org.glassfish.grizzly.web.ssl;
 
 import org.glassfish.grizzly.web.SocketChannelOutputBuffer;
 import org.glassfish.grizzly.web.container.Response;
-import com.sun.grizzly.util.SSLOutputWriter;
+import org.glassfish.grizzly.web.container.util.SSLOutputWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;

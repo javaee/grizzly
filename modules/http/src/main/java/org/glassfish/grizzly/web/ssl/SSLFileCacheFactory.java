@@ -41,7 +41,7 @@ package org.glassfish.grizzly.web.ssl;
 import org.glassfish.grizzly.web.FileCache;
 import org.glassfish.grizzly.web.FileCacheFactory;
 import org.glassfish.grizzly.web.FileCache.FileCacheEntry;
-import com.sun.grizzly.util.SSLOutputWriter;
+import org.glassfish.grizzly.web.container.util.SSLOutputWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;

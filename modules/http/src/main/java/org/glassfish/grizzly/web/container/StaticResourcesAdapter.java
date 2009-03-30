@@ -39,7 +39,7 @@
 
 package org.glassfish.grizzly.web.container;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 import org.glassfish.grizzly.web.container.util.http.HtmlHelper;
 import java.io.File;

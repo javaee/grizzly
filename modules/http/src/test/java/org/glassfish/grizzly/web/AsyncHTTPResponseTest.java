@@ -40,11 +40,11 @@ package org.glassfish.grizzly.web;
 
 import com.sun.grizzly.SSLConfig;
 import org.glassfish.grizzly.web.ssl.SSLSelectorThread;
-import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.net.jsse.JSSEImplementation;
+import org.glassfish.grizzly.web.container.Adapter;
+import org.glassfish.grizzly.web.container.Request;
+import org.glassfish.grizzly.web.container.Response;
+import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
+import org.glassfish.grizzly.web.container.util.net.jsse.JSSEImplementation;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;

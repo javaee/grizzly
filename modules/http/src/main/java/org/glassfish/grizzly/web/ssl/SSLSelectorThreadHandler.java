@@ -39,7 +39,7 @@ package org.glassfish.grizzly.web.ssl;
 
 import com.sun.grizzly.SSLSelectorHandler;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.util.Copyable;
+import org.glassfish.grizzly.web.container.util.Copyable;
 
 /**
  * {@link SelectorHandler} implementation {@link SelectorThread} 

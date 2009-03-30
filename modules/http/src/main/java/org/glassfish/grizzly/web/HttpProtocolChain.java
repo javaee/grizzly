@@ -40,7 +40,7 @@ package org.glassfish.grizzly.web;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.DefaultProtocolChain;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
-import com.sun.grizzly.util.WorkerThread;
+import org.glassfish.grizzly.web.container.util.WorkerThread;
 import java.nio.ByteBuffer;
 
 /**

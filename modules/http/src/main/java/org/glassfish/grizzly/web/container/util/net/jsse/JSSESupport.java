@@ -54,7 +54,7 @@
 
 package org.glassfish.grizzly.web.container.util.net.jsse;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.web.container.util.net.SSLSupport;
 import java.io.ByteArrayInputStream;

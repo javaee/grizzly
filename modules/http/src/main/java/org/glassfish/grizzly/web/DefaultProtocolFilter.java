@@ -38,32 +38,23 @@
 
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.Context;
-import com.sun.grizzly.Controller;
-import com.sun.grizzly.ProtocolFilter;
-import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
-import com.sun.grizzly.rcm.ResourceAllocationFilter;
-import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.Interceptor;
-import com.sun.grizzly.util.StreamAlgorithm;
+import org.glassfish.grizzly.web.container.util.InputReader;
+import org.glassfish.grizzly.web.container.util.Interceptor;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.naming.Context;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.filterchain.FilterAdapter;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.NextAction;
 
 /**
  * Default ProtocolFilter implementation, that allows http request processing.
  *
  * @author Jeanfrancois Arcand
  */
-public class DefaultProtocolFilter implements ProtocolFilter {
-    
-    /**
-     * The {@link StreamAlgorithm} classes.
-     */
-    private Class algorithmClass;
+public class DefaultProtocolFilter extends FilterAdapter {
     
     /**
      * The current TCP port.
@@ -73,106 +64,53 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     /**
      * Logger
      */
-    protected final static Logger logger = SelectorThread.logger();
+    protected final static Logger logger = Grizzly.logger;
     
     
-    public DefaultProtocolFilter(Class algorithmClass, int port) {
-        this.algorithmClass = algorithmClass;
+    public DefaultProtocolFilter(int port) {
         this.port = port;
     }
-    
-    public boolean execute(Context ctx) throws IOException {
+
+    @Override
+    public NextAction handleRead(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
         HttpWorkerThread workerThread =
                 ((HttpWorkerThread)Thread.currentThread());
         
-        SelectorThread selectorThread = SelectorThread.getSelector(port);
-        
-        // (1) Get the ByteBuffer from the Thread. Never null
-        ByteBuffer byteBuffer = workerThread.getByteBuffer();
-        
-        // (2) Get the InputReader from the Thread.
-        InputReader inputStream =
-                workerThread.getInputStream();
-        
-        if (inputStream == null){
-            inputStream = new InputReader();
-            workerThread.setInputStream(inputStream);
-        }
-        
-        // (3) Get the streamAlgorithm.
-        StreamAlgorithm streamAlgorithm =
-                workerThread.getStreamAlgorithm();
-        
-        if (streamAlgorithm == null){
-            try{
-                streamAlgorithm = (StreamAlgorithm)algorithmClass
-                        .newInstance();
-            } catch (InstantiationException ex){
-                logger.log(Level.WARNING,
-                        "Unable to instantiate Algorithm: "+ algorithmClass.getName());
-            } catch (IllegalAccessException ex){
-                logger.log(Level.WARNING,
-                        "Unable to instantiate Algorithm: " + algorithmClass.getName());
-            } finally {
-                if ( streamAlgorithm == null){
-                    streamAlgorithm = new NoParsingAlgorithm();
-                }
-            }
-            streamAlgorithm.setPort(port);
-            workerThread.setStreamAlgorithm(streamAlgorithm);
-        }
-        SelectionKey key = ctx.getSelectionKey();
-        configureByteBufferInputStream(inputStream, ctx, workerThread);
-        SocketChannel socketChannel =
-                (SocketChannel)key.channel();
-        streamAlgorithm.setChannel(socketChannel);
-        
-        byteBuffer = streamAlgorithm.preParse(byteBuffer);
         boolean keepAlive = false;
         
         ProcessorTask processorTask = workerThread.getProcessorTask();   
-        if (streamAlgorithm.parse(byteBuffer)){
- 
-            if (processorTask == null){
-                processorTask = selectorThread.getProcessorTask();
-                workerThread.setProcessorTask(processorTask);
-            }
-
-            KeepAliveThreadAttachment k = (KeepAliveThreadAttachment)
-                    workerThread.getAttachment();
-            k.setTimeout(System.currentTimeMillis());
-            KeepAliveStats ks = selectorThread.getKeepAliveStats();
-            k.setKeepAliveStats(ks);
-            
-            // Bind the Attachment to the SelectionKey
-            ctx.getSelectionKey().attach(k);
-                    
-            int count = k.increaseKeepAliveCount();
-            if (count > selectorThread.getMaxKeepAliveRequests() && ks != null) {
-                ks.incrementCountRefusals();
-                processorTask.setDropConnection(true);
-            } else {
-                processorTask.setDropConnection(false);
-            }
-                       
-            configureProcessorTask(processorTask, ctx, workerThread, 
-                    streamAlgorithm.getHandler());
-            
-            try{
-                keepAlive = processorTask.process(inputStream,null);
-            } catch (Throwable ex){
-                logger.log(Level.INFO,"ProcessorTask exception", ex);
-                keepAlive = false;
-            }
-        } else {
-            if (ctx.getProtocol() == Controller.Protocol.TCP){
-                ctx.getSelectionKey().attach(null);
-            } else {
-                workerThread.getAttachment().setTimeout(Long.MIN_VALUE);
-            }
-            keepAlive = true;
+        if (processorTask == null) {
+            processorTask = selectorThread.getProcessorTask();
+            workerThread.setProcessorTask(processorTask);
         }
-        
+
+        KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) workerThread.getAttachment();
+        k.setTimeout(System.currentTimeMillis());
+        KeepAliveStats ks = selectorThread.getKeepAliveStats();
+        k.setKeepAliveStats(ks);
+
+        // Bind the Attachment to the SelectionKey
+        ctx.getSelectionKey().attach(k);
+
+        int count = k.increaseKeepAliveCount();
+        if (count > selectorThread.getMaxKeepAliveRequests() && ks != null) {
+            ks.incrementCountRefusals();
+            processorTask.setDropConnection(true);
+        } else {
+            processorTask.setDropConnection(false);
+        }
+
+        configureProcessorTask(processorTask, ctx, workerThread,
+                streamAlgorithm.getHandler());
+
+        try {
+            keepAlive = processorTask.process(inputStream, null);
+        } catch (Throwable ex) {
+            logger.log(Level.INFO, "ProcessorTask exception", ex);
+            keepAlive = false;
+        }
+
         Object ra = workerThread.getAttachment().getAttribute("suspend");
         if (ra != null){
             // Detatch anything associated with the Thread.
@@ -197,48 +135,27 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                     Context.KeyRegistrationState.CANCEL);
         }
         
-        streamAlgorithm.postParse(byteBuffer);
-        byteBuffer.clear();
-        if (selectorThread.isRcmSupported()){
-            ctx.removeAttribute(ResourceAllocationFilter.BYTEBUFFER_INPUTSTREAM);
-            ctx.removeAttribute(ResourceAllocationFilter.BYTE_BUFFER);
-            ctx.removeAttribute(ResourceAllocationFilter.INVOKE_NEXT);
-        }
-
         // Last filter.
-        return true;
+        return nextAction;
     }
-    
-    public boolean postExecute(Context ctx) throws IOException {
-        return true;
+
+    @Override
+    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
+            throws IOException {
+        return nextAction;
     }
     
     /**
      * Configure {@link ProcessorTask}.
      */
     protected void configureProcessorTask(ProcessorTask processorTask, 
-            Context context, HttpWorkerThread workerThread, 
+            FilterChainContext context, HttpWorkerThread workerThread,
             Interceptor handler) {
-        SelectionKey key = context.getSelectionKey();
-        
-        processorTask.setSelectorHandler(context.getSelectorHandler());
-        processorTask.setSelectionKey(key);
-        processorTask.setSocket(((SocketChannel) key.channel()).socket());
+        processorTask.setConnection(context.getConnection());
         
         if (processorTask.getHandler() == null){
             processorTask.setHandler(handler);
         }
-    }
-
-    /**
-     * Configure {@link InputReader}.
-     */
-    protected void configureByteBufferInputStream(
-            InputReader inputStream, Context context, 
-            HttpWorkerThread workerThread) {
-        inputStream.setSelectionKey(context.getSelectionKey());
-        inputStream.setByteBuffer(workerThread.getByteBuffer());
-        inputStream.setSecure(isSecure());
     }
     
     /**

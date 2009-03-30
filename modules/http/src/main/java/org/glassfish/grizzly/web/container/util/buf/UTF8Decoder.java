@@ -54,7 +54,7 @@
 
 package org.glassfish.grizzly.web.container.util.buf;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;

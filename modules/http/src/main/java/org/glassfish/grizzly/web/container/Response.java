@@ -56,15 +56,15 @@ package org.glassfish.grizzly.web.container;
 
 import org.glassfish.grizzly.web.container.http11.InternalOutputBuffer;
 import org.glassfish.grizzly.web.container.http11.filters.VoidOutputFilter;
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
 import java.io.IOException;
 import java.util.Locale;
 
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
+import org.glassfish.grizzly.Connection;
 
 
 /**
@@ -175,8 +175,8 @@ public class Response<A> {
 
     protected Request req;
 
-    // The underlying {@link SocketChannel}
-    private SocketChannel channel;
+    // The underlying {@link Connection}
+    private Connection connection;
 
     // Is the request suspended.
     private boolean isSuspended = false;
@@ -662,7 +662,7 @@ public class Response<A> {
     
     public void recycle() {
         
-        channel = null;
+        connection = null;
         contentType = null;
         contentLanguage = null;
         locale = DEFAULT_LOCALE;
@@ -704,24 +704,24 @@ public class Response<A> {
     }
 
     /**
-     * Set the underlying {@link SocketChannel} 
+     * Set the underlying {@link Connection}
      */
-    public void setChannel(SocketChannel channel){
-	this.channel = channel;	
+    public void setConnection(Connection connection){
+	this.connection = connection;
     }
 
     
     /**
-     * Return the underlying {@link SocketChannel} 
-     * <strong>WARNING</strong>. If you directly uses the {@link SocketChannel}, 
+     * Return the underlying {@link Connection}
+     * <strong>WARNING</strong>. If you directly uses the {@link Connection},
      * you must make sure {@link Response#sendHeaders} followed by a {@link Response#flush()}
      * if  you just want to manipulate the response body, but not the header. 
      * If you don't want to let Grizzly write the headers for you,
      * Invoke {@link Response.setCommitted(true)} before starting writing bytes 
-     * to the {@link SocketChannel} 
+     * to the {@link Connection}
      */
-    public SocketChannel getChannel(){
-	return channel;
+    public Connection getConnection(){
+	return connection;
     }
 
     /**

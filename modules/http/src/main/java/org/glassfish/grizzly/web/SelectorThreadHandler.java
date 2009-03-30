@@ -39,7 +39,7 @@ package org.glassfish.grizzly.web;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.TCPSelectorHandler;
-import com.sun.grizzly.util.Copyable;
+import org.glassfish.grizzly.web.container.util.Copyable;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;

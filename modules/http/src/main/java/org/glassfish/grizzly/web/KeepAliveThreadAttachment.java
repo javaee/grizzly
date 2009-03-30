@@ -38,7 +38,7 @@
 
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.util.ThreadAttachment;
+import org.glassfish.grizzly.web.container.util.ThreadAttachment;
 
 /**
  * Add keep alive counting mechanism to the {@link ThreadAttachement}.

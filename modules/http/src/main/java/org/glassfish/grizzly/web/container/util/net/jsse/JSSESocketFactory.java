@@ -53,7 +53,7 @@
  */
 package org.glassfish.grizzly.web.container.util.net.jsse;
 
-import com.sun.grizzly.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import org.glassfish.grizzly.web.container.util.res.StringManager;
 import java.io.File;
 import java.io.FileInputStream;
