@@ -151,7 +151,7 @@ public class SelectorThreadConfig{
     private final static String SSL_CONFIGURATION_WANTAUTH =
             "com.sun.grizzly.ssl.auth";
 
-        private final static String SSL_CONFIGURATION_SSLIMPL =
+    private final static String SSL_CONFIGURATION_SSLIMPL =
             "com.sun.grizzly.ssl.sslImplementation";
 
    /**

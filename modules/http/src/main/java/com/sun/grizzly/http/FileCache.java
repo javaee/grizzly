@@ -462,12 +462,14 @@ public class FileCache{
      */
     protected void sendCache(SocketChannel socketChannel,  FileCacheEntry entry,
             boolean keepAlive) throws IOException{
-  
-        OutputWriter.flushChannel(socketChannel, entry.headerBuffer.slice());
+
         ByteBuffer keepAliveBuf = keepAlive ? connectionKaBB.slice():
                connectionCloseBB.slice();
-        OutputWriter.flushChannel(socketChannel, keepAliveBuf);        
-        OutputWriter.flushChannel(socketChannel, entry.bb.slice());
+        ByteBuffer[] scatterBB = new ByteBuffer[3];
+        scatterBB[0] = entry.headerBuffer.slice();
+        scatterBB[1] = keepAliveBuf;
+        scatterBB[2] = entry.bb.slice();
+        OutputWriter.flushChannel(socketChannel,scatterBB);
     }
 
     
