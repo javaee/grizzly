@@ -85,7 +85,7 @@ public class TestThreadPool extends FixedThreadPool{
             private final AtomicInteger c = new AtomicInteger();
             @Override
             public Thread newThread(Runnable r) {
-                Thread t = new WorkerThreadImpl(null, workerprefixname, r,0);
+                Thread t = new WorkerThreadImpl(null, workerprefixname+c.incrementAndGet(), r,0);
                 t.setDaemon(true);
                 return t;
             }
