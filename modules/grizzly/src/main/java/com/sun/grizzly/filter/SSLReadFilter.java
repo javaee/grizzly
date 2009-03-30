@@ -587,20 +587,27 @@ public class SSLReadFilter implements ProtocolFilter{
     }
 
     private void saveSecuredBufferRemainders(SelectionKey selectionKey) {
+        Logger logger = Controller.logger();
+
         ThreadAttachment attachment = 
                 (ThreadAttachment) selectionKey.attachment();
         
         WorkerThread workerThread = (WorkerThread) Thread.currentThread();   
-
         if (attachment == null || workerThread.getAttachment() != attachment) {
-            Controller.logger().log(Level.FINE, 
+            logger.log(Level.FINE, 
                     "SelectionKey ThreadAttachment is NULL or doesn't " +
                     "correspond to the current thread, when saving buffers");
             return;
         }
+
+        if (logger.isLoggable(Level.FINE)) {
+            logger.log(Level.FINE, "saveSecuredBufferRemainders inputBB: " +
+                    workerThread.getInputBB() + " outputBB: " +
+                    workerThread.getOutputBB() + " attach: " + attachment);
+        }
         
         ByteBuffer inputBB = workerThread.getInputBB();
-        if (inputBB != null && inputBB.hasRemaining()) {
+        if (inputBB != null && inputBB.position() > 0) {
             workerThread.updateAttachment(attachment.getMode() | Mode.INPUT_BB);
         } else {
             workerThread.updateAttachment(attachment.getMode() & 
