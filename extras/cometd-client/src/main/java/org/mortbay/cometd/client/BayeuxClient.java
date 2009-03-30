@@ -365,7 +365,9 @@ public class BayeuxClient extends MessagePool implements Client
     @Override
     public Message[] parse(String s) throws IOException
     {
-        Object batch=getBatchJSON().parse(new JSON.StringSource(s), true);
+        // some versions of Bayeux Protocol support commented
+        boolean isJsonCommented = (s != null && s.startsWith("/*") && s.endsWith("*/"));
+        Object batch=getBatchJSON().parse(new JSON.StringSource(s), isJsonCommented);
         if (batch==null)
             return new Message[0]; 
         if (batch.getClass().isArray())

@@ -43,6 +43,7 @@ import com.sun.grizzly.comet.CometEvent;
 import com.sun.grizzly.comet.CometHandler;
 import com.sun.grizzly.cometd.bayeux.DeliverResponse;
 import com.sun.grizzly.cometd.bayeux.End;
+import com.sun.grizzly.cometd.bayeux.VerbBase;
 import com.sun.grizzly.util.LinkedTransferQueue;
 
 import java.io.IOException;
@@ -61,8 +62,6 @@ import java.util.logging.Logger;
  */
 public class DataHandler implements CometHandler<Object[]>{
 
-    static final String DELIVER_RESPONSE_END = "DELIVER_RESPONSE_END";
-    
     private final static Logger logger = SelectorThread.logger();
     
     private CometdRequest req;    
@@ -124,7 +123,7 @@ public class DataHandler implements CometHandler<Object[]>{
                 }
                 if (intersect) {
                     if (!ended && (end.getRequestPort() != remotePort)) {
-                        res.write("]*/");
+                        res.write(VerbBase.ARRAY_END);
                         res.flush();
                         ended = true;
                     }

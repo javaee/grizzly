@@ -38,6 +38,9 @@
  
 package com.sun.grizzly.cometd;
 
+import java.io.InputStream;
+import java.io.IOException;
+
 /**
  * A wrapper providing a common view of a request for use by cometd.
  *
@@ -63,7 +66,11 @@ public abstract class CometdRequest<T> {
 
     public abstract int getRemotePort();
 
-    public abstract void setAttribute(String key, Object value);
+    public abstract String getCharacterEncoding();
 
-    public abstract Object getAttribute(String key);
+    public abstract int getContentLength();
+
+    public abstract String getContentType();
+
+    public abstract InputStream getInputStream() throws IOException;
 }

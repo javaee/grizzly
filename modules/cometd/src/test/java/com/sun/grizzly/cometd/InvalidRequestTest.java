@@ -103,8 +103,8 @@ public class InvalidRequestTest extends TestCase {
             sb.append("POST /index.html/cometd HTTP/1.1\r\n");
             sb.append("Host: localhost\r\n");
             sb.append("Content-type: text/json;charset=utf-8\r\n");
-            sb.append("Content-Length: 187\r\n\r\n");
-            sb.append("message=%5B%7B%22channel%22%3A%20%22%2Fmeta%2Fhandshake%22%2C%20%22clientId%22%3A%20%22f81ba786e99809b0%22%2C%20%22connectionType%22%3A%20%22long-polling%22%2C%20%22id%22%3A%20%221%22%7D%5D\r\n\r\n");
+            sb.append("Content-Length: 109\r\n\r\n");
+            sb.append("[{\"channel\": \"/meta/handshake\", \"clientId\": \"f81ba786e99809b0\", \"connectionType\": \"long-polling\", \"id\": \"1\"}]\r\n\r\n");
             os.write(sb.toString().getBytes());
             os.flush();
 
@@ -113,7 +113,7 @@ public class InvalidRequestTest extends TestCase {
             String line = null;
 
             while ((line = bis.readLine()) != null) {
-                if (line.startsWith("HTTP/1.1 404")){
+                if (line.contains("false") && line.contains("error") && line.contains("501")) {
                     assertTrue(true);
                     return;
                 }
