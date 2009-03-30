@@ -39,6 +39,10 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.SSLConfig;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import com.sun.grizzly.tcp.http11.GrizzlyRequest;
+import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import junit.framework.TestCase;
 
 import javax.servlet.ServletException;
@@ -50,11 +54,11 @@ import javax.servlet.FilterChain;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLSession;
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.net.Socket;
-import java.net.InetSocketAddress;
+import java.net.*;
 import java.util.logging.Logger;
 import java.util.HashMap;
 
@@ -187,7 +191,7 @@ public class GrizzlyWebServerTest extends TestCase {
 
     /**
      * Tests that {@link GrizzlyWebServer} should not start if default {@link com.sun.grizzly.SSLConfig} is supposed to
-     * be used but it could not be created.
+     * be used but defaults doesn't resolve to valid configuration.
      */
     public void testStartSecureFailDefault() {
         System.out.println("testStartSecureFailDefault");
@@ -204,7 +208,56 @@ public class GrizzlyWebServerTest extends TestCase {
     }
 
     /**
-     * Tests if {@link Filter
+     * Tests that {@link GrizzlyWebServer} will start properly in secure mode with modified configuration.
+     * TODO: work in progress
+     *
+     * @throws java.io.IOException Not much to say here.
+     * @throws java.net.URISyntaxException Could not find keystore file.
+     */
+    public void _testStartSecureWithConfiguration() throws IOException, URISyntaxException {
+        System.out.println("testStartSecureWithConfiguration");
+        URL resource = getClass().getClassLoader().getResource("test-keystore.jks");
+        if (resource != null) {
+            URI uri = resource.toURI();
+            System.setProperty(SSLConfig.KEY_STORE_FILE, new File(uri).getAbsolutePath());
+        }
+        gws = new GrizzlyWebServer(PORT, ".", true);
+        gws.addGrizzlyAdapter(new GrizzlyAdapter() {
+            @Override public void service(GrizzlyRequest request, GrizzlyResponse response) {
+                response.setStatus(200);
+                try {
+                    response.getOutputBuffer().write("Secured.");
+                } catch (IOException e) {
+                    response.setStatus(500, "Server made a boo.");
+                }
+            }
+        }, new String[]{"/sec"});
+        try {
+            gws.start();
+        } catch (IOException e) {
+            e.printStackTrace();
+            fail("Could not bind to port: " + PORT+ ". " + e.getMessage());
+        } catch (RuntimeException e) {
+            fail("Should be able to start in secure mode.");
+        }
+        try {
+            HttpsURLConnection conn =
+                    (HttpsURLConnection) new URL("https", "localhost", PORT, "/sec").openConnection();
+            conn.setHostnameVerifier(new HostnameVerifier() {
+                public boolean verify(String s, SSLSession sslSession) {
+                    return true;
+                }
+            });
+            assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+            assertEquals("Secured.", getResponseCodeFromAlias(conn));
+        } finally {
+            gws.stop();
+        }
+    }
+
+    /**
+     * Tests if {@link Filter} is getting destroyed on {@link GrizzlyWebServer#stop}.
+     *
      * @throws java.io.IOException Couldn't start {@link GrizzlyWebServer}.
      */
     public void testServletFilterDestroy() throws IOException {

@@ -58,6 +58,7 @@ import javax.net.ssl.TrustManagerFactory;
  * SSL configuration
  *
  * @author Alexey Stashok
+ * @author Hubert Iwaniukk
  */
 public class SSLConfig {
     public static final String TRUST_STORE_FILE = "javax.net.ssl.trustStore";
@@ -71,6 +72,9 @@ public class SSLConfig {
     public static final String TRUST_STORE_TYPE = "javax.net.ssl.trustStoreType";
     
     public static final String KEY_STORE_TYPE = "javax.net.ssl.keyStoreType";
+    public static final String DEFAULT_STORE_PASSWORD = "changeit";
+    public static final String DEFAULT_TRUSTSTORE_NAME = "truststore.jks";
+    public static final String DEFAULT_KEYSTORE_NAME = "keystore.jks";
 
     /**
      * Default Logger.
@@ -81,28 +85,28 @@ public class SSLConfig {
      * Default SSL configuration
      */
     public static SSLConfig DEFAULT_CONFIG = new SSLConfig();
-    
+
     private String trustStoreType;
     private String keyStoreType;
-    
+
     private char[] trustStorePass;
-    
+
     private char[] keyStorePass;
-    
+
     private String trustStoreFile;
     private String keyStoreFile;
-    
+
     private String trustStoreAlgorithm;
     private String keyStoreAlgorithm;
-    
+
     private String securityProtocol;
-    
+
     private boolean clientMode = false;
-    
+
     private boolean needClientAuth = false;
-    
+
     private boolean wantClientAuth = false;
-    
+
     public SSLConfig() {
         this(true);
     }
@@ -208,7 +212,68 @@ public class SSLConfig {
     public void setClientMode(boolean clientMode) {
         this.clientMode = clientMode;
     }
-    
+
+    /**
+     * Validates {@link SSLConfig} configuration.
+     *
+     * @return <code>true</code> iff configuration is valid, else <code>false</code>.
+     */
+    public boolean validateConfiguration() {
+        boolean valid = false;
+        try {
+            TrustManagerFactory trustManagerFactory;
+            KeyManagerFactory keyManagerFactory;
+
+            if (keyStoreFile != null) {
+                try {
+                    KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+                    keyStore.load(new FileInputStream(keyStoreFile),
+                            keyStorePass);
+
+                    keyManagerFactory =
+                            KeyManagerFactory.getInstance(keyStoreAlgorithm);
+                    keyManagerFactory.init(keyStore, keyStorePass);
+                    valid = true;
+                } catch (KeyStoreException e) {
+                    logger.log(Level.FINE, "Error initializing key store", e);
+                } catch (CertificateException e) {
+                    logger.log(Level.FINE, "Key store certificate exception.", e);
+                } catch (UnrecoverableKeyException e) {
+                    logger.log(Level.FINE, "Key store unrecoverable exception.", e);
+                } catch (FileNotFoundException e) {
+                    logger.log(Level.FINE, "Can't find key store file: " + keyStoreFile, e);
+                } catch (IOException e) {
+                    logger.log(Level.FINE, "Error loading key store from file: " + keyStoreFile, e);
+                }
+            }
+
+            if (trustStoreFile != null) {
+                try {
+                    KeyStore trustStore = KeyStore.getInstance(trustStoreType);
+                    trustStore.load(new FileInputStream(trustStoreFile),
+                            trustStorePass);
+
+                    trustManagerFactory =
+                            TrustManagerFactory.getInstance(trustStoreAlgorithm);
+                    trustManagerFactory.init(trustStore);
+                } catch (KeyStoreException e) {
+                    logger.log(Level.FINE, "Error initializing trust store", e);
+                    valid = false;
+                } catch (CertificateException e) {
+                    logger.log(Level.FINE, "Trust store certificate exception.", e);
+                    valid = false;
+                } catch (FileNotFoundException e) {
+                    logger.log(Level.FINE, "Can't find trust store file: " + trustStoreFile, e);
+                } catch (IOException e) {
+                    logger.log(Level.FINE, "Error loading trust store from file: " + trustStoreFile, e);
+                }
+            }
+        } catch (NoSuchAlgorithmException e) {
+            logger.log(Level.FINE, "Error initializing algorithm.", e);
+        }
+        return valid;
+    }
+
     public SSLContext createSSLContext() {
         SSLContext sslContext = null;
         
@@ -276,14 +341,13 @@ public class SSLConfig {
         keyStoreType = props.getProperty(KEY_STORE_TYPE, "JKS");
     
         trustStorePass = 
-                props.getProperty(TRUST_STORE_PASSWORD, "changeit").toCharArray();
+                props.getProperty(TRUST_STORE_PASSWORD, DEFAULT_STORE_PASSWORD).toCharArray();
     
         keyStorePass = 
-                props.getProperty(KEY_STORE_PASSWORD, "changeit").toCharArray();
+                props.getProperty(KEY_STORE_PASSWORD, DEFAULT_STORE_PASSWORD).toCharArray();
 
-        // TODO provide default file locations
-        trustStoreFile = props.getProperty(TRUST_STORE_FILE);
-        keyStoreFile = props.getProperty(KEY_STORE_FILE);
+        trustStoreFile = props.getProperty(TRUST_STORE_FILE, DEFAULT_TRUSTSTORE_NAME);
+        keyStoreFile = props.getProperty(KEY_STORE_FILE, DEFAULT_KEYSTORE_NAME);
     
         trustStoreAlgorithm = "SunX509";
         keyStoreAlgorithm = "SunX509";
