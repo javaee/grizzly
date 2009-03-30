@@ -83,7 +83,6 @@ public class TestThreadPool extends FixedThreadPool{
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit){
         this(corePoolsize, maxPoolSize, keepAliveTime, timeUnit,new ThreadFactory(){
             private final AtomicInteger c = new AtomicInteger();
-            @Override
             public Thread newThread(Runnable r) {
                 Thread t = new WorkerThreadImpl(null, workerprefixname+c.incrementAndGet(), r,0);
                 t.setDaemon(true);
@@ -151,7 +150,6 @@ public class TestThreadPool extends FixedThreadPool{
     /**
      * {@inheritDoc}
      */
-    @Override
     public void execute(Runnable task) {
         if (task == null){
             throw new IllegalArgumentException("Runnable task is null");
@@ -180,8 +178,7 @@ public class TestThreadPool extends FixedThreadPool{
             this.core = core;
             this.firstTask = firstTask;
         }
-
-        @Override        
+    
         protected Runnable getTask() throws InterruptedException {
             Runnable r;
             if (firstTask != null){
