@@ -110,11 +110,16 @@ public class BayeuxExternalServlet extends HttpServlet {
                         try{
                             context.notify(deliverResponse);
                         } catch (IOException ex) {};
-  
+
                     }
                 }
             }, 10, 10, TimeUnit.SECONDS);
        
+    }
+
+    @Override
+    public void destroy(){
+        timer.shutdown();
     }
     
     
