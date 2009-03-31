@@ -38,21 +38,24 @@
 
 package org.glassfish.grizzly.web;
 
-import org.glassfish.grizzly.web.container.util.OutputWriter;
-import org.glassfish.grizzly.web.container.util.WorkerThreadImpl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.memory.MemoryUtils;
+import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
 
 
@@ -77,20 +80,21 @@ public class FileCache {
     /**
      * A dummy instance of {@link ByteBuffer}
      */
-    protected final static ByteBuffer nullByteBuffer = ByteBuffer.allocate(0);
+    protected final static Buffer nullByteBuffer =
+            TransportFactory.getInstance().getDefaultMemoryManager().allocate(0);
   
     
     /**
      * A connection: close of {@link ByteBuffer}
      */
-    protected final static ByteBuffer connectionCloseBB = 
-            ByteBuffer.wrap("Connection: close\r\n\r\n".getBytes());
+    protected final static byte[] connectionCloseBB =
+            "Connection: close\r\n\r\n".getBytes();
 
     /**
      * A connection: keep-alive of {@link ByteBuffer}
      */
-    protected final static ByteBuffer connectionKaBB = 
-            ByteBuffer.wrap("Connection: keep-alive\r\n\r\n".getBytes());
+    protected final static byte[] connectionKaBB =
+            "Connection: keep-alive\r\n\r\n".getBytes();
     
     
     /**
@@ -105,9 +109,9 @@ public class FileCache {
     public final static String OK = "HTTP/1.1 200 OK" + NEWLINE;    
 
     /**
-     * The name associated with this cache.
+     * The {@link WebFilter} associated with this cache.
      */
-    private String name;
+    private WebFilter webFilter;
     
     
     /**
@@ -116,7 +120,9 @@ public class FileCache {
     private ScheduledThreadPoolExecutor cacheResourcesThread
         = new ScheduledThreadPoolExecutor(1,new ThreadFactory(){
                 public Thread newThread(Runnable r) {
-                    return new WorkerThreadImpl(new ThreadGroup("Grizzly"),r);
+                    return new DefaultWorkerThread(
+                            Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
+                            "Grizzly-filecache-cleaner", r);
                 }
             }); 
     
@@ -190,7 +196,7 @@ public class FileCache {
     /**
      * Is monitoring enabled.
      */
-    private static boolean isMonitoringEnabled = false;
+    private boolean isMonitoringEnabled = false;
     
     
     /**
@@ -258,12 +264,8 @@ public class FileCache {
      */
     private int headerBBSize = 4096;
 
-    public FileCache() {
-        this("8080");
-    }
-
-    public FileCache(String name) {
-        this.name = name;
+    public FileCache(WebFilter webFilter) {
+        this.webFilter = webFilter;
     }
 
     // ---------------------------------------------------- Methods ----------//
@@ -285,7 +287,7 @@ public class FileCache {
         
         if ( mappedServlet.equals(DEFAULT_SERVLET_NAME) ){                                     
             File file = new File(baseDir + requestURI);
-            ByteBuffer bb = mapFile(file);
+            Buffer bb = mapFile(file);
 
             // Always put the answer into the map. If it's null, then
             // we know that it doesn't fit into the cache, so there's no
@@ -340,7 +342,7 @@ public class FileCache {
      * Map the file to a {@link ByteBuffer}
      * @return the {@link ByteBuffer}
      */
-    private final ByteBuffer mapFile(File file){
+    private final Buffer mapFile(File file){
         FileChannel fileChannel = null;
         FileInputStream stream = null;
         try {
@@ -378,7 +380,7 @@ public class FileCache {
             if ( size < minEntrySize) {
                 ((MappedByteBuffer)bb).load();
             }
-            return bb;
+            return MemoryUtils.wrap(webFilter.getMemoryManager(), bb);
         } catch (IOException ioe) {
             return null;
         } finally {
@@ -432,12 +434,12 @@ public class FileCache {
      * Send the cache.
      */
     public boolean sendCache(byte[] req, int start, int length,
-            SocketChannel socketChannel, boolean keepAlive){
+            StreamWriter streamWriter, boolean keepAlive){
 
         try{
             FileCacheEntry entry = map(req,start,length);
             if ( entry != null && entry.bb != nullByteBuffer){
-                sendCache(socketChannel,entry,keepAlive); 
+                sendCache(streamWriter, entry, keepAlive);
                 return true;
             }
         } catch (IOException ex){
@@ -468,14 +470,14 @@ public class FileCache {
     /**
      * Send the cached resource.
      */
-    protected void sendCache(SocketChannel socketChannel,  FileCacheEntry entry,
+    protected void sendCache(StreamWriter streamWriter, FileCacheEntry entry,
             boolean keepAlive) throws IOException{
   
-        OutputWriter.flushChannel(socketChannel, entry.headerBuffer.slice());
-        ByteBuffer keepAliveBuf = keepAlive ? connectionKaBB.slice():
-               connectionCloseBB.slice();
-        OutputWriter.flushChannel(socketChannel, keepAliveBuf);        
-        OutputWriter.flushChannel(socketChannel, entry.bb.slice());
+        streamWriter.writeBuffer(entry.headerBuffer.duplicate());
+        byte[] keepAliveBuf = keepAlive ? connectionKaBB : connectionCloseBB;
+        streamWriter.writeByteArray(keepAliveBuf);
+        streamWriter.writeBuffer(entry.bb.slice());
+        streamWriter.flush();
     }
 
     
@@ -484,8 +486,8 @@ public class FileCache {
      */
     private void configHeaders(FileCacheEntry entry) {
         if ( entry.headerBuffer == null ) {
-            entry.headerBuffer = 
-                    ByteBuffer.allocate(getHeaderBBSize());
+            entry.headerBuffer = webFilter.getMemoryManager().allocate(
+                    getHeaderBBSize());
         }
         
         StringBuilder sb = new StringBuilder();
@@ -498,7 +500,7 @@ public class FileCache {
         appendHeaderValue(sb,"Content-Type", entry.contentType);
         appendHeaderValue(sb,"Content-Length", entry.bb.capacity() + "");
         appendHeaderValue(sb,"Date", entry.date);
-        appendHeaderValue(sb,"Server", SelectorThread.SERVER_NAME);
+        appendHeaderValue(sb,"Server", webFilter.getConfig().getServerName());
         entry.headerBuffer.put(sb.toString().getBytes());
         entry.headerBuffer.flip();
     }   
@@ -515,12 +517,12 @@ public class FileCache {
     }   
 
     
-    public final class FileCacheEntry implements Runnable{       
+    public final class FileCacheEntry implements Runnable {
         public String requestURI;
         public String lastModified;
         public String contentType;
-        public ByteBuffer bb;
-        public ByteBuffer headerBuffer;        
+        public Buffer bb;
+        public Buffer headerBuffer;
         public boolean xPoweredBy;
         public boolean isInHeap = false;
         public String date;
@@ -710,14 +712,17 @@ public class FileCache {
     public int getCountContentMisses() {
         return countMappedMisses;
     }
-    
+
     // ---------------------------------------------------- Properties ----- //
     
-    
+    public boolean isMonitoringEnabled() {
+        return isMonitoringEnabled;
+    }
+
     /**
      * Turn monitoring on/off
      */
-    public static void setIsMonitoringEnabled(boolean isMe){
+    public void setMonitoringEnabled(boolean isMe){
         isMonitoringEnabled = isMe;
     }
     

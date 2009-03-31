@@ -90,7 +90,7 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
             NextAction nextAction) throws IOException {
         HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());
 
-//        setSelectionKeyTimeout(ctx.getSelectionKey(), Long.MAX_VALUE);
+        setSelectionKeyTimeout(ctx.getSelectionKey(), Long.MAX_VALUE);
 
         ProcessorTask processor = getProcessorTask(ctx);
         configureProcessorTask(processor, ctx, workerThread,
@@ -123,8 +123,8 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
                 return;
             }
 
-            if (processor.isKeepAlive() && !processor.isError()){
-//                setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
+            if (processor.isKeepAlive() && !processor.isError()) {
+                setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
             } else {
                 try {
                     processor.getConnection().close();
@@ -232,24 +232,25 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
     /**
      * Display the Grizzly configuration parameters.
      */
-    private void displayConfiguration(){
-       if (displayConfiguration){
+    @Override
+    protected void displayConfiguration(){
+       if (config.isDisplayConfiguration()){
             logger.log(Level.INFO,
                     "\n Grizzly configuration"
                     + "\n\t name"
                     + name
                     + "\n\t maxHttpHeaderSize: "
-                    + maxHttpHeaderSize
+                    + config.getMaxHttpHeaderSize()
                     + "\n\t maxKeepAliveRequests: "
-                    + maxKeepAliveRequests
+                    + config.getMaxKeepAliveRequests()
                     + "\n\t keepAliveTimeoutInSeconds: "
-                    + keepAliveTimeoutInSeconds
+                    + config.getKeepAliveTimeoutInSeconds()
                     + "\n\t Static File Cache enabled: "
-                    + isFileCacheEnabled
+                    + (fileCache != null && fileCache.isEnabled())
                     + "\n\t Static resources directory: "
-                    + new File(rootFolder).getAbsolutePath()
+                    + new File(config.getRootFolder()).getAbsolutePath()
                     + "\n\t Adapter : "
-                    + (adapter == null ? null : adapter.getClass().getName() )
+                    + (adapter == null ? null : adapter.getClass().getName())
                     + "\n\t Processing mode: asynchronous");
         }
     }

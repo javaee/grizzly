@@ -85,11 +85,8 @@ import org.glassfish.grizzly.web.container.http11.filters.IdentityOutputFilter;
 import org.glassfish.grizzly.web.container.http11.filters.VoidInputFilter;
 import org.glassfish.grizzly.web.container.http11.filters.VoidOutputFilter;
 import org.glassfish.grizzly.web.container.http11.filters.BufferedInputFilter;
-import org.glassfish.grizzly.web.container.util.DefaultThreadPool;
-import org.glassfish.grizzly.web.container.util.InputReader;
 import org.glassfish.grizzly.web.container.util.Interceptor;
 
-import org.glassfish.grizzly.web.container.util.WorkerThread;
 import org.glassfish.grizzly.web.container.util.buf.Ascii;
 import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 import org.glassfish.grizzly.web.container.util.buf.HexUtils;
@@ -106,6 +103,7 @@ import java.util.logging.Logger;
 import javax.management.ObjectName;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.streams.StreamReader;
 
 /**
  * Process HTTP request. This class is based on
@@ -217,12 +215,6 @@ public class ProcessorTask extends TaskBase implements Processor,
      * SSL information.
      */
     protected SSLSupport sslSupport;
-
-
-    /**
-     * Connection associated with the current task.
-     */
-    protected Connection connection;
 
 
     /**
@@ -451,7 +443,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     }
        
     
-    public ProcessorTask(boolean init){    
+    public ProcessorTask(boolean init) {
         if (init) {
             initialize();
         }
@@ -555,14 +547,15 @@ public class ProcessorTask extends TaskBase implements Processor,
         if ( !started ){
             initialize();
         }
+        StreamReader streamReader = (StreamReader) input;
+        StreamWriter streamWriter = (StreamWriter) output;
         // Setting up the I/O
         inputBuffer.setInputStream(input);
-        inputStream = (InputReader) input;
+        inputStream = input;
         outputBuffer.setAsyncHttpWriteEnabled(
                 isAsyncHttpWriteEnabled);
-        StreamWriter streamWriter = (StreamWriter) output;
         outputBuffer.setStreamWriter(streamWriter);
-        response.setConnection(streamWriter.getConnection());
+        response.setConnection(streamReader.getConnection());
         configPreProcess();
     }
         
@@ -571,15 +564,16 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Prepare this object before parsing the request.
      */
     protected void configPreProcess() throws Exception {
-                   
-        if(selectorThread.isMonitoringEnabled() 
-                && !hasRequestInfoRegistered ) {
+        boolean isMonitoringEnabled =
+                webFilter.getConfig().isMonitoringEnabled();
+
+        if (isMonitoringEnabled && !hasRequestInfoRegistered) {
             registerMonitoring();
-        } else if (!selectorThread.isMonitoringEnabled() && hasRequestInfoRegistered) {
+        } else if (!isMonitoringEnabled && hasRequestInfoRegistered) {
             unregisterMonitoring();
         } 
         
-        if (selectorThread.isMonitoringEnabled()) {
+        if (isMonitoringEnabled) {
             requestInfo = request.getRequestProcessor();
             requestInfo.setWorkerThreadID(Thread.currentThread().getId());
         }
@@ -664,7 +658,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             return;
         }        
         
-        if (selectorThread.isMonitoringEnabled()) {
+        if (webFilter.getConfig().isMonitoringEnabled()) {
             request.updateCounters();  
         }
         
@@ -753,7 +747,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         try { 
 
             inputBuffer.parseRequestLine();
-            if (selectorThread.isMonitoringEnabled()) {
+            if (webFilter.getConfig().isMonitoringEnabled()) {
                 request.getRequestProcessor().setRequestCompletionTime(0);
             }
 
@@ -775,7 +769,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             inputBuffer.parseHeaders();
         
-            if ( SelectorThread.isEnableNioLogging() ){                               
+            if (webFilter.getConfig().isEnableNioLogging() ){
                 logger.log(Level.INFO, 
                         "Connection request line" + connection + " is: "
                         + request);
@@ -1701,20 +1695,21 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     private void registerMonitoring(){
         
+        WebFilterJMXManager jmxManager = webFilter.getJmxManager();
+        if (jmxManager == null ) return;
+
         requestInfo = request.getRequestProcessor();
         // Add RequestInfo to RequestGroupInfo
-        requestInfo.setGlobalProcessor(selectorThread.getRequestGroupInfo());
+        requestInfo.setGlobalProcessor(webFilter.getRequestGroupInfo());
 
-        if ( selectorThread.getManagement() == null ) return;
       
         try {
-            oname = new ObjectName(selectorThread.getDomain()
+            oname = new ObjectName(jmxManager.getDomain()
                                    +  ":type=RequestProcessor,worker=http"
-                                   + selectorThread.getPort()
+                                   + webFilter.getName()
                                    + ",name=HttpRequest" 
                                    + requestCount++ );
-            selectorThread.getManagement().
-                    registerComponent(requestInfo, oname,null);
+            jmxManager.registerComponent(requestInfo, oname, null);
         } catch( Exception ex ) {
             logger.log(Level.WARNING,
                        sm.getString("processorTask.errorRegisteringRequest"),
@@ -1731,7 +1726,8 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     protected void unregisterMonitoring() {
 
-        if ( selectorThread.getManagement() == null ) return;
+        WebFilterJMXManager jmxManager = webFilter.getJmxManager();
+        if (jmxManager == null ) return;
         
         requestInfo = request.getRequestProcessor();
         /*
@@ -1746,7 +1742,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         if (oname != null) {
             try {
-                selectorThread.getManagement().unregisterComponent(oname);
+                jmxManager.unregisterComponent(oname);
             } catch (Exception ex) {
                 logger.log(Level.WARNING,
                            sm.getString("processorTask.errorUnregisteringRequest"),

@@ -26,7 +26,7 @@ package org.glassfish.grizzly.web.embed;
 import org.glassfish.grizzly.web.KeepAliveStats;
 import org.glassfish.grizzly.web.StatsThreadPool;
 import org.glassfish.grizzly.web.ThreadPoolStatistic;
-import com.sun.grizzly.http.SelectorThread;
+import org.glassfish.grizzly.web.WebFilter;
 import org.glassfish.grizzly.web.container.RequestGroupInfo;
 
 /**
@@ -51,9 +51,9 @@ import org.glassfish.grizzly.web.container.RequestGroupInfo;
 public class Statistics {
 
     /**
-     * The underlying SelectorThread.
+     * The underlying WebFilter.
      */
-    private SelectorThread st;
+    private WebFilter webFilter;
         
     
     /**
@@ -66,8 +66,8 @@ public class Statistics {
      * Create a Statistic class powered uner the hood by the {@link SelectorThread}.
      * @param st the {@link SelectorThread}
      */
-    protected Statistics(SelectorThread st){
-        this.st=st;
+    protected Statistics(WebFilter webFilter) {
+        this.webFilter = webFilter;
     }
     
     
@@ -78,7 +78,7 @@ public class Statistics {
      * about the current thread pool used by Grizzly.
      */
     public ThreadPoolStatistic getThreadPoolStatistics(){
-        return ((StatsThreadPool)st.getThreadPool())
+        return ((StatsThreadPool)webFilter.getThreadPool())
                 .getStatistic();
     }
     
@@ -90,7 +90,7 @@ public class Statistics {
      * about the connection and the keep-alive mechanism.
      */
     public KeepAliveStats getKeepAliveStatistics(){
-        return st.getKeepAliveStats();
+        return webFilter.getKeepAliveStats();
     }
     
     
@@ -101,7 +101,7 @@ public class Statistics {
      * about all the requests made to Grizzly.
      */
     public RequestGroupInfo getRequestStatistics(){
-        return st.getRequestGroupInfo();
+        return webFilter.getJmxManager().getGlobalRequestProcessor();
     }
     
     
@@ -111,7 +111,7 @@ public class Statistics {
     public void startGatheringStatistics(){   
         if (isGathering) return;
         isGathering = true;
-        st.enableMonitoring();
+        webFilter.enableMonitoring();
     }
     
     
@@ -121,6 +121,6 @@ public class Statistics {
     public void stopGatheringStatistics(){
         if (!isGathering) return;
         isGathering = false;        
-        st.disableMonitoring();
+        webFilter.disableMonitoring();
     }
 }

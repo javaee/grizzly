@@ -45,7 +45,7 @@ import org.glassfish.grizzly.web.container.util.ThreadAttachment;
  * 
  * @author Jeanfrancois Arcand
  */
-public class KeepAliveThreadAttachment extends ThreadAttachment{
+public class KeepAliveThreadAttachment extends ThreadAttachment {
     private int keepAliveCount = 0;
     
      /**

@@ -61,14 +61,26 @@ public abstract class TaskBase implements Task{
      * The {@link Connection} used by this task.
      */
     protected Connection connection;
+
+    /**
+     * The {@link WebFilter}.
+     */
+    protected WebFilter webFilter;
     
     /**
      * A {@link TaskListener} associated with this instance.
      */
     private TaskListener taskListener;
-    
+
     // ------------------------------------------------------------------//
-    
+
+    public WebFilter getWebFilter() {
+        return webFilter;
+    }
+
+    public void setWebFilter(WebFilter webFilter) {
+        this.webFilter = webFilter;
+    }
     
     /**
      * Set the thread pool on which Worker Threads will synchronize.

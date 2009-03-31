@@ -38,8 +38,6 @@
 
 package org.glassfish.grizzly.web;
 
-import org.glassfish.grizzly.web.container.util.ExtendedThreadPool;
-import org.glassfish.grizzly.web.container.util.WorkerThreadImpl;
 import java.nio.channels.SelectableChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -47,6 +45,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
+import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 
 /**
  * This class is a placeholde for gathering statistic
@@ -163,7 +164,9 @@ public class ThreadPoolStatistic {
         countAverageExecutor = new ScheduledThreadPoolExecutor(3,
             new ThreadFactory(){
                 public Thread newThread(Runnable r) {
-                    return new WorkerThreadImpl(new ThreadGroup("Grizzly"),r);
+                    return new DefaultWorkerThread(
+                            Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
+                            "Grizzly-ThreadPoolStatistic", r);
                 }
         });    
     }

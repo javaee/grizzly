@@ -43,7 +43,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import org.glassfish.grizzly.web.container.util.OutputWriter;
 import org.glassfish.grizzly.web.container.Response;
 import org.glassfish.grizzly.web.container.http11.InternalOutputBuffer;
 import java.nio.channels.SelectableChannel;
