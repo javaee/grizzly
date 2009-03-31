@@ -87,6 +87,10 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      * Cert nick name
      */
     private String certNickname = null;
+
+    public GrizzlyEmbeddedHttps(GrizzlyServiceListener grizzlyServiceListener) {
+        super(grizzlyServiceListener);
+    }
     // ---------------------------------------------------------------------/.
 
     @Override

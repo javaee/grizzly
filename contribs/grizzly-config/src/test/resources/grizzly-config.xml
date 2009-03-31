@@ -1,59 +1,15 @@
 <network-config>
     <transports>
-        <!-- Transport describes network transport and its properties.-->
-
-        <!-- Optional. Those apply to all transport element-->
-        <selection-key-handler name="defSelectionKeyHandler" classname="com.sun.grizzly.DefaultSelectionKeyHandler"/>
-
-        <!-- Declare new tcp transport -->
-        <transport name="tcp" enable-snoop="true"
-                   selection-key-handler="defSelectionKeyHandler" read-timeout="5000"/>
-
-        <!-- Overwrite predefined TLS transport settings -->
-        <transport name="tls" selection-key-handler="defSelectionKeyHandler"/>
+        <transport name="tcp"/>
     </transports>
     <protocols>
         <protocol name="http">
             <http/>
-            <protocol-chain-instance-handler>
-                <protocol-chain>
-                    <protocol-filter classname="com.sun.grizzly.filter.HttpProtocolFilter"/>
-                </protocol-chain>
-            </protocol-chain-instance-handler>
-        </protocol>
-        <protocol name="iiop">
-            <protocol-chain-instance-handler>
-                <protocol-chain>
-                    <protocol-filter classname="com.sun.grizzly.filter.IiopProtocolFilter"/>
-                </protocol-chain>
-            </protocol-chain-instance-handler>
-        </protocol>
-        <protocol name="https">
-            <property name="-Dcom.sun....maxSelector" value="30"/>
-            <http/>
-            <ssl cert-nickname="s1as" client-auth-enabled="false" ssl2-enabled="false" ssl3-enabled="true"
-                 tls-enabled="true" key-store="keyStorePath/" trust-store="trustStorePath/" tls-rollback-enabled="true">
-            </ssl>
-            <protocol-chain-instance-handler>
-                <protocol-chain>
-                    <protocol-filter classname="com.sun.grizzly.filter.HttpsProtocolFilter"/>
-                </protocol-chain>
-            </protocol-chain-instance-handler>
         </protocol>
     </protocols>
     <network-listeners>
-        <!-- Listener binds Transport  to the specific port and declares Protocol(s), listener -->
-        <thread-pool thread-pool-id="defaultThreadPool" classname="com.sun.grizzly.util.DefaultThreadPool"
-                     min-thread-pool-size="2"/><!-- max-thread-pool-size="5"/>-->
-        <network-listener name="http-listener" address="localhost" port="8080" transport="tcp" protocol="http"
-                          thread-pool="defaultThreadPool">
-            <!-- Mandatory -->
-            <property name="reuseAddress" value="true"/>
-        </network-listener>
-        <network-listener name="https-listener" port="8181" transport="tls" protocol="https"
-                          thread-pool="defaultThreadPool">
-            <!-- Optional list of properties -->
-            <property name="root" value="${user.home}/"/>
-        </network-listener>
+        <thread-pool thread-pool-id="defaultThreadPool"/>
+        <network-listener name="http-listener" port="8080" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
+        <network-listener name="https-listener" port="8181" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
     </network-listeners>
 </network-config>
