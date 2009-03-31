@@ -255,6 +255,7 @@ public class StaticResourcesAdapter implements Adapter {
         res.flushHeaders();
         if (res.getChannel() != null) {
             res.getChannel().write(bb);
+            req.setNote(14, "SkipAfterService");
         } else {
             byte b[] = new byte[bb.limit()];
             bb.get(b);
@@ -262,7 +263,6 @@ public class StaticResourcesAdapter implements Adapter {
             chunk.setBytes(b, 0, b.length);
             res.doWrite(chunk);
         }
-        req.setNote(14, "SkipAfterService");
     }
 
 

@@ -33,8 +33,10 @@ import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapterChain;
+import com.sun.grizzly.tcp.http11.GrizzlyListener;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,7 +46,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
-import javax.net.ssl.SSLContext;
 
 
 /**
@@ -297,8 +298,8 @@ public class GrizzlyWebServer {
     // The port
     private static final String DEFAULT_WEB_RESOURCES_PATH = ".";
 
-    // The underlying {@link SelectorThread}
-    private SelectorThread st;
+    // The underlying {@link GrizzlyListener}
+    private GrizzlyListener grizzlyListener;
     
     // SelectorThread mBean
     private ObjectInstance stMBean;
@@ -333,6 +334,7 @@ public class GrizzlyWebServer {
     // The {@link Statistis} instance associated with this instance.
     private Statistics statistics;
 
+    static public enum PROTOCOL { HTTP, AJP }
 
   /**
      * Create a default GrizzlyWebServer
@@ -438,11 +440,11 @@ public class GrizzlyWebServer {
             } catch (ClassNotFoundException e) {
                 throw new IllegalStateException(e);
             }
-            st = sslSelectorThread;
+            grizzlyListener = sslSelectorThread;
         } else {
-            st = new SelectorThread();
+            grizzlyListener = new SelectorThread();
         }
-        st.setPort(port);        
+        ((SelectorThread)grizzlyListener).setPort(port);
     }
 
     
@@ -451,8 +453,9 @@ public class GrizzlyWebServer {
      * should manipulate that class.
      * @return {@link SelectorThread}
      */
-    public SelectorThread getSelectorThread(){        
-        return st;
+    public SelectorThread getSelectorThread(){
+        supportHttp();
+        return (SelectorThread)grizzlyListener;
     }
     
     
@@ -492,7 +495,7 @@ public class GrizzlyWebServer {
         adapterChains.setHandleStaticResources(false);
         if (isStarted) {
             grizzlyAdapter.start();
-            Adapter ga = st.getAdapter();
+            Adapter ga = grizzlyListener.getAdapter();
             if (ga instanceof GrizzlyAdapterChain){
                 ((GrizzlyAdapterChain)ga).addGrizzlyAdapter(grizzlyAdapter, mapping);
             } else {
@@ -512,7 +515,7 @@ public class GrizzlyWebServer {
         }
         boolean removed = adapters.remove(grizzlyAdapter) != null;
         if (isStarted) {
-            Adapter ga = st.getAdapter();
+            Adapter ga = grizzlyListener.getAdapter();
             if (ga instanceof GrizzlyAdapterChain){
                 ((GrizzlyAdapterChain)ga).removeAdapter(grizzlyAdapter);
             } else {
@@ -527,10 +530,10 @@ public class GrizzlyWebServer {
      * Set the {@link SSLConfig} instance used when https is required
      */
     public void setSSLConfig(SSLConfig sslConfig){
-        if (!(st instanceof SSLSelectorThread)){
+        if (!(grizzlyListener instanceof SSLSelectorThread)){
             throw new IllegalStateException("This instance isn't supporting SSL/HTTPS");
         }
-        ((SSLSelectorThread)st).setSSLConfig(sslConfig);
+        ((SSLSelectorThread)grizzlyListener).setSSLConfig(sslConfig);
     }
     
     /**
@@ -540,7 +543,9 @@ public class GrizzlyWebServer {
      * @param asyncWrite true to enabled asynchronous write I/O operations.
      */
     public void useAsynchronousWrite(boolean asyncWrite){
-        st.setAsyncHttpWriteEnabled(asyncWrite);
+        if (!(grizzlyListener instanceof SelectorThread)){
+            ((SelectorThread)grizzlyListener).setAsyncHttpWriteEnabled(asyncWrite);
+        }
     }
 
     /**
@@ -550,9 +555,9 @@ public class GrizzlyWebServer {
      */
     public void start() throws IOException{
         if (isStarted) return;
-        if (st instanceof SSLSelectorThread) {
+        if (grizzlyListener instanceof SSLSelectorThread) {
             // if needed create default SSLContext
-            SSLSelectorThread sslST = (SSLSelectorThread) st;
+            SSLSelectorThread sslST = (SSLSelectorThread) grizzlyListener;
             if (sslST.getSSLContext() == null) {
                 SSLConfig sslConfig = new SSLConfig(true);
                 if (!sslConfig.validateConfiguration()) {
@@ -568,19 +573,20 @@ public class GrizzlyWebServer {
         updateGrizzlyAdapters();
         
         if (asyncFilters.size() > 0){
-            st.setEnableAsyncExecution(true);
+            ((SelectorThread)grizzlyListener).setEnableAsyncExecution(true);
             AsyncHandler asyncHandler = new DefaultAsyncHandler();
             for (AsyncFilter asyncFilter: asyncFilters){
                 asyncHandler.addAsyncFilter(asyncFilter); 
             }
-            st.setAsyncHandler(asyncHandler);    
+            ((SelectorThread)grizzlyListener).setAsyncHandler(asyncHandler);
         }
-        
+
         try {
-            st.listen();
+            grizzlyListener.listen();
         } catch (InstantiationException ex) {
             throw new IOException(ex.getMessage());
         }
+        
     }
 
     private void updateGrizzlyAdapters() {
@@ -588,9 +594,9 @@ public class GrizzlyWebServer {
         if (adapters.size() == 0){
             adapterChains.setRootFolder(webResourcesPath);
             adapterChains.setHandleStaticResources(true);
-            st.setAdapter(adapterChains);
+            grizzlyListener.setAdapter(adapterChains);
         } else if (adapters.size() == 1){
-            st.setAdapter(adapters.keySet().iterator().next());
+            grizzlyListener.setAdapter(adapters.keySet().iterator().next());
             adapters.keySet().iterator().next().setRootFolder(webResourcesPath);
         } else {          
             for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
@@ -601,29 +607,42 @@ public class GrizzlyWebServer {
                     adapterChains.addGrizzlyAdapter(entry.getKey(),entry.getValue());
                 }
             }
-            st.setAdapter(adapterChains);
+            grizzlyListener.setAdapter(adapterChains);
             adapterChains.setHandleStaticResources(true);
             adapterChains.setRootFolder(webResourcesPath);
         }
     }
+
 
     /**
      * Enable JMX Management by configuring the {@link Management}
      * @param jmxManagement An instance of the {@link Management} interface
      */
     public void enableJMX(Management jmxManagement){
+        supportHttp();
         if (jmxManagement == null) return;
         
-        st.setManagement(jmxManagement);
+        ((SelectorThread)grizzlyListener).setManagement(jmxManagement);
         try {
             ObjectName sname = new ObjectName(mBeanName);                   
-            jmxManagement.registerComponent(st, sname, null);
+            jmxManagement.registerComponent(grizzlyListener, sname, null);
         } catch (Exception ex) {
             SelectorThread.logger().log(Level.SEVERE, "Enabling JMX failed", ex);
         }      
     }
     
-    
+    /**
+     * Are we using a {@link SelectorThread}
+     * @return true
+     */
+    private void supportHttp(){
+        if (!(grizzlyListener instanceof SelectorThread)){
+            throw new IllegalStateException("Not supported with GrizzlyListener: "
+                    + grizzlyListener);
+        }
+    }
+
+
     /**
      * Return a {@link Statistics} instance that can be used to gather
      * statistics. By default, the {@link Statistics} object <strong>is not</strong>
@@ -631,8 +650,9 @@ public class GrizzlyWebServer {
      * will do it.
      */
     public Statistics getStatistics(){
+        supportHttp();
         if (statistics == null){
-            statistics = new Statistics(st);
+            statistics = new Statistics(((SelectorThread)grizzlyListener));
         }
         return statistics;
     } 
@@ -642,7 +662,8 @@ public class GrizzlyWebServer {
      * @param coreThreads the initial number of threads in a thread pool.
      */
     public void setCoreThreads(int coreThreads) {
-        st.setCoreThreads(coreThreads);
+        supportHttp();
+        ((SelectorThread)grizzlyListener).setCoreThreads(coreThreads);
     }
 
     /**
@@ -650,7 +671,8 @@ public class GrizzlyWebServer {
      * @param maxThreads the maximum number of threads in a thread pool.
      */
     public void setMaxThreads(int maxThreads) {
-        st.setMaxThreads(maxThreads);
+        supportHttp();
+        ((SelectorThread)grizzlyListener).setMaxThreads(maxThreads);
     }
     
     /**
@@ -659,7 +681,9 @@ public class GrizzlyWebServer {
     public void stop(){
         if (!isStarted) return;
         isStarted = false;
-        st.stopEndpoint();
+        if (grizzlyListener instanceof SelectorThread){
+            ((SelectorThread)grizzlyListener).stopEndpoint();
+        }
     }
     
     
@@ -687,5 +711,33 @@ public class GrizzlyWebServer {
             }
         });
         return ws;
+    }
+
+    /**
+     * Enable support for protocol like HTTP or AJP (Apache Java Protocol like mod_jk)
+     * @param p the {@link GrizzlyWebServer#PROTOCOL}
+     */
+    public void enableProtocol(PROTOCOL p){
+        isStarted = false;
+        if (p == PROTOCOL.AJP){
+            grizzlyListener = (GrizzlyListener)
+                    ClassLoaderUtil.load("com.sun.grizzly.http.jk.server.JkCoyoteHandler");
+            grizzlyListener.setAdapter(adapter());
+        } else {
+            createSelectorThread(DEFAULT_PORT, isStarted);
+        }
+    }
+
+    /**
+     * Return the current internal Adapter used.
+     * @return the current {@link Adapter}
+     */
+    private Adapter adapter(){
+         if (adapters.size() == 1){
+            adapters.keySet().iterator().next().setRootFolder(webResourcesPath);
+            return adapters.keySet().iterator().next();
+        } else {
+            return adapterChains;
+        }
     }
 }
