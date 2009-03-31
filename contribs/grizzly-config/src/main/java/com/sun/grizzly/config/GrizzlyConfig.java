@@ -43,6 +43,8 @@ import com.sun.grizzly.util.LoggerUtils;
 import org.jvnet.hk2.component.Habitat;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -54,11 +56,11 @@ import java.util.logging.Logger;
 public class GrizzlyConfig {
     private static final Logger logger = LoggerUtils.getLogger();
 
-    private final Controller controller = new Controller();
     private final NetworkConfig config;
     private Habitat habitat;
+    private List<GrizzlyServiceListener> listeners = new ArrayList<GrizzlyServiceListener>();
 
-    public GrizzlyConfig(final String file) {
+    public GrizzlyConfig(String file) {
         habitat = Utils.getHabitat(file);
         config = habitat.getComponent(NetworkConfig.class);
     }
@@ -67,11 +69,16 @@ public class GrizzlyConfig {
         return config;
     }
 
+    public List<GrizzlyServiceListener> getListeners() {
+        return listeners;
+    }
+
     public void setupNetwork() throws IOException, InstantiationException {
         for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
-            final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(controller);
+            final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(new Controller());
             grizzlyListener.configure(listener, true, habitat);
 
+            listeners.add(grizzlyListener);
             final Thread thread = new Thread(new ListenerRunnable(grizzlyListener));
             thread.setDaemon(true);
             thread.start();
@@ -87,7 +94,7 @@ public class GrizzlyConfig {
     private static class ListenerRunnable implements Runnable {
         private final GrizzlyServiceListener grizzlyListener;
 
-        public ListenerRunnable(final GrizzlyServiceListener grizzlyListener) {
+        public ListenerRunnable(GrizzlyServiceListener grizzlyListener) {
             this.grizzlyListener = grizzlyListener;
         }
 

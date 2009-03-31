@@ -49,7 +49,7 @@ import org.jvnet.hk2.config.Element;
  */
 @Configured
 public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
-    @Attribute(defaultValue="com.sun.grizzly.config.GrizzlyMappingAdapter")
+    @Attribute(defaultValue="com.sun.grizzly.tcp.StaticResourcesAdapter")
     String getAdapter();
 
     void setAdapter(String adapter);

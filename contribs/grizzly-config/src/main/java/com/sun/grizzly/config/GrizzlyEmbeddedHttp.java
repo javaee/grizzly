@@ -79,11 +79,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      */
     protected static final ResourceBundle _rb = logger.getResourceBundle();
     private String defaultVirtualServer;
+    private GrizzlyServiceListener service;
 
     /**
      * Constructor
+     * @param grizzlyServiceListener
      */
-    public GrizzlyEmbeddedHttp() {
+    public GrizzlyEmbeddedHttp(GrizzlyServiceListener grizzlyServiceListener) {
+        service = grizzlyServiceListener;
         setClassLoader(getClass().getClassLoader());
     }
 
@@ -256,6 +259,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final Transport transport = networkListener.findTransport();
         final ThreadPool pool = networkListener.findThreadPool();
 
+        setPort(Integer.parseInt(networkListener.getPort()));
         configureNetworkingProperties(http, transport, httpProtocol.getSsl());
         configureKeepAlive(http);
         configureHttpProtocol(http);
@@ -351,8 +355,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             setUseByteBufferView(toBoolean(transport.getUseNioDirectByteBuffer()));
         }
         try {
-            final String adapterName = http.getAdapter();
-            setAdapter((Adapter)Class.forName(adapterName).newInstance());
+            setAdapter((Adapter)Class.forName(http.getAdapter()).newInstance());
         } catch (Exception e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
         }

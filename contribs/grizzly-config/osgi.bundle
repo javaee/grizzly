@@ -1,0 +1,14 @@
+-exportcontents: \
+                        com.sun.grizzly.config; \
+                        com.sun.grizzly.config.dom; version=${grizzly-version}
+
+Import-Package: \
+                        com.sun.enterprise.v3.services.impl; \
+                        org.jvnet.hk2.config; \
+                        org.jvnet.hk2.component; \
+                        com.sun.grizzly; \
+                        com.sun.grizzly.arp; \
+                        com.sun.grizzly.http; \
+                        com.sun.grizzly.http.algorithms; \
+                        com.sun.grizzly.tcp; \
+                        com.sun.grizzly.util.http.mapper;

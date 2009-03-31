@@ -1,10 +1,15 @@
 package com.sun.grizzly.config;
 
 import com.sun.grizzly.config.dom.ThreadPool;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.logging.Logger;
@@ -22,12 +27,46 @@ public class GrizzlyConfigTest {
         try {
             final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             grizzlyConfig.setupNetwork();
-            final URLConnection urlConnection = new URL("http://localhost:8080").openConnection();
-            Assert.assertNotNull(urlConnection);
+            int count = 0;
+            for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
+                setRootFolder(listener, count++);
+            }
+            final String content = getContent(new URL("http://localhost:8080").openConnection());
+            System.out.println("content = " + content);
+            final String content2 = getContent(new URL("http://localhost:8181").openConnection());
+            System.out.println("content2 = " + content2);
+            Assert.assertEquals(content, "<html><body>You've found the server on port 8080</body></html>");
+            Assert.assertEquals(content2, "<html><body>You've found the server on port 8181</body></html>");
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    private String getContent(URLConnection connection) throws IOException {
+        final InputStream inputStream = connection.getInputStream();
+        InputStreamReader reader = new InputStreamReader(inputStream);
+        StringBuilder builder = new StringBuilder();
+        char[] buffer = new char[1024];
+        int read;
+        while(( read = reader.read(buffer)) != -1) {
+            builder.append(buffer, 0, read);
+        }
+
+        return builder.toString();
+    }
+
+    private void setRootFolder(GrizzlyServiceListener listener, int count) throws IOException {
+        final GrizzlyEmbeddedHttp http = listener.getEmbeddedHttp();
+        final StaticResourcesAdapter adapter = (StaticResourcesAdapter) http.getAdapter();
+        final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/grizzly-config-root" + count;
+        File dir = new File(name);
+        dir.mkdirs();
+        final FileWriter writer = new FileWriter(new File(dir, "index.html"));
+        writer.write("<html><body>You've found the server on port " + http.getPort() + "</body></html>");
+        writer.flush();
+        writer.close();
+        adapter.setRootFolder(name);
     }
 
     public void defaults() {

@@ -73,7 +73,6 @@ public class GrizzlyServiceListener {
         //TODO: Configure via domain.xml
         //grizzlyListener.setController(controller);
         // TODO: This is not the right way to do.
-        GrizzlyEmbeddedHttp.setWebAppRootPath(System.getProperty("com.sun.aas.instanceRoot") + "/docroot");
 
         initializeListener(isWebProfile, networkListener, habitat);
         setName(networkListener.getName());
@@ -84,10 +83,11 @@ public class GrizzlyServiceListener {
         isEmbeddedHttpSecured = Boolean.parseBoolean(
                 networkListener.findProtocol().getSecurityEnabled());
         if (isEmbeddedHttpSecured) {
-            embeddedHttp = new GrizzlyEmbeddedHttps();
+            embeddedHttp = new GrizzlyEmbeddedHttps(this);
         } else {
-            embeddedHttp = new GrizzlyEmbeddedHttp();
+            embeddedHttp = new GrizzlyEmbeddedHttp(this);
         }
+        embeddedHttp.setController(controller);
         embeddedHttp.configure(webProfile, networkListener, habitat);
     }
 

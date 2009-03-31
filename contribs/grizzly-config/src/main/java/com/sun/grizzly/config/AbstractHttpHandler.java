@@ -87,6 +87,7 @@ public abstract class AbstractHttpHandler {
             boolean wasMap;
             try {
                 final Adapter adapter = grizzlyEmbeddedHttp.getAdapter();
+                System.out.println("adapter = " + adapter);
                 wasMap = adapter instanceof GrizzlyMappingAdapter && ((GrizzlyMappingAdapter)adapter)
                     .map(selectionKey, byteBuffer, (HttpProtocolChain) context.getProtocolChain(), null,
                         fallbackContextRootInfo);
