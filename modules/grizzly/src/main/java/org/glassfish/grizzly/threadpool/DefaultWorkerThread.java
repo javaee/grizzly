@@ -38,6 +38,7 @@
 
 package org.glassfish.grizzly.threadpool;
 
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -56,6 +57,11 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
 
     private BufferInfo associatedBuffer;
     private Context cachedContext;
+
+    private long transactionTimeoutMillis =
+            WorkerThread.UNLIMITED_TRANSACTION_TIMEOUT;
+
+    private long transactionStartedTimeMillis;
 
     public DefaultWorkerThread(AttributeBuilder attrBuilder, String name,
             Runnable runTask) {
@@ -92,10 +98,25 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         return attributes;
     }
 
+    public long getTransactionTimeout(TimeUnit timeunit) {
+        return timeunit.convert(transactionTimeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    public void setTransactionTimeout(long timeout, TimeUnit timeunit) {
+        this.transactionTimeoutMillis =
+                TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+    }
+
+    public long getTransactionStartedTime(TimeUnit timeunit) {
+        return timeunit.convert(transactionTimeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
     protected void onBeforeRun() {
+        transactionStartedTimeMillis = System.currentTimeMillis();
     }
     
     protected void onAfterRun() {
+        transactionStartedTimeMillis = 0;
     }
     
     protected void setAttributes(AttributeHolder attributes) {

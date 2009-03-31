@@ -40,6 +40,7 @@ package org.glassfish.grizzly;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.util.AttributeStorage;
@@ -50,6 +51,8 @@ import org.glassfish.grizzly.util.AttributeStorage;
  * @author Alexey Stashok
  */
 public interface Connection<L> extends Closeable, AttributeStorage {
+    public static final long UNLIMITED_IDLE_TIMEOUT = -1;
+    
     public Transport getTransport();
 
     public boolean isOpen();
@@ -124,4 +127,8 @@ public interface Connection<L> extends Closeable, AttributeStorage {
     public int getWriteBufferSize();
 
     public void setWriteBufferSize(int writeBufferSize);
+
+    public long getIdleTime(TimeUnit timeunit);
+
+    public void setIdleTime(long timeout, TimeUnit timeunit);
 }
