@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-project</artifactId>
+        <version>1.9.11-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.sun.grizzly</groupId>
+    <artifactId>grizzly-ajp</artifactId>
+    <packaging>bundle</packaging>
+    <version>${grizzly-version}</version>
+    <name>grizzly-ajp</name>
+    <url>https://grizzly.dev.java.net</url>
+    <build>
+        <defaultGoal>install</defaultGoal>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.felix</groupId>
+                <artifactId>maven-bundle-plugin</artifactId>
+                <version>${felix-version}</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <instructions>
+                        <Import-Package>*</Import-Package>
+                        <Export-Package>com.sun.grizzly.http.jk.*</Export-Package>
+                    </instructions>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+    <dependencies>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-http</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>commons-modeler</groupId>
+            <artifactId>commons-modeler</artifactId>
+            <version>1.1</version>
+        </dependency>
+    </dependencies>
+</project>
