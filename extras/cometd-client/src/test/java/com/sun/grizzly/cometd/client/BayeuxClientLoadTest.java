@@ -112,6 +112,6 @@ public class BayeuxClientLoadTest extends TestCase {
                 maxLatency, nclients, publish, chat, pause, burst);
 
         publish=(publish*nclients)/rooms;
-        assertTrue(got == publish);
+        assertTrue(got > publish*0.9);
     }
 }
