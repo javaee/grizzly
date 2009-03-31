@@ -88,11 +88,13 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
     /** Set a property. Name is a "component.property". JMX should
      * be used instead.
      */
+    @Override
     public void setProperty(String name, String value) {
         getJkMain().setProperty(name, value);
         properties.put(name, value);
     }
 
+    @Override
     public String getProperty(String name) {
         return properties.getProperty(name);
     }
@@ -142,6 +144,7 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
 
     /** Start the protocol
      */
+    @Override
     public void init() {
         if (started) {
             return;
@@ -182,6 +185,7 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
         }
     }
 
+    @Override
     public void pause() throws Exception {
         if (!paused) {
             paused = true;
@@ -189,6 +193,7 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
         }
     }
 
+    @Override
     public void resume() throws Exception {
         if (paused) {
             paused = false;
@@ -196,6 +201,7 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
         }
     }
 
+    @Override
     public void destroy() {
         if (!started) {
             return;
@@ -207,6 +213,7 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
 
     // -------------------- Jk handler implementation --------------------
     // Jk Handler mehod
+    @Override
     public int invoke(Msg msg, MsgContext ep)
             throws IOException {
         if (ep.isLogTimeEnabled()) {
@@ -251,6 +258,7 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
         return OK;
     }
 
+    @Override
     public ObjectName preRegister(MBeanServer server,
             ObjectName oname) throws Exception {
         // override - we must be registered as "container"
