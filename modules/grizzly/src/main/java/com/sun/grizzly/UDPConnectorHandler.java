@@ -330,7 +330,7 @@ public class UDPConnectorHandler implements
                 if (nRead == -1){
                     SelectionKeyHandler skh = selectorHandler.getSelectionKeyHandler();
                     if (skh instanceof BaseSelectionKeyHandler){                  
-                        ((DefaultSelectionKeyHandler)skh).notifyRemotlyClose(key);               
+                        ((BaseSelectionKeyHandler)skh).notifyRemotlyClose(key);
                     }
                 }
                 return nRead;
