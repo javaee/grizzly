@@ -69,6 +69,7 @@ import java.nio.channels.SelectionKey;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import com.sun.grizzly.tcp.http11.GrizzlyListener;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.IntrospectionUtils;
 
@@ -117,7 +118,7 @@ import java.util.concurrent.TimeUnit;
  * 
  * @author Jean-Francois Arcand
  */
-public class SelectorThread implements Runnable, MBeanRegistration{
+public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListener{
             
     public final static String SERVER_NAME = 
             System.getProperty("product.name") != null 
@@ -2301,4 +2302,12 @@ public class SelectorThread implements Runnable, MBeanRegistration{
     public void setThreadPoolClassname(String threadPoolClassname) {
         this.threadPoolClassname = threadPoolClassname;
     }
+
+    /**
+     * Return the protocol supported by this {@link GrizzlyListener}
+     */
+    public String protocol(){
+        return "HTTP";
+    }
+
 }
