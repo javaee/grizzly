@@ -83,6 +83,8 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
 
     protected long idleTimeoutMillis = UNLIMITED_IDLE_TIMEOUT;
 
+    protected long lastOperationTime;
+
     public void configureBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
@@ -105,6 +107,14 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
 
     public void setIdleTime(long timeout, TimeUnit timeunit) {
         idleTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+    }
+
+    public long getLastOperationTime() {
+        return lastOperationTime;
+    }
+
+    public void setLastOperationTime(long lastOperationTime) {
+        this.lastOperationTime = lastOperationTime;
     }
 
     public int getReadBufferSize() {
