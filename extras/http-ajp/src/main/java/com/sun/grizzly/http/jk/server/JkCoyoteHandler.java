@@ -70,6 +70,8 @@ import java.util.logging.Level;
 import com.sun.grizzly.http.jk.core.JkHandler;
 import com.sun.grizzly.http.jk.core.Msg;
 import com.sun.grizzly.http.jk.core.MsgContext;
+import com.sun.grizzly.tcp.http11.GrizzlyListener;
+import java.util.concurrent.CountDownLatch;
 import org.apache.commons.modeler.Registry;
 
 /** Plugs Jk into Coyote. Must be named "type=JkHandler,name=container"
@@ -77,7 +79,7 @@ import org.apache.commons.modeler.Registry;
  * jmx:notification-handler name="org.apache.jk.SEND_PACKET
  * jmx:notification-handler name="com.sun.grizzly.tcp.ACTION_COMMIT
  */
-public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
+public class JkCoyoteHandler extends JkHandler implements ProtocolHandler, GrizzlyListener {
 
     // ----------------------------------------------------------- DoPrivileged
     private boolean paused = false;
@@ -264,5 +266,19 @@ public class JkCoyoteHandler extends JkHandler implements ProtocolHandler {
         // override - we must be registered as "container"
         this.name = "container";
         return super.preRegister(server, oname);
+    }
+
+    public String protocol() {
+        return "AJP";
+    }
+
+    public void listen() throws IOException, InstantiationException {
+        final CountDownLatch latch = new CountDownLatch(1);
+        init();
+        start();
+        try {
+            latch.await();
+        } catch (InterruptedException ex) {
+        }
     }
 }
