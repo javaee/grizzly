@@ -329,7 +329,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * {@inheritDoc}
      */
     public boolean isSupportFileSend() {
-        return true;
+        return true && (response.getChannel() !=  null);
     }
     
 
