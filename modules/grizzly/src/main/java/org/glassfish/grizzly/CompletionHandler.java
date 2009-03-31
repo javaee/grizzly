@@ -39,7 +39,9 @@
 package org.glassfish.grizzly;
 
 /**
- *
+ * Interface, which will be used by Grizzly to notify about asynchronous I/O
+ * operations status updates.
+ * 
  * @author Alexey Stashok
  */
 public interface CompletionHandler<E> {

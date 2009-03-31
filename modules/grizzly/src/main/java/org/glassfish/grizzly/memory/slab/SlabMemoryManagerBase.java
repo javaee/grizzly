@@ -204,18 +204,16 @@ public abstract class SlabMemoryManagerBase extends ByteBufferManager {
 
         public Slab getSlab() {
             WorkerThread thread = (WorkerThread) Thread.currentThread();
-            AttributeHolder workerThreadAttributes = thread.obtainAttributes();
-            return threadAssociatedSlab.get(workerThreadAttributes);
+            return threadAssociatedSlab.get(thread);
         }
 
         public Slab obtainSlab() {
             WorkerThread thread = (WorkerThread) Thread.currentThread();
-            AttributeHolder workerThreadAttributes = thread.obtainAttributes();
 
-            Slab currentSlab = threadAssociatedSlab.get(workerThreadAttributes);
+            Slab currentSlab = threadAssociatedSlab.get(thread);
             if (currentSlab == null) {
                 currentSlab = manager.obtainSlab();
-                threadAssociatedSlab.set(workerThreadAttributes, currentSlab);
+                threadAssociatedSlab.set(thread, currentSlab);
             }
             return currentSlab;
         }

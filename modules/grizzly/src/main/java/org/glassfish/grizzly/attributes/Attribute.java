@@ -38,6 +38,8 @@
 
 package org.glassfish.grizzly.attributes;
 
+import org.glassfish.grizzly.util.AttributeStorage;
+
 /** 
  * Class used to define dynamic attributes on AttributedObject instances.
  * Note that T cannot be a generic type, due to problems with
@@ -90,6 +92,15 @@ public class Attribute<T> {
         return result;
     }
 
+    public T get(AttributeStorage storage) {
+        AttributeHolder holder = storage.getAttributes();
+        if (holder != null) {
+            return get(holder);
+        }
+
+        return null;
+    }
+
     public void set(AttributeHolder attributeHolder, T arg) {
         IndexedAttributeAccessor indexedAccessor = 
                 attributeHolder.getIndexedAttributeAccessor();
@@ -101,6 +112,10 @@ public class Attribute<T> {
         }
     }
 
+    public void set(AttributeStorage storage, T arg) {
+        set(storage.obtainAttributes(), arg);
+    }
+
     public T remove(AttributeHolder attributeHolder) {
         T result = weakGet(attributeHolder);
         
@@ -108,12 +123,31 @@ public class Attribute<T> {
             set(attributeHolder, null);
         }
         
-        return result;    }
+        return result;
+    }
 
+    public T remove(AttributeStorage storage) {
+        AttributeHolder holder = storage.getAttributes();
+        if (holder != null) {
+            remove(holder);
+        }
+
+        return null;
+    }
+    
     public boolean isSet(AttributeHolder attributeHolder) {
         return weakGet(attributeHolder) != null;
     }
 
+    public boolean isSet(AttributeStorage storage) {
+        AttributeHolder holder = storage.getAttributes();
+        if (holder != null) {
+            return isSet(holder);
+        }
+
+        return false;
+    }
+    
     public String name() {
         return name;
     }

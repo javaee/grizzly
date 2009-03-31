@@ -191,12 +191,7 @@ public class SSLEncoderTransformer implements Transformer<Buffer, Buffer> {
     }
 
     public TransformationResult<Buffer> getLastResult(AttributeStorage state) {
-        AttributeHolder holder = state.getAttributes();
-        if (holder != null) {
-            return lastResultAttr.get(holder);
-        }
-
-        return null;
+        return lastResultAttr.get(state);
     }
 
     public AttributeHolder getProperties(AttributeStorage state) {

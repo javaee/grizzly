@@ -244,7 +244,8 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 int selectorPoolSize =
                         TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
                 if (workerThreadPool instanceof ExtendedThreadPool) {
-                    selectorPoolSize = ((ExtendedThreadPool) workerThreadPool).getMaximumPoolSize();
+                    selectorPoolSize = ((ExtendedThreadPool) workerThreadPool).
+                            getMaximumPoolSize();
                 }
                 setTemporarySelectorPool(
                         new TemporarySelectorPool(selectorPoolSize));

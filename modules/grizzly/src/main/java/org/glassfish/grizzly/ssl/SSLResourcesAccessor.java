@@ -99,7 +99,7 @@ public class SSLResourcesAccessor {
     }
     
     public SSLEngine getSSLEngine(AttributeStorage state) {
-        return getAttribute(state, sslEngineAttribute);
+        return sslEngineAttribute.get(state);
     }
 
     public SSLEngine obtainSSLEngine(SSLContext sslContext,
@@ -118,11 +118,11 @@ public class SSLResourcesAccessor {
 
 
     public void setSSLEngine(AttributeStorage state, SSLEngine sslEngine) {
-        setAttribute(state, sslEngineAttribute, sslEngine);
+        sslEngineAttribute.set(state, sslEngine);
     }
 
     public Buffer getAppBuffer(AttributeStorage state) {
-        return getAttribute(state, plainBufferAttribute);
+        return plainBufferAttribute.get(state);
     }
     
     /**
@@ -186,11 +186,11 @@ public class SSLResourcesAccessor {
     }
 
     public void setAppBuffer(AttributeStorage state, Buffer buffer) {
-        setAttribute(state, plainBufferAttribute, buffer);
+        plainBufferAttribute.set(state, buffer);
     }
 
     public Buffer getSecuredInBuffer(AttributeStorage state) {
-        return getAttribute(state, sslSecuredInBufferAttribute);
+        return sslSecuredInBufferAttribute.get(state);
     }
 
     /**
@@ -259,11 +259,11 @@ public class SSLResourcesAccessor {
     }
 
     public void setSecuredInBuffer(AttributeStorage state, Buffer buffer) {
-        setAttribute(state, sslSecuredInBufferAttribute, buffer);
+        sslSecuredInBufferAttribute.set(state, buffer);
     }
 
     public Buffer getSecuredOutBuffer(AttributeStorage state) {
-        return getAttribute(state, sslSecuredOutBufferAttribute);
+        return sslSecuredOutBufferAttribute.get(state);
     }
 
     /**
@@ -330,7 +330,7 @@ public class SSLResourcesAccessor {
     }
 
     public void setSecuredOutBuffer(AttributeStorage state, Buffer buffer) {
-        setAttribute(state, sslSecuredOutBufferAttribute, buffer);
+        sslSecuredOutBufferAttribute.set(state, buffer);
     }
 
     public void clear(AttributeStorage state) {
@@ -341,21 +341,5 @@ public class SSLResourcesAccessor {
             sslSecuredInBufferAttribute.remove(attributeHolder);
             sslSecuredOutBufferAttribute.remove(attributeHolder);
         }
-    }
-
-    protected <T> T getAttribute(AttributeStorage state,
-            Attribute<T> attribute) {
-         AttributeHolder holder = state.getAttributes();
-         if (holder != null) {
-             return attribute.get(holder);
-         }
-
-         return null;
-    }
-
-    protected <T> void setAttribute(AttributeStorage state,
-            Attribute<T> attribute, T value) {
-         AttributeHolder holder = state.obtainAttributes();
-         attribute.set(holder, value);
     }
 }
