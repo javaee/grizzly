@@ -104,6 +104,8 @@ import javax.management.ObjectName;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
+import org.glassfish.grizzly.threadpool.WorkerThread;
 
 /**
  * Process HTTP request. This class is based on
@@ -592,7 +594,8 @@ public class ProcessorTask extends TaskBase implements Processor,
         keepAlive = true;
 
         if (request.getServerPort() == 0) {
-            request.setServerPort(selectorThread.getPort());
+            request.setServerPort(
+                    ((InetSocketAddress) connection.getLocalAddress()).getPort());
         }        
     }
 
@@ -607,8 +610,8 @@ public class ProcessorTask extends TaskBase implements Processor,
             invokeAdapter();
             postResponse();
         } else {
-            int soTimeout = ((InputReader)inputStream).getReadTimeout();
-            DefaultThreadPool st =(DefaultThreadPool) getThreadPool();
+            int soTimeout = (int) ((StreamReader) inputStream).getTimeout(TimeUnit.MILLISECONDS);
+            ExtendedThreadPool st = (ExtendedThreadPool) getThreadPool();
             if ( useKeepAliveAlgorithm ) {
                float threadRatio =
                     (float) st.getActiveCount()
@@ -620,7 +623,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                     soTimeout = soTimeout / 5;
                     keepAliveLeft = 1;
                 }
-                ((InputReader)inputStream).setReadTimeout(soTimeout);
+                ((StreamReader)inputStream).setTimeout(soTimeout, TimeUnit.MILLISECONDS);
             }
 
             while (started && !error && keepAlive) {
@@ -663,7 +666,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
         
         try {
-            adapter.afterService(request,response);
+            adapter.afterService(request, response);
         } catch (Exception ex) {
             error = true;
             logger.log(Level.FINEST,
@@ -758,14 +761,13 @@ public class ProcessorTask extends TaskBase implements Processor,
                 return true;
             }
             
-            if (!disableUploadTimeout && getSelectionKey() != null) {
-                ((InputReader)inputStream).setReadTimeout(uploadTimeout);
+            if (!disableUploadTimeout && getConnection() != null) {
+                ((StreamReader) inputStream).setTimeout(uploadTimeout,
+                        TimeUnit.MILLISECONDS);
             }
           
-            WorkerThread workerThread = (WorkerThread)Thread.currentThread();
-            KeepAliveThreadAttachment k = 
-                    (KeepAliveThreadAttachment) workerThread.getAttachment();
-            k.setActiveThreadTimeout(transactionTimeout);
+            WorkerThread workerThread = (WorkerThread) Thread.currentThread();
+            workerThread.setTransactionTimeout(transactionTimeout, TimeUnit.MILLISECONDS);
 
             inputBuffer.parseHeaders();
         

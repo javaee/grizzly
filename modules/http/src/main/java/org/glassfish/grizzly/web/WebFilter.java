@@ -50,9 +50,10 @@ import javax.management.MBeanRegistration;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -131,6 +132,14 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * Keep-alive stats
      */
     private KeepAliveStats keepAliveStats = null;
+
+    private static Attribute<Integer> keepAliveCounterAttr =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            "connection-keepalive-counter", 0);
+
+    private static Attribute<Boolean> isSuspendAttr =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+            "is-suspend-connection", false);
 
     /**
      * Placeholder for {@link ExecutorService} statistic.
@@ -234,20 +243,22 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             workerThread.setProcessorTask(processorTask);
         }
 
-        KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) workerThread.getAttachment();
-        k.setTimeout(System.currentTimeMillis());
-        KeepAliveStats ks = getKeepAliveStats();
-        k.setKeepAliveStats(ks);
+        Connection connection = ctx.getConnection();
+        Integer keepAliveCounter = keepAliveCounterAttr.get(connection);
+        keepAliveCounterAttr.set(connection, ++keepAliveCounter);
 
-        // Bind the Attachment to the SelectionKey
-        ctx.getSelectionKey().attach(k);
+        if (keepAliveCounter > config.getMaxKeepAliveRequests()) {
+            if (keepAliveStats != null) {
+                keepAliveStats.incrementCountRefusals();
+            }
 
-        int count = k.increaseKeepAliveCount();
-        if (count > getMaxKeepAliveRequests() && ks != null) {
-            ks.incrementCountRefusals();
             processorTask.setDropConnection(true);
         } else {
             processorTask.setDropConnection(false);
+        }
+
+        if (keepAliveStats != null) {
+            keepAliveStats.incrementCountHits();
         }
 
         configureProcessorTask(processorTask, ctx, workerThread,
@@ -261,8 +272,8 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             keepAlive = false;
         }
 
-        Object ra = workerThread.getAttachment().getAttribute("suspend");
-        if (ra != null){
+        Boolean isSuspend = isSuspendAttr.get(connection);
+        if (isSuspend){
             // Detatch anything associated with the Thread.
             workerThread.setStreamReader(null);
             workerThread.setProcessorTask(null);
@@ -281,6 +292,33 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         // Last filter.
         return nextAction;
     }
+
+    @Override
+    public NextAction handleAccept(FilterChainContext ctx,
+            NextAction nextAction) throws IOException {
+        if (keepAliveStats != null) {
+            keepAliveStats.incrementCountConnections();
+        }
+
+        getRequestGroupInfo().increaseCountOpenConnections();
+        if (threadPoolStat != null) {
+            threadPoolStat.incrementTotalAcceptCount();
+            threadPoolStat.incrementOpenConnectionsCount(ctx.getConnection());
+        }
+
+        return nextAction;
+    }
+
+    @Override
+    public NextAction handleClose(FilterChainContext ctx, NextAction nextAction)
+            throws IOException {
+        if (keepAliveStats != null) {
+            keepAliveStats.decrementCountConnections();
+        }
+        
+        return nextAction;
+    }
+
 
     /**
      * Configure {@link ProcessorTask}.
@@ -387,12 +425,10 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * {@link ExecutorService}, for monitoring purposes.
      */
     protected void enableThreadPoolStats(){   
+        threadPoolStat.setThreadPool(threadPool);
         threadPoolStat.start();
 
         keepAliveStats = new KeepAliveStats();
-        StatsThreadPool statsThreadPool = (StatsThreadPool) threadPool;
-        statsThreadPool.setStatistic(threadPoolStat);
-        threadPoolStat.setThreadPool(threadPool);
     }
     
 
@@ -402,11 +438,9 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      */
     protected void disableThreadPoolStats(){
         threadPoolStat.stop();
+        threadPoolStat.setThreadPool(null);
         
         keepAliveStats = null;
-        StatsThreadPool statsThreadPool = (StatsThreadPool) threadPool;
-        statsThreadPool.setStatistic(null);
-        threadPoolStat.setThreadPool(null);
     }
 
 
@@ -680,8 +714,8 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     /**
      * Set the logger used by this instance.
      */
-    public static void setLogger(Logger l){
-        if ( l != null )
+    public static void setLogger(Logger l) {
+        if (l != null)
             logger = l;
     }
 
@@ -689,7 +723,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     /**
      * Return the logger used by the Grizzly classes.
      */
-    public static Logger logger(){
+    public static Logger logger() {
         return logger;
     }
     

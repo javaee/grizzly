@@ -38,13 +38,13 @@
 
 package org.glassfish.grizzly.web;
 
-import java.nio.channels.SelectableChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
@@ -146,8 +146,8 @@ public class ThreadPoolStatistic {
     /**
      * <tt>Map</tt> of open pipeline connections
      */
-    private ConcurrentHashMap<SelectableChannel,Long> openConnections =
-            new ConcurrentHashMap<SelectableChannel,Long>();
+    private ConcurrentHashMap<Connection, Long> openConnections =
+            new ConcurrentHashMap<Connection, Long>();
 
     // -------------------------------------------------------------------//
     
@@ -422,27 +422,27 @@ public class ThreadPoolStatistic {
      * Increase the number of open connections, which are being handled by the
      * <tt>Pipeline</tt>
      *
-     * @param channel just open channel
+     * @param connection just open channel
      * @return <tt>true</tt>, if channel was added, <tt>false</tt> if channel
      * was already counted in the statistics
      */
-    public boolean incrementOpenConnectionsCount(SelectableChannel channel) {
-        Long prevValue = 
-                openConnections.putIfAbsent(channel, System.currentTimeMillis());
+    public boolean incrementOpenConnectionsCount(Connection connection) {
+        Long prevValue = openConnections.putIfAbsent(connection,
+                System.currentTimeMillis());        
         return prevValue == null;
     }
 
     /**
      * Decrease the number of open connections, which are being handled by the
-     * <tt>Pipeline</tt>
+     * <tt>ExecutorService</tt>
      *
      * @param channel just closed channel
      * @return <tt>true</tt>, if channel was removed from statics of open 
      * channels, <tt>false</tt> if channel is not in the statistics (probably
      * removed from statics earlier)
      */
-    public boolean decrementOpenConnectionsCount(SelectableChannel channel) {
-        Long prevValue = openConnections.remove(channel);
+    public boolean decrementOpenConnectionsCount(Connection connection) {
+        Long prevValue = openConnections.remove(connection);
         return prevValue != null;
     }
 
