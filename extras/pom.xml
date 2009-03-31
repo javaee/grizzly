@@ -14,6 +14,7 @@
     <name>grizzly-extra</name>
     <url>https://grizzly.dev.java.net</url>
     <modules>
+        <module>http-ajp</module>
         <module>hudson-on-grizzly</module>
         <module>cachetest</module>
         <module>cometd-client</module>
