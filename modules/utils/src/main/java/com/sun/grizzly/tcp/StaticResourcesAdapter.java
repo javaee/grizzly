@@ -252,8 +252,16 @@ public class StaticResourcesAdapter implements Adapter {
         ByteBuffer bb = HtmlHelper.getErrorPage("Not Found","HTTP/1.1 404 Not Found\r\n", "Grizzly");
         res.setContentLength(bb.limit());
         res.setContentType("text/html");
-        res.flushHeaders();        
-        res.getChannel().write(bb);
+        res.flushHeaders();
+        if (res.getChannel() != null) {
+            res.getChannel().write(bb);
+        } else {
+            byte b[] = new byte[bb.limit()];
+            bb.get(b);
+            ByteChunk chunk = new ByteChunk();
+            chunk.setBytes(b, 0, b.length);
+            res.doWrite(chunk);
+        }
         req.setNote(14, "SkipAfterService");
     }
 
