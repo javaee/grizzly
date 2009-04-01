@@ -782,7 +782,7 @@ public class InternalInputBuffer implements InputBuffer {
             } else {
                 Future f = inputStream.notifyAvailable(1);
                 try {
-                    f.wait(inputStream.getTimeout(TimeUnit.MILLISECONDS));
+                    f.get(inputStream.getTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
                 } catch (Exception e) {
                     e.printStackTrace();
                     return false;

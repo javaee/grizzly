@@ -99,6 +99,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import javax.management.ObjectName;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.ssl.SSLSupport;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
@@ -349,6 +350,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     protected AsyncHandler asyncHandler;
 
+    protected FilterChainContext filterChainContext;
     
     private Semaphore asyncSemaphore = new Semaphore(1);
     
@@ -552,7 +554,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         response.setConnection(input.getConnection());
         configPreProcess();
     }
-        
+
     
     /**
      * Prepare this object before parsing the request.
@@ -832,7 +834,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             // Only one thread can invoke that method. Since we cannot
             // control how Grizzly ARP extension handle their asynchronous
             // behavior, we must make sure we are never called twice.
-             if (asyncSemaphore.tryAcquire(0, TimeUnit.SECONDS)) {
+            if (asyncSemaphore.tryAcquire(0, TimeUnit.SECONDS)) {
                 // Nobody is listening, avoid extra operation.
                 if (getTaskListener() == null){
                     return;
@@ -1888,6 +1890,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     @Override
     public void recycle(){
         setTaskListener(null);
+        filterChainContext = null;
         connection = null;
         dropConnection = false;
     }
@@ -2224,6 +2227,14 @@ public class ProcessorTask extends TaskBase implements Processor,
         this.inputStream = inputStream;
     }
          
+    public StreamWriter getOutputStream(){
+        return outputStream;
+    }
+
+    public void setOutputStream(StreamWriter streamWriter) {
+        this.outputStream = streamWriter;
+    }
+
     
     /**
      * Set the flag to control upload time-outs.
@@ -2276,6 +2287,14 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public void setUseChunking(boolean useChunking) {
         this.useChunking = useChunking;
+    }
+
+    public FilterChainContext getFilterChainContext() {
+        return filterChainContext;
+    }
+
+    public void setFilterChainContext(FilterChainContext filterChainContext) {
+        this.filterChainContext = filterChainContext;
     }
 }
 

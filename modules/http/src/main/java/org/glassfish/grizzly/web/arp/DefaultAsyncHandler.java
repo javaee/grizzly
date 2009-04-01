@@ -136,7 +136,7 @@ public class DefaultAsyncHandler implements AsyncHandler{
         if (task instanceof ProcessorTask){
             AsyncTask apt = getAsyncProcessorTask();
             apt.setThreadPool(task.getThreadPool());
-            apt.getAsyncExecutor().setProcessorTask((ProcessorTask)task);
+            apt.getAsyncExecutor().setProcessorTask((ProcessorTask) task);
             apt.execute();
         } else {
             task.execute();

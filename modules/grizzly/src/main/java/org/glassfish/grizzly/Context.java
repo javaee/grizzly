@@ -60,6 +60,8 @@ public class Context implements PoolableObject {
     private AttributeHolder attributes;
     
     private ExecutorService processorExecutor;
+
+    private ProcessorRunnable processorRunnable;
     
     private final ObjectPool<Context> parentPool;
 
@@ -94,6 +96,14 @@ public class Context implements PoolableObject {
     public void setProcessorExecutor(
             ExecutorService processorExecutor) {
         this.processorExecutor = processorExecutor;
+    }
+
+    public ProcessorRunnable getProcessorRunnable() {
+        return processorRunnable;
+    }
+
+    public void setProcessorRunnable(ProcessorRunnable processorRunnable) {
+        this.processorRunnable = processorRunnable;
     }
 
     public Processor getProcessor() {

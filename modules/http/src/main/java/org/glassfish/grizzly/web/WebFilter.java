@@ -225,11 +225,6 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         this.memoryManager = memoryManager;
         
         jmxManager = new WebFilterJMXManager(this);
-
-        rampUpProcessorTasks();
-        registerComponents();
-
-        displayConfiguration();
     }
 
     @Override
@@ -318,7 +313,8 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             FilterChainContext context, Interceptor handler) {
         processorTask.setConnection(context.getConnection());
         processorTask.setHandler(handler);
-
+        processorTask.setFilterChainContext(context);
+        
         // If current StreamReader is SSL
         if (context.getStreamReader() instanceof SSLStreamReader) {
             // Find SSLFilter in executed filter list
@@ -328,6 +324,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
                     processorTask.setSSLSupport(sslFilter.createSSLSupport(
                             (SSLStreamReader) context.getStreamReader(),
                             (SSLStreamWriter) context.getStreamWriter()));
+                    break;
                 }
             }
         }
@@ -507,6 +504,11 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * and by initializing the server socket.
      */
     public void init() throws IOException, InstantiationException {
+        rampUpProcessorTasks();
+        registerComponents();
+
+        displayConfiguration();
+
         initMonitoringLevel();
         
         int processorTasksToInit;

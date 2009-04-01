@@ -49,7 +49,6 @@ import java.util.logging.Level;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ProcessorRunnable;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -222,7 +221,7 @@ public class ResourceAllocationFilter extends FilterAdapter {
 
         ctx.setProcessorExecutor(threadPool);
         ctx.setCurrentFilterIdx(ctx.getCurrentFilterIdx() + 1);
-        threadPool.execute(new ProcessorRunnable(ctx));
+        threadPool.execute(ctx.getProcessorRunnable());
         return new TerminateAction();
     }
 

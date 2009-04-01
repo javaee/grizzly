@@ -55,15 +55,26 @@ public class ProcessorRunnable implements Runnable {
     private Processor processor;
     private PostProcessor postProcessor;
 
+    private boolean isResumed;
+
     public ProcessorRunnable(Context context) {
         this.context = context;
     }
 
-    public ProcessorRunnable(IOEvent ioEvent, Connection connection, Processor processor, PostProcessor postProcessor) {
+    public ProcessorRunnable(IOEvent ioEvent, Connection connection,
+            Processor processor, PostProcessor postProcessor) {
         this.ioEvent = ioEvent;
         this.connection = connection;
         this.processor = processor;
         this.postProcessor = postProcessor;
+    }
+
+    public boolean isResumed() {
+        return isResumed;
+    }
+
+    public void setResumed(boolean isResumed) {
+        this.isResumed = isResumed;
     }
 
     public IOEvent getIoEvent() {
@@ -114,10 +125,16 @@ public class ProcessorRunnable implements Runnable {
             initFromContext();
         }
 
+        context.setProcessorRunnable(this);
+        
         ProcessorResult result = null;
 
         try {
-            processor.beforeProcess(context);
+            if (!isResumed) {
+                processor.beforeProcess(context);
+            }
+
+            isResumed = true;
 
             do {
                 result = processor.process(context);

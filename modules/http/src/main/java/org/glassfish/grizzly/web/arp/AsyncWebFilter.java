@@ -40,16 +40,20 @@ package org.glassfish.grizzly.web.arp;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.StopAction;
+import org.glassfish.grizzly.filterchain.TerminateAction;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.web.ProcessorTask;
 import org.glassfish.grizzly.web.TaskEvent;
 import org.glassfish.grizzly.web.TaskListener;
 import org.glassfish.grizzly.web.WebFilter;
+import org.glassfish.grizzly.web.WebFilterConfig;
 import org.glassfish.grizzly.web.container.util.Interceptor;
 
 /**
@@ -67,6 +71,26 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
      * will be delegated to the {@link AsyncHandler}
      */
     protected AsyncHandler asyncHandler;
+
+
+
+    public AsyncWebFilter(String name) {
+        super(name);
+    }
+
+    public AsyncWebFilter(String name, WebFilterConfig config) {
+        super(name, config);
+    }
+
+    public AsyncWebFilter(String name, WebFilterConfig config,
+            ExecutorService threadPool) {
+        super(name, config, threadPool);
+    }
+
+    public AsyncWebFilter(String name, WebFilterConfig config,
+            ExecutorService threadPool, MemoryManager memoryManager) {
+        super(name, config, threadPool, memoryManager);
+    }
 
     /**
      * Execute a unit of processing work to be performed. This ProtocolFilter
@@ -92,13 +116,12 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
                 return new StopAction();
             }
 
-            // Last filter.
-            return nextAction;
+            // Terminate further FilterChain execution on the current thread
+            return new TerminateAction();
         } else {
             return super.handleRead(ctx, nextAction);
         }
     }
-
 
     /**
      * Called when the Asynchronous Request Processing is resuming.
@@ -116,8 +139,19 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
             }
 
             if (processor.isKeepAlive() && !processor.isError()) {
+                // Resume FilterChain execution
                 connection.setIdleTime(Connection.UNLIMITED_IDLE_TIMEOUT,
                         TimeUnit.MILLISECONDS);
+                FilterChainContext context = processor.getFilterChainContext();
+                try {
+                    context.setCurrentFilterIdx(context.getCurrentFilterIdx() + 1);
+                    context.getProcessorRunnable().run();
+                } catch (Exception e) {
+                    try {
+                        connection.close();
+                    } catch (IOException ee) {
+                    }
+                }
             } else {
                 try {
                     connection.close();
@@ -143,6 +177,7 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
             processorTask.setEnableAsyncExecution(true);
             processorTask.setTaskListener(this);
             processorTask.setInputStream(context.getStreamReader());
+            processorTask.setOutputStream(context.getStreamWriter());
         } else {
             processorTask.setEnableAsyncExecution(false);
         }

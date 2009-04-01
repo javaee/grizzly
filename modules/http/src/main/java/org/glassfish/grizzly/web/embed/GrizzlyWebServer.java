@@ -393,7 +393,7 @@ public class GrizzlyWebServer {
     public GrizzlyWebServer(int port, String webResourcesPath, boolean secure) {
         this.port = port;
         this.webResourcesPath = webResourcesPath;
-        this.webFilter = new AsyncWebFilter();
+        this.webFilter = new AsyncWebFilter(Integer.toString(port));
         webFilter.setAsyncEnabled(false);
         this.transport = TransportFactory.getInstance().createTCPTransport();
     }
