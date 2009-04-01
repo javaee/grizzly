@@ -60,33 +60,14 @@ public interface AsyncTask extends Task{
      */
     public AsyncExecutor getAsyncExecutor();
     
-    
-    /**
-     * Return the <code>stage</code> of the current execution.
-     */
-    public int getStage();
-
-    
     /**
      * Set the {@link AsyncExecutor} used by this {@link Task}
      * to delegate the execution of a {@link ProcessorTask}.
      */
     public void setAsyncExecutor(AsyncExecutor asyncExecutor);
-
-    
-     /**
-     * Set the {@link ProcessorTask} used to execute the request processing.
-     * @param task a {@link ProcessorTask} 
-     * @deprecated - Use {@link AsyncExecutor#setProcessorTask}
-     */    
-    public void setProcessorTask(ProcessorTask task);
-    
     
     /**
-     * The {@link ProcessorTask} used to execute the request processing.
-     * @return {@link ProcessorTask} used to execute the request processing.
-     * @deprecated - Use {@link AsyncExecutor#getProcessorTask}
-     */        
-    public ProcessorTask getProcessorTask();   
-
+     * Return the <code>stage</code> of the current execution.
+     */
+    public int getStage();    
 }

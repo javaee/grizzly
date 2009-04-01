@@ -39,7 +39,6 @@
 package org.glassfish.grizzly.web.standalone;
 
 import org.glassfish.grizzly.web.Constants;
-import org.glassfish.grizzly.web.FileCacheFactory;
 import org.glassfish.grizzly.web.container.util.Interceptor;
 import org.glassfish.grizzly.web.FileCache;
 import java.io.IOException;

@@ -24,7 +24,6 @@
 package org.glassfish.grizzly.web.embed;
 
 import org.glassfish.grizzly.web.KeepAliveStats;
-import org.glassfish.grizzly.web.StatsThreadPool;
 import org.glassfish.grizzly.web.ThreadPoolStatistic;
 import org.glassfish.grizzly.web.WebFilter;
 import org.glassfish.grizzly.web.container.RequestGroupInfo;
@@ -78,8 +77,7 @@ public class Statistics {
      * about the current thread pool used by Grizzly.
      */
     public ThreadPoolStatistic getThreadPoolStatistics(){
-        return ((StatsThreadPool)webFilter.getThreadPool())
-                .getStatistic();
+        return webFilter.getThreadPoolStatistic();
     }
     
     
@@ -101,7 +99,7 @@ public class Statistics {
      * about all the requests made to Grizzly.
      */
     public RequestGroupInfo getRequestStatistics(){
-        return webFilter.getJmxManager().getGlobalRequestProcessor();
+        return webFilter.getRequestGroupInfo();
     }
     
     

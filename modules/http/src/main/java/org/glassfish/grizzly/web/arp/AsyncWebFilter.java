@@ -41,7 +41,9 @@ package org.glassfish.grizzly.web.arp;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.StopAction;
@@ -90,7 +92,8 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
             NextAction nextAction) throws IOException {
         HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());
 
-        setSelectionKeyTimeout(ctx.getSelectionKey(), Long.MAX_VALUE);
+        ctx.getConnection().setIdleTime(Connection.UNLIMITED_IDLE_TIMEOUT,
+                TimeUnit.MILLISECONDS);
 
         ProcessorTask processor = getProcessorTask(ctx);
         configureProcessorTask(processor, ctx, workerThread,
@@ -117,17 +120,19 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
                 || event.getStatus() == TaskEvent.ERROR){
             ProcessorTask processor = (ProcessorTask) event.attachement();
 
+            Connection connection = processor.getConnection();
             // Should never happens.
-            if (processor.getConnection() == null){
+            if (connection == null){
                 logger.log(Level.WARNING,"AsyncProtocolFilter invalid state.");
                 return;
             }
 
             if (processor.isKeepAlive() && !processor.isError()) {
-                setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
+                connection.setIdleTime(Connection.UNLIMITED_IDLE_TIMEOUT,
+                        TimeUnit.MILLISECONDS);
             } else {
                 try {
-                    processor.getConnection().close();
+                    connection.close();
                 } catch (IOException e) {
                 }
             }
@@ -147,24 +152,6 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
         processorTask.setTaskListener(this);
         processorTask.setInputStream(inputStream);
         processorTask.setHandler(handler);
-    }
-
-    /**
-     * Is {@link ProtocolFilter} secured
-     * @return is {@link ProtocolFilter} secured
-     */
-    protected boolean isSecure() {
-        return false;
-    }
-
-    private void setSelectionKeyTimeout(SelectionKey selectionKey,
-            long timeout) {
-        Object attachment = selectionKey.attachment();
-        if (attachment == null){
-            selectionKey.attach(timeout);
-        } else if (attachment instanceof SelectionKeyAttachment) {
-            ((SelectionKeyAttachment) attachment).setTimeout(timeout);
-        }
     }
 
     @Override

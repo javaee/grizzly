@@ -93,7 +93,6 @@ import org.glassfish.grizzly.web.container.util.buf.HexUtils;
 import org.glassfish.grizzly.web.container.util.buf.MessageBytes;
 import org.glassfish.grizzly.web.container.util.http.FastHttpDateFormat;
 import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
-import org.glassfish.grizzly.web.container.util.net.SSLSupport;
 
 import org.glassfish.grizzly.web.container.util.res.StringManager;
 import java.util.StringTokenizer;
@@ -101,11 +100,13 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import javax.management.ObjectName;
-import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.ssl.SSLSupport;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 import org.glassfish.grizzly.threadpool.WorkerThread;
+import org.glassfish.grizzly.web.container.SuspendedResponse;
+import org.glassfish.grizzly.web.ssl.SSLAttributes;
 
 /**
  * Process HTTP request. This class is based on
@@ -650,14 +651,11 @@ public class ProcessorTask extends TaskBase implements Processor,
     public void postResponse() throws Exception{
         
         // Do not commit the response;
-        if (response.isSuspended()){
-            WorkerThread wt = (WorkerThread)Thread.currentThread();
-            wt.getAttachment().setAttribute("suspend",Boolean.TRUE);
-
-            ((SelectorThreadKeyHandler) selectorHandler.
-                    getSelectionKeyHandler()).resetExpiration();
-            key.attach(response.getResponseAttachment());
-             
+        if (response.isSuspended()) {
+            SuspendedResponse.SuspendedResponseAttr.set(connection,
+                    response.getSuspendedResponse());
+//            ((SelectorThreadKeyHandler) selectorHandler.
+//                    getSelectionKeyHandler()).resetExpiration();
             return;
         }        
         
@@ -991,19 +989,19 @@ public class ProcessorTask extends TaskBase implements Processor,
                     Object sslO = sslSupport.getCipherSuite();
                     if (sslO != null)
                         request.setAttribute
-                            (SSLSupport.CIPHER_SUITE_KEY, sslO);
+                            (SSLAttributes.CIPHER_SUITE_KEY, sslO);
                     sslO = sslSupport.getPeerCertificateChain(false);
                     if (sslO != null)
                         request.setAttribute
-                            (SSLSupport.CERTIFICATE_KEY, sslO);
+                            (SSLAttributes.CERTIFICATE_KEY, sslO);
                     sslO = sslSupport.getKeySize();
                     if (sslO != null)
                         request.setAttribute
-                            (SSLSupport.KEY_SIZE_KEY, sslO);
+                            (SSLAttributes.KEY_SIZE_KEY, sslO);
                     sslO = sslSupport.getSessionId();
                     if (sslO != null)
                         request.setAttribute
-                            (SSLSupport.SESSION_ID_KEY, sslO);
+                            (SSLAttributes.SESSION_ID_KEY, sslO);
                 }
             } catch (Exception e) {
                 logger.log(Level.WARNING,
@@ -1084,7 +1082,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                     Object sslO = sslSupport.getPeerCertificateChain(true);
                     if( sslO != null) {
                         request.setAttribute
-                            (SSLSupport.CERTIFICATE_KEY, sslO);
+                            (SSLAttributes.CERTIFICATE_KEY, sslO);
                     }
                 } catch (Exception e) {
                     logger.log(Level.WARNING,
@@ -1102,13 +1100,13 @@ public class ProcessorTask extends TaskBase implements Processor,
                 }
             }   
         } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) { 
-            key.attach(null);
+            SuspendedResponse.SuspendedResponseAttr.remove(connection);
         } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
-            if (key.attachment() instanceof Response.ResponseAttachment){
-                Response.ResponseAttachment ra = ((Response.ResponseAttachment)key.attachment());
-                if (ra != null){
-                    ra.resetTimeout();
-                }
+            SuspendedResponse suspendedResponse =
+                    SuspendedResponse.SuspendedResponseAttr.get(connection);
+
+            if (suspendedResponse != null) {
+                suspendedResponse.resetTimeout();
             }
         } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) { 
             if (connection != null) {

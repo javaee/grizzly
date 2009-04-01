@@ -1,9 +1,8 @@
 /*
- * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
+ * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +10,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +19,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -34,63 +33,53 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  *
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ * Copyright 2004 The Apache Software Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-package org.glassfish.grizzly.web.standalone;
-
-import org.glassfish.grizzly.web.container.util.Interceptor;
-import com.sun.grizzly.http.algorithms.StreamAlgorithmBase;
-import java.nio.ByteBuffer;
+package org.glassfish.grizzly.web.ssl;
 
 /**
- * This algorithm doesn't parse the bytes, delegating the work to the 
- * InternalInputBuffer.
- *
- * @author Jeanfrancois Arcand
+ * Taken from:
+ * 
+ * SSLSupport
+ * Interface for SSL-specific functions
+ * @author EKR
  */
-public class StaticStreamAlgorithm extends StreamAlgorithmBase{
+public final class SSLAttributes {
+    /**
+     * The Request attribute key for the cipher suite.
+     */
+    public static final String CIPHER_SUITE_KEY = "javax.servlet.request.cipher_suite";
 
-    
-    public StaticStreamAlgorithm() {
-        handler = new StaticHandler();
-    }
-    
-    
     /**
-     * Do nothing, as the ByteBufferInputStream will take care of reading the 
-     * missing bytes.
+     * The Request attribute key for the key size.
      */
-    @Override
-    public ByteBuffer preParse(ByteBuffer byteBuffer){ 
-        return byteBuffer;
-    }
-    
-    
+    public static final String KEY_SIZE_KEY = "javax.servlet.request.key_size";
+
     /**
-     * Do not parse the bytes and automatically flip the {@link ByteBuffer}
+     * The Request attribute key for the client certificate chain.
      */
-    public boolean parse(ByteBuffer byteBuffer){
-        byteBuffer.flip();
-        return true;
-    }
-    
-    
+    public static final String CERTIFICATE_KEY = "javax.servlet.request.X509Certificate";
+
     /**
-     * Return the {@link Interceptor} used by this algorithm.
+     * The Request attribute key for the session id.
+     * This one is a Tomcat extension to the Servlet spec.
      */
-    public Interceptor getHandler(){
-        return handler;
-    }
-    
-    
-    /***
-     * Recycle this object.
-     */
-    @Override
-    public void recycle(){
-        socketChannel = null;
-        if ( handler != null){
-            handler.attachChannel(null);
-        }
-    }    
+    public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session";
 }

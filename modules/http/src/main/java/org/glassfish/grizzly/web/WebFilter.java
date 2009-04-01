@@ -223,7 +223,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         
         jmxManager = new WebFilterJMXManager(this);
 
-        rampUpProcessorTask();
+        rampUpProcessorTasks();
         registerComponents();
 
         displayConfiguration();
@@ -333,14 +333,6 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         }
     }
 
-    /**
-     * Is {@link ProtocolFilter} secured
-     * @return is {@link ProtocolFilter} secured
-     */
-    protected boolean isSecure() {
-        return false;
-    }
-
 
     public String getName() {
         return name;
@@ -420,6 +412,10 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         this.threadPool = threadPool;
     }
 
+    public ThreadPoolStatistic getThreadPoolStatistic() {
+        return threadPoolStat;
+    }
+
     /**
      * Injects {@link ThreadPoolStatistic} into every
      * {@link ExecutorService}, for monitoring purposes.
@@ -447,7 +443,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     /**
      * Create a pool of {@link ProcessorTask}
      */
-    protected void initProcessorTask(int size){
+    protected void initProcessorTasks(int size){
         for (int i=0; i < size; i++){           
             processorTasks.offer(newProcessorTask(false));
         }
@@ -457,7 +453,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     /**
      * Initialize {@link ProcessorTask}
      */
-    protected void rampUpProcessorTask(){
+    protected void rampUpProcessorTasks(){
         Iterator<ProcessorTask> iterator = processorTasks.iterator();
         while (iterator.hasNext()) {
             iterator.next().initialize();
@@ -472,14 +468,14 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     protected ProcessorTask newProcessorTask(boolean initialize){                                                      
         ProcessorTask task = 
                 new ProcessorTask(initialize, config.isBufferResponse());
-        return configureProcessorTask(task);       
+        return initializeProcessorTask(task);
     }
     
     
-    protected ProcessorTask configureProcessorTask(ProcessorTask task) {
+    protected ProcessorTask initializeProcessorTask(ProcessorTask task) {
         task.setAdapter(adapter);
         task.setWebFilter(this);
-        return config.configureProcessorTask(task);
+        return config.initializeProcessorTask(task);
     }
 
  
@@ -521,7 +517,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             processorTasksToInit = 5;
         }
         
-        initProcessorTask(processorTasksToInit);
+        initProcessorTasks(processorTasksToInit);
 
         if (adapter instanceof GrizzlyAdapter){
             ((GrizzlyAdapter)adapter).start();

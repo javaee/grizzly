@@ -65,15 +65,11 @@ public class SSLResourcesAccessor {
             "SSLOutputBufferAttr";
     public static final String SSL_APP_BUFFER_NAME = "SSLPlainBufferAttr";
     
-    private static volatile SSLResourcesAccessor instance =
+    private static final SSLResourcesAccessor instance =
             new SSLResourcesAccessor().initializeAttributes();
 
     public static SSLResourcesAccessor getInstance() {
         return instance;
-    }
-
-    public static void setInstance(SSLResourcesAccessor instance) {
-        SSLResourcesAccessor.instance = instance;
     }
 
     public Attribute<SSLEngine> sslEngineAttribute;

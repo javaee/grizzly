@@ -175,7 +175,7 @@ public class WebFilterConfig {
 
 
     // ---------------- Configure ProcessorTask -----------------------
-    public ProcessorTask configureProcessorTask(ProcessorTask task) {
+    public ProcessorTask initializeProcessorTask(ProcessorTask task) {
         task.setMaxHttpHeaderSize(maxHttpHeaderSize);
         task.setBufferSize(requestBufferSize);
         task.setDefaultResponseType(defaultResponseType);
@@ -187,12 +187,12 @@ public class WebFilterConfig {
         task.setTransactionTimeout(transactionTimeout);
         task.setUseChunking(useChunking);
 
-        configureCompression(task);
+        initializeCompression(task);
 
         return task;
     }
 
-    public void configureCompression(ProcessorTask processorTask){
+    public void initializeCompression(ProcessorTask processorTask){
         processorTask.addNoCompressionUserAgent(noCompressionUserAgents);
         parseComressableMimeTypes();
         processorTask.setCompressableMimeTypes(parsedCompressableMimeTypes);

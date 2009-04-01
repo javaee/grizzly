@@ -71,7 +71,7 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
     
     public SSLFilter(SSLEngineConfigurator sslEngineConfigurator) {
         this(sslEngineConfigurator, null);
-    }
+        }
 
     public SSLFilter(SSLEngineConfigurator sslEngineConfigurator,
             SSLHandshaker sslHandshaker) {
@@ -178,5 +178,12 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
 
     public StreamWriter getStreamWriter(StreamWriter parentStreamWriter) {
         return new SSLStreamWriter(parentStreamWriter);
+    }
+
+    public SSLSupport createSSLSupport(
+            SSLStreamReader reader, SSLStreamWriter writer) {
+
+        return new SSLSupportImpl(
+                sslEngineConfigurator, sslHandshaker, reader, writer);
     }
 }

@@ -58,7 +58,6 @@ package org.glassfish.grizzly.web.container.http11;
 import org.glassfish.grizzly.web.container.CompletionHandler;
 import org.glassfish.grizzly.web.container.Response;
 import org.glassfish.grizzly.web.container.ResponseFilter;
-import org.glassfish.grizzly.web.container.util.LoggerUtils;
 import org.glassfish.grizzly.web.container.util.buf.CharChunk;
 import org.glassfish.grizzly.web.container.util.buf.MessageBytes;
 import org.glassfish.grizzly.web.container.util.buf.UEncoder;
@@ -83,7 +82,7 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Vector;
-import java.util.logging.Level;
+import org.glassfish.grizzly.web.container.OutputBuffer;
 
 /**
  * Wrapper object for the Coyote response.
@@ -577,7 +576,6 @@ public class GrizzlyResponse<A> {
         try {
             outputBuffer.close();
         } catch(IOException e) {
-	    ;
         } catch(Throwable t) {
         }
     }
@@ -1726,7 +1724,7 @@ public class GrizzlyResponse<A> {
     public void suspend(long timeout,A attachment, CompletionHandler<? super A> competionHandler){
         checkResponse();
         response.suspend(timeout, attachment, competionHandler, 
-                new GrizzlyResponseAttachment(timeout, attachment, competionHandler, this));
+                new GrizzlySuspendedResponse(timeout, attachment, competionHandler, this));
     }
     
     
@@ -1740,44 +1738,6 @@ public class GrizzlyResponse<A> {
         }
     }
     
-    private static class GrizzlyResponseAttachment<A> extends Response.ResponseAttachment{
-        private Long expiration;
-        private GrizzlyResponse gres;
-        
-        public GrizzlyResponseAttachment(Long timeout,A attachment,
-                CompletionHandler<? super A> completionHandler, GrizzlyResponse gres){
-            super(timeout, attachment, completionHandler, gres.getResponse());
-            this.gres = gres;
-        }
-        
-        @Override
-        public void resume(){
-            getCompletionHandler().resumed(getAttachment());
-            try{
-                gres.finishResponse();
-            } catch (IOException ex){
-                LoggerUtils.getLogger().log(Level.FINEST,"resume",ex);
-            }
-        }
-        
-        @Override
-        public void timeout(boolean forceClose){
-            // If the buffers are empty, commit the response header
-            try{                             
-                getCompletionHandler().cancelled(getAttachment());   
-            } finally {
-                if (forceClose &&!gres.isCommitted()){
-                    try{
-                        gres.finishResponse();
-                    } catch (IOException ex){
-                        // Swallow?
-                    }
-                }
-            }
-        }
-        
-    }
-
     /**
      * Add a {@link ResponseFilter}, which will be called every bytes are
      * ready to be written.

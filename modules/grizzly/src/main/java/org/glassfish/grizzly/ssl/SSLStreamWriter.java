@@ -52,23 +52,13 @@ import org.glassfish.grizzly.streams.StreamWriterDecorator;
  */
 public class SSLStreamWriter extends StreamWriterDecorator {
 
-    protected SSLEngineConfigurator engineConfigurator;
-
     public SSLStreamWriter() {
         this(null);
     }
 
     public SSLStreamWriter(StreamWriter underlyingWriter) {
-        this(underlyingWriter, new SSLEngineConfigurator(
-                SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(), true,
-                false, false));
-    }
-
-    public SSLStreamWriter(StreamWriter underlyingWriter,
-            SSLEngineConfigurator engineConfigurator) {
         super(underlyingWriter);
         setUnderlyingWriter(underlyingWriter);
-        this.engineConfigurator = engineConfigurator;
     }
 
     @Override
@@ -81,15 +71,6 @@ public class SSLStreamWriter extends StreamWriterDecorator {
             throw new IllegalStateException(e);
         }
     }
-
-    public SSLEngineConfigurator getEngineConfigurator() {
-        return engineConfigurator;
-    }
-
-    public void setEngineConfigurator(SSLEngineConfigurator engineConfigurator) {
-        this.engineConfigurator = engineConfigurator;
-    }
-
 
     public SSLEngine getSSLEngine() {
         SSLResourcesAccessor resourceAccessor =

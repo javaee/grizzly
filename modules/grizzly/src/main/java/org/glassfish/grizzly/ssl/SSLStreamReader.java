@@ -131,6 +131,9 @@ public class SSLStreamReader extends StreamReaderDecorator {
     }
 
 
+    /**
+     * Attach state, saved in {@link Connection} to this {@link SSLStreamReader}.
+     */
     protected void attach() {
         Connection connection = getConnection();
         if (connection == null || connection.getAttributes() == null) {
@@ -145,6 +148,9 @@ public class SSLStreamReader extends StreamReaderDecorator {
         }
     }
 
+    /**
+     * Save state of this {@link SSLStreamReader} into {@link Connection}.
+     */
     protected void detach() {
         if (buffers != null && !buffers.isEmpty()) {
             sslAttribute.set(getConnection().obtainAttributes(), buffers);

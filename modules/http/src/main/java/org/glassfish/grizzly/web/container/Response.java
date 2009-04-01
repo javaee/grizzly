@@ -181,8 +181,8 @@ public class Response<A> {
     // Is the request suspended.
     private boolean isSuspended = false;
     
-    // The ResponseAttachment associated with this response.    
-    private ResponseAttachment ra;
+    // The SuspendedResponse associated with this response.
+    private SuspendedResponse ra;
     
     
     // ------------------------------------------------------------- Properties
@@ -824,7 +824,7 @@ public class Response<A> {
      */     
     public void suspend(long timeout,A attachment, 
             CompletionHandler<? super A> competionHandler){  
-        ra = new ResponseAttachment(timeout,attachment, competionHandler,this);
+        ra = new SuspendedResponse(timeout,attachment, competionHandler,this);
         suspend(timeout, attachment, competionHandler, ra);
     }
     
@@ -851,7 +851,7 @@ public class Response<A> {
      * @param ra {@link ResourceAttachment} used to times out idle connection.
      */     
     public void suspend(long timeout,A attachment,
-            CompletionHandler<? super A> competionHandler, ResponseAttachment<A> ra){
+            CompletionHandler<? super A> competionHandler, SuspendedResponse<A> ra){
         if (isSuspended){
             throw new IllegalStateException("Already Suspended");
         }   
@@ -875,7 +875,7 @@ public class Response<A> {
                 }
                 
             };
-            ra.completionHandler = competionHandler;
+            ra.setCompletionHandler(competionHandler);
         }
         
         this.ra = ra;
@@ -887,80 +887,8 @@ public class Response<A> {
      * null if the {@link Response.isSuspended()} return false.
      * @return
      */
-    public ResponseAttachment getResponseAttachment(){
+    public SuspendedResponse getSuspendedResponse(){
         return ra;
-    }
-    
-    
-    public static class ResponseAttachment<A>{
-        
-        private A attachment;
-        private CompletionHandler<? super A> completionHandler;
-        private Long timeout;
-        private Long expiration;
-        private Response response;
-        
-        public ResponseAttachment(Long timeout,A attachment,
-                CompletionHandler<? super A> completionHandler, Response response){
-            this.timeout = timeout;
-            this.attachment = attachment;
-            this.completionHandler = completionHandler;
-            this.response = response;
-            
-            resetTimeout();
-        }
-
-        public A getAttachment() {
-            return attachment;
-        }
-
-
-        public CompletionHandler<? super A> getCompletionHandler() {
-            return completionHandler;
-        }
-
-        public void resetTimeout(){
-            expiration = System.currentTimeMillis() + timeout;
-        }
-        
-        
-        public Long getExpirationTime() {
-            return expiration;
-        }
-        
-        
-        public void resume(){
-            completionHandler.resumed(attachment);
-            try{
-                response.sendHeaders();
-                response.flush();
-                response.finish();
-            } catch (IOException ex){
-                LoggerUtils.getLogger().log(Level.FINEST,"resume",ex);
-            }
-        }
-        
-        
-        public void timeout(){
-            timeout(true);
-        }
-        
-        public void timeout(boolean forceClose){
-            // If the buffers are empty, commit the response header
-            try{                             
-                completionHandler.cancelled(attachment);   
-            } finally {
-                if (forceClose &&!response.isCommitted()){
-                    try{
-                        response.sendHeaders();
-                        response.flush();
-                        response.finish();
-                    } catch (IOException ex){
-                        // Swallow?
-                    }
-                }
-            }
-        }        
     }
     
         

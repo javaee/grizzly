@@ -150,26 +150,4 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     public void setStage(int stage) {
         this.stage = stage;
     }
-    
-    
-    /**
-     * Set the {@link ProcessorTask} used to execute the request processing.
-     * @param task a {@link ProcessorTask} 
-     * @deprecated - Use {@link AsyncExecutor#setProcessorTask}
-     */    
-    public void setProcessorTask(ProcessorTask task){
-        // Do nothing
-    }
-    
-    
-    /**
-     * The {@link ProcessorTask} used to execute the request processing.
-     * @return {@link ProcessorTask} used to execute the request processing.
-     * @deprecated - Use {@link AsyncExecutor#getProcessorTask}
-     */        
-    public ProcessorTask getProcessorTask(){
-        return (asyncExecutor == null ? null : asyncExecutor.getProcessorTask());
-        
-    }
-
 }

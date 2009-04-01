@@ -115,6 +115,10 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
         }
     }
 
+    /**
+     * Pulls data out from underlying {@link StreamReader} chain into this
+     * {@link StreamReader}
+     */
     public void pull() {
         if (underlyingReader == null) return;
         if (underlyingReader instanceof StreamReaderDecorator) {
