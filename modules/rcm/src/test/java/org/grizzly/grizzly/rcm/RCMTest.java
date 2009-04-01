@@ -44,6 +44,7 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferManager;
 import org.glassfish.grizzly.memory.MemoryUtils;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 
 /**
@@ -93,12 +94,12 @@ public class RCMTest extends TestCase {
             public NextAction handleRead(FilterChainContext ctx,
                     NextAction nextAction) throws IOException {
                 try {
-                    InputStream inputStream = (InputStream) ctx.getStreamReader();
+                    StreamReader streamReader = ctx.getStreamReader();
                     ByteBufferManager memoryManager = (ByteBufferManager)
                             ctx.getConnection().getTransport().getMemoryManager();
 
-                    byte[] requestBytes = new byte[8192];
-                    inputStream.read(requestBytes);
+                    byte[] requestBytes = new byte[streamReader.availableDataSize()];
+                    streamReader.readByteArray(requestBytes);
 
                     reponseBuffer.clear();
                     reponseBuffer.put("HTTP/1.1 200 OK\r\n");
