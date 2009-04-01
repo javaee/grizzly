@@ -64,7 +64,7 @@ import org.glassfish.grizzly.web.container.util.res.StringManager;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
+import org.glassfish.grizzly.streams.StreamReader;
 
 public class InternalInputBuffer implements InputBuffer {
 
@@ -77,7 +77,6 @@ public class InternalInputBuffer implements InputBuffer {
      * Void constructor.
      */
     public InternalInputBuffer() {
-       ;
     }
 
     /**
@@ -173,7 +172,7 @@ public class InternalInputBuffer implements InputBuffer {
     /**
      * Underlying input stream.
      */
-    protected InputStream inputStream;
+    protected StreamReader inputStream;
 
 
     /**
@@ -219,7 +218,7 @@ public class InternalInputBuffer implements InputBuffer {
     /**
      * Set the underlying socket input stream.
      */
-    public void setInputStream(InputStream inputStream) {
+    public void setInputStream(StreamReader inputStream) {
         this.inputStream = inputStream;
     }
 
@@ -227,7 +226,7 @@ public class InternalInputBuffer implements InputBuffer {
     /**
      * Get the underlying socket input stream.
      */
-    public InputStream getInputStream() {
+    public StreamReader getInputStream() {
         return inputStream;
     }
 
@@ -744,8 +743,10 @@ public class InternalInputBuffer implements InputBuffer {
                     (sm.getString("iib.requestheadertoolarge.error"));
             }
 
-            nRead = inputStream.read(buf, pos, buf.length - lastValid);
+            nRead = Math.min(inputStream.availableDataSize(),
+                    buf.length - lastValid);
             if (nRead > 0) {
+                inputStream.readByteArray(buf, pos, nRead);
                 lastValid = pos + nRead;
             }
 
@@ -760,8 +761,9 @@ public class InternalInputBuffer implements InputBuffer {
             }
             pos = end;
             lastValid = pos;
-            nRead = inputStream.read(buf, pos, buf.length - lastValid);
+            nRead = Math.min(inputStream.availableDataSize(), buf.length - lastValid);
             if (nRead > 0) {
+                inputStream.readByteArray(buf, pos, nRead);
                 lastValid = pos + nRead;
             }
 

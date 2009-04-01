@@ -54,7 +54,7 @@ import java.util.logging.Level;
  * every time a new HTTP requests is ready to be handled. Requests are mapped
  * to their associated {@link GrizzlyAdapter} at runtime using the mapping
  * information configured when invoking the {@link GrizzlyAdapterChain#addGrizzlyAdapter
- * (com.sun.grizzly.tcp.http11.GrizzlyAdapter, java.lang.String[])
+ * (org.glassfish.grizzly.web.container.http11.GrizzlyAdapter, java.lang.String[])
  *
  * Below is a simple example using two {@link Servlet}
  * <pre><code>
@@ -207,7 +207,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
     /**
      * Add a {@link GrizzlyAdapter} to the chain.
      * @param {@link GrizzlyAdapter} to the chain.
-     * @deprecated - uses {@link GrizzlyAdapterChain#addGrizzlyAdapter(com.sun.grizzly.tcp.http11.GrizzlyAdapter, java.lang.String[])}
+     * @deprecated - uses {@link GrizzlyAdapterChain#addGrizzlyAdapter(org.glassfish.grizzly.web.container.http11.GrizzlyAdapter, java.lang.String[])}
      */
     public void addGrizzlyAdapter(GrizzlyAdapter adapter){
         oldMappingAlgorithm = true;

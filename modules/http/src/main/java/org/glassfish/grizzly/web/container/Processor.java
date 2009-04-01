@@ -55,8 +55,8 @@
  
 package org.glassfish.grizzly.web.container;
 
-import java.io.InputStream;
-import java.io.OutputStream;
+import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.streams.StreamWriter;
 
 
 /**
@@ -73,8 +73,8 @@ public interface Processor {
     public Adapter getAdapter();
 
 
-    //  public void process(InputStream input, OutputStream output)
-    public boolean process(InputStream input, OutputStream output)
+    //  public void process(StreamReader input, StreamWriter output)
+    public boolean process(StreamReader input, StreamWriter output)
         throws Exception;
 
 

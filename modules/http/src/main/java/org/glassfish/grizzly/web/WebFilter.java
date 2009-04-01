@@ -43,7 +43,6 @@ import java.util.logging.Logger;
 import java.util.logging.Level;
 
 import java.io.File;
-import java.io.InputStream;
 import javax.management.ObjectName;
 import javax.management.MBeanServer;
 import javax.management.MBeanRegistration;
@@ -236,16 +235,9 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     @Override
     public NextAction handleRead(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
-        HttpWorkerThread workerThread =
-                ((HttpWorkerThread) Thread.currentThread());
-
         boolean keepAlive = false;
 
-        ProcessorTask processorTask = workerThread.getProcessorTask();
-        if (processorTask == null) {
-            processorTask = getProcessorTask(ctx);
-            workerThread.setProcessorTask(processorTask);
-        }
+        ProcessorTask processorTask = getProcessorTask(ctx);
 
         Connection connection = ctx.getConnection();
         Integer keepAliveCounter = keepAliveCounterAttr.get(connection);
@@ -265,12 +257,11 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             keepAliveStats.incrementCountHits();
         }
 
-        configureProcessorTask(processorTask, ctx, workerThread,
-                interceptor);
+        configureProcessorTask(processorTask, ctx, interceptor);
 
-        InputStream inputStream = (InputStream) ctx.getStreamReader();
         try {
-            keepAlive = processorTask.process(inputStream, null);
+            keepAlive = processorTask.process(ctx.getStreamReader(),
+                    ctx.getStreamWriter());
         } catch (Throwable ex) {
             logger.log(Level.INFO, "ProcessorTask exception", ex);
             keepAlive = false;
@@ -278,10 +269,6 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
 
         Boolean isSuspend = isSuspendAttr.get(connection);
         if (isSuspend){
-            // Detatch anything associated with the Thread.
-            workerThread.setStreamReader(null);
-            workerThread.setProcessorTask(null);
-
             return nextAction;
         }
 
@@ -328,8 +315,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * Configure {@link ProcessorTask}.
      */
     protected void configureProcessorTask(ProcessorTask processorTask,
-            FilterChainContext context, HttpWorkerThread workerThread,
-            Interceptor handler) {
+            FilterChainContext context, Interceptor handler) {
         processorTask.setConnection(context.getConnection());
         processorTask.setHandler(handler);
 
@@ -534,7 +520,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         initProcessorTasks(processorTasksToInit);
 
         if (adapter instanceof GrizzlyAdapter){
-            ((GrizzlyAdapter)adapter).start();
+            ((GrizzlyAdapter) adapter).start();
         }
     }
     

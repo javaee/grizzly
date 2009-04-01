@@ -70,7 +70,7 @@ public final class Constants {
     /**
      * Package name.
      */
-    public static final String Package = "com.sun.grizzly.tcp.http11";
+    public static final String Package = "org.glassfish.grizzly.web.container.http11";
 
     public static final int DEFAULT_CONNECTION_LINGER = -1;
     public static final int DEFAULT_CONNECTION_TIMEOUT = 60000;

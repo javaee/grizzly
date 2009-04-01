@@ -37,12 +37,6 @@
  */
 package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.ControllerStateListenerAdapter;
-import org.glassfish.grizzly.web.utils.SelectorThreadUtils;
-import org.glassfish.grizzly.web.container.CompletionHandler;
-import org.glassfish.grizzly.web.container.Request;
-import org.glassfish.grizzly.web.container.Response;
-import org.glassfish.grizzly.web.container.StaticResourcesAdapter;
 import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
 import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
 import org.glassfish.grizzly.web.container.http11.GrizzlyResponse;
@@ -54,13 +48,12 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.ProtocolException;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
  * Basic {@link SelectoThread} test.
@@ -71,56 +64,15 @@ public class BasicSelectorThreadTest extends TestCase {
 
     public static final int PORT = 18890;
     private static Logger logger = Logger.getLogger("grizzly.test");
-    private SelectorThread st;
+    private TCPNIOTransport transport;
+    private WebFilter webFilter;
 
-    public void createSelectorThread() {
-        st = new SelectorThread() {
-
-            /**
-             * Start the SelectorThread using its own thread and don't block the Thread.
-             *  This method should be used when Grizzly is embedded.
-             */
-            @Override
-            public void listen() throws IOException, InstantiationException {
-                initEndpoint();
-                final CountDownLatch latch = new CountDownLatch(1);
-                controller.addStateListener(new ControllerStateListenerAdapter() {
-
-                    @Override
-                    public void onReady() {
-                        enableMonitoring();
-                        latch.countDown();
-                    }
-
-                    @Override
-                    public void onException(Throwable e) {
-                        if (latch.getCount() > 0) {
-                            logger().log(Level.SEVERE, "Exception during " +
-                                    "starting the controller", e);
-                            latch.countDown();
-                        } else {
-                            logger().log(Level.SEVERE, "Exception during " +
-                                    "controller processing", e);
-                        }
-                    }
-                });
-
-                super.start();
-
-                try {
-                    latch.await();
-                } catch (InterruptedException ex) {
-                }
-
-                if (!controller.isStarted()) {
-                    throw new IllegalStateException("Controller is not started!");
-                }
-            }
-        };
-
-        st.setPort(PORT);
-        st.setDisplayConfiguration(true);
-
+    public void initTransport() throws IOException {
+        transport = TransportFactory.getInstance().createTCPTransport();
+        webFilter = new WebFilter(Integer.toString(PORT));
+        webFilter.getConfig().setDisplayConfiguration(true);
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(webFilter);
     }
 
 
@@ -130,12 +82,14 @@ public class BasicSelectorThreadTest extends TestCase {
         final String testString = "HelloWorld";
         final byte[] testData = testString.getBytes();
         try {
-            createSelectorThread();
-            st.setAdapter(new HelloWorldAdapter());
+            initTransport();
+            webFilter.setAdapter(new HelloWorldAdapter());
 
             try {
-                st.listen();
-                st.enableMonitoring();
+                webFilter.init();
+                webFilter.enableMonitoring();
+                transport.bind(PORT);
+                transport.start();
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -144,8 +98,8 @@ public class BasicSelectorThreadTest extends TestCase {
 
 
         } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
+            transport.stop();
+            TransportFactory.getInstance().close();
         }
     }
 

@@ -57,9 +57,7 @@ package org.glassfish.grizzly.web;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.web.arp.AsyncHandler;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InterruptedIOException;
-import java.io.OutputStream;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
@@ -110,7 +108,7 @@ import org.glassfish.grizzly.web.ssl.SSLAttributes;
 
 /**
  * Process HTTP request. This class is based on
- * <code>com.sun.grizzly.tcp.http11.Http11Processor</code>
+ * <code>org.glassfish.grizzly.web.container.http11.Http11Processor</code>
  *
  * @author Jean-Francois Arcand
  */
@@ -153,13 +151,13 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * Input Stream.
      */
-    protected InputStream inputStream = null;
+    protected StreamReader inputStream = null;
     
     
     /**
      * Output Stream.
      */
-    protected OutputStream outputStream = null;
+    protected StreamWriter outputStream = null;
 
     
     /**
@@ -510,7 +508,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Execute the HTTP request by parsing the header/body,
      * and then by delegating the process to the Catalina container.
      */
-    public void doTask() throws IOException{
+    public void doTask() throws IOException {
         try {
             process(inputStream,
                     outputStream);
@@ -539,22 +537,20 @@ public class ProcessorTask extends TaskBase implements Processor,
      * @param input the InputStream to read bytes
      * @param output the OutputStream to write bytes
      */     
-    public void preProcess(InputStream input, OutputStream output)
+    public void preProcess(StreamReader input, StreamWriter output)
                                                             throws Exception {
         
         // Make sure this object has been initialized.
         if ( !started ){
             initialize();
         }
-        StreamReader streamReader = (StreamReader) input;
-        StreamWriter streamWriter = (StreamWriter) output;
         // Setting up the I/O
         inputBuffer.setInputStream(input);
         inputStream = input;
+        outputBuffer.setStreamWriter(output);
         outputBuffer.setAsyncHttpWriteEnabled(
                 isAsyncHttpWriteEnabled);
-        outputBuffer.setStreamWriter(streamWriter);
-        response.setConnection(streamReader.getConnection());
+        response.setConnection(input.getConnection());
         configPreProcess();
     }
         
@@ -876,7 +872,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * @return true if the connection needs to be keep-alived.
      * @throws Exception error during an I/O operation
      */
-    public boolean process(InputStream input, OutputStream output)
+    public boolean process(StreamReader input, StreamWriter output)
             throws Exception {
                 
         preProcess(input,output);    
@@ -2221,11 +2217,11 @@ public class ProcessorTask extends TaskBase implements Processor,
     }
 
     
-    public InputStream getInputStream(){
+    public StreamReader getInputStream(){
         return inputStream;
     }
     
-    public void setInputStream(InputStream inputStream){
+    public void setInputStream(StreamReader inputStream){
         this.inputStream = inputStream;
     }
          

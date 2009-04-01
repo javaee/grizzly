@@ -1734,7 +1734,7 @@ public class GrizzlyResponse<A> {
     void checkResponse(){
         if (response == null){
             throw new IllegalStateException("Internal " +
-                    "com.sun.grizzly.tcp.Response has not been set");
+                    "org.glassfish.grizzly.web.container.Response has not been set");
         }
     }
     

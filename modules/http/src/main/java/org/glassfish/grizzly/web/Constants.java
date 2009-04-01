@@ -56,7 +56,7 @@ package org.glassfish.grizzly.web;
 import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
 
 /**
- * Constants. Inspired from class com.sun.grizzly.tcp.http11.Constants
+ * Constants. Inspired from class org.glassfish.grizzly.web.container.http11.Constants
  * 
  * @author Jean-Francois Arcand
  */
@@ -66,7 +66,7 @@ public final class Constants {
     /**
      * Package name.
      */
-    public static final String Package = "com.sun.grizzly.http.res";
+    public static final String Package = "org.glassfish.grizzly.web.res";
 
     public static final int DEFAULT_CONNECTION_LINGER = -1;
     public static final int DEFAULT_CONNECTION_UPLOAD_TIMEOUT = 300000;

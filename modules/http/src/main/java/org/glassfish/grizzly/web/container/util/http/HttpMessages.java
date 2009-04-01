@@ -56,11 +56,6 @@ package org.glassfish.grizzly.web.container.util.http;
 
 import org.glassfish.grizzly.web.container.util.res.StringManager;
 
-import java.io.*;
-import java.net.*;
-import java.util.*;
-import java.text.*;
-
 /**
  * Handle (internationalized) HTTP messages.
  * 
@@ -73,7 +68,7 @@ import java.text.*;
 public class HttpMessages {
     // XXX move message resources in this package
     protected static final StringManager sm =
-        StringManager.getManager("com.sun.grizzly.util.http.res");
+        StringManager.getManager("org.glassfish.grizzly.web.container.util.http.res");
 	
     static String st_200=null;
     static String st_302=null;

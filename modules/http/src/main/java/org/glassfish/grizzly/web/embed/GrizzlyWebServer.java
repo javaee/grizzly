@@ -32,7 +32,6 @@ import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
 import org.glassfish.grizzly.web.container.http11.GrizzlyAdapterChain;
 import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
 import org.glassfish.grizzly.web.container.http11.GrizzlyResponse;
-import org.glassfish.grizzly.web.container.util.net.jsse.JSSEImplementation;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,10 +40,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
-import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 import org.glassfish.grizzly.web.WebFilter;
+import org.glassfish.grizzly.web.arp.AsyncWebFilter;
 
 
 /**
@@ -64,7 +66,7 @@ import org.glassfish.grizzly.web.WebFilter;
  * will be used to map the request to its associated {@link GrizzlyAdapter}s, using a {@link Mapper}.
  * A {@link GrizzlyAdapter} gets invoked
  * as soon as the http request has been parsed and 
- * decoded. The  {@link GrizzlyAdapter#service(com.sun.grizzly.tcp.http11.GrizzlyRequest, com.sun.grizzly.tcp.http11.GrizzlyResponse)}
+ * decoded. The  {@link GrizzlyAdapter#service(org.glassfish.grizzly.web.container.http11.GrizzlyRequest, corg.glassfish.grizzly.web.container.http11.GrizzlyResponse)}
  * method is invoked with a
  * {@link GrizzlyRequest} and {@link GrizzlyResponse} that can be used to extend the
  * functionality of the Web Server. By default, all http requests are synchronously
@@ -307,7 +309,7 @@ public class GrizzlyWebServer {
     private TCPNIOTransport transport;
 
     // The underlying {@link WebFilter}
-    private WebFilter webFilter;
+    private AsyncWebFilter webFilter;
     
     // Flag, which indicates if WebServer uses secured connections
     private boolean isSecure;
@@ -391,7 +393,8 @@ public class GrizzlyWebServer {
     public GrizzlyWebServer(int port, String webResourcesPath, boolean secure) {
         this.port = port;
         this.webResourcesPath = webResourcesPath;
-        this.webFilter = new WebFilter();
+        this.webFilter = new AsyncWebFilter();
+        webFilter.setAsyncEnabled(false);
         this.transport = TransportFactory.getInstance().createTCPTransport();
     }
 
@@ -449,15 +452,15 @@ public class GrizzlyWebServer {
     }
     
     
-    /**
-     * Set the {@link SSLConfig} instance used when https is required
-     */
-    public void setSSLConfig(SSLConfig sslConfig){
-        if (!(st instanceof SSLSelectorThread)){
-            throw new IllegalStateException("This instance isn't supporting SSL/HTTPS");
-        }
-        ((SSLSelectorThread)st).setSSLConfig(sslConfig);
-    }
+//    /**
+//     * Set the {@link SSLConfig} instance used when https is required
+//     */
+//    public void setSSLConfig(SSLConfig sslConfig){
+//        if (!(st instanceof SSLSelectorThread)){
+//            throw new IllegalStateException("This instance isn't supporting SSL/HTTPS");
+//        }
+//        ((SSLSelectorThread)st).setSSLConfig(sslConfig);
+//    }
 
 
     /**
@@ -473,19 +476,20 @@ public class GrizzlyWebServer {
         updateGrizzlyAdapters();
         
         if (asyncFilters.size() > 0){
-            st.setEnableAsyncExecution(true);
+            webFilter.setAsyncEnabled(true);
             AsyncHandler asyncHandler = new DefaultAsyncHandler();
             for (AsyncFilter asyncFilter: asyncFilters){
                 asyncHandler.addAsyncFilter(asyncFilter); 
             }
-            st.setAsyncHandler(asyncHandler);    
+            webFilter.setAsyncHandler(asyncHandler);
         }
         
-        try {
-            st.listen();
-        } catch (InstantiationException ex) {
-            throw new IOException(ex.getMessage());
+        transport.getFilterChain().add(new TransportFilter());
+        if (isSecure) {
+            transport.getFilterChain().add(new SSLFilter());
         }
+
+        transport.getFilterChain().add(webFilter);
     }
 
     private void updateGrizzlyAdapters() {
@@ -493,9 +497,9 @@ public class GrizzlyWebServer {
         if (adapters.size() == 0){
             adapterChains.setRootFolder(webResourcesPath);
             adapterChains.setHandleStaticResources(true);
-            st.setAdapter(adapterChains);
+            webFilter.setAdapter(adapterChains);
         } else if (adapters.size() == 1){
-            st.setAdapter(adapters.keySet().iterator().next());
+            webFilter.setAdapter(adapters.keySet().iterator().next());
             adapters.keySet().iterator().next().setRootFolder(webResourcesPath);
         } else {          
             for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
@@ -506,7 +510,7 @@ public class GrizzlyWebServer {
                     adapterChains.addGrizzlyAdapter(entry.getKey(),entry.getValue());
                 }
             }
-            st.setAdapter(adapterChains);
+            webFilter.setAdapter(adapterChains);
             adapterChains.setHandleStaticResources(true);
             adapterChains.setRootFolder(webResourcesPath);
         }
@@ -519,12 +523,12 @@ public class GrizzlyWebServer {
     public void enableJMX(Management jmxManagement){
         if (jmxManagement == null) return;
         
-        st.setManagement(jmxManagement);
+        webFilter.getJmxManager().setManagement(jmxManagement);
         try {
             ObjectName sname = new ObjectName(mBeanName);                   
-            jmxManagement.registerComponent(st, sname, null);
+            webFilter.getJmxManager().registerComponent(webFilter, sname, null);
         } catch (Exception ex) {
-            SelectorThread.logger().log(Level.SEVERE, "Enabling JMX failed", ex);
+            WebFilter.logger().log(Level.SEVERE, "Enabling JMX failed", ex);
         }      
     }
     
@@ -536,7 +540,7 @@ public class GrizzlyWebServer {
      * will do it.
      */
     public Statistics getStatistics() {
-        if (statistics == null){
+        if (statistics == null) {
             statistics = new Statistics(webFilter);
         }
         
@@ -548,7 +552,8 @@ public class GrizzlyWebServer {
      * @param coreThreads the initial number of threads in a thread pool.
      */
     public void setCoreThreads(int coreThreads) {
-        st.setCoreThreads(coreThreads);
+        ((ExtendedThreadPool) transport.getWorkerThreadPool()).
+                setCorePoolSize(coreThreads);
     }
 
     /**
@@ -556,16 +561,24 @@ public class GrizzlyWebServer {
      * @param maxThreads the maximum number of threads in a thread pool.
      */
     public void setMaxThreads(int maxThreads) {
-        st.setMaxThreads(maxThreads);
+        ((ExtendedThreadPool) transport.getWorkerThreadPool()).
+                setMaximumPoolSize(maxThreads);
     }
     
     /**
      * Stop the GrizzlyWebServer.
      */ 
-    public void stop(){
+    public void stop() {
         if (!isStarted) return;
         isStarted = false;
-        st.stopEndpoint();
+        try {
+            transport.stop();
+        } catch (Exception e) {
+            Logger.getLogger(GrizzlyWebServer.class.getName()).log(
+                    Level.WARNING, null, e);
+        } finally {
+            transport.getFilterChain().clear();
+        }
     }
     
     
@@ -577,7 +590,7 @@ public class GrizzlyWebServer {
      */
     public final static GrizzlyWebServer newConfiguredInstance(String path){
         GrizzlyWebServer ws = new GrizzlyWebServer(8080);
-        ws.addGrizzlyAdapter(new GrizzlyAdapter(path){           
+        ws.addGrizzlyAdapter(new GrizzlyAdapter(path) {
             {
                 setHandleStaticResources(true);
             }
@@ -586,12 +599,12 @@ public class GrizzlyWebServer {
                 try {
                     response.setStatus(404);
                     response.flushBuffer();
-                } catch (IOException ex) {
+                } catch (IOException e) {
                     Logger.getLogger(GrizzlyWebServer.class.getName()).log(
-                            Level.SEVERE, null, ex);
+                            Level.SEVERE, null, e);
                 }
             }
-        });
+        }, new String[0]);
         return ws;
     }
 }
