@@ -1026,7 +1026,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         byte[] checkArray = new byte[500];
         try {
-          reader.read(checkArray, 0, 500);
+          reader.readByteArray(checkArray, 0, 500);
         }catch(Exception e) {
             logger.log(Level.SEVERE, "Data generate error",e);
         }

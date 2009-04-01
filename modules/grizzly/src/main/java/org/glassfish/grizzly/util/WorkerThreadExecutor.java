@@ -61,8 +61,13 @@ public class WorkerThreadExecutor implements ProcessorExecutor {
         try {
             transport.getWorkerThreadPool().submit(task);
         } catch (RejectedExecutionException e) {
-            Grizzly.logger.log(Level.WARNING, "Task " + task +
-                    " was rejected by ThreadPool. Reason: ", e);
+            if (!transport.isStopped()) {
+                Grizzly.logger.log(Level.WARNING, "Task " + task +
+                        " was rejected by ThreadPool. Reason: ", e);
+            } else {
+                Grizzly.logger.log(Level.FINE, "Task " + task +
+                        " was rejected by ThreadPool. Reason: ", e);
+            }
         }
     }
 

@@ -130,6 +130,12 @@ public interface StreamReader extends Closeable {
      */
     void readByteArray(byte[] data) throws IOException;
 
+    /** Fill data with bytes from the stream.
+     * If this method returns normally, data has been filled completely.
+     * Requires data.length bytes.
+     */
+    void readByteArray(byte[] data, int offset, int length) throws IOException;
+
     /** Fill the buffer with data from the stream (that is, copy data
      * from the stream to fill buffer from position to limit).
      * This is useful when data must be read

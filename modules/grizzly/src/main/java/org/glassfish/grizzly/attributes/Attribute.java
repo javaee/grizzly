@@ -98,7 +98,18 @@ public class Attribute<T> {
             return get(holder);
         }
 
-        return null;
+        T result;
+        if (initializer != null) {
+            result = initializer.evaluate();
+        } else {
+            result = defaultValue;
+        }
+
+        if (result != null) {
+            set(storage, result);
+        }
+
+        return result;
     }
 
     public void set(AttributeHolder attributeHolder, T arg) {

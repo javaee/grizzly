@@ -16,5 +16,6 @@
     <modules>
         <module>grizzly</module>
         <module>rcm</module>
+        <module>http</module>
     </modules>
 </project>

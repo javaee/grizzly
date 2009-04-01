@@ -37,7 +37,6 @@ package org.glassfish.grizzly.streams;
 
 import java.io.EOFException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.BufferUnderflowException;
 
 import java.util.LinkedList;
@@ -66,8 +65,7 @@ import org.glassfish.grizzly.util.conditions.Condition;
  * 
  *  @author Ken Cavanaugh
  */
-public abstract class AbstractStreamReader extends InputStream
-        implements StreamReader {
+public abstract class AbstractStreamReader implements StreamReader {
 
     private static final boolean DEBUG = false;
     private static Logger logger = Grizzly.logger;
@@ -207,44 +205,9 @@ public abstract class AbstractStreamReader extends InputStream
         }
     }
 
-    @Override
-    public int read() throws IOException {
-        return readByte() & 0xff;
-    }
-
-    @Override
-    public boolean markSupported() {
-        return false;
-    }
-
-    @Override
-    public int read(byte[] b, int off, int len) throws IOException {
-        if (isClosed()) {
-            return -1;
-        }
-
-        int bytesToTransfer = Math.min(len, availableDataSize());
-        int transferred = 0;
-
-        while(bytesToTransfer > 0) {
-            Buffer buffer = getBuffer();
-            int bufferBytesToTransfer = Math.min(buffer.remaining(),
-                    bytesToTransfer);
-            buffer.get(b, transferred + off, bufferBytesToTransfer);
-            bytesToTransfer -= bufferBytesToTransfer;
-            transferred += bufferBytesToTransfer;
-
-            if (bufferBytesToTransfer == buffer.remaining()) {
-                finishBuffer();
-            }
-        }
-
-        return transferred;
-    }
-
-    /** Cause all subsequent method calls on this object to throw IllegalStateException.
+    /**
+     * Cause all subsequent method calls on this object to throw IllegalStateException.
      */
-    @Override
     public void close() {
         closed = true;
 
@@ -407,7 +370,7 @@ public abstract class AbstractStreamReader extends InputStream
     }
 
     private void arraySizeCheck(final int sizeInBytes) {
-        if ((timeoutMillis == 0) && (sizeInBytes > availableDataSize())) {
+        if (!isBlocking && timeoutMillis == 0 && (sizeInBytes > availableDataSize())) {
             throw new BufferUnderflowException();
         }
     }
@@ -420,24 +383,29 @@ public abstract class AbstractStreamReader extends InputStream
     }
 
     public void readByteArray(final byte[] data) throws IOException {
-        arraySizeCheck(data.length);
-        int offset = 0;
+        readByteArray(data, 0, data.length);
+    }
+
+    public void readByteArray(byte[] data, int offset, int length) throws IOException {
+        arraySizeCheck(length);
         while (true) {
             checkRemaining(1);
             final Buffer typedBuffer = current;
-            int dataSizeToRead = data.length - offset;
+            int dataSizeToRead = length;
             if (dataSizeToRead > typedBuffer.remaining()) {
                 dataSizeToRead = typedBuffer.remaining();
             }
 
             typedBuffer.get(data, offset, dataSizeToRead);
             offset += dataSizeToRead;
+            length -= dataSizeToRead;
 
-            if (offset == data.length) {
+            if (length == 0) {
                 break;
             }
         }
     }
+
 
     public void readBytes(final Buffer buffer) throws IOException {
         buffer.reset();
