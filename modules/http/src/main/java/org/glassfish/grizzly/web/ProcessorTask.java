@@ -119,9 +119,6 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     private final static Logger logger = Grizzly.logger;
 
-    private boolean isSecurityEnabled;
-    
-    
     /**
      * The string manager for this package.
      */
@@ -466,7 +463,6 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Initialize the stream and the buffer used to parse the request.
      */
     public void initialize(){
-        isSecurityEnabled = (System.getSecurityManager() != null);
         started = true;   
         request = new Request();
 

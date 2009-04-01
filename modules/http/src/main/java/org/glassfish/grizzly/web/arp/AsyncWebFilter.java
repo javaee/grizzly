@@ -63,23 +63,10 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
     // --------------------------------------------- Asynch supports -----//
 
     /**
-     * Is asynchronous mode enabled?
-     */
-    protected boolean asyncExecution = false;
-
-
-    /**
      * When the asynchronous mode is enabled, the execution of this object
      * will be delegated to the {@link AsyncHandler}
      */
     protected AsyncHandler asyncHandler;
-
-
-    /**
-     * Default size for ByteBuffer.
-     */
-    protected int bbSize = 4096;
-
 
     /**
      * Execute a unit of processing work to be performed. This ProtocolFilter
@@ -96,8 +83,7 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
                 TimeUnit.MILLISECONDS);
 
         ProcessorTask processor = getProcessorTask(ctx);
-        configureProcessorTask(processor, ctx, workerThread,
-                interceptor, (InputStream) ctx.getStreamReader());
+        configureProcessorTask(processor, ctx, workerThread, interceptor);
 
         try {
             getAsyncHandler().handle(processor);
@@ -145,56 +131,25 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
     /**
      * Configure {@link SSLProcessorTask}.
      */
-    protected void configureProcessorTask(ProcessorTask processorTask,
-            FilterChainContext context, HttpWorkerThread workerThread,
-            Interceptor handler, InputStream inputStream) {
-        processorTask.setConnection(context.getConnection());
-        processorTask.setTaskListener(this);
-        processorTask.setInputStream(inputStream);
-        processorTask.setHandler(handler);
-    }
-
     @Override
     protected void configureProcessorTask(ProcessorTask processorTask,
             FilterChainContext context, HttpWorkerThread workerThread,
             Interceptor handler) {
-        super.configureProcessorTask(processorTask, context, workerThread, handler);
-        processorTask.setEnableAsyncExecution(asyncExecution);
-        processorTask.setAsyncHandler(asyncHandler);
+        
+        super.configureProcessorTask(
+                processorTask, context, workerThread, handler);
+        
+        processorTask.setTaskListener(this);
+        processorTask.setInputStream((InputStream) context.getStreamReader());
     }
 
-
-
-    /**
-     * Reconfigure Grizzly Asynchronous Request Processing(ARP) internal
-     * objects.
-     */
-    protected void reconfigureAsyncExecution(){
-        for(ProcessorTask task : processorTasks) {
-            task.setEnableAsyncExecution(asyncExecution);
-            task.setAsyncHandler(asyncHandler);
-        }
+    @Override
+    protected ProcessorTask initializeProcessorTask(ProcessorTask task) {
+        task = super.initializeProcessorTask(task);
+        task.setEnableAsyncExecution(true);
+        task.setAsyncHandler(asyncHandler);
+        return task;
     }
-
-    // ---------------------------- Async-------------------------------//
-
-    /**
-     * Enable the {@link AsyncHandler} used when asynchronous
-     */
-    public void setEnableAsyncExecution(boolean asyncExecution){
-        this.asyncExecution = asyncExecution;
-        reconfigureAsyncExecution();
-    }
-
-
-    /**
-     * Return true when asynchronous execution is
-     * enabled.
-     */
-    public boolean getEnableAsyncExecution(){
-        return asyncExecution;
-    }
-
 
     /**
      * Set the {@link AsyncHandler} used when asynchronous execution is
@@ -220,8 +175,8 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
      * Display the Grizzly configuration parameters.
      */
     @Override
-    protected void displayConfiguration(){
-       if (config.isDisplayConfiguration()){
+    protected void displayConfiguration() {
+       if (config.isDisplayConfiguration()) {
             logger.log(Level.INFO,
                     "\n Grizzly configuration"
                     + "\n\t name"

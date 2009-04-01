@@ -42,8 +42,10 @@ import org.glassfish.grizzly.web.Constants;
 import org.glassfish.grizzly.web.container.util.Interceptor;
 import org.glassfish.grizzly.web.FileCache;
 import java.io.IOException;
-import java.nio.channels.SocketChannel;
 
+import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.web.WebFilter;
 import org.glassfish.grizzly.web.container.Request;
 import org.glassfish.grizzly.web.container.util.buf.Ascii;
 import org.glassfish.grizzly.web.container.util.buf.ByteChunk;
@@ -54,12 +56,19 @@ import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
  * 
  * @author Jeanfrancois Arcand
  */
-public class StaticHandler implements Interceptor<Request,SocketChannel> {
+public class StaticHandler implements Interceptor<Request> {
       
+    private WebFilter webFilter;
+    
     /**
-     * The {@link SocketChannel} used to send a static resources.
+     * The {@link StreamReader} used to send a static resources.
      */
-    private SocketChannel socketChannel;
+    private StreamReader reader;
+
+    /**
+     * The {@link StreamWriter} used to send a static resources.
+     */
+    private StreamWriter writer;
  
     
     /**
@@ -71,18 +80,20 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
     // ----------------------------------------------------- Constructor ----//
     
     
-    public StaticHandler(){
+    public StaticHandler(WebFilter webFilter) {
+        this.webFilter = webFilter;
     }
     
       
     /**
-     * Attach a {@link SocketChannel} to this object.
+     * {@inheritDoc}
      */
-    public void attachChannel(SocketChannel socketChannel){
-        this.socketChannel = socketChannel;
-        if ( fileCache == null && socketChannel != null){
-            fileCache = FileCacheFactory.getFactory(
-                    socketChannel.socket().getLocalPort()).getFileCache();
+    public void attach(StreamReader reader, StreamWriter writer) {
+        this.reader = reader;
+        this.writer = writer;
+        
+        if (fileCache == null && writer != null){
+            fileCache = webFilter.getFileCache();
         }
     }    
     
@@ -95,7 +106,7 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
         if (fileCache == null) return Interceptor.CONTINUE;
         
         if (handlerCode == Interceptor.RESPONSE_PROCEEDED && fileCache.isEnabled()){
-            String docroot = SelectorThread.getWebAppRootPath();
+            String docroot = webFilter.getConfig().getWebAppRootPath();
             MessageBytes mb = req.requestURI();
             String uri = req.requestURI().toString();                
             fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,uri,
@@ -103,7 +114,7 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
         } else if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
             ByteChunk requestURI = req.requestURI().getByteChunk(); 
             if (fileCache.sendCache(requestURI.getBytes(), requestURI.getStart(),
-                                requestURI.getLength(), socketChannel,
+                                requestURI.getLength(), writer,
                                 keepAlive(req))){
                 return Interceptor.BREAK;   
             }

@@ -23,13 +23,10 @@
 
 package org.glassfish.grizzly.web.embed;
 
-import com.sun.grizzly.SSLConfig;
 import org.glassfish.grizzly.web.arp.DefaultAsyncHandler;
 import org.glassfish.grizzly.web.arp.AsyncFilter;
 import org.glassfish.grizzly.web.arp.AsyncHandler;
 import org.glassfish.grizzly.web.Management;
-import com.sun.grizzly.http.SelectorThread;
-import org.glassfish.grizzly.web.ssl.SSLSelectorThread;
 import org.glassfish.grizzly.web.container.Adapter;
 import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
 import org.glassfish.grizzly.web.container.http11.GrizzlyAdapterChain;
@@ -44,6 +41,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.web.WebFilter;
 
 
 /**
@@ -293,12 +294,24 @@ public class GrizzlyWebServer {
     // The port
     private static final int DEFAULT_PORT = 8080;
 
-    // The port
+    // The web resources path
     private static final String DEFAULT_WEB_RESOURCES_PATH = ".";
 
-    // The underlying {@link SelectorThread}
-    private SelectorThread st;
+    // Host, on which WebServer will listen
+    private String host;
+
+    // Port, on which WebServer will listen
+    private int port = DEFAULT_PORT;
+
+    // The underlying {@link Transport}
+    private TCPNIOTransport transport;
+
+    // The underlying {@link WebFilter}
+    private WebFilter webFilter;
     
+    // Flag, which indicates if WebServer uses secured connections
+    private boolean isSecure;
+
     // SelectorThread mBean
     private ObjectInstance stMBean;
 
@@ -357,18 +370,6 @@ public class GrizzlyWebServer {
     public GrizzlyWebServer(String webResourcesPath) {
         this(DEFAULT_PORT, webResourcesPath);
     }   
-    
-    
-    /**
-     * Create a WebServer that listen on port
-     * @param port The port opened
-     *
-     * @deprecated use {@link #setMaxThreads(int)} to set maximum number of
-     *             threads in a thread pool
-     */
-    public GrizzlyWebServer(int port, int maxThreads) {
-        this(port, maxThreads, DEFAULT_WEB_RESOURCES_PATH);
-    }
 
 
     /**
@@ -379,21 +380,7 @@ public class GrizzlyWebServer {
     public GrizzlyWebServer(int port, String webResourcesPath) {
         this(port, webResourcesPath, false);
     }
-
-
-    /**
-     * Create a WebServer that listen on port
-     * @param port The port opened
-     * @param maxThreads The maximum number of Thread created
-     * @param webResourcesPath the path to the web resource (ex: /var/www)
-
-     * @deprecated use {@link #setMaxThreads(int)} to set maximum number of
-     *             threads in a thread pool
-     */
-    public GrizzlyWebServer(int port, int maxThreads, String webResourcesPath) {
-        this(port, maxThreads, webResourcesPath, false);
-    }
-
+    
 
     /**
      * Create a WebServer that listen for secure tls/https requests
@@ -402,59 +389,12 @@ public class GrizzlyWebServer {
      * @param secure <tt>true</tt> if https needs to be used.
      */
     public GrizzlyWebServer(int port, String webResourcesPath, boolean secure) {
-        this(port, 5, webResourcesPath, secure);
-    }
-    
-    
-    /**
-     * Create a WebServer that listen for secure tls/https requests
-     * @param port The port opened
-     * @param maxThreads The maximum number of Thread created
-     * @param webResourcesPath the path to the web resource (ex: /var/www)
-     * @param secure <tt>true</tt> if https needs to be used.
-     * 
-     * @deprecated use {@link #setMaxThreads(int)} to set maximum number of
-     *             threads in a thread pool
-     */
-    public GrizzlyWebServer(int port, int maxThreads, String webResourcesPath,
-            boolean secure) {
-        createSelectorThread(port, secure);
-        setMaxThreads(maxThreads);
+        this.port = port;
         this.webResourcesPath = webResourcesPath;
+        this.webFilter = new WebFilter();
+        this.transport = TransportFactory.getInstance().createTCPTransport();
     }
 
-
-    /**
-     * Create an underlying {@link SelectorThread}
-     * @param port The port to listen to.
-     * @param secure <tt>true</tt> if https needs to be used.
-     */
-    private void createSelectorThread(int port, boolean secure){
-        if (secure) {
-            SSLSelectorThread sslSelectorThread = new SSLSelectorThread();
-            try {
-                sslSelectorThread.setSSLImplementation(new JSSEImplementation());
-            } catch (ClassNotFoundException e) {
-                throw new IllegalStateException(e);
-            }
-            st = sslSelectorThread;
-        } else {
-            st = new SelectorThread();
-        }
-        st.setPort(port);        
-    }
-
-    
-    /**
-     * Return the underlying {@link SelectorThread}. Only advanced users
-     * should manipulate that class.
-     * @return {@link SelectorThread}
-     */
-    public SelectorThread getSelectorThread(){        
-        return st;
-    }
-    
-    
     /**
      * Add an {@link AsyncFilter}. Adding {@link AsyncFilter} automatically
      * enable Grizzly Asynchronous Request Processing mode. {@link AsyncFilter}s
@@ -464,19 +404,6 @@ public class GrizzlyWebServer {
      */
     public void addAsyncFilter(AsyncFilter asyncFilter){
         asyncFilters.add(asyncFilter);
-    }
-    
-    
-    /**
-     * Add a {@link GrizzlyAdapter}. {@link GrizzlyAdapter} will be invoked by
-     * Grizzly in the order they are added, e.g the first added is always the 
-     * first invoked. {@link GrizzlyAdapter}s
-     * are always invoked after {@link AsyncFilter}
-     * @param grizzlyAdapter a {@link GrizzlyAdapter}
-     * @deprecated - Use {@link #addGrizzlyAdapter(com.sun.grizzly.tcp.http11.GrizzlyAdapter, java.lang.String[])}
-     */
-    public void addGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter){
-        adapters.put(grizzlyAdapter,new String[0]);
     }
 
     
@@ -491,7 +418,7 @@ public class GrizzlyWebServer {
         adapterChains.setHandleStaticResources(false);
         if (isStarted) {
             grizzlyAdapter.start();
-            Adapter ga = st.getAdapter();
+            Adapter ga = webFilter.getAdapter();
             if (ga instanceof GrizzlyAdapterChain){
                 ((GrizzlyAdapterChain)ga).addGrizzlyAdapter(grizzlyAdapter, mapping);
             } else {
@@ -511,7 +438,7 @@ public class GrizzlyWebServer {
         }
         boolean removed = adapters.remove(grizzlyAdapter) != null;
         if (isStarted) {
-            Adapter ga = st.getAdapter();
+            Adapter ga = webFilter.getAdapter();
             if (ga instanceof GrizzlyAdapterChain){
                 ((GrizzlyAdapterChain)ga).removeAdapter(grizzlyAdapter);
             } else {
@@ -531,16 +458,7 @@ public class GrizzlyWebServer {
         }
         ((SSLSelectorThread)st).setSSLConfig(sslConfig);
     }
-    
-    /**
-     * Set to <tt>true</tt> if you want to use asynchronous write operations. Asynchronous
-     * write operations may significantly improve performance under high load, but
-     * may also comsume more memory. Default is set to false.
-     * @param asyncWrite true to enabled asynchronous write I/O operations.
-     */
-    public void useAsynchronousWrite(boolean asyncWrite){
-        st.setAsyncHttpWriteEnabled(asyncWrite);
-    }
+
 
     /**
      * Start the GrizzlyWebServer and start listening for http requests. Calling 
@@ -617,10 +535,11 @@ public class GrizzlyWebServer {
      * gathering statistics. Invoking {@link Statistics#startGatheringStatistics}
      * will do it.
      */
-    public Statistics getStatistics(){
+    public Statistics getStatistics() {
         if (statistics == null){
-            statistics = new Statistics(st);
+            statistics = new Statistics(webFilter);
         }
+        
         return statistics;
     } 
  

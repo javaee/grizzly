@@ -54,10 +54,14 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.attributes.Attribute;
+import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.ssl.SSLStreamReader;
+import org.glassfish.grizzly.ssl.SSLStreamWriter;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
 import org.glassfish.grizzly.web.container.Adapter;
@@ -327,9 +331,19 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             FilterChainContext context, HttpWorkerThread workerThread,
             Interceptor handler) {
         processorTask.setConnection(context.getConnection());
+        processorTask.setHandler(handler);
 
-        if (processorTask.getHandler() == null){
-            processorTask.setHandler(handler);
+        // If current StreamReader is SSL
+        if (context.getStreamReader() instanceof SSLStreamReader) {
+            // Find SSLFilter in executed filter list
+            for (Filter filter : context.getExecutedFilters()) {
+                if (filter instanceof SSLFilter) {
+                    SSLFilter sslFilter = (SSLFilter) filter;
+                    processorTask.setSSLSupport(sslFilter.createSSLSupport(
+                            (SSLStreamReader) context.getStreamReader(),
+                            (SSLStreamWriter) context.getStreamWriter()));
+                }
+            }
         }
     }
 

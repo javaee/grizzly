@@ -39,7 +39,8 @@
 package org.glassfish.grizzly.web.container.util;
 
 import java.io.IOException;
-import java.nio.channels.Channel;
+import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.streams.StreamWriter;
 
 /**
  * Simple interception hook used to trap events inside Grizzly core.
@@ -47,7 +48,7 @@ import java.nio.channels.Channel;
  * @param E  type of Interceptor handler
  * @author Jeanfrancois Arcand
  */
-public interface Interceptor<E,F extends Channel>{
+public interface Interceptor<E> {
  
     /**
      * Continue the processing
@@ -90,9 +91,12 @@ public interface Interceptor<E,F extends Channel>{
     
     
     /**
-     * The {@link Channel} associated with this handler.
-     * @param socketChannel 
+     * The {@link StreamReader} and {@link StreamWriter},
+     * associated with this handler.
+     *
+     * @param reader
+     * @param writer
      */
-    public void attachChannel(F channel);
+    public void attach(StreamReader reader, StreamWriter writer);
     
 }
