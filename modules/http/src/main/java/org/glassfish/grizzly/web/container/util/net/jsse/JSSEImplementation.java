@@ -71,7 +71,7 @@ import java.net.Socket;
 public class JSSEImplementation extends SSLImplementation
 {
     static final String JSSE14Factory = 
-        "com.sun.grizzly.util.net.jsse.JSSE14Factory";
+        "org.glassfish.grizzly.web.container.util.net.jsse.JSSE14Factory";
     static final String SSLSocketClass = "javax.net.ssl.SSLSocket";
 
     private JSSEFactory factory;

@@ -51,10 +51,10 @@ import java.util.StringTokenizer;
  *
  * @author Jeanfrancois Arcand
  */
-public class DefaultAsyncExecutor implements AsyncExecutor{
+public class DefaultAsyncExecutor implements AsyncExecutor {
     
     private final static String ASYNC_FILTER = 
-            "com.sun.grizzly.asyncFilters";
+            "org.glassfish.grizzly.web.asyncFilters";
     
     /**
      * The <code>AsyncFilter</code> to execute asynchronous operations on 

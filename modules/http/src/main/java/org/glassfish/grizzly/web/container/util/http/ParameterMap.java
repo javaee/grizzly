@@ -160,7 +160,7 @@ public final class ParameterMap extends LinkedHashMap {
      * The string manager for this package.
      */
     private static final StringManager sm =
-        StringManager.getManager("com.sun.grizzly.util.http");
+        StringManager.getManager("org.glassfish.grizzly.web.container.util.http");
 
 
     // --------------------------------------------------------- Public Methods

@@ -77,7 +77,7 @@ abstract public class SSLImplementation {
             
     // The default implementations in our search path
     private static final String JSSEImplementationClass=
-	"com.sun.grizzly.util.net.jsse.JSSEImplementation";
+	"org.glassfish.grizzly.web.container.util.net.jsse.JSSEImplementation";
     
     private static final String[] implementations=
     {        

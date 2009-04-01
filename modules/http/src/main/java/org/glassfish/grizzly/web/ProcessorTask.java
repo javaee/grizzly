@@ -417,10 +417,10 @@ public class ProcessorTask extends TaskBase implements Processor,
 
 
     private final static String USE_KEEP_ALIVE =
-                "com.sun.grizzly.useKeepAliveAlgorithm";
+                "org.glassfish.grizzly.web.useKeepAliveAlgorithm";
 
     private final static String BLOCKING_KEEP_ALIVE =
-                "com.sun.grizzly.keepAliveLockingThread";
+                "org.glassfish.grizzly.web.keepAliveLockingThread";
 
     private boolean useKeepAliveAlgorithm = true;
 
@@ -510,8 +510,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public void doTask() throws IOException {
         try {
-            process(inputStream,
-                    outputStream);
+            process(inputStream, outputStream);
         } catch(Throwable ex){
             logger.log(Level.FINE,
                     sm.getString("processorTask.errorProcessingRequest"), ex);

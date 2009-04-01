@@ -131,7 +131,7 @@ public class GrizzlyResponse<A> {
      * Descriptive information about this Response implementation.
      */
     protected static final String info =
-        "com.sun.grizzly.util.tcp.GrizzlyResponse/1.0";
+        "org.glassfish.grizzly.web.container.http11.GrizzlyResponse/1.0";
 
 
     /**

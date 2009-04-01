@@ -71,7 +71,7 @@ import org.glassfish.grizzly.streams.StreamWriter;
 public class StaticResourcesAdapter implements Adapter {
     
     private final static String USE_SEND_FILE =
-        "com.sun.grizzly.useSendFile";    
+        "org.glassfish.grizzly.web.useSendFile";
     
     
     protected String rootFolder = ".";

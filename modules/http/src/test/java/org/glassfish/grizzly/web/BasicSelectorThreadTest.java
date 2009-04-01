@@ -54,6 +54,7 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.web.standalone.StaticHandler;
 
 /**
  * Basic {@link SelectoThread} test.

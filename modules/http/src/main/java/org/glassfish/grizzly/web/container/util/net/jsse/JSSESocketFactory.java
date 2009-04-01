@@ -94,7 +94,7 @@ public abstract class JSSESocketFactory
     extends org.glassfish.grizzly.web.container.util.net.ServerSocketFactory
 {
     private static StringManager sm =
-        StringManager.getManager("com.sun.grizzly.util.net.jsse.res");
+        StringManager.getManager("org.glassfish.grizzly.web.container.util.net.jsse.res");
 
     // defaults
     static String defaultProtocol = "TLS";

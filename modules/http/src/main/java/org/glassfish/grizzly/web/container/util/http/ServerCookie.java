@@ -117,7 +117,7 @@ public class ServerCookie implements Serializable {
      */
     public static final boolean ALWAYS_ADD_EXPIRES =
         Boolean.valueOf(System.getProperty(
-            "com.sun.grizzly.util.http.ServerCookie.ALWAYS_ADD_EXPIRES", "true")).booleanValue();
+            "org.glassfish.grizzly.web.container.util.http.ServerCookie.ALWAYS_ADD_EXPIRES", "true")).booleanValue();
 
     // Note: Servlet Spec =< 2.5 only refers to Netscape and RFC2109,
     // not RFC2965

@@ -53,7 +53,7 @@ import java.util.logging.Logger;
  * 
  * #the default logger is this add you can replace it with LoggingFormatter
  * #java.util.logging.ConsoleHandler.formatter = java.util.logging.SimpleFormatter
- * java.util.logging.ConsoleHandler.formatter = com.sun.grizzly.util.LoggingFormatter
+ * java.util.logging.ConsoleHandler.formatter = org.glassfish.grizzly.util.LoggingFormatter
  *
  * refer to : https://grizzly.dev.java.net/issues/show_bug.cgi?id=291
  *
@@ -144,7 +144,7 @@ public class LoggingFormatter extends Formatter {
 	}
 	
 	/**
-	 * Example to test the com.sun.grizzly.util.LoggingFormatter
+	 * Example to test the org.glassfish.grizzly.util.LoggingFormatter
 	 * You need to include this parameter in the command line
 	 * -Djava.util.logging.config.file=myfile
 	 * @param args main parameters

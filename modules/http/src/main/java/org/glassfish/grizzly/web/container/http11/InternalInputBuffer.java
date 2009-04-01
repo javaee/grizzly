@@ -64,6 +64,8 @@ import org.glassfish.grizzly.web.container.util.res.StringManager;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.streams.StreamReader;
 
 public class InternalInputBuffer implements InputBuffer {
@@ -748,6 +750,18 @@ public class InternalInputBuffer implements InputBuffer {
             if (nRead > 0) {
                 inputStream.readByteArray(buf, pos, nRead);
                 lastValid = pos + nRead;
+            } else {
+                Future f = inputStream.notifyAvailable(1);
+                try {
+                    f.wait(inputStream.getTimeout(TimeUnit.MILLISECONDS));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                }
+                nRead = Math.min(inputStream.availableDataSize(),
+                        buf.length - lastValid);
+                inputStream.readByteArray(buf, pos, nRead);
+                lastValid = pos + nRead;
             }
 
         } else {
@@ -765,8 +779,19 @@ public class InternalInputBuffer implements InputBuffer {
             if (nRead > 0) {
                 inputStream.readByteArray(buf, pos, nRead);
                 lastValid = pos + nRead;
+            } else {
+                Future f = inputStream.notifyAvailable(1);
+                try {
+                    f.wait(inputStream.getTimeout(TimeUnit.MILLISECONDS));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                }
+                nRead = Math.min(inputStream.availableDataSize(),
+                        buf.length - lastValid);
+                inputStream.readByteArray(buf, pos, nRead);
+                lastValid = pos + nRead;
             }
-
         }
         return (nRead > 0);
 

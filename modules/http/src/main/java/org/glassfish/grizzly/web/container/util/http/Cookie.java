@@ -104,7 +104,7 @@ import java.util.ResourceBundle;
 public class Cookie implements Cloneable {
 
     private static final String LSTRING_FILE =
-	"com.sun.grizzly.util.http.LocalStrings";
+	"org.glassfish.grizzly.web.container.util.http.LocalStrings";
     private static ResourceBundle lStrings =
 	ResourceBundle.getBundle(LSTRING_FILE);
     

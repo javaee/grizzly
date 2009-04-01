@@ -74,7 +74,7 @@ public final class UDecoder {
      */
     private final static Logger logger = LoggerUtils.getLogger();
     protected static final boolean ALLOW_ENCODED_SLASH =
-            Boolean.valueOf(System.getProperty("com.sun.grizzly.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "false")).booleanValue();
+            Boolean.valueOf(System.getProperty("org.glassfish.grizzly.web.container.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "false")).booleanValue();
 
     private boolean allowEncodedSlash;
     

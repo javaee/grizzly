@@ -340,7 +340,7 @@ public class GrizzlyWebServer {
     
     
     // The mBean default object name.
-    private String mBeanName = "com.sun.grizzly:type=GrizzlyWebServer,name=GrizzlyHttpEngine-" 
+    private String mBeanName = "org.glassfish.grizzly.web:type=GrizzlyWebServer,name=GrizzlyHttpEngine-"
             + DEFAULT_PORT;
        
     
