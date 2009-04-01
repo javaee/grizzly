@@ -7,7 +7,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.sun.grizzly</groupId>
+    <groupId>org.glassfish.grizzly</groupId>
     <artifactId>grizzly-http</artifactId>
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
@@ -15,6 +15,22 @@
     <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
+        <resources>
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/java/</directory>
+                <excludes>
+                    <exclude>**/*.java</exclude>
+                </excludes>
+            </resource>
+            <resource>
+                <filtering>true</filtering>
+                <directory>src/main/resources/</directory>
+                <excludes>
+                    <exclude>**/*.java</exclude>
+                </excludes>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.felix</groupId>
@@ -42,7 +58,7 @@
             <version>${grizzly-version}</version>
         </dependency>
         <dependency>
-            <groupId>com.sun.grizzly</groupId>
+            <groupId>org.glassfish.grizzly</groupId>
             <artifactId>grizzly-rcm</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
