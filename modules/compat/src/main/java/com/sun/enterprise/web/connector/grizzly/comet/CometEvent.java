@@ -50,7 +50,10 @@ public class CometEvent<E> extends com.sun.grizzly.comet.CometEvent {
     public CometEvent(int type, CometContext context) {
         super(type, context);
     }
-    
+
+    public CometEvent(int type, CometContext context, E attachment) {
+        super(type, context,attachment);
+    }
     /**
      * {@inheritDoc}
      */   
@@ -65,4 +68,7 @@ public class CometEvent<E> extends com.sun.grizzly.comet.CometEvent {
     protected void setCometContext(CometContext cometContext) {
         super.setCometContext(cometContext);
     }
+
+
+    
 }

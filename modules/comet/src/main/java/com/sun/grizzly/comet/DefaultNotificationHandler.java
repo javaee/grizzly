@@ -48,7 +48,7 @@ import java.util.logging.Logger;
 
 /**
  * Default Notificationhandler that uses a thread pool dedicated to the CometEngine
- * to execute the notification process.
+ * to execute the notification process.<br>
  *
  * @author Jeanfrancois Arcand
  * @author Gustav Trede
@@ -75,7 +75,7 @@ public class DefaultNotificationHandler implements NotificationHandler{
     /**
      * only used if blockingnotification == false and threadpool != null
      */
-    private boolean spreadNotifyToManyToThreads = true;
+    private boolean spreadNotifyToManyToThreads = false;
     
     public DefaultNotificationHandler() {
     }
@@ -104,8 +104,21 @@ public class DefaultNotificationHandler implements NotificationHandler{
     public void setBlockingNotification(boolean blockingNotification) {
         this.blockingNotification = blockingNotification;
     }
+    
+    /**
+     * if true a notify to Iterator<CometHandler> will be spread into one runnable task for
+     * each comethandler.
+     * if false , all comethandlers notify  will be executed in 1 Runnable, after each other,
+     *
+     * @param spreadNotifyToManyToThreads
+     */
+    public void setSpreadNotifyToManyToThreads(boolean spreadNotifyToManyToThreads) {
+        this.spreadNotifyToManyToThreads = spreadNotifyToManyToThreads;
+    }
 
-        
+
+
+
     /**
      * Notify all {@link CometHandler}. 
      * @param cometEvent the CometEvent used to notify CometHandler
@@ -162,49 +175,36 @@ public class DefaultNotificationHandler implements NotificationHandler{
     protected void notify0(CometEvent cometEvent,CometHandler cometHandler) {
         try{
             switch (cometEvent.getType()) {
-                case CometEvent.INTERRUPT:
-                    if (cometHandler instanceof DefaultConcurrentCometHandler){
-                        ((DefaultConcurrentCometHandler)cometHandler).shutdownQueue();
-                        //todo how do we synchronize ?, the defaultConcurrentcomethandler can do that, but we dont know if other implementations do
-                        cometHandler.onInterrupt(cometEvent); 
-                    }else
-                        synchronized(cometHandler){
-                            cometHandler.onInterrupt(cometEvent);
-                        }
-                    break;
+                case CometEvent.INTERRUPT: 
+                    cometHandler.onInterrupt(cometEvent); break;
                 case CometEvent.NOTIFY:
                 case CometEvent.READ:
                 case CometEvent.WRITE:
-                    if (cometHandler instanceof DefaultConcurrentCometHandler)
+                    if (cometHandler instanceof DefaultConcurrentCometHandler){
                         ((DefaultConcurrentCometHandler)cometHandler).EnQueueEvent(cometEvent);
-                    else
-                    if (cometEvent.getCometContext().isActive(cometHandler))
+                        break;
+                    }
+                    if (cometEvent.getCometContext().isActive(cometHandler)){
                         synchronized(cometHandler){
                             cometHandler.onEvent(cometEvent);
                         }
+                    }
                     break;
                 case CometEvent.INITIALIZE:
-                    cometHandler.onInitialize(cometEvent);
-                    break;
+                    cometHandler.onInitialize(cometEvent); break;
                 case CometEvent.TERMINATE:
-                    if (cometHandler instanceof DefaultConcurrentCometHandler){
-                        ((DefaultConcurrentCometHandler)cometHandler).shutdownQueue();
-                         cometHandler.onTerminate(cometEvent); //todo how do we synchronize ?, the defaultConcurrentcomethandler can do that, but we dont know if other implementations do
-                    }else
-                        synchronized(cometHandler){
-                            cometHandler.onTerminate(cometEvent);
-                        } 
-                    break;
+                    synchronized(cometHandler){
+                        cometHandler.onTerminate(cometEvent); break;
+                    }
                 default:
                     throw ISEempty;
             }
         } catch (Throwable ex) {
             try {
-                cometEvent.getCometContext().resumeCometHandler(cometHandler, true);
+                cometEvent.getCometContext().resumeCometHandler(cometHandler);
             } catch (Throwable t) {
                 logger.log(Level.FINE, "Resume phase failed: ", t);
             }
-            //todo cant log this at WARNING level.. its normal to have alot of failed notifications. imagine several K users in the real world..
             logger.log(Level.FINE, "Notification failed: ", ex);
         }
     }

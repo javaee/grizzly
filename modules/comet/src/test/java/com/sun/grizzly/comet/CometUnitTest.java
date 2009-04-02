@@ -40,9 +40,7 @@ package com.sun.grizzly.comet;
 import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.http.StatsThreadPool;
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
@@ -51,7 +49,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import junit.framework.TestCase;
@@ -62,13 +59,13 @@ import junit.framework.TestCase;
  * @author Gustav Trede
  */
 public class CometUnitTest extends TestCase {
-    private final int port = 19000;
+    private final int port = 19100;
     private SocketAddress connectadr;
-    private final int socketreusedelayMilliSec = 0;
+    private final int socketreusedelayMilliSec = 40;
     private static volatile boolean status;
     private static volatile boolean testisdone;
     private SelectorThread st;
-    private final String context = "/cometText";
+    private final String context = "/cometTextn";
     private final byte joinmessage = 126;
     private final byte[] connectstr=
                     ("POST /index.html/comet HTTP/1.1\r\n"+
@@ -81,9 +78,16 @@ public class CometUnitTest extends TestCase {
     }
 
     @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        if (st != null)
+            st.stopEndpoint();
+    }
+    
+    @Override
     protected void setUp() throws Exception {
-        super.setUp();
-        init(false);
+        super.setUp();                
+        init(false);        
     }
 
     protected void init(boolean useconcurrentcomethandler) throws Exception{
@@ -92,7 +96,7 @@ public class CometUnitTest extends TestCase {
         System.err.println("JVM: "+rmx.getVmVendor()+" "+rmx.getVmName()+" "+rmx.getVmVersion()+" params: "+rmx.getInputArguments());
         st = new SelectorThread();
         st.setPort(port);
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(false);
         st.setAdapter(new CometTestAdapter(context,useconcurrentcomethandler,-1));
         st.setEnableAsyncExecution(true);
         AsyncHandler asyncHandler = new DefaultAsyncHandler();
@@ -100,10 +104,7 @@ public class CometUnitTest extends TestCase {
         st.setAsyncHandler(asyncHandler);
         st.setTcpNoDelay(true);
         st.setLinger(-1);
-        /*st.setThreadPool(  new StatsThreadPool(16,
-                    32, 50,
-                    StatsThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
-                    TimeUnit.MILLISECONDS));*/
+         
         try {
             st.listen();
         } catch (Exception ex) {
@@ -113,44 +114,51 @@ public class CometUnitTest extends TestCase {
     }
 
 
-    @Override
-    protected void tearDown() throws Exception {
-        super.tearDown();
-        if (st != null)
-            st.stopEndpoint();
-    }
-
    /* public void testLongPollingSocketReuse() throws Exception{
         doActualLogic(true,false,40,20);
     }*/
 
 
-   /* public void testLongPollingNewSocket() throws Exception{
-        doActualLogic(false,false,64,5);
-    }
-*/
+  /*  public void testLongPollingNewSocket() throws Exception{
+        doActualLogic(false,false,6500,64);
+   }*/
 
 
-    public void testStreaming2() throws Exception{
-        doActualLogic(false,true,10,4);
+    public void testStreaming1() throws Throwable{
+        //doActualLogic(false,true,15,1,false);
     }
+
+   /* public void testStreaming2() throws Throwable{
+        doActualLogic(false,true,21,4, false);
+    }
+
+    public void testStreaming3() throws Throwable{
+        doActualLogic(false,true,21,64, false);
+    }*/
+    
+   /* public void testStreaming5() throws Throwable{
+        doActualLogic(false,true, 15, 256);
+    }*/
 
     protected void doActualLogic(final boolean socketreuse,final boolean streaming,
-            final int secondspertest,final int threadcount) throws Exception{
-        System.err.println(streaming?"STREAMING-":"LONGPOLLING-"+(socketreuse?"SOCKETREUSE":"NEWSOCKET")+" client threads: "+threadcount);
+            final int secondspertest,final int threadcount, boolean spreadnotify) throws Throwable{
+        System.err.println((streaming?"STREAMING-":"LONGPOLLING-")+(socketreuse?"SOCKETREUSE":"NEWSOCKET")+" client threads: "+threadcount+" spreadNotifyToManyThreads: "+spreadnotify);
        //int cpus = Runtime.getRuntime().availableProcessors();
+         ((DefaultNotificationHandler)CometTestAdapter.cometContext.notificationHandler).
+                 setSpreadNotifyToManyToThreads(spreadnotify);
         testisdone = false;
         msgc.set(0);
-        CometTestAdapter.usetreaming = streaming;
-        status = true;
+        CometTestAdapter.usetreaming = streaming;        
         final CountDownLatch threadsaredone = new CountDownLatch(threadcount);
         try{
+            status = true;
             for (int i=0;i<threadcount;i++){
+                final boolean first = false;
                 new Thread("cometUnitTestClient"){
                     @Override
                     public void run(){
                         try {
-                            connectClient(socketreuse,streaming);
+                            connectClient(socketreuse,streaming, first);
                         } catch (Exception ex) {
                             if (!testisdone && status){
                                 status = false; //can happen a few times due to not hreadsafe. but itt ok
@@ -164,91 +172,108 @@ public class CometUnitTest extends TestCase {
             }
             
             Thread.currentThread().setPriority(Thread.currentThread().getPriority()+1);
-            ThreadPoolExecutor cometexecutor = (ThreadPoolExecutor)CometEngine.getEngine().threadPool;
+            //NewDefaultThreadPool tp = (NewDefaultThreadPool)CometEngine.getEngine().threadPool;
+            //ThreadPoolExecutor tp = (ThreadPoolExecutor)CometEngine.getEngine().threadPool;
             final long t0 = System.currentTimeMillis(); 
             long t1 = t0;
             int oldtotal = 0;
-            int eventbroadcasts = 100;
+            final int waittime = 20;
+            int eventbroadcasts = 900000/(threadcount*(1000/waittime));
             while(t1-t0 < secondspertest*1000 ){
+                //int queuesize = tp.getQueuedTasksCount();
+              //  int queuesize = tp.getQueue().size();
+                int queuesize = 0;
+
                 long t2 = System.currentTimeMillis();
                 long deltatime = t2-t1;
-                if (deltatime>2300){
+                if (deltatime>4500){
                     t1 = t2;
                     int currenttotalmsg = msgc.get();
                     System.err.println(
-                      "  events/sec : "+((currenttotalmsg-oldtotal)*1000/deltatime)+
+                      "  K events/sec : "+((currenttotalmsg-oldtotal+500)/deltatime)+
                       "  comethandlers: "+CometTestAdapter.cometContext.handlers.size()+
-                      "  cometWorkqueue: "+cometexecutor.getQueue().size()
+                      "  workqueue: "+queuesize+
+                      "  broadcastsper: "+eventbroadcasts
                     );
                     oldtotal = currenttotalmsg;
                 }
-                int queuesize = cometexecutor.getQueue().size();
-                if (queuesize < 10000){
-                    eventbroadcasts = (eventbroadcasts*5)/4;
+                
+                if (streaming){
+                    
+                    /*if (queuesize < (spreadnotify?threadcount:1)*300 ){
+                        eventbroadcasts = (eventbroadcasts*5)/4;
+                    }*/
+                    if (queuesize < (spreadnotify?threadcount:1)*100){
+                        for (int i=0;i<eventbroadcasts;i++){
+                            CometTestAdapter.cometContext.notify(joinmessage);
+                        }
+                   }
+                }else{
+                    CometTestAdapter.cometContext.notify(joinmessage);
                 }
-                if (queuesize < 30000){
-                    for (int i=0;i<eventbroadcasts;i++){
-                        CometTestAdapter.cometContext.notify(joinmessage);
-                    }
-                }
+                
                 synchronized(connectstr){
-                    connectstr.wait(10);
+                    connectstr.wait((waittime));
                 }
             }
             testisdone = true;
-            threadsaredone.await(12,TimeUnit.SECONDS);
-        }catch(Exception ea){
-            status = false;
+            System.err.println("test is done. waiting for clients to die.");
+            threadsaredone.await(6,TimeUnit.SECONDS);
+            System.err.println("clients are done.");
+            assertTrue(status);
+        }catch(Throwable ea){
             throw ea;
-        }finally {
-            if (status)
-                assertTrue(true);
-            else
-                fail("error");
         }
     }
 
     static AtomicInteger msgc = new AtomicInteger();
 
-    protected void connectClient(final boolean socketreuse,final boolean streaming) throws Exception {
+    protected void connectClient(final boolean socketreuse,final boolean streaming,boolean notifyBeforeRead) throws Exception {
         InputStream in = null;
         OutputStream out = null;
         Socket socket = null;
+        final int deltaadd = 500;
         int msgcount = 0;
         try{
         while (!testisdone){
                 if (socket == null){
-                    socket = newSocket(10000);
+                    socket = newSocket(5000);
                     out = socket.getOutputStream();
                     in = new BufferedInputStream(socket.getInputStream());
                 }
                 
                 out.write(connectstr);
                 out.flush();
-
-                boolean _status = false;
+                
+                
                 int b;
+                if (notifyBeforeRead)
+                    CometTestAdapter.cometContext.notify(joinmessage);
                 while ((b =  in.read()) != joinmessage && !testisdone){
                     
                 }
-                
+
+                if (!streaming)
+                    msgc.getAndIncrement();
+                else{
+                    if (msgcount++==deltaadd){ //lowers thread contention
+                        msgc.getAndAdd(deltaadd);
+                        msgcount = 0;
+                    }                    
+                }
                 //{
                     //if (b==joinmessage){
-                        if (msgcount++==10){ //lowers thread contention
-                            msgc.getAndAdd(10);
-                            msgcount = 0;
-                        }
+
                         in.read();
                         in.read();
                         in.read();
                         in.read();
                         in.read();
-                        _status = true;
-                        //break;
-                    //}
-               // }
+                     boolean _status = true;
                 
-                while(streaming && _status){
+                while(streaming && _status && !testisdone){
+                    if (notifyBeforeRead)
+                        CometTestAdapter.cometContext.notify(joinmessage);
                     b = in.read();
                     in.read();
                     in.read();
@@ -256,8 +281,8 @@ public class CometUnitTest extends TestCase {
                     in.read();
                     in.read();
                     _status = (b == joinmessage);
-                    if (_status && msgcount++==10){ //lowers thread contention
-                        msgc.getAndAdd(10);
+                    if (_status && msgcount++==deltaadd){ //lowers thread contention
+                        msgc.getAndAdd(deltaadd);
                         msgcount = 0;
                     }
                 }
@@ -268,12 +293,11 @@ public class CometUnitTest extends TestCase {
                     else
                         fail("client did not recieve expected message, got:'"+b+"'");
                 }
-
+                        
                 if (!socketreuse){
                     socket.close();
                     socket = null;
                 }
-
                 if (!streaming && socketreusedelayMilliSec > 0){
                     Thread.sleep(socketreusedelayMilliSec);
                 }
@@ -287,11 +311,12 @@ public class CometUnitTest extends TestCase {
 
     private Socket newSocket(int timeout) throws Exception{
         Socket socket = new Socket();        
-        socket.setReuseAddress(false);
-        socket.setReceiveBufferSize(8192);
-        socket.setSendBufferSize(1024);
+        socket.setReuseAddress(true);
+        //socket.setReceiveBufferSize(2048);
+        //socket.setSendBufferSize(512);
         socket.setSoLinger(false, 0);        
         socket.setSoTimeout(timeout);
+        socket.setTcpNoDelay(true);
         socket.connect(connectadr);
         return socket;
     }

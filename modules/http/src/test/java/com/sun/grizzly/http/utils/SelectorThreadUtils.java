@@ -44,6 +44,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.util.logging.Level;
 
@@ -81,7 +82,7 @@ public class SelectorThreadUtils {
             }
         });
 
-        new Thread() {
+        new WorkerThreadImpl(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -89,7 +90,7 @@ public class SelectorThreadUtils {
                 } catch (Exception ex) {
                 }
             }
-        }.start();
+        }).start();
 
         try {
             latch.await();

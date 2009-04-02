@@ -40,34 +40,36 @@ package com.sun.grizzly.comet.concurrent;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.comet.CometEvent;
 import com.sun.grizzly.comet.CometHandler;
-import java.io.Closeable;
+import com.sun.grizzly.comet.DefaultNotificationHandler;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.logging.Logger;
 
 /**
- *
  * we queue events in each comethandler to lower the probability
  * that slow or massive IO for one comethandler severly delays events to others.<br>
  * <br>
+ * only streaming mode can benefit from buffering messages like this.  <br>
  * only 1 thread at a time is allowed to do IO,
  * other threads put events in the queue and return to the thread pool.<br>
  *<br>
  * a thread initially calls enqueueEvent and stay there until there are no more
- * events in the queue, calling the onEVent method in unsynchronized context for each Event.<br>
+ * events in the queue, calling the onEVent method in synchronized context for each Event.<br>
  *<br>
  * on IOE in onEvent we terminate.<br>
  * we have a limit, to keep memory usage under control.<br>
  * <br>
  * if queue limit is reached onQueueFull is called, and then we terminate.<br>
  *<br>
- * default implementation of onInterrupt and onTerminate performs a .close() if attachment instanceof Closeable<br><
  *<br>
  * whats not optimal is that a worker thread is sticky to the client depending
  * uppon available events in the handlers local queue,
  * that can in theory allow a few clients to block all threads for extended time.<br>
- * The improvement is that only 1 thread is tied up to a client instead of several
- *  being blocked by synchronized.<br>
+ * that effect can make this implementation unusable depending on the scenario,
+ * its not a perfect design be any means.
+ * <br>
+ * The potential improvement is that only 1 worker thread is tied up to a client instead of several
+ *  being blocked by synchronized io wait for one comethandler .<br>
  *
  * @author Gustav Trede 
  */
@@ -78,12 +80,8 @@ public abstract class DefaultConcurrentCometHandler<E> implements CometHandler<E
     /**
      *  used for preventing othe worker threads from the executor event queue from adding events
      *  to the comethandlers local queue or starting IO logic after shuttdown.<br>
-     * <br>
-     *  {@link DefaultNotificationHandler} sets shuttingdown = true when needed.<br>
-     *  this way we dont need subclasses to remember to do super calls in the onXX methods.<br>
-     *  todo: CometEvent.INTERRUPT should do cometHandler.shuttingdown = true;  ?
      */
-    protected volatile boolean shuttingdown;
+    private  boolean shuttingdown;
 
     /**
      *  max number of events to locally queue for this comethandler.<br>
@@ -128,11 +126,8 @@ public abstract class DefaultConcurrentCometHandler<E> implements CometHandler<E
      *  further events in the internal queue.
      */
     public void EnQueueEvent(CometEvent event){
-         if (shuttingdown)
-             return;
         synchronized(messageQueue){
             if (!isreadyforwork){
-                // to prevent add of event when we are shutdown
                 if (!shuttingdown && queuesize < messageQueueLimit){
                     messageQueue.add(event);
                     queuesize++;
@@ -149,12 +144,19 @@ public abstract class DefaultConcurrentCometHandler<E> implements CometHandler<E
                 return; 
             }
             try{
-                onEvent(event);
-            } catch (Throwable ex) {
+                //move synchronized outside the while loop ?
+                synchronized(this){
+                    onEvent(event);
+                }
+            } catch (IOException ex) {
                 shuttingdown = true;
-                event.getCometContext().resumeCometHandler(this);
-                return;
+            }finally{
+                if (shuttingdown){
+                    event.getCometContext().resumeCometHandler(this);
+                    return;                    
+                }                
             }
+
             synchronized(messageQueue){
                 if (queuesize == messageQueueLimit){
                     queuefull = true;
@@ -175,21 +177,13 @@ public abstract class DefaultConcurrentCometHandler<E> implements CometHandler<E
     }
 
     /**
-     * called in unsynchronized context, not blocking other threads
+     * called in synchronized context.
      * when the comethandler's local event queue is full.<br>
      * default impl resumes the comethandler
      * @param event {@link CometEvent}
      */
     public void onQueueFull(CometEvent event){
         event.getCometContext().resumeCometHandler(this);
-    }
-
-    /**
-     * prevents further event handling in the enQueue method.<br>
-     * existing queued events will be discarded.
-     */
-    public void shutdownQueue() {
-        shuttingdown = true;
     }
     
     /**
@@ -229,14 +223,14 @@ public abstract class DefaultConcurrentCometHandler<E> implements CometHandler<E
     }
 
     /**
-     *  closes the connection if attachment instanceof Closable.
+     *  
      */
     protected void terminate(){
-        if (attachment() instanceof Closeable){
+       /* if (attachment() instanceof Closeable){
             try {
                 ((Closeable) attachment()).close();
             } catch (IOException ex) { }
-        }
+        }*/
     }
 
 }

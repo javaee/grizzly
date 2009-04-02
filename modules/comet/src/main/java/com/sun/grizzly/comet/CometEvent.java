@@ -38,13 +38,15 @@
 
 package com.sun.grizzly.comet;
 
+import java.io.Serializable;
+
 /**
  * Simple event class used to pass information between {@link CometHandler}
  * and the Comet implementation.
  *
  * @author Jeanfrancois Arcand
  */
-public class CometEvent<E> {
+public class CometEvent<E> implements Serializable{
 
     
     /**
@@ -98,7 +100,7 @@ public class CometEvent<E> {
     /**
      * The CometContext from where this instance was fired.
      */
-    private CometContext cometContext;
+    private transient CometContext cometContext;
             
     
     /**
@@ -115,6 +117,12 @@ public class CometEvent<E> {
     public CometEvent(int type, CometContext context) {
         this.type = type;
         this.cometContext = context;
+    }
+
+    public CometEvent(int type, CometContext cometContext, E attachment) {
+        this.type = type;
+        this.attachment = attachment;
+        this.cometContext = cometContext;
     }
     
     /**

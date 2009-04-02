@@ -39,6 +39,7 @@
 package com.sun.grizzly.utils;
 
 import com.sun.grizzly.*;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -74,7 +75,7 @@ public class ControllerUtils {
             }
         });
 
-        new Thread(controller).start();
+        new WorkerThreadImpl("ControllerWorker", controller).start();
 
         try {
             latch.await();

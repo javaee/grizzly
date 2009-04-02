@@ -40,6 +40,7 @@ package com.sun.grizzly.comet;
 
 import com.sun.grizzly.comet.concurrent.DefaultConcurrentCometHandler;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.Iterator;
@@ -100,7 +101,7 @@ import java.util.logging.Logger;
  * is doing. It is not recommended to use attributes if this 
  * {@link CometContext} is not shared amongs multiple
  * context path (uses {@link HttpServletSession} instead).
- * </p>
+ * </p> 
  * @author Jeanfrancois Arcand
  * @author Gustav Trede
  */
@@ -135,13 +136,6 @@ public class CometContext<E> {
     
     
     /**
-     * The {@link CometSelector} used to register {@link SelectionKey}
-     * for upcoming bytes.
-     */
-    protected CometSelector cometSelector;
-    
-    
-    /**
      * The {@link CometContext} continuationType. See {@link CometEngine}
      */
     protected int continuationType = CometEngine.AFTER_SERVLET_PROCESSING;
@@ -151,14 +145,14 @@ public class CometContext<E> {
      * The default delay expiration before a {@link CometContext}'s
      * {@link CometHandler} are interrupted.
      */
-    private long expirationDelay = 30 * 1000;
+    private long expirationDelay ;
     
     
     /**
      * <tt>true</tt> if the caller of {@link #notify} should block when 
      * notifying other CometHandler.
      */
-    protected boolean blockingNotification = false;
+    protected boolean blockingNotification;
 
     
     /**
@@ -168,22 +162,19 @@ public class CometContext<E> {
     
 
      /**
-      * timestamp for last performed resetSuspendidletimeout.
+      * timestamp for next idlecheck
       * used to limit the frequency of actual performed resets.
       */
-    private volatile long lastIdleReset;
-
-    /**
-     * Current associated list of {@link CometTask}
-     */
-    protected final ConcurrentHashMap<CometTask,Object> activeTasks;
+    private volatile long nextidleclear;
 
     /**
      * The list of registered {@link CometHandler}
      */
-    protected final ConcurrentHashMap<CometHandler,SelectionKey> handlers;
+    protected final ConcurrentHashMap<CometHandler,CometTask> handlers;
 
-    private final CometEvent eventInterrupt;
+    protected final CometEvent eventInterrupt;
+
+    protected final CometEvent eventTerminate;
 
     private final CometEvent eventInitialize;
 
@@ -193,25 +184,33 @@ public class CometContext<E> {
             new IllegalStateException("Make sure you have enabled Comet " +
                 "or make sure the Thread invoking that method is the same " +
                 "as the Servlet.service() Thread.");
-
-    // ---------------------------------------------------------------------- //
-    
-    
+       
     /**
      * Create a new instance
      * @param topic the context path 
      * @param type when the Comet processing will happen (see {@link CometEngine}).
      */
     public CometContext(String topic, int continuationType) {
-        this.topic = topic;
+        this.topic            = topic;
         this.continuationType = continuationType;
-        this.attributes       = new ConcurrentHashMap();        
-        this.handlers         = new ConcurrentHashMap<CometHandler,SelectionKey>(16,0.75f,64);        
-        this.activeTasks      = new ConcurrentHashMap<CometTask,Object>(16,0.75f,64); 
-        this.eventInterrupt   = new CometEvent<E>(CometEvent.INTERRUPT,this);
-        this.eventInitialize  = new CometEvent<E>(CometEvent.INITIALIZE,this);
+        this.attributes       = new ConcurrentHashMap();
+        this.handlers         = new ConcurrentHashMap<CometHandler,CometTask>(16,0.75f,64);
+        this.eventInterrupt   = new CometEvent<CometContext>(CometEvent.INTERRUPT,this);
+        this.eventInitialize  = new CometEvent<CometContext>(CometEvent.INITIALIZE,this);
+        this.eventTerminate   = new CometEvent<CometContext>(CometEvent.TERMINATE,this,this);
+        initDefaultValues();
     }
     
+    /**
+     * init of default values.
+     * used by constructor and the cache recycle mechanism
+     */
+    private void initDefaultValues() {
+        blockingNotification = false;
+        expirationDelay = 30*1000;
+        nextidleclear = 0;
+    }
+
     /**
      * Get the context path associated with this instance.
      * @return topic the context path associated with this instance
@@ -289,14 +288,11 @@ public class CometContext<E> {
         if (!CometEngine.getEngine().isCometEnabled()){
             throw cometNotEnabled;
         }
-        handlers.put(handler, CometEngine.dumykey);
-        // is it ok that we only manage one adcomethandler call ?
-        CometTask cometTask = new CometTask();
-        cometTask.setCometContext(this);
-        cometTask.setCometHandler(handler);
-        cometTask.setSuspended(alreadySuspended);
+        // is it ok that we only manage one addcomethandler call per thread ?
+        // else we can use a list of handlers to add inside tlocal
+        CometTask cometTask = new CometTask(this,handler);
+        cometTask.upcoming_op_isread = alreadySuspended;
         CometEngine.updatedContexts.set(cometTask);
-        
         return handler.hashCode();
     }
     
@@ -316,6 +312,7 @@ public class CometContext<E> {
     /**
      * Retrieve a {@link CometHandler} using its based on its {@link CometHandler#hashCode};
      */
+    @Deprecated
     public CometHandler getCometHandler(int hashCode){
         for (CometHandler handler:handlers.keySet()){
             if (handler.hashCode() == hashCode )
@@ -328,20 +325,28 @@ public class CometContext<E> {
      * Recycle this object.
      */
     public void recycle(){
+        try{
+            notify(this,CometEvent.TERMINATE);
+        } catch (IOException ex) {
+
+        }
         handlers.clear();
         attributes.clear();
-        activeTasks.clear();
         topic = null;
+        notificationHandler = null;
+        initDefaultValues();
+        // add check for datastructure size, if cometcontext had large
+        // datastructes its probably not optimal to waste RAM with caching it        
+        CometEngine.cometEngine.cometContextCache.offer(this);
     }
 
 
     /**
-     * adds a {@link CometHandler} to the active set
-     * @param handler {@link CometHandler} 
-     * @param cometKey {@link SelectionKey}
+     * adds a {@link CometTask} to the active set
+     * @param cometTask {@link CometTask}
      */
-    protected void addActiveHandler(CometHandler handler, SelectionKey cometKey){
-        handlers.put(handler, cometKey);
+    protected void addActiveHandler(CometTask cometTask){
+        handlers.put(cometTask.cometHandler, cometTask);
     }
         
     /**
@@ -358,7 +363,9 @@ public class CometContext<E> {
         if (cometHandler instanceof DefaultConcurrentCometHandler){
             ((DefaultConcurrentCometHandler)cometHandler).EnQueueEvent(event);
         }else{
-            cometHandler.onEvent(event);
+            synchronized(cometHandler){
+                cometHandler.onEvent(event);
+            }
         }
     }    
     
@@ -385,12 +392,10 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean removeCometHandler(CometHandler handler,boolean resume){
-        CometEngine.updatedContexts.set(null);
-        SelectionKey key = handlers.remove(handler);
-        if (key != null){
+        CometTask task = handlers.remove(handler);
+        if (task != null){
             if (resume){
-                CometEngine.getEngine().flushPostExecute(
-                        ((CometTask)key.attachment()).getAsyncProcessorTask());
+                CometEngine.getEngine().flushPostExecute(task,true,false);
             }
             return true;
         }
@@ -405,21 +410,17 @@ public class CometContext<E> {
      * @param hashCode The hashcode of the CometHandler to remove.
      * @return <tt>true</tt> if the operation succeeded.
      */
+    @Deprecated
     public boolean removeCometHandler(int hashCode){
-        CometEngine.updatedContexts.set(null);
-        Iterator<CometHandler> iterator = handlers.keySet().iterator();
-        CometHandler handler = null;
-        while (iterator.hasNext()){
-            handler = iterator.next();
+        CometHandler handler_ = null;
+        for (CometHandler handler:handlers.keySet()){
             if (handler.hashCode() == hashCode){
-                SelectionKey key = handlers.get(handler);
-                if (key == null){
-                    logger.warning(ALREADY_REMOVED);
-                    return false;
-                }
-                iterator.remove();
-                return true;
-    }
+                handler_ = handler;
+                break;
+            }
+        }
+        if (handler_ != null){
+            return handlers.remove(handler_) != null;
         }
         return false;
     }
@@ -435,62 +436,60 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean resumeCometHandler(CometHandler handler){
-        return resumeCometHandler(handler,true);
-    }
-    
-    
-    /**
-     * Resume the suspended response. A response can only be suspended when 
-     * {@link CometContext#addCometHandler} was called first.
-     * 
-     * @param handler The CometHandler associated with the current continuation.
-     * @param remove true if the CometHandler needs to be removed.
-     * @return <tt>true</tt> if the operation succeeded.
-     */
-    protected boolean resumeCometHandler(CometHandler handler, boolean remove){
-        CometEngine.updatedContexts.set(null);
-        boolean b= cometSelector.cancelKey(handlers.get(handler), false, remove, false);
-        
-        // Try a second time to locate the associated CometTask
-        if (!b){
-            for (CometTask cometTask:activeTasks.keySet()){
-                if (cometTask.getCometHandler() == handler){
-                    interrupt(cometTask, remove, false);
-                    CometEngine.getEngine().flushPostExecute(
-                            cometTask.getAsyncProcessorTask());
-                    activeTasks.remove(cometTask);
-                    return true;                 
-                }
-            }  
+        boolean status = interrupt(handlers.get(handler),false,true,false,false);
+        if (status){
+            try {
+                handler.onTerminate(eventTerminate);
+            } catch (IOException ex) { }
         }
-        return b;
+        return status;
     }
 
     /**
      * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
      */
-    protected boolean interrupt(CometTask task,boolean removeCometHandler, 
-            boolean notifyInterrupt) {
-        
-        boolean status = true;
-        try{
-            if (removeCometHandler){
-                status = (handlers.remove(task.getCometHandler()) != null);
-                if (status && notifyInterrupt){
-                    task.getCometHandler().onInterrupt(eventInterrupt);
-                }else{
-                    logger.fine(ALREADY_REMOVED);
+    protected boolean interrupt(final CometTask task,
+            final boolean notifyInterrupt, final boolean flushAPT,
+            final boolean cancelkey, boolean asyncExecution) {
+        if (task != null && handlers.remove(task.cometHandler) != null){
+            final SelectionKey key = task.getSelectionKey();            
+             // setting attachment non asynced to ensure grizzly dont keep calling us
+            key.attach(System.currentTimeMillis());
+            if (asyncExecution){
+                if (cancelkey){
+                    // dont want to do that in non selector thread:
+                    // canceled key wont get canceled again due to isvalid check
+                    key.cancel(); 
                 }
+                task.callInterrupt = true;
+                task.interruptFlushAPT = flushAPT;                                
+                //((WorkerThreadImpl)Thread.currentThread()).
+                  //      getPendingIOhandler().addPendingIO(task);
+                task.run();
+                
+            }else{
+                interrupt0(task, notifyInterrupt, flushAPT, cancelkey);
             }
-        } catch (Throwable ex){
-            status = false;
-            logger.log(Level.FINE,"Unable to interrupt",ex);            
-        }finally{
-            activeTasks.remove(task);
-            return status;
+            return true;
         }
+        return false;
     }
-    
+
+    /**
+     * interrupt logic in its own method, so it can be executed either async or sync.<br>
+     * cometHandler.onInterrupt is performed async due to its functionality is unknown,
+     * hence not safe to run in the performance critical selector thread.
+     */
+    protected void interrupt0(CometTask task,
+            boolean notifyInterrupt, boolean flushAPT, boolean cancelkey){
+        if (notifyInterrupt){
+            try{
+                task.cometHandler.onInterrupt(eventInterrupt);
+            }catch(IOException e) { }
+        }        
+        CometEngine.cometEngine.flushPostExecute(task,flushAPT,cancelkey);
+    }
+
     /**
      * Return true if this {@link CometHandler} is still active, e.g. there is 
      * still a suspended connection associated with it.
@@ -498,7 +497,7 @@ public class CometContext<E> {
      * @return true 
      */
     public boolean isActive(CometHandler handler){
-        return handlers.containsKey(handler) || CometEngine.updatedContexts.get() != null;
+        return handlers.containsKey(handler);
     }
 
     /**
@@ -507,7 +506,7 @@ public class CometContext<E> {
      * of type NOTIFY. 
      * @param attachment An object shared amongst {@link CometHandler}. 
      */
-    public void notify(final E attachment) throws IOException{
+    public void notify(final Object attachment) throws IOException{
         notify(attachment, CometEvent.NOTIFY);
     }
     
@@ -527,7 +526,7 @@ public class CometContext<E> {
      * @param cometHandlerID Notify a single CometHandler.
      * @deprecated - use notify(attachment,eventType,CometHandler;
      */
-    public void notify(final E attachment,final int eventType,final int cometHandlerID)
+    public void notify(final Object attachment,final int eventType,final int cometHandlerID)
         throws IOException{   
         notify(attachment,eventType,getCometHandler(cometHandlerID));
     }
@@ -537,7 +536,7 @@ public class CometContext<E> {
      * @param attachment An object shared amongst {@link CometHandler}. 
      * @param {@link CometHandler} to notify.
       */
-    public void notify(final E attachment,final CometHandler cometHandler) 
+    public void notify(final Object attachment,final CometHandler cometHandler)
         throws IOException{
         notify(attachment,CometEvent.NOTIFY,cometHandler);
     }  
@@ -556,19 +555,16 @@ public class CometContext<E> {
      * @param type The type of notification. 
      * @param {@link CometHandler} to notify.
       */
-    public void notify(final E attachment,final int eventType,final CometHandler cometHandler)
+    public void notify(final Object attachment,final int eventType,final CometHandler cometHandler)
         throws IOException{
         if (cometHandler == null){
             throw ISE;
         }
-        CometEvent event = new CometEvent<E>(eventType,this);
-        event.attach(attachment);        
+        CometEvent event = new CometEvent(eventType,this,attachment);
         notificationHandler.setBlockingNotification(blockingNotification);        
         notificationHandler.notify(event,cometHandler);
-        if (event.getType() == CometEvent.TERMINATE 
-            || event.getType() == CometEvent.INTERRUPT) {
-            resumeCometHandler(cometHandler);
-        } else {
+        if (event.getType() != CometEvent.TERMINATE
+            && event.getType() != CometEvent.INTERRUPT) {
             resetSuspendIdleTimeout();
         }
     }    
@@ -588,21 +584,15 @@ public class CometContext<E> {
      * @param attachment An object shared amongst {@link CometHandler}. 
      * @param type The type of notification. 
      */   
-    public void notify(final E attachment,final int eventType)
-        throws IOException{
-        CometEvent event = new CometEvent<E>(eventType,this);
-        event.attach(attachment);
+    public void notify(Object attachment,int eventType)throws IOException {
+        CometEvent event = new CometEvent(eventType,this,attachment);
         Iterator<CometHandler> iterator = handlers.keySet().iterator();
         notificationHandler.setBlockingNotification(blockingNotification);
         notificationHandler.notify(event,iterator);
-        if (event.getType() == CometEvent.TERMINATE 
-            || event.getType() == CometEvent.INTERRUPT) {
-            while(iterator.hasNext()){
-                resumeCometHandler(iterator.next());
-            }
-        } else {
+        if (event.getType() != CometEvent.TERMINATE
+            && event.getType() != CometEvent.INTERRUPT) {
             resetSuspendIdleTimeout();
-        } 
+        }
     }
 
 
@@ -623,18 +613,24 @@ public class CometContext<E> {
      * Reset the current timestamp on a suspended connection.
      */
     protected void resetSuspendIdleTimeout(){
-        if (expirationDelay != -1){
+        if (expirationDelay != -1){            
             long timestamp = System.currentTimeMillis();
-            // not threadsafe, but that will only lead to a few extra idle checks.
-            // it will still be a major win.
-            if (timestamp - lastIdleReset >= 1000){
-                lastIdleReset = timestamp; 
-                for (CometTask cometTask:activeTasks.keySet()){
-                    cometTask.setExpireTime(timestamp);
+            if (timestamp >  nextidleclear){
+                boolean update=false;
+                synchronized(handlers){
+                    if (timestamp >  nextidleclear){
+                        nextidleclear = timestamp+1000;
+                        update = true;
+                    }
+                }
+                if (update){
+                    for (CometTask cometTask:handlers.values()){
+                        cometTask.setTimeout(timestamp);
+                    }
                 }
             }
         }
-    }    
+    }
     
     
     /**
@@ -675,36 +671,20 @@ public class CometContext<E> {
      * @return true if the operation worked.
      */
     private boolean doAsyncRegister(CometHandler handler, int interest){
-        SelectionKey cometKey = null;
         if (handler != null) {
-            cometKey = handlers.get(handler);
-        }
-        if (handler == null || cometKey == null) {
-            throw ISE;
-        }
-        
-        CometTask cometTask = (CometTask)cometKey.attachment();
-        if (cometTask != null){
-            cometKey.interestOps(cometKey.interestOps() | interest);            
-            if (interest == SelectionKey.OP_READ){
-                cometTask.setAsyncReadSupported(true);
+            CometTask task = handlers.get(handler);
+            if (task != null) {
+                SelectionKey mainKey = task.getSelectionKey();
+                if (mainKey != null){
+                    mainKey.interestOps(mainKey.interestOps() | interest);
+                    task.setComethandlerIsAsyncRegistered(true);
+                    return true;
+                }
             }
-            cometTask.setComethandlerisAsyncregistered(true);
-            return true;
         }
         throw ISE;        
     }
 
-    
-    /**
-     * Set the {@link CometSelector} associated with this instance.
-     * @param CometSelector the {@link CometSelector} associated with 
-     *         this instance.
-     */   
-    protected void setCometSelector(CometSelector cometSelector) {
-        this.cometSelector = cometSelector;
-    }
-    
     
     /**
      * Helper.
@@ -741,17 +721,7 @@ public class CometContext<E> {
     public Set<CometHandler> getCometHandlers(){
         return handlers.keySet();
     }
-    
-    
-    
-    /**
-     * Add a {@link CometTask} to the active list.
-     * @param cometTask
-     */
-    protected void addActiveCometTask(CometTask cometTask){
-        activeTasks.put(cometTask,Boolean.TRUE);
-    }
-    
+   
     
     /**
      * Return <tt>true</tt> if the invoker of {@link #notify} should block when
@@ -788,13 +758,4 @@ public class CometContext<E> {
         return notificationHandler;
     }
 
-    /**
-     * Return the current set of active {@link CometTask}
-     * @return
-     */
-    protected Set<CometTask> getActiveTasks() {
-        return activeTasks.keySet();
-    }
-
 }
-    

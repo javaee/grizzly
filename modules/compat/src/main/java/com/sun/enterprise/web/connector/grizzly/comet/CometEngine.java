@@ -37,6 +37,12 @@
  */
 
 package com.sun.enterprise.web.connector.grizzly.comet;
+
+import com.sun.grizzly.arp.AsyncProcessorTask;
+import com.sun.grizzly.arp.AsyncTask;
+import com.sun.grizzly.http.ProcessorTask;
+import java.util.logging.Level;
+
 /**
  * Main class allowing Comet support on top of Grizzly Asynchronous
  * Request Processing mechanism. This class is the entry point to any
@@ -62,7 +68,7 @@ package com.sun.enterprise.web.connector.grizzly.comet;
  */
 public class CometEngine extends com.sun.grizzly.comet.CometEngine {
     
-    private final static CometEngine cometEngine = new CometEngine();
+    protected final static CometEngine cometEngine = new CometEngine();
 
     
     /**
@@ -124,4 +130,16 @@ public class CometEngine extends com.sun.grizzly.comet.CometEngine {
     public CometContext getCometContext(String contextPath){
         return (CometContext)activeContexts.get(contextPath);
     }
+
+    /**
+     *
+     * @param task
+     * @param aptflush
+     * @param cancelkey
+     */
+    @Override
+    protected void flushPostExecute(final com.sun.grizzly.comet.CometTask task, boolean aptflush,boolean cancelkey) {
+        super.flushPostExecute(task, aptflush, cancelkey);
+    }
+
 }

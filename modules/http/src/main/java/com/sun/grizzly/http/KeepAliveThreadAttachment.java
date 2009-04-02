@@ -39,6 +39,9 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.util.ThreadAttachment;
+import java.nio.channels.SelectionKey;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Add keep alive counting mechanism to the {@link ThreadAttachement}.
@@ -46,8 +49,9 @@ import com.sun.grizzly.util.ThreadAttachment;
  * @author Jeanfrancois Arcand
  */
 public class KeepAliveThreadAttachment extends ThreadAttachment{
-    private int keepAliveCount = 0;
-    
+    protected final static Logger logger = SelectorThread.logger();
+
+    private int keepAliveCount;    
      /**
      * The stats object used to gather statistics.
      */
@@ -88,4 +92,22 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
         keepAliveCount = 0;
     }
 
+    @Override
+    public void release(SelectionKey selectionKey) {
+        super.release(selectionKey);
+        resetKeepAliveCount();
+    }
+
+
+    @Override
+    public boolean timedOut(SelectionKey selectionKey) {
+        Thread t = activeThread();
+        if (t != null) {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING, "Interrupting idle Thread: " + t.getName());
+            }
+            t.interrupt();
+        }
+        return true;
+    }
 }

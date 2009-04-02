@@ -110,11 +110,12 @@ public class AsyncProtocolFilter implements ProtocolFilter,TaskListener{
      */
     public boolean execute(Context ctx) throws IOException{
         HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());
+
+        SelectionKey key = ctx.getSelectionKey();
+
+        setSelectionKeyTimeout(key, Long.MAX_VALUE);
         
-        setSelectionKeyTimeout(ctx.getSelectionKey(), Long.MAX_VALUE);
-        
-        StreamAlgorithm streamAlgorithm =
-                workerThread.getStreamAlgorithm();
+        StreamAlgorithm streamAlgorithm = workerThread.getStreamAlgorithm();
         if (streamAlgorithm == null){
             try{
                 streamAlgorithm = (StreamAlgorithm)algorithmClass
@@ -142,8 +143,7 @@ public class AsyncProtocolFilter implements ProtocolFilter,TaskListener{
             inputStream = createByteBufferInputStream();
         }
         configureByteBufferInputStream(inputStream, ctx, workerThread);
-        
-        SelectionKey key = ctx.getSelectionKey();
+                
         SocketChannel socketChannel = (SocketChannel) key.channel();
         streamAlgorithm.setChannel(socketChannel);
         
@@ -160,17 +160,14 @@ public class AsyncProtocolFilter implements ProtocolFilter,TaskListener{
         ctx.setKeyRegistrationState(Context.KeyRegistrationState.NONE);
 
         if (streamAlgorithm.parse(byteBuffer)){
-            ProcessorTask processor =
-                    selectorThread.getProcessorTask();
+            ProcessorTask processor = selectorThread.getProcessorTask();
             configureProcessorTask(processor, ctx, workerThread, 
-                    streamAlgorithm.getHandler(), inputStream);
-            
+                    streamAlgorithm.getHandler(), inputStream);            
             try{
                 selectorThread.getAsyncHandler().handle(processor);
             } catch (Throwable ex){
                 logger.log(Level.INFO,"Processor exception",ex);
-                ctx.setKeyRegistrationState(
-                        Context.KeyRegistrationState.CANCEL);
+                ctx.setKeyRegistrationState(Context.KeyRegistrationState.CANCEL);
                 return false;
             }
         }
@@ -196,18 +193,24 @@ public class AsyncProtocolFilter implements ProtocolFilter,TaskListener{
             
             InputReader is = (InputReader) processor.getInputStream();
             is.getByteBuffer().clear();
-            byteBufferStreams.offer(is);
-           
-            SelectorThread selectorThread = processor.getSelectorThread();
-            if (processor.isKeepAlive() && !processor.isError()){
-                setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
+            byteBufferStreams.offer(is);            
 
-                selectorThread.registerKey(processor.getSelectionKey());
-            } else {
-                selectorThread.cancelKey(processor.getSelectionKey());
+            SelectorThread selectorThread = processor.getSelectorThread();
+            boolean cancelkey = processor.getAptCancelKey() || processor.isError()
+                    || !processor.isKeepAlive();
+            try{            
+                if (!cancelkey){
+                    if (processor.getReRegisterSelectionKey()){
+                        setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
+                        selectorThread.registerKey(processor.getSelectionKey());
+                    }
+                }else{
+                    selectorThread.cancelKey(processor.getSelectionKey());
+                }
+            }finally{
+                processor.recycle();
+                selectorThread.returnTask(processor);
             }
-            processor.recycle();
-            selectorThread.returnTask(processor);
         }
     }
     
