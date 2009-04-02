@@ -83,7 +83,6 @@ public class SelectorThreadUtils {
         });
 
         new WorkerThreadImpl(new Runnable() {
-            @Override
             public void run() {
                 try {
                     selectorThread.startEndpoint();

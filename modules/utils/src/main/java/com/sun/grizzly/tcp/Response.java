@@ -949,7 +949,6 @@ public class Response<A> {
             return false;
         }
 
-        @Override
         public void run() {
             timeout(true);
         }

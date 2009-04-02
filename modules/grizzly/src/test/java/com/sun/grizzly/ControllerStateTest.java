@@ -115,7 +115,6 @@ public class ControllerStateTest extends TestCase {
         ControllerUtils.startController(controller);
         
         Thread restartThread = new WorkerThreadImpl(new Runnable() {
-            @Override
             public void run() {
                 try {
                     controller.stop();
