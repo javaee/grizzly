@@ -1008,7 +1008,6 @@ public class SuspendTest extends TestCase {
                     }
 
                     new WorkerThreadImpl(new Runnable(){
-                        @Override
                         public void run(){
                             try {
 

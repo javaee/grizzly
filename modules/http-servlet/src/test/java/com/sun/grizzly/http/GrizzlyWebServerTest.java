@@ -217,11 +217,9 @@ public class GrizzlyWebServerTest extends TestCase {
             throws IOException, URISyntaxException, GeneralSecurityException {
         System.out.println("testStartSecureWithConfiguration");
         URL resource = getClass().getClassLoader().getResource("test-keystore.jks");
-        SSLConfig cfg = new SSLConfig(false);
+        SSLConfig cfg = new SSLConfig(true);
         if (resource != null) {
-            URI uri = resource.toURI();
-            String path = new File(uri).getAbsolutePath();
-            cfg.setKeyStoreFile(path);
+            cfg.setKeyStoreFile(new File(resource.toURI()).getAbsolutePath());
         } else {
             fail("Couldn't find keystore");
         }
@@ -251,7 +249,7 @@ public class GrizzlyWebServerTest extends TestCase {
             if (res != null) {
                 URI uri = res.toURI();
 
-                SSLConfig clientCfg = new SSLConfig(false);
+                SSLConfig clientCfg = new SSLConfig(true);
                 clientCfg.setTrustStoreFile(new File(uri).getAbsolutePath());
 
                 HttpsURLConnection.setDefaultSSLSocketFactory(
