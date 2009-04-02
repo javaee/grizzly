@@ -309,6 +309,30 @@ public class GrizzlyWebServerTest extends TestCase {
         assertTrue(destroy[0]);
     }
 
+
+    public void testAddGrizzlyAdapterBeforeAndAfterStart() throws IOException {
+        System.out.println("testAddGrizzlyAdapterBeforeAndAfterStart");
+        try {
+            gws = new GrizzlyWebServer(PORT);
+            String[] aliases = new String[]{"/1", "/2", "/3"};
+            for (String alias : aliases) {
+                addAdapter(alias);
+            }
+            gws.start();
+            String alias = "/4";
+            addAdapter(alias);
+
+            HttpURLConnection conn = getConnection(alias);
+            assertEquals(HttpServletResponse.SC_OK,
+                    getResponseCodeFromAlias(conn));
+            assertEquals(alias, readResponse(conn));
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+
+
+
     private String readResponse(HttpURLConnection conn) throws IOException {
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(conn.getInputStream()));
