@@ -57,11 +57,13 @@ package com.sun.grizzly.tcp;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.SelectionKeyAttachment;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.io.IOException;
+import java.nio.channels.SelectionKey;
 import java.util.Locale;
-
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
@@ -892,21 +894,20 @@ public class Response<A> {
     }
     
     
-    public static class ResponseAttachment<A>{
-        
-        private A attachment;
+    public static class ResponseAttachment<A> extends SelectionKeyAttachment
+            implements Runnable {
+
         private CompletionHandler<? super A> completionHandler;
-        private Long timeout;
-        private Long expiration;
-        private Response response;
+        private final A attachment;
+        private final long idletimeoutdelay;
+        private final Response response;
         
-        public ResponseAttachment(Long timeout,A attachment,
+        public ResponseAttachment(long idletimeoutdelay,A attachment,
                 CompletionHandler<? super A> completionHandler, Response response){
-            this.timeout = timeout;
+            this.idletimeoutdelay = idletimeoutdelay;
             this.attachment = attachment;
             this.completionHandler = completionHandler;
-            this.response = response;
-            
+            this.response = response;            
             resetTimeout();
         }
 
@@ -914,20 +915,19 @@ public class Response<A> {
             return attachment;
         }
 
-
         public CompletionHandler<? super A> getCompletionHandler() {
             return completionHandler;
         }
 
         public void resetTimeout(){
-            expiration = System.currentTimeMillis() + timeout;
+            timeout = System.currentTimeMillis();
         }
-        
-        
-        public Long getExpirationTime() {
-            return expiration;
+
+        @Override
+        public long getIdleTimeoutDelay() {
+            return idletimeoutdelay;
         }
-        
+
         
         public void resume(){
             completionHandler.resumed(attachment);
@@ -939,11 +939,21 @@ public class Response<A> {
                 LoggerUtils.getLogger().log(Level.FINEST,"resume",ex);
             }
         }
-        
-        
-        public void timeout(){
+
+        @Override
+        public boolean timedOut(SelectionKey Key) {
+            Key.attach(null);
+            run();
+            //((WorkerThreadImpl)Thread.currentThread()).
+              //              getPendingIOhandler().addPendingIO(this);
+            return false;
+        }
+
+        @Override
+        public void run() {
             timeout(true);
         }
+
         
         public void timeout(boolean forceClose){
             // If the buffers are empty, commit the response header

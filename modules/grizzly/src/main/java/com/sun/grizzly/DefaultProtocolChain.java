@@ -39,9 +39,8 @@
 package com.sun.grizzly;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 
 /**
@@ -56,13 +55,13 @@ public class DefaultProtocolChain implements ProtocolChain, ReinvokeAware {
     /**
      * The list of ProtocolFilter this chain will invoke.
      */
-    protected List<ProtocolFilter> protocolFilters;
+    protected final List<ProtocolFilter> protocolFilters;
     
     /**
      * The list of {@link EventHandler}s, which will be notified about this
      * {@link ProtocolChain} events
      */
-    protected Collection<EventHandler> eventHandlers;
+    protected final List<EventHandler> eventHandlers;
     
     /**
      * <tt>true</tt> if a pipelined execution is required. A pipelined execution
@@ -75,8 +74,9 @@ public class DefaultProtocolChain implements ProtocolChain, ReinvokeAware {
     
     
     public DefaultProtocolChain() {
-        protocolFilters = new ArrayList<ProtocolFilter>();
-        eventHandlers = new HashSet<EventHandler>();
+        protocolFilters = new ArrayList<ProtocolFilter>(4);
+        //ArrayList is faster then HashSet for small datasets.
+        eventHandlers = new ArrayList<EventHandler>(4);
     }
     
     
@@ -296,9 +296,9 @@ public class DefaultProtocolChain implements ProtocolChain, ReinvokeAware {
      */
     protected void notifyException(Phase phase, ProtocolFilter filter, 
             Throwable throwable) {
-        for(EventHandler eventHandler : eventHandlers) {
+        for(int i=0;i<eventHandlers.size();i++) {
             try {
-                eventHandler.onException(phase, filter, throwable);
+                eventHandlers.get(i).onException(phase, filter, throwable);
             } catch(Exception e) {
                 Controller.logger().log(Level.SEVERE,
                         "ProtocolChain notifyException exception", e);

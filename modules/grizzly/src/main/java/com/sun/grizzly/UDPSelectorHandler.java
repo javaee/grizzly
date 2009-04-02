@@ -124,35 +124,38 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
         }
         
         if (selector == null){
-            try{
-                isShutDown.set(false);
-
-                connectorInstanceHandler = new ConnectorInstanceHandler.
-                        ConcurrentQueueDelegateCIH(
-                        getConnectorInstanceHandlerDelegate());
-                               
-                datagramChannel = DatagramChannel.open();
-                selector = Selector.open();
-                if (role != Role.CLIENT){
-                    datagramSocket = datagramChannel.socket();
-                    datagramSocket.setReuseAddress(reuseAddress);
-                    if (inet == null)
-                        datagramSocket.bind(new InetSocketAddress(port));
-                    else
-                        datagramSocket.bind(new InetSocketAddress(inet,port));
-
-                    datagramChannel.configureBlocking(false);
-                    datagramChannel.register( selector, SelectionKey.OP_READ );
-                                            
-                    datagramSocket.setSoTimeout(serverTimeout); 
-                } 
-                ctx.getController().notifyReady();
-            } catch (SocketException ex){
-                throw new BindException(ex.getMessage() + ": " + port);
-            }
-   
+            initSelector(ctx);
         } else {
             processPendingOperations(ctx);
+        }
+    }
+
+    private void initSelector(Context ctx) throws IOException{
+        try{
+            isShutDown.set(false);
+
+            connectorInstanceHandler = new ConnectorInstanceHandler.
+                    ConcurrentQueueDelegateCIH(
+                    getConnectorInstanceHandlerDelegate());
+
+            datagramChannel = DatagramChannel.open();
+            selector = Selector.open();
+            if (role != Role.CLIENT){
+                datagramSocket = datagramChannel.socket();
+                datagramSocket.setReuseAddress(reuseAddress);
+                if (inet == null)
+                    datagramSocket.bind(new InetSocketAddress(port));
+                else
+                    datagramSocket.bind(new InetSocketAddress(inet,port));
+
+                datagramChannel.configureBlocking(false);
+                datagramChannel.register( selector, SelectionKey.OP_READ );
+
+                datagramSocket.setSoTimeout(serverTimeout);
+            }
+            ctx.getController().notifyReady();
+        } catch (SocketException ex){
+            throw new BindException(ex.getMessage() + ": " + port);
         }
     }
 

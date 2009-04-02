@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.util;
 
+import com.sun.grizzly.tcp.PendingIOhandler;
 import java.util.concurrent.Callable;
 import com.sun.grizzly.util.ByteBufferFactory.ByteBufferType;
 import com.sun.grizzly.util.ThreadAttachment.Mode;
@@ -79,7 +80,13 @@ public class WorkerThreadImpl extends WorkerThread {
      * The size of the ByteBuffer attached to this object.
      */
     private int initialByteBufferSize;
-    
+
+
+    /**
+     * Used by selectionkey attachments to enqueue io events that will be executed in
+     * selectorhandler.postselect by worker threads instead of the selector thread.
+     */
+    private PendingIOhandler pendingIOhandler;
     
     /**
      * Create a Thread that will synchronizes/block on
@@ -90,7 +97,14 @@ public class WorkerThreadImpl extends WorkerThread {
     public WorkerThreadImpl(ThreadGroup threadGroup, Runnable runnable){
         this(threadGroup, runnable, DEFAULT_BYTE_BUFFER_SIZE);
     }
-    
+
+    public WorkerThreadImpl(Runnable runnable){
+        this(null, "workerthread", runnable, 0);
+    }
+
+    public WorkerThreadImpl(String name, Runnable runnable){
+        this(null, name, runnable, 0);
+    }
     /**
      * Create a Thread that will synchronizes/block on
      * {@link DefaultThreadPool} instance.
@@ -278,6 +292,22 @@ public class WorkerThreadImpl extends WorkerThread {
     }
 
 
+    /**
+     * Used by selectionkey attachments to enqueue io events that will be executed in
+     * selectorhandler.postselect by worker threads instead of the selector thread.
+     */
+    public PendingIOhandler getPendingIOhandler() {
+        return pendingIOhandler;
+    }
+
+    /**
+     * Used by selectionkey attachments to enqueue io events that will be executed in
+     * selectorhandler.postselect by worker threads instead of the selector thread.
+     */
+    public void setPendingIOhandler(PendingIOhandler pendingIOhandler) {
+        this.pendingIOhandler = pendingIOhandler;
+    }
+    
     @Override
     protected void reset() {
         if (threadAttachment != null) {

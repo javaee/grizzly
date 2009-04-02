@@ -76,7 +76,11 @@ public interface CometHandler<E> {
      * everytime a {@link CometContext#notify} is invoked. The {@link CometEvent}
      * will contains the message that can be pushed back to the remote client,
      * cached or ignored. This method can also be used to resume a connection
-     * once a notified by invoking {@link CometContext#resumeCometHandler}.
+     * once a notified by invoking {@link CometContext#resumeCometHandler}.<br>
+     * its not optimal to flush outputstream in this method for long polling,
+     * flush is performed in each CometContext.resume call.<br>
+     * flushing multiple times can fragment the data into several tcp packets,
+     * that leads to extra IO and overhead in general due to client ack for each packet etc.
      */
     public void onEvent(CometEvent event) throws IOException;
     

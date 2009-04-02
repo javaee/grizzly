@@ -53,7 +53,7 @@ import javax.net.ssl.SSLEngine;
  */
 public class ThreadAttachment extends SelectionKeyActionAttachment 
         implements AttributeHolder {
-    
+
     /**
      * The maximum time this object can be associated with an active {@link Thread}
      */
@@ -310,18 +310,19 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
      * Set the time, in milliseconds, this object can be attached to a {@link Thread}
      * @param the time, in milliseconds, this object can be attached to a {@link Thread}
      */
-    public void setActiveThreadTimeout(long activeThreadTimeout){
+    @Override
+    public void setIdleTimeoutDelay(long activeThreadTimeout) {
         this.activeThreadTimeout = activeThreadTimeout;
-        
-        // As soon as we get invoked we grab the Thread
         activeThread= Thread.currentThread();
     }
-    
+
+
     /**
      * Return the time, in milliseconds, this object can be attached to a {@link Thread}
      * @return the time, in milliseconds, this object can be attached to a {@link Thread}
-     */  
-    public long getActiveThreadTimeout(){
+     */
+    @Override
+    public long getIdleTimeoutDelay() {
         return activeThreadTimeout;
     }
 }

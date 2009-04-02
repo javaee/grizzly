@@ -45,9 +45,11 @@ import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.SupportStateHolder;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
@@ -58,7 +60,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -371,6 +372,13 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     private void handleSelectedKeys(Set<SelectionKey> readyKeys,SelectorHandler selectorHandler,NIOContext serverCtx){
         for(SelectionKey key:readyKeys) {
           try{
+
+            Object attachment = key.attachment();
+            if (attachment instanceof SelectedKeyAttachmentLogic){
+                ((SelectedKeyAttachmentLogic)attachment).handleSelectedKey(key);
+                continue;
+            }
+
             if (!key.isValid()){
                 selectorHandler.getSelectionKeyHandler().close(key);
                 continue;

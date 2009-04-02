@@ -39,6 +39,7 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.async.AsyncQueueReader;
 import com.sun.grizzly.async.AsyncQueueWriter;
+import com.sun.grizzly.tcp.PendingIOhandler;
 import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.State;
@@ -59,7 +60,21 @@ import java.util.concurrent.ExecutorService;
  * @author Jeanfrancois Arcand
  */
 public interface SelectorHandler extends Handler, Copyable, 
-        AttributeHolder, SupportStateHolder<State> {   
+        AttributeHolder, SupportStateHolder<State> {
+
+    /**
+     * enqueues runnable for later execution in postSelect <br>
+     * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
+     * @param runnable
+    
+    public void addPendingIO(Runnable runnable);
+
+    
+     * enqueues SlectionKey for later cancel and close .<br>
+     * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
+     * @param runnable
+     
+    public void addPendingKeyCancel(SelectionKey key);*/
     
     /**
      * A token decribing the protocol supported by an implementation of this

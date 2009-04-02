@@ -46,6 +46,7 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -1006,7 +1007,7 @@ public class SuspendTest extends TestCase {
                         t.printStackTrace();
                     }
 
-                    new Thread(){
+                    new WorkerThreadImpl(new Runnable(){
                         @Override
                         public void run(){
                             try {
@@ -1022,8 +1023,8 @@ public class SuspendTest extends TestCase {
                                 res.resume();
                             }
                         }
-                    }.start();;
-    }
+                    }).start();
+            }
             });
 
             try {

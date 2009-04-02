@@ -41,67 +41,19 @@ package com.sun.grizzly.util;
 import java.nio.channels.SelectionKey;
 
 /**
- * Basic class for all SelectionKey attachments.
- * Custom attachments should be inherited from it.
+ * allows for custom selector.select logic, if controller detects
+ * SelectedKeyAttachmentLogic attachment
+ * on a valid key it does not perform anything.
  *
- * @author Alexey Stashok
+ * @author gustav trede
  */
-public abstract class SelectionKeyAttachment {
-    public static final long UNLIMITED_TIMEOUT = Long.MIN_VALUE;
-    
-    protected long timeout = UNLIMITED_TIMEOUT;
-
-    public static Object getAttachment(SelectionKey key) {
-        Object attachment = key.attachment();
-        if (attachment instanceof SelectionKeyAttachmentWrapper) {
-            return ((SelectionKeyAttachmentWrapper) attachment).getAttachment();
-        }
-
-        return attachment;
-    }
+public abstract class SelectedKeyAttachmentLogic extends SelectionKeyAttachment{
 
     /**
-     * returns the idle timeout delay.
-     * default it returns Long.MIN_VALUE , meaning null.
-     * -1 means no timeout.
-     * Subclass need to override it.
-     * @return
+     *  used for completely custom selector.select logic.
+     * 
+     * @param selectionKey
      */
-    public long getIdleTimeoutDelay(){
-        return UNLIMITED_TIMEOUT;
-    }
+      public abstract void handleSelectedKey(SelectionKey selectionKey);
 
-    /**
-     *  Subclass need to override this method for it to work.
-     *  Long.MIN_VALUE  means null , and default value will be used.
-     * -1 means no timeout.
-     * @param idletimeoutdelay
-     */
-    public void setIdleTimeoutDelay(long idletimeoutdelay){
-        throw new IllegalStateException("setIdleTimeoutDelay not implemented in subclass");
-    }
-
-    
-    public long getTimeout() {
-        return timeout;
-    }
-    
-    public void setTimeout(long timeout) {
-        this.timeout = timeout;
-    }
-
-    /**
-     *  called when idle timeout detected.
-     *  return true if key should be canceled.
-     * @param Key
-     * @return
-     */
-    public boolean timedOut(SelectionKey Key){
-        return true;
-    }
-
-
-    public void release(SelectionKey selectionKey) {
-        timeout = UNLIMITED_TIMEOUT;
-    }
 }

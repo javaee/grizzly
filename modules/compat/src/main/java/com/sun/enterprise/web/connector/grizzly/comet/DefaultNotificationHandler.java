@@ -38,6 +38,7 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
+import com.sun.enterprise.web.connector.grizzly.comet.CometHandler;
 import com.sun.grizzly.Controller;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -71,16 +72,16 @@ public class DefaultNotificationHandler
         try{
             switch (cometEvent.getType()) {
                 case CometEvent.INTERRUPT:
+                    synchronized(cometHandler){
                     ((CometHandler)cometHandler).onInterrupt((CometEvent)cometEvent);
+                    }
                     break;
                 case CometEvent.NOTIFY:
-                    ((CometHandler)cometHandler).onEvent((CometEvent)cometEvent);
-                    break;
                 case CometEvent.READ:
-                    ((CometHandler)cometHandler).onEvent((CometEvent)cometEvent);
-                    break;      
                 case CometEvent.WRITE:
+                    synchronized(cometHandler){
                     ((CometHandler)cometHandler).onEvent((CometEvent)cometEvent);
+                    }
                     break;                 
                 case CometEvent.INITIALIZE:
                     ((CometHandler)cometHandler).onInitialize((CometEvent)cometEvent);
@@ -92,7 +93,7 @@ public class DefaultNotificationHandler
                     throw new IllegalStateException();
             }
         } catch (IOException ex){
-            Controller.logger().log(Level.WARNING,"",ex);
+            Controller.logger().log(Level.FINE,"",ex);
         }
     }
 }

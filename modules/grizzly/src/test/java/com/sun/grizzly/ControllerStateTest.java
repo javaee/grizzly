@@ -41,6 +41,7 @@ package com.sun.grizzly;
 import com.sun.grizzly.filter.EchoFilter;
 import com.sun.grizzly.filter.LogFilter;
 import com.sun.grizzly.filter.ReadFilter;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.TCPIOClient;
 import java.io.IOException;
@@ -113,7 +114,7 @@ public class ControllerStateTest extends TestCase {
 
         ControllerUtils.startController(controller);
         
-        Thread restartThread = new Thread() {
+        Thread restartThread = new WorkerThreadImpl(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -123,7 +124,7 @@ public class ControllerStateTest extends TestCase {
                     exceptionHolder[0] = ex;
                 }
             }
-        };
+        });
         
         restartThread.start();
         

@@ -60,7 +60,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * The <code>AsyncFilter</code> to execute asynchronous operations on 
      * a <code>ProcessorTask</code>.
      */
-    private static String[] sharedAsyncFilters = null;
+    private final static ArrayList<AsyncFilter> sharedAsyncFilters = loadFilters();
     
     
     /**
@@ -80,8 +80,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * The {@link AsyncFilter} to execute asynchronous operations on 
      * a {@link ProcessorTask}.
      */
-    private ArrayList<AsyncFilter> asyncFilters = 
-            new ArrayList<AsyncFilter>();
+    private final ArrayList<AsyncFilter> asyncFilters = new ArrayList<AsyncFilter>(sharedAsyncFilters);
     
     
     /**
@@ -93,18 +92,9 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     // --------------------------------------------------------------------- //
     
     public DefaultAsyncExecutor(){
-        init();
     }
     
     
-    private void init(){
-        loadFilters();
-        if (sharedAsyncFilters != null){
-            for (String filterName: sharedAsyncFilters){
-                asyncFilters.add((AsyncFilter)ClassLoaderUtil.load(filterName));
-            }
-        }
-    }
     
     // ------------------------------------------------Asynchrounous Execution --/    
     /**
@@ -129,7 +119,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * @return true if the execution can continue, false if delayed.
      */
     public boolean interrupt() throws Exception{
-        if ( asyncFilters == null || asyncFilters.size() == 0 ) {
+        if (asyncFilters.size() == 0 ) {
             execute();
             return false;
         } else {
@@ -153,8 +143,8 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      */
     private boolean invokeFilters(){
         boolean continueExec = true;
-        for (AsyncFilter asf: asyncFilters){
-            continueExec = asf.doFilter(this);
+        for (int i=0;i<asyncFilters.size();i++){
+            continueExec = asyncFilters.get(i).doFilter(this);
             if ( !continueExec ){
                 break;
             }
@@ -256,16 +246,15 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Load the list of <code>AsynchFilter</code>.
      */
-    protected static void loadFilters(){      
+    protected static ArrayList<AsyncFilter> loadFilters(){
+        ArrayList<AsyncFilter> al = new ArrayList<AsyncFilter>();
         if ( System.getProperty(ASYNC_FILTER) != null){
             StringTokenizer st = new StringTokenizer(
                     System.getProperty(ASYNC_FILTER),",");
-            
-            sharedAsyncFilters = new String[st.countTokens()];    
-            int i = 0;
             while (st.hasMoreTokens()){
-                sharedAsyncFilters[i++] = st.nextToken();                
+                al.add((AsyncFilter)ClassLoaderUtil.load(st.nextToken()));
             } 
-        }   
-    }  
+        }
+        return al;
+    }
 }

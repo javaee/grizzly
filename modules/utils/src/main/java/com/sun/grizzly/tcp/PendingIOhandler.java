@@ -36,72 +36,30 @@
  *
  */
 
-package com.sun.grizzly.util;
+package com.sun.grizzly.tcp;
 
 import java.nio.channels.SelectionKey;
 
 /**
- * Basic class for all SelectionKey attachments.
- * Custom attachments should be inherited from it.
+ * allows for SelectorHandlers like TCPSelectorHandler to in an efficent "bulk style"
+ * offload selectionkey attachmen triggered IO to worker threads.<br>
  *
- * @author Alexey Stashok
+ * @author gustav trede
  */
-public abstract class SelectionKeyAttachment {
-    public static final long UNLIMITED_TIMEOUT = Long.MIN_VALUE;
-    
-    protected long timeout = UNLIMITED_TIMEOUT;
-
-    public static Object getAttachment(SelectionKey key) {
-        Object attachment = key.attachment();
-        if (attachment instanceof SelectionKeyAttachmentWrapper) {
-            return ((SelectionKeyAttachmentWrapper) attachment).getAttachment();
-        }
-
-        return attachment;
-    }
+public interface PendingIOhandler {
 
     /**
-     * returns the idle timeout delay.
-     * default it returns Long.MIN_VALUE , meaning null.
-     * -1 means no timeout.
-     * Subclass need to override it.
-     * @return
+     * Enqueues runnable for later execution.<br>
+     * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
+     * @param runnable
      */
-    public long getIdleTimeoutDelay(){
-        return UNLIMITED_TIMEOUT;
-    }
+    public void addPendingIO(Runnable runnable);
 
     /**
-     *  Subclass need to override this method for it to work.
-     *  Long.MIN_VALUE  means null , and default value will be used.
-     * -1 means no timeout.
-     * @param idletimeoutdelay
+     * Enqueues SlectionKey for later cancel and close .<br>
+     * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
+     * @param runnable
      */
-    public void setIdleTimeoutDelay(long idletimeoutdelay){
-        throw new IllegalStateException("setIdleTimeoutDelay not implemented in subclass");
-    }
+    public void addPendingKeyCancel(SelectionKey key);
 
-    
-    public long getTimeout() {
-        return timeout;
-    }
-    
-    public void setTimeout(long timeout) {
-        this.timeout = timeout;
-    }
-
-    /**
-     *  called when idle timeout detected.
-     *  return true if key should be canceled.
-     * @param Key
-     * @return
-     */
-    public boolean timedOut(SelectionKey Key){
-        return true;
-    }
-
-
-    public void release(SelectionKey selectionKey) {
-        timeout = UNLIMITED_TIMEOUT;
-    }
 }

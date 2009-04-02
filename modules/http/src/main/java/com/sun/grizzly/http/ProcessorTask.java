@@ -440,6 +440,20 @@ public class ProcessorTask extends TaskBase implements Processor,
     // being time.
     protected boolean handleKeepAliveBlockingThread = false;
 
+    /**
+     *  False prevents the selectionkey from being re registered after async is done in the terminateProcess() call
+     */
+    protected boolean reRegisterSelectionKey = true;
+
+    /**
+     * True if AsyncProtocolFilter should cancel the selectionkey in the terminateProcess() call
+     */
+    protected boolean aptCancelKey;
+
+    /**
+     * Used by terminateProcess() method
+     */
+    private final TaskEvent<ProcessorTask> event = new TaskEvent<ProcessorTask>(this);
 
     // ----------------------------------------------------- Constructor ---- //
 
@@ -523,8 +537,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             process(inputStream,
                     outputStream);
         } catch(Throwable ex){
-            logger.log(Level.FINE,
+            if (logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
                     sm.getString("processorTask.errorProcessingRequest"), ex);
+            }
         } finally {
             terminateProcess();        
         }
@@ -658,11 +674,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         if (response.isSuspended()){
             WorkerThread wt = (WorkerThread)Thread.currentThread();
             wt.getAttachment().setAttribute("suspend",Boolean.TRUE);
-
-            ((SelectorThreadKeyHandler) selectorHandler.
-                    getSelectionKeyHandler()).resetExpiration();
-            key.attach(response.getResponseAttachment());
-             
+            key.attach(response.getResponseAttachment());             
             return;
         }        
         
@@ -674,8 +686,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             adapter.afterService(request,response);
         } catch (Exception ex) {
             error = true;
-            logger.log(Level.FINEST,
-                    sm.getString("processorTask.errorFinishingRequest"), ex);            
+            if (logger.isLoggable(Level.FINEST)){
+                logger.log(Level.FINEST,
+                    sm.getString("processorTask.errorFinishingRequest"), ex);
+            }
         }
         
         // Finish the handling of the request
@@ -773,7 +787,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             WorkerThread workerThread = (WorkerThread)Thread.currentThread();
             KeepAliveThreadAttachment k = 
                     (KeepAliveThreadAttachment) workerThread.getAttachment();
-            k.setActiveThreadTimeout(transactionTimeout);
+            k.setIdleTimeoutDelay(transactionTimeout);
 
             inputBuffer.parseHeaders();
         
@@ -850,20 +864,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             // control how Grizzly ARP extension handle their asynchronous
             // behavior, we must make sure we are never called twice.
              if (asyncSemaphore.tryAcquire(0, TimeUnit.SECONDS)) {
-                // Nobody is listening, avoid extra operation.
-                if (getTaskListener() == null){
-                    return;
-                }
-                
-                TaskEvent<ProcessorTask> event = new TaskEvent<ProcessorTask>();
-                if (error) {
-                    event.setStatus(TaskEvent.ERROR);
-                } else {
-                    event.setStatus(TaskEvent.COMPLETED);
-                }
-                event.attach(this);
-                getTaskListener().taskEvent(event);
-                event.attach(null);
+                if (getTaskListener() != null){
+                    event.setStatus(error?TaskEvent.ERROR:TaskEvent.COMPLETED);
+                    getTaskListener().taskEvent(event);
+                }                                
             } 
         } catch (InterruptedException ex) {
             if (logger.isLoggable(Level.WARNING)){
@@ -929,10 +933,11 @@ public class ProcessorTask extends TaskBase implements Processor,
             try {
                 outputBuffer.commit();
             } catch (IOException ex) {
-                logger.log(Level.FINEST,
+                if (logger.isLoggable(Level.FINEST)){
+                    logger.log(Level.FINEST,
                         sm.getString("processorTask.nonBlockingError"), ex);               
-                // Set error flag
                 error = true;
+                }
             }
 
         } else if (actionCode == ActionCode.ACTION_ACK) {
@@ -951,7 +956,6 @@ public class ProcessorTask extends TaskBase implements Processor,
                 try {
                     outputBuffer.sendAck();
                 } catch (IOException e) {
-                    // Set error flag
                     error = true;
                 }
             }
@@ -965,10 +969,11 @@ public class ProcessorTask extends TaskBase implements Processor,
             try {
                 outputBuffer.endRequest();
             } catch (IOException e) {
-                logger.log(Level.FINEST,
+                if (logger.isLoggable(Level.FINEST)){
+                    logger.log(Level.FINEST,
                         sm.getString("processorTask.nonBlockingError"), e);
-                // Set error flag
-                error = true;
+                    error = true;
+                }
             }
         } else if (actionCode == ActionCode.ACTION_RESET) {
 
@@ -1094,7 +1099,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                     }
                 } catch (Exception e) {
                     logger.log(Level.WARNING,
-                            sm.getString("processorTask.exceptionSSLcert"),e);
+                        sm.getString("processorTask.exceptionSSLcert"),e);
                 }
             }
         } else if ( actionCode == ActionCode.ACTION_POST_REQUEST ) { 
@@ -1103,18 +1108,15 @@ public class ProcessorTask extends TaskBase implements Processor,
                 try{
                     handler.handle(request,Interceptor.RESPONSE_PROCEEDED);
                 } catch(IOException ex){
-                    logger.log(Level.FINEST,
-                            "Handler exception",ex);
+                    logger.log(Level.FINEST,"Handler exception",ex);
                 }
             }   
         } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) { 
             key.attach(null);
         } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
-            if (key.attachment() instanceof Response.ResponseAttachment){
-                Response.ResponseAttachment ra = ((Response.ResponseAttachment)key.attachment());
-                if (ra != null){
-                    ra.resetTimeout();
-                }
+            Object attachment = key.attachment();
+            if (attachment instanceof Response.ResponseAttachment){
+                ((Response.ResponseAttachment)attachment).resetTimeout();
             }
         } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) { 
             if (key != null) {
@@ -1913,6 +1915,8 @@ public class ProcessorTask extends TaskBase implements Processor,
         setTaskListener(null);
         socket = null;
         dropConnection = false;
+        reRegisterSelectionKey = true;
+        aptCancelKey = false;
         key = null;
     }
     
@@ -2300,6 +2304,39 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public void setUseChunking(boolean useChunking) {
         this.useChunking = useChunking;
+    }
+
+    /**
+     * False prevents the selectionkey from being re registered after async is done in the terminateProcess() call.
+     * default is true.     
+     * @param reRegisterSelectionKey
+     */
+    public void setReRegisterSelectionKey(boolean reRegisterSelectionKey) {
+        this.reRegisterSelectionKey = reRegisterSelectionKey;
+    }
+
+    /**
+     * False prevents the selectionkey from being re registered after async is done in the terminateProcess() call.
+     * default is true.
+     * @return
+     */
+    public boolean getReRegisterSelectionKey() {
+        return reRegisterSelectionKey;
+    }
+
+    /**
+     * True if AsyncProtocolFilter should cancel the selectionkey in the terminateProcess() call
+     * @param aptCancelKey
+     */
+    public void setAptCancelKey(boolean aptCancelKey) {
+        this.aptCancelKey = aptCancelKey;
+    }
+
+    /**
+     *  True if AsyncProtocolFilter should cancel the selectionkey in the terminateProcess() call
+     */
+    public boolean getAptCancelKey() {
+        return aptCancelKey;
     }
 }
 
