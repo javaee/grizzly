@@ -45,15 +45,19 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import junit.framework.TestCase;
 
-import javax.net.ssl.*;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLSession;
 import javax.servlet.*;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.*;
 import java.security.GeneralSecurityException;
-import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.logging.Logger;
 
@@ -213,7 +217,7 @@ public class GrizzlyWebServerTest extends TestCase {
             throws IOException, URISyntaxException, GeneralSecurityException {
         System.out.println("testStartSecureWithConfiguration");
         URL resource = getClass().getClassLoader().getResource("test-keystore.jks");
-        SSLConfig cfg = new SSLConfig(true);
+        SSLConfig cfg = new SSLConfig(false);
         if (resource != null) {
             URI uri = resource.toURI();
             String path = new File(uri).getAbsolutePath();
@@ -223,11 +227,12 @@ public class GrizzlyWebServerTest extends TestCase {
         }
         gws = new GrizzlyWebServer(PORT, ".", true);
         gws.setSSLConfig(cfg);
+        final String encMsg = "Secured.";
         gws.addGrizzlyAdapter(new GrizzlyAdapter() {
             public void service(GrizzlyRequest request, GrizzlyResponse response) {
                 response.setStatus(200);
                 try {
-                    response.getOutputBuffer().write("Secured.");
+                    response.getOutputBuffer().write(encMsg);
                 } catch (IOException e) {
                     response.setStatus(500, "Server made a boo.");
                 }
@@ -245,14 +250,12 @@ public class GrizzlyWebServerTest extends TestCase {
             URL res = getClass().getClassLoader().getResource("test-truststore.jks");
             if (res != null) {
                 URI uri = res.toURI();
-                KeyStore trustStore = KeyStore.getInstance("JKS");
-                String path = new File(uri).getAbsolutePath();
-                trustStore.load(new FileInputStream(path), "changeit".toCharArray());
-                TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance("SunX509");
-                trustManagerFactory.init(trustStore);
-                SSLContext context = SSLContext.getInstance("TLS");
-                context.init(null, trustManagerFactory.getTrustManagers(), null);
-                HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
+
+                SSLConfig clientCfg = new SSLConfig(false);
+                clientCfg.setTrustStoreFile(new File(uri).getAbsolutePath());
+
+                HttpsURLConnection.setDefaultSSLSocketFactory(
+                        clientCfg.createSSLContext().getSocketFactory());
             } else {
                 fail("Couldn't find truststore");
             }
@@ -265,7 +268,7 @@ public class GrizzlyWebServerTest extends TestCase {
             HttpURLConnection conn =
                     (HttpURLConnection) new URL("https", "localhost", PORT, "/sec").openConnection();
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
-            assertEquals("Secured.", readResponse(conn));
+            assertEquals(encMsg, readResponse(conn));
         } finally {
             gws.stop();
         }

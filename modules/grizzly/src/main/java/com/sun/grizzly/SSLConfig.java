@@ -58,7 +58,7 @@ import javax.net.ssl.TrustManagerFactory;
  * SSL configuration
  *
  * @author Alexey Stashok
- * @author Hubert Iwaniukk
+ * @author Hubert Iwaniuk
  */
 public class SSLConfig {
     public static final String TRUST_STORE_FILE = "javax.net.ssl.trustStore";
@@ -99,13 +99,15 @@ public class SSLConfig {
     private String trustStoreAlgorithm;
     private String keyStoreAlgorithm;
 
-    private String securityProtocol;
+    private String securityProtocol = "TLS";
 
     private boolean clientMode = false;
 
     private boolean needClientAuth = false;
 
     private boolean wantClientAuth = false;
+    private static final String DEFAULT_STORE_TYPE = "JKS";
+    private static final String DEFAULT_STORE_ALGORITH = "SunX509";
 
     public SSLConfig() {
         this(true);
@@ -152,17 +154,47 @@ public class SSLConfig {
     public String getTrustStoreFile() {
         return trustStoreFile;
     }
-    
+
+    /**
+     * Sets trust store file name, also makes sute that if other trust store
+     * configutation parameters are not set to set them to default values.
+     *
+     * @param trustStoreFile File name of trust store.
+     */
     public void setTrustStoreFile(String trustStoreFile) {
         this.trustStoreFile = trustStoreFile;
+        if (trustStoreType == null) {
+            trustStoreType = DEFAULT_STORE_TYPE;
+        }
+        if (trustStoreAlgorithm == null) {
+            trustStoreAlgorithm = DEFAULT_STORE_ALGORITH;
+        }
+        if (trustStorePass == null || trustStorePass.length == 0) {
+            trustStorePass = DEFAULT_STORE_PASSWORD.toCharArray();
+        }
     }
     
     public String getKeyStoreFile() {
         return keyStoreFile;
     }
-    
+
+    /**
+     * Sets key store file name, also makes sure that if other key store
+     * configuration parameters are not set to set them to default values.
+     *
+     * @param keyStoreFile File name of key store.
+     */
     public void setKeyStoreFile(String keyStoreFile) {
         this.keyStoreFile = keyStoreFile;
+        if (keyStoreType == null) {
+            keyStoreType = DEFAULT_STORE_TYPE;
+        }
+        if (keyStoreAlgorithm == null) {
+            keyStoreAlgorithm = DEFAULT_STORE_ALGORITH;
+        }
+        if (keyStorePass == null || keyStorePass.length == 0) {
+            keyStorePass = DEFAULT_STORE_PASSWORD.toCharArray();
+        }
     }
     
     public String getTrustStoreAlgorithm() {
@@ -256,6 +288,7 @@ public class SSLConfig {
                     trustManagerFactory =
                             TrustManagerFactory.getInstance(trustStoreAlgorithm);
                     trustManagerFactory.init(trustStore);
+                    valid = true;
                 } catch (KeyStoreException e) {
                     logger.log(Level.FINE, "Error initializing trust store", e);
                     valid = false;
@@ -270,6 +303,7 @@ public class SSLConfig {
             }
         } catch (NoSuchAlgorithmException e) {
             logger.log(Level.FINE, "Error initializing algorithm.", e);
+            valid = false;
         }
         return valid;
     }
@@ -337,8 +371,8 @@ public class SSLConfig {
     }
     
     public void retrieve(Properties props) {
-        trustStoreType = props.getProperty(TRUST_STORE_TYPE, "JKS");
-        keyStoreType = props.getProperty(KEY_STORE_TYPE, "JKS");
+        trustStoreType = props.getProperty(TRUST_STORE_TYPE, DEFAULT_STORE_TYPE);
+        keyStoreType = props.getProperty(KEY_STORE_TYPE, DEFAULT_STORE_TYPE);
     
         trustStorePass = 
                 props.getProperty(TRUST_STORE_PASSWORD, DEFAULT_STORE_PASSWORD).toCharArray();
@@ -349,8 +383,8 @@ public class SSLConfig {
         trustStoreFile = props.getProperty(TRUST_STORE_FILE, DEFAULT_TRUSTSTORE_NAME);
         keyStoreFile = props.getProperty(KEY_STORE_FILE, DEFAULT_KEYSTORE_NAME);
     
-        trustStoreAlgorithm = "SunX509";
-        keyStoreAlgorithm = "SunX509";
+        trustStoreAlgorithm = DEFAULT_STORE_ALGORITH;
+        keyStoreAlgorithm = DEFAULT_STORE_ALGORITH;
     
         securityProtocol = "TLS";
     }
