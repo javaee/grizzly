@@ -326,7 +326,7 @@ public class GrizzlyWebServerDeployer {
     }
 
     public void printHelpAndExit() {
-        System.err.println("Usage: " + GrizzlyWebServerDeployer.class.getCanonicalName() + " [options] Servlet_Classname");
+        System.err.println("Usage: " + GrizzlyWebServerDeployer.class.getCanonicalName());
         System.err.println();
         System.err.println("    -p, --port=port                  Runs Servlet on the specified port.");
         System.err.println("                                     Default: 8080");
