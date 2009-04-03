@@ -2338,5 +2338,20 @@ public class ProcessorTask extends TaskBase implements Processor,
     public boolean getAptCancelKey() {
         return aptCancelKey;
     }
+    
+    /**
+     * Force keep-alive no mather what the client support.
+     */
+    public void setForceKeepAlive(boolean forceKeepAlive){
+        keepAlive = forceKeepAlive;
+        connectionHeaderValueSet = forceKeepAlive;
+    }
+    
+    /**
+     * Is keep-alive forced?
+     */
+    public boolean getForceKeepAlive(){
+        return (keepAlive == connectionHeaderValueSet == true);
+    }
 }
 
