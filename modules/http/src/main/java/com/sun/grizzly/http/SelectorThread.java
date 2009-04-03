@@ -964,14 +964,20 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     protected void reconfigureAsyncExecution(){
         for(ProcessorTask task :processorTasks){
-            if (task instanceof ProcessorTask) {
-                ((ProcessorTask)task)
-                    .setEnableAsyncExecution(asyncExecution);
-                ((ProcessorTask)task).setAsyncHandler(asyncHandler);  
-            }
+            ((ProcessorTask)task)
+                .setEnableAsyncExecution(asyncExecution);
+            ((ProcessorTask)task).setAsyncHandler(asyncHandler);  
         }
     }
-    
+   
+    /*
+     * Reconfigure {@link Adapter} on already configured {@link ProcessorTask} 
+     */
+    protected void reconfigureAdapter(){
+        for(ProcessorTask task :processorTasks){
+            task.setAdapter(adapter);
+        }
+    }
  
     /**
      * Return a {@link ProcessorTask} from the pool. If the pool is empty,
@@ -1335,6 +1341,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     public void setAdapter(Adapter adapter) {
         this.adapter = adapter;
+        reconfigureAdapter();
     }
 
 

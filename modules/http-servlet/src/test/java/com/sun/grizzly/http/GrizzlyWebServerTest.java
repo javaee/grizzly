@@ -315,7 +315,7 @@ public class GrizzlyWebServerTest extends TestCase {
      *
      * @throws IOException Fail.
      */
-    public void _testAddGrizzlyAdapterBeforeAndAfterStart() throws IOException {
+    public void testAddGrizzlyAdapterBeforeAndAfterStart() throws IOException {
         System.out.println("testAddGrizzlyAdapterBeforeAndAfterStart");
         try {
             gws = new GrizzlyWebServer(PORT);
