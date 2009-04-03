@@ -49,6 +49,7 @@ import javax.management.MBeanRegistration;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.TransportFactory;
@@ -57,10 +58,12 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
+import org.glassfish.grizzly.filterchain.TerminateAction;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLStreamReader;
 import org.glassfish.grizzly.ssl.SSLStreamWriter;
+import org.glassfish.grizzly.threadpool.DefaultScheduleThreadPool;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
 import org.glassfish.grizzly.web.container.Adapter;
@@ -129,7 +132,9 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
 
     protected MemoryManager memoryManager;
 
-    protected ExecutorService threadPool;
+    protected ExecutorService workerThreadPool;
+
+    protected ScheduledExecutorService scheduledThreadPool;
 
     /**
      * Keep-alive stats
@@ -221,10 +226,11 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             ExecutorService threadPool, MemoryManager memoryManager) {
         this.name = name;
         this.config = config;
-        this.threadPool = threadPool;
+        this.workerThreadPool = threadPool;
         this.memoryManager = memoryManager;
         
         jmxManager = new WebFilterJMXManager(this);
+        scheduledThreadPool = new DefaultScheduleThreadPool(1);
     }
 
     @Override
@@ -262,9 +268,9 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             keepAlive = false;
         }
 
-        Boolean isSuspend = isSuspendAttr.get(connection);
-        if (isSuspend){
-            return nextAction;
+        boolean isSuspend = processorTask.getRequest().getResponse().isSuspended();
+        if (isSuspend) {
+            return new TerminateAction();
         }
 
         if (processorTask != null){
@@ -401,12 +407,20 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         this.memoryManager = memoryManager;
     }
 
-    public ExecutorService getThreadPool() {
-        return threadPool;
+    public ExecutorService getWorkerThreadPool() {
+        return workerThreadPool;
     }
 
-    public void setThreadPool(ExecutorService threadPool) {
-        this.threadPool = threadPool;
+    public void setWorkerThreadPool(ExecutorService threadPool) {
+        this.workerThreadPool = threadPool;
+    }
+
+    public ScheduledExecutorService getScheduledThreadPool() {
+        return scheduledThreadPool;
+    }
+
+    public void setScheduledThreadPool(ScheduledExecutorService scheduledThreadPool) {
+        this.scheduledThreadPool = scheduledThreadPool;
     }
 
     public ThreadPoolStatistic getThreadPoolStatistic() {
@@ -418,7 +432,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * {@link ExecutorService}, for monitoring purposes.
      */
     protected void enableThreadPoolStats(){   
-        threadPoolStat.setThreadPool(threadPool);
+        threadPoolStat.setThreadPool(workerThreadPool);
         threadPoolStat.start();
 
         keepAliveStats = new KeepAliveStats();
@@ -503,7 +517,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * initialized the endpoint by creating the <code>ServerScoketChannel</code>
      * and by initializing the server socket.
      */
-    public void init() throws IOException, InstantiationException {
+    public void initialize() throws IOException, InstantiationException {
         rampUpProcessorTasks();
         registerComponents();
 
@@ -512,16 +526,16 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         initMonitoringLevel();
         
         int processorTasksToInit;
-        if (threadPool instanceof ExtendedThreadPool) {
+        if (workerThreadPool instanceof ExtendedThreadPool) {
             processorTasksToInit =
-                    ((ExtendedThreadPool) threadPool).getMaximumPoolSize();
+                    ((ExtendedThreadPool) workerThreadPool).getMaximumPoolSize();
         } else {
             processorTasksToInit = 5;
         }
         
         initProcessorTasks(processorTasksToInit);
 
-        if (adapter instanceof GrizzlyAdapter){
+        if (adapter instanceof GrizzlyAdapter) {
             ((GrizzlyAdapter) adapter).start();
         }
     }
@@ -706,7 +720,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     protected void initMonitoringLevel() {
         if (threadPoolStat != null) return;
         threadPoolStat = new ThreadPoolStatistic(name);
-        threadPoolStat.setThreadPool(threadPool);
+        threadPoolStat.setThreadPool(workerThreadPool);
     }
      
     /**
@@ -735,7 +749,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
        if (config.isDisplayConfiguration()){
             logger.log(Level.INFO,
                     "\n Grizzly configuration"
-                    + "\n\t name"
+                    + "\n\t name: "
                     + name
                     + "\n\t maxHttpHeaderSize: " 
                     + config.getMaxHttpHeaderSize()

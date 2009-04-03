@@ -94,6 +94,7 @@ import org.glassfish.grizzly.web.container.util.http.MimeHeaders;
 
 import org.glassfish.grizzly.web.container.util.res.StringManager;
 import java.util.StringTokenizer;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -552,6 +553,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         outputBuffer.setAsyncHttpWriteEnabled(
                 isAsyncHttpWriteEnabled);
         response.setConnection(input.getConnection());
+        response.setStreamWriter(output);
         configPreProcess();
     }
 
@@ -641,12 +643,19 @@ public class ProcessorTask extends TaskBase implements Processor,
      * @param input the InputStream to read bytes
      * @param output the OutputStream to write bytes
      */       
-    public void postResponse() throws Exception{
+    public void postResponse() throws Exception {
         
         // Do not commit the response;
         if (response.isSuspended()) {
-            SuspendedResponse.SuspendedResponseAttr.set(connection,
-                    response.getSuspendedResponse());
+            SuspendedResponse suspendedResponse = response.getSuspendedResponse();
+            ScheduledFuture future = webFilter.getScheduledThreadPool().schedule(
+                    suspendedResponse,
+                    suspendedResponse.getTimeout(),
+                    TimeUnit.MILLISECONDS);
+            
+            suspendedResponse.setFuture(future);
+//            SuspendedResponse.SuspendedResponseAttr.set(connection,
+//                    response.getSuspendedResponse());
 //            ((SelectorThreadKeyHandler) selectorHandler.
 //                    getSelectionKeyHandler()).resetExpiration();
             return;
@@ -1092,14 +1101,14 @@ public class ProcessorTask extends TaskBase implements Processor,
                             "Handler exception",ex);
                 }
             }   
-        } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) { 
-            SuspendedResponse.SuspendedResponseAttr.remove(connection);
+        } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) {
         } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
-            SuspendedResponse suspendedResponse =
-                    SuspendedResponse.SuspendedResponseAttr.get(connection);
-
-            if (suspendedResponse != null) {
-                suspendedResponse.resetTimeout();
+            SuspendedResponse suspendedResponse = response.getSuspendedResponse();
+            if (suspendedResponse != null && suspendedResponse.getFuture() != null) {
+                suspendedResponse.getFuture().cancel(false);
+                suspendedResponse.setFuture(webFilter.getScheduledThreadPool().
+                        schedule(suspendedResponse,
+                        suspendedResponse.getTimeout(), TimeUnit.MILLISECONDS));
             }
         } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) { 
             if (connection != null) {

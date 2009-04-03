@@ -86,7 +86,7 @@ public class BasicSelectorThreadTest extends TestCase {
             webFilter.setAdapter(new HelloWorldAdapter());
 
             try {
-                webFilter.init();
+                webFilter.initialize();
                 webFilter.enableMonitoring();
                 transport.bind(PORT);
                 transport.start();

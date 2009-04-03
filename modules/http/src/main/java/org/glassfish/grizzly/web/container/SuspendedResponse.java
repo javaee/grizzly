@@ -38,39 +38,44 @@
 package org.glassfish.grizzly.web.container;
 
 import java.io.IOException;
+import java.util.concurrent.ScheduledFuture;
 import java.util.logging.Level;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.web.container.util.LoggerUtils;
 
 /**
  *
  * @author Jean-Francois Arcand
  */
-public class SuspendedResponse<A> {
+public class SuspendedResponse<A> implements Runnable {
 
-    public static final Attribute<SuspendedResponse> SuspendedResponseAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            "suspended-response");
+//    public static final Attribute<SuspendedResponse> SuspendedResponseAttr =
+//            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+//            "suspended-response");
 
     private A attachment;
     private CompletionHandler<? super A> completionHandler;
-    private Long timeout;
-    private Long expiration;
+    private long timeout;
     private Response response;
+    protected ScheduledFuture future;
 
-    public SuspendedResponse(Long timeout, A attachment,
+    public SuspendedResponse(long timeout, A attachment,
             CompletionHandler<? super A> completionHandler, Response response) {
         this.timeout = timeout;
         this.attachment = attachment;
         this.completionHandler = completionHandler;
         this.response = response;
-
-        resetTimeout();
     }
 
     public A getAttachment() {
         return attachment;
+    }
+
+    public long getTimeout() {
+        return timeout;
+    }
+
+    public void setTimeout(long timeout) {
+        this.timeout = timeout;
     }
 
     public CompletionHandler<? super A> getCompletionHandler() {
@@ -82,15 +87,11 @@ public class SuspendedResponse<A> {
         this.completionHandler = completionHandler;
     }
 
-    public void resetTimeout() {
-        expiration = System.currentTimeMillis() + timeout;
-    }
-
-    public Long getExpirationTime() {
-        return expiration;
-    }
-
     public void resume() {
+        if (future != null) {
+            future.cancel(false);
+        }
+        
         completionHandler.resumed(attachment);
         try {
             response.sendHeaders();
@@ -107,6 +108,26 @@ public class SuspendedResponse<A> {
 
     public void timeout(boolean forceClose) {
         // If the buffers are empty, commit the response header
+        if (future != null && !future.isDone()) {
+            future.cancel(false);
+        }
+
+        doTimeout(forceClose);
+    }
+
+    public void run() {
+        doTimeout(true);
+    }
+
+    public ScheduledFuture getFuture() {
+        return future;
+    }
+
+    public void setFuture(ScheduledFuture future) {
+        this.future = future;
+    }
+
+    protected void doTimeout(boolean forceClose) {
         try {
             completionHandler.cancelled(attachment);
         } finally {
@@ -120,5 +141,6 @@ public class SuspendedResponse<A> {
                 }
             }
         }
+
     }
 }

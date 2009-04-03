@@ -230,7 +230,7 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
        if (config.isDisplayConfiguration()) {
             logger.log(Level.INFO,
                     "\n Grizzly configuration"
-                    + "\n\t name"
+                    + "\n\t name: "
                     + name
                     + "\n\t maxHttpHeaderSize: "
                     + config.getMaxHttpHeaderSize()

@@ -136,7 +136,7 @@ public class ArpSSLTest extends TestCase {
 
         try {
             webFilter.enableMonitoring();
-            webFilter.init();
+            webFilter.initialize();
             transport.bind(PORT);
             transport.start();
         } catch (Exception ex) {

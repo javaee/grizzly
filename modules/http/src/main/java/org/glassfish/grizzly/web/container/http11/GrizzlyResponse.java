@@ -82,6 +82,8 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Vector;
+import java.util.logging.Level;
+import org.glassfish.grizzly.web.WebFilter;
 import org.glassfish.grizzly.web.container.OutputBuffer;
 
 /**
@@ -576,7 +578,15 @@ public class GrizzlyResponse<A> {
         try {
             outputBuffer.close();
         } catch(IOException e) {
+            if (WebFilter.logger().isLoggable(Level.FINEST)) {
+                WebFilter.logger().log(Level.FINEST,
+                        "ACTION_CLIENT_FLUSH", e);
+            }
         } catch(Throwable t) {
+            if (WebFilter.logger().isLoggable(Level.WARNING)) {
+                WebFilter.logger().log(Level.WARNING,
+                        "ACTION_CLIENT_FLUSH", t);
+            }
         }
     }
 

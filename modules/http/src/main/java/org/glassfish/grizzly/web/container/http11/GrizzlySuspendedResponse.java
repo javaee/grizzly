@@ -60,6 +60,10 @@ public class GrizzlySuspendedResponse<A> extends SuspendedResponse<A> {
 
     @Override
     public void resume() {
+        if (future != null) {
+            future.cancel(false);
+        }
+
         getCompletionHandler().resumed(getAttachment());
         try {
             gres.finishResponse();
@@ -69,7 +73,7 @@ public class GrizzlySuspendedResponse<A> extends SuspendedResponse<A> {
     }
 
     @Override
-    public void timeout(boolean forceClose) {
+    protected void doTimeout(boolean forceClose) {
         // If the buffers are empty, commit the response header
         try {
             getCompletionHandler().cancelled(getAttachment());

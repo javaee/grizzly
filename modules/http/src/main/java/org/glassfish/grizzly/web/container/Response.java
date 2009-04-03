@@ -65,6 +65,7 @@ import java.util.Locale;
 import java.util.concurrent.Semaphore;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.streams.StreamWriter;
 
 
 /**
@@ -178,11 +179,14 @@ public class Response<A> {
     // The underlying {@link Connection}
     private Connection connection;
 
+    // Underlying {@link StreamWriter}
+    private StreamWriter streamWriter;
+
     // Is the request suspended.
     private boolean isSuspended = false;
     
     // The SuspendedResponse associated with this response.
-    private SuspendedResponse ra;
+    private SuspendedResponse suspendedResponse;
     
     
     // ------------------------------------------------------------- Properties
@@ -663,6 +667,7 @@ public class Response<A> {
     public void recycle() {
         
         connection = null;
+        streamWriter = null;
         contentType = null;
         contentLanguage = null;
         locale = DEFAULT_LOCALE;
@@ -683,7 +688,7 @@ public class Response<A> {
         bytesWritten=0;
         
         isSuspended = false;
-        ra = null;
+        suspendedResponse = null;
     }
 
     public long getBytesWritten() {
@@ -704,24 +709,31 @@ public class Response<A> {
     }
 
     /**
-     * Set the underlying {@link Connection}
-     */
-    public void setConnection(Connection connection){
-	this.connection = connection;
-    }
-
-    
-    /**
      * Return the underlying {@link Connection}
      * <strong>WARNING</strong>. If you directly uses the {@link Connection},
      * you must make sure {@link Response#sendHeaders} followed by a {@link Response#flush()}
-     * if  you just want to manipulate the response body, but not the header. 
+     * if  you just want to manipulate the response body, but not the header.
      * If you don't want to let Grizzly write the headers for you,
-     * Invoke {@link Response.setCommitted(true)} before starting writing bytes 
+     * Invoke {@link Response.setCommitted(true)} before starting writing bytes
      * to the {@link Connection}
      */
     public Connection getConnection(){
-	return connection;
+        return connection;
+    }
+
+    /**
+     * Set the underlying {@link Connection}
+     */
+    public void setConnection(Connection connection){
+        this.connection = connection;
+    }
+
+    public StreamWriter getStreamWriter() {
+        return streamWriter;
+    }
+
+    public void setStreamWriter(StreamWriter streamWriter) {
+        this.streamWriter = streamWriter;
     }
 
     /**
@@ -736,9 +748,9 @@ public class Response<A> {
                 throw new IllegalStateException("Not Suspended");
             }
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
-            ra.resume();
+            suspendedResponse.resume();
             isSuspended = false;
-            ra = null;
+            suspendedResponse = null;
             lock.release();
         } else {
             throw new IllegalStateException("Not Suspended");
@@ -757,7 +769,7 @@ public class Response<A> {
                 throw new IllegalStateException("Not Suspended");
             }
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);  
-            ra.timeout(false);
+            suspendedResponse.timeout(false);
             isSuspended = false;
             lock.release();
         } else {
@@ -798,7 +810,7 @@ public class Response<A> {
      *        
      */   
     public void suspend(long timeout){
-        suspend(timeout,null,null);
+        suspend(timeout, null, null);
     }
     
     /**
@@ -824,8 +836,8 @@ public class Response<A> {
      */     
     public void suspend(long timeout,A attachment, 
             CompletionHandler<? super A> competionHandler){  
-        ra = new SuspendedResponse(timeout,attachment, competionHandler,this);
-        suspend(timeout, attachment, competionHandler, ra);
+        suspend(timeout, attachment, competionHandler,
+                new SuspendedResponse(timeout,attachment, competionHandler,this));
     }
     
     
@@ -848,10 +860,11 @@ public class Response<A> {
      * times out will throw an {@link IllegalStateException}.
      * @param attachment Any Object that will be passed back to the {@link CompletionHandler}        
      * @param competionHandler a {@link CompletionHandler}
-     * @param ra {@link ResourceAttachment} used to times out idle connection.
+     * @param suspendedResponse {@link SuspendedResponse} used to times out idle connection.
      */     
     public void suspend(long timeout,A attachment,
-            CompletionHandler<? super A> competionHandler, SuspendedResponse<A> ra){
+            CompletionHandler<? super A> competionHandler,
+            SuspendedResponse<A> suspendedResponse){
         if (isSuspended){
             throw new IllegalStateException("Already Suspended");
         }   
@@ -875,10 +888,10 @@ public class Response<A> {
                 }
                 
             };
-            ra.setCompletionHandler(competionHandler);
+            suspendedResponse.setCompletionHandler(competionHandler);
         }
         
-        this.ra = ra;
+        this.suspendedResponse = suspendedResponse;
     }
     
     
@@ -888,7 +901,7 @@ public class Response<A> {
      * @return
      */
     public SuspendedResponse getSuspendedResponse(){
-        return ra;
+        return suspendedResponse;
     }
     
         
