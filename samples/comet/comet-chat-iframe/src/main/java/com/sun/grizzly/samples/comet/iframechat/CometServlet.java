@@ -69,7 +69,7 @@ public class CometServlet extends HttpServlet{
         contextPath = config.getServletContext().getContextPath() + "/chat";
         CometEngine cometEngine = CometEngine.getEngine();
         CometContext context = cometEngine.register(contextPath);    
-        context.setExpirationDelay(60 * 1000);
+        context.setExpirationDelay(5 * 60 * 1000);
     }
    
     

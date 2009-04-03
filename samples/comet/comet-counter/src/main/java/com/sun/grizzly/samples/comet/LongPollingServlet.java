@@ -111,7 +111,7 @@ public class LongPollingServlet extends HttpServlet {
         
         CometEngine engine = CometEngine.getEngine();
         CometContext cometContext = engine.register(contextPath);
-        cometContext.setExpirationDelay(30 * 1000);
+        cometContext.setExpirationDelay(5 * 30 * 1000);
     }
     
     @Override
