@@ -115,7 +115,6 @@ public class WorkerThreadImpl extends WorkerThread {
     public WorkerThreadImpl(ThreadGroup threadGroup, Runnable runnable, 
             int initialByteBufferSize){
         super(threadGroup, runnable);
-        setDaemon(true);
         this.initialByteBufferSize = initialByteBufferSize;
     }
     
@@ -140,7 +139,6 @@ public class WorkerThreadImpl extends WorkerThread {
             int initialByteBufferSize){
         super(threadGroup, name);
         this.threadPool = threadPool;
-        setDaemon(true);
         this.initialByteBufferSize = initialByteBufferSize;
     }
     
@@ -154,8 +152,7 @@ public class WorkerThreadImpl extends WorkerThread {
     public WorkerThreadImpl(DefaultThreadPool threadPool, String name,
             Runnable runnable, int initialByteBufferSize){
         super(threadGroup, runnable, name);
-        this.threadPool = threadPool;
-        setDaemon(true);
+        this.threadPool = threadPool;        
         this.initialByteBufferSize = initialByteBufferSize;
     }
 
