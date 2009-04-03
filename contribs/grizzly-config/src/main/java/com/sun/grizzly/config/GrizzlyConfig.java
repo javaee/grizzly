@@ -40,6 +40,7 @@ import com.sun.grizzly.Controller;
 import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import org.jvnet.hk2.component.Habitat;
 
 import java.io.IOException;
@@ -79,7 +80,7 @@ public class GrizzlyConfig {
             grizzlyListener.configure(listener, true, habitat);
 
             listeners.add(grizzlyListener);
-            final Thread thread = new Thread(new ListenerRunnable(grizzlyListener));
+            final Thread thread = new WorkerThreadImpl(new ListenerRunnable(grizzlyListener));
             thread.setDaemon(true);
             thread.start();
         }

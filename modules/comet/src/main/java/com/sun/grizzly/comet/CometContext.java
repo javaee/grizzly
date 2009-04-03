@@ -46,7 +46,6 @@ import java.nio.channels.SelectionKey;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -463,10 +462,8 @@ public class CometContext<E> {
                 }
                 task.callInterrupt = true;
                 task.interruptFlushAPT = flushAPT;                                
-                //((WorkerThreadImpl)Thread.currentThread()).
-                  //      getPendingIOhandler().addPendingIO(task);
-                task.run();
-                
+                ((WorkerThreadImpl)Thread.currentThread()).
+                        getPendingIOhandler().addPendingIO(task);                
             }else{
                 interrupt0(task, notifyInterrupt, flushAPT, cancelkey);
             }

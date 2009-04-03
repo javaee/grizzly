@@ -49,6 +49,7 @@ import com.sun.grizzly.async.AsyncReadCondition;
 import com.sun.grizzly.async.ByteBufferCloner;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.InputReader;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -287,7 +288,7 @@ public class UDPConnectorHandler implements
                 }
             });                     
             callbackHandler = new DefaultCallbackHandler(this, false);
-            new Thread(controller, "GrizzlyUDPConnectorHandler-Controller").start();
+            new WorkerThreadImpl("GrizzlyUDPConnectorHandler-Controller",controller).start();
             
             try {
                 latch.await();

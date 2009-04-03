@@ -49,6 +49,7 @@ import java.util.logging.Logger;
 
 import com.sun.grizzly.suspendable.SuspendableFilter.KeyHandler;
 import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 
@@ -83,7 +84,7 @@ public class SuspendableMonitor {
     }
 
     public void start() {
-        new Thread("GrizzlySuspendableMonitor") {
+        new WorkerThreadImpl(null,"GrizzlySuspendableMonitor") {
 
             {
                 setDaemon(true);

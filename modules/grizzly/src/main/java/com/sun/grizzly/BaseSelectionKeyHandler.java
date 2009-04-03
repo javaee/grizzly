@@ -163,10 +163,9 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler {
      * Registers {@link SelectionKey} to handle certain operations
      */
     protected void doRegisterKey(SelectionKey key, int selectionKeyOps) {
-        if (!key.isValid()) {
-            return;
-        }
-        key.interestOps(key.interestOps() | selectionKeyOps);
+        if (key.isValid()) {
+            key.interestOps(key.interestOps() | selectionKeyOps);
+        }        
     }
 
 

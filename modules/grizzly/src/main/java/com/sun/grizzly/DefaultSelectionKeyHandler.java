@@ -45,7 +45,6 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
-import java.util.logging.Level;
 
 
 /**
@@ -139,13 +138,11 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
      */
     protected void doRegisterKey(SelectionKey key, int selectionKeyOps,
             long currentTime) {
-        if (!key.isValid()) {
-            return;
-        }
-
+        if (key.isValid()) {
             key.interestOps(key.interestOps() | selectionKeyOps);
             addExpirationStamp(key);
         }
+    }
 
     /**
      * {@inheritDoc}
@@ -257,8 +254,7 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
      * 
      * @param {@link SelectionKey}
      */
-    protected void addExpirationStamp(SelectionKey key) {
-        long currentTime = System.currentTimeMillis();
+    protected void addExpirationStamp(SelectionKey key, long currentTime) {
         Object attachment = key.attachment();
         if (attachment == null) {
             key.attach(currentTime);
@@ -266,35 +262,24 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             ((SelectionKeyAttachment) attachment).setTimeout(currentTime);
         }    
     }
-    
+
+    protected void addExpirationStamp(SelectionKey key) {
+        addExpirationStamp(key,System.currentTimeMillis());
+    }
+
     /**
-     * Gets expiration timeout stamp from the {@link SelectionKey} 
+     * Gets expiration timeout stamp from the {@link SelectionKey}
      * depending on its attachment
-     * 
+     *
      * @param {@link SelectionKey}
      */
-    private long getExpirationStamp(SelectionKey key) {
-        Object attachment = key.attachment();
-        if (attachment != null) {
-            try {
-
-                // This is extremely bad to invoke instanceof here but 
-                // since the framework expose the SelectionKey, an application
-                // can always attach an object on the SelectionKey and we 
-                // can't predict the type of the attached object.                                
-                if (attachment instanceof Long) {
-                    return (Long) attachment;
-                } else if (attachment instanceof SelectionKeyAttachment) {
-                    return ((SelectionKeyAttachment) attachment).getTimeout();
-                }
-            } catch (ClassCastException ex) {
-                if (logger.isLoggable(Level.FINEST)) {
-                    logger.log(Level.FINEST, 
-                            "Invalid SelectionKey attachment", ex);
-                }
-            }
+    protected long getExpirationStamp(Object attachment) {
+        if (attachment instanceof Long) {
+            return (Long) attachment;
         }
-
+        if (attachment instanceof SelectionKeyAttachment) {
+            return ((SelectionKeyAttachment) attachment).getTimeout();
+        }
         return SelectionKeyAttachment.UNLIMITED_TIMEOUT;
     }
 }

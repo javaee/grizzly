@@ -943,9 +943,8 @@ public class Response<A> {
         @Override
         public boolean timedOut(SelectionKey Key) {
             Key.attach(null);
-            run();
-            //((WorkerThreadImpl)Thread.currentThread()).
-              //              getPendingIOhandler().addPendingIO(this);
+            ((WorkerThreadImpl)Thread.currentThread()).
+                    getPendingIOhandler().addPendingIO(this);
             return false;
         }
 

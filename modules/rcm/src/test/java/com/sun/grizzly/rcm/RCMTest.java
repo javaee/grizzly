@@ -49,6 +49,7 @@ import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.util.ByteBufferInputStream;
 import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.WorkerThread;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -200,7 +201,7 @@ public class RCMTest extends TestCase implements ControllerStateListener {
         });
         
         controller.addStateListener(this);
-        new Thread(controller).start();
+        new WorkerThreadImpl(controller).start();
         
         try {
             startLatch.await();

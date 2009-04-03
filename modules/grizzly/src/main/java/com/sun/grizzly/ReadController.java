@@ -114,20 +114,7 @@ public class ReadController extends Controller {
         stoppedSelectorHandlerCounter = new AtomicInteger(selectorHandlerCount);
 
         for (SelectorHandler selectorHandler : selectorHandlers) {
-            Runnable selectorRunner = new SelectorHandlerRunner(this, selectorHandler);
-	    // check if there is java.nio.Selector already open,
-            // if so, just notify the controller onReady() listeners
-            if (selectorHandler.getSelector() != null) {
-                notifyReady();
-            }
-
-            if (selectorHandlerCount > 1) {
-                // if there are more than 1 selector handler - run it in separate thread
-                new Thread(selectorRunner, "GrizzlySelectorRunner-read-" + selectorHandler.protocol()).start();
-            } else {
-                // else run it in current thread
-                selectorRunner.run();
-            }
+            startSelectorHandlerRunner(selectorHandler, selectorHandlerCount>0);
         }
 
         waitUntilSeletorHandlersStop();

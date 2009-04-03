@@ -38,6 +38,7 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.Iterator;
@@ -205,9 +206,8 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
                 }
                 task.callInterrupt = true;
                 task.interruptFlushAPT = flushAPT;
-                //((WorkerThreadImpl)Thread.currentThread()).
-                  //      getPendingIOhandler().addPendingIO(task);
-                task.run();
+                ((WorkerThreadImpl)Thread.currentThread()).
+                        getPendingIOhandler().addPendingIO(task);
 
             }else{
                 interrupt0(task, notifyInterrupt, flushAPT, cancelkey);

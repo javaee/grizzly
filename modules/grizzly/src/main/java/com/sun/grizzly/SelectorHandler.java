@@ -60,21 +60,21 @@ import java.util.concurrent.ExecutorService;
  * @author Jeanfrancois Arcand
  */
 public interface SelectorHandler extends Handler, Copyable, 
-        AttributeHolder, SupportStateHolder<State> {
+        AttributeHolder, SupportStateHolder<State>, PendingIOhandler {
 
     /**
      * enqueues runnable for later execution in postSelect <br>
      * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
      * @param runnable
-    
+     */
     public void addPendingIO(Runnable runnable);
 
-    
+    /**
      * enqueues SlectionKey for later cancel and close .<br>
      * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
-     * @param runnable
-     
-    public void addPendingKeyCancel(SelectionKey key);*/
+     * @param key
+     */
+    public void addPendingKeyCancel(SelectionKey key);
     
     /**
      * A token decribing the protocol supported by an implementation of this
