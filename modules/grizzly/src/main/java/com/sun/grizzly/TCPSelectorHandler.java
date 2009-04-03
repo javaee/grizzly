@@ -133,7 +133,7 @@ public class TCPSelectorHandler implements SelectorHandler {
 
 
     /**
-     * max number of pendingIO tasks that will be executed per worker thread.
+     * Max number of pendingIO tasks that will be executed per worker thread.
      */
     private int pendingIOlimitPerThread = 100;
 
@@ -502,7 +502,7 @@ public class TCPSelectorHandler implements SelectorHandler {
     }
 
     /**
-     * executes the pending IOs
+     * Executes the pending IOs
      */
     private void executePendingIO(){
         if (pendingIO.size() > 0 ){
@@ -517,6 +517,12 @@ public class TCPSelectorHandler implements SelectorHandler {
         }
     }
 
+    /**
+     * Perform the actual work.
+     * @param tasks
+     * @param start
+     * @param end
+     */
     private void doExecutePendiongIO(final List tasks, final int start, final int end){
         Runnable r = new Runnable(){
             public void run() {
@@ -933,7 +939,7 @@ public class TCPSelectorHandler implements SelectorHandler {
     // ------------------------------------------------------ Properties -----//
 
     /**
-     * max number of pendingIO tasks that will be executed per worker thread.
+     * Max number of pendingIO tasks that will be executed per worker thread.
      * @return
      */
     public int getPendingIOlimitPerThread() {
@@ -941,7 +947,7 @@ public class TCPSelectorHandler implements SelectorHandler {
     }
 
     /**
-     * max number of pendingIO tasks that will be executed per worker thread.
+     * Max number of pendingIO tasks that will be executed per worker thread.
      * @param pendingIOlimitPerThread
      */
     public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
