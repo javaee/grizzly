@@ -40,31 +40,20 @@ package org.glassfish.grizzly.threadpool;
 
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /**
- * Thread Pool implementation, based on {@link ThreadPoolExecutor}
+ * Thread Pool implementation, based on {@link ScheduledThreadPoolExecutor}
  *
  * @author Alexey Stashok
  */
-public class DefaultThreadPool extends ThreadPoolExecutor
+public class DefaultScheduleThreadPool extends ScheduledThreadPoolExecutor
         implements ExtendedThreadPool, Thread.UncaughtExceptionHandler {
     // Min number of worker threads in a pool
     private static int DEFAULT_MIN_THREAD_COUNT = 5;
-    
-    // Max number of worker threads in a pool
-    private static int DEFAULT_MAX_THREAD_COUNT = 20;
-    
-    // Max number of tasks thread pool can enqueue
-    private static int DEFAULT_MAX_TASKS_QUEUED = Integer.MAX_VALUE;
-    
-    // Timeout, after which idle thread will be stopped and excluded from pool
-    private static int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
     
     /**
      * AttributeBuilder to index WorkerThread attributes
@@ -72,24 +61,17 @@ public class DefaultThreadPool extends ThreadPoolExecutor
     protected AttributeBuilder attributeBuilder =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
     
-    private String name = "Grizzly";
-    
-    private int maxTasksCount;
+    private String name = "Grizzly-Scheduled";
     
     private AtomicInteger workerThreadCounter = new AtomicInteger();
 
-    public DefaultThreadPool() {
-        this(DEFAULT_MIN_THREAD_COUNT, DEFAULT_MAX_THREAD_COUNT,
-                DEFAULT_MAX_TASKS_QUEUED, DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
-                TimeUnit.MILLISECONDS);
+    public DefaultScheduleThreadPool() {
+        this(DEFAULT_MIN_THREAD_COUNT);
     }
     
-    public DefaultThreadPool(int corePoolSize, int maximumPoolSize,
-            int maxTasksCount, long keepAliveTime, TimeUnit unit) {
-        super(corePoolSize, maximumPoolSize, keepAliveTime, unit, 
-                new LinkedBlockingQueue<Runnable>(maxTasksCount));
+    public DefaultScheduleThreadPool(int corePoolSize) {
+        super(corePoolSize);
         setThreadFactory(new DefaultWorkerThreadFactory(this));
-        this.maxTasksCount = maxTasksCount;
     }
 
     public int getQueuedTasksCount() {
@@ -97,7 +79,7 @@ public class DefaultThreadPool extends ThreadPoolExecutor
     }
 
     public int getMaxQueuedTasksCount() {
-        return maxTasksCount;
+        return Integer.MAX_VALUE;
     }
 
     public void setMaxQueuedTasksCount(int maxTasksCount) {
@@ -148,16 +130,16 @@ public class DefaultThreadPool extends ThreadPoolExecutor
     }
 
     private static class DefaultWorkerThreadFactory implements ThreadFactory {
-        private DefaultThreadPool threadPool;
+        private DefaultScheduleThreadPool threadPool;
 
-        public DefaultWorkerThreadFactory(DefaultThreadPool threadPool) {
+        public DefaultWorkerThreadFactory(DefaultScheduleThreadPool threadPool) {
             this.threadPool = threadPool;
         }
 
         public Thread newThread(Runnable r) {
             Thread thread = new DefaultWorkerThread(
                     threadPool.getAttributeBuilder(),
-                    threadPool.getName() + "-WorkerThread(" + 
+                    threadPool.getName() + "-ScheduledWorkerThread(" +
                     threadPool.workerThreadCounter.getAndIncrement() + ")", r);
             thread.setUncaughtExceptionHandler(threadPool);
 

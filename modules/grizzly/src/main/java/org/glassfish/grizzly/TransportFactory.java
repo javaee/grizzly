@@ -44,7 +44,6 @@ import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
-import org.glassfish.grizzly.memory.ByteBufferViewManager;
 import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
@@ -59,19 +58,15 @@ public abstract class TransportFactory {
 
     private static volatile TransportFactory instance;
 
-    public static TransportFactory getInstance() {
-        if (instance == null) {
-            synchronized (TransportFactory.class) {
-                if (instance == null) {
-                    instance = new DefaultNIOTransportFactory();
-                }
-            }
+    public static synchronized TransportFactory getInstance() {
+        if (instance == null || instance.isClosed()) {
+            instance = new DefaultNIOTransportFactory();
         }
 
         return instance;
     }
 
-    public static void setInstance(TransportFactory manager) {
+    public static synchronized void setInstance(TransportFactory manager) {
         instance = manager;
     }
 
@@ -79,6 +74,8 @@ public abstract class TransportFactory {
 
     public abstract UDPNIOTransport createUDPTransport();
 
+    private boolean isClosed;
+    
     protected AttributeBuilder defaultAttributeBuilder;
     protected ObjectPool<Context> defaultIOEventContextPool;
     protected MemoryManager defaultMemoryManager;
@@ -141,12 +138,19 @@ public abstract class TransportFactory {
     }
 
     public synchronized void close() {
-        if (defaultThreadPool != null) {
-            defaultThreadPool.shutdown();
-            defaultThreadPool = null;
+        if (!isClosed()) {
+            isClosed = true;
+            if (defaultThreadPool != null) {
+                defaultThreadPool.shutdown();
+                defaultThreadPool = null;
+            }
         }
     }
 
+    public boolean isClosed() {
+        return isClosed;
+    }
+    
     protected <T extends Transport> T setupTransport(T transport) {
         transport.setAttributeBuilder(defaultAttributeBuilder);
         transport.setDefaultContextPool(defaultIOEventContextPool);
