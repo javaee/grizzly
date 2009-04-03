@@ -45,6 +45,7 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.NIOContext;
 import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.connectioncache.spi.transport.ContactInfo;
 import java.io.IOException;
@@ -226,9 +227,9 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
         }
         
         assert key != null;
-        
-        key.attach(CallbackHandlerSelectionKeyAttachment.create(this));
-        final Context context = parentPool.getController().pollContext(key);
+                
+        final NIOContext context = parentPool.getController().pollContext(key);
+        key.attach(new CallbackHandlerSelectionKeyAttachment(this));
         onConnect(new IOEvent.DefaultIOEvent<Context>(context));
     }
     

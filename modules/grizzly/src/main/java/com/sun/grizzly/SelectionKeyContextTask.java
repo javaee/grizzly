@@ -62,7 +62,7 @@ public abstract class SelectionKeyContextTask extends ContextTask {
                 Controller.logger().log(Level.SEVERE,"",e);
             }
             
-            offer();
+            recycle();
         }
         
         return result;

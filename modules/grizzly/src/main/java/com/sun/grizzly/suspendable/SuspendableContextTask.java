@@ -50,32 +50,16 @@ import com.sun.grizzly.util.WorkerThread;
  */
 class SuspendableContextTask extends SelectionKeyContextTask {
 
-    protected DefaultProtocolChain protocolChain;
-    protected int filterStart = 0;
-    protected ThreadAttachment threadAttachment;
-    private static final TaskPool<SuspendableContextTask> taskPool =
-            new TaskPool<SuspendableContextTask>() {
+    protected final DefaultProtocolChain protocolChain;
+    protected final int filterStart;
+    protected final ThreadAttachment threadAttachment;
 
-                @Override
-                public SuspendableContextTask newInstance() {
-                    return new SuspendableContextTask();
-                }
-            };
-
-    public static SuspendableContextTask poll(DefaultProtocolChain pc,
+    public SuspendableContextTask(DefaultProtocolChain pc,
             ThreadAttachment threadAttachment, int filterStart) {
-        SuspendableContextTask sct = taskPool.poll();
-        sct.protocolChain = pc;
-        sct.filterStart = filterStart;
-        sct.threadAttachment = threadAttachment;
-        return sct;
+        this.protocolChain    = pc;
+        this.filterStart      = filterStart;
+        this.threadAttachment = threadAttachment;
     }
-
-    
-    public static void offer(SuspendableContextTask contextTask) {
-        taskPool.offer(contextTask);
-    }
-
     
     /**
      * Resume the ProtocolChain at positon {@link #filterStart}
@@ -87,12 +71,6 @@ class SuspendableContextTask extends SelectionKeyContextTask {
         protocolChain.setContinuousExecution(false);
         protocolChain.execute(context, filterStart);
         protocolChain.setContinuousExecution(true);
-
         return null;
-    }
-
-    @Override
-    public void offer() {
-        offer(this);
     }
 }

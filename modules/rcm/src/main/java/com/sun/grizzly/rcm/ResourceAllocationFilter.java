@@ -41,6 +41,7 @@ package com.sun.grizzly.rcm;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.Controller.Protocol;
+import com.sun.grizzly.NIOContext;
 import com.sun.grizzly.ProtocolChainContextTask;
 import com.sun.grizzly.ProtocolParser;
 import com.sun.grizzly.filter.ParserProtocolFilter;
@@ -284,8 +285,8 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
         // other filter to not register or cancel the key.
         ctx.setKeyRegistrationState(Context.KeyRegistrationState.NONE);
         try{
-            Context copyContext = Cloner.clone(ctx);
-            copyContext.execute(ProtocolChainContextTask.poll());
+            NIOContext copyContext = (NIOContext) Cloner.clone(ctx);
+            copyContext.execute(copyContext.getProtocolChainContextTask());
             copyContext.setThreadPool(threadPool);
         } catch (Throwable t){
             ctx.setAttribute(Context.THROWABLE,t);

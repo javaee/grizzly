@@ -71,6 +71,9 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public class PUReadFilter extends ReadFilter {
+
+    private final static Logger logger = Controller.logger();
+
     public static final long DEFAULT_READ_TIMEOUT = 1000;
 
     public static final String PROTOCOL_FINDERS =
@@ -121,11 +124,6 @@ public class PUReadFilter extends ReadFilter {
      */
     private long readTimeout = DEFAULT_READ_TIMEOUT;
 
-    /**
-     * Logger
-     */
-    private final static Logger logger = Controller.logger();
-
     @Override
     public boolean execute(Context context) throws IOException {
         SelectionKey selectionKey = context.getSelectionKey();
@@ -136,6 +134,7 @@ public class PUReadFilter extends ReadFilter {
                 new ProtocolRequestWorkerThreadAdapter();
         protocolRequest.setContext(context);
 
+        final boolean isloglevelfine = logger.isLoggable(Level.FINE);
         int readTry = 0;
         try {
             // Perform input buffer read
@@ -146,7 +145,7 @@ public class PUReadFilter extends ReadFilter {
 
             if (!super.execute(context, readBuffer)) {
                 // if ReadFilter didn't succeed - return
-                if (logger.isLoggable(Level.FINE)) {
+                if (isloglevelfine) {
                     logger.log(Level.FINE, "PUReadFilter. Read failed");
                 }
 
@@ -160,7 +159,7 @@ public class PUReadFilter extends ReadFilter {
             }
 
             if (protocolHandler == null) {
-                if (logger.isLoggable(Level.FINE)) {
+                if (isloglevelfine) {
                     logger.log(Level.FINE, "PUReadFilter. Finding protocol...");
                 }
 
@@ -170,7 +169,7 @@ public class PUReadFilter extends ReadFilter {
                     if (preProcessors != null) {
                         for (int i=0;i<preProcessors.size();i++) {
                             PUPreProcessor preProcessor = preProcessors.get(i);
-                            if (logger.isLoggable(Level.FINE)) {
+                            if (isloglevelfine) {
                                 logger.log(Level.FINE, "PUReadFilter. Apply preprocessor process: " + preProcessor);
                             }
 
@@ -183,11 +182,11 @@ public class PUReadFilter extends ReadFilter {
 
                     try {
                         protocolName = findProtocol(context, protocolRequest);
-                        if (logger.isLoggable(Level.FINE)) {
+                        if (isloglevelfine) {
                             logger.log(Level.FINE, "PUReadFilter. Found protocol: " + protocolName);
                         }
                     } catch (IOException e) {
-                        if (logger.isLoggable(Level.FINE)) {
+                        if (isloglevelfine) {
                             logger.log(Level.FINE, "PUReadFilter. IOException during protocol finding:", e);
                         }
 
@@ -227,7 +226,7 @@ public class PUReadFilter extends ReadFilter {
                             for (int i = preProcessors.size() - 1; i >= 0; i--) {
                                 PUPreProcessor preProcessor = preProcessors.get(i);
                                 if (passedPreProcessors.contains(preProcessor.getId())) {
-                                    if (logger.isLoggable(Level.FINE)) {
+                                    if (isloglevelfine) {
                                         logger.log(Level.FINE,
                                                 "PUReadFilter. Apply preprocessor POSTProcess: " +
                                                 preProcessor);
@@ -243,7 +242,7 @@ public class PUReadFilter extends ReadFilter {
                                 selectionKey.channel(),
                                 protocolRequest.getByteBuffer(), readTimeout);
 
-                        if (logger.isLoggable(Level.FINE)) {
+                        if (isloglevelfine) {
                             logger.log(Level.FINE, "PUReadFilter. Read more bytes: " + bytesRead);
                         }
 

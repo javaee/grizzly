@@ -51,22 +51,11 @@ import java.nio.channels.SelectionKey;
  * @author Alexey Stashok
  */
 public class AsyncQueueWriterContextTask extends SelectionKeyContextTask {
-    private static final TaskPool<AsyncQueueWriterContextTask> taskPool =
-            new TaskPool<AsyncQueueWriterContextTask>() {
-        @Override
-        public AsyncQueueWriterContextTask newInstance() {
-            return new AsyncQueueWriterContextTask();
-        }
-    };
     
     private AsyncQueueWriter asyncQueueWriter;
 
-    public static AsyncQueueWriterContextTask poll() {
-        return taskPool.poll();
-    }
-    
-    public static void offer(AsyncQueueWriterContextTask contextTask) {
-        taskPool.offer(contextTask);
+    public AsyncQueueWriterContextTask(AsyncQueueWriter asyncQueueWriter) {
+        this.asyncQueueWriter = asyncQueueWriter;
     }
 
     @Override
@@ -102,8 +91,4 @@ public class AsyncQueueWriterContextTask extends SelectionKeyContextTask {
         super.recycle();
     }
 
-    @Override
-    public void offer() {
-        offer(this);
-    }
 }

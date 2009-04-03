@@ -43,9 +43,9 @@ import com.sun.grizzly.util.WorkerThread;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.List;
 import javax.net.ssl.SSLEngine;
 
 /**
@@ -57,8 +57,9 @@ public class ProtocolRequestWorkerThreadAdapter implements PUProtocolRequest {
     private Context context;
     
     private String protocolName;
-    
-    private Set<String> passedPreProcessors;
+
+    // List is faster then HashMap for small datasets.
+    private List<String> passedPreProcessors;
     
     private boolean isExecuteFilterChain;
     
@@ -147,7 +148,7 @@ public class ProtocolRequestWorkerThreadAdapter implements PUProtocolRequest {
 
     public void addPassedPreProcessor(String preProcessorId) {
         if (passedPreProcessors == null) {
-            passedPreProcessors = new HashSet<String>(2);
+            passedPreProcessors = new ArrayList<String>(2);
         }
         
         passedPreProcessors.add(preProcessorId);

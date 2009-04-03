@@ -43,6 +43,7 @@ import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.Context.KeyRegistrationState;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.DefaultProtocolChain;
+import com.sun.grizzly.NIOContext;
 import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.util.ThreadAttachment;
 import com.sun.grizzly.util.ThreadAttachment.Mode;
@@ -430,10 +431,10 @@ public class SuspendableFilter<T> implements ProtocolFilter {
             kh.getSuspendableHandler().getSelectorHandler()
                     .register(key.channel(), SelectionKey.OP_READ);
         } else {
-            Context ctx = controller.pollContext(key);
+            NIOContext ctx = controller.pollContext(key);
             controller.configureContext(ctx,
                     kh.getSuspendableHandler().getSelectorHandler());
-            ctx.execute(SuspendableContextTask.poll(
+            ctx.execute(new SuspendableContextTask(
                     protocolChain, kh.getThreadAttachment(),
                     nextFilterPosition));
         }

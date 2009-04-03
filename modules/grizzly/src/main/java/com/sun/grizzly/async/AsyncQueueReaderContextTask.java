@@ -51,22 +51,11 @@ import java.nio.channels.SelectionKey;
  * @author Alexey Stashok
  */
 public class AsyncQueueReaderContextTask extends SelectionKeyContextTask {
-    private static final TaskPool<AsyncQueueReaderContextTask> taskPool =
-            new TaskPool<AsyncQueueReaderContextTask>() {
-        @Override
-        public AsyncQueueReaderContextTask newInstance() {
-            return new AsyncQueueReaderContextTask();
-        }
-    };
     
     private AsyncQueueReader asyncQueueReader;
 
-    public static AsyncQueueReaderContextTask poll() {
-        return taskPool.poll();
-    }
-    
-    public static void offer(AsyncQueueReaderContextTask contextTask) {
-        taskPool.offer(contextTask);
+    public AsyncQueueReaderContextTask(AsyncQueueReader asyncQueueReader) {
+        this.asyncQueueReader = asyncQueueReader;
     }
     
     @Override
@@ -100,10 +89,5 @@ public class AsyncQueueReaderContextTask extends SelectionKeyContextTask {
     public void recycle() {
         asyncQueueReader = null;
         super.recycle();
-    }
-
-    @Override
-    public void offer() {
-        offer(this);
     }
 }

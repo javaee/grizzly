@@ -282,7 +282,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
                         Controller controller = getSelectorThread().getController();
                         ProtocolChain protocolChain =
                                 controller.getProtocolChainInstanceHandler().poll();
-                        NIOContext ctx = (NIOContext)controller.pollContext(key);
+                        NIOContext ctx = controller.pollContext(key);
                         ctx.setController(controller);
                         ctx.setSelectionKey(key);
                         ctx.setProtocolChain(protocolChain);

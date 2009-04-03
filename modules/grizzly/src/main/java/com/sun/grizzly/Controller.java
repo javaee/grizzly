@@ -154,7 +154,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     /**
      * A cached list of Context. Context are by default stateless.
      */
-    private ConcurrentLinkedQueuePool<Context> contexts;
+    private ConcurrentLinkedQueuePool<NIOContext> contexts;
 
 
     /**
@@ -270,7 +270,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Controller constructor
      */
     public Controller() {
-        contexts = new ConcurrentLinkedQueuePool<Context>() {
+        contexts = new ConcurrentLinkedQueuePool<NIOContext>() {
             @Override
             public NIOContext newInstance() {
                 return new NIOContext();
@@ -317,50 +317,53 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * by InstanceHandler.
      * @param selectorHandler - the {@link SelectorHandler}
      */
-    protected void doSelect(SelectorHandler selectorHandler){
-        final NIOContext serverCtx = pollContext(null,null);
-        serverCtx.setSelectorHandler(selectorHandler);
+    protected void doSelect(SelectorHandler selectorHandler,NIOContext serverCtx){        
         try {
-            // Set the SelectionKeyHandler only if the SelectorHandler doesn't define one.
             if (selectorHandler.getSelectionKeyHandler() == null){
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE, "Set DefaultSelectionKeyHandler to SelectorHandler: " + selectorHandler);
-                }
-                SelectionKeyHandler assgnSelectionKeyHandler = null;
-                if (selectorHandler.getPreferredSelectionKeyHandler() != null) {
-                    Class<? extends SelectionKeyHandler> keyHandlerClass =
-                                selectorHandler.getPreferredSelectionKeyHandler();
-                    try {
-                        assgnSelectionKeyHandler = keyHandlerClass.newInstance();
-                        assgnSelectionKeyHandler.setSelectorHandler(selectorHandler);
-                    } catch (Exception e) {
-                        if (logger.isLoggable(Level.WARNING)) {
-                            logger.log(Level.WARNING,
-                                    "Exception initializing preffered SelectionKeyHandler '" +
-                                    keyHandlerClass + "' for the SelectorHandler '" +
-                                    selectorHandler + "'");
-                        }
-                    }
-                }
-                if (assgnSelectionKeyHandler == null) {
-                    assgnSelectionKeyHandler = new DefaultSelectionKeyHandler(selectorHandler);
-                }
-                selectorHandler.setSelectionKeyHandler(assgnSelectionKeyHandler);
-            }            
+                initSelectionKeyHandler(selectorHandler);
+            }
+            
             selectorHandler.preSelect(serverCtx);
 
             Set<SelectionKey> readyKeys = selectorHandler.select(serverCtx);
-            if (readyKeys.size() != 0 && stateHolder.getState(false) == State.STARTED &&
-                    selectorHandler.getStateHolder().getState(false) == State.STARTED) {
+            if (readyKeys.size() != 0) {
                 handleSelectedKeys(readyKeys,selectorHandler,serverCtx);
                 readyKeys.clear();
             }
             selectorHandler.postSelect(serverCtx);
         }catch(Throwable e){
             handleSelectException(e,selectorHandler, null);
-        }finally{
-            contexts.offer(serverCtx);
         }
+    }
+
+    /**
+     * Init SelectionKeyHandler
+     * @param selectorHandler
+     */
+    private void initSelectionKeyHandler(SelectorHandler selectorHandler){
+        if (logger.isLoggable(Level.FINE)) {
+            logger.log(Level.FINE, "Set DefaultSelectionKeyHandler to SelectorHandler: " + selectorHandler);
+        }
+        SelectionKeyHandler assgnSelectionKeyHandler = null;
+        if (selectorHandler.getPreferredSelectionKeyHandler() != null) {
+            Class<? extends SelectionKeyHandler> keyHandlerClass =
+                        selectorHandler.getPreferredSelectionKeyHandler();
+            try {
+                assgnSelectionKeyHandler = keyHandlerClass.newInstance();
+                assgnSelectionKeyHandler.setSelectorHandler(selectorHandler);
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                            "Exception initializing preffered SelectionKeyHandler '" +
+                            keyHandlerClass + "' for the SelectorHandler '" +
+                            selectorHandler + "'");
+                }
+            }
+        }
+        if (assgnSelectionKeyHandler == null) {
+            assgnSelectionKeyHandler = new DefaultSelectionKeyHandler(selectorHandler);
+        }
+        selectorHandler.setSelectionKeyHandler(assgnSelectionKeyHandler);
     }
 
     /**
@@ -369,10 +372,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param selectorHandler
      * @param serverCtx
      */
-    private void handleSelectedKeys(Set<SelectionKey> readyKeys,SelectorHandler selectorHandler,NIOContext serverCtx){
+  private void handleSelectedKeys(Set<SelectionKey> readyKeys,
+            SelectorHandler selectorHandler, NIOContext serverCtx){
+        final boolean isLogLevelFine = logger.isLoggable(Level.FINE);
         for(SelectionKey key:readyKeys) {
           try{
-
             Object attachment = key.attachment();
             if (attachment instanceof SelectedKeyAttachmentLogic){
                 ((SelectedKeyAttachmentLogic)attachment).handleSelectedKey(key);
@@ -382,28 +386,27 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             if (!key.isValid()){
                 selectorHandler.addPendingKeyCancel(key);
                 continue;
-            }            
+            }
+
             final int readyOps = key.readyOps();
-            if ((readyOps & SelectionKey.OP_ACCEPT) == SelectionKey.OP_ACCEPT){
+            if ((readyOps & SelectionKey.OP_ACCEPT) != 0){
                 if (readThreadsCount > 0 &&
                         multiReadThreadSelectorHandler.supportsProtocol(selectorHandler.protocol())) {
-                    if (logger.isLoggable(Level.FINE)) {
-                        logger.log(Level.FINE, "OP_ACCEPT on " +
-                                key + " passed to multi readthread handler. Attachment: " +
-                                key.attachment());
+                    if (isLogLevelFine) {
+                        dolog("OP_ACCEPT passed to multi readthread handler on ",key);
                     }
                     multiReadThreadSelectorHandler.onAcceptInterest(key, serverCtx);
                 } else {
-                    if (logger.isLoggable(Level.FINE)) {
-                        logger.log(Level.FINE,"OP_ACCEPT on "+key +" attachment: "+key.attachment());
+                    if (isLogLevelFine){
+                        dolog("OP_ACCEPT on ",key);
                     }
                     selectorHandler.onAcceptInterest(key, serverCtx);
                 }
                 continue;
             }
-            if ((readyOps & SelectionKey.OP_CONNECT) == SelectionKey.OP_CONNECT) {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE,"OP_CONNECT on "+key+" attachment: "+key.attachment());
+            if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
+                if (isLogLevelFine){
+                    dolog("OP_CONNECT on ",key);
                 }
                 selectorHandler.onConnectInterest(key, serverCtx);
                 continue;
@@ -416,9 +419,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             // based on the handleReadWriteConcurrently, the OP_WRITE
             // might be processed just after or during the next
             // Selector.select() invocation.
-            if ((readyOps & SelectionKey.OP_READ) == SelectionKey.OP_READ) {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE,"OP_READ on "+key+" attachment: "+key.attachment());
+            if ((readyOps & SelectionKey.OP_READ) != 0) {
+                if (isLogLevelFine){
+                    dolog("OP_READ on ",key);
                 }
                 delegateToWorker = selectorHandler.onReadInterest(key,serverCtx);
                 if (delegateToWorker) {
@@ -431,10 +434,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             // The OP_READ processing might have closed the
             // Selection, hence we must make sure the
             // SelectionKey is still valid.
-            if (!skipOpWrite && key.isValid() && (readyOps & SelectionKey.OP_WRITE)
-                    == SelectionKey.OP_WRITE) {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.log(Level.FINE,"OP_WRITE on "+key+" attachment: "+key.attachment());
+            if (!skipOpWrite && (readyOps & SelectionKey.OP_WRITE) != 0 && key.isValid()) {
+                if (isLogLevelFine){
+                    dolog("OP_WRITE on ",key);
                 }
                 boolean opWriteDelegate = selectorHandler.onWriteInterest(key,serverCtx);
                 delegateToWorker |= opWriteDelegate;
@@ -450,12 +452,16 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             if (delegateToWorker){
                 NIOContext context = pollContext(key, opType);
                 configureContext(context,selectorHandler);
-                context.execute(ProtocolChainContextTask.poll());
+                context.execute(context.getProtocolChainContextTask());
             }
           }catch(Throwable e){
               handleSelectException(e,selectorHandler,key);
           }
         }
+    }
+
+    private void dolog(String msg, SelectionKey key){
+        logger.log(Level.FINE,msg+key+" attachment: "+key.attachment());
     }
 
 
@@ -567,7 +573,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param key {@link SelectionKey}
      * @return {@link Context}
      */
-    /* package */ public Context pollContext(SelectionKey key) {
+    /* package */ public NIOContext pollContext(SelectionKey key) {
         return pollContext(key,null);
     }
 
@@ -579,12 +585,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @return {@link Context}
      */
     /* package */ public NIOContext pollContext(SelectionKey key, OpType opType) {
-        Context context = contexts.poll();
-        if (!(context instanceof NIOContext)){
-            throw new RuntimeException("Invalid Context instance: "
-                    + context.getClass().getName());
-        }
-        NIOContext ctx = (NIOContext)context;
+
+        NIOContext ctx = contexts.poll();
         ctx.setController(this);
         ctx.setSelectionKey(key);
         if (opType != null) {
@@ -593,10 +595,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             if (key != null){
                 ctx.configureOpType(key);
             }
-        }
-
-        if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "pollContext(..) Context : "+ctx);
         }
         return ctx;
     }
@@ -608,14 +606,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param context
      * @param selectorHandler
      */
-    /* package */ public void configureContext(Context context,SelectorHandler selectorHandler){
-
-        if (!(context instanceof NIOContext)){
-            throw new RuntimeException("Invalid Context instance: "
-                    + context.getClass().getName());
-        }
-        NIOContext ctx = (NIOContext)context;
-
+    /* package */ public void configureContext(NIOContext ctx,SelectorHandler selectorHandler){
         ctx.setSelectorHandler(selectorHandler);
         ctx.setThreadPool(selectorHandler.getThreadPool());
         ctx.setAsyncQueueReader(selectorHandler.getAsyncQueueReader());
@@ -628,14 +619,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param ctx - the {@link Context}
      */
     public void returnContext(Context ctx){
-        if(ctx instanceof NIOContext && ((NIOContext)ctx).decrementRefCount()>0) {
+        if(ctx.decrementRefCount()>0) {
             return;
         }
-       if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "returnContext() Context : "+ctx);
-        }
         ctx.recycle();
-        contexts.offer(ctx);
+        contexts.offer((NIOContext) ctx);
     }
 
 

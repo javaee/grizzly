@@ -47,21 +47,7 @@ package com.sun.grizzly;
  * @author Alexey Stashok
  */
 public class ProtocolChainContextTask extends SelectionKeyContextTask {
-    private static final TaskPool<ProtocolChainContextTask> taskPool = 
-            new TaskPool<ProtocolChainContextTask>() {
-        @Override
-        public ProtocolChainContextTask newInstance() {
-            return new ProtocolChainContextTask();
-        }
-    };
-    
-    public static ProtocolChainContextTask poll() {
-        return taskPool.poll();
-    }
-    
-    public static void offer(ProtocolChainContextTask contextTask) {
-        taskPool.offer(contextTask);
-    }
+
     
     protected Object doCall() throws Exception {
         context.getProtocolChain().execute(context);
@@ -69,8 +55,4 @@ public class ProtocolChainContextTask extends SelectionKeyContextTask {
         return null;
     }
 
-    @Override
-    public void offer() {
-        offer(this);
-    }
 }
