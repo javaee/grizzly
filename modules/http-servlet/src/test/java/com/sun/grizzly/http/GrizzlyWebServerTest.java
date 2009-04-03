@@ -310,17 +310,27 @@ public class GrizzlyWebServerTest extends TestCase {
         assertTrue(destroy[0]);
     }
 
-
-    public void testAddGrizzlyAdapterBeforeAndAfterStart() throws IOException {
+    /**
+     * Test for https://grizzly.dev.java.net/issues/show_bug.cgi?id=513
+     *
+     * @throws IOException Fail.
+     */
+    public void _testAddGrizzlyAdapterBeforeAndAfterStart() throws IOException {
         System.out.println("testAddGrizzlyAdapterBeforeAndAfterStart");
         try {
             gws = new GrizzlyWebServer(PORT);
-            String[] aliases = new String[]{"/1", "/2", "/3"};
+            String[] aliases = new String[]{"/1"};
             for (String alias : aliases) {
                 addAdapter(alias);
             }
             gws.start();
-            String alias = "/4";
+            for (String alias : aliases) {
+                HttpURLConnection conn = getConnection(alias);
+                assertEquals(HttpServletResponse.SC_OK,
+                        getResponseCodeFromAlias(conn));
+                assertEquals(alias, readResponse(conn));
+            }
+            String alias = "/2";
             addAdapter(alias);
 
             HttpURLConnection conn = getConnection(alias);
@@ -332,7 +342,32 @@ public class GrizzlyWebServerTest extends TestCase {
         }
     }
 
+    public void testMultipleAddGrizzlyAdapterBeforeStartAndOneAfter() throws IOException {
+        System.out.println("testAddGrizzlyAdapterBeforeAndAfterStart");
+        try {
+            gws = new GrizzlyWebServer(PORT);
+            String[] aliases = new String[]{"/1", "/2", "/3"};
+            for (String alias : aliases) {
+                addAdapter(alias);
+            }
+            gws.start();
+            for (String alias : aliases) {
+                HttpURLConnection conn = getConnection(alias);
+                assertEquals(HttpServletResponse.SC_OK,
+                        getResponseCodeFromAlias(conn));
+                assertEquals(alias, readResponse(conn));
+            }            
+            String alias = "/4";
+            addAdapter(alias);
 
+            HttpURLConnection conn = getConnection(alias);
+            assertEquals(HttpServletResponse.SC_OK,
+                    getResponseCodeFromAlias(conn));
+            assertEquals(alias, readResponse(conn));
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
 
     private String readResponse(HttpURLConnection conn) throws IOException {
         BufferedReader reader = new BufferedReader(
