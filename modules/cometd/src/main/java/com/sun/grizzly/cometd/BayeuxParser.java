@@ -73,6 +73,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.AbstractQueue;
 import java.util.Map.Entry;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class implement the Bayeux Server side protocol. 
@@ -81,8 +82,10 @@ import java.util.logging.Level;
  * @author TAKAI, Naoto
  */
 public class BayeuxParser{
+
+    private final static Logger logger = SelectorThread.logger();
     
-    private static Level level = Level.FINE;
+    private final static Level level;    
     
     /**
      * Allow pushing data to all created channel. Default is true,
@@ -92,6 +95,8 @@ public class BayeuxParser{
     static{
         if (System.getProperty("com.sun.grizzly.cometd.logAll") != null){
             level = Level.INFO;
+        }else{
+             level = Level.FINE;
         }
         
         if (System.getProperty("com.sun.grizzly.cometd.enforceSubscription") != null){
@@ -101,18 +106,17 @@ public class BayeuxParser{
     
     public final static String DEFAULT_CONTENT_TYPE ="text/json";
 
+    protected final static DataHandler dumyhandler = new DataHandler(null);
+
     private final SecureRandom random = new SecureRandom();
 
     private final ConcurrentHashMap<String,AbstractQueue<String>> inactiveChannels
             = new ConcurrentHashMap<String,AbstractQueue<String>>(16, 0.75f, 64);
     
-    private final ConcurrentHashMap<String,Boolean> authenticatedUsers
-            = new ConcurrentHashMap<String,Boolean>(16, 0.75f, 64);
-    
     private final ConcurrentHashMap<String,CometContext> activeCometContexts =
             new ConcurrentHashMap<String,CometContext>(16, 0.75f, 64);
     
-    private final ConcurrentHashMap<String,DataHandler> activeCometHandlers =
+    private final ConcurrentHashMap<String,DataHandler> authenticatedUsers =
             new ConcurrentHashMap<String,DataHandler>(16, 0.75f, 64);
 
     private final ThreadLocal<Set<String>> deliverInChannels =
@@ -172,7 +176,7 @@ public class BayeuxParser{
                 byte [] ba = new byte[16]; //128bit
                 random.nextBytes(ba);
                 clientId = Base64Utils.encodeToString(ba,false);
-            }while(authenticatedUsers.putIfAbsent(clientId,Boolean.TRUE) != null);
+            }while(authenticatedUsers.putIfAbsent(clientId,dumyhandler) != null);
             handshakeRes.setClientId(clientId);
         } else {
             handshakeRes.setSuccessful(false);
@@ -181,42 +185,39 @@ public class BayeuxParser{
 
         res.setContentType(DEFAULT_CONTENT_TYPE);            
         res.write(handshakeRes.toJSON());
-        res.flush();
     }
     
     
     public void onConnect(CometdContext cometdContext) throws IOException {        
         CometdRequest req = cometdContext.getRequest();
-        CometdResponse res = cometdContext.getResponse();
-        ConnectRequest connectReq = (ConnectRequest)cometdContext.getVerb();
-        
-        ConnectResponse connectRes = new ConnectResponse(connectReq);
-        connectRes.setAdvice(new Advice());
-        
-        String errorMessage = isAuthenticatedAndValid(connectReq);      
-        res.setContentType(DEFAULT_CONTENT_TYPE);    
-        
-        if (errorMessage == null){
-            String clientId = connectReq.getClientId();
-            DataHandler dataHandler = activeCometHandlers.get(clientId);
-            if (dataHandler != null && dataHandler.getChannels().size() > 0) {
-                res.write(connectRes.toLongPolledJSON());
-                for (String channel: dataHandler.getChannels()){
-                    CometContext cc = getCometContext(channel);                
-                    if (cc.getCometHandler(dataHandler.hashCode()) == null){
-                        log("Suspending client: " + clientId + " channel: " + channel);
-                        dataHandler.attach(new Object[]{req,res});
-                        cc.addCometHandler(dataHandler); 
-                        dataHandler.setSuspended(true);
+        CometdResponse res = cometdContext.getResponse();        
+
+        DataHandler dataHandler = isAuthenticatedAndValid(cometdContext);
+        if (dataHandler != null){
+            ConnectRequest connectReq = (ConnectRequest)cometdContext.getVerb();
+            ConnectResponse connectRes = new ConnectResponse(connectReq);
+            connectRes.setAdvice(new Advice());
+            if (dataHandler != dumyhandler ) {
+                synchronized(dataHandler){
+                    if (dataHandler.getChannels().size() > 0){
+                        res.write(connectRes.toLongPolledJSON());
+                        for (String channel: dataHandler.getChannels()){
+                            CometContext cc = getCometContext(channel);
+                            if (!cc.isActive(dataHandler)){
+                                if (logger.isLoggable(level)){
+                                    log("Suspending client: "+connectReq.getClientId()+" channel: "+channel);
+                                }
+                                dataHandler.attach(new Object[]{req,res});
+                                cc.addCometHandler(dataHandler);
+                                dataHandler.setSuspended(true);
+                            }
+                        }
+                        connectRes.setAdvice(null);
+                        return;
                     }
                 }
-                connectRes.setAdvice(null);
-            } else {
-                res.write(connectRes.toJSON());
             }
-            res.flush();
-        } else {
-            res.write(errorMessage);
+            res.write(connectRes.toJSON());
         }
     }
     
@@ -228,18 +229,13 @@ public class BayeuxParser{
         CometdResponse res = cometdContext.getResponse();
         DisconnectRequest disconnectReq = (DisconnectRequest)cometdContext.getVerb();
         DisconnectResponse disconnectRes = new DisconnectResponse(disconnectReq);
-        
-        String errorMessage = isAuthenticatedAndValid(disconnectReq);
-        res.setContentType(DEFAULT_CONTENT_TYPE);    
-        if (errorMessage == null){
-            activeCometHandlers.remove(disconnectReq.getClientId());
+
+        DataHandler dataHandler = isAuthenticatedAndValid(cometdContext);        
+        if (dataHandler != null){
             authenticatedUsers.remove(disconnectReq.getClientId());
-            res.write(disconnectRes.toJSON());
-        } else {
-            res.write(errorMessage);
+            dataHandler.write(disconnectRes.toJSON(), res, true);
         }
-        res.flush();
-        notifyEnd(disconnectRes, req.getRemotePort());
+        notifyEnd(disconnectRes, req.getRemotePort(),dataHandler);
     }
        
 
@@ -248,18 +244,13 @@ public class BayeuxParser{
         CometdResponse res = cometdContext.getResponse();
         ReconnectRequest reconnectReq = (ReconnectRequest)cometdContext.getVerb();                    
         ReconnectResponse reconnectRes = new ReconnectResponse(reconnectReq);
-        
-        String errorMessage = isAuthenticatedAndValid(reconnectReq);
-        res.setContentType(DEFAULT_CONTENT_TYPE);            
-        if (errorMessage == null){
-            res.write(reconnectRes.toJSON());
-        } else {
-            res.write(errorMessage);
-        }
-        res.flush();
-        notifyEnd(reconnectRes, req.getRemotePort());
-    }
-    
+
+        DataHandler dataHandler = isAuthenticatedAndValid(cometdContext);        
+        if (dataHandler != null){
+            dataHandler.write(reconnectRes.toJSON(), res, true);
+        }         
+        notifyEnd(reconnectRes, req.getRemotePort(),dataHandler);
+    }    
     
     @SuppressWarnings("unchecked")
     public void onSubscribe(CometdContext cometdContext) throws IOException {
@@ -267,16 +258,13 @@ public class BayeuxParser{
         CometdResponse res = cometdContext.getResponse();
         SubscribeRequest subscribeReq = (SubscribeRequest)cometdContext.getVerb();   
         SubscribeResponse subscribeRes = new SubscribeResponse(subscribeReq);
-        
-        String errorMessage = isAuthenticatedAndValid(subscribeReq);    
-        res.setContentType(DEFAULT_CONTENT_TYPE);    
-        if (errorMessage == null){
-            String clientId = subscribeReq.getClientId();
-            DataHandler dataHandler = activeCometHandlers.get(clientId);
-            if (dataHandler == null) {
+
+        DataHandler dataHandler = isAuthenticatedAndValid(cometdContext);        
+        if (dataHandler != null){
+            if (dataHandler == dumyhandler) {
                 dataHandler = new DataHandler(this);
-                dataHandler.setClientId(clientId);
-                activeCometHandlers.put(clientId, dataHandler);
+                String clientId = subscribeReq.getClientId();
+                authenticatedUsers.put(clientId, dataHandler);
             }
 
             dataHandler.addChannel(subscribeReq.getSubscription());
@@ -284,11 +272,9 @@ public class BayeuxParser{
             if (dataHandler.isSuspended()){
                 subscribeRes.setLast(true);
             }
-            res.write(subscribeRes.toJSON());
-        } else {
-            res.write(errorMessage);
+            dataHandler.write(subscribeRes.toJSON(), res, true);
         }            
-        notifyEnd(subscribeRes, req.getRemotePort());
+        notifyEnd(subscribeRes, req.getRemotePort(),dataHandler);
     }
     
     
@@ -299,18 +285,15 @@ public class BayeuxParser{
         UnsubscribeRequest unsubscribeReq = (UnsubscribeRequest)cometdContext.getVerb();
         UnsubscribeResponse unsubscribeRes = new UnsubscribeResponse(unsubscribeReq);
         
-        boolean hasSubscription = false;
-        DataHandler dataHandler = null;
-        String clientId = unsubscribeReq.getClientId();
+        boolean hasSubscription = false;        
         String subscription = unsubscribeReq.getSubscription();
 
-        String errorMessage = isAuthenticatedAndValid(unsubscribeReq);       
-        res.setContentType(DEFAULT_CONTENT_TYPE);  
-        if (errorMessage == null){
-            dataHandler = activeCometHandlers.get(clientId);
-            if (dataHandler != null) {
+        DataHandler dataHandler = isAuthenticatedAndValid(cometdContext);        
+        if (dataHandler != null){
+            if (dataHandler != dumyhandler) {
                 hasSubscription = dataHandler.containsChannel(subscription);
                 if (hasSubscription) {
+                    String clientId = unsubscribeReq.getClientId();
                     AbstractQueue<String> unsubscribedChannels = inactiveChannels.get(clientId);
                     if (unsubscribedChannels == null) {
                         unsubscribedChannels = new LinkedTransferQueue<String>();
@@ -322,15 +305,11 @@ public class BayeuxParser{
                     unsubscribedChannels.add(subscription);
                 }
             }
-
             unsubscribeRes.setSuccessful(hasSubscription);
-            res.write(unsubscribeRes.toJSON());
-        } else {
-            res.write(errorMessage);
+            dataHandler.write(unsubscribeRes.toJSON(), res, true);
         }
-        res.flush();
 
-        notifyEnd(unsubscribeRes, req.getRemotePort());
+        notifyEnd(unsubscribeRes, req.getRemotePort(),dataHandler);
 
         if (hasSubscription) {
             dataHandler.removeChannel(subscription);
@@ -339,38 +318,28 @@ public class BayeuxParser{
     
     
     @SuppressWarnings("unchecked")
-    public void onPublish(CometdContext cometdContext) throws IOException {             
-        CometdRequest req = cometdContext.getRequest();
-        CometdResponse res = cometdContext.getResponse();
-        PublishRequest publishReq = (PublishRequest)cometdContext.getVerb();
-        PublishResponse publishRes = new PublishResponse(publishReq);
-        DeliverResponse deliverRes = null;
-                        
-        String errorMessage = isAuthenticatedAndValid(publishReq);  
-        res.setContentType(DEFAULT_CONTENT_TYPE);   
-        
-        DataHandler dataHandler = null;
-        if (errorMessage != null){
-            res.write(errorMessage);
+    public void onPublish(CometdContext cometdContext) throws IOException {                     
+
+        DataHandler dataHandler = isAuthenticatedAndValid(cometdContext);
+        if (dataHandler == null){
             return;
         }
-  
+
+        CometdRequest req = cometdContext.getRequest();        
+        PublishRequest publishReq = (PublishRequest)cometdContext.getVerb();
+        PublishResponse publishRes = new PublishResponse(publishReq);
         publishRes.setSuccessful(true);
 
-        String clientId = publishReq.getClientId();
-        if (clientId != null) {
-            dataHandler = activeCometHandlers.get(clientId);
-        }
-
         boolean justSubscribedInTheSameRequest =
-            (dataHandler != null && dataHandler.getRemotePort() == -1);
+            (dataHandler != dumyhandler && dataHandler.getRemotePort() == -1);
         boolean deliverToSamePort =
                 justSubscribedInTheSameRequest || 
                 // subscribed and connected
-                (dataHandler != null && 
+                (dataHandler != dumyhandler &&
                 (dataHandler.getRemotePort() == req.getRemotePort()));
 
         Data data = publishReq.getData();
+        DeliverResponse deliverRes = null;
         if (data != null) {
             deliverRes = new DeliverResponse(publishReq);
             deliverRes.setFollow(true);
@@ -383,20 +352,18 @@ public class BayeuxParser{
             publishRes.setLast(false);
         }
 
-        res.write(publishRes.toJSON());
+        CometdResponse res = cometdContext.getResponse();
+        dataHandler.write(publishRes.toJSON(), res, false);
         if (deliverRes != null) {
             deliverInChannels.get().add(publishReq.getChannel());
-
             // Exceptional case, DataHandler is not in CometdContext yet
             if (justSubscribedInTheSameRequest) {
-                res.write(deliverRes.toJSON());
+                dataHandler.write(deliverRes.toJSON(), res, false);
             }
-
             notifyAll(deliverRes, publishRes.getChannel());
         }
-
-        notifyEnd(deliverRes, req.getRemotePort());
-        }
+        notifyEnd(deliverRes, req.getRemotePort(),dataHandler);
+    }
 
     private void notifyAll(Object obj, String channel) throws IOException {
         if (enforceSubscriptionUnderPush){
@@ -405,14 +372,16 @@ public class BayeuxParser{
             } 
         } else {
             CometContext cc = getCometContext(channel);
-            log("Notifying " + channel + " to " 
-                    + cc.getCometHandlers().size() 
-                    + " CometHandler with message\n" + obj);
+            if (logger.isLoggable(level)){
+                log("Notifying " + channel + " to "
+                        + cc.getCometHandlers().size()
+                        + " CometHandler with message\n" + obj);
+            }
             cc.notify(obj);
         }
     }
 
-    private void notifyEnd(VerbBase verb, int requestPort) throws IOException {
+    private void notifyEnd(VerbBase verb, int requestPort, DataHandler dataHandler) throws IOException {
         if (verb.isLast()) {
             Set<String> dic = deliverInChannels.get();
             if  (dic.size() > 0) {
@@ -420,58 +389,82 @@ public class BayeuxParser{
                 notifyAll(end, dic.iterator().next());
                 dic.clear();
             }
-
-            String clientId = verb.getClientId();
-            DataHandler dataHandler = activeCometHandlers.get(clientId);
-            Collection<String> subscribedChannels = null;
-            if (dataHandler != null) {
-                subscribedChannels = dataHandler.getChannels();
-            }
-
-            if (subscribedChannels != null && subscribedChannels.size() > 0 ){
-                int i = 0;
-                for (String channel: subscribedChannels){
-                     log("Removing subscribed " + channel);
-                     if (i++ != 0){
-                        getCometContext(channel).getCometHandlers().remove(dataHandler);
-                     }
-                }
-            }
-            AbstractQueue<String> unsubscribedChannels = inactiveChannels.get(clientId);
-            if (unsubscribedChannels != null && !unsubscribedChannels.isEmpty() ){
-                int i=0;
-                for (String channel: unsubscribedChannels){
-                    log("Removing unsubscribed " + channel);
-                    if (i++ != 0){
-                         getCometContext(channel).getCometHandlers().remove(dataHandler);
+            final boolean dolog = logger.isLoggable(level);
+                        
+            if (dataHandler != null && dataHandler != dumyhandler) {
+                Collection<String> subscribedChannels = dataHandler.getChannels();
+                if (subscribedChannels != null && subscribedChannels.size() > 0 ){
+                    int i = 0;
+                    for (String channel: subscribedChannels){
+                        if (dolog){
+                            log("Removing subscribed " + channel);
+                        }
+                         if (i++ != 0){
+                            getCometContext(channel).getCometHandlers().remove(dataHandler);
+                         }
                     }
                 }
-            }
 
-            if (unsubscribedChannels != null) {
-                unsubscribedChannels.clear();
-                inactiveChannels.remove(clientId);
+                String clientId = verb.getClientId();
+                AbstractQueue<String> unsubscribedChannels = inactiveChannels.get(clientId);
+                if (unsubscribedChannels != null && !unsubscribedChannels.isEmpty() ){
+                    int i=0;
+                    for (String channel: unsubscribedChannels){
+                        if (dolog){
+                            log("Removing unsubscribed " + channel);
+                        }
+                        if (i++ != 0){   //what if dataHandler is null ?
+                             getCometContext(channel).getCometHandlers().remove(dataHandler);
+                        }
+                    }
+                }
+
+                if (unsubscribedChannels != null) {
+                    unsubscribedChannels.clear();
+                    inactiveChannels.remove(clientId);
+                }
             }
         }
     }
     
     /**
-     * Has the client been authenticated (by executing the /meta/handshake operation)
+     * Has the client been authenticated (by executing the /meta/handshake operation).
      * and the request valid.
      */
-    private String isAuthenticatedAndValid(VerbBase verb){
-        String clientId = verb.getClientId();
-        
-        if (clientId == null) return null;
-        if (clientId!= null && !authenticatedUsers.containsKey(clientId)){
-            return constructError("402","Unknown Client", verb.getMetaChannel());
-        } else if (!verb.isValid()){
-            return constructError("501","Invalid Operation", verb.getMetaChannel());
-        } else {
+    private DataHandler isAuthenticatedAndValid(CometdContext cometdContext) throws IOException{
+        CometdResponse res = cometdContext.getResponse();
+        res.setContentType(DEFAULT_CONTENT_TYPE);
+        VerbBase verb = (VerbBase)cometdContext.getVerb();
+        String clientId = verb.getClientId();       
+
+        if (clientId == null){
+            return dumyhandler;
+        }
+        DataHandler dataHandler = authenticatedUsers.get(clientId);
+
+        String errmsg = null;
+        if (dataHandler == null){
+            errmsg = constructError("402","Unknown Client", verb.getMetaChannel());
+        }else
+        if (!verb.isValid()){
+            errmsg =  constructError("501","Invalid Operation", verb.getMetaChannel());
+        }
+
+        if (errmsg != null){
+            if (dataHandler != null && dataHandler != dumyhandler){
+                synchronized(dataHandler){
+                    res.write(errmsg);
+                    res.flush();
+                }
+            }else{
+                res.write(errmsg);
+                res.flush();
+            }
             return null;
         }
+        return dataHandler;
     }
-    
+
 
     /**
      * Construct an error message.
@@ -484,7 +477,7 @@ public class BayeuxParser{
             String errorMsg, 
             String meta){
         
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(128);
         sb.append("[{\"successful\":false,\"error\":\"");
         sb.append(errorMessage);
         sb.append("::");
@@ -513,14 +506,12 @@ public class BayeuxParser{
         cc.setBlockingNotification(true);
         return cc;
     }
+       
     
-    
-    protected void log(String log){
-        if (SelectorThread.logger().isLoggable(level)){
-            SelectorThread.logger().log(level,log);
-        }
+    private void log(String log){
+        logger.log(level,log);
     }
-    
+
     // ---------------------------------------------------- Reserved but not used
     
     

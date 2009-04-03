@@ -44,6 +44,9 @@ import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.cometd.standalone.CometdAdapter;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.StatsThreadPool;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
 
@@ -88,30 +91,54 @@ public class BayeuxClientLoadTest extends TestCase {
         }        
     }
 
-    public void testLoad() throws Exception {
+    @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        if (st != null){
+            //avoiding log spam from closed clients when stoping endpoint
+            PrintStream ps = System.err;
+            System.setErr(new PrintStream(new OutputStream() {
+                public void write(int b) throws IOException {
+             }}));
+            st.stopEndpoint();
+            Thread.sleep(2000);
+            System.setErr(ps);
+        }
+    }
+
+    public void testLoad3a() throws Exception {
+        doTest(100,  1, 100, 1000,  50,   100);
+    }
+   
+    public void testLoad2() throws Exception {
+        doTest(10,   1, 1000, 40,   25000, 1500);
+    }
+    
+
+    public void doTest(int rooms, int rooms_per_client, int nclients, int publish , int msgsize, int pause) throws Exception {
+        
         String uri = "/cometd/cometd";
         String base = "/chat/demo";
-        int rooms = 100;
-        int rooms_per_client = 1;
         int maxLatency = 5000;
-        int nclients = 100;
-        int publish = 1000;
 
-        int size = 50;
         String chat = "";
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < msgsize; i++) {
             chat += "x";
         }
-
-        int pause = 100;
+        
         int burst = 10;
 
         BayeuxLoadGenerator generator = new BayeuxLoadGenerator();
         generator.initSocketAddress(host, PORT);
+        
+        System.err.println("rooms: "+rooms +" roomsPerclient: "+rooms_per_client+
+                " clients: "+nclients+" publish: "+publish+" msgsize: "+msgsize+
+                " publish pause: "+pause+"ms");
+
         long got = generator.generateLoad(uri, base, rooms, rooms_per_client,
                 maxLatency, nclients, publish, chat, pause, burst);
-
         publish=(publish*nclients)/rooms;
         assertTrue(got > publish*0.9);
     }
+
 }
