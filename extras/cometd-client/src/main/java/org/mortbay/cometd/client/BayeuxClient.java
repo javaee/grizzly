@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.http.Cookie;
 
 import org.mortbay.cometd.MessageImpl;
@@ -107,6 +109,13 @@ public class BayeuxClient extends MessagePool implements Client
         {
             if (!_initialized && _pull==null)
                 _pull=new Handshake();
+        }
+    }
+
+    public void stop(){
+        try {
+            _client.stop();
+        } catch (Exception ex) {
         }
     }
 

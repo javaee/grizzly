@@ -38,7 +38,6 @@
 package com.sun.grizzly.cometd;
 
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.comet.CometContext;
 import com.sun.grizzly.comet.CometEvent;
 import com.sun.grizzly.comet.CometHandler;
 import com.sun.grizzly.cometd.bayeux.DeliverResponse;
@@ -48,7 +47,6 @@ import com.sun.grizzly.util.LinkedTransferQueue;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -68,25 +66,36 @@ public class DataHandler implements CometHandler<Object[]>{
     
     private CometdResponse res; 
    
-    private String clientId;
-   
-    private Collection<String> channels = new LinkedTransferQueue<String>();
+    private final Collection<String> channels = new LinkedTransferQueue<String>();    
 
-    private Collection<String> unmodifiableChannels = null;
-    
     private BayeuxParser bayeuxParser;
     
-    private boolean isSuspended = false;
+    private volatile boolean isSuspended;
 
     private int remotePort = -1;
 
-    private volatile boolean ended = false;
+    private volatile boolean ended;
 
 
     public DataHandler(BayeuxParser bayeuxParser){
         this.bayeuxParser = bayeuxParser;
     }
 
+    protected void write(String s, CometdResponse res, boolean flush) throws IOException{
+        if (this != BayeuxParser.dumyhandler){
+            synchronized(this){
+                res.write(s);
+                if (flush){
+                    res.flush();
+                }
+            }
+        }else{
+            res.write(s);
+            if (flush){
+                res.flush();
+            }
+        }
+    }
 
     public void attach(Object[] reqRes){
         this.req = (CometdRequest) reqRes[0];
@@ -146,37 +155,23 @@ public class DataHandler implements CometHandler<Object[]>{
     public void onInterrupt(CometEvent event) throws IOException{   
     }
 
-    public synchronized Collection<String> getChannels() {
-        if (unmodifiableChannels == null) {
-            unmodifiableChannels = Collections.unmodifiableCollection(channels);
-        }
-        return unmodifiableChannels;
+    public Collection<String> getChannels() {
+        return channels;
     }
 
-    public synchronized void addChannel(String channel) {
+    public void addChannel(String channel) {
         if (channels.contains(channel)) {
             throw new IllegalArgumentException(channel);
         }
-
-        unmodifiableChannels = null;
         channels.add(channel);
     }
 
-    public synchronized boolean containsChannel(String channel) {
+    public boolean containsChannel(String channel) {
         return channels.contains(channel);
     }
 
-    public synchronized boolean removeChannel(String channel) {
-        unmodifiableChannels = null;
+    public boolean removeChannel(String channel) {
         return channels.remove(channel);
-    }
-
-    public String getClientId() {
-        return clientId;
-    }
-
-    public void setClientId(String clientId) {
-        this.clientId = clientId;
     }
 
     public boolean isSuspended() {

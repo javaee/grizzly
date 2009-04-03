@@ -126,15 +126,15 @@ public class Advice extends VerbBase{
 
         if (hosts != null && hosts.length > 0) {
             jsonSb.append("\"hosts\":[");
-            boolean first = true;
-            for (String host : hosts) {
-                if (first) {
-                    first = false;
+            boolean first_ = true;
+            for (int i=0 ;i<hosts.length; i++) {
+                if (first_) {
+                    first_ = false;
                 } else {
                     jsonSb.append(",");
                 }
 
-                jsonSb.append("\"").append(host).append("\"");
+                jsonSb.append("\"").append(hosts[i]).append("\"");
             }
             jsonSb.append("]");
         }
@@ -152,8 +152,8 @@ public class Advice extends VerbBase{
     }
         
     public boolean isValid() {
-        for (String rc : VALID_RECONNECT) {
-            if (rc.equals(reconnect)) {
+        for (int i=0;i<VALID_RECONNECT.length;i++) {
+            if (VALID_RECONNECT[i].equals(reconnect)) {
                 return true;
             }
         }
