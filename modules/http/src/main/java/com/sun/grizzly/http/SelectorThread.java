@@ -164,7 +164,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     // Number of keep-alive threads
     protected int keepAliveThreadCount = 1;
-    
+
     // ------------------------------------------------------ Compression ---/
 
 
@@ -550,6 +550,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     private SelectorThreadKeyHandler keyHandler;
     
+    // Force keep-alive
+    protected boolean forceKeepAlive = false;
     
     // ---------------------------------------------------- Constructor --//
     
@@ -2317,5 +2319,18 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     public String protocol(){
         return "HTTP";
     }
-
+    
+    /**
+     * Force keep-alive no mather what the client support.
+     */
+    public void setForceKeepAlive(boolean forceKeepAlive){
+        this.forceKeepAlive = forceKeepAlive;
+    }
+    
+    /**
+     * Is keep-alive forced?
+     */
+    public boolean getForceKeepAlive(){
+        return forceKeepAlive;
+    }
 }
