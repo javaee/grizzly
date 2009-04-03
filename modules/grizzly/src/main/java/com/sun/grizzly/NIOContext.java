@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -45,8 +45,10 @@ import com.sun.grizzly.async.AsyncQueueWriter;
 import com.sun.grizzly.async.AsyncReadCallbackHandler;
 import com.sun.grizzly.async.AsyncReadCondition;
 import com.sun.grizzly.async.AsyncQueueReadUnit;
+import com.sun.grizzly.async.AsyncQueueReaderContextTask;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
+import com.sun.grizzly.async.AsyncQueueWriterContextTask;
 import com.sun.grizzly.async.ByteBufferCloner;
 import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Copyable;
@@ -65,8 +67,8 @@ import java.util.logging.Level;
 /**
  * This Object is used to share information between the Grizzly Framework
  * classes and {@link ProtocolFilter} implementation. Since {@link Context}
- * is a pooled resource 
- * {@link Controller#pollContext(java.nio.channels.SelectionKey)} 
+ * is a pooled resource
+ * {@link Controller#pollContext(java.nio.channels.SelectionKey)}
  * transactions using {@link Context} outside its {@link ProtocolChain}
  * must invoke {@link #incrementRefCount()} and
  * {@link Controller#returnContext(com.sun.grizzly.Context)} to keep its pooling
@@ -141,13 +143,21 @@ public class NIOContext implements Context {
      */
     private AtomicInteger refCounter = new AtomicInteger(1);
 
+    private  ProtocolChainContextTask  protocolChainContextTask;
+
+    private CallbackHandlerContextTask callbackHandlerContextTask;
+
+    private AsyncQueueReaderContextTask asyncQueueReaderContextTask;
+
+    private AsyncQueueWriterContextTask asyncQueueWriterContextTask;
+
     /**
      * Constructor
      */
     public NIOContext() {
     }
 
-    
+
     public void copyTo(Copyable copy) {
         NIOContext copyContext = (NIOContext) copy;
         copyContext.currentOpType = currentOpType;
@@ -165,7 +175,40 @@ public class NIOContext implements Context {
         copyContext.asyncQueueWriter = asyncQueueWriter;
     }
 
-    
+    public ProtocolChainContextTask getProtocolChainContextTask() {
+        if (protocolChainContextTask == null){
+            protocolChainContextTask = new ProtocolChainContextTask();
+        }
+        return protocolChainContextTask;
+    }
+
+    public CallbackHandlerContextTask getCallbackHandlerContextTask(CallbackHandler callbackHandler) {
+        if (callbackHandlerContextTask == null){
+            callbackHandlerContextTask = new CallbackHandlerContextTask(callbackHandler);
+        }else{
+            callbackHandlerContextTask.setCallBackHandler(callbackHandler);
+        }
+        return callbackHandlerContextTask;
+    }
+
+    public AsyncQueueReaderContextTask getAsyncQueueReaderContextTask(AsyncQueueReader asyncQueueReader) {
+        if (asyncQueueReaderContextTask == null){
+            asyncQueueReaderContextTask = new AsyncQueueReaderContextTask(asyncQueueReader);
+        }else{
+            asyncQueueReaderContextTask.setAsyncQueueReader(asyncQueueReader);
+        }
+        return asyncQueueReaderContextTask;
+    }
+
+    public AsyncQueueWriterContextTask getAsyncQueueWriterContextTask(AsyncQueueWriter asyncQueueWriter) {
+        if (asyncQueueWriterContextTask == null){
+            asyncQueueWriterContextTask = new AsyncQueueWriterContextTask(asyncQueueWriter);
+        }else{
+            asyncQueueWriterContextTask.setAsyncQueueWriter(asyncQueueWriter);
+        }
+        return asyncQueueWriterContextTask;
+    }
+
     /**
      * Remove a key/value object.
      * @param key - name of an attribute
@@ -178,7 +221,7 @@ public class NIOContext implements Context {
         return attributes.remove(key);
     }
 
-    
+
     /**
      * Set a key/value object.
      * @param key - name of an attribute
@@ -191,7 +234,7 @@ public class NIOContext implements Context {
         attributes.put(key, value);
     }
 
-    
+
     /**
      * Return an object based on a key.
      * @param key - name of an attribute
@@ -205,11 +248,11 @@ public class NIOContext implements Context {
         return attributes.get(key);
     }
 
-    
+
     /**
-     * Return {@link AttributeHolder}, which corresponds to the 
+     * Return {@link AttributeHolder}, which corresponds to the
      * given {@link AttributeScope}>
-     * 
+     *
      * @param scope - {@link AttributeScope}>
      * @return - {@link AttributeHolder} instance, which contains
      *           {@link AttributeScope}> attributes
@@ -237,32 +280,32 @@ public class NIOContext implements Context {
         return holder;
     }
 
-    
+
     /**
      * Set a {@link Map} of attribute name/value pairs.
      * Old {@link AttributeHolder} values will not be available.
      * Later changes of this {@link Map} will lead to changes to the current
      * {@link AttributeHolder}.
-     * 
+     *
      * @param attributes - map of name/value pairs
      */
     public void setAttributes(Map<String, Object> attributes) {
         this.attributes = attributes;
     }
 
-    
+
     /**
      * Return a {@link Map} of attribute name/value pairs.
      * Updates, performed on the returned {@link Map} will be reflected in
      * this {@link AttributeHolder}
-     * 
+     *
      * @return - {@link Map} of attribute name/value pairs
      */
     public Map<String, Object> getAttributes() {
         return attributes;
     }
 
-    
+
     /**
      * Return the current {@link SelectionKey}.
      * @return - this Context's SelectionKey
@@ -271,7 +314,7 @@ public class NIOContext implements Context {
         return key;
     }
 
-    
+
     /**
      * Set the connection {@link SelectionKey}.
      * @param key - set this Context's SelectionKey
@@ -280,7 +323,7 @@ public class NIOContext implements Context {
         this.key = key;
     }
 
-    
+
     /**
      * Return the current {@link Controller}.
      * @return - this Context's current {@link Controller}
@@ -289,7 +332,7 @@ public class NIOContext implements Context {
         return controller;
     }
 
-    
+
     /**
      * Set the current {@link Controller}.
      * @param {@link Controller}
@@ -298,9 +341,9 @@ public class NIOContext implements Context {
         this.controller = controller;
     }
 
-    
+
     /**
-     * Recycle this instance. 
+     * Recycle this instance.
      */
     public void recycle() {
         if (isSuspended) {
@@ -323,7 +366,7 @@ public class NIOContext implements Context {
         refCounter.set(1);
     }
 
-    
+
     /**
      * Return {@link SelectionKey}'s next registration state.
      * @return this Context's SelectionKey registration state
@@ -332,7 +375,7 @@ public class NIOContext implements Context {
         return keyRegistrationState;
     }
 
-    
+
     /**
      * Set the {@link SelectionKey}'s next registration state
      * @param {@link keyRegistrationState} - set this Context's SelectionKey
@@ -342,7 +385,7 @@ public class NIOContext implements Context {
         this.keyRegistrationState = keyRegistrationState;
     }
 
-    
+
     /**
      * Return {@link ProtocolChain} executed by this instance.
      * @return {@link ProtocolChain} instance
@@ -351,7 +394,7 @@ public class NIOContext implements Context {
         return protocolChain;
     }
 
-    
+
     /**
      * Set the {@link ProtocolChain} used by this {@link Context}.
      * @param protocolChain instance of {@link ProtocolChain} to be used by the Context
@@ -360,7 +403,7 @@ public class NIOContext implements Context {
         this.protocolChain = protocolChain;
     }
 
-    
+
     /**
      * Get the current {@link SelectionKey} interest ops this instance is executing.
      * @return OpType the currentOpType.
@@ -369,7 +412,7 @@ public class NIOContext implements Context {
         return currentOpType;
     }
 
-    
+
     /**
      * Set the current OpType value.
      * @param currentOpType sets current operation type
@@ -378,9 +421,9 @@ public class NIOContext implements Context {
         this.currentOpType = currentOpType;
     }
 
-    
+
     /**
-     * Configure the {@link #currentOpType} based on the 
+     * Configure the {@link #currentOpType} based on the
      * {@link SelectionKey#readyOps()} values.
      * @param key
      */
@@ -406,7 +449,7 @@ public class NIOContext implements Context {
              * Fallback to an upcoming OP_CONNECT ops. This happens
              * because the {@link SocketChannel#finishConnect()} has not yet
              * been invoked.
-             * 
+             *
              */
             default:
                 currentOpType = OpType.OP_CONNECT;
@@ -415,7 +458,7 @@ public class NIOContext implements Context {
         }
     }
 
-    
+
     /**
      * Execute this Context using the Controller's thread pool
      * @deprecated
@@ -426,29 +469,27 @@ public class NIOContext implements Context {
         // be invoked or not.
         Object attachment = SelectionKeyAttachment.getAttachment(key);
         if (ioEvent != null && (attachment instanceof CallbackHandler)) {
-            CallbackHandlerContextTask task = CallbackHandlerContextTask.poll();
-            task.setCallBackHandler((CallbackHandler) attachment);
-            execute(task);
+            execute(getCallbackHandlerContextTask((CallbackHandler) attachment));
         } else {
-            execute(ProtocolChainContextTask.poll());
+            execute(getProtocolChainContextTask());
         }
     }
 
-    
+
     /**
      * Execute this Context using the Controller's thread pool
-     * @param contextTask {@link ContextTask}, which will be 
+     * @param contextTask {@link ContextTask}, which will be
      *                    executed by {@link ExecutorService}
      */
     public void execute(ContextTask contextTask) {
         execute(contextTask, true);
     }
 
-    
+
     /**
      * Execute this Context using either Controller's thread pool or
      * current thread
-     * @param contextTask {@link ContextTask}, which will be 
+     * @param contextTask {@link ContextTask}, which will be
      *                    executed by {@link ExecutorService}
      * @param runInSeparateThread if true - {@link ContextTask} will
      *      be executed in separate thread, false - in current thread.
@@ -463,7 +504,7 @@ public class NIOContext implements Context {
         if (contextTask != null) {
             contextTask.setContext(this);
             if (runInSeparateThread) {
-                getThreadPool().submit(contextTask);
+                getThreadPool().execute(contextTask);
             } else {
                 try {
                     contextTask.call();
@@ -476,7 +517,7 @@ public class NIOContext implements Context {
         }
     }
 
-    
+
     /**
      * Return the {@link ProtocolChainInstanceListener} associated with this
      * {@link Context}
@@ -488,7 +529,7 @@ public class NIOContext implements Context {
         return protocolChainInstanceHandler != null ? protocolChainInstanceHandler : controller.getProtocolChainInstanceHandler();
     }
 
-    
+
     /**
      * Return the {@link ExecutorService} executing this instance.
      * @return {@link ExecutorService}
@@ -500,7 +541,7 @@ public class NIOContext implements Context {
         return threadPool;
     }
 
-    
+
     /**
      * Set the {@link ExecutorService} that will execute this instance.
      * @param threadPool  the {@link ExecutorService} to set
@@ -509,7 +550,7 @@ public class NIOContext implements Context {
         this.threadPool = threadPool;
     }
 
-    
+
     /**
      * Set an optional CallbackHandler.
      * @param ioEvent  the {@link IOEvent} to set
@@ -518,7 +559,7 @@ public class NIOContext implements Context {
         this.ioEvent = ioEvent;
     }
 
-    
+
     /**
      * Return the current {@link IOEvent} associated with this
      * instance.
@@ -529,7 +570,7 @@ public class NIOContext implements Context {
         return ioEvent;
     }
 
-    
+
     /**
      * Return the current {@link Controller#Protocol} this instance is executing.
      * @return the current Controller.Protocol this instance is executing.
@@ -538,7 +579,7 @@ public class NIOContext implements Context {
         return selectorHandler.protocol();
     }
 
-    
+
     /**
      * @Deprecated
      *
@@ -548,12 +589,12 @@ public class NIOContext implements Context {
     public void setProtocol(Controller.Protocol protocol) {
     }
 
-    
+
     public SelectorHandler getSelectorHandler() {
         return selectorHandler;
     }
 
-    
+
     /**
      * Set the current {@link SelectorHandler} this instance is executing.
      * @param selectorHandler {@link SelectorHandler}
@@ -562,11 +603,11 @@ public class NIOContext implements Context {
         this.selectorHandler = selectorHandler;
     }
 
-    
+
     /**
      * Returns {@link AsyncQueueReadable}, assciated with the current
      * {@link Context}. This method is not threadsafe.
-     * 
+     *
      * @return {@link AsyncQueueReadable}
      */
     public AsyncQueueReadable getAsyncQueueReadable() {
@@ -577,11 +618,11 @@ public class NIOContext implements Context {
         return asyncQueueReadable;
     }
 
-    
+
     /**
      * Returns {@link AsyncQueueWritable}, assciated with the current
      * {@link Context}. This method is not threadsafe.
-     * 
+     *
      * @return {@link AsyncQueueWritable}
      */
     public AsyncQueueWritable getAsyncQueueWritable() {
@@ -592,7 +633,7 @@ public class NIOContext implements Context {
         return asyncQueueWritable;
     }
 
-    
+
     /**
      * Return the {@linkAsyncQueueReader}
      * @return the {@linkAsyncQueueReader}
@@ -601,7 +642,7 @@ public class NIOContext implements Context {
         return asyncQueueReader;
     }
 
-    
+
     /**
      * Set the {@linkAsyncQueueReader}
      * @param asyncQueueReader {@linkAsyncQueueReader}
@@ -610,7 +651,7 @@ public class NIOContext implements Context {
         this.asyncQueueReader = asyncQueueReader;
     }
 
-    
+
     /**
      * Return the {@linkAsyncQueueWriter}
      * @return the {@linkAsyncQueueWriter}
@@ -619,7 +660,7 @@ public class NIOContext implements Context {
         return asyncQueueWriter;
     }
 
-    
+
     /**
      * Set the {@linkAsyncQueueWriter}
      * @param asyncQueueWriter {@linkAsyncQueueWriter}
@@ -744,21 +785,21 @@ public class NIOContext implements Context {
         }
     }
 
-    
+
     /**
      * Suspend the execution of this {@link Context}. Suspending the execution
      * allow application to store the current instance, and re-use it later
      * by not only the  Thread used when called suspend, but also from any other Thread.
-     * A suspended Context will not be re-used by any other transaction and Thread. 
+     * A suspended Context will not be re-used by any other transaction and Thread.
      * A suspended Context will keep its current state intact, meaning its
      * SelectionKey, attributes, SelectorHandler, etc, will not change. Internally,
      * The Context will not be recyled and will not be re-used by any Thread.
-     * 
-     * When invoked this method will automatically set the 
+     *
+     * When invoked this method will automatically set the
      * {@link Context#setKeyRegistrationState} to {@link KeyRegistrationState}
      * to KeyRegistrationState.NONE.
-     * 
-     * Invoking this method many times as not effect once suspended. 
+     *
+     * Invoking this method many times as not effect once suspended.
      */
     public void suspend() {
         if (isSuspended) {
@@ -769,7 +810,7 @@ public class NIOContext implements Context {
         setKeyRegistrationState(keyRegistrationState.NONE);
     }
 
-    
+
     /**
      * Return <tt>true</tt> if this Context has been suspended by
      * invoking {@link suspend}. When suspended, invoking {@link Context#recycle}
@@ -780,23 +821,23 @@ public class NIOContext implements Context {
         return isSuspended;
     }
 
-    
+
     /**
-     * Resume a {@link #suspend}ed {@link Context}. 
+     * Resume a {@link #suspend}ed {@link Context}.
      *  <strong>Resume will not call {@link Context#recycle}</strong>. So
      * after the caller is finished using Context caller must
      * call {@link  Controller#returnContext(com.sun.grizzly.Context)}
      * to  mark it as a candidate  for being re-used by another Thread and connection.
-     * 
+     *
      * <strong>Important. When resumed, all operations done on this
      * object are not thread-safe and there is probability that another
      * thread is already using this object. Never use this object once resumed.</strong>
-     * 
-     * When invoked this method will automatically set the 
+     *
+     * When invoked this method will automatically set the
      * {@link Context#setKeyRegistrationState} to {@link KeyRegistrationState}
-     * to KeyRegistrationState.REGISTER and automatically re-enable read and 
-     * write operations. 
-     * 
+     * to KeyRegistrationState.REGISTER and automatically re-enable read and
+     * write operations.
+     *
      * If the Context hasn't been suspended, calling that method has no effet.
      */
     public void resume() {
@@ -807,20 +848,20 @@ public class NIOContext implements Context {
         selectorHandler.register(key, SelectionKey.OP_READ);
     }
 
-    
+
     /**
      * Cancel a {@link #suspend}ed {@link Context}. Invoking this method will
      * automatically clean the state of this Context and mark it as a candidate
-     * for being re-used by another Thread and connection. 
-     * 
+     * for being re-used by another Thread and connection.
+     *
      * <strong>Important. When cancelled, all operations done on this
      * object are not thread-safe and there is probability that another
      * thread is already using this object. Never use this object once cancelled.</strong>
-     * 
-     * 
-     * When invoked this method will automatically close the underlying 
+     *
+     *
+     * When invoked this method will automatically close the underlying
      * connection (represented by its {@link SelectionKey}.
-     * 
+     *
      * If the Context hasn't been suspended, calling that method has no effet.
      */
     public void cancel() {
@@ -832,27 +873,27 @@ public class NIOContext implements Context {
         getController().returnContext(this);
     }
 
-    
+
     /**
      * Called by outer Threads that are not instances of {@link WorkerThread} to
      * indicate that this {@link Context} should not be
      * {@link #recycle()} or offered back to its pool.
-     * 
+     *
      * When a outer Thread is done with {@link Context} it must call
      * {@link Controller#returnContext(com.sun.grizzly.Context) to
      * ensure that {@link Context} will be properly recycled.
-     * 
+     *
      * @return Current Thread reference count
      */
     public void incrementRefCount() {
         refCounter.incrementAndGet();
     }
 
-    
+
     /**
      * Decrements the reference count of this {@link Context}.
      * Threads wanting to release {@link Context} should not call
-     * this method but instead use 
+     * this method but instead use
      * {@link Controller#returnContext(com.sun.grizzly.Context)}
      * @return return decremented reference count
      */

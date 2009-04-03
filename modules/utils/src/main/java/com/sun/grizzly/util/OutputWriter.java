@@ -192,8 +192,8 @@ public class OutputWriter {
         Selector writeSelector = null;
         int attempts = 0;
         long totalBytes = 0;
-        for (ByteBuffer aBb : bb) {
-            totalBytes += aBb.remaining();
+        for (int i=0;i<bb.length;i++) {
+            totalBytes += bb[i].remaining();
         }
         
         long nWrite = 0;

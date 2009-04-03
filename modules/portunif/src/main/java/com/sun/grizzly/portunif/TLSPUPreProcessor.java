@@ -134,7 +134,8 @@ public class TLSPUPreProcessor implements PUPreProcessor {
         
         SSLEngine sslEngine = null;
         Object attachment = SelectionKeyAttachment.getAttachment(key);
-        if (logger.isLoggable(Level.FINE)) {
+        final boolean isloglevelfine = logger.isLoggable(Level.FINE);
+        if (isloglevelfine) {
             logger.log(Level.FINE, "SelectionKeyAttachment: " + key);
         }
         
@@ -149,7 +150,7 @@ public class TLSPUPreProcessor implements PUPreProcessor {
             sslEngine.setWantClientAuth(wantClientAuth);
         }
         
-        if (logger.isLoggable(Level.FINE)) {
+        if (isloglevelfine) {
             logger.log(Level.FINE, "sslEngine: " + sslEngine);
         }
         
@@ -187,7 +188,7 @@ public class TLSPUPreProcessor implements PUPreProcessor {
 
         boolean OK = sslEngine.getSession().isValid();
 
-        if (logger.isLoggable(Level.FINE)) {
+        if (isloglevelfine) {
             logger.log(Level.FINE, "Is session valid: " + OK);
         }
         
@@ -198,7 +199,7 @@ public class TLSPUPreProcessor implements PUPreProcessor {
                 byteBuffer = SSLUtils.doHandshake(channel, byteBuffer, 
                         inputBB, outputBB, sslEngine, handshakeStatus, 
                         SSLUtils.getReadTimeout(), inputBB.position() > 0);
-                if (logger.isLoggable(Level.FINE)) {
+                if (isloglevelfine) {
                     logger.log(Level.FINE, "handshake is done");
                 }
                 
@@ -211,13 +212,13 @@ public class TLSPUPreProcessor implements PUPreProcessor {
                 outputBB.limit(outputBB.position());
                 OK = true;
             } catch (EOFException ex) {
-                if (logger.isLoggable(Level.FINE)) {
+                if (isloglevelfine) {
                     logger.log(Level.FINE, "handshake failed", ex);
                 }
                 // DO nothing, as the client closed the connection
             } catch (Exception ex) {
                 // An exception means the handshake failed.
-                if (logger.isLoggable(Level.FINE)) {
+                if (isloglevelfine) {
                     logger.log(Level.FINE, "handshake failed", ex);
                 }
                 
@@ -234,13 +235,13 @@ public class TLSPUPreProcessor implements PUPreProcessor {
             }
         }
           
-        if (logger.isLoggable(Level.FINE)) {
+        if (isloglevelfine) {
             logger.log(Level.FINE, "after handshake. isComplete: " + OK);
         }
         
         if (OK) {
             int byteRead = -1;
-            if (logger.isLoggable(Level.FINE)) {
+            if (isloglevelfine) {
                 logger.log(Level.FINE, "secured bytebuffer: " + inputBB);
             }
             
@@ -251,7 +252,7 @@ public class TLSPUPreProcessor implements PUPreProcessor {
                 byteRead = inputBB.position();
             }
             
-            if (logger.isLoggable(Level.FINE)) {
+            if (isloglevelfine) {
                 logger.log(Level.FINE, "secured bytebuffer additional read: " + byteRead);
             }
             if (byteRead > -1) {

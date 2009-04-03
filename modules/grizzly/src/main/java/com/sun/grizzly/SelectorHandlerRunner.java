@@ -71,6 +71,9 @@ public class SelectorHandlerRunner implements Runnable {
         
         ((WorkerThreadImpl)Thread.currentThread()).setPendingIOhandler(selectorHandler);
 
+        NIOContext serverCtx = controller.pollContext(null,null);
+        serverCtx.setSelectorHandler(selectorHandler);
+
         StateHolder<State> controllerStateHolder = controller.getStateHolder();
         StateHolder<State> selectorHandlerStateHolder = selectorHandler.getStateHolder();
         
@@ -84,7 +87,7 @@ public class SelectorHandlerRunner implements Runnable {
                 
                 if (controllerState != State.PAUSED &&
                         selectorHandlerState != State.PAUSED) {
-                    controller.doSelect(selectorHandler);
+                    controller.doSelect(selectorHandler,serverCtx);
                 } else {
                     doSelectorPaused(controllerState, selectorHandlerState);
                 }

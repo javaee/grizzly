@@ -39,7 +39,6 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.Context.OpType;
-import com.sun.grizzly.ContextTask.TaskPool;
 
 /**
  * {@link CallbackHandler} task, which will be executed by 
@@ -49,22 +48,11 @@ import com.sun.grizzly.ContextTask.TaskPool;
  * @author Alexey Stashok
  */
 public class CallbackHandlerContextTask extends SelectionKeyContextTask {
-    private static final TaskPool<CallbackHandlerContextTask> taskPool = 
-            new TaskPool<CallbackHandlerContextTask>() {
-        @Override
-        public CallbackHandlerContextTask newInstance() {
-            return new CallbackHandlerContextTask();
-        }
-    };
     
     private CallbackHandler callBackHandler;
-    
-    public static CallbackHandlerContextTask poll() {
-        return taskPool.poll();
-    }
-    
-    public static void offer(CallbackHandlerContextTask contextTask) {
-        taskPool.offer(contextTask);
+
+    public CallbackHandlerContextTask(CallbackHandler callBackHandler) {
+        this.callBackHandler = callBackHandler;
     }
     
     protected Object doCall() throws Exception {
@@ -85,7 +73,6 @@ public class CallbackHandlerContextTask extends SelectionKeyContextTask {
                     // TODO: This is still dangerous as the Context might have been
                     // cached by the CallbackHandler.
                 ioEvent.attach(null);
-                ioEvent = null;
             }
         }
 
@@ -104,10 +91,5 @@ public class CallbackHandlerContextTask extends SelectionKeyContextTask {
     public void recycle() {
         callBackHandler = null;
         super.recycle();
-    }
-
-    @Override
-    public void offer() {
-        offer(this);
     }
 }

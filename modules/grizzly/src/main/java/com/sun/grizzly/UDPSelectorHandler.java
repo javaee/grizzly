@@ -201,7 +201,7 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
         CallbackHandler callbackHandler = selectionKeyOp.getCallbackHandler();
 
         CallbackHandlerSelectionKeyAttachment attachment =
-                CallbackHandlerSelectionKeyAttachment.create(callbackHandler);
+                new CallbackHandlerSelectionKeyAttachment(callbackHandler);
 
         SelectionKey key = newDatagramChannel.register(selector,
                 SelectionKey.OP_READ | SelectionKey.OP_WRITE, attachment);

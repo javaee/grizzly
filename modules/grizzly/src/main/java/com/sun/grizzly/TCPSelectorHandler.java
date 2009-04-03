@@ -40,9 +40,7 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.SelectionKeyOP.ConnectSelectionKeyOP;
 import com.sun.grizzly.async.AsyncQueueReader;
-import com.sun.grizzly.async.AsyncQueueReaderContextTask;
 import com.sun.grizzly.async.AsyncQueueWriter;
-import com.sun.grizzly.async.AsyncQueueWriterContextTask;
 import com.sun.grizzly.async.TCPAsyncQueueWriter;
 import com.sun.grizzly.async.TCPAsyncQueueReader;
 import com.sun.grizzly.util.AttributeHolder;
@@ -138,6 +136,13 @@ public class TCPSelectorHandler implements SelectorHandler {
      * max number of pendingIO tasks that will be executed per worker thread.
      */
     private int pendingIOlimitPerThread = 100;
+
+    /**
+     * True if selector thread should execute the pendingIO events.<br>
+     * Default is false.
+     */
+    private boolean executePendingIOinSelectorThread;
+
 
     /**
      * The socket tcpDelay.
@@ -449,8 +454,8 @@ public class TCPSelectorHandler implements SelectorHandler {
         SocketAddress remoteAddress = selectionKeyOp.getRemoteAddress();
         CallbackHandler callbackHandler = selectionKeyOp.getCallbackHandler();
 
-        CallbackHandlerSelectionKeyAttachment attachment =
-                CallbackHandlerSelectionKeyAttachment.create(callbackHandler);
+        CallbackHandlerSelectionKeyAttachment attachment = new
+                CallbackHandlerSelectionKeyAttachment(callbackHandler);
 
         SelectionKey key = socketChannel.register(selector, 0, attachment);
         attachment.associateKey(key);
@@ -537,7 +542,11 @@ public class TCPSelectorHandler implements SelectorHandler {
      */
     @Override
     public void addPendingIO(Runnable runnable){
-        pendingIO.add(runnable);
+        if (executePendingIOinSelectorThread){
+            runnable.run();
+        }else{
+            pendingIO.add(runnable);
+        }
     }
 
     /**
@@ -545,12 +554,16 @@ public class TCPSelectorHandler implements SelectorHandler {
      */
     @Override
     public void addPendingKeyCancel(SelectionKey key){
-        if (key.isValid()){
-            //we want to do this in the selector.select thread hence we do it now
-            // saving us the extra parsing for SelectionKey later
-            key.cancel();
+        if (executePendingIOinSelectorThread){
+            selectionKeyHandler.cancel(key);
+        }else{
+            if (key.isValid()){
+                //we want to do this in the selector.select thread hence we do it now
+                // saving us the extra parsing for SelectionKey later
+                key.cancel();
+            }
+            pendingIO.add(key);
         }
-        pendingIO.add(key);
     }
 
 
@@ -752,7 +765,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         }
         Object attach = SelectionKeyAttachment.getAttachment(key);
         if (attach instanceof CallbackHandler){
-            final Context context = pollContext(ctx, key, Context.OpType.OP_READ);
+            NIOContext context = pollContext(ctx, key, Context.OpType.OP_READ);
             invokeCallbackHandler((CallbackHandler) attach, context);
             return false;
         }
@@ -776,7 +789,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         }
         Object attach = SelectionKeyAttachment.getAttachment(key);
         if (attach instanceof CallbackHandler){
-            final Context context = pollContext(ctx, key, Context.OpType.OP_WRITE);
+            NIOContext context = pollContext(ctx, key, Context.OpType.OP_WRITE);
             invokeCallbackHandler((CallbackHandler) attach, context);
             return false;
         }
@@ -812,7 +825,7 @@ public class TCPSelectorHandler implements SelectorHandler {
 
         Object attach = SelectionKeyAttachment.getAttachment(key);
         if (attach instanceof CallbackHandler){
-            final Context context = pollContext(ctx, key, Context.OpType.OP_CONNECT);
+            NIOContext context = pollContext(ctx, key, Context.OpType.OP_CONNECT);
             invokeCallbackHandler((CallbackHandler) attach, context);
         }
         return false;
@@ -825,22 +838,16 @@ public class TCPSelectorHandler implements SelectorHandler {
      * @throws java.io.IOException
      */
     protected void invokeCallbackHandler(CallbackHandler callbackHandler,
-            Context context) throws IOException {
-
-        if (!(context instanceof NIOContext)){
-            logger.severe("Invalid Context instance: "
-                    + context.getClass().getName());
-            return;
-        }
+            NIOContext context) throws IOException {
 
         IOEvent<Context>ioEvent = new IOEvent.DefaultIOEvent<Context>(context);
         context.setIOEvent(ioEvent);
 
         // Added because of incompatibility with Grizzly 1.6.0
-        ((NIOContext)context).setSelectorHandler(this);
+        context.setSelectorHandler(this);
 
-        CallbackHandlerContextTask task = CallbackHandlerContextTask.poll();
-        task.setCallBackHandler(callbackHandler);
+        CallbackHandlerContextTask task = 
+                context.getCallbackHandlerContextTask(callbackHandler);
         boolean isRunInSeparateThread = true;
 
         if (callbackHandler instanceof CallbackHandlerDescriptor) {
@@ -857,10 +864,8 @@ public class TCPSelectorHandler implements SelectorHandler {
      * @param context {@link Context}
      * @throws java.io.IOException
      */
-    protected void invokeAsyncQueueReader(Context context) throws IOException {
-        AsyncQueueReaderContextTask task = AsyncQueueReaderContextTask.poll();
-        task.setAsyncQueueReader(asyncQueueReader);
-        context.execute(task);
+    protected void invokeAsyncQueueReader(NIOContext context) throws IOException {
+        context.execute(context.getAsyncQueueReaderContextTask(asyncQueueReader));
     }
 
 
@@ -869,10 +874,8 @@ public class TCPSelectorHandler implements SelectorHandler {
      * @param context {@link Context}
      * @throws java.io.IOException
      */
-    protected void invokeAsyncQueueWriter(Context context) throws IOException {
-        AsyncQueueWriterContextTask task = AsyncQueueWriterContextTask.poll();
-        task.setAsyncQueueWriter(asyncQueueWriter);
-        context.execute(task);
+    protected void invokeAsyncQueueWriter(NIOContext context) throws IOException {
+        context.execute(context.getAsyncQueueWriterContextTask(asyncQueueWriter));
     }
 
 
@@ -944,6 +947,23 @@ public class TCPSelectorHandler implements SelectorHandler {
     public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
         this.pendingIOlimitPerThread = pendingIOlimitPerThread;
     }
+
+    /**
+     * True if selector thread should execute the pendingIO events.<br>
+     * Default is false.
+     */
+    public void setExecutePendingIOinSelectorThread(boolean executePendingIOinSelectorThread) {
+        this.executePendingIOinSelectorThread = executePendingIOinSelectorThread;
+    }
+
+    /**
+     * True if selector thread should execute the pendingIO events.<br>
+     * Default is false.
+     */
+    public boolean getExecutePendingIOinSelectorThread() {
+        return executePendingIOinSelectorThread;
+    }
+
 
     public final Selector getSelector() {
         return selector;
@@ -1213,23 +1233,13 @@ public class TCPSelectorHandler implements SelectorHandler {
      * @param key {@link SelectionKey}
      * @return {@link Context}
      */
-    protected Context pollContext(final Context serverContext,
+    protected NIOContext pollContext(final Context serverContext,
             final SelectionKey key, final Context.OpType opType) {
         ProtocolChain protocolChain = instanceHandler != null ?
             instanceHandler.poll() :
             serverContext.getController().getProtocolChainInstanceHandler().poll();
 
-
-        final Context ctx = serverContext.getController().pollContext(key, opType);
-
-        if (!(ctx instanceof NIOContext)){
-            logger.severe("Invalid Context instance: "
-                    + ctx.getClass().getName());
-            throw new RuntimeException("Invalid Context instance: "
-                    + ctx.getClass().getName());
-        }
-
-        NIOContext context = (NIOContext)ctx;
+        final NIOContext context = serverContext.getController().pollContext(key, opType);
         context.setSelectionKey(key);
         context.setSelectorHandler(this);
         context.setAsyncQueueReader(asyncQueueReader);

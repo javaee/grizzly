@@ -38,7 +38,6 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
 import java.util.concurrent.Callable;
 
 /**
@@ -47,39 +46,30 @@ import java.util.concurrent.Callable;
  * 
  * @author Alexey Stashok
  */
-public abstract class ContextTask implements Callable {
-    protected Context context;
+public abstract class ContextTask implements Callable, Runnable {
+    protected NIOContext context;
 
-    public Context getContext() {
+    public NIOContext getContext() {
         return context;
     }
 
-    public void setContext(Context context) {
+    public void setContext(NIOContext context) {
         this.context = context;
     }
     
-    public void recycle() {
-        
+    public void recycle() {        
         if (context != null) {
             context.getController().returnContext(context);
-        }
-        
-        context = null;
+            context = null;
+        }                
     }
-    
-    /**
-     * Return instance to the pool
-     * WARN: Do not call super.offer(), as it can lead to multiple offer call
-     */
-    public abstract void offer();
-    
-    protected abstract static class TaskPool<E extends ContextTask> 
-            extends ConcurrentLinkedQueuePool<E> {
 
-        @Override
-        public void offer(E task) {
-            task.recycle();
-            super.offer(task);
+    public void run() {
+        try {
+            call();
+        } catch (Exception ex) {
+            // same thing as ignoring Future return value in NIOContextext
         }
     }
+    
 }

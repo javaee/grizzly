@@ -38,8 +38,8 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.util.*;
-import com.sun.grizzly.CallbackHandler;
+
+import com.sun.grizzly.util.SelectionKeyAttachmentWrapper;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -49,17 +49,9 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Alexey Stashok
  */
 public class CallbackHandlerSelectionKeyAttachment extends SelectionKeyAttachmentWrapper<CallbackHandler> {
-    private static ConcurrentLinkedQueuePool<CallbackHandlerSelectionKeyAttachment> pool =
-            new ConcurrentLinkedQueuePool<CallbackHandlerSelectionKeyAttachment>() {
-
-                @Override
-                public CallbackHandlerSelectionKeyAttachment newInstance() {
-                    return new CallbackHandlerSelectionKeyAttachment();
-                }
-            };
 
     // Is used for key pooling
-    private AtomicReference<SelectionKey> associatedKey = new AtomicReference<SelectionKey>();
+    private final AtomicReference<SelectionKey> associatedKey = new AtomicReference<SelectionKey>();
     
 
     /**
@@ -67,15 +59,9 @@ public class CallbackHandlerSelectionKeyAttachment extends SelectionKeyAttachmen
      * CallbackHandler will not be attached directly, but wrapped with 
      * <code>CallbackHandlerSelectionKeyAttachment</code>
      */
-    public static CallbackHandlerSelectionKeyAttachment create(
-            CallbackHandler callbackHandler) {
-        CallbackHandlerSelectionKeyAttachment attachment = pool.poll();
 
-        attachment.setAttachment(callbackHandler);
-        return attachment;
-    }
-
-    private CallbackHandlerSelectionKeyAttachment() {
+    public CallbackHandlerSelectionKeyAttachment(CallbackHandler callbackHandler) {
+        setAttachment(callbackHandler);
     }
     
     public void associateKey(SelectionKey selectionKey) {
@@ -86,7 +72,6 @@ public class CallbackHandlerSelectionKeyAttachment extends SelectionKeyAttachmen
     public void release(SelectionKey selectionKey) {
         if (associatedKey.getAndSet(null) == selectionKey) {
             super.release(selectionKey);
-            pool.offer(this);
         }
     }
 
