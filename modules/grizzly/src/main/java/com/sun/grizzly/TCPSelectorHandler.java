@@ -139,7 +139,6 @@ public class TCPSelectorHandler implements SelectorHandler {
 
     /**
      * True if selector thread should execute the pendingIO events.<br>
-     * Default is false.
      */
     private boolean executePendingIOinSelectorThread;
 
@@ -534,7 +533,7 @@ public class TCPSelectorHandler implements SelectorHandler {
                         }else{
                             ((Runnable)obj).run();
                         }
-                    }catch(Throwable t){
+                    }catch(Throwable t){                        
                         logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
                     }
                 }
@@ -956,7 +955,6 @@ public class TCPSelectorHandler implements SelectorHandler {
 
     /**
      * True if selector thread should execute the pendingIO events.<br>
-     * Default is false.
      */
     public void setExecutePendingIOinSelectorThread(boolean executePendingIOinSelectorThread) {
         this.executePendingIOinSelectorThread = executePendingIOinSelectorThread;
@@ -964,7 +962,6 @@ public class TCPSelectorHandler implements SelectorHandler {
 
     /**
      * True if selector thread should execute the pendingIO events.<br>
-     * Default is false.
      */
     public boolean getExecutePendingIOinSelectorThread() {
         return executePendingIOinSelectorThread;

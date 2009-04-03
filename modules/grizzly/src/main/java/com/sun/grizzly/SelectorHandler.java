@@ -75,7 +75,18 @@ public interface SelectorHandler extends Handler, Copyable,
      * @param key
      */
     public void addPendingKeyCancel(SelectionKey key);
-    
+
+
+    /**
+     * True if selector thread should execute the pendingIO events.<br>
+     */
+    public void setExecutePendingIOinSelectorThread(boolean executePendingIOinSelectorThread);
+
+    /**
+     * True if selector thread should execute the pendingIO events.<br>
+     */
+    public boolean getExecutePendingIOinSelectorThread();
+
     /**
      * A token decribing the protocol supported by an implementation of this
      * interface
