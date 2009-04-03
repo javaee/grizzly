@@ -380,7 +380,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             }
 
             if (!key.isValid()){
-                selectorHandler.getSelectionKeyHandler().close(key);
+                selectorHandler.addPendingKeyCancel(key);
                 continue;
             }            
             final int readyOps = key.readyOps();
@@ -1099,8 +1099,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
 
         for (int i=0; i < readThreadControllers.length; i++) {
-            // TODO Get a Thread from a Pool instead.
-            new Thread(readThreadControllers[i], "GrizzlyReadController-" + i).start();
+            new WorkerThreadImpl("GrizzlyReadController-" + i,readThreadControllers[i]).start();
         }
     }
 
@@ -1136,21 +1135,20 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param isRunAsync if true - <code>SelectorHandlerRunner</code> will be run
      *          in separate <code>Thread</code>, if false - in current <code>Thread</code>
      */
-    private void startSelectorHandlerRunner(SelectorHandler selectorHandler,
-            boolean isRunAsync) {
-
+    protected void startSelectorHandlerRunner(SelectorHandler selectorHandler, boolean async) {
+        if (selectorHandler.getThreadPool() == null){
+            selectorHandler.setThreadPool(threadPool);
+        }
+        Runnable selectorRunner = new SelectorHandlerRunner(this, selectorHandler);
         // check if there is java.nio.Selector already open,
         // if so, just notify the controller onReady() listeners
         if (selectorHandler.getSelector() != null) {
             notifyReady();
         }
-        Runnable selectorRunner = new SelectorHandlerRunner(this, selectorHandler);
-        if (isRunAsync) {
-            // if there are more than 1 selector handler - run it in separate thread
-            //@TODO Take Thread from ThreadPool?
-            new Thread(selectorRunner, "GrizzlySelectorRunner-" + selectorHandler.protocol()).start();
-        } else {
-            // else run it in current thread
+        if (async){
+            new WorkerThreadImpl("GrizzlySelectorRunner-" + selectorHandler.protocol(),
+                    selectorRunner).start();
+        }else{
             selectorRunner.run();
         }
     }

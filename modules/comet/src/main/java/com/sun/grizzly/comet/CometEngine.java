@@ -186,7 +186,6 @@ public class CometEngine {
         //ExecutorService tpe = threadPool = new DefaultExecutorService(4, 8, 30,
               //  TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), "CometWorker-");
         ExecutorService tpe = new com.sun.grizzly.util.FixedThreadPool(8,"CometWorker");
-        //ExecutorService tpe = new NewDefaultThreadPool("CometWorker",4,64,15,TimeUnit.SECONDS);
         threadPool = tpe;
     }
 

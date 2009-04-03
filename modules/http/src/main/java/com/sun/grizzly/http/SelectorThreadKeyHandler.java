@@ -83,18 +83,12 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
 
     @Override
     public void doRegisterKey(SelectionKey key, int ops, long currentTime) {
-        Object attachment = key.attachment();
-        if (attachment instanceof KeepAliveThreadAttachment) {
-            if (!key.isValid()) {
-                selectorThread.cancelKey(key);
-                return;
-            }
-            KeepAliveThreadAttachment k = (KeepAliveThreadAttachment) attachment;
-            k.setTimeout(currentTime);
-        } else {
-            addExpirationStamp(key);
+        if (!key.isValid()){
+            selectorHandler.addPendingKeyCancel(key);
+        }else{
+            key.interestOps(key.interestOps() | ops);
+            addExpirationStamp(key,currentTime);
         }
-        key.interestOps(key.interestOps() | ops);
     }
     
     /**
@@ -123,28 +117,11 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                     if (idleLimit != -1 && currentTime - expire >= idleLimit &&
                         (!(attachment instanceof SelectionKeyAttachment) ||
                         ((SelectionKeyAttachment)attachment).timedOut(key))){
-                           
-                        cancel(key);
-                        }                        
+                            selectorHandler.addPendingKeyCancel(key);
+                        }
                 }
             }
         }
-    }
-
-    /**
-     * Gets expiration timeout stamp from the {@link SelectionKey}
-     * depending on its attachment
-     *
-     * @param {@link SelectionKey}
-     */
-    protected long getExpirationStamp(Object attachment) {
-        if (attachment instanceof Long) {
-            return (Long) attachment;
-        }
-        if (attachment instanceof SelectionKeyAttachment) {
-            return ((SelectionKeyAttachment) attachment).getTimeout();
-        }
-        return SelectionKeyAttachment.UNLIMITED_TIMEOUT;
     }
 
     /**

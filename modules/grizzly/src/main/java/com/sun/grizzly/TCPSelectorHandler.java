@@ -42,9 +42,10 @@ import com.sun.grizzly.SelectionKeyOP.ConnectSelectionKeyOP;
 import com.sun.grizzly.async.AsyncQueueReader;
 import com.sun.grizzly.async.AsyncQueueReaderContextTask;
 import com.sun.grizzly.async.AsyncQueueWriter;
-import com.sun.grizzly.async.TCPAsyncQueueWriter;
 import com.sun.grizzly.async.AsyncQueueWriterContextTask;
+import com.sun.grizzly.async.TCPAsyncQueueWriter;
 import com.sun.grizzly.async.TCPAsyncQueueReader;
+import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.LinkedTransferQueue;
@@ -53,6 +54,7 @@ import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import java.io.IOException;
 import java.net.BindException;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -66,8 +68,10 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -123,6 +127,18 @@ public class TCPSelectorHandler implements SelectorHandler {
      */
     private final LinkedTransferQueue<SelectionKey> readWriteOpToRegister
             = new LinkedTransferQueue<SelectionKey>();
+
+    /**
+     *  enqueued events from selectionkey attachment logic.
+     */
+    private List pendingIO = new ArrayList();
+
+
+    /**
+     * max number of pendingIO tasks that will be executed per worker thread.
+     */
+    private int pendingIOlimitPerThread = 100;
+
     /**
      * The socket tcpDelay.
      *
@@ -398,33 +414,28 @@ public class TCPSelectorHandler implements SelectorHandler {
 
         SelectionKeyOP operation;
         while((operation = opToRegister.poll()) != null) {
-            if ((operation.getOp() & SelectionKey.OP_CONNECT) != 0) {
+            int op = operation.getOp();
+            if ((op & SelectionKey.OP_CONNECT) != 0) {
                 onConnectOp(ctx, (SelectionKeyOP.ConnectSelectionKeyOP) operation);
             } else{
-                if (operation.getChannel().isOpen()){
-                    selectionKeyHandler.register(operation.getChannel(),operation.getOp());
+                SelectableChannel channel = operation.getChannel();
+                if (channel.isOpen()){
+                    selectionKeyHandler.register(channel,op);
                 }
             }
         }
 
         SelectionKey key;
         while((key=readWriteOpToRegister.poll()) != null){
-            if (key.isValid()){
-                selectionKeyHandler.
-                        register(key, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
-            }
+            selectionKeyHandler.register(key, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
         }
-        
+
         while((key=writeOpToRegister.poll()) != null){
-            if (key.isValid()){
-                selectionKeyHandler.register(key, SelectionKey.OP_WRITE);
-            }
+            selectionKeyHandler.register(key, SelectionKey.OP_WRITE);
         }
 
         while((key=readOpToRegister.poll()) != null){
-            if (key.isValid()){
-                selectionKeyHandler.register(key, SelectionKey.OP_READ);
-            }
+            selectionKeyHandler.register(key, SelectionKey.OP_READ);
         }
     }
 
@@ -481,13 +492,75 @@ public class TCPSelectorHandler implements SelectorHandler {
      * @param ctx {@link Context}
      */
     public void postSelect(Context ctx) {
-        //Selector.keys() performs isOpen() so we dont need to do it a second time.
         selectionKeyHandler.expire(keys().iterator());
+        executePendingIO();
+    }
+
+    /**
+     * executes the pending IOs
+     */
+    private void executePendingIO(){
+        if (pendingIO.size() > 0 ){
+            final List tasks = pendingIO;
+            // tests with upto 10K selectionkeys was faster with ArrayList then linkedlist
+            // (did only test up to 10k)
+            pendingIO = new ArrayList();
+            int size = tasks.size();
+            for (int x=0;x<size;){
+                doExecutePendiongIO(tasks,x,Math.min(x=+pendingIOlimitPerThread, size));
+            }
+        }
+    }
+
+    private void doExecutePendiongIO(final List tasks, final int start, final int end){
+        Runnable r = new Runnable(){
+            public void run() {
+                for (int i=start;i<end;i++){
+                    Object obj = tasks.get(i);
+                    try{
+                        if (obj instanceof SelectionKey){
+                            selectionKeyHandler.close(((SelectionKey)obj));
+                        }else{
+                            ((Runnable)obj).run();
+                        }
+                    }catch(Throwable t){
+                        logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
+                    }
+                }
+            }
+        };
+        threadPool.execute(r);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addPendingIO(Runnable runnable){
+        pendingIO.add(runnable);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addPendingKeyCancel(SelectionKey key){
+        if (key.isValid()){
+            //we want to do this in the selector.select thread hence we do it now
+            // saving us the extra parsing for SelectionKey later
+            key.cancel();
+        }
+        pendingIO.add(key);
     }
 
 
     /**
-     * Register a SelectionKey to this Selector.
+     * Register a SelectionKey to this Selector.<br>
+     * Storing each interest type in different queues removes the need of wrapper (SelectionKeyOP)
+     * while lowering thread contention due to the load is spread out on different queues.
+     * 
+     * @param key
+     * @param ops
      */
     public void register(SelectionKey key, int ops) {
         if (key == null) {
@@ -586,7 +659,7 @@ public class TCPSelectorHandler implements SelectorHandler {
                         for(SelectionKey selectionKey : selector.keys()) {
                             selectionKeyHandler.close(selectionKey);
                         }
-                        
+
                         isContinue = false;
                     } catch (ConcurrentModificationException e) {
                         // ignore
@@ -641,11 +714,8 @@ public class TCPSelectorHandler implements SelectorHandler {
     /**
      * {@inheritDoc}
      */
-    public SelectableChannel acceptWithoutRegistration(SelectionKey key)
-    throws IOException {
-        ServerSocketChannel server = (ServerSocketChannel) key.channel();
-        SocketChannel channel = server.accept();
-        return channel;
+    public SelectableChannel acceptWithoutRegistration(SelectionKey key) throws IOException {
+        return ((ServerSocketChannel) key.channel()).accept();
     }
 
     /**
@@ -845,56 +915,35 @@ public class TCPSelectorHandler implements SelectorHandler {
      */
     public void configureChannel(SelectableChannel channel) throws IOException{
         Socket socket = ((SocketChannel) channel).socket();
-
         channel.configureBlocking(false);
-
-        if (!channel.isOpen()){
-            return;
+        if(socketTimeout > 0 ) {
+            socket.setSoTimeout(socketTimeout);
         }
-
-        try{
-            if(socketTimeout >= 0 ) {
-                socket.setSoTimeout(socketTimeout);
-            }
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
-                logger.log(Level.FINE,
-                        "setSoTimeout exception ",ex);
-            }
+        if(linger > 0 ) {
+            socket.setSoLinger( true, linger);
         }
-
-        try{
-            if(linger >= 0 ) {
-                socket.setSoLinger( true, linger);
-            }
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
-                logger.log(Level.FINE,
-                        "setSoLinger exception ",ex);
-            }
-        }
-
-        try{
-            socket.setTcpNoDelay(tcpNoDelay);
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
-                logger.log(Level.FINE,
-                        "setTcpNoDelay exception ",ex);
-            }
-        }
-
-        try{
-            socket.setReuseAddress(reuseAddress);
-        } catch (SocketException ex){
-            if (logger.isLoggable(Level.FINE)){
-                logger.log(Level.FINE,
-                        "setReuseAddress exception ",ex);
-            }
-        }
+        socket.setTcpNoDelay(tcpNoDelay);
+        socket.setReuseAddress(reuseAddress);
     }
 
 
     // ------------------------------------------------------ Properties -----//
+
+    /**
+     * max number of pendingIO tasks that will be executed per worker thread.
+     * @return
+     */
+    public int getPendingIOlimitPerThread() {
+        return pendingIOlimitPerThread;
+    }
+
+    /**
+     * max number of pendingIO tasks that will be executed per worker thread.
+     * @param pendingIOlimitPerThread
+     */
+    public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
+        this.pendingIOlimitPerThread = pendingIOlimitPerThread;
+    }
 
     public final Selector getSelector() {
         return selector;

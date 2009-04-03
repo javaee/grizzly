@@ -75,6 +75,7 @@ import com.sun.grizzly.util.IntrospectionUtils;
 
 import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.res.StringManager;
 import java.io.File;
 import javax.management.ObjectName;
@@ -996,7 +997,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Declare this method to save backwards compatibility
      */
     public void start() {
-        new Thread(this, "SelectorThread-" + port).start();
+        new WorkerThreadImpl("SelectorThread-" + port,this).start();
     }
 
     /**

@@ -159,7 +159,5 @@ public class ReflectorCometHandler implements CometHandler<PrintWriter> {
      */
     public void onInterrupt(CometEvent event) throws IOException {
         printWriter.println(endingMessage);
-        printWriter.flush();
-        printWriter.close();
     }
 }

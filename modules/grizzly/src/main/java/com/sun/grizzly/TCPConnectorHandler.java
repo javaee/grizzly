@@ -49,6 +49,7 @@ import com.sun.grizzly.async.ByteBufferCloner;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.OutputWriter;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -351,7 +352,7 @@ public class TCPConnectorHandler implements
 
             callbackHandler = new DefaultCallbackHandler(this,false);
             
-            new Thread(controller, "GrizzlyTCPConnectorHandler-Controller").start();
+            new WorkerThreadImpl("GrizzlyTCPConnectorHandler-Controller",controller).start();
             
             try {
                 latch.await();
