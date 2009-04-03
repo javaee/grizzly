@@ -269,8 +269,6 @@ public class ResponseFilterTest extends TestCase {
     public void testComplexByteChunkManipulation() throws IOException {
         System.out.println("Test: testComplexByteChunkManipulation");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Added after invoking Adapter";
-        final byte[] testData = testString.getBytes();
         try {
             createSelectorThread();
             st.setAdapter(new StaticResourcesAdapter() {
@@ -325,7 +323,7 @@ public class ResponseFilterTest extends TestCase {
                 String line = null;
                 while ((line = br.readLine()) != null) {
                     System.out.println("-> " + line);
-                    if (line.contains(testString)) {
+                    if (line.contains("AppendingNewBytes")) {
                         assertTrue(true);
                         return;
                     }
