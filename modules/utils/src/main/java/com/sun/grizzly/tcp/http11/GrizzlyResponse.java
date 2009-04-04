@@ -246,7 +246,7 @@ public class GrizzlyResponse<A> {
     /**
      * The set of Cookies associated with this Response.
      */
-    protected ArrayList cookies = new ArrayList();
+    protected ArrayList cookies = new ArrayList(4);
 
 
     /**
@@ -1741,10 +1741,9 @@ public class GrizzlyResponse<A> {
     }
     
     private static class GrizzlyResponseAttachment<A> extends Response.ResponseAttachment{
-        private Long expiration;
-        private GrizzlyResponse gres;
+        private final GrizzlyResponse gres;
         
-        public GrizzlyResponseAttachment(Long timeout,A attachment,
+        public GrizzlyResponseAttachment(long timeout,A attachment,
                 CompletionHandler<? super A> completionHandler, GrizzlyResponse gres){
             super(timeout, attachment, completionHandler, gres.getResponse());
             this.gres = gres;
