@@ -111,7 +111,7 @@ public class BayeuxClientLoadTest extends TestCase {
     }
    
     public void testLoad2() throws Exception {
-        doTest(10,   1, 1000, 40,   25000, 1500);
+        doTest(10,   1, 200, 100,   25000, 1000);
     }
     
 
