@@ -43,15 +43,21 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.management.ObjectName;
 import javax.servlet.Filter;
 import javax.servlet.Servlet;
 
-
+import com.sun.grizzly.arp.AsyncHandler;
+import com.sun.grizzly.arp.DefaultAsyncHandler;
+import com.sun.grizzly.comet.CometAsyncFilter;
+import com.sun.grizzly.http.Management;
+import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.http.webxml.WebappLoader;
@@ -80,6 +86,13 @@ public class GrizzlyWebServerDeployer {
     private GrizzlyWebServer ws = null;
     private String location;
     private String webxmlPath;
+    private String libraryPath;
+    
+    private boolean waitToStart = false;
+    private boolean startAdapter = false;
+    private boolean startAsyncFilter = false;
+    private boolean jmxEnabled = false;
+    
     private int port = 8080;
 
     public void init(String args[]) throws MalformedURLException, IOException, Exception {
@@ -99,7 +112,7 @@ public class GrizzlyWebServerDeployer {
             // webxmlPath + File.separator + "WEB-INF" + File.separator +
             // "web.xml"
             webxmlPath = appendWarContentToClassPath(location);
-            deploy(getContext(webxmlPath), webxmlPath + File.separator + "WEB-INF" + File.separator + "web.xml");
+            deploy(webxmlPath, getContext(webxmlPath), webxmlPath + File.separator + "WEB-INF" + File.separator + "web.xml");
             return;
         }
 
@@ -109,7 +122,7 @@ public class GrizzlyWebServerDeployer {
             // the classpath could be mandatory, and we use java -classpath xxx
             // ...
             // or try to find a folder lib ?
-            deploy(getContext("/"), location);
+            deploy(null, getContext("/"), location);
             return;
         }
 
@@ -173,7 +186,7 @@ public class GrizzlyWebServerDeployer {
 
             if (file.getName().endsWith(".war")) {
                 webxmlPath = appendWarContentToClassPath(file.getPath());
-                deploy(getContext(webxmlPath), webxmlPath + File.separator + "WEB-INF" + File.separator + "web.xml");
+                deploy(webxmlPath, getContext(webxmlPath), webxmlPath + File.separator + "WEB-INF" + File.separator + "web.xml");
             } else {
                 /*
                  * we could have these cases
@@ -193,7 +206,7 @@ public class GrizzlyWebServerDeployer {
 
                 if (webxmlFile.exists()) {
                     webxmlPath = appendWarContentToClassPath(location + File.separator);
-                    deploy(getContext(location), webxmlPath);
+                    deploy(webxmlPath, getContext(location), webxmlPath);
                 } else {
 
                     // #2 : this folder contains a servlet
@@ -203,7 +216,7 @@ public class GrizzlyWebServerDeployer {
                         // same problem with the classpath.. how do we handle
                         // this one..see #2
                         webxmlPath = appendWarContentToClassPath(location + File.separator);
-                        deploy(getContext(location), webxmlPath);
+                        deploy(webxmlPath, getContext(location), webxmlPath);
                     } else {
 
                         // this folder contains multiple war or webapps
@@ -213,7 +226,7 @@ public class GrizzlyWebServerDeployer {
                             // same problem with the classpath.. how do we
                             // handle this one..see #2
                             webxmlPath = appendWarContentToClassPath(file.getPath());
-                            deploy(getContext(file.getPath() + File.separator), webapp.getPath());
+                            deploy(webxmlPath, getContext(file.getPath() + File.separator), webapp.getPath());
                         }
 
                     }
@@ -246,7 +259,7 @@ public class GrizzlyWebServerDeployer {
         return context;
     }
 
-    public void deploy(String context, String path) throws Exception {
+    public void deploy(String rootFolder, String context, String path) throws Exception {
 
         if (logger.isLoggable(Level.INFO)) {
             logger.log(Level.INFO, "deployed application path=" + path);
@@ -313,27 +326,44 @@ public class GrizzlyWebServerDeployer {
 
             // set Listeners
             setListeners(webApp, sa);
-
+            
+            //set root Folder
+            if(rootFolder!=null){
+            	rootFolder = rootFolder.replaceAll("[/\\\\]+", "\\" + "/");
+            	rootFolder = rootFolder.replaceAll("\\\\", "\\" + "/");
+            	sa.setRootFolder(rootFolder);
+            }
+            
+            sa.setHandleStaticResources(true);
+            
             if (logger.isLoggable(Level.FINEST)) {
                 logger.log(Level.FINEST, "sa context=" + sa.getContextPath());
                 logger.log(Level.FINEST, "sa servletPath=" + sa.getServletPath());
                 logger.log(Level.FINEST, "sa alias=" + contextPath);
+                logger.log(Level.FINEST, "sa rootFolder=" + sa.getRootFolder());
             }
-
+            
+			SelectorThread.setWebAppRootPath(rootFolder);
+            
             ws.addGrizzlyAdapter(sa, new String[]{contextPath});
+            
+            if(startAsyncFilter){
+            	
+                SelectorThread st = ws.getSelectorThread();
+                
+                AsyncHandler asyncHandler = new DefaultAsyncHandler();
+                asyncHandler.addAsyncFilter(new CometAsyncFilter());
+                st.setAsyncHandler(asyncHandler);
+                
+                st.setEnableAsyncExecution(true);
+            }
+            
+            if(startAdapter){
+            	sa.start();
+            }
         }
+        
 
-    }
-
-    public void printHelpAndExit() {
-        System.err.println("Usage: " + GrizzlyWebServerDeployer.class.getCanonicalName());
-        System.err.println();
-        System.err.println("    -p, --port=port                  Runs Servlet on the specified port.");
-        System.err.println("                                     Default: 8080");
-        System.err.println("    -a, --application=application path      The Servlet folder or jar or war location.");
-        System.err.println("                                     Default: .");
-        System.err.println("    -h, --help                       Show this help message.");
-        System.exit(1);
     }
 
     protected void setWarFilename(String filename) {
@@ -351,26 +381,84 @@ public class GrizzlyWebServerDeployer {
     protected int getPort() {
         return port;
     }
+    
+    protected String getLibraryPath() {
+		return libraryPath;
+	}
 
-    public boolean parseOptions(String[] args) {
+    protected void setLibraryPath(String path) {
+		this.libraryPath = path;
+	}
+
+	public boolean getStartAdapter() {
+		return startAdapter;
+	}
+
+	public void setStartAdapter(boolean startAdapter) {
+		this.startAdapter = startAdapter;
+	}
+
+	public boolean getStartAsyncFilter() {
+		return startAsyncFilter;
+	}
+
+	public void setStartAsyncFilter(boolean startAsyncFilter) {
+		this.startAsyncFilter = startAsyncFilter;
+	}
+
+	public void printHelpAndExit() {
+        System.err.println("Usage: " + GrizzlyWebServerDeployer.class.getCanonicalName());
+        System.err.println();
+        System.err.println("    -p, --port=port                  Runs Servlet on the specified port.");
+        System.err.println("                                     Default: 8080");
+        System.err.println("    -a, --application=application path      The Servlet folder or jar or war location.");
+        System.err.println("    --dontstart=                     Default: false, Will not start the server until the start method is called.  Useful for Unit test");
+        System.err.println("    --libraryPath                    Add a libraries folder to the classpath");
+        System.err.println("    --startAdapter                   Will start all the servlets");
+        System.err.println("    --startAsyncFilter               Will start the AsyncFilter for Comet");
+        System.err.println("    -h, --help                       Show this help message.");
+        System.exit(1);
+    }
+	
+	public boolean parseOptions(String[] args) {
         // parse options
-        for (int i = 0; i < args.length - 1; i++) {
+        for (int i = 0; i < args.length; i++) {
             String arg = args[i];
 
             if ("-h".equals(arg) || "--help".equals(arg)) {
                 printHelpAndExit();
             } else if ("-a".equals(arg)) {
                 i++;
-                setWarFilename(args[i]);
+                if(i<args.length){
+                	setWarFilename(args[i]);
+                }
             } else if (arg.startsWith("--application=")) {
                 setWarFilename(arg.substring("--application=".length(), arg.length()));
             } else if ("-p".equals(arg)) {
                 i++;
-                setPort(Integer.parseInt(args[i]));
+                if(i<args.length){
+                	setPort(Integer.parseInt(args[i]));
+                }
             } else if (arg.startsWith("--port=")) {
                 String num = arg.substring("--port=".length(), arg.length());
                 setPort(Integer.parseInt(num));
+            } else if ("-s".equals(arg)) {
+                i++;
+                if(i<args.length){
+                	setWaitToStart(args[i]);
+                }
+            } else if (arg.startsWith("--dontstart=")) {
+                String waitToStart = arg.substring("--dontstart=".length(), arg.length());
+                setWaitToStart(waitToStart);
+            } else if (arg.startsWith("--libraryPath=")) {
+                String value = arg.substring("--libraryPath=".length(), arg.length());
+                setLibraryPath(value);
+            } else if (arg.startsWith("--startAdapter")) {
+                setStartAdapter(true);
+            } else if (arg.startsWith("--startAsyncFilter")) {
+                setStartAsyncFilter(true);
             }
+            
         }
 
         if (getWarFilename() == null) {
@@ -405,7 +493,6 @@ public class GrizzlyWebServerDeployer {
 
     }
 
-    @SuppressWarnings("unchecked")
     protected void setListeners(WebApp webApp, ServletAdapter sa) {
         // Add the Listener
         List<Listener> listeners = webApp.getListener();
@@ -417,7 +504,6 @@ public class GrizzlyWebServerDeployer {
         }
     }
 
-    @SuppressWarnings("unchecked")
     protected void setFilters(WebApp webApp, ServletAdapter sa, String context) {
         // Add the Filters
         List<com.sun.grizzly.http.webxml.schema.Filter> filterList = webApp.getFilter();
@@ -498,68 +584,59 @@ public class GrizzlyWebServerDeployer {
         URL appRoot = null;
         URL classesURL = null;
 
-        boolean isLibrary = false;
-
+        List<URL> classpathList = new ArrayList<URL>();
+        
         if (appliPath != null && (appliPath.endsWith(".war") || appliPath.endsWith(".jar"))) {
             file = new File(appliPath);
             appRoot = new URL("jar:file:" + file.getCanonicalPath() + "!/");
             classesURL = new URL("jar:file:" + file.getCanonicalPath() + "!/WEB-INF/classes/");
             path = ExpandJar.expand(appRoot);
-            isLibrary = true;
         } else {
             path = appliPath;
             classesURL = new URL("file://" + path + "WEB-INF/classes/");
             appRoot = new URL("file://" + path);
-            isLibrary = false;
         }
 
         String absolutePath = new File(path).getAbsolutePath();
-        URL[] urls = null;
         File libFiles = new File(absolutePath + File.separator + "WEB-INF" + File.separator + "lib");
-        int arraySize = (appRoot == null ? 1 : 2);
 
         // Must be a better way because that sucks!
         String separator = (System.getProperty("os.name").toLowerCase().startsWith("win") ? "/" : "//");
 
         if (libFiles.exists() && libFiles.isDirectory()) {
-            urls = new URL[libFiles.listFiles().length + arraySize];
             for (int i = 0; i < libFiles.listFiles().length; i++) {
-                urls[i] = new URL("jar:file:" + separator + libFiles.listFiles()[i].toString().replace('\\', '/') + "!/");
+            	classpathList.add(new URL("jar:file:" + separator + libFiles.listFiles()[i].toString().replace('\\', '/') + "!/"));
             }
-        } else {
-            urls = new URL[arraySize];
+        } 
+        
+        if(libraryPath!=null){
+        	File libFolder = new File(libraryPath);
+        	
+        	if (libFolder.exists() && libFolder.isDirectory()) {
+                for (int i = 0; i < libFolder.listFiles().length; i++) {
+                	classpathList.add(new URL("jar:file:" + separator + libFolder.listFiles()[i].toString().replace('\\', '/') + "!/"));
+                }
+            } 
         }
-
-        /*
-         * // we must add the jars that are in the root folder // and add the
-         * folders in the classpath if(!isLibrary){ libFiles = new
-         * File(absolutePath + File.separator + "WEB-INF");
-         *
-         * File[] jars = libFiles.listFiles(new FilenameFilter(){ public boolean
-         * accept(File dir, String name) { if (name.endsWith(".jar")){ return
-         * true; } else { return false; }
-         *
-         * } });
-         *
-         * URL[] tempUrls = new URL[jars.length + urls.length];
-         *
-         * for (int i = 0; i < jars.length; i++) {
-         *
-         * tempUrls[i] = new URL("jar:file:" + separator +
-         * jars[i].toString().replace('\\','/') + "!/");
-         *
-         * } System.arraycopy(urls, 0, tempUrls, jars.length, urls.length);
-         *
-         * urls = tempUrls; }
-         */
-        urls[urls.length - 1] = classesURL;
-        urls[urls.length - 2] = appRoot;
-        ClassLoader urlClassloader = new URLClassLoader(urls, Thread.currentThread().getContextClassLoader());
+        
+        classpathList.add(appRoot);
+        classpathList.add(classesURL);
+        
+        if(logger.isLoggable(Level.FINEST)){
+        	for (Iterator<URL> iterator = classpathList.iterator(); iterator.hasNext();) {
+				URL url = iterator.next();
+				logger.log(Level.FINEST, "Classpath contains=" + url);
+			}
+        }
+       
+        URL urls[] = new URL[classpathList.size()];
+        
+        ClassLoader urlClassloader = new URLClassLoader(classpathList.toArray(urls), Thread.currentThread().getContextClassLoader());
         Thread.currentThread().setContextClassLoader(urlClassloader);
+        
         return path;
     }
 
-    @SuppressWarnings("unchecked")
     protected WebApp extractWebxmlInfo(String webxml) throws Exception {
 
         WebappLoader webappLoader = new WebappLoader();
@@ -588,14 +665,18 @@ public class GrizzlyWebServerDeployer {
             if (location != null) {
 
                 if (logger.isLoggable(Level.FINEST)) {
-                    logger.log(Level.FINEST, "Applicatoin Found =" + location);
+                    logger.log(Level.FINEST, "Application Found =" + location);
                 }
 
                 findApplications(location);
 
             }
-
-            ws.start();
+            
+            // don't start the server is true: useful for unittest
+            if(!waitToStart){
+            	ws.start();
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -607,6 +688,20 @@ public class GrizzlyWebServerDeployer {
             ws.stop();
         }
 
+    }
+    
+    public void start() throws IOException {
+
+        if (ws != null) {
+            ws.start();
+        }
+
+    }
+    
+    private void setWaitToStart(String dontStart){
+    	if(dontStart!=null && dontStart.equalsIgnoreCase("true")){
+    		waitToStart = true;
+    	}
     }
 
     /**
@@ -624,7 +719,7 @@ public class GrizzlyWebServerDeployer {
              * #1 - war #2 - web.xml #3 - folder that contains at least one war
              * #4 - folder of a deployed war (will use the /WEB-INF/web.xml)
              */
-
+        	
             // ready to launch
             ws.init(args);
             ws.launch();
