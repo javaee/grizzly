@@ -590,7 +590,7 @@ public class SuspendTest extends TestCase {
                             return;
                         }
 
-                        res.suspend(5 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
+                        res.suspend(10 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
 
                             public void resumed(StaticResourcesAdapter attachment) {
                                 System.out.println("Not supposed to be here");
@@ -1042,7 +1042,7 @@ public class SuspendTest extends TestCase {
         }
     }
 
-         public void testSuspendResumeNoArgs() throws IOException {
+    public void testSuspendResumeNoArgs() throws IOException {
         System.out.println("Test: testSuspendNoArgs");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Resuming the response";
