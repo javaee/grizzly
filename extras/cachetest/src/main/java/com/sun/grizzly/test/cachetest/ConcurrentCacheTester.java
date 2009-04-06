@@ -182,14 +182,14 @@ public class ConcurrentCacheTester {
     }    
 
     protected void calibrate(TestAndResult test) throws Throwable{
-        threadPool.setCorePoolSize(test.threadcount);
+        threadPool.setCorePoolSize(test.threadcount+1);
         threadPool.prestartAllCoreThreads();
         test.iterationsPerformed = 150000;
         executeTest(test);//warmup
         calcThreadOverhead(test);
         calcThreadOverhead(test);
         test.iterationsPerformed = 50000;
-        calibrate0(test,test.minutesTorun*60,3);
+        calibrate0(test,test.minutesTorun*60,10);
     }
 
     protected void calcThreadOverhead(TestAndResult test) throws Throwable{
@@ -217,7 +217,7 @@ public class ConcurrentCacheTester {
     }
     
     protected double executeTest(final TestAndResult test) throws Throwable{
-        threadPool.setCorePoolSize(test.threadcount);
+        threadPool.setCorePoolSize(test.threadcount+1);
         threadPool.prestartAllCoreThreads();
         TestLogic.testfinished = new CountDownLatch(test.threadcount);
         TestLogic.cache = test.cacheimpl;
