@@ -38,7 +38,6 @@
 
 package org.glassfish.grizzly.nio;
 
-import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.Transport;
@@ -81,10 +80,6 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
 
     protected boolean isBlocking;
 
-    protected long idleTimeoutMillis = UNLIMITED_IDLE_TIMEOUT;
-
-    protected long lastOperationTime;
-
     public void configureBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
@@ -99,22 +94,6 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
 
     protected void setTransport(NIOTransport transport) {
         this.transport = transport;
-    }
-
-    public long getIdleTime(TimeUnit timeunit) {
-        return timeunit.convert(idleTimeoutMillis, TimeUnit.MILLISECONDS);
-    }
-
-    public void setIdleTime(long timeout, TimeUnit timeunit) {
-        idleTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-    }
-
-    public long getLastOperationTime() {
-        return lastOperationTime;
-    }
-
-    public void setLastOperationTime(long lastOperationTime) {
-        this.lastOperationTime = lastOperationTime;
     }
 
     public int getReadBufferSize() {
