@@ -106,13 +106,13 @@ public class BayeuxClientLoadTest extends TestCase {
         }
     }
 
-    public void testLoad3a() throws Exception {
+    public void testLoad1() throws Exception {
         doTest(100,  1, 100, 1000,  50,   100);
     }
    
-    public void testLoad2() throws Exception {
+   /* public void testLoad2() throws Exception {
         doTest(10,   1, 200, 100,   25000, 1000);
-    }
+    }*/
     
 
     public void doTest(int rooms, int rooms_per_client, int nclients, int publish , int msgsize, int pause) throws Exception {
