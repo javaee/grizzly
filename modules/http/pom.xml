@@ -40,10 +40,9 @@
                 <configuration>
                     <instructions>
                         <Export-Package>
-                            org.glassfish.grizzly.http.*,
-                            org.glassfish.grizzly.ssl.*,
-                            org.glassfish.grizzly.*,
-                            org.glassfish.grizzly.*
+                            org.glassfish.grizzly.web.*,
+                            org.glassfish.grizzly.web.container.http.*,
+                            org.glassfish.grizzly.web.container.util.*
                         </Export-Package>
                         <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
