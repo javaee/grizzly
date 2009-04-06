@@ -82,7 +82,7 @@ import java.util.concurrent.locks.LockSupport;
  * <a href="{@docRoot}/../technotes/guides/collections/index.html">
  * Java Collections Framework</a>.
  *
- * <br> version 1.12 Mon Jan 12 17:16:18 2009 UTC ( gustav trede copied from jsr166 CVS )
+ * <br> version 1.17 Tue Mar 31 15:17:19 2009 UTC ( gustav trede copied from jsr166 CVS )
  * @since 1.7
  * @author Doug Lea
  * @param <E> the type of elements held in this collection
@@ -158,9 +158,14 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             nextUpdater = AtomicReferenceFieldUpdater.newUpdater
             (QNode.class, QNode.class, "next");
 
-        boolean casNext(QNode cmp, QNode val) {
+        final boolean casNext(QNode cmp, QNode val) {
             return nextUpdater.compareAndSet(this, cmp, val);
         }
+
+        final void clearNext() {
+            nextUpdater.lazySet(this, this);
+        }
+
     }
 
     /**
@@ -193,7 +198,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
      */
     private boolean advanceHead(QNode h, QNode nh) {
         if (h == head.get() && head.compareAndSet(h, nh)) {
-            h.next = h; // forget old next
+            h.clearNext(); // forget old next
             return true;
         }
         return false;
@@ -203,6 +208,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
      * Puts or takes an item. Used for most queue operations (except
      * poll() and tryTransfer()). See the similar code in
      * SynchronousQueue for detailed explanation.
+     *
      * @param e the item or if null, signifies that this is a take
      * @param mode the wait mode: NOWAIT, TIMEOUT, WAIT
      * @param nanos timeout in nanosecs, used only if mode is TIMEOUT
@@ -249,7 +255,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
 
     /**
      * Version of xfer for poll() and tryTransfer, which
-     * simplifies control paths both here and in xfer
+     * simplifies control paths both here and in xfer.
      */
     private Object fulfill(Object e) {
         boolean isData = (e != null);
@@ -309,7 +315,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             Object x = s.get();
             if (x != e) {                 // Node was matched or cancelled
                 advanceHead(pred, s);     // unlink if head
-                if (x == s) {              // was cancelled
+                if (x == s) {             // was cancelled
                     clean(pred, s);
                     return null;
                 }
@@ -340,12 +346,12 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             else if (s.waiter == null)
                 s.waiter = w;
             else if (mode != TIMEOUT) {
-                LockSupport.park();
+                LockSupport.park(this);
                 s.waiter = null;
                 spins = -1;
             }
             else if (nanos > spinForTimeoutThreshold) {
-                LockSupport.parkNanos(nanos);
+                LockSupport.parkNanos(this, nanos);
                 s.waiter = null;
                 spins = -1;
             }
@@ -353,7 +359,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
     }
 
     /**
-     * Returns validated tail for use in cleaning methods
+     * Returns validated tail for use in cleaning methods.
      */
     private QNode getValidatedTail() {
         for (;;) {
@@ -376,6 +382,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
 
     /**
      * Gets rid of cancelled node s with original predecessor pred.
+     *
      * @param pred predecessor of cancelled node
      * @param s the cancelled node
      */
@@ -386,6 +393,10 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
             if (w != Thread.currentThread())
                 LockSupport.unpark(w);
         }
+
+        if (pred == null)
+            return;
+
         /*
          * At any given time, exactly one node on list cannot be
          * deleted -- the last inserted node. To accommodate this, if
@@ -411,6 +422,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
     /**
      * Tries to unsplice the cancelled node held in cleanMe that was
      * previously uncleanable because it was at tail.
+     *
      * @return current cleanMe node (or null)
      */
     private QNode reclean() {
@@ -455,6 +467,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
      * Creates a {@code LinkedTransferQueue}
      * initially containing the elements of the given collection,
      * added in traversal order of the collection's iterator.
+     *
      * @param c the collection of elements to initially contain
      * @throws NullPointerException if the specified collection or any
      *         of its elements are null
@@ -479,6 +492,12 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
     }
 
     public boolean offer(E e) {
+        if (e == null) throw new NullPointerException();
+        xfer(e, NOWAIT, 0);
+        return true;
+    }
+
+    public boolean add(E e) {
         if (e == null) throw new NullPointerException();
         xfer(e, NOWAIT, 0);
         return true;
@@ -557,7 +576,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
     // Traversal-based methods
 
     /**
-     * Return head after performing any outstanding helping steps
+     * Returns head after performing any outstanding helping steps.
      */
     private QNode traversalHead() {
         for (;;) {
@@ -580,6 +599,7 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
                         return h;
                 }
             }
+            reclean();
         }
     }
 
@@ -596,56 +616,68 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
      * if subsequently removed.
      */
     class Itr implements Iterator<E> {
-        QNode nextNode;    // Next node to return next
-        QNode currentNode; // last returned node, for remove()
-        QNode prevNode;    // predecessor of last returned node
+        QNode next;        // node to return next
+        QNode pnext;       // predecessor of next
+        QNode snext;       // successor of next
+        QNode curr;        // last returned node, for remove()
+        QNode pcurr;       // predecessor of curr, for remove()
         E nextItem;        // Cache of next item, once commited to in next
 
         Itr() {
-            nextNode = traversalHead();
-            advance();
+            findNext();
         }
 
-        E advance() {
-            prevNode = currentNode;
-            currentNode = nextNode;
-            E x = nextItem;
-
-            QNode p = nextNode.next;
+        /**
+         * Ensures next points to next valid node, or null if none.
+         */
+        void findNext() {
             for (;;) {
-                if (p == null || !p.isData) {
-                    nextNode = null;
-                    nextItem = null;
-                    return x;
+                QNode pred = pnext;
+                QNode q = next;
+                if (pred == null || pred == q) {
+                    pred = traversalHead();
+                    q = pred.next;
                 }
-                Object item = p.get();
-                if (item != p && item != null) {
-                    nextNode = p;
-                    nextItem = (E)item;
-                    return x;
+                if (q == null || !q.isData) {
+                    next = null;
+                    return;
                 }
-                prevNode = p;
-                p = p.next;
+                Object x = q.get();
+                QNode s = q.next;
+                if (x != null && q != x && q != s) {
+                    nextItem = (E)x;
+                    snext = s;
+                    pnext = pred;
+                    next = q;
+                    return;
+                }
+                pnext = q;
+                next = s;
             }
         }
 
         public boolean hasNext() {
-            return nextNode != null;
+            return next != null;
         }
 
         public E next() {
-            if (nextNode == null) throw new NoSuchElementException();
-            return advance();
+            if (next == null) throw new NoSuchElementException();
+            pcurr = pnext;
+            curr = next;
+            pnext = next;
+            next = snext;
+            E x = nextItem;
+            findNext();
+            return x;
         }
 
         public void remove() {
-            QNode p = currentNode;
-            QNode prev = prevNode;
-            if (prev == null || p == null)
+            QNode p = curr;
+            if (p == null)
                 throw new IllegalStateException();
             Object x = p.get();
             if (x != null && x != p && p.compareAndSet(x, p))
-                clean(prev, p);
+                clean(pcurr, p);
         }
     }
 
@@ -733,6 +765,29 @@ public class LinkedTransferQueue<E> extends AbstractQueue<E>
     public int remainingCapacity() {
         return Integer.MAX_VALUE;
     }
+
+    public boolean remove(Object o) {
+        if (o == null)
+            return false;
+        for (;;) {
+            QNode pred = traversalHead();
+            for (;;) {
+                QNode q = pred.next;
+                if (q == null || !q.isData)
+                    return false;
+                if (q == pred) // restart
+                    break;
+                Object x = q.get();
+                if (x != null && x != q && o.equals(x) &&
+                    q.compareAndSet(x, q)) {
+                    clean(pred, q);
+                    return true;
+                }
+                pred = q;
+            }
+        }
+    }
+
 
     /**
      * Save the state to a stream (that is, serialize it).
