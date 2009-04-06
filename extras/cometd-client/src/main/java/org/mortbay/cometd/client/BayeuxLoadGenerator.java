@@ -208,8 +208,8 @@ public class BayeuxLoadGenerator
             client.start();
                 
             clients.add(client);
-            Thread.sleep(5);
-            if (clients.size()%100==0){
+            Thread.sleep(30);
+            if (clients.size()%25==0){
                 int i=clients.size();
                 System.err.println("clients = "+(i>=1000?"":i>=100?"0":i>=10?"00":"000")+i);                
             }
