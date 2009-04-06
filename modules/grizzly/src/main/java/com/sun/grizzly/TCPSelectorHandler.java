@@ -545,7 +545,6 @@ public class TCPSelectorHandler implements SelectorHandler {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void addPendingIO(Runnable runnable){
         if (executePendingIOinSelectorThread){
             runnable.run();
@@ -557,7 +556,6 @@ public class TCPSelectorHandler implements SelectorHandler {
     /**
      * {@inheritDoc}
      */
-    @Override
     public void addPendingKeyCancel(SelectionKey key){
         if (executePendingIOinSelectorThread){
             selectionKeyHandler.cancel(key);
