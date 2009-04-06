@@ -50,8 +50,8 @@
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.5</source>
+                    <target>1.5</target>
                     <compilerArgument>${maven.compiler.argument}</compilerArgument>
                 </configuration>
             </plugin>
@@ -157,9 +157,15 @@
             <artifactId>osgi-adapter</artifactId>
             <version>${hk2.version}</version>
         </dependency>
+        <dependency>
+            <groupId>stax</groupId>
+            <artifactId>stax</artifactId>
+            <version>1.2.0</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.45</hk2.version>
-        <hk2.plugin.version>0.3.45</hk2.plugin.version>
+        <hk2.version>0.3.49</hk2.version>
+        <hk2.plugin.version>0.3.49</hk2.plugin.version>
     </properties>
 </project>

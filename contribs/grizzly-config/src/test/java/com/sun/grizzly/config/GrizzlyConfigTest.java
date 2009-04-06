@@ -32,9 +32,7 @@ public class GrizzlyConfigTest {
                 setRootFolder(listener, count++);
             }
             final String content = getContent(new URL("http://localhost:8080").openConnection());
-            System.out.println("content = " + content);
             final String content2 = getContent(new URL("http://localhost:8181").openConnection());
-            System.out.println("content2 = " + content2);
             Assert.assertEquals(content, "<html><body>You've found the server on port 8080</body></html>");
             Assert.assertEquals(content2, "<html><body>You've found the server on port 8181</body></html>");
         } catch (Exception e) {
