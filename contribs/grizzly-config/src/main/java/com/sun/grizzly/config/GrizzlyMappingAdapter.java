@@ -40,7 +40,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 
 /**
@@ -51,7 +50,6 @@ import java.util.logging.Level;
 public class GrizzlyMappingAdapter extends StaticResourcesAdapter {
     protected ContextMapper mapper;
     private GrizzlyEmbeddedHttp grizzlyEmbeddedHttp;
-    private ConcurrentLinkedQueue<HttpParserState> parserStates = new ConcurrentLinkedQueue<HttpParserState>();
     protected UDecoder urlDecoder = new UDecoder();
     private String defaultHostName = "server";
 
@@ -99,26 +97,18 @@ public class GrizzlyMappingAdapter extends StaticResourcesAdapter {
         final HttpProtocolChain protocolChain, final List<ProtocolFilter> defaultProtocolFilters,
         final ContextRootInfo fallbackContextRootInfo)
         throws Exception {
-        HttpParserState state = parserStates.poll();
-        if (state == null) {
-            state = new HttpParserState();
-        } else {
-            state.reset();
-        }
+        HttpParserState state = new HttpParserState();
         state.setBuffer(byteBuffer);
         byte[] contextBytes = null;
         byte[] hostBytes = null;
-        try {
-            // Read the request line, and parse the context root by removing
-            // all trailling // or ?
-            contextBytes = HttpUtils.readRequestLine(selectionKey, state, InputReader.getDefaultReadTimeout());
-            if (contextBytes != null) {
-                state.setState(0);
-                // Read available bytes and try to find the host header.
-                hostBytes = HttpUtils.readHost(selectionKey, state, InputReader.getDefaultReadTimeout());
-            }
-        } finally {
-            parserStates.offer(state);
+        
+        // Read the request line, and parse the context root by removing
+        // all trailling // or ?
+        contextBytes = HttpUtils.readRequestLine(selectionKey, state, InputReader.getDefaultReadTimeout());
+        if (contextBytes != null) {
+            state.setState(0);
+            // Read available bytes and try to find the host header.
+            hostBytes = HttpUtils.readHost(selectionKey, state, InputReader.getDefaultReadTimeout());
         }
         // No bytes then fail.
         if (contextBytes == null) {
