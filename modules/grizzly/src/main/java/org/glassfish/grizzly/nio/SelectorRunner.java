@@ -51,6 +51,7 @@ import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.ConcurrentModificationException;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
@@ -133,6 +134,31 @@ public class SelectorRunner implements Runnable {
         stateHolder.setState(State.STOPPING);
         
         wakeupSelector();
+
+        if (selector != null) {
+            try {
+                boolean isContinue = true;
+                while(isContinue) {
+                    try {
+                        for(SelectionKey selectionKey : selector.keys()) {
+                            Connection connection =
+                                    selectionKeyHandler.getConnectionForKey(
+                                    selectionKey);
+                            try {
+                                connection.close();
+                            } catch (IOException e) {
+                            }
+                        }
+
+                        isContinue = false;
+                    } catch (ConcurrentModificationException e) {
+                        // ignore
+                    }
+                }
+            } catch (ClosedSelectorException e) {
+                // If Selector is already closed - OK
+            }
+        }
     }
         
     public void stopBlocking(int timeout) throws TimeoutException {
@@ -222,6 +248,8 @@ public class SelectorRunner implements Runnable {
             selectorHandler.preSelect(this);
             
             readyKeys = selectorHandler.select(this);
+
+            if (stateHolder.getState(false) == State.STOPPING) return false;
             
             selectorState = readyKeys.size();
             

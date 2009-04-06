@@ -53,7 +53,7 @@ import java.util.logging.Level;
 public class DefaultScheduleThreadPool extends ScheduledThreadPoolExecutor
         implements ExtendedThreadPool, Thread.UncaughtExceptionHandler {
     // Min number of worker threads in a pool
-    private static int DEFAULT_MIN_THREAD_COUNT = 5;
+    private static int DEFAULT_MIN_THREAD_COUNT = 1;
     
     /**
      * AttributeBuilder to index WorkerThread attributes

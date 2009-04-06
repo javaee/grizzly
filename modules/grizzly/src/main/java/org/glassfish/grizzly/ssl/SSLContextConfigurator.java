@@ -180,6 +180,69 @@ public class SSLContextConfigurator {
         this.securityProtocol = securityProtocol;
     }
 
+    /**
+     * Validates {@link SSLConfig} configuration.
+     *
+     * @return <code>true</code> iff configuration is valid, else <code>false</code>.
+     */
+    public boolean validateConfiguration() {
+        boolean valid = false;
+        try {
+            TrustManagerFactory trustManagerFactory;
+            KeyManagerFactory keyManagerFactory;
+
+            if (keyStoreFile != null) {
+                try {
+                    KeyStore keyStore = KeyStore.getInstance(keyStoreType);
+                    keyStore.load(new FileInputStream(keyStoreFile),
+                            keyStorePass);
+
+                    keyManagerFactory =
+                            KeyManagerFactory.getInstance(keyStoreAlgorithm);
+                    keyManagerFactory.init(keyStore, keyStorePass);
+                    valid = true;
+                } catch (KeyStoreException e) {
+                    logger.log(Level.FINE, "Error initializing key store", e);
+                } catch (CertificateException e) {
+                    logger.log(Level.FINE, "Key store certificate exception.", e);
+                } catch (UnrecoverableKeyException e) {
+                    logger.log(Level.FINE, "Key store unrecoverable exception.", e);
+                } catch (FileNotFoundException e) {
+                    logger.log(Level.FINE, "Can't find key store file: " + keyStoreFile, e);
+                } catch (IOException e) {
+                    logger.log(Level.FINE, "Error loading key store from file: " + keyStoreFile, e);
+                }
+            }
+
+            if (trustStoreFile != null) {
+                try {
+                    KeyStore trustStore = KeyStore.getInstance(trustStoreType);
+                    trustStore.load(new FileInputStream(trustStoreFile),
+                            trustStorePass);
+
+                    trustManagerFactory =
+                            TrustManagerFactory.getInstance(trustStoreAlgorithm);
+                    trustManagerFactory.init(trustStore);
+                    valid = true;
+                } catch (KeyStoreException e) {
+                    logger.log(Level.FINE, "Error initializing trust store", e);
+                    valid = false;
+                } catch (CertificateException e) {
+                    logger.log(Level.FINE, "Trust store certificate exception.", e);
+                    valid = false;
+                } catch (FileNotFoundException e) {
+                    logger.log(Level.FINE, "Can't find trust store file: " + trustStoreFile, e);
+                } catch (IOException e) {
+                    logger.log(Level.FINE, "Error loading trust store from file: " + trustStoreFile, e);
+                }
+            }
+        } catch (NoSuchAlgorithmException e) {
+            logger.log(Level.FINE, "Error initializing algorithm.", e);
+            valid = false;
+        }
+        return valid;
+    }
+
     public SSLContext createSSLContext() {
         SSLContext sslContext = null;
 

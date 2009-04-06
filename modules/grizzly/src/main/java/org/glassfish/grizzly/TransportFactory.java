@@ -46,6 +46,7 @@ import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.threadpool.DefaultScheduleThreadPool;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 import org.glassfish.grizzly.util.ConcurrentQueuePool;
 import org.glassfish.grizzly.util.ObjectPool;
@@ -79,7 +80,8 @@ public abstract class TransportFactory {
     protected AttributeBuilder defaultAttributeBuilder;
     protected ObjectPool<Context> defaultIOEventContextPool;
     protected MemoryManager defaultMemoryManager;
-    protected ExecutorService defaultThreadPool;
+    protected ExecutorService defaultWorkerThreadPool;
+    protected ExecutorService defaultScheduledThreadPool;
 
     protected TransportFactory() {
         initialize();
@@ -109,14 +111,22 @@ public abstract class TransportFactory {
         this.defaultMemoryManager = defaultMemoryManager;
     }
 
-    public ExecutorService getDefaultThreadPool() {
-        return defaultThreadPool;
+    public ExecutorService getDefaultWorkerThreadPool() {
+        return defaultWorkerThreadPool;
     }
 
-    public void setDefaultThreadPool(ExecutorService defaultThreadPool) {
-        this.defaultThreadPool = defaultThreadPool;
+    public void setDefaultWorkerThreadPool(ExecutorService defaultThreadPool) {
+        this.defaultWorkerThreadPool = defaultThreadPool;
     }
 
+    public ExecutorService getDefaultScheduledThreadPool() {
+        return defaultScheduledThreadPool;
+    }
+
+    public void setDefaultScheduledThreadPool(ExecutorService defaultScheduledThreadPool) {
+        this.defaultScheduledThreadPool = defaultScheduledThreadPool;
+    }
+    
     public void initialize() {
         defaultAttributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
         
@@ -134,15 +144,21 @@ public abstract class TransportFactory {
                     }
                 };
         defaultMemoryManager = new DefaultMemoryManager();
-        defaultThreadPool = new DefaultThreadPool();
+        defaultWorkerThreadPool = new DefaultThreadPool();
+        defaultScheduledThreadPool = new DefaultScheduleThreadPool();
     }
 
     public synchronized void close() {
         if (!isClosed()) {
             isClosed = true;
-            if (defaultThreadPool != null) {
-                defaultThreadPool.shutdown();
-                defaultThreadPool = null;
+            if (defaultWorkerThreadPool != null) {
+                defaultWorkerThreadPool.shutdown();
+                defaultWorkerThreadPool = null;
+            }
+
+            if (defaultScheduledThreadPool != null) {
+                defaultScheduledThreadPool.shutdown();
+                defaultScheduledThreadPool = null;
             }
         }
     }
@@ -155,7 +171,7 @@ public abstract class TransportFactory {
         transport.setAttributeBuilder(defaultAttributeBuilder);
         transport.setDefaultContextPool(defaultIOEventContextPool);
         transport.setMemoryManager(defaultMemoryManager);
-        transport.setWorkerThreadPool(defaultThreadPool);
+        transport.setWorkerThreadPool(defaultWorkerThreadPool);
         return transport;
     }
 }
