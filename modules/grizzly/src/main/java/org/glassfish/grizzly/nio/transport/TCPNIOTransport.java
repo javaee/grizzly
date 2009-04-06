@@ -709,8 +709,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    Processor getConnectionProcessor(Connection connection,
-            IOEvent ioEvent) {
+    Processor getConnectionProcessor(Connection connection, IOEvent ioEvent) {
         Processor conProcessor = connection.getProcessor();
         ProcessorSelector conProcessorSelector =
                 connection.getProcessorSelector();

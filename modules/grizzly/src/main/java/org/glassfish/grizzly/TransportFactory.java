@@ -39,6 +39,7 @@
 package org.glassfish.grizzly;
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
 import org.glassfish.grizzly.nio.DefaultNIOTransportFactory;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -81,7 +82,7 @@ public abstract class TransportFactory {
     protected ObjectPool<Context> defaultIOEventContextPool;
     protected MemoryManager defaultMemoryManager;
     protected ExecutorService defaultWorkerThreadPool;
-    protected ExecutorService defaultScheduledThreadPool;
+    protected ScheduledExecutorService defaultScheduledThreadPool;
 
     protected TransportFactory() {
         initialize();
@@ -119,11 +120,12 @@ public abstract class TransportFactory {
         this.defaultWorkerThreadPool = defaultThreadPool;
     }
 
-    public ExecutorService getDefaultScheduledThreadPool() {
+    public ScheduledExecutorService getDefaultScheduledThreadPool() {
         return defaultScheduledThreadPool;
     }
 
-    public void setDefaultScheduledThreadPool(ExecutorService defaultScheduledThreadPool) {
+    public void setDefaultScheduledThreadPool(
+            ScheduledExecutorService defaultScheduledThreadPool) {
         this.defaultScheduledThreadPool = defaultScheduledThreadPool;
     }
     

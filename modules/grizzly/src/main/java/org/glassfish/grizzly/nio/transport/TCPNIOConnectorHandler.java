@@ -227,6 +227,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 connection.setProcessor(defaultProcessor);
                 connection.setProcessorSelector(defaultProcessorSelector);
 
+                // Execute CONNECTED event one more time for default {@link Processor}
+                transport.fireIOEvent(IOEvent.CONNECTED, connection);
+                
                 transport.getSelectorHandler().registerKey(
                         connection.getSelectorRunner(),
                         connection.getSelectionKey(),
