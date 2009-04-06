@@ -38,23 +38,64 @@
 
 package org.glassfish.grizzly;
 
+import java.io.IOException;
+import java.util.Properties;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.attributes.DefaultAttributeBuilder;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Class contains information about Grizzly framework
  * 
  * @author Charlie Hunt
+ * @author Hubert Iwaniuk
  */
 public class Grizzly {
+    private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(?:-(.+))?");
     public static Logger logger = Logger.getLogger("org.glassfish.grizzly");
     
     public static AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER = 
             new DefaultAttributeBuilder();
     
-    private static final int major = 2;
-    private static final int minor = 0;
+    private static final String dotedVersion;
+    private static final int major;
+    private static final int minor;
+
+    /** Reads version from properties and parses it. */
+    static {
+        Properties prop = new Properties();
+        try {
+            prop.load(Grizzly.class.getResourceAsStream("version.properties"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        String version = prop.getProperty("grizzly.version");
+        Matcher matcher = versionPattern.matcher(version);
+        if (matcher.matches()) {
+            dotedVersion = matcher.group(1);
+            major = Integer.parseInt(matcher.group(2));
+            minor = Integer.parseInt(matcher.group(3));
+        } else {
+            dotedVersion = "no.version";
+            major = -1;
+            minor = -1;
+        }
+    }
+
+    public static void main(String[] args) {
+        System.out.println(Grizzly.getDotedVersion());
+    }
+
+    /**
+     * Return the dotted version of the curent release.
+     *
+     * @return like "2.0.1"
+     */
+    public static String getDotedVersion() {
+        return dotedVersion;
+    }
 
     /**
      * Get Grizzly framework major version
