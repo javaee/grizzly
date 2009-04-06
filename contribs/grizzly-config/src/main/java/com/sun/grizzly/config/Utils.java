@@ -44,6 +44,7 @@ import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigParser;
 import org.jvnet.hk2.config.DomDocument;
 
+import javax.xml.stream.XMLInputFactory;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -71,7 +72,12 @@ public class Utils {
         }
         if (url != null) {
             try {
-                final DomDocument document = parser.parse(url, new DomDocument(habitat));
+                XMLInputFactory xif = XMLInputFactory.class.getClassLoader() == null
+                        ? XMLInputFactory.newInstance()
+                        : XMLInputFactory.newInstance(XMLInputFactory.class.getName(),
+                        XMLInputFactory.class.getClassLoader());
+                final DomDocument document = parser.parse(xif.createXMLStreamReader(url.openStream()));
+
                 habitat.addComponent("document", document);
             } catch (Exception e) {
                 e.printStackTrace();
