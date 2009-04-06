@@ -522,7 +522,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             throw new IllegalStateException(
                             sm.getString("requestFacade.nullRequest"));
         }
-        String value = (String)request.getAttribute(name);
+        Object value = request.getAttribute(name);
         request.removeAttribute(name);
 
         // Notify interested application event listeners
