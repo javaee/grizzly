@@ -36,7 +36,7 @@ public class HttpParserState {
     private boolean isCompleted;
     private int state;
     private int position;
-    private int stateParameters[];
+    private final int stateParameters[];
 
     public HttpParserState() {
         this(DEFAULT_STATE_PARAMETERS_NUM);
@@ -44,7 +44,9 @@ public class HttpParserState {
 
     public HttpParserState(final int stateParametersNum) {
         stateParameters = new int[stateParametersNum];
-        reset();
+        for (int i = 0; i < stateParameters.length; i++) {
+            stateParameters[i] = PARAMETER_NOT_SET;
+        }
     }
 
     public ByteBuffer getBuffer() {
@@ -82,16 +84,6 @@ public class HttpParserState {
 
     public void setStateParameter(final int i, final int value) {
         stateParameters[i] = value;
-    }
-
-    public final void reset() {
-        buffer = null;
-        position = 0;
-        state = 0;
-        isCompleted = false;
-        for (int i = 0; i < stateParameters.length; i++) {
-            stateParameters[i] = PARAMETER_NOT_SET;
-        }
     }
 
     public boolean isCompleted() {
