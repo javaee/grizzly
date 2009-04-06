@@ -63,7 +63,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLStreamReader;
 import org.glassfish.grizzly.ssl.SSLStreamWriter;
-import org.glassfish.grizzly.threadpool.DefaultScheduleThreadPool;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
 import org.glassfish.grizzly.web.container.Adapter;
@@ -208,7 +207,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      */
     public WebFilter(String name, WebFilterConfig config) {
         this(name, config,
-                TransportFactory.getInstance().getDefaultThreadPool());
+                TransportFactory.getInstance().getDefaultWorkerThreadPool());
     }
 
     /**
@@ -230,8 +229,10 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         this.memoryManager = memoryManager;
         
         jmxManager = new WebFilterJMXManager(this);
-        scheduledThreadPool = new DefaultScheduleThreadPool(1);
+        scheduledThreadPool = (ScheduledExecutorService)
+                TransportFactory.getInstance().getDefaultScheduledThreadPool();
     }
+
 
     @Override
     public NextAction handleRead(FilterChainContext ctx,
@@ -379,6 +380,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      */
     public void setAdapter(Adapter adapter) {
         this.adapter = adapter;
+        reconfigureAdapter();
     }
 
 
@@ -425,6 +427,15 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
 
     public ThreadPoolStatistic getThreadPoolStatistic() {
         return threadPoolStat;
+    }
+
+    /*
+     * Reconfigure {@link Adapter} on already configured {@link ProcessorTask}
+     */
+    protected void reconfigureAdapter(){
+        for(ProcessorTask task : processorTasks){
+            task.setAdapter(adapter);
+        }
     }
 
     /**
@@ -517,7 +528,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * initialized the endpoint by creating the <code>ServerScoketChannel</code>
      * and by initializing the server socket.
      */
-    public void initialize() throws IOException, InstantiationException {
+    public void initialize() throws IOException {
         rampUpProcessorTasks();
         registerComponents();
 
