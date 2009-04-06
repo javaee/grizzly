@@ -43,6 +43,8 @@ import javax.management.ObjectName;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 import org.glassfish.grizzly.web.WebFilter;
@@ -314,6 +316,9 @@ public class GrizzlyWebServer {
     // Flag, which indicates if WebServer uses secured connections
     private boolean isSecure;
 
+    // SSL configuration
+    private SSLEngineConfigurator sslConfiguration;
+
     // SelectorThread mBean
     private ObjectInstance stMBean;
 
@@ -396,6 +401,10 @@ public class GrizzlyWebServer {
         this.webFilter = new AsyncWebFilter(Integer.toString(port));
         webFilter.setAsyncEnabled(false);
         this.transport = TransportFactory.getInstance().createTCPTransport();
+        
+        sslConfiguration = new SSLEngineConfigurator(
+                SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(), false,
+                false, false);
     }
 
     /**
@@ -450,18 +459,27 @@ public class GrizzlyWebServer {
         }
         return removed;
     }
-    
-    
-//    /**
-//     * Set the {@link SSLConfig} instance used when https is required
-//     */
-//    public void setSSLConfig(SSLConfig sslConfig){
-//        if (!(st instanceof SSLSelectorThread)){
-//            throw new IllegalStateException("This instance isn't supporting SSL/HTTPS");
-//        }
-//        ((SSLSelectorThread)st).setSSLConfig(sslConfig);
-//    }
 
+    /**
+     * Does WebServer use secured connections.
+     * 
+     * @return <tt>true</tt>, if secured connections
+     */
+    public boolean isSecure() {
+        return isSecure;
+    }
+
+    public void setSecure(boolean isSecure) {
+        this.isSecure = isSecure;
+    }
+
+    public SSLEngineConfigurator getSSLConfiguration() {
+        return sslConfiguration;
+    }
+
+    public void setSSLConfiguration(SSLEngineConfigurator sslConfiguration) {
+        this.sslConfiguration = sslConfiguration;
+    }
 
     /**
      * Start the GrizzlyWebServer and start listening for http requests. Calling 
@@ -486,7 +504,7 @@ public class GrizzlyWebServer {
         
         transport.getFilterChain().add(new TransportFilter());
         if (isSecure) {
-            transport.getFilterChain().add(new SSLFilter());
+            transport.getFilterChain().add(new SSLFilter(sslConfiguration));
         }
 
         transport.getFilterChain().add(webFilter);

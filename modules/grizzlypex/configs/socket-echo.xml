@@ -2,6 +2,8 @@
 <testSuite name="GrizzlyPex" xmlns="http://www.sun.com/japex/testSuite"
     xmlns:xi="http://www.w3.org/2001/XInclude">
     
+    <param name="japex.numberOfThreads" value="16"/>
+
     <param name="japex.warmupTime" value="10"/>
     <param name="japex.runTime"    value="10"/>
     
@@ -11,6 +13,7 @@
     <param name="japex.reportsDirectory" value="./reports/echo"/>
     
     <param name="port" value="9011"/>
+
     <xi:include href="entities/SocketEchoDriver.xml"/>
     
     <testCase name="echoOneByte">
