@@ -41,7 +41,6 @@ package org.glassfish.grizzly.web.arp;
 import java.io.File;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -102,9 +101,6 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
     public NextAction handleRead(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
         if (isAsyncEnabled) {
-            ctx.getConnection().setIdleTime(Connection.UNLIMITED_IDLE_TIMEOUT,
-                    TimeUnit.MILLISECONDS);
-
             ProcessorTask processor = getProcessorTask(ctx);
             configureProcessorTask(processor, ctx, interceptor);
 
@@ -140,8 +136,6 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
 
             if (processor.isKeepAlive() && !processor.isError()) {
                 // Resume FilterChain execution
-                connection.setIdleTime(Connection.UNLIMITED_IDLE_TIMEOUT,
-                        TimeUnit.MILLISECONDS);
                 FilterChainContext context = processor.getFilterChainContext();
                 try {
                     context.setCurrentFilterIdx(context.getCurrentFilterIdx() + 1);

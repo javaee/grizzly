@@ -50,8 +50,6 @@ import org.glassfish.grizzly.util.AttributeStorage;
  * @author Alexey Stashok
  */
 public interface Connection<L> extends Closeable, AttributeStorage {
-    public static final long UNLIMITED_IDLE_TIMEOUT = -1;
-    
     public Transport getTransport();
 
     public boolean isOpen();
