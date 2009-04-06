@@ -7,7 +7,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.sun.grizzly.contribs</groupId>
+    <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-servlet-deployer</artifactId>
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
@@ -45,12 +45,12 @@
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-cometd-webserver</artifactId>
+            <artifactId>grizzly-cometd</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-servlet-webserver</artifactId>
+            <artifactId>grizzly-http-servlet</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
     </dependencies>
