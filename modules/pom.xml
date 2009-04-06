@@ -21,6 +21,7 @@
         <module>http-servlet</module>
         <module>comet</module>
         <module>cometd</module>
+        <module>http-servlet-deployer</module>
         <module>portunif</module>
         <module>compat</module>
         <module>grizzlet</module>
