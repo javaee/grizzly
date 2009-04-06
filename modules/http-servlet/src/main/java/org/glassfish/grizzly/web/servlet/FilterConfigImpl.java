@@ -51,7 +51,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.web.servlet;
 
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -60,8 +60,7 @@ import java.util.Map;
 import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
-
-import com.sun.grizzly.util.http.Enumerator;
+import org.glassfish.grizzly.web.container.util.http.Enumerator;
 
 /**
  * {@link FilterConfig} implementation.

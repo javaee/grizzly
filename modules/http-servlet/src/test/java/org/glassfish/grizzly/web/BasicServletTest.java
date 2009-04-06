@@ -35,115 +35,86 @@
  * holder.
  *
  */
-package com.sun.grizzly.http;
+package org.glassfish.grizzly.web;
 
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
-import com.sun.grizzly.http.servlet.ServletAdapter;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
+import org.glassfish.grizzly.web.servlet.ServletAdapter;
 import junit.framework.TestCase;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.web.embed.GrizzlyWebServer;
 
 /**
- * Test {@link GrizzlyAdapterChain} use of the {@link Mapper}
+ * Basic Servlet Test.
  *
  * @author Jeanfrancois Arcand
  */
-public class MapperTest extends TestCase {
+public class BasicServletTest extends TestCase {
 
-    public static final int PORT = 18080;
+    public static final int PORT = 18890;
     private static Logger logger = Logger.getLogger("grizzly.test");
     private GrizzlyWebServer gws;
-  
-    
-   public void testOverlapingMapping() throws IOException {
-        System.out.println("testOverlapingMapping");
-        try {
-            startGrizzlyWebServer(PORT);
-            String[] aliases = new String[]{"/aaa/bbb", "/aaa/ccc"};
-            for (String alias : aliases) {
-                addAdapter(alias);
-            }
+    private String header = "text/html;charset=utf8";
 
-            for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias);
-                assertEquals(HttpServletResponse.SC_OK,
-                        getResponseCodeFromAlias(conn));
-                assertEquals(alias, readResponse(conn));
-            }
-        } finally {
-            stopGrizzlyWebServer();
-        }
-   }
-    
-    public void testRootMapping() throws IOException {
-        System.out.println("testRootMapping");
+    public void testSetHeaderTest() throws IOException {
+        System.out.println("testSetHeaderTest");
         try {
-            startGrizzlyWebServer(PORT);
-            String alias = "/";
+            newGWS(PORT);
+            gws.start();
+            String alias = "/1";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection("/index.html");
-            assertEquals(HttpServletResponse.SC_OK,
-                    getResponseCodeFromAlias(conn));
-            assertEquals(alias, readResponse(conn));
+            HttpURLConnection conn = getConnection(alias);
+            String s = conn.getHeaderField("Content-Type");
+            assertEquals(s, header);
         } finally {
             stopGrizzlyWebServer();
         }
     }
     
-    public void testWrongMapping() throws IOException {
-        System.out.println("testWrongMapping");
+    public void testPathInfo() throws IOException {
+        System.out.println("testPathInfo");
         try {
-            startGrizzlyWebServer(PORT);
-            String alias = "/a/b/c";
-            addAdapter(alias);
-            HttpURLConnection conn = getConnection("/aaa.html");
-            assertEquals(HttpServletResponse.SC_NOT_FOUND,
-                    getResponseCodeFromAlias(conn));
-        } finally {
-            stopGrizzlyWebServer();
-        }
-    }
-
-    public void testComplexMapping() throws IOException {
-        System.out.println("testComplexMapping");
-        try {
-            startGrizzlyWebServer(PORT);
-            String alias = "/a/b/c/*.html";
-            addAdapter(alias);
-            HttpURLConnection conn = getConnection("/a/b/c/index.html");
-            assertEquals(HttpServletResponse.SC_OK,
-                    getResponseCodeFromAlias(conn));
-            assertEquals(alias, readResponse(conn));
+            newGWS(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletAdapter servletAdapter = addAdapter(alias);
+            servletAdapter.setContextPath("/contextPath");
+            servletAdapter.setServletPath("/servletPath");
+            gws.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo");
+            String s = conn.getHeaderField("Path-Info");
+            assertEquals(s, "/pathInfo");
         } finally {
             stopGrizzlyWebServer();
         }
     }
     
-    public void testWildcardMapping() throws IOException {
-        System.out.println("testWildcardMapping");
+    public void testDoubleSlash() throws IOException {
+        System.out.println("testDoubleSlash");
         try {
-            startGrizzlyWebServer(PORT);
+            newGWS(PORT);
             String alias = "/*.html";
-            addAdapter(alias);
+            ServletAdapter servletAdapter = addAdapter(alias);
+            servletAdapter.setContextPath("/");
+            servletAdapter.setServletPath("/");
+            gws.start();
             HttpURLConnection conn = getConnection("/index.html");
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
-            assertEquals(alias, readResponse(conn));
+            String s = conn.getHeaderField("Request-Was");
+            System.out.println("s: " +s );
+            assertEquals(s, "/index.html");
         } finally {
             stopGrizzlyWebServer();
         }
     }
-
-
 
     private String readResponse(HttpURLConnection conn) throws IOException {
         BufferedReader reader = new BufferedReader(
@@ -170,8 +141,12 @@ public class MapperTest extends TestCase {
             protected void doGet(
                     HttpServletRequest req, HttpServletResponse resp)
                     throws ServletException, IOException {
-                logger.info("Servlet : " + alias + " received request " + req.getRequestURI());
+                logger.info(alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
+                resp.setHeader("Content-Type", header);
+                System.out.println("pathInfo -> " + req.getPathInfo());
+                resp.setHeader("Path-Info", req.getPathInfo());
+                resp.setHeader("Request-Was", req.getRequestURI());
                 resp.getWriter().write(alias);
             }
         });
@@ -179,9 +154,8 @@ public class MapperTest extends TestCase {
         return adapter;
     }
 
-    private void startGrizzlyWebServer(int port) throws IOException {
+    private void newGWS(int port) throws IOException {
         gws = new GrizzlyWebServer(port);
-        gws.start();
     }
 
     private void stopGrizzlyWebServer() {

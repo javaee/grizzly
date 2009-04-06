@@ -1,9 +1,8 @@
 /*
- * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
+ * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +10,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +19,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -34,80 +33,73 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  *
+ *
+ * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ * Copyright 2004 The Apache Software Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-package com.sun.grizzly.http.servlet;
 
-import java.util.Enumeration;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
+package org.glassfish.grizzly.web.servlet;
+
+import java.io.IOException;
+import javax.servlet.ServletOutputStream;
+import org.glassfish.grizzly.web.container.http11.GrizzlyOutputStream;
 
 /**
- * Basic {@link ServletConfig} implementation.
- * 
+ *
  * @author Jeanfrancois Arcand
  */
-public class ServletConfigImpl implements ServletConfig{
-        
-    private String name;
+public class ServletOutputStreamImpl extends ServletOutputStream {
 
-    private ServletContextImpl servletContextImpl;
-    
-    
-    protected ServletConfigImpl(ServletContextImpl servletContextImpl){
-        this.servletContextImpl = servletContextImpl;
-    }
-    
-   
-    /**
-     * {@inheritDoc}
-     */     
-    public String getServletName() {
-        return name;
+    private GrizzlyOutputStream outputStream;
+
+    protected ServletOutputStreamImpl(GrizzlyOutputStream outputStream) {
+        this.outputStream = outputStream;
     }
 
-   
-    /**
-     * {@inheritDoc}
-     */     
-    public ServletContext getServletContext() {
-        return servletContextImpl;
+    public void write(int i) throws IOException {
+        outputStream.write(i);
     }
 
-    
-    /**
-     * {@inheritDoc}
-     */    
-    public String getInitParameter(String name) {
-        return findInitParameter(name);
+    @Override
+    public void write(byte[] b) throws IOException {
+        write(b, 0, b.length);
     }
-    
-    
+
+    @Override
+    public void write(byte[] b, int off, int len) throws IOException {
+        outputStream.write(b, off, len);
+    }
+
     /**
-     * Set the name of this servlet. 
-     *
-     * @param name The new name of this servlet
+     * Will send the buffer to the client.
      */
-    public void setServletName(String name) {
-        this.name = name;
+    @Override
+    public void flush() throws IOException {
+        outputStream.flush();
     }
- 
-    
-    /**
-     * Return the value for the specified initialization parameter name,
-     * if any; otherwise return <code>null</code>.
-     *
-     * @param name Name of the requested initialization parameter
-     */
-    protected String findInitParameter(String name) {
-        return getServletContext().getInitParameter(name);
-    }    
-    
-    
-   
-    /**
-     * {@inheritDoc}
-     */ 
-    public Enumeration getInitParameterNames() {
-        return getServletContext().getInitParameterNames();
+
+    @Override
+    public void close() throws IOException {
+        outputStream.close();
+    }
+    // -------------------------------------------- ServletOutputStream Methods
+
+    @Override
+    public void print(String s) throws IOException {
+        outputStream.print(s);
     }
 }

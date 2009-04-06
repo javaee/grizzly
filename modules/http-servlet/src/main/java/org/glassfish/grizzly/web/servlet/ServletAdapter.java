@@ -36,22 +36,8 @@
  *
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.web.servlet;
 
-import com.sun.grizzly.util.Grizzly;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.Constants;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.util.ClassLoaderUtil;
-import com.sun.grizzly.util.IntrospectionUtils;
-import com.sun.grizzly.util.buf.CharChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.Cookie;
-
-import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -62,6 +48,18 @@ import java.util.logging.Level;
 import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.web.container.Constants;
+import org.glassfish.grizzly.web.container.Request;
+import org.glassfish.grizzly.web.container.Response;
+import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
+import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
+import org.glassfish.grizzly.web.container.http11.GrizzlyResponse;
+import org.glassfish.grizzly.web.container.util.ClassLoaderUtil;
+import org.glassfish.grizzly.web.container.util.IntrospectionUtils;
+import org.glassfish.grizzly.web.container.util.buf.MessageBytes;
+import org.glassfish.grizzly.web.container.util.http.Cookie;
+import org.glassfish.grizzly.web.container.util.http.HttpRequestURIDecoder;
 
 /**
  * Adapter class that can initiate a {@link javax.servlet.FilterChain} and execute its

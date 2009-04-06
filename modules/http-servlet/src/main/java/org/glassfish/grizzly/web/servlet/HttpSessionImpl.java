@@ -35,10 +35,8 @@
  * holder.
  *
  */
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.web.servlet;
 
-import com.sun.grizzly.tcp.http11.GrizzlySession;
-import com.sun.grizzly.util.LoggerUtils;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
@@ -50,6 +48,8 @@ import javax.servlet.http.HttpSessionBindingListener;
 import javax.servlet.http.HttpSessionContext;
 import javax.servlet.http.HttpSessionEvent;
 import javax.servlet.http.HttpSessionListener;
+import org.glassfish.grizzly.web.container.http11.GrizzlySession;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 
 /**
  * Basic {@link HttpSession} based on {@link GrizzlySession} support.

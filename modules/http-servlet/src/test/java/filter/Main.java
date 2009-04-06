@@ -37,10 +37,7 @@
  */
 package filter;
 
-import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.http.servlet.ServletAdapter;
-import com.sun.grizzly.standalone.StaticStreamAlgorithm;
-import com.sun.grizzly.tcp.Adapter;
+import org.glassfish.grizzly.web.servlet.ServletAdapter;
 import com.sun.jersey.api.core.ClasspathResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import java.io.File;
@@ -50,36 +47,43 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.Filter;
 import javax.ws.rs.core.UriBuilder;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.web.WebFilter;
+import org.glassfish.grizzly.web.container.Adapter;
 
 public class Main {
 
     public static final URI BASE_URI = UriBuilder.fromUri("http://localhost/").port(9998).build();
 
-    protected static SelectorThread startServer() throws IOException {
+    protected static Transport startServer() throws IOException {
         final Map<String, String> initParams = new HashMap<String, String>();
 
         initParams.put("com.sun.jersey.config.property.packages",
                 "filter");
 
         System.out.println("Starting grizzly...");
-        SelectorThread threadSelector = create(BASE_URI, initParams);
-        return threadSelector;
+        Transport transport = create(BASE_URI, initParams);
+        return transport;
     }
 
     public static void main(String[] args) throws IOException {
-        SelectorThread threadSelector = startServer();
+        Transport transport = startServer();
         System.out.println(String.format("Jersey app started with WADL available at " + "%sapplication.wadl\nHit enter to stop it...",
                 BASE_URI));
         System.in.read();
-        threadSelector.stopEndpoint();
+        transport.stop();
+        TransportFactory.getInstance().close();
     }
 
-    private static SelectorThread create(URI u,
+    private static Transport create(URI u,
             Map<String, String> initParams) throws IOException {
         return create(u, ServletContainer.class, initParams);
     }
 
-    private static SelectorThread create(URI u, Class<? extends Filter> c,
+    private static Transport create(URI u, Class<? extends Filter> c,
             Map<String, String> initParams) throws IOException {
         if (u == null) {
             throw new IllegalArgumentException("The URI must not be null");
@@ -127,7 +131,7 @@ public class Main {
         }
     }
 
-    private static SelectorThread create(URI u, Adapter adapter)
+    private static Transport create(URI u, Adapter adapter)
             throws IOException, IllegalArgumentException {
         if (u == null) {
             throw new IllegalArgumentException("The URI must not be null");
@@ -140,22 +144,17 @@ public class Main {
                     ", must be equal (ignoring case) to 'http'");
         }
 
-        final SelectorThread selectorThread = new SelectorThread();
-
-        selectorThread.setAlgorithmClassName(StaticStreamAlgorithm.class.getName());
-
         final int port = (u.getPort() == -1) ? 80 : u.getPort();
-        selectorThread.setPort(port);
 
-        selectorThread.setAdapter(adapter);
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        WebFilter webFilter = new WebFilter("web-" + port);
+        webFilter.setAdapter(adapter);
 
-        try {
-            selectorThread.listen();
-        } catch (InstantiationException e) {
-            IOException _e = new IOException();
-            _e.initCause(e);
-            throw _e;
-        }
-        return selectorThread;
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(webFilter);
+        webFilter.initialize();
+        transport.bind(port);
+        transport.start();
+        return transport;
     }
 }

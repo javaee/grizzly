@@ -52,14 +52,8 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.web.servlet;
 
-import com.sun.grizzly.tcp.http11.Constants;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlySession;
-import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.http.Cookie;
-import com.sun.grizzly.util.res.StringManager;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.security.AccessController;
@@ -76,6 +70,12 @@ import javax.servlet.ServletRequestAttributeEvent;
 import javax.servlet.ServletRequestAttributeListener;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import org.glassfish.grizzly.web.container.http11.Constants;
+import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
+import org.glassfish.grizzly.web.container.http11.GrizzlySession;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
+import org.glassfish.grizzly.web.container.util.http.Cookie;
+import org.glassfish.grizzly.web.container.util.res.StringManager;
 
 /**
  * Facade class that wraps a {@link GrizzlyRequest} request object.  
@@ -1011,13 +1011,13 @@ public class HttpServletRequestImpl implements HttpServletRequest {
      * {@inheritDoc}
      */
     public javax.servlet.http.Cookie[] getCookies() {
-        com.sun.grizzly.util.http.Cookie[] internalCookies = request.getCookies();
+        Cookie[] internalCookies = request.getCookies();
         if (internalCookies == null) {
             return null;
         }
         javax.servlet.http.Cookie[] cookies = new javax.servlet.http.Cookie[internalCookies.length];
         for (int i = 0; i < internalCookies.length; i++) {
-            com.sun.grizzly.util.http.Cookie cook = internalCookies[i];
+            Cookie cook = internalCookies[i];
             if (cook instanceof CookieWrapper) {
                 cookies[i] = ((CookieWrapper) internalCookies[i]).getWrappedCookie();
             } else {

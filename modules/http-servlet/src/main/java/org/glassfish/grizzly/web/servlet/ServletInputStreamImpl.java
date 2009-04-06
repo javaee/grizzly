@@ -52,11 +52,11 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.web.servlet;
 
-import com.sun.grizzly.tcp.http11.GrizzlyInputStream;
 import java.io.IOException;
 import javax.servlet.ServletInputStream;
+import org.glassfish.grizzly.web.container.http11.GrizzlyInputStream;
 
 /**
  *

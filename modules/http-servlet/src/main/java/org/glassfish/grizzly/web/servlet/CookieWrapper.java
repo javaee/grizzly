@@ -38,9 +38,9 @@
 
 
 
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.web.servlet;
 
-import com.sun.grizzly.util.http.Cookie;
+import org.glassfish.grizzly.web.container.util.http.Cookie;
 
 /**
  * Simple Wrapper around {@link Cookie}.

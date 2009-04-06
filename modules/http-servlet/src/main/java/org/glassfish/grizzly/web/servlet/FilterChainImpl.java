@@ -51,9 +51,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sun.grizzly.http.servlet;
+package org.glassfish.grizzly.web.servlet;
 
-import com.sun.grizzly.util.LoggerUtils;
 import java.io.IOException;
 
 import java.util.EventListener;
@@ -66,6 +65,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletRequestEvent;
 import javax.servlet.ServletRequestListener;
 import javax.servlet.ServletResponse;
+import org.glassfish.grizzly.web.container.util.LoggerUtils;
 
 /**
  * Implementation of <code>javax.servlet.FilterChain</code> used to manage

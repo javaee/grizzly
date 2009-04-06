@@ -38,16 +38,17 @@
 
 package filter;
 
-import com.sun.grizzly.http.SelectorThread;
 import com.sun.jersey.core.header.MediaTypes;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.WebResource;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.Transport;
+import org.glassfish.grizzly.TransportFactory;
 
 
 public class JerseyrNoServletTest extends TestCase {
 
-    private SelectorThread threadSelector;
+    private Transport transport;
     
     private WebResource r;
 
@@ -59,7 +60,7 @@ public class JerseyrNoServletTest extends TestCase {
     protected void setUp() throws Exception {
         super.setUp();
         
-        threadSelector = Main.startServer();
+        transport = Main.startServer();
 
         Client c = Client.create();
         r = c.resource(Main.BASE_URI);
@@ -69,7 +70,8 @@ public class JerseyrNoServletTest extends TestCase {
     protected void tearDown() throws Exception {
         super.tearDown();
 
-        threadSelector.stopEndpoint();
+        transport.stop();
+        TransportFactory.getInstance().close();
     }
 
     /**
