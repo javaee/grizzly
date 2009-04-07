@@ -42,6 +42,7 @@ import com.sun.grizzly.http.servlet.ServletAdapter;
 import junit.framework.TestCase;
 
 import javax.servlet.ServletException;
+import javax.servlet.ServletConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -114,10 +115,50 @@ public class BasicServletTest extends TestCase {
         }
     }
 
-    private String readResponse(HttpURLConnection conn) throws IOException {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream()));
-        return reader.readLine();
+    public void testInitParameters() throws IOException {
+        System.out.println("testContextParameters");
+        try {
+            newGWS(PORT);
+            ServletAdapter sa1 = new ServletAdapter(new HttpServlet() {
+                private ServletConfig config;
+                @Override public void init(ServletConfig config) throws ServletException {
+                    super.init(config);
+                    this.config = config;
+                }
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp)
+                        throws ServletException, IOException {
+                    String init = config.getInitParameter("servlet");
+                    String ctx = config.getServletContext().getInitParameter("ctx");
+                    boolean ok = "sa1".equals(init) && "something".equals(ctx);
+                    resp.setStatus(ok ? 200 : 404);
+                }
+            });
+            sa1.addInitParameter("servlet", "sa1");
+            sa1.addContextParameter("ctx", "something");
+            ServletAdapter sa2 = sa1.newServletAdapter(new HttpServlet() {
+                private ServletConfig config;
+                @Override public void init(ServletConfig config) throws ServletException {
+                    super.init(config);
+                    this.config = config;
+                }
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp)
+                        throws ServletException, IOException {
+                    String init = config.getInitParameter("servlet");
+                    String ctx = config.getServletContext().getInitParameter("ctx");
+                    boolean ok = "sa2".equals(init) && "something".equals(ctx);
+                    resp.setStatus(ok ? 200 : 404);
+                }
+            });
+            sa2.addInitParameter("servlet", "sa2");
+            gws.addGrizzlyAdapter(sa1, new String[]{"/1"});
+            gws.addGrizzlyAdapter(sa2, new String[]{"/2"});
+            gws.start();
+
+            assertEquals(200, getConnection("/1").getResponseCode());
+            assertEquals(200, getConnection("/2").getResponseCode());
+        } finally {
+            stopGrizzlyWebServer();
+        }
     }
 
     private HttpURLConnection getConnection(String alias) throws IOException {

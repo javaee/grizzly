@@ -37,7 +37,11 @@
  */
 package com.sun.grizzly.http.servlet;
 
+import com.sun.grizzly.util.http.Enumerator;
+
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 
@@ -49,12 +53,14 @@ import javax.servlet.ServletContext;
 public class ServletConfigImpl implements ServletConfig{
         
     private String name;
-
+    private final ConcurrentHashMap<String,String> initParameters =
+            new ConcurrentHashMap(16, 0.75f, 64);
     private ServletContextImpl servletContextImpl;
     
     
-    protected ServletConfigImpl(ServletContextImpl servletContextImpl){
+    protected ServletConfigImpl(ServletContextImpl servletContextImpl, HashMap<String,String> initParameters){
         this.servletContextImpl = servletContextImpl;
+        this.setInitParameters(initParameters);
     }
     
    
@@ -78,7 +84,12 @@ public class ServletConfigImpl implements ServletConfig{
      * {@inheritDoc}
      */    
     public String getInitParameter(String name) {
-        return findInitParameter(name);
+        return initParameters.get(name);
+    }
+
+    protected void setInitParameters(HashMap<String,String> parameters){
+        this.initParameters.clear();
+        this.initParameters.putAll(parameters);
     }
     
     
@@ -90,24 +101,12 @@ public class ServletConfigImpl implements ServletConfig{
     public void setServletName(String name) {
         this.name = name;
     }
- 
-    
-    /**
-     * Return the value for the specified initialization parameter name,
-     * if any; otherwise return <code>null</code>.
-     *
-     * @param name Name of the requested initialization parameter
-     */
-    protected String findInitParameter(String name) {
-        return getServletContext().getInitParameter(name);
-    }    
-    
-    
+
    
     /**
      * {@inheritDoc}
      */ 
     public Enumeration getInitParameterNames() {
-        return getServletContext().getInitParameterNames();
+        return (new Enumerator(initParameters.keySet()));
     }
 }

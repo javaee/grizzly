@@ -60,7 +60,8 @@ public class OSGiServletAdapter extends ServletAdapter implements OSGiGrizzlyAda
 
     public OSGiServletAdapter(Servlet servlet, HttpContext httpContext, HashMap<String, String> initparams,
                               Logger logger) {
-        super(".", new OSGiServletContext(httpContext, logger), initparams, new ArrayList<String>(0));
+        super(".", new OSGiServletContext(httpContext, logger), new HashMap<String,String>(),
+                initparams, new ArrayList<String>(0));
         //noinspection AccessingNonPublicFieldOfAnotherObject
         super.servletInstance = servlet;
         this.httpContext = httpContext;
@@ -69,7 +70,7 @@ public class OSGiServletAdapter extends ServletAdapter implements OSGiGrizzlyAda
 
     private OSGiServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
                                HashMap<String, String> parameters, ArrayList<String> listeners, Logger logger) {
-        super(publicDirectory, servletCtx, parameters, listeners);
+        super(publicDirectory, servletCtx,new HashMap<String,String>(), parameters, listeners);
         this.logger = logger;
     }
 
@@ -78,7 +79,7 @@ public class OSGiServletAdapter extends ServletAdapter implements OSGiGrizzlyAda
      */
     @Override public OSGiServletAdapter newServletAdapter(Servlet servlet) {
         OSGiServletAdapter sa =
-                new OSGiServletAdapter(getRootFolder(), getServletCtx(), getParameters(), getListeners(), logger);
+                new OSGiServletAdapter(getRootFolder(), getServletCtx(), getContextParameters(), getListeners(), logger);
         sa.setServletInstance(servlet);
         sa.setServletPath(getServletPath());
         //noinspection AccessingNonPublicFieldOfAnotherObject
