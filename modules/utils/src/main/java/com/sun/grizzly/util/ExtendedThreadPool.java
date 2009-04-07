@@ -38,6 +38,7 @@
 package com.sun.grizzly.util;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -186,4 +187,23 @@ public interface ExtendedThreadPool {
     public String getName();
 
     public void setName(String name);
+
+    /* Getting and setting tunable parameters */
+
+    /**
+     * Sets the thread factory used to create new threads.
+     *
+     * @param threadFactory the new thread factory
+     * @throws NullPointerException if threadFactory is null
+     * @see #getThreadFactory
+     */
+    public void setThreadFactory(ThreadFactory threadFactory);
+
+    /**
+     * Returns the thread factory used to create new threads.
+     *
+     * @return the current thread factory
+     * @see #setThreadFactory
+     */
+    public ThreadFactory getThreadFactory();
 }

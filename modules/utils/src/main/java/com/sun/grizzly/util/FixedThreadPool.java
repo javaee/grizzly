@@ -56,7 +56,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author gustav trede
  */
-public class FixedThreadPool extends AbstractExecutorService{
+public class FixedThreadPool extends AbstractExecutorService
+        implements ExtendedThreadPool {
 
     protected static final Runnable poison = new Runnable(){public void run(){}};    
     
@@ -77,7 +78,8 @@ public class FixedThreadPool extends AbstractExecutorService{
     protected volatile int maxPoolSize;
 
     protected volatile boolean running = true;
-    
+
+    protected String name = "GrizzlyWorker";
 
     /**
      * creates a fixed pool of size 8
@@ -97,17 +99,18 @@ public class FixedThreadPool extends AbstractExecutorService{
     /**
      * 
      * @param size
-     * @param workerprefixname 
+     * @param name
      */
-    public FixedThreadPool(int size, final String workerprefixname) {
+    public FixedThreadPool(int size, final String name) {
         this(size, new ThreadFactory(){
             private final AtomicInteger c = new AtomicInteger();
             public Thread newThread(Runnable r) {
-                Thread t = new WorkerThreadImpl(null,workerprefixname+c.incrementAndGet(),r,0);
+                Thread t = new WorkerThreadImpl(null,name+c.incrementAndGet(),r,0);
                 t.setDaemon(true);
                 return t;
             }
         });
+        this.name = name;
     }
 
     /**
@@ -223,6 +226,80 @@ public class FixedThreadPool extends AbstractExecutorService{
      */
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getActiveCount() {
+        return 0;
+    }
+
+    public long getTaskCount() {
+        return 0;
+    }
+
+    public long getCompletedTaskCount() {
+        return 0;
+    }
+
+    public int getCorePoolSize() {
+        return maxPoolSize;
+    }
+
+    public void setCorePoolSize(int corePoolSize) {
+    }
+
+    public int getLargestPoolSize() {
+        return maxPoolSize;
+    }
+
+    public int getPoolSize() {
+        return maxPoolSize;
+    }
+
+    public BlockingQueue<Runnable> getQueue() {
+        return workQueue;
+    }
+
+    public int getQueueSize() {
+        return workQueue.size();
+    }
+
+    public long getKeepAliveTime(TimeUnit unit) {
+        return 0;
+    }
+
+    public void setKeepAliveTime(long time, TimeUnit unit) {
+    }
+
+    public int getMaximumPoolSize() {
+        return maxPoolSize;
+    }
+
+    public void setMaximumPoolSize(int maximumPoolSize) {
+    }
+
+    public int getMaxQueuedTasksCount() {
+        return Integer.MAX_VALUE;
+    }
+
+    public void setMaxQueuedTasksCount(int maxTasksCount) {
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setThreadFactory(ThreadFactory threadFactory) {
+    }
+
+    public ThreadFactory getThreadFactory() {
+        return threadFactory;
     }
 
     
