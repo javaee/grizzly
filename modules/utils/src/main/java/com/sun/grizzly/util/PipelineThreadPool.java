@@ -43,6 +43,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
+ *
+ * {@link ExecutorService} implementation, which function the similar way as
+ * former Grizzly 1.x Pipeline based thread pools.
+ * Unlike {@link DefaultThreadPool}, this thread pool, if there are no free
+ * worker threads available, prefers to create new worker thread, up-to maximum,
+ * to process new task. And only if max threads count is reached - this
+ * thread pool will start to add tasks to queue. Where {@link DefaultThreadPool}
+ * first tries to add new task to queue, and only if task queue reaches its
+ * maximum - creates new worker thread.
+ *
  * corethreads are prestarted.<br>
  * maxPoolSize is runtime configurable.<br><br>
  * 
@@ -56,7 +66,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author gustav trede
  */
-public class TestThreadPool extends FixedThreadPool{
+public class PipelineThreadPool extends FixedThreadPool{
 
     private final AtomicInteger queueSize = new AtomicInteger();
     
@@ -67,8 +77,8 @@ public class TestThreadPool extends FixedThreadPool{
     /**
      *
      */
-    public TestThreadPool() {
-        this("GrizzlyWorker-", 8, 64, 30, TimeUnit.SECONDS);
+    public PipelineThreadPool() {
+        this("GrizzlyWorker", 8, 64, 30, TimeUnit.SECONDS);
     }
 
     /**
@@ -79,16 +89,19 @@ public class TestThreadPool extends FixedThreadPool{
      * @param keepAliveTime
      * @param timeUnit {@link TimeUnit}
      */
-    public TestThreadPool(final String workerprefixname,int corePoolsize,
+    public PipelineThreadPool(final String name,int corePoolsize,
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit){
         this(corePoolsize, maxPoolSize, keepAliveTime, timeUnit,new ThreadFactory(){
             private final AtomicInteger c = new AtomicInteger();
             public Thread newThread(Runnable r) {
-                Thread t = new WorkerThreadImpl(null, workerprefixname+c.incrementAndGet(), r,0);
+                Thread t = new WorkerThreadImpl(null,
+                        name + "-" + c.incrementAndGet(), r, 0);
                 t.setDaemon(true);
                 return t;
             }
         });
+
+        this.name = name;
     }
 
     /**
@@ -99,7 +112,7 @@ public class TestThreadPool extends FixedThreadPool{
      * @param timeUnit  {@link TimeUnit}
      * @param threadFactory {@link ThreadFactory}
      */
-    public TestThreadPool(int corePoolsize,int maxPoolSize,
+    public PipelineThreadPool(int corePoolsize,int maxPoolSize,
             long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory){
             this(corePoolsize, maxPoolSize, keepAliveTime, timeUnit,
                     threadFactory, new LinkedTransferQueue<Runnable>());
@@ -114,7 +127,7 @@ public class TestThreadPool extends FixedThreadPool{
      * @param threadFactory {@link ThreadFactory}
      * @param workQueue {@link BlockingQueue}
      */
-    public TestThreadPool(int corePoolsize,int maxPoolSize,
+    public PipelineThreadPool(int corePoolsize,int maxPoolSize,
             long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory,
             BlockingQueue<Runnable> workQueue) {
 
@@ -150,6 +163,7 @@ public class TestThreadPool extends FixedThreadPool{
     /**
      * {@inheritDoc}
      */
+    @Override
     public void execute(Runnable task) {
         if (task == null){
             throw new IllegalArgumentException("Runnable task is null");
@@ -179,6 +193,7 @@ public class TestThreadPool extends FixedThreadPool{
             this.firstTask = firstTask;
         }
     
+        @Override
         protected Runnable getTask() throws InterruptedException {
             Runnable r;
             if (firstTask != null){
@@ -201,11 +216,12 @@ public class TestThreadPool extends FixedThreadPool{
 
     }
 
-    public int getQueuedTasksCount() {
+    @Override
+    public int getQueueSize() {
         return queueSize.get();
     }
-  
 
+    @Override
     public int getCorePoolSize() {
         return corePoolsize;
     }
@@ -214,6 +230,7 @@ public class TestThreadPool extends FixedThreadPool{
      * 
      * @param maxPoolSize
      */
+    @Override
     public void setMaximumPoolSize(int maxPoolSize) {
         synchronized(statelock){
             validateNewPoolsize(corePoolsize, maxPoolSize);
@@ -222,8 +239,13 @@ public class TestThreadPool extends FixedThreadPool{
     }
 
 
+    @Override
     public int getMaximumPoolSize() {
         return maxPoolSize;
     }
 
+    @Override
+    public long getKeepAliveTime(TimeUnit unit) {
+        return unit.convert(idleTimeout, timeUnit);
+    }
 }
