@@ -51,7 +51,10 @@ import com.sun.grizzly.utils.NonBlockingIOClient;
 import com.sun.grizzly.utils.NonBlockingSSLIOClient;
 import com.sun.grizzly.utils.NonBlockingTCPIOClient;
 import com.sun.grizzly.utils.Utils;
+
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -73,24 +76,28 @@ public class PUPreProcessorTest extends TestCase {
     
     
     @Override
-    public void setUp() {
+    public void setUp() throws URISyntaxException {
         sslConfig = new SSLConfig();
         ClassLoader cl = getClass().getClassLoader();
         // override system properties
         URL cacertsUrl = cl.getResource("ppssltest-cacerts.jks");
+        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
         if (cacertsUrl != null) {
-            sslConfig.setTrustStoreFile(cacertsUrl.getFile());
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
         }
-        
-        logger.log(Level.INFO, "SSL certs path: " + sslConfig.getTrustStoreFile());
-        
+
+        logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
+
         // override system properties
         URL keystoreUrl = cl.getResource("ppssltest-keystore.jks");
+        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
         if (keystoreUrl != null) {
-            sslConfig.setKeyStoreFile(keystoreUrl.getFile());
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
         }
-        
-        logger.log(Level.INFO, "SSL keystore path: " + sslConfig.getKeyStoreFile());
+
+        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
         SSLConfig.DEFAULT_CONFIG = sslConfig;
     }
 

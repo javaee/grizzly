@@ -197,6 +197,7 @@ public class GrizzlyWebServerTest extends TestCase {
         gws = new GrizzlyWebServer(PORT, ".", true);
         try {
             gws.start();
+            gws.stop();
             fail("Should not be able to start if default ssl configuration was not created.");
         } catch (IOException e) {
             e.printStackTrace();
@@ -218,6 +219,7 @@ public class GrizzlyWebServerTest extends TestCase {
         System.out.println("testStartSecureWithConfiguration");
         URL resource = getClass().getClassLoader().getResource("test-keystore.jks");
         SSLConfig cfg = new SSLConfig(true);
+        cfg.setKeyStorePass("changeit");
         if (resource != null) {
             cfg.setKeyStoreFile(new File(resource.toURI()).getAbsolutePath());
         } else {
