@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
@@ -88,7 +87,7 @@ public class EchoClient {
             // sync. write the complete message using
             // temporary selectors if required
             writer.writeByteArray(sendBytes);
-            Future<WriteResult> writeFuture = writer.flush();
+            Future<Integer> writeFuture = writer.flush();
             writeFuture.get();
 
             assert writeFuture.isDone();
