@@ -59,6 +59,7 @@ import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ReinvokeAware;
 import com.sun.grizzly.SelectionKeyHandler;
 import com.sun.grizzly.SelectorHandler;
+import com.sun.grizzly.util.ByteBufferFactory;
 
 /**
  * Simple {@link ProtocolFilter} implementation which read the available bytes
@@ -119,6 +120,10 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
 
         if (byteBuffer == null) {
             byteBuffer = ((WorkerThread)Thread.currentThread()).getByteBuffer();
+            if (byteBuffer == null) {
+                byteBuffer = ByteBufferFactory.allocateView(8192, false);
+                ((WorkerThread)Thread.currentThread()).setByteBuffer(byteBuffer);
+            }
         }
 
         if (!byteBuffer.hasRemaining()){

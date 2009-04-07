@@ -822,13 +822,18 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Injects {@link ThreadPoolStatistic} into every
      * {@link ExecutorService}, for monitoring purposes.
      */
-    protected void enableThreadPoolStats(){   
-        threadPoolStat.start();
+    protected void enableThreadPoolStats() {
+        if (threadPool instanceof StatsThreadPool) {
+            threadPoolStat.start();
 
-        keepAliveStats = new KeepAliveStats();
-        StatsThreadPool statsThreadPool = (StatsThreadPool) threadPool;
-        statsThreadPool.setStatistic(threadPoolStat);
-        threadPoolStat.setThreadPool(threadPool);
+            keepAliveStats = new KeepAliveStats();
+            StatsThreadPool statsThreadPool = (StatsThreadPool) threadPool;
+            statsThreadPool.setStatistic(threadPoolStat);
+            threadPoolStat.setThreadPool(threadPool);
+        } else {
+            logger.log(Level.WARNING, "Statistics could be enabled. " +
+                    "You need to use StatsThreadPool in order to enable statistics");
+        }
     }
     
 
@@ -837,12 +842,15 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * {@link ExecutorService}, when monitoring has been turned off.
      */
     protected void disableThreadPoolStats(){
-        threadPoolStat.stop();
-        
-        keepAliveStats = null;
-        StatsThreadPool statsThreadPool = (StatsThreadPool) threadPool;
-        statsThreadPool.setStatistic(null);
-        threadPoolStat.setThreadPool(null);
+        if (threadPool instanceof StatsThreadPool) {
+
+            threadPoolStat.stop();
+
+            keepAliveStats = null;
+            StatsThreadPool statsThreadPool = (StatsThreadPool) threadPool;
+            statsThreadPool.setStatistic(null);
+            threadPoolStat.setThreadPool(null);
+        }
     }
 
     
