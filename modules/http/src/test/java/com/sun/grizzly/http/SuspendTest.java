@@ -609,11 +609,11 @@ public class SuspendTest extends TestCase {
                         });
 
                         try {
-                            latch.await(5, TimeUnit.SECONDS);
+                            latch.await(15, TimeUnit.SECONDS);
                         } catch (Throwable t) {
                             t.printStackTrace();
                         } finally {
-
+			   System.out.println("Timeout failed");
                         }
                     } catch (Throwable t) {
                         t.printStackTrace();
