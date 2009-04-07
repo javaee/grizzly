@@ -90,6 +90,8 @@ import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 
@@ -2064,9 +2066,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             throw new IllegalStateException("Cannot be null");
         }
         
-        if (threadPool instanceof ExtendedThreadPool){
-            ExtendedThreadPool tp = (ExtendedThreadPool) threadPool;
-            if ( !(tp.getThreadFactory().newThread(new Runnable() {
+        ThreadFactory threadFactory = getThreadFactory(threadPool);
+
+        if (threadFactory != null){
+            if ( !(threadFactory.newThread(new Runnable() {
                 public void run() {
                 }
             }) instanceof HttpWorkerThread)){
@@ -2081,6 +2084,16 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                     " instance of " + com.sun.grizzly.http.HttpWorkerThread.class.getName());
         }
         this.threadPool = threadPool;
+    }
+
+    private ThreadFactory getThreadFactory(ExecutorService threadPool) {
+        if (threadPool instanceof ExtendedThreadPool) {
+            return ((ExtendedThreadPool) threadPool).getThreadFactory();
+        } else if (threadPool instanceof ThreadPoolExecutor) {
+            return ((ThreadPoolExecutor) threadPool).getThreadFactory();
+        }
+
+        return null;
     }
 
     public boolean isUseDirectByteBuffer() {
