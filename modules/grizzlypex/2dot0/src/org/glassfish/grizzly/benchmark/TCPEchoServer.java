@@ -64,7 +64,7 @@ public class TCPEchoServer {
         memoryManager.setMonitoring(false);
 
         DefaultThreadPool threadPool = (DefaultThreadPool)
-                transportFactory.getDefaultThreadPool();
+                transportFactory.getDefaultWorkerThreadPool();
         int poolSize = (settings.getWorkerThreads());
 
         threadPool.setMaximumPoolSize(poolSize);
