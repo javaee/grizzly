@@ -114,7 +114,7 @@ public class ReadController extends Controller {
         stoppedSelectorHandlerCounter = new AtomicInteger(selectorHandlerCount);
 
         for (SelectorHandler selectorHandler : selectorHandlers) {
-            startSelectorHandlerRunner(selectorHandler, selectorHandlerCount>0);
+            startSelectorHandlerRunner(selectorHandler);
         }
 
         waitUntilSeletorHandlersStop();
