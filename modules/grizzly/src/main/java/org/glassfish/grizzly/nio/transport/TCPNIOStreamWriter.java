@@ -114,11 +114,11 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
                 overflow(new CompletionHandler<Integer>() {
 
                     public void cancelled(Connection connection) {
-                        close(0);
+                        close(ZERO);
                     }
 
                     public void failed(Connection connection, Throwable throwable) {
-                        close(0);
+                        close(ZERO);
                     }
 
                     public void completed(Connection connection, Integer result) {
@@ -147,10 +147,10 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             return future;
         } else {
             if (completionHandler != null) {
-                completionHandler.completed(null, 0);
+                completionHandler.completed(null, ZERO);
             }
 
-            return new ReadyFutureImpl(0);
+            return new ReadyFutureImpl(ZERO);
         }
     }
 

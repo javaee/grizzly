@@ -50,6 +50,7 @@ import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.impl.ReadyFutureImpl;
 
 /**
  * Write the primitive Java type to the current ByteBuffer.  If it doesn't
@@ -60,6 +61,10 @@ import org.glassfish.grizzly.Connection;
  * @author Ken Cavanaugh
  */
 public abstract class AbstractStreamWriter implements StreamWriter {
+    protected static final Integer ZERO = new Integer(0);
+    protected static final Future<Integer> ZERO_READY_FUTURE =
+            new ReadyFutureImpl<Integer>(ZERO);
+    
     protected Connection connection;
 
     private boolean isBlocking;
@@ -103,12 +108,18 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         Future future = null;
 
         if (buffer != null) {
-            future = flush0(buffer, completionHandler);
-            if (!future.isDone()) {
-                buffer = newBuffer(bufferSize);
+            if (buffer.position() > 0) {
+                future = flush0(buffer, completionHandler);
+                if (!future.isDone()) {
+                    buffer = newBuffer(bufferSize);
+                }
+                initBuffer();
+            } else {
+                future = ZERO_READY_FUTURE;
+                if (completionHandler != null) {
+                    completionHandler.completed(connection, ZERO);
+                }
             }
-
-            initBuffer();
         } else {
             buffer = newBuffer(bufferSize);
             initBuffer();
