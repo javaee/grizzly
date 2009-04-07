@@ -148,7 +148,7 @@ public class Main {
 
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         WebFilter webFilter = new WebFilter("web-" + port);
-        webFilter.setAdapter(adapter);
+        webFilter.getConfig().setAdapter(adapter);
 
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(webFilter);

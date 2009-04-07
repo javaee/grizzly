@@ -47,9 +47,12 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
-import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 import org.glassfish.grizzly.web.WebFilter;
+import org.glassfish.grizzly.web.arp.AsyncExecutor;
 import org.glassfish.grizzly.web.arp.AsyncWebFilter;
+import org.glassfish.grizzly.web.arp.AsyncWebFilterConfig;
+import org.glassfish.grizzly.web.container.StaticResourcesAdapter;
+import org.glassfish.grizzly.web.container.util.http.mapper.Mapper;
 
 
 /**
@@ -405,7 +408,7 @@ public class GrizzlyWebServer {
         this.webResourcesPath = webResourcesPath;
         this.isSecure = isSecure;
         this.webFilter = new AsyncWebFilter(Integer.toString(port));
-        webFilter.setAsyncEnabled(false);
+        webFilter.getConfig().setAsyncEnabled(false);
         this.transport = TransportFactory.getInstance().createTCPTransport();
         
         sslConfiguration = new SSLEngineConfigurator(
@@ -436,7 +439,7 @@ public class GrizzlyWebServer {
         adapterChains.setHandleStaticResources(false);
         if (isStarted) {
             grizzlyAdapter.start();
-            Adapter ga = webFilter.getAdapter();
+            Adapter ga = webFilter.getConfig().getAdapter();
             if (ga instanceof GrizzlyAdapterChain){
                 ((GrizzlyAdapterChain) ga).addGrizzlyAdapter(grizzlyAdapter,
                         mapping);
@@ -457,7 +460,7 @@ public class GrizzlyWebServer {
         }
         boolean removed = adapters.remove(grizzlyAdapter) != null;
         if (isStarted) {
-            Adapter ga = webFilter.getAdapter();
+            Adapter ga = webFilter.getConfig().getAdapter();
             if (ga instanceof GrizzlyAdapterChain){
                 ((GrizzlyAdapterChain)ga).removeAdapter(grizzlyAdapter);
             } else {
@@ -519,19 +522,20 @@ public class GrizzlyWebServer {
     }
 
     /**
-     * Get {@link GrizzlyWebServer} underlying {@link WebFilter}.
-     * @return {@link GrizzlyWebServer} underlying {@link WebFilter}.
+     * Get {@link GrizzlyWebServer} underlying {@link AsyncWebFilterConfig}.
+     * @return {@link GrizzlyWebServer} underlying {@link AsyncWebFilterConfig}.
      */
-    public WebFilter getWebFilter() {
-        return webFilter;
+    public AsyncWebFilterConfig getWebConfig() {
+        return webFilter.getConfig();
     }
 
     /**
-     * Set {@link GrizzlyWebServer} underlying {@link WebFilter}.
-     * @param webFilter {@link GrizzlyWebServer} underlying {@link WebFilter}.
+     * Set {@link GrizzlyWebServer} underlying {@link AsyncWebFilterConfig}.
+     * @param webFilter {@link GrizzlyWebServer}
+     *                  underlying {@link AsyncWebFilterConfig}.
      */
-    public void setWebFilter(WebFilter webFilter) {
-        this.webFilter = (AsyncWebFilter) webFilter;
+    public void setWebFilter(AsyncWebFilterConfig webConfig) {
+        webFilter.setConfig(webConfig);
     }
 
     /**
@@ -584,12 +588,12 @@ public class GrizzlyWebServer {
         isStarted = true;
 
         if (asyncFilters.size() > 0){
-            webFilter.setAsyncEnabled(true);
+            webFilter.getConfig().setAsyncEnabled(true);
             AsyncHandler asyncHandler = new DefaultAsyncHandler();
             for (AsyncFilter asyncFilter: asyncFilters){
                 asyncHandler.addAsyncFilter(asyncFilter); 
             }
-            webFilter.setAsyncHandler(asyncHandler);
+            webFilter.getConfig().setAsyncHandler(asyncHandler);
         }
         
         // Use the default
@@ -612,9 +616,9 @@ public class GrizzlyWebServer {
         if (adapters.size() == 0) {
             adapterChains.setRootFolder(webResourcesPath);
             adapterChains.setHandleStaticResources(true);
-            webFilter.setAdapter(adapterChains);
+            webFilter.getConfig().setAdapter(adapterChains);
         } else if (adapters.size() == 1) {
-            webFilter.setAdapter(adapters.keySet().iterator().next());
+            webFilter.getConfig().setAdapter(adapters.keySet().iterator().next());
             adapters.keySet().iterator().next().setRootFolder(webResourcesPath);
         } else {          
             for (Entry<GrizzlyAdapter,String[]> entry : adapters.entrySet()) {
@@ -625,7 +629,7 @@ public class GrizzlyWebServer {
                     adapterChains.addGrizzlyAdapter(entry.getKey(), entry.getValue());
                 }
             }
-            webFilter.setAdapter(adapterChains);
+            webFilter.getConfig().setAdapter(adapterChains);
             adapterChains.setHandleStaticResources(true);
             adapterChains.setRootFolder(webResourcesPath);
         }
@@ -661,24 +665,6 @@ public class GrizzlyWebServer {
         
         return statistics;
     } 
- 
-    /**
-     * Set the initial number of  threads in a thread pool.
-     * @param coreThreads the initial number of threads in a thread pool.
-     */
-    public void setCoreThreads(int coreThreads) {
-        ((ExtendedThreadPool) transport.getWorkerThreadPool()).
-                setCorePoolSize(coreThreads);
-    }
-
-    /**
-     * Set the maximum number of  threads in a thread pool.
-     * @param maxThreads the maximum number of threads in a thread pool.
-     */
-    public void setMaxThreads(int maxThreads) {
-        ((ExtendedThreadPool) transport.getWorkerThreadPool()).
-                setMaximumPoolSize(maxThreads);
-    }
     
     /**
      * Stop the GrizzlyWebServer.

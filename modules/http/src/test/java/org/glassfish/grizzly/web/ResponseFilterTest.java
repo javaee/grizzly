@@ -71,9 +71,11 @@ public class ResponseFilterTest extends TestCase {
     public void initTransport(Adapter adapter) {
         transport = TransportFactory.getInstance().createTCPTransport();
 
-        webFilter = new WebFilter("response-filter-test");
-        webFilter.setAdapter(adapter);
-        webFilter.getConfig().setDisplayConfiguration(true);
+        WebFilterConfig webConfig = new WebFilterConfig();
+        webConfig.setAdapter(adapter);
+        webConfig.setDisplayConfiguration(true);
+
+        webFilter = new WebFilter("response-filter-test", webConfig);
         webFilter.enableMonitoring();
 
         transport.getFilterChain().add(new TransportFilter());

@@ -76,22 +76,24 @@ public class WebFilterStatsTest extends TestCase {
         transport = TransportFactory.getInstance().createTCPTransport();
         ((ExtendedThreadPool) transport.getWorkerThreadPool()).setMaximumPoolSize(50);
 
-        webFilter = new WebFilter("stats-test");
-        
-        webFilter.setAdapter(new MyAdapter());
-        webFilter.getConfig().setCompression("off"); // don't let proxy compress stuff that's already compressed.
-        webFilter.getConfig().setDisplayConfiguration(true);
+        WebFilterConfig webConfig = new WebFilterConfig();
+        webConfig.setAdapter(new MyAdapter());
+        webConfig.setCompression("off"); // don't let proxy compress stuff that's already compressed.
+        webConfig.setDisplayConfiguration(true);
 
         FileCache fileCache = new FileCache(webFilter);
         fileCache.setLargeFileCacheEnabled(false);
-        webFilter.setFileCache(fileCache);
+        webConfig.setFileCache(fileCache);
 
-        webFilter.getConfig().setBufferResponse(false);
-        webFilter.getConfig().setKeepAliveTimeoutInSeconds(30000);
+        webConfig.setBufferResponse(false);
+        webConfig.setKeepAliveTimeoutInSeconds(30000);
 
+
+        webConfig.setRequestBufferSize(32768);
+        webConfig.setMaxKeepAliveRequests(8196);
+
+        webFilter = new WebFilter("stats-test", webConfig);
         
-        webFilter.getConfig().setRequestBufferSize(32768);
-        webFilter.getConfig().setMaxKeepAliveRequests(8196);
         webFilter.enableMonitoring();
         
         //st.setKeepAliveThreadCount(500);

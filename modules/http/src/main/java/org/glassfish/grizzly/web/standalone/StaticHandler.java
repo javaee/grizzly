@@ -93,7 +93,7 @@ public class StaticHandler implements Interceptor<Request> {
         this.writer = writer;
         
         if (fileCache == null && writer != null){
-            fileCache = webFilter.getFileCache();
+            fileCache = webFilter.getConfig().getFileCache();
         }
     }    
     

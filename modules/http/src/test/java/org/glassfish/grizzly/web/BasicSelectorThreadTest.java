@@ -83,7 +83,7 @@ public class BasicSelectorThreadTest extends TestCase {
         final byte[] testData = testString.getBytes();
         try {
             initTransport();
-            webFilter.setAdapter(new HelloWorldAdapter());
+            webFilter.getConfig().setAdapter(new HelloWorldAdapter());
 
             try {
                 webFilter.initialize();

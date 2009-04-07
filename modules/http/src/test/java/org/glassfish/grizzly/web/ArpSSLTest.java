@@ -57,6 +57,7 @@ import org.glassfish.grizzly.web.arp.AsyncExecutor;
 import org.glassfish.grizzly.web.arp.AsyncFilter;
 import org.glassfish.grizzly.web.arp.AsyncHandler;
 import org.glassfish.grizzly.web.arp.AsyncWebFilter;
+import org.glassfish.grizzly.web.arp.AsyncWebFilterConfig;
 import org.glassfish.grizzly.web.arp.DefaultAsyncHandler;
 import org.glassfish.grizzly.web.container.Adapter;
 import org.glassfish.grizzly.web.container.OutputBuffer;
@@ -105,28 +106,29 @@ public class ArpSSLTest extends TestCase {
     public void testSimplePacket() throws IOException {
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
 
-        webFilter = new AsyncWebFilter("async-filter");
-
-        webFilter.setAdapter(new MyAdapter());
+        AsyncWebFilterConfig webConfig = new AsyncWebFilterConfig();
+        webConfig.setAdapter(new MyAdapter());
 
         FileCache fileCache = new FileCache(webFilter);
         fileCache.setLargeFileCacheEnabled(false);
-        webFilter.setFileCache(fileCache);
+        webConfig.setFileCache(fileCache);
 
-        WebFilterConfig config = webFilter.getConfig();
-        config.setDisplayConfiguration(true);
-        config.setBufferResponse(false);
-        config.setKeepAliveTimeoutInSeconds(2000);
+        webConfig.setDisplayConfiguration(true);
+        webConfig.setBufferResponse(false);
+        webConfig.setKeepAliveTimeoutInSeconds(2000);
 
-        config.setRequestBufferSize(32768);
-        config.setMaxKeepAliveRequests(8196);
+        webConfig.setRequestBufferSize(32768);
+        webConfig.setMaxKeepAliveRequests(8196);
 
-        config.setWebAppRootPath("/dev/null");
+        webConfig.setWebAppRootPath("/dev/null");
 
         AsyncHandler handler = new DefaultAsyncHandler();
         handler.addAsyncFilter(new MyAsyncFilter());
-        webFilter.setAsyncHandler(handler);
-        webFilter.setAdapter(new MyAdapter());
+        webConfig.setAsyncHandler(handler);
+
+        webFilter = new AsyncWebFilter("async-filter", webConfig);
+
+
 
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(new SSLFilter(new SSLEngineConfigurator(

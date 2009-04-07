@@ -49,17 +49,14 @@ import javax.management.MBeanRegistration;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TerminateAction;
-import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLStreamReader;
 import org.glassfish.grizzly.ssl.SSLStreamWriter;
@@ -68,7 +65,6 @@ import org.glassfish.grizzly.util.LinkedTransferQueue;
 import org.glassfish.grizzly.web.container.Adapter;
 import org.glassfish.grizzly.web.container.RequestGroupInfo;
 import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
-import org.glassfish.grizzly.web.container.util.Interceptor;
 import org.glassfish.grizzly.web.container.util.res.StringManager;
 
 
@@ -97,7 +93,8 @@ import org.glassfish.grizzly.web.container.util.res.StringManager;
  * 
  * @author Jean-Francois Arcand
  */
-public class WebFilter extends FilterAdapter implements MBeanRegistration {
+public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
+        implements MBeanRegistration {
     /**
      * The logger used by the grizzly classes.
      */
@@ -111,30 +108,11 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             
     protected String name;
 
-    protected WebFilterConfig config;
+    protected T config;
     
     protected WebFilterJMXManager jmxManager;
     
     // ------------------------------------------------- FileCache support --//
-
-    /**
-     * The FileCache associated with this Selector
-     */
-    protected FileCache fileCache;
-
-    /**
-     * Associated adapter.
-     */
-    protected Adapter adapter = null;
-
-    protected Interceptor interceptor;
-
-    protected MemoryManager memoryManager;
-
-    protected ExecutorService workerThreadPool;
-
-    protected ScheduledExecutorService scheduledThreadPool;
-
     /**
      * Keep-alive stats
      */
@@ -143,10 +121,6 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     private static Attribute<Integer> keepAliveCounterAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             "connection-keepalive-counter", 0);
-
-    private static Attribute<Boolean> isSuspendAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            "is-suspend-connection", false);
 
     /**
      * Placeholder for {@link ExecutorService} statistic.
@@ -199,38 +173,16 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * Create the {@link WebFilter} with the specific name.
      */
     public WebFilter(String name) {
-        this(name, new WebFilterConfig());
+        this(name, (T) new WebFilterConfig());
     }
 
     /**
      * Create the {@link WebFilter} with the specific name.
      */
-    public WebFilter(String name, WebFilterConfig config) {
-        this(name, config,
-                TransportFactory.getInstance().getDefaultWorkerThreadPool());
-    }
-
-    /**
-     * Create the {@link WebFilter} with the specific name.
-     */
-    public WebFilter(String name, WebFilterConfig config,
-            ExecutorService threadPool) {
-        this(name, config, threadPool,
-                TransportFactory.getInstance().getDefaultMemoryManager());
-    }
-    /**
-     * Create the {@link WebFilter} with the specific name.
-     */
-    public WebFilter(String name, WebFilterConfig config,
-            ExecutorService threadPool, MemoryManager memoryManager) {
+    public WebFilter(String name, T config) {
         this.name = name;
         this.config = config;
-        this.workerThreadPool = threadPool;
-        this.memoryManager = memoryManager;
-        
         jmxManager = new WebFilterJMXManager(this);
-        scheduledThreadPool = (ScheduledExecutorService)
-                TransportFactory.getInstance().getDefaultScheduledThreadPool();
     }
 
 
@@ -259,7 +211,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
             keepAliveStats.incrementCountHits();
         }
 
-        configureProcessorTask(processorTask, ctx, interceptor);
+        configureProcessorTask(processorTask, ctx);
 
         try {
             keepAlive = processorTask.process(ctx.getStreamReader(),
@@ -317,9 +269,10 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * Configure {@link ProcessorTask}.
      */
     protected void configureProcessorTask(ProcessorTask processorTask,
-            FilterChainContext context, Interceptor handler) {
+            FilterChainContext context) {
         processorTask.setConnection(context.getConnection());
-        processorTask.setHandler(handler);
+        processorTask.setHandler(config.getInterceptor());
+        processorTask.setAdapter(config.getAdapter());
         processorTask.setFilterChainContext(context);
         
         // If current StreamReader is SSL
@@ -346,11 +299,11 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         this.name = name;
     }
 
-    public WebFilterConfig getConfig() {
+    public T getConfig() {
         return config;
     }
 
-    public void setConfig(WebFilterConfig config) {
+    public void setConfig(T config) {
         this.config = config;
     }
 
@@ -363,79 +316,8 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     }
 
 
-    //------------------------------------------------- FileCache config -----/
-
-    public FileCache getFileCache() {
-        return fileCache;
-    }
-
-    public void setFileCache(FileCache fileCache) {
-        this.fileCache = fileCache;
-    }
-
-    /**
-     * Set the associated adapter.
-     *
-     * @param adapter the new adapter
-     */
-    public void setAdapter(Adapter adapter) {
-        this.adapter = adapter;
-        reconfigureAdapter();
-    }
-
-
-    /**
-     * Get the associated adapter.
-     *
-     * @return the associated adapter
-     */
-    public Adapter getAdapter() {
-        return adapter;
-    }
-
-    public Interceptor getInterceptor() {
-        return interceptor;
-    }
-
-    public void setInterceptor(Interceptor interceptor) {
-        this.interceptor = interceptor;
-    }
-
-    public MemoryManager getMemoryManager() {
-        return memoryManager;
-    }
-
-    public void setMemoryManager(MemoryManager memoryManager) {
-        this.memoryManager = memoryManager;
-    }
-
-    public ExecutorService getWorkerThreadPool() {
-        return workerThreadPool;
-    }
-
-    public void setWorkerThreadPool(ExecutorService threadPool) {
-        this.workerThreadPool = threadPool;
-    }
-
-    public ScheduledExecutorService getScheduledThreadPool() {
-        return scheduledThreadPool;
-    }
-
-    public void setScheduledThreadPool(ScheduledExecutorService scheduledThreadPool) {
-        this.scheduledThreadPool = scheduledThreadPool;
-    }
-
     public ThreadPoolStatistic getThreadPoolStatistic() {
         return threadPoolStat;
-    }
-
-    /*
-     * Reconfigure {@link Adapter} on already configured {@link ProcessorTask}
-     */
-    protected void reconfigureAdapter(){
-        for(ProcessorTask task : processorTasks){
-            task.setAdapter(adapter);
-        }
     }
 
     /**
@@ -443,7 +325,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
      * {@link ExecutorService}, for monitoring purposes.
      */
     protected void enableThreadPoolStats(){   
-        threadPoolStat.setThreadPool(workerThreadPool);
+        threadPoolStat.setThreadPool(config.getWorkerThreadPool());
         threadPoolStat.start();
 
         keepAliveStats = new KeepAliveStats();
@@ -495,7 +377,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     
     
     protected ProcessorTask initializeProcessorTask(ProcessorTask task) {
-        task.setAdapter(adapter);
+        task.setAdapter(config.getAdapter());
         task.setWebFilter(this);
         return config.initializeProcessorTask(task);
     }
@@ -537,6 +419,8 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         initMonitoringLevel();
         
         int processorTasksToInit;
+
+        ExecutorService workerThreadPool = config.getWorkerThreadPool();
         if (workerThreadPool instanceof ExtendedThreadPool) {
             processorTasksToInit =
                     ((ExtendedThreadPool) workerThreadPool).getMaximumPoolSize();
@@ -546,6 +430,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         
         initProcessorTasks(processorTasksToInit);
 
+        Adapter adapter = config.getAdapter();
         if (adapter instanceof GrizzlyAdapter) {
             ((GrizzlyAdapter) adapter).start();
         }
@@ -555,6 +440,8 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     public void release() {
         processorTasks.clear();
 
+        Adapter adapter = config.getAdapter();
+        
         if (adapter instanceof GrizzlyAdapter) {
             ((GrizzlyAdapter) adapter).destroy();
         }
@@ -608,6 +495,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
         config.setMonitoringEnabled(true);
         enableThreadPoolStats();
 
+        FileCache fileCache = config.getFileCache();
         if (fileCache != null) {
             fileCache.setMonitoringEnabled(true);
         }
@@ -619,6 +507,8 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     public void disableMonitoring(){
         disableThreadPoolStats();
         config.setMonitoringEnabled(false);
+        
+        FileCache fileCache = config.getFileCache();
         if (fileCache != null) {
             fileCache.setMonitoringEnabled(false);
         }
@@ -657,7 +547,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
 
                 fileCacheMbeanName = new ObjectName(
                     domain + ":type=FileCache,name=GrizzlyHttpEngine-" + name);
-                jmxManager.registerComponent(fileCache, fileCacheMbeanName, null);
+                jmxManager.registerComponent(config.getFileCache(), fileCacheMbeanName, null);
             } catch (Exception ex) {
                 logger.log(Level.WARNING,
                             sm.getString("selectorThread.mbeanRegistrationException"),
@@ -731,7 +621,7 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     protected void initMonitoringLevel() {
         if (threadPoolStat != null) return;
         threadPoolStat = new ThreadPoolStatistic(name);
-        threadPoolStat.setThreadPool(workerThreadPool);
+        threadPoolStat.setThreadPool(config.getWorkerThreadPool());
     }
      
     /**
@@ -756,8 +646,11 @@ public class WebFilter extends FilterAdapter implements MBeanRegistration {
     /**
      * Display the Grizzly configuration parameters.
      */
-    protected void displayConfiguration(){
-       if (config.isDisplayConfiguration()){
+    protected void displayConfiguration() {
+        if (config.isDisplayConfiguration()) {
+            FileCache fileCache = config.getFileCache();
+            Adapter adapter = config.getAdapter();
+
             logger.log(Level.INFO,
                     "\n Grizzly configuration"
                     + "\n\t name: "

@@ -380,7 +380,7 @@ public class FileCache {
             if ( size < minEntrySize) {
                 ((MappedByteBuffer)bb).load();
             }
-            return MemoryUtils.wrap(webFilter.getMemoryManager(), bb);
+            return MemoryUtils.wrap(webFilter.getConfig().getMemoryManager(), bb);
         } catch (IOException ioe) {
             return null;
         } finally {
@@ -486,7 +486,8 @@ public class FileCache {
      */
     private void configHeaders(FileCacheEntry entry) {
         if ( entry.headerBuffer == null ) {
-            entry.headerBuffer = webFilter.getMemoryManager().allocate(
+            entry.headerBuffer =
+                    webFilter.getConfig().getMemoryManager().allocate(
                     getHeaderBBSize());
         }
         

@@ -40,55 +40,32 @@ package org.glassfish.grizzly.web.arp;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.StopAction;
 import org.glassfish.grizzly.filterchain.TerminateAction;
-import org.glassfish.grizzly.memory.MemoryManager;
+import org.glassfish.grizzly.web.FileCache;
 import org.glassfish.grizzly.web.ProcessorTask;
 import org.glassfish.grizzly.web.TaskEvent;
 import org.glassfish.grizzly.web.TaskListener;
 import org.glassfish.grizzly.web.WebFilter;
-import org.glassfish.grizzly.web.WebFilterConfig;
-import org.glassfish.grizzly.web.container.util.Interceptor;
+import org.glassfish.grizzly.web.container.Adapter;
 
 /**
  *
  * @author Alexey Stashok
  */
-public class AsyncWebFilter extends WebFilter implements TaskListener {
-
-    // --------------------------------------------- Asynch supports -----//
-
-    protected boolean isAsyncEnabled = true;
-    
-    /**
-     * When the asynchronous mode is enabled, the execution of this object
-     * will be delegated to the {@link AsyncHandler}
-     */
-    protected AsyncHandler asyncHandler;
-
-
+public class AsyncWebFilter extends WebFilter<AsyncWebFilterConfig>
+        implements TaskListener {
 
     public AsyncWebFilter(String name) {
-        super(name);
+        this(name, new AsyncWebFilterConfig());
     }
 
-    public AsyncWebFilter(String name, WebFilterConfig config) {
+    public AsyncWebFilter(String name, AsyncWebFilterConfig config) {
         super(name, config);
-    }
-
-    public AsyncWebFilter(String name, WebFilterConfig config,
-            ExecutorService threadPool) {
-        super(name, config, threadPool);
-    }
-
-    public AsyncWebFilter(String name, WebFilterConfig config,
-            ExecutorService threadPool, MemoryManager memoryManager) {
-        super(name, config, threadPool, memoryManager);
     }
 
     /**
@@ -100,12 +77,14 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
     @Override
     public NextAction handleRead(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
-        if (isAsyncEnabled) {
+
+        if (config.isAsyncEnabled()) {
             ProcessorTask processor = getProcessorTask(ctx);
-            configureProcessorTask(processor, ctx, interceptor);
+            configureProcessorTask(processor, ctx);
 
             try {
-                getAsyncHandler().handle(processor);
+                config.getAsyncHandler().handle(
+                        processor);
             } catch (Throwable ex) {
                 logger.log(Level.INFO, "Processor exception", ex);
                 ctx.getConnection().close();
@@ -163,11 +142,11 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
      */
     @Override
     protected void configureProcessorTask(ProcessorTask processorTask,
-            FilterChainContext context, Interceptor handler) {
+            FilterChainContext context) {
         
-        super.configureProcessorTask(processorTask, context, handler);
+        super.configureProcessorTask(processorTask, context);
         
-        if (isAsyncEnabled) {
+        if (config.isAsyncEnabled()) {
             processorTask.setEnableAsyncExecution(true);
             processorTask.setTaskListener(this);
             processorTask.setInputStream(context.getStreamReader());
@@ -180,37 +159,12 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
     @Override
     protected ProcessorTask initializeProcessorTask(ProcessorTask task) {
         task = super.initializeProcessorTask(task);
-        if (isAsyncEnabled) {
+        if (config.isAsyncEnabled()) {
             task.setEnableAsyncExecution(true);
-            task.setAsyncHandler(asyncHandler);
+            task.setAsyncHandler(config.getAsyncHandler());
         }
         
         return task;
-    }
-
-    public boolean isAsyncEnabled() {
-        return isAsyncEnabled;
-    }
-
-    public void setAsyncEnabled(boolean isAsyncEnabled) {
-        this.isAsyncEnabled = isAsyncEnabled;
-    }
-
-    /**
-     * Set the {@link AsyncHandler} used when asynchronous execution is
-     * enabled.
-     */
-    public void setAsyncHandler(AsyncHandler asyncHandler){
-        this.asyncHandler = asyncHandler;
-    }
-
-
-    /**
-     * Return the {@link AsyncHandler} used when asynchronous execution is
-     * enabled.
-     */
-    public AsyncHandler getAsyncHandler(){
-        return asyncHandler;
     }
 
     // ------------------------------------------------------ Debug ---------//
@@ -222,6 +176,10 @@ public class AsyncWebFilter extends WebFilter implements TaskListener {
     @Override
     protected void displayConfiguration() {
        if (config.isDisplayConfiguration()) {
+            FileCache fileCache = config.getFileCache();
+            Adapter adapter = config.getAdapter();
+            boolean isAsyncEnabled = config.isAsyncEnabled();
+            
             logger.log(Level.INFO,
                     "\n Grizzly configuration"
                     + "\n\t name: "

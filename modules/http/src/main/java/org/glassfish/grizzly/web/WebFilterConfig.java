@@ -42,13 +42,39 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ScheduledExecutorService;
+import org.glassfish.grizzly.TransportFactory;
+import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.WorkerThread;
+import org.glassfish.grizzly.web.container.Adapter;
+import org.glassfish.grizzly.web.container.util.Interceptor;
 import org.glassfish.grizzly.web.container.util.IntrospectionUtils;
 
 public class WebFilterConfig {
     public final static String SERVER_NAME =
             System.getProperty("product.name") != null
                 ? System.getProperty("product.name") : "grizzly";
+
+
+    /**
+     * The FileCache associated with this Selector
+     */
+    protected FileCache fileCache;
+
+    /**
+     * Associated adapter.
+     */
+    protected Adapter adapter = null;
+
+    protected Interceptor interceptor;
+
+    protected MemoryManager memoryManager;
+
+    protected ExecutorService workerThreadPool;
+
+    protected ScheduledExecutorService scheduledThreadPool;
+
 
     // ------------------------------------------- HTTP connection setting --/
     protected int maxKeepAliveRequests = Constants.DEFAULT_MAX_KEEP_ALIVE;
@@ -173,6 +199,16 @@ public class WebFilterConfig {
      */
     protected int uploadTimeout = 30000;
 
+    public WebFilterConfig() {
+        memoryManager =
+                TransportFactory.getInstance().getDefaultMemoryManager();
+        workerThreadPool =
+                TransportFactory.getInstance().getDefaultWorkerThreadPool();
+        scheduledThreadPool =
+                TransportFactory.getInstance().getDefaultScheduledThreadPool();
+        
+        this.properties = new Properties();
+    }
 
     // ---------------- Configure ProcessorTask -----------------------
     public ProcessorTask initializeProcessorTask(ProcessorTask task) {
@@ -201,6 +237,55 @@ public class WebFilterConfig {
         processorTask.addRestrictedUserAgent(restrictedUserAgents);
     }
 
+    public Adapter getAdapter() {
+        return adapter;
+    }
+
+    public void setAdapter(Adapter adapter) {
+        this.adapter = adapter;
+    }
+
+    public FileCache getFileCache() {
+        return fileCache;
+    }
+
+    public void setFileCache(FileCache fileCache) {
+        this.fileCache = fileCache;
+    }
+
+    public Interceptor getInterceptor() {
+        return interceptor;
+    }
+
+    public void setInterceptor(Interceptor interceptor) {
+        this.interceptor = interceptor;
+    }
+
+    public MemoryManager getMemoryManager() {
+        return memoryManager;
+    }
+
+    public void setMemoryManager(MemoryManager memoryManager) {
+        this.memoryManager = memoryManager;
+    }
+
+    public ScheduledExecutorService getScheduledThreadPool() {
+        return scheduledThreadPool;
+    }
+
+    public void setScheduledThreadPool(ScheduledExecutorService scheduledThreadPool) {
+        this.scheduledThreadPool = scheduledThreadPool;
+    }
+
+    public ExecutorService getWorkerThreadPool() {
+        return workerThreadPool;
+    }
+
+    public void setWorkerThreadPool(ExecutorService workerThreadPool) {
+        this.workerThreadPool = workerThreadPool;
+    }
+
+
     // ------------- Server name ---------------------//
 
     public String getServerName() {
@@ -223,10 +308,6 @@ public class WebFilterConfig {
 
 
     private Properties properties;
-
-    public WebFilterConfig() {
-        this.properties = new Properties();
-    }
 
     // ------------------------------------------------------ Connector Methods
 

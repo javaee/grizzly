@@ -71,9 +71,11 @@ public class RedirectTest extends TestCase {
     public void initTransport(GrizzlyAdapter adapter) {
         transport = TransportFactory.getInstance().createTCPTransport();
         
-        webFilter = new WebFilter("redirect-test");
-        webFilter.setAdapter(adapter);
-        webFilter.getConfig().setDisplayConfiguration(true);
+        WebFilterConfig webConfig = new WebFilterConfig();
+        webConfig.setAdapter(adapter);
+        webConfig.setDisplayConfiguration(true);
+
+        webFilter = new WebFilter("redirect-test", webConfig);
         webFilter.enableMonitoring();
 
         transport.getFilterChain().add(new TransportFilter());

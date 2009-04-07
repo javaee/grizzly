@@ -648,7 +648,8 @@ public class ProcessorTask extends TaskBase implements Processor,
         // Do not commit the response;
         if (response.isSuspended()) {
             SuspendedResponse suspendedResponse = response.getSuspendedResponse();
-            ScheduledFuture future = webFilter.getScheduledThreadPool().schedule(
+            ScheduledFuture future = webFilter.getConfig().
+                    getScheduledThreadPool().schedule(
                     suspendedResponse,
                     suspendedResponse.getTimeout(),
                     TimeUnit.MILLISECONDS);
@@ -1106,7 +1107,8 @@ public class ProcessorTask extends TaskBase implements Processor,
             SuspendedResponse suspendedResponse = response.getSuspendedResponse();
             if (suspendedResponse != null && suspendedResponse.getFuture() != null) {
                 suspendedResponse.getFuture().cancel(false);
-                suspendedResponse.setFuture(webFilter.getScheduledThreadPool().
+                suspendedResponse.setFuture(
+                        webFilter.getConfig().getScheduledThreadPool().
                         schedule(suspendedResponse,
                         suspendedResponse.getTimeout(), TimeUnit.MILLISECONDS));
             }
