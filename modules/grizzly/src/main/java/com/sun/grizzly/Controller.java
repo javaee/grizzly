@@ -699,7 +699,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             if (stoppedSelectorHandlerCounter != null) {
                 stoppedSelectorHandlerCounter.incrementAndGet();
             }
-            startSelectorHandlerRunner(selectorHandler, true);
+            startSelectorHandlerRunner(selectorHandler);
         }
     }
 
@@ -937,16 +937,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
 
                 Iterator<SelectorHandler> it = selectorHandlers.iterator();
-                if (selectorHandlerCount > 1) {
-                    for (; it.hasNext() && selectorHandlerCount-- > 0;) {
-                        SelectorHandler selectorHandler = it.next();
-                        startSelectorHandlerRunner(selectorHandler, true);
-                    }
-                } else if (it.hasNext()) {
+                for (; it.hasNext() && selectorHandlerCount-- > 0;) {
                     SelectorHandler selectorHandler = it.next();
-                    stateHolder.getStateLocker().writeLock().unlock();
-                    isUnlocked = true;
-                    startSelectorHandlerRunner(selectorHandler, false);
+                    startSelectorHandlerRunner(selectorHandler);
                 }
             }
         } finally {
@@ -1120,10 +1113,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     /**
      * Starts <code>SelectorHandlerRunner</code>
      * @param selectorHandler
-     * @param isRunAsync if true - <code>SelectorHandlerRunner</code> will be run
-     *          in separate <code>Thread</code>, if false - in current <code>Thread</code>
      */
-    protected void startSelectorHandlerRunner(SelectorHandler selectorHandler, boolean async) {
+    protected void startSelectorHandlerRunner(SelectorHandler selectorHandler) {
         if (selectorHandler.getThreadPool() == null){
             selectorHandler.setThreadPool(threadPool);
         }
@@ -1133,12 +1124,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (selectorHandler.getSelector() != null) {
             notifyReady();
         }
-        if (async){
-            new WorkerThreadImpl("GrizzlySelectorRunner-" + selectorHandler.protocol(),
-                    selectorRunner).start();
-        }else{
-            selectorRunner.run();
-        }
+        new WorkerThreadImpl("GrizzlySelectorRunner-" + selectorHandler.protocol(),
+                selectorRunner).start();
     }
 
 
