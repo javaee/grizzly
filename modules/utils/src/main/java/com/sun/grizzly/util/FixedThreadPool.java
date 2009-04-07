@@ -262,6 +262,12 @@ public class FixedThreadPool extends AbstractExecutorService
         return workQueue;
     }
 
+    /**
+     * Runs at O(n) time with default Impl. due to LTQ.<br>
+     * FixedThreadPool uses LTQ due there is no need for queue size logic.
+     *
+     * @return
+     */
     public int getQueueSize() {
         return workQueue.size();
     }
