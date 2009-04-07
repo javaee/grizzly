@@ -47,7 +47,6 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.IntrospectionUtils;
-import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.Cookie;
 
@@ -55,7 +54,6 @@ import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -67,7 +65,8 @@ import javax.servlet.ServletException;
  * Adapter class that can initiate a {@link javax.servlet.FilterChain} and execute its
  * {@link Filter} and its {@link Servlet}
  * 
- * Configuring a {@link GrizzlyWebServer} or {@link SelectorThread} to use this
+ * Configuring a {@link com.sun.grizzly.http.embed.GrizzlyWebServer} or
+ * {@link com.sun.grizzly.http.SelectorThread} to use this
  * {@link GrizzlyAdapter} implementation add the ability of servicing {@link Servlet}
  * as well as static resources. 
  * 
@@ -127,9 +126,14 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     
     /**
-     * The Servlet init/context parameters.
+     * The context parameters.
      */
-    private HashMap<String,String> parameters;
+    private HashMap<String,String> contextParameters;
+
+    /**
+     * The servlet initialization parameters
+     */
+    private HashMap<String,String> servletInitParameters;
     
     
     /**
@@ -156,8 +160,8 @@ public class ServletAdapter extends GrizzlyAdapter {
      * Holder for our configured properties.
      */
     protected HashMap<String,Object> properties = new HashMap<String,Object>();
-    
-          
+
+
     public ServletAdapter() {
         this(".");
     }
@@ -165,6 +169,8 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     /**
      * Create a ServletAdapter which support the specific Servlet
+     *
+     * @param servlet Instance to be used by this adapter.
      */
     public ServletAdapter(Servlet servlet){
         this(".");
@@ -178,16 +184,27 @@ public class ServletAdapter extends GrizzlyAdapter {
      */    
     public ServletAdapter(String publicDirectory) {
         this(publicDirectory, new ServletContextImpl(), 
-                new HashMap<String,String>(),new ArrayList<String>() );
+                new HashMap<String,String>(), new HashMap<String,String>(),
+                new ArrayList<String>() );
     }
-    
-    
+
+    /**
+     * Convenience constructor.
+     *
+     * @param publicDirectory The folder where the static resource are located.
+     * @param servletCtx {@link ServletContextImpl} to be used by new instance.
+     * @param contextParameters Context parameters.
+     * @param servletInitParameters servlet initialization parameres.
+     * @param listeners Listeners.
+     */
     protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
-            HashMap<String,String> parameters, ArrayList<String> listeners){
+            HashMap<String,String> contextParameters, HashMap<String,String> servletInitParameters,
+            ArrayList<String> listeners){
         super(publicDirectory);
         this.servletCtx = servletCtx;
-        servletConfig = new ServletConfigImpl(servletCtx); 
-        this.parameters = parameters;
+        servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters); 
+        this.contextParameters = contextParameters;
+        this.servletInitParameters = servletInitParameters;
         this.listeners = listeners;
     }
 
@@ -218,12 +235,15 @@ public class ServletAdapter extends GrizzlyAdapter {
    
     
     /**
-     * Create a {@link URLClassLoader} which has the capability of loading classes
-     * jar under an exploded war application.
+     * Create a {@link java.net.URLClassLoader} which has the capability of
+     * loading classes jar under an exploded war application.
+     *
+     * @param applicationPath Application class path.
+     * @throws java.io.IOException I/O error.
      */
-    protected void configureClassLoader(String appliPath) throws IOException{        
+    protected void configureClassLoader(String applicationPath) throws IOException{
         Thread.currentThread().setContextClassLoader(
-                ClassLoaderUtil.createURLClassLoader(appliPath));
+                ClassLoaderUtil.createURLClassLoader(applicationPath));
     }
     
     
@@ -285,9 +305,9 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     /**
      * Customize the error page returned to the client.
-     * @param response the {@link GrizzlyResponse}
-     * @param message  the Http error message
-     * @param erroCode the error code.
+     * @param response  the {@link GrizzlyResponse}
+     * @param message   the Http error message
+     * @param errorCode the error code.
      */
     public void customizeErrorPage(GrizzlyResponse response,String message, int errorCode){                    
         response.setStatus(errorCode, message);
@@ -303,6 +323,9 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     /**
      * Load a {@link Servlet} instance.
+     *
+     * @throws javax.servlet.ServletException If failed to
+     * {@link Servlet#init(javax.servlet.ServletConfig)}.
      */
     protected void loadServlet() throws ServletException{
 
@@ -337,9 +360,11 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     
     /**
-     * Configure the {@link ServletContext} and {@link ServletConfig}
+     * Configure the {@link com.sun.grizzly.http.servlet.ServletContextImpl}
+     * and {@link com.sun.grizzly.http.servlet.ServletConfigImpl}
      * 
-     * @throws javax.servlet.ServletException
+     * @throws javax.servlet.ServletException Error while configuring
+     * {@link Servlet}.
      */
     protected void configureServletEnv() throws ServletException{
         MessageBytes c = MessageBytes.newInstance();
@@ -355,11 +380,12 @@ public class ServletAdapter extends GrizzlyAdapter {
             contextPath = "";
         }
 
-        servletCtx.setInitParameter(parameters);
+        servletCtx.setInitParameter(contextParameters);
         servletCtx.setContextPath(contextPath);  
         servletCtx.setBasePath(getRootFolder());               
         configureProperties(servletCtx);
         servletCtx.initListeners(listeners);
+        servletConfig.setInitParameters(servletInitParameters);
         configureProperties(servletConfig);
     }
    
@@ -381,7 +407,7 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @param value Value of this initialization parameter to add
      */
     public void addInitParameter(String name, String value){
-        parameters.put(name, value);
+        servletInitParameters.put(name, value);
     }
     
     
@@ -392,12 +418,14 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @param value Value of this initialization parameter to add
      */
     public void addContextParameter(String name, String value){
-        parameters.put(name, value);
+        contextParameters.put(name, value);
     }    
     
     
     /**
-     * Add a {@link Filter} to the {@link FilterChain}
+     * Add a {@link Filter} to the
+     * {@link com.sun.grizzly.http.servlet.FilterChainImpl}
+     *
      * @param filter an instance of Filter
      * @param filterName the Filter's name
      * @param initParameters the Filter init parameters.
@@ -412,8 +440,8 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     
     /**
-     * Return the {@link Servlet} instance used by this {@link Adapter}
-     * @return
+     * Return the {@link Servlet} instance used by this {@link ServletAdapter}
+     * @return {@link Servlet} isntance.
      */
     public Servlet getServletInstance() {
         return servletInstance;
@@ -421,7 +449,7 @@ public class ServletAdapter extends GrizzlyAdapter {
 
     
     /**
-     * Set the {@link Servlet} instance used by this {@link Adapter}
+     * Set the {@link Servlet} instance used by this {@link ServletAdapter}
      * @param servletInstance an instance of Servlet.
      */ 
     public void setServletInstance(Servlet servletInstance) {
@@ -457,7 +485,8 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     /**
      * Programmatically set the servlet path of the Servlet.
-     * @param servletPath
+     *
+     * @param servletPath Path of {@link Servlet}.
      */
     public void setServletPath(String servletPath) {
         this.servletPath = servletPath;
@@ -495,15 +524,18 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     /**
      * Programmatically set the context path of the Servlet.
-     * @param contextPath
+     *
+     * @param contextPath Context path.
      */
     public void setContextPath(String contextPath) {
         this.contextPath = contextPath;
     }
     
     /**
-     * Add Servlet listeners like {@link ServletContextAttributeListener},
-     * {@link ServletContextListener}.
+     * Add Servlet listeners like {@link javax.servlet.ServletContextAttributeListener},
+     * {@link javax.servlet.ServletContextListener}.
+     *
+     * @param listenerName
      */
     public void addServletListener(String listenerName){
         listeners.add(listenerName);
@@ -512,20 +544,24 @@ public class ServletAdapter extends GrizzlyAdapter {
          
     /**
      * Use reflection to configure Object setter.
+     *
+     * @param object Populate this object with available properties.
      */
     private void configureProperties(Object object){
-        Iterator keys = properties.keySet().iterator();
-        while( keys.hasNext() ) {
-            String name = (String)keys.next();
-            String value = properties.get(name).toString();
-            IntrospectionUtils.setProperty(object, name, value);
+        for (String s : properties.keySet()) {
+            String value = properties.get(s).toString();
+            IntrospectionUtils.setProperty(object, s, value);
         }       
     }
     
     
     /**
-     * Return a configured property. Property apply to {@link ServletContext}
-     * and {@link ServletConfig}
+     * Return a configured property. Property apply to
+     * {@link com.sun.grizzly.http.servlet.ServletContextImpl}
+     * and {@link com.sun.grizzly.http.servlet.ServletConfigImpl}
+     *
+     * @param name Name of property to get.
+     * @return Value of property.
      */
     public Object getProperty(String name) {
         return properties.get(name);
@@ -533,8 +569,10 @@ public class ServletAdapter extends GrizzlyAdapter {
 
     
     /**
-     * Set a configured property. Property apply to {@link ServletContext}
-     * and {@link ServletConfig}. Use this method to map what's you usually
+     * Set a configured property. Property apply to
+     * {@link com.sun.grizzly.http.servlet.ServletContextImpl}
+     * and {@link com.sun.grizzly.http.servlet.ServletConfigImpl}.
+     * Use this method to map what's you usually
      * have in a web.xml like display-name, context-param, etc.
      * @param name Name of the property to set
      * @param value of the property.
@@ -559,8 +597,11 @@ public class ServletAdapter extends GrizzlyAdapter {
 
     
     /** 
-     * Remove a configured property. Property apply to {@link ServletContext}
-     * and {@link ServletConfig}
+     * Remove a configured property. Property apply to
+     * {@link com.sun.grizzly.http.servlet.ServletContextImpl}
+     * and {@link com.sun.grizzly.http.servlet.ServletConfigImpl}
+     *
+     * @param name Property name to remove.
      */
     public void removeProperty(String name) {
         properties.remove(name);
@@ -568,7 +609,8 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     
     /**
-     * Destroy this Servlet and its associated {@link ServletContextListener}
+     * Destroy this Servlet and its associated
+     * {@link javax.servlet.ServletContextListener}
      */
     @Override
     public void destroy(){
@@ -580,12 +622,14 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     /**
      * Create a new {@link ServletAdapter} instance that will share the same 
-     * init-parameters, {@link ServletContext} and Servlet's listener.
+     * {@link com.sun.grizzly.http.servlet.ServletContextImpl} and Servlet's
+     * listener but with an empty map of init-parameters.
+     *
      * @param servlet - The Servlet associated with the {@link ServletAdapter}
      * @return a new {@link ServletAdapter}
      */
     public ServletAdapter newServletAdapter(Servlet servlet){
-        ServletAdapter sa = new ServletAdapter(".",servletCtx,parameters, listeners);
+        ServletAdapter sa = new ServletAdapter(".",servletCtx, contextParameters, new HashMap<String,String>(), listeners);
         sa.setServletInstance(servlet);
         sa.setServletPath(servletPath);
         return sa;
@@ -599,7 +643,7 @@ public class ServletAdapter extends GrizzlyAdapter {
         return listeners;
     }
 
-    protected HashMap<String, String> getParameters() {
-        return parameters;
+    protected HashMap<String, String> getContextParameters() {
+        return contextParameters;
     }
 }
