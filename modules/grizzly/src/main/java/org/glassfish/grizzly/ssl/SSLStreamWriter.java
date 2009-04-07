@@ -78,9 +78,10 @@ public class SSLStreamWriter extends StreamWriterDecorator {
         return resourceAccessor.getSSLEngine(getConnection());
     }
 
-    Future handshakeWrap(CompletionHandler completionHandler) throws IOException {
-        flush();
-        return overflow(
+    Future<Integer> handshakeWrap(CompletionHandler completionHandler)
+            throws IOException {
+        overflow();
+        return flush0(
                 getConnection().getTransport().getMemoryManager().allocate(0),
                 completionHandler);
     }
@@ -110,8 +111,8 @@ public class SSLStreamWriter extends StreamWriterDecorator {
     }
 
     @Override
-    protected Future flush0(Buffer buffer,
-            CompletionHandler completionHandler) throws IOException {
+    protected Future<Integer> flush0(Buffer buffer,
+            CompletionHandler<Integer> completionHandler) throws IOException {
 
         Future lastWriterFuture = null;
         SSLEngine sslEngine = getSSLEngine();

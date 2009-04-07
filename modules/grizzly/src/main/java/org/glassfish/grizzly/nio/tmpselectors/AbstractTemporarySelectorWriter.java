@@ -127,7 +127,8 @@ public abstract class AbstractTemporarySelectorWriter
                     "Connection should be NIOConnection and cannot be null.");
         }
 
-        WriteResult writeResult = new WriteResult(connection, buffer, dstAddress, 0);
+        WriteResult writeResult =
+                new WriteResult(connection, buffer,dstAddress, 0);
 
         write0(connection, dstAddress, buffer, writeResult,
                 timeout, timeunit);

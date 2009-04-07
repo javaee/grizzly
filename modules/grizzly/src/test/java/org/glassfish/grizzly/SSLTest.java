@@ -108,7 +108,7 @@ public class SSLTest extends TestCase {
 
             // aquire read lock to not allow incoming data to be processed by Processor
             writer.writeByteArray(sentMessage);
-            Future writeFuture = writer.flush();
+            Future<Integer> writeFuture = writer.flush();
             
             assertTrue("Write timeout", writeFuture.isDone());
             writeFuture.get();

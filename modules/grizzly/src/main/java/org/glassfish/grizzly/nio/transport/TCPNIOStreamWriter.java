@@ -38,11 +38,13 @@
 package org.glassfish.grizzly.nio.transport;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.tmpselectors.AbstractTemporarySelectorWriter;
@@ -53,32 +55,50 @@ import org.glassfish.grizzly.streams.AbstractStreamWriter;
  * @author Alexey Stashok
  */
 public class TCPNIOStreamWriter extends AbstractStreamWriter {
+    private int sentBytesCounter;
+
     public TCPNIOStreamWriter(TCPNIOConnection connection) {
         super(connection);
     }
+
+    @Override
+    public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
+            throws IOException {
+        return super.flush(new ResetCounterCompletionHandler(completionHandler));
+    }
     
-    protected Future flush0(Buffer current,
-            CompletionHandler completionHandler) throws IOException {
+
+    protected Future<Integer> flush0(Buffer current,
+            CompletionHandler<Integer> completionHandler) throws IOException {
         current.flip();
-        if (current.hasRemaining()) {
-            TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-            if (isBlocking()) {
-                AbstractTemporarySelectorWriter writer =
-                        (AbstractTemporarySelectorWriter)
-                        transport.getTemporarySelectorIO().getWriter();
-                return writer.write(connection, null, current,
-                        completionHandler, null,
-                        getTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-            } else {
-                return transport.getAsyncQueueIO().getWriter().write(
-                        connection, current, completionHandler);
+        TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
+        if (isBlocking()) {
+            AbstractTemporarySelectorWriter writer =
+                    (AbstractTemporarySelectorWriter)
+                    transport.getTemporarySelectorIO().getWriter();
+
+            Future<WriteResult<Buffer, SocketAddress>> future =
+                    writer.write(connection, null, current,
+                    new CompletionHandlerAdapter(null, completionHandler),
+                    null,
+                    getTimeout(TimeUnit.MILLISECONDS),
+                    TimeUnit.MILLISECONDS);
+
+            try {
+                return new ReadyFutureImpl<Integer>(future.get().getWrittenSize());
+            } catch (Exception e) {
+                throw new IOException(
+                        "TCPNIOStreamWriter.flush0(): unexpected exception. " +
+                        e.getMessage());
             }
         } else {
-            if (completionHandler != null) {
-                completionHandler.completed(null, TCPNIOStreamWriter.this);
-            }
+            FutureImpl<Integer> future = new FutureImpl<Integer>();
 
-            return new ReadyFutureImpl(TCPNIOStreamWriter.this);
+            transport.getAsyncQueueIO().getWriter().write(
+                    connection, current,
+                    new CompletionHandlerAdapter(future, completionHandler));
+
+            return future;
         }
     }
 
@@ -89,7 +109,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
                     new FutureImpl<TCPNIOStreamWriter>();
 
             try {
-                overflow(buffer, new CompletionHandler() {
+                overflow(new CompletionHandler() {
 
                     public void cancelled(Connection connection) {
                         close();
@@ -128,5 +148,94 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
 
             return new ReadyFutureImpl(TCPNIOStreamWriter.this);
         }
+    }
+
+    private final class CompletionHandlerAdapter
+            implements CompletionHandler<WriteResult<Buffer, SocketAddress>> {
+
+        private final FutureImpl<Integer> future;
+        private final CompletionHandler<Integer> completionHandler;
+
+        public CompletionHandlerAdapter(FutureImpl<Integer> future,
+                CompletionHandler<Integer> completionHandler) {
+            this.future = future;
+            this.completionHandler = completionHandler;
+        }
+
+        public void cancelled(Connection connection) {
+            if (completionHandler != null) {
+                completionHandler.cancelled(connection);
+            }
+
+            if (future != null) {
+                future.cancel(false);
+            }
+        }
+
+        public void failed(Connection connection, Throwable throwable) {
+            if (completionHandler != null) {
+                completionHandler.failed(connection, throwable);
+            }
+
+            if (future != null) {
+                future.failure(throwable);
+            }
+        }
+
+        public void completed(Connection connection, WriteResult result) {
+            sentBytesCounter += result.getWrittenSize();
+            int totalSentBytes = sentBytesCounter;
+
+            if (completionHandler != null) {
+                completionHandler.completed(connection, totalSentBytes);
+            }
+
+            if (future != null) {
+                future.setResult(totalSentBytes);
+            }
+        }
+
+        public void updated(Connection connection, WriteResult result) {
+            if (completionHandler != null) {
+                completionHandler.updated(connection, sentBytesCounter +
+                        result.getWrittenSize());
+            }
+        }
+    }
+
+    private final class ResetCounterCompletionHandler
+            implements CompletionHandler<Integer> {
+
+        private final CompletionHandler<Integer> parentCompletionHandler;
+
+        public ResetCounterCompletionHandler(CompletionHandler<Integer> parentCompletionHandler) {
+            this.parentCompletionHandler = parentCompletionHandler;
+        }
+
+        public void cancelled(Connection connection) {
+            if (parentCompletionHandler != null) {
+                parentCompletionHandler.cancelled(connection);
+            }
+        }
+
+        public void failed(Connection connection, Throwable throwable) {
+            if (parentCompletionHandler != null) {
+                parentCompletionHandler.failed(connection, throwable);
+            }
+        }
+
+        public void completed(Connection connection, Integer result) {
+            sentBytesCounter = 0;
+            if (parentCompletionHandler != null) {
+                parentCompletionHandler.completed(connection, result);
+            }
+        }
+
+        public void updated(Connection connection, Integer result) {
+            if (parentCompletionHandler != null) {
+                parentCompletionHandler.updated(connection, result);
+            }
+        }
+
     }
 }

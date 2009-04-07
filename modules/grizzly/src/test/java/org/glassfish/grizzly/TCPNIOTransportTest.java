@@ -122,10 +122,12 @@ public class TCPNIOTransportTest extends TestCase {
             connection.configureBlocking(true);
             connection.setProcessor(null);
             writer = connection.getStreamWriter();
-            writer.writeByteArray("Hello".getBytes());
-            Future writeFuture = writer.flush();
-            writeFuture.get(10, TimeUnit.SECONDS);
+            byte[] sendingBytes = "Hello".getBytes();
+            writer.writeByteArray(sendingBytes);
+            Future<Integer> writeFuture = writer.flush();
+            Integer bytesWritten = writeFuture.get(10, TimeUnit.SECONDS);
             assertTrue(writeFuture.isDone());
+            assertEquals(sendingBytes.length, (int) bytesWritten);
         } finally {
             if (writer != null) {
                 writer.close();
@@ -162,9 +164,10 @@ public class TCPNIOTransportTest extends TestCase {
             byte[] originalMessage = "Hello".getBytes();
             writer = connection.getStreamWriter();
             writer.writeByteArray(originalMessage);
-            Future writeFuture = writer.flush();
+            Future<Integer> writeFuture = writer.flush();
 
             assertTrue("Write timeout", writeFuture.isDone());
+            assertEquals(originalMessage.length, (int) writeFuture.get());
 
 
             reader = connection.getStreamReader();
@@ -209,9 +212,10 @@ public class TCPNIOTransportTest extends TestCase {
             for (int i = 0; i < 100; i++) {
                 byte[] originalMessage = new String("Hello world #" + i).getBytes();
                 writer.writeByteArray(originalMessage);
-                Future writeFuture = writer.flush();
+                Future<Integer> writeFuture = writer.flush();
 
                 assertTrue("Write timeout", writeFuture.isDone());
+                assertEquals(originalMessage.length, (int) writeFuture.get());
 
                 Future readFuture = reader.notifyAvailable(originalMessage.length);
                 assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
@@ -251,9 +255,10 @@ public class TCPNIOTransportTest extends TestCase {
             byte[] originalMessage = "Hello".getBytes();
             writer = connection.getStreamWriter();
             writer.writeByteArray(originalMessage);
-            Future writeFuture = writer.flush();
+            Future<Integer> writeFuture = writer.flush();
 
-            assertTrue("Write timeout", writeFuture.isDone());
+            Integer writtenBytes = writeFuture.get(10, TimeUnit.SECONDS);
+            assertEquals(originalMessage.length, (int) writtenBytes);
 
 
             reader = connection.getStreamReader();
@@ -297,17 +302,17 @@ public class TCPNIOTransportTest extends TestCase {
             writer = connection.getStreamWriter();
 
             final CountDownLatch sendLatch = new CountDownLatch(packetsNumber);
-            final CountDownLatch receiveLatch = new CountDownLatch(packetsNumber);
 
             for (int i = 0; i < packetsNumber; i++) {
-                byte[] message = new byte[packetSize];
+                final byte[] message = new byte[packetSize];
                 Arrays.fill(message, (byte) i);
 
                 writer.writeByteArray(message);
-                writer.flush(new CompletionHandlerAdapter() {
+                writer.flush(new CompletionHandlerAdapter<Integer>() {
 
                     @Override
-                    public void completed(Connection connection, Object result) {
+                    public void completed(Connection connection, Integer result) {
+                        assertEquals(message.length, (int) result);
                         sendLatch.countDown();
                     }
 

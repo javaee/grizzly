@@ -253,13 +253,9 @@ public abstract class AbstractNIOAsyncQueueWriter
 
                 WriteResult currentResult = queueRecord.getCurrentResult();
                 Buffer buffer = queueRecord.getBuffer();
-                try {
                 doWrite(connection, currentResult, queueRecord.getCompletionHandler(),
                         (SocketAddress) queueRecord.getDstAddress(),
                         buffer);
-                } catch (RuntimeException e) {
-                    throw e;
-                }
 
                 // check if buffer was completely written
                 if (isFinished(connection, buffer)) {

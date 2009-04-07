@@ -93,58 +93,45 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         this.isBlocking = isBlocking;
     }
 
-    protected Future overflow() throws IOException {
-        return overflow(buffer, null);
+    protected Future<Integer> overflow() throws IOException {
+        return overflow(null);
     }
 
-    protected Future overflow(Buffer buffer) throws IOException {
-        return overflow(buffer, null);
-    }
-
-    protected Future overflow(CompletionHandler completionHandler) throws IOException {
-        return overflow(buffer, completionHandler);
-    }
-
-    protected Future overflow(Buffer buffer, CompletionHandler completionHandler)
-            throws IOException {
+    protected Future<Integer> overflow(
+            CompletionHandler<Integer> completionHandler) throws IOException {
         // Why was this here: buffer.underlying().limit( buffer.underlying().position() ) ;
         Future future = null;
 
         if (buffer != null) {
-            if (buffer == this.buffer) {
-                future = flush0(buffer, completionHandler);
-                if (!future.isDone()) {
-                    buffer = newBuffer(bufferSize);
-                }
-                
-                initBuffer(buffer);
-            } else {
-                future = flush0(buffer, completionHandler);
+            future = flush0(buffer, completionHandler);
+            if (!future.isDone()) {
+                buffer = newBuffer(bufferSize);
             }
+
+            initBuffer();
         } else {
             buffer = newBuffer(bufferSize);
-            initBuffer(buffer);
+            initBuffer();
         }
 
         return future;
     }
 
-    private void initBuffer(final Buffer buffer) {
-        this.buffer = buffer;
+    private void initBuffer() {
         buffer.clear();
     }
 
     /**
      * Cause the overflow handler to be called even if buffer is not full.
      */
-    public Future flush() throws IOException {
+    public Future<Integer> flush() throws IOException {
         return flush(null);
     }
 
     /**
      * Cause the overflow handler to be called even if buffer is not full.
      */
-    public Future flush(CompletionHandler completionHandler)
+    public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
             throws IOException {
         return overflow(completionHandler);
     }
@@ -153,7 +140,8 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         close(null);
     }
 
-    public Future close(CompletionHandler completionHandler) throws IOException {
+    public Future<Integer> close(CompletionHandler<Integer> completionHandler)
+            throws IOException {
         try {
             return close0(completionHandler);
         } finally {
@@ -171,7 +159,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
 
         if ((buffer == null) || (buffer.remaining() < size)) {
-            overflow(buffer);
+            overflow();
         }
 
         if (buffer.remaining() < size) {
@@ -191,7 +179,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
 
         if (b != null && b.hasRemaining()) {
             b.position(b.limit());
-            overflow(b, completionHandler);
+            flush0(b, completionHandler);
         }
     }
 
@@ -200,7 +188,8 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         Buffer readerBuffer;
         while ((readerBuffer = readerImpl.getBuffer()) != null) {
             readerImpl.finishBuffer();
-            writeBuffer(readerBuffer, new DisposeBufferCompletionHandler(readerBuffer));
+            writeBuffer(readerBuffer,
+                    new DisposeBufferCompletionHandler(readerBuffer));
         }
     }
 
@@ -430,8 +419,8 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
     }
 
-    protected abstract Future flush0(Buffer buffer,
-            CompletionHandler completionHandler) throws IOException;
+    protected abstract Future<Integer> flush0(Buffer buffer,
+            CompletionHandler<Integer> completionHandler) throws IOException;
 
     protected abstract Future close0(CompletionHandler completionHandler)
             throws IOException;

@@ -57,18 +57,20 @@ public interface StreamWriter extends Closeable {
      * Make sure that all data that has been written is
      * flushed from the stream to its destination.
      */
-    Future flush() throws IOException;
+    Future<Integer> flush() throws IOException;
 
     /**
      * Make sure that all data that has been written is
      * flushed from the stream to its destination.
      */
-    Future flush(CompletionHandler completionHandler) throws IOException;
+    Future<Integer> flush(CompletionHandler<Integer> completionHandler)
+            throws IOException;
 
     /**
      * Close the {@link StreamWriter} and make sure all data was flushed.
      */
-    Future close(CompletionHandler completionHandler) throws IOException;
+    Future<Integer> close(CompletionHandler<Integer> completionHandler)
+            throws IOException;
 
     void writeBoolean(boolean data) throws IOException;
 
