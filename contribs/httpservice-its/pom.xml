@@ -2,10 +2,16 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.sun.grizzly.osgi.httpservice.its</groupId>
-    <artifactId>first-it</artifactId>
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-contribs</artifactId>
+        <version>1.9.11-SNAPSHOT</version>
+    </parent>
+    <groupId>com.sun.grizzly.osgi.httpservice</groupId>
+    <artifactId>httpservice-its</artifactId>
     <packaging>bundle</packaging>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.9.11-SNAPSHOT</version>
+    <name>Grizzly OSGi HttpService Integration Tests</name>
 
     <properties>
         <grizzly.version>1.9.11-SNAPSHOT</grizzly.version>

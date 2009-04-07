@@ -15,6 +15,7 @@
     <url>https://grizzly.dev.java.net</url>
     <modules>
         <module>grizzly-httpservice</module>
-        <module>bundles/</module>
+        <module>bundles</module>
+        <module>httpservice-its</module>
     </modules>
 </project>
