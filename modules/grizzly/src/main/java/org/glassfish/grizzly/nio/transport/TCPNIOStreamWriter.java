@@ -102,38 +102,42 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
         }
     }
 
-    protected Future close0(final CompletionHandler completionHandler)
+    protected Future<Integer> close0(
+            final CompletionHandler<Integer> completionHandler)
             throws IOException {
+        
         if (buffer != null && buffer.position() > 0) {
-            final FutureImpl<TCPNIOStreamWriter> future =
-                    new FutureImpl<TCPNIOStreamWriter>();
+            final FutureImpl<Integer> future =
+                    new FutureImpl<Integer>();
 
             try {
-                overflow(new CompletionHandler() {
+                overflow(new CompletionHandler<Integer>() {
 
                     public void cancelled(Connection connection) {
-                        close();
+                        close(0);
                     }
 
                     public void failed(Connection connection, Throwable throwable) {
-                        close();
+                        close(0);
                     }
 
-                    public void completed(Connection connection, Object result) {
-                        close();
+                    public void completed(Connection connection, Integer result) {
+                        close(result);
                     }
 
-                    public void updated(Connection connection, Object result) {
+                    public void updated(Connection connection, Integer result) {
                     }
 
-                    public void close() {
+                    public void close(Integer result) {
                         try {
                             connection.close();
                         } catch (IOException e) {
                         } finally {
-                            completionHandler.completed(null,
-                                    TCPNIOStreamWriter.this);
-                            future.setResult(TCPNIOStreamWriter.this);
+                            if (completionHandler != null) {
+                                completionHandler.completed(null, result);
+                            }
+                            
+                            future.setResult(result);
                         }
                     }
                 });
@@ -143,10 +147,10 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             return future;
         } else {
             if (completionHandler != null) {
-                completionHandler.completed(null, TCPNIOStreamWriter.this);
+                completionHandler.completed(null, 0);
             }
 
-            return new ReadyFutureImpl(TCPNIOStreamWriter.this);
+            return new ReadyFutureImpl(0);
         }
     }
 

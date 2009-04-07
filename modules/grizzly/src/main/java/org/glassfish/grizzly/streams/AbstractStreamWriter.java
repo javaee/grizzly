@@ -422,8 +422,8 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     protected abstract Future<Integer> flush0(Buffer buffer,
             CompletionHandler<Integer> completionHandler) throws IOException;
 
-    protected abstract Future close0(CompletionHandler completionHandler)
-            throws IOException;
+    protected abstract Future<Integer> close0(
+            CompletionHandler<Integer> completionHandler) throws IOException;
 
     public static class DisposeBufferCompletionHandler
             implements CompletionHandler {
