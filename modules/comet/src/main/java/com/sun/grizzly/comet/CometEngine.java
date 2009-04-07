@@ -43,7 +43,7 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.LinkedTransferQueue;
-import com.sun.grizzly.util.TestThreadPool;
+import com.sun.grizzly.util.PipelineThreadPool;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
