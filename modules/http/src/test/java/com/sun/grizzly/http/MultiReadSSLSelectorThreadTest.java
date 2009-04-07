@@ -44,8 +44,10 @@ import com.sun.grizzly.http.utils.SSLEchoStreamAlgorithm;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
 import com.sun.grizzly.ssl.SSLSelectorThread;
 import java.io.EOFException;
+import java.io.File;
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -68,24 +70,28 @@ public class MultiReadSSLSelectorThreadTest extends TestCase {
     private SSLConfig sslConfig;
     
     @Override
-    public void setUp() {
+    public void setUp() throws URISyntaxException {
         sslConfig = new SSLConfig();
         ClassLoader cl = getClass().getClassLoader();
         // override system properties
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
         if (cacertsUrl != null) {
-            sslConfig.setTrustStoreFile(cacertsUrl.getFile());
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
         }
-        
-        logger.log(Level.INFO, "SSL certs path: " + sslConfig.getTrustStoreFile());
-        
+
+        logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
+
         // override system properties
         URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
         if (keystoreUrl != null) {
-            sslConfig.setKeyStoreFile(keystoreUrl.getFile());
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
         }
-        
-        logger.log(Level.INFO, "SSL keystore path: " + sslConfig.getKeyStoreFile());
+
+        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
         SSLConfig.DEFAULT_CONFIG = sslConfig;
     }
     

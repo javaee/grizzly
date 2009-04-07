@@ -94,19 +94,23 @@ public class SSLAsyncQueueReaderTest extends TestCase {
         ClassLoader cl = getClass().getClassLoader();
         // override system properties
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
         if (cacertsUrl != null) {
-            sslConfig.setTrustStoreFile(new File(cacertsUrl.toURI()).getAbsolutePath());
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
         }
         
-        logger.log(Level.INFO, "SSL certs path: " + sslConfig.getTrustStoreFile());
+        logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
         
         // override system properties
         URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
         if (keystoreUrl != null) {
-            sslConfig.setKeyStoreFile(new File(keystoreUrl.toURI()).getAbsolutePath());
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
         }
         
-        logger.log(Level.INFO, "SSL keystore path: " + sslConfig.getKeyStoreFile());
+        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
         SSLConfig.DEFAULT_CONFIG = sslConfig;
     }
 

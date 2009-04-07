@@ -560,7 +560,7 @@ public class GrizzlyWebServer {
             SSLSelectorThread sslST = (SSLSelectorThread) grizzlyListener;
             if (sslST.getSSLContext() == null) {
                 SSLConfig sslConfig = new SSLConfig(true);
-                if (!sslConfig.validateConfiguration()) {
+                if (!sslConfig.validateConfiguration(true)) {
                     // failed to create default
                     throw new RuntimeException("Failed to create default SSLConfig.");
                 }

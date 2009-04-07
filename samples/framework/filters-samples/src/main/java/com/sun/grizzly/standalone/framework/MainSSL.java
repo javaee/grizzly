@@ -99,15 +99,25 @@ public class MainSSL {
     static SSLConfig createSSLConfig() {
         SSLConfig sslConfig = new SSLConfig();
         ClassLoader cl = MainSSL.class.getClassLoader();
+        // override system properties
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        String trustStoreFile = cacertsUrl.getFile();
         if (cacertsUrl != null) {
-            sslConfig.setTrustStoreFile(cacertsUrl.getFile());
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
         }
-        logger.log(Level.INFO,"SSL certs path: " + sslConfig.getTrustStoreFile());
+
+        logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
+
+        // override system properties
         URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        String keyStoreFile = keystoreUrl.getFile();
         if (keystoreUrl != null) {
-            sslConfig.setKeyStoreFile(keystoreUrl.getFile());
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
         }
+
+        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
         SSLConfig.DEFAULT_CONFIG = sslConfig;
         return sslConfig;
     }
