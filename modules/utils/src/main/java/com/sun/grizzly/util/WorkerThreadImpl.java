@@ -41,10 +41,11 @@ import com.sun.grizzly.tcp.PendingIOhandler;
 import java.util.concurrent.Callable;
 import com.sun.grizzly.util.ByteBufferFactory.ByteBufferType;
 import com.sun.grizzly.util.ThreadAttachment.Mode;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Simple worker thread used for processing HTTP requests. All threads are
- * synchronized using a {@link DefaultThreadPool} object
+ * synchronized using a {@link ExecutorService} object
  *
  * @author Jean-Francois Arcand
  */
@@ -53,9 +54,9 @@ public class WorkerThreadImpl extends WorkerThread {
     private static final int DEFAULT_BYTE_BUFFER_SIZE = 8192;
     
     /**
-     * The {@link DefaultThreadPool} on which this thread synchronize.
+     * The {@link ExecutorService} on which this thread synchronize.
      */
-    protected DefaultThreadPool threadPool;
+    protected ExecutorService threadPool;
     
     
     /**
@@ -90,7 +91,7 @@ public class WorkerThreadImpl extends WorkerThread {
     
     /**
      * Create a Thread that will synchronizes/block on
-     * {@link DefaultThreadPool} instance.
+     * {@link ExecutorService} instance.
      * @param threadGroup <code>ThreadGroup</code>
      * @param runnable <code>Runnable</code>
      */
@@ -107,7 +108,7 @@ public class WorkerThreadImpl extends WorkerThread {
     }
     /**
      * Create a Thread that will synchronizes/block on
-     * {@link DefaultThreadPool} instance.
+     * {@link ExecutorService} instance.
      * @param threadGroup <code>ThreadGroup</code>
      * @param runnable <code>Runnable</code>
      * @param initialByteBufferSize initial {@link ByteBuffer} size
@@ -120,22 +121,22 @@ public class WorkerThreadImpl extends WorkerThread {
     
     /**
      * Create a Thread that will synchronizes/block on
-     * {@link DefaultThreadPool} instance.
-     * @param threadPool {@link DefaultThreadPool}
+     * {@link ExecutorService} instance.
+     * @param threadPool {@link ExecutorService}
      * @param name <code>String</code>
      */
-    public WorkerThreadImpl(DefaultThreadPool threadPool, String name){
+    public WorkerThreadImpl(ExecutorService threadPool, String name){
         this(threadPool, name, DEFAULT_BYTE_BUFFER_SIZE);
     }
     
     /**
      * Create a Thread that will synchronizes/block on
-     * {@link DefaultThreadPool} instance.
-     * @param threadPool {@link DefaultThreadPool}
+     * {@link ExecutorService} instance.
+     * @param threadPool {@link ExecutorService}
      * @param name <code>String</code>
      * @param initialByteBufferSize initial {@link ByteBuffer} size
      */
-    public WorkerThreadImpl(DefaultThreadPool threadPool, String name,
+    public WorkerThreadImpl(ExecutorService threadPool, String name,
             int initialByteBufferSize){
         super(threadGroup, name);
         this.threadPool = threadPool;
@@ -144,12 +145,12 @@ public class WorkerThreadImpl extends WorkerThread {
     
     /**
      * Create a Thread that will synchronizes/block on
-     * {@link DefaultThreadPool} instance.
-     * @param threadPool {@link DefaultThreadPool}
+     * {@link ExecutorService} instance.
+     * @param threadPool {@link ExecutorService}
      * @param name <code>String</code>
      * @param initialByteBufferSize initial {@link ByteBuffer} size
      */
-    public WorkerThreadImpl(DefaultThreadPool threadPool, String name,
+    public WorkerThreadImpl(ExecutorService threadPool, String name,
             Runnable runnable, int initialByteBufferSize){
         super(threadGroup, runnable, name);
         this.threadPool = threadPool;        

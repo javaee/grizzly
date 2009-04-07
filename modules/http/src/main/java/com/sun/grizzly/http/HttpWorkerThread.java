@@ -43,6 +43,7 @@ import com.sun.grizzly.util.WorkerThreadImpl;
 
 import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.ThreadAttachment;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Specialized WorkerThread.
@@ -62,7 +63,7 @@ public class HttpWorkerThread extends WorkerThreadImpl {
     
     /** 
      * Create a Thread that will synchronizes/block on 
-     * {@link StatsThreadPool} instance.
+     * {@link ExecutorService} instance.
      * @param threadGroup <code>ThreadGroup</code>
      * @param runnable <code>Runnable</code>
      */
@@ -73,23 +74,23 @@ public class HttpWorkerThread extends WorkerThreadImpl {
     
     /** 
      * Create a Thread that will synchronizes/block on 
-     * {@link StatsThreadPool} instance.
-     * @param threadPool {@link StatsThreadPool}
+     * {@link ExecutorService} instance.
+     * @param threadPool {@link ExecutorService}
      * @param name <code>String</code>
      */
-    public HttpWorkerThread(StatsThreadPool threadPool, String name){
+    public HttpWorkerThread(ExecutorService threadPool, String name){
         super(threadPool, name);
     }
 
     /**
      * Create a Thread
-     * @param threadPool {@link StatsThreadPool} instance
+     * @param threadPool {@link ExecutorService} instance
      * @param name thread name
      * @param runnable task to execute
      * @param initialByteBufferSize initial size of thread associated
      * {@link ByteBuffer}
      */
-    public HttpWorkerThread(StatsThreadPool threadPool, String name, Runnable runnable,
+    public HttpWorkerThread(ExecutorService threadPool, String name, Runnable runnable,
             int initialByteBufferSize) {
         super(threadPool, name, runnable, initialByteBufferSize);
     }
