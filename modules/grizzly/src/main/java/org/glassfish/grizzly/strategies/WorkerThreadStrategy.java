@@ -67,12 +67,7 @@ public class WorkerThreadStrategy implements Strategy {
     private Executor workerThreadProcessorExecutor;
 
     public WorkerThreadStrategy(Transport transport) {
-        sameThreadProcessorExecutor = new CurrentThreadExecutor();
-        workerThreadProcessorExecutor = new WorkerThreadExecutor(transport);
-        executors = new Executor[] {null, sameThreadProcessorExecutor,
-            workerThreadProcessorExecutor, sameThreadProcessorExecutor,
-            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
-            workerThreadProcessorExecutor};
+        this(new CurrentThreadExecutor(), new WorkerThreadExecutor(transport));
     }
 
     public WorkerThreadStrategy(Executor sameThreadProcessorExecutor,
@@ -80,6 +75,11 @@ public class WorkerThreadStrategy implements Strategy {
         
         this.sameThreadProcessorExecutor = sameThreadProcessorExecutor;
         this.workerThreadProcessorExecutor = workerThreadProcessorExecutor;
+
+        executors = new Executor[] {null, sameThreadProcessorExecutor,
+            workerThreadProcessorExecutor, sameThreadProcessorExecutor,
+            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
+            workerThreadProcessorExecutor};
     }
 
     public Object prepare(Connection connection, IOEvent ioEvent) {

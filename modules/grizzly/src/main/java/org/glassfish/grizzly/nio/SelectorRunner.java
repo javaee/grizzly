@@ -210,12 +210,13 @@ public class SelectorRunner implements Runnable {
     SelectionKeyHandler selectionKeyHandler;
     Strategy strategy;
     
+    int lastSelectedKeysCount;
     SelectionKey key = null;
     int keyEventProcessState;
     int keyReadyOps;
+
     Set<SelectionKey> readyKeys;
     Iterator<SelectionKey> iterator;
-    int selectorState;
 
     /**
      * This method handle the processing of all Selector's interest op
@@ -243,7 +244,7 @@ public class SelectorRunner implements Runnable {
                 if (!iterateKeys()) return false;
             }
 
-            selectorState = 0;
+            lastSelectedKeysCount = 0;
             
             selectorHandler.preSelect(this);
             
@@ -251,9 +252,9 @@ public class SelectorRunner implements Runnable {
 
             if (stateHolder.getState(false) == State.STOPPING) return false;
             
-            selectorState = readyKeys.size();
+            lastSelectedKeysCount = readyKeys.size();
             
-            if (selectorState != 0) {
+            if (lastSelectedKeysCount != 0) {
                 iterator = readyKeys.iterator();
                 if (!iterateKeys()) return false;
             }
@@ -486,5 +487,15 @@ public class SelectorRunner implements Runnable {
         } else {
             logger.log(stoppedLogLevel, description, e);
         }
+    }
+
+    /**
+     * Number of {@link SelectionKey}s, which were selected last time.
+     * Operation is not thread-safe.
+     *
+     * @return number of {@link SelectionKey}s, which were selected last time.
+     */
+    public int getLastSelectedKeysCount() {
+        return lastSelectedKeysCount;
     }
 }

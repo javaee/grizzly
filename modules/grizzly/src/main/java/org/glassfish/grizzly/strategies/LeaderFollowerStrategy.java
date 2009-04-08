@@ -50,7 +50,8 @@ import org.glassfish.grizzly.util.CurrentThreadExecutor;
 import org.glassfish.grizzly.util.WorkerThreadExecutor;
 
 /**
- * {@link Strategy}, which executes {@link Processor}s in worker thread.
+ * {@link Strategy}, which executes {@link Processor}s in a current threads, and
+ * resumes selector thread logic in separate thread.
  *
  * @author Alexey Stashok
  */
@@ -59,8 +60,7 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
     private Executor workerThreadProcessorExecutor;
 
     public LeaderFollowerStrategy(NIOTransport transport) {
-        sameThreadProcessorExecutor = new CurrentThreadExecutor();
-        workerThreadProcessorExecutor = new WorkerThreadExecutor(transport);
+        this(new CurrentThreadExecutor(), new WorkerThreadExecutor(transport));
     }
 
     public LeaderFollowerStrategy(Executor sameThreadProcessorExecutor,
