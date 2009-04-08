@@ -92,6 +92,10 @@ public class RoundRobinSelectorHandler extends TCPSelectorHandler
                 // Clone was not found - take correspondent protocol SelectorHandler
                 relativeSelectorHandler = 
                         auxController.getSelectorHandler(protocolSelectorHandler.protocol());
+
+                if (relativeSelectorHandler == null) {
+                    throw new IOException("Can not get correct SelectorHandler");
+                }
             }
             
             auxController.addChannel(channel, relativeSelectorHandler);
