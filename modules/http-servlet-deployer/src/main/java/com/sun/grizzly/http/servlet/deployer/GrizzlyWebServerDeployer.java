@@ -92,7 +92,7 @@ public class GrizzlyWebServerDeployer {
     
     private boolean waitToStart = false;
     private boolean startAdapter = false;
-    private boolean startAsyncFilter = false;
+    private boolean cometEnabled = false;
     private boolean forceWarDeployment = false;
     
     private List<String> deployedApplicationList = null;
@@ -445,16 +445,16 @@ public class GrizzlyWebServerDeployer {
 		return startAdapter;
 	}
 
-	public void setStartAdapter(boolean startAdapter) {
-		this.startAdapter = startAdapter;
+	public void setStartAdapter(boolean enabled) {
+		this.startAdapter = enabled;
 	}
 
-	public boolean getStartAsyncFilter() {
-		return startAsyncFilter;
+	public boolean getCometEnabled() {
+		return cometEnabled;
 	}
 
-	public void setStartAsyncFilter(boolean startAsyncFilter) {
-		this.startAsyncFilter = startAsyncFilter;
+	public void setCometEnabled(boolean enabled) {
+		this.cometEnabled = enabled;
 	}
 	
 	public boolean getForceWarDeployment() {
@@ -483,7 +483,7 @@ public class GrizzlyWebServerDeployer {
         System.err.println("    --dontstart=                     Default: false, Will not start the server until the start method is called.  Useful for Unit test");
         System.err.println("    --libraryPath                    Add a libraries folder to the classpath.  Can append multiple folder.  Separator = File.pathSeparator");
         System.err.println("    --startAdapter                   Will start all the servlets");
-        System.err.println("    --startAsyncFilter               Will start the AsyncFilter for Comet");
+        System.err.println("    --cometEnabled               Will start the AsyncFilter for Comet");
         System.err.println("    --forceWarDeployment             Will force deployment of a war file over a expanded folder");
         System.err.println("    -h, --help                       Show this help message.");
         System.exit(1);
@@ -526,8 +526,8 @@ public class GrizzlyWebServerDeployer {
                 setLibraryPath(value);
             } else if (arg.startsWith("--startAdapter")) {
                 setStartAdapter(true);
-            } else if (arg.startsWith("--startAsyncFilter")) {
-                setStartAsyncFilter(true);
+            } else if (arg.startsWith("--cometEnabled")) {
+            	setCometEnabled(true);
             } else if(arg.startsWith("--forceWarDeployment")){
             	setForceWarDeployment(true);
             }
@@ -759,7 +759,7 @@ public class GrizzlyWebServerDeployer {
             }
             
             // comet
-            if(startAsyncFilter){
+            if(cometEnabled){
                 SelectorThread st = ws.getSelectorThread();
                 
                 AsyncHandler asyncHandler = new DefaultAsyncHandler();
