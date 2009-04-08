@@ -449,13 +449,13 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 }
             }
 
-            if (delegateToWorker){
+            if (delegateToWorker) {
                 NIOContext context = pollContext(key, opType);
                 configureContext(context,selectorHandler);
                 context.execute(context.getProtocolChainContextTask());
             }
-          }catch(Throwable e){
-              handleSelectException(e,selectorHandler,key);
+          } catch(Throwable e) {
+              handleSelectException(e, selectorHandler, key);
           }
         }
     }
@@ -496,7 +496,20 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 }
                 notifyException(e);
             }
-        }else{
+        }else if (e instanceof IOException) {
+            // TODO: This could indicate that the Controller is
+            //       shutting down. Hence, we need to handle this Exception
+            //       appropriately. Perhaps check the state before logging
+            //       what's happening ?
+            if (stateHolder.getState() == State.STARTED &&
+                    selectorHandler.getStateHolder().getState() == State.STARTED) {
+                logger.log(Level.SEVERE, "Selector was unexpectedly closed.");
+                notifyException(e);
+            } else {
+                logger.log(Level.FINE, "doSelect IOException", e);
+            }
+
+        } else {
             try{
                 if (key != null){
                     selectorHandler.getSelectionKeyHandler().cancel(key);
