@@ -16,6 +16,6 @@
     <modules>
         <module>grizzly-httpservice</module>
         <module>bundles</module>
-        <module>httpservice-its</module>
+        <!--        <module>httpservice-its</module> -->
     </modules>
 </project>
