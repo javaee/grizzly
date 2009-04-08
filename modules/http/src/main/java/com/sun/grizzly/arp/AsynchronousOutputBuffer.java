@@ -43,41 +43,27 @@ import com.sun.grizzly.http.SocketChannelOutputBuffer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import com.sun.grizzly.tcp.Response;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 /**
- * Thread-Safe {@link SocketChannelOutputBuffer} used when Comet is used.
+ *  {@link SocketChannelOutputBuffer} used when Comet is used.
  */
 public class AsynchronousOutputBuffer extends SocketChannelOutputBuffer{    
-
-    private ReentrantLock byteBufferWriteLock;
+   
     
     /**
      * Alternate constructor.
      */
     public AsynchronousOutputBuffer(Response response, 
             int headerBufferSize, boolean useSocketBuffer) {
-        super(response,headerBufferSize, useSocketBuffer); 
-        byteBufferWriteLock = new ReentrantLock();
+        super(response,headerBufferSize, useSocketBuffer);      
     }
-
-    
-    @Override
-    public void realWriteBytes(byte cbuf[], int off, int len) throws IOException {
-        try{
-            byteBufferWriteLock.lock();
-            super.realWriteBytes(cbuf, off, len);
-        } finally {
-            byteBufferWriteLock.unlock();
-        }
-    }
+   
     
      
     @Override
     public void flushChannel(ByteBuffer bb) throws IOException{
         try{
-            byteBufferWriteLock.lock();
             super.flushChannel(bb);
         } catch (IOException ex){
             // Swallow that exception as it just means the Response
@@ -91,31 +77,6 @@ public class AsynchronousOutputBuffer extends SocketChannelOutputBuffer{
                     SelectorThread.logger().log(Level.FINEST,"",ex);
                 }
             }
-            
-        } finally {
-            byteBufferWriteLock.unlock();
-        }            
+        }
     }
-
-    @Override
-    public void flush() throws IOException{
-        try{
-            byteBufferWriteLock.lock();        
-            super.flush();
-        } finally {
-            byteBufferWriteLock.unlock();
-        }        
-    }
-
-    @Override
-    public void flushBuffer() throws IOException{
-        try{
-            byteBufferWriteLock.lock();
-            super.flushBuffer();
-        } finally {
-            byteBufferWriteLock.unlock();
-        }        
-    }
-
- 
 }
