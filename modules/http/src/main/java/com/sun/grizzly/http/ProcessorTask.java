@@ -777,6 +777,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             if ( handler != null && 
                     handler.handle(request,Interceptor.REQUEST_LINE_PARSED)
                         == Interceptor.BREAK){
+                keepAlive = (request.protocol().equals(Constants.HTTP_11));
                 return true;
             }
             
