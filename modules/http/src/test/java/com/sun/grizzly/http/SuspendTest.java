@@ -577,7 +577,6 @@ public class SuspendTest extends TestCase {
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Resuming the response";
         final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
         try {
             createSelectorThread();
             st.setAdapter(new StaticResourcesAdapter() {
@@ -590,7 +589,7 @@ public class SuspendTest extends TestCase {
                             return;
                         }
 
-                        res.suspend(10 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
+                        res.suspend(5 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
 
                             public void resumed(StaticResourcesAdapter attachment) {
                                 System.out.println("Not supposed to be here");
@@ -600,21 +599,13 @@ public class SuspendTest extends TestCase {
                                 try {
                                     System.out.println("Time out");
                                     res.getChannel().write(ByteBuffer.wrap(testData));
-                                } catch (Exception ex) {
+                                } catch (Throwable ex) {
                                     ex.printStackTrace();
                                 } finally {
-                                    latch.countDown();
                                 }
                             }
                         });
 
-                        try {
-                            latch.await(15, TimeUnit.SECONDS);
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                        } finally {
-			   System.out.println("Timeout failed");
-                        }
                     } catch (Throwable t) {
                         t.printStackTrace();
                     }
@@ -640,7 +631,6 @@ public class SuspendTest extends TestCase {
                 ex.printStackTrace();
             }
             sendRequest(testData, testString);
-
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
@@ -919,7 +909,6 @@ public class SuspendTest extends TestCase {
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Resuming the response";
         final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
         try {
             createSelectorThread();
             st.setAdapter(new GrizzlyAdapter() {
@@ -935,10 +924,9 @@ public class SuspendTest extends TestCase {
                                     System.out.println("TOOK: " + (System.currentTimeMillis() - t1));
                                     System.out.println("Cancelling");
                                     res.getWriter().write(testString);
-                                } catch (Exception ex) {
+                                } catch (Throwable ex) {
                                     ex.printStackTrace();
                                 } finally {
-                                    latch.countDown();
                                 }
                             }
 
@@ -961,8 +949,6 @@ public class SuspendTest extends TestCase {
             }
 
             sendRequest(testData, testString);
-
-
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
