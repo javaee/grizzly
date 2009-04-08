@@ -131,7 +131,7 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
                 return true;
             }
         }
-        return true;
+        return false;
     }
     
     
