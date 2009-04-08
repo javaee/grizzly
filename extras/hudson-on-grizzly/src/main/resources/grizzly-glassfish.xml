@@ -1,0 +1,6 @@
+
+<adapters>
+    <adapter context-root="/hudson" class-name="com.sun.grizzly.http.servlet.ServletAdapter">
+        <property name="rootFolder" value="../domains/domain1/applications/"/>
+    </adapter>
+</adapters>
