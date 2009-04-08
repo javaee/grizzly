@@ -36,6 +36,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.management.ObjectInstance;
@@ -47,6 +48,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
 import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.util.IdleTimeoutFilter;
 import org.glassfish.grizzly.web.WebFilter;
 import org.glassfish.grizzly.web.arp.AsyncExecutor;
 import org.glassfish.grizzly.web.arp.AsyncWebFilter;
@@ -600,6 +602,11 @@ public class GrizzlyWebServer {
         updateGrizzlyAdapters();
 
         transport.getFilterChain().add(new TransportFilter());
+
+        transport.getFilterChain().add(new IdleTimeoutFilter(
+                webFilter.getConfig().getKeepAliveTimeoutInSeconds(),
+                TimeUnit.SECONDS));
+        
         if (isSecure) {
             transport.getFilterChain().add(new SSLFilter(sslConfiguration));
         }
