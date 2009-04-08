@@ -60,9 +60,9 @@ public abstract class SelectionKeyContextTask extends ContextTask {
                 afterCall();
             } catch(Exception e) {
                 Controller.logger().log(Level.SEVERE,"",e);
+            } finally {
+                recycle();
             }
-            
-            recycle();
         }
         
         return result;
