@@ -58,6 +58,7 @@ import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import com.sun.grizzly.http.embed.GrizzlyWebServer.PROTOCOL;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.http.servlet.deployer.comparator.WarFileComparator;
 import com.sun.grizzly.http.webxml.WebappLoader;
@@ -94,6 +95,7 @@ public class GrizzlyWebServerDeployer {
     private boolean startAdapter = false;
     private boolean cometEnabled = false;
     private boolean forceWarDeployment = false;
+    private boolean ajpEnabled = false;
     
     private List<String> deployedApplicationList = null;
     
@@ -457,6 +459,14 @@ public class GrizzlyWebServerDeployer {
 		this.cometEnabled = enabled;
 	}
 	
+	public boolean getAjpEnabled() {
+		return ajpEnabled;
+	}
+
+	public void setAjpEnabled(boolean enabled) {
+		this.ajpEnabled = enabled;
+	}
+	
 	public boolean getForceWarDeployment() {
 		return forceWarDeployment;
 	}
@@ -483,8 +493,9 @@ public class GrizzlyWebServerDeployer {
         System.err.println("    --dontstart=                     Default: false, Will not start the server until the start method is called.  Useful for Unit test");
         System.err.println("    --libraryPath                    Add a libraries folder to the classpath.  Can append multiple folder.  Separator = File.pathSeparator");
         System.err.println("    --startAdapter                   Will start all the servlets");
-        System.err.println("    --cometEnabled               Will start the AsyncFilter for Comet");
+        System.err.println("    --cometEnabled                   Will start the AsyncFilter for Comet");
         System.err.println("    --forceWarDeployment             Will force deployment of a war file over a expanded folder");
+        System.err.println("    --ajpEnabled		             Will enabled mod_jk");
         System.err.println("    -h, --help                       Show this help message.");
         System.exit(1);
     }
@@ -530,6 +541,8 @@ public class GrizzlyWebServerDeployer {
             	setCometEnabled(true);
             } else if(arg.startsWith("--forceWarDeployment")){
             	setForceWarDeployment(true);
+            } else if(arg.startsWith("--ajpEnabled")){
+            	setAjpEnabled(true);
             }
             
         }
@@ -767,6 +780,10 @@ public class GrizzlyWebServerDeployer {
                 st.setAsyncHandler(asyncHandler);
                 
                 st.setEnableAsyncExecution(true);
+            }
+            
+            if(ajpEnabled){
+            	ws.enableProtocol(PROTOCOL.AJP);
             }
             
             // don't start the server is true: useful for unittest
