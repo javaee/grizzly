@@ -635,8 +635,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if(ctx.decrementRefCount()>0) {
             return;
         }
-        ctx.recycle();
-        contexts.offer((NIOContext) ctx);
+
+        try {
+            ctx.recycle();
+        } finally {
+            contexts.offer((NIOContext) ctx);
+        }
     }
 
 
