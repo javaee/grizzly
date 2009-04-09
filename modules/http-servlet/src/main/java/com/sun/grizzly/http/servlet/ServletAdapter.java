@@ -160,7 +160,12 @@ public class ServletAdapter extends GrizzlyAdapter {
      * Holder for our configured properties.
      */
     protected HashMap<String,Object> properties = new HashMap<String,Object>();
-
+    
+    /**
+     * Initialize the {@link ServletContext}
+     */
+    protected boolean initialize = true;
+    
 
     public ServletAdapter() {
         this(".");
@@ -200,14 +205,31 @@ public class ServletAdapter extends GrizzlyAdapter {
     protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
             HashMap<String,String> contextParameters, HashMap<String,String> servletInitParameters,
             ArrayList<String> listeners){
+       this(publicDirectory, servletCtx, contextParameters, servletInitParameters, listeners, true);
+    }
+
+    /**
+     * Convenience constructor.
+     *
+     * @param publicDirectory The folder where the static resource are located.
+     * @param servletCtx {@link ServletContextImpl} to be used by new instance.
+     * @param contextParameters Context parameters.
+     * @param servletInitParameters servlet initialization parameres.
+     * @param listeners Listeners.
+     * @param initialze false only when the {@link #newServletAdapter()} is invoked.
+     */
+    protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
+            HashMap<String,String> contextParameters, HashMap<String,String> servletInitParameters,
+            ArrayList<String> listeners, boolean initialize){
         super(publicDirectory);
         this.servletCtx = servletCtx;
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters); 
         this.contextParameters = contextParameters;
         this.servletInitParameters = servletInitParameters;
         this.listeners = listeners;
+        this.initialize = initialize;
     }
-
+    
     public ServletAdapter(Servlet servlet, ServletContextImpl servletContext) {
         super(".");
         servletInstance = servlet;
@@ -220,8 +242,10 @@ public class ServletAdapter extends GrizzlyAdapter {
     @Override
     public void start(){
         try{
-            initWebDir();
-            configureClassLoader(webDir.getCanonicalPath());
+            if (initialize) {
+                initWebDir();
+                configureClassLoader(webDir.getCanonicalPath());
+            }
             configureServletEnv();
             fullUrlPath = contextPath + servletPath;
             setResourcesContextPath(fullUrlPath);
@@ -380,11 +404,13 @@ public class ServletAdapter extends GrizzlyAdapter {
             contextPath = "";
         }
 
-        servletCtx.setInitParameter(contextParameters);
-        servletCtx.setContextPath(contextPath);  
-        servletCtx.setBasePath(getRootFolder());               
-        configureProperties(servletCtx);
-        servletCtx.initListeners(listeners);
+        if (initialize) {
+            servletCtx.setInitParameter(contextParameters);
+            servletCtx.setContextPath(contextPath);  
+            servletCtx.setBasePath(getRootFolder());               
+            configureProperties(servletCtx);
+            servletCtx.initListeners(listeners);
+        }
         servletConfig.setInitParameters(servletInitParameters);
         configureProperties(servletConfig);
     }
@@ -629,7 +655,8 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @return a new {@link ServletAdapter}
      */
     public ServletAdapter newServletAdapter(Servlet servlet){
-        ServletAdapter sa = new ServletAdapter(".",servletCtx, contextParameters, new HashMap<String,String>(), listeners);
+        ServletAdapter sa = new ServletAdapter(".",servletCtx, contextParameters,
+                new HashMap<String,String>(), listeners, false);
         sa.setServletInstance(servlet);
         sa.setServletPath(servletPath);
         return sa;
