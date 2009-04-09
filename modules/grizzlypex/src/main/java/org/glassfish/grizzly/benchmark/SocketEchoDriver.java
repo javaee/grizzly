@@ -81,6 +81,7 @@ public class SocketEchoDriver extends EchoDriverBase {
         buffer[0] = counter++;
         try {
             os.write(buffer);
+            os.flush();
             int readNum = 0;
             while(readNum < buffer.length) {
                 int count = is.read(buffer, readNum, buffer.length - readNum);
