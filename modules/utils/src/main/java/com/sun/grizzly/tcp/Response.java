@@ -181,7 +181,7 @@ public class Response<A> {
     private SocketChannel channel;
 
     // Is the request suspended.
-    private boolean isSuspended = false;
+    private volatile boolean isSuspended = false;
     
     // The ResponseAttachment associated with this response.    
     private ResponseAttachment ra;
@@ -825,9 +825,8 @@ public class Response<A> {
 
      */     
     public void suspend(long timeout,A attachment, 
-            CompletionHandler<? super A> competionHandler){  
-        ra = new ResponseAttachment(timeout,attachment, competionHandler,this);
-        suspend(timeout, attachment, competionHandler, ra);
+            CompletionHandler<? super A> competionHandler){          
+        suspend(timeout, attachment, competionHandler, null);
     }
     
     
@@ -858,28 +857,27 @@ public class Response<A> {
             throw new IllegalStateException("Already Suspended");
         }   
         isSuspended = true;
-        
+
+        if (ra == null){
+            ra = new ResponseAttachment(timeout,attachment, competionHandler,this);
+        }
         if (competionHandler == null){
             competionHandler = new CompletionHandler(){
-
                 public void resumed(Object attachment) {
                     if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
                         LoggerUtils.getLogger().fine(Response.this 
                                 + " resumed" + attachment);
                     }
                 }
-
                 public void cancelled(Object attachment) {
                     if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
                         LoggerUtils.getLogger().fine(Response.this 
                                 + " cancelled" + attachment);
                     }
-                }
-                
+                }                
             };
             ra.completionHandler = competionHandler;
         }
-        
         this.ra = ra;
     }
     
