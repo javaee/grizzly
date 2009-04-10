@@ -4,7 +4,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>1.9.12-SNAPSHOT</version>
+    <version>1.9.13-SNAPSHOT</version>
     <url>https://grizzly.dev.java.net</url>
     <issueManagement>
         <system>bugzilla</system>
@@ -63,9 +63,9 @@
             <name>Java.net Repository for Grizzly</name>
             <url>http://download.java.net/maven/2</url>
         </repository>
-        <repository> 
-            <id>maven-repository.dev.java.net</id> 
-            <name>Java.net Maven 1 Repository (legacy)</name> 
+        <repository>
+            <id>maven-repository.dev.java.net</id>
+            <name>Java.net Maven 1 Repository (legacy)</name>
             <url>http://download.java.net/maven/1</url>
             <layout>legacy</layout>
         </repository>
@@ -218,10 +218,10 @@
         </profile>
     </profiles>
     <modules>
-        <module>modules/</module>
-        <module>extras/</module>
-        <module>samples/</module>
-        <module>contribs/</module>
+        <module>modules</module>
+        <module>extras</module>
+        <module>samples</module>
+        <module>contribs</module>
     </modules>
     <reporting>
         <outputDirectory>target/site</outputDirectory>
@@ -284,7 +284,7 @@
                 <version>${felix-version}</version>
             </dependency>
         </dependencies>
-    </dependencyManagement>  
+    </dependencyManagement>
     <distributionManagement>
         <repository>
             <id>java.net-m2-repository</id>
@@ -300,7 +300,7 @@
         </dependency>
     </dependencies>
     <properties>
-        <grizzly-version>1.9.12-SNAPSHOT</grizzly-version>
+        <grizzly-version>1.9.13-SNAPSHOT</grizzly-version>
         <grizzly-released-version>1.9.4</grizzly-released-version>
         <grizzly-next-version>2.0.0</grizzly-next-version>
         <junit-version>3.8.1</junit-version>
