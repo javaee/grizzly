@@ -271,7 +271,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         sslEngine = null;
         inputBB = null;
         outputBB = null;
-        activeThreadTimeout = Long.MIN_VALUE;
+        activeThreadTimeout = UNLIMITED_TIMEOUT;
     }
 
     @Override

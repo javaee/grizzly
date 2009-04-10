@@ -39,6 +39,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
+import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.CompletionHandler;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
@@ -53,15 +54,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import junit.framework.TestCase;
 
 /**
@@ -69,16 +68,32 @@ import junit.framework.TestCase;
  * and {@link Response.cancel} API.
  * 
  * @author Jeanfrancois Arcand
+ * @author gustav trede
  */
 public class SuspendTest extends TestCase {
 
     public static final int PORT = 18890;
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private ScheduledThreadPoolExecutor pe;
     private SelectorThread st;
+    private final String testString = "blabla test.";
+    private final byte[] testData = testString.getBytes();
+
+    @Override
+    protected void setUp() throws Exception {
+        super.setUp();
+        pe = new ScheduledThreadPoolExecutor(1);
+        createSelectorThread();
+    }
+
+    @Override
+    protected void tearDown() throws Exception {
+        super.tearDown();
+        pe.shutdown();
+        SelectorThreadUtils.stopSelectorThread(st);
+    }
 
     public void createSelectorThread() {
         st = new SelectorThread() {
-
             /**
              * Start the SelectorThread using its own thread and don't block the Thread.
              *  This method should be used when Grizzly is embedded.
@@ -123,1032 +138,494 @@ public class SuspendTest extends TestCase {
 
         st.setPort(PORT);
         st.setDisplayConfiguration(true);
-
     }
 
-    public void testSuspendDoubleCancelInvokation() throws IOException {
-        System.out.println("Test: testSuspendDoubleCancelInvokation");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
+    private void setAdapterAndListen(Adapter adapter) throws Exception{
+        st.setAdapter(adapter);
+        st.listen();
+        st.enableMonitoring();
+    }
+
+    public void testSuspendDoubleCancelInvokation() throws Exception {
+        System.err.println("Test: testSuspendDoubleCancelInvokation");
         final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
-
-                @Override
-                public void service(final Request req, final Response res) {
-                    try {
-                        if (res.isSuspended()) {
-                            super.service(req, res);
-                            return;
-                        }
-
-                        res.suspend(60 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
-
-                            public void resumed(StaticResourcesAdapter attachment) {
-                                System.out.println("Not supposed to be here");
-
-                            }
-
-                            public void cancelled(StaticResourcesAdapter attachment) {
-                                try {
-                                    System.out.println("cancelled");
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                    latch.countDown();
-                                }
-                            }
-                        });
-
-
-                        pe.schedule(new Runnable() {
-
-                            public void run() {
-                                try {
-                                    if (res.isSuspended()) {
-                                        res.cancel();
-                                    }
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        }, 2, TimeUnit.SECONDS);
-
-
-                        try {
-                            latch.await(5, TimeUnit.SECONDS);
-
-                            res.cancel();
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                            res.getChannel().write(ByteBuffer.wrap(testData));
-                        }
-
-                    } catch (Throwable t) {
-                        t.printStackTrace();
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void dologic(final Request req, final Response res) throws Throwable{
+                res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+                    @Override
+                    public void cancelled(StaticResourcesAdapter attachment) {
+                        System.err.println("cancelled");
+                        latch.countDown();
                     }
-                }
+                });
 
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
+                cancelLater(res);
+                
+                if(!latch.await(5, TimeUnit.SECONDS)){
+                    fail("was canceled too late");
+                }
+                try {
+                    res.cancel();
+                    fail("should not reach here");
+                } catch (IllegalStateException t) {
+                    res.getChannel().write(ByteBuffer.wrap(testData));
+                }
+            }
+        });
+        sendRequest(false);
+    }
+
+    public void testSuspendResumeNoArgs() throws Exception {
+        System.err.println("Test: testSuspendResumeNoArgs");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void service(final Request req, final Response res){
+                try{
+                    res.suspend();
+                    writeToSuspendedClient(res);
+                    res.resume();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        sendRequest();
+    }
+    
+    public void testSuspendNoArgs() throws Exception {
+        System.err.println("Test: testSuspendNoArgs");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void service(final Request req, final Response res) {
+                res.suspend();
+                pe.schedule(new Runnable() {
+                    public void run() {       
+                        writeToSuspendedClient(res);
+                        res.resume();
+                    }
+                }, 2, TimeUnit.SECONDS);
+            }
+        });
+        sendRequest();
+    }
+
+    public void testSuspendResumedCompletionHandler() throws Exception {
+        System.err.println("Test: testSuspendResumedCompletionHandler");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void dologic(final Request req, final Response res) throws Throwable{
+                res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+                    @Override
+                    public void resumed(StaticResourcesAdapter attachment) {
+                        writeToSuspendedClient(res);
+                    }
+                });                
+                rusumeLater(res);
+            }
+        });
+        sendRequest();
+    }
+    
+    public void testSuspendCancelledCompletionHandler() throws Exception {
+        System.err.println("Test: testSuspendCancelledCompletionHandler");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void dologic(final Request req, final Response res) throws  Throwable{
+                res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+                    @Override
+                    public void cancelled(StaticResourcesAdapter attachment) {
+                        writeToSuspendedClient(res);
                         try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
+                            res.flush();
+                        } catch (IOException ex) {
                             ex.printStackTrace();
                         }
                     }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
+                });
+                this.cancelLater(res);
             }
-            sendRequest(testData, testString, false);
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
+        });
+        sendRequest();
     }
 
-    public void testSuspendNoArgs() throws IOException {
-        System.out.println("Test: testSuspendNoArgs");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
+    public void testSuspendSuspendedExceptionCompletionHandler() throws Exception {
+        System.err.println("Test: testSuspendSuspendedExceptionCompletionHandler");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void dologic(final Request req, final Response res) throws Throwable{
+                res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+                    private AtomicBoolean first = new AtomicBoolean(true);
+                    @Override
+                    public void resumed(StaticResourcesAdapter attachment) {
+                        if (!first.compareAndSet(true, false)){
+                            fail("recursive resume");
+                        }
+                        System.err.println("Resumed.");
+                        try{
+                            res.resume();
+                            fail("should not reach here");;
+                        }catch(IllegalStateException ise){
+                            writeToSuspendedClient(res);
+                        }
+                    }
+                });
+                rusumeLater(res);
+            }
+        });
+        sendRequest(true);
+    }
 
-                @Override
-                public void service(final Request req, final Response res) {
-                    res.suspend();
+    public void testSuspendTimeoutCompletionHandler() throws Exception {
+        System.err.println("Test: testSuspendTimeoutCompletionHandler");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void dologic(final Request req, final Response res) throws Throwable{
+                res.suspend(5 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+                    @Override
+                    public void cancelled(StaticResourcesAdapter attachment) {
+                        try {
+                            System.err.println("Time out");
+                            res.getChannel().write(ByteBuffer.wrap(testData));
+                        } catch (Throwable ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                });
+            }
+        });
+        sendRequest();
+    }
 
-                    pe.schedule(new Runnable() {
+    public void testSuspendDoubleSuspendInvokation() throws Exception {
+        System.err.println("Test: testSuspendDoubleSuspendInvokation");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void dologic(final Request req, final Response res) throws Throwable{
+                res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+                    @Override
+                    public void resumed(StaticResourcesAdapter attachment) {
+                        System.err.println("resumed");                        
+                    }
+                });
+                
+                pe.schedule(new Runnable() {
+                    public void run() {
+                        try {
+                            res.suspend();
+                            fail("should not reach here");
+                        } catch (IllegalStateException t) {
+                            System.err.println("catched suspended suspend");
+                            writeToSuspendedClient(res);
+                            try{
+                                res.resume();
+                            }catch(Throwable at){
+                                at.printStackTrace();
+                                fail(at.getMessage());
+                            }
+                        }
+                    }
+                }, 2, TimeUnit.SECONDS);
+            }
+        });
+        sendRequest();
+    }
 
-                        public void run() {
-                            try {
-                                System.out.println("Resuming");
-                                if (res.isSuspended()) {
-                                    res.getChannel().write(ByteBuffer.wrap(testData));
-                                    res.resume();
+    public void testSuspendDoubleResumeInvokation() throws Exception {
+        System.err.println("Test: testSuspendDoubleResumeInvokation");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void dologic(final Request req, final Response res) throws Throwable {
+                res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+                    @Override
+                    public void resumed(StaticResourcesAdapter attachment) {
+                        try {
+                            System.err.println("trying to resume");
+                            res.resume();
+                            fail("should no get here");
+                        } catch (IllegalStateException ex) {
+                            writeToSuspendedClient(res);
+                        } 
+                    }
+                });                
+               rusumeLater(res);
+            }
+        });
+        sendRequest();
+    }
+
+    public void testSuspendResumedCompletionHandlerGrizzlyAdapter() throws Exception {
+        System.err.println("Test: testSuspendResumedCompletionHandlerGrizzlyAdapter");;
+        setAdapterAndListen(new GrizzlyAdapter() {
+            @Override
+            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+                try {
+                    res.suspend(60 * 1000, this, new TestCompletionHandler<GrizzlyAdapter>() {
+                        @Override
+                        public void resumed(GrizzlyAdapter attachment) {
+                            if (res.isSuspended()) {
+                                System.err.println("Resumed");
+                                try{
+                                    res.getWriter().write(testString);
+                                } catch (Exception ex) {
+                                    ex.printStackTrace();
                                 }
-                                latch.countDown();
+                            }else{
+                                fail("resumed without being suspended");
+                            }
+                        }
+                    });
+                    
+                    rusumeLater(res);                    
+                } catch (Throwable t) {
+                    t.printStackTrace();
+                    fail(t.getMessage());
+                }
+            }
+        });
+        sendRequest();
+    }
+
+    public void testSuspendTimeoutCompletionHandlerGrizzlyAdapter() throws Exception {
+        System.err.println("Test: testSuspendTimeoutCompletionHandlerGrizzlyAdapter");
+        setAdapterAndListen(new GrizzlyAdapter() {
+            @Override
+            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+                try {
+                    final long t1 = System.currentTimeMillis();
+                    res.suspend(10 * 1000, "foo", new TestCompletionHandler<String>() {
+                        @Override
+                        public void cancelled(String attachment) {
+                            try {
+                                System.err.println("Cancelling TOOK: " + (System.currentTimeMillis() - t1));
+                                res.getWriter().write(testString);
                             } catch (Throwable ex) {
                                 ex.printStackTrace();
-                            }
+                            } 
                         }
-                    }, 2, TimeUnit.SECONDS);
-
-                    try {
-                        latch.await(5, TimeUnit.SECONDS);
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    } finally {
-
-                    }
+                    });
+                } catch (Throwable t) {
+                    t.printStackTrace();
                 }
-
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
-                        try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
             }
-
-            sendRequest(testData, testString);
-
-
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
+        });
+        sendRequest();
     }
 
-    public void testSuspendResumedCompletionHandler() throws IOException {
-        System.out.println("Test: testSuspendResumedCompletionHandler");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
-
-                @Override
-                public void service(final Request req, final Response res) {
-                    try {
-                        if (res.isSuspended()) {
-                            super.service(req, res);
-                            return;
-                        }
-
-                        res.suspend(60 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
-
-                            public void resumed(StaticResourcesAdapter attachment) {
-                                try {
-                                    System.out.println("Resuming");
-                                    if (res.isSuspended()) {
-                                        res.getChannel().write(ByteBuffer.wrap(testData));
-                                    }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                    latch.countDown();
-                                }
-                            }
-
-                            public void cancelled(StaticResourcesAdapter attachment) {
-                                System.out.println("Not supposed to be here");
-                            }
-                        });
-
-
-                        pe.schedule(new Runnable() {
-
-                            public void run() {
-                                try {
-                                    System.out.println("Resuming");
-                                    if (res.isSuspended()) {
-                                        res.resume();
-                                    }
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        }, 2, TimeUnit.SECONDS);
-
-
-                        try {
-                            latch.await(5, TimeUnit.SECONDS);
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                        } finally {
-
-                        }
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
-                        try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            sendRequest(testData, testString);
-
-
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testSuspendCancelledCompletionHandler() throws IOException {
-        System.out.println("Test: testSuspendCancelledCompletionHandler");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
-
-                @Override
-                public void service(final Request req, final Response res) {
-                    try {
-                        if (res.isSuspended()) {
-                            super.service(req, res);
-                            return;
-                        }
-
-                        res.suspend(60 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
-
-                            public void resumed(StaticResourcesAdapter attachment) {
-                                System.out.println("Not supposed to be here");
-
-                            }
-
-                            public void cancelled(StaticResourcesAdapter attachment) {
-                                try {
-                                    System.out.println("cancelled");
-                                    if (res.isSuspended()) {
-                                        res.getChannel().write(ByteBuffer.wrap(testData));
-                                    }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                    latch.countDown();
-                                }
-                            }
-                        });
-
-
-                        pe.schedule(new Runnable() {
-
-                            public void run() {
-                                try {
-                                    System.out.println("Cancelling");
-                                    if (res.isSuspended()) {
-                                        res.cancel();
-                                    }
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        }, 2, TimeUnit.SECONDS);
-
-
-                        try {
-                            latch.await(5, TimeUnit.SECONDS);
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                        } finally {
-
-                        }
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
-                        try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            sendRequest(testData, testString);
-
-
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testSuspendSuspendedExceptionCompletionHandler() throws IOException {
-        System.out.println("Test: testSuspendSuspendedExceptionCompletionHandler");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
-
-                @Override
-                public void service(final Request req, final Response res) {
-                    try {
-                        if (res.isSuspended()) {
-                            super.service(req, res);
-                            return;
-                        }
-
-                        res.suspend(60 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
-
-                            public void resumed(StaticResourcesAdapter attachment) {
-                                try {
-                                    System.out.println("Resuming");
-                                    res.getChannel().write(ByteBuffer.wrap(testData));
-                                    res.resume();
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                    latch.countDown();
-                                }
-                            }
-
-                            public void cancelled(StaticResourcesAdapter attachment) {
-                                System.out.println("Not supposed to be here");
-                            }
-                        });
-
-
-                        pe.schedule(new Runnable() {
-
-                            public void run() {
-                                try {
-                                    System.out.println("Resuming");
-                                    if (res.isSuspended()) {
-                                        res.resume();
-                                    }
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        }, 2, TimeUnit.SECONDS);
-
-
-                        try {
-                            latch.await(5, TimeUnit.SECONDS);
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                        } finally {
-
-                        }
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
-                        try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            sendRequest(testData, testString);
-
-
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testSuspendTimeoutCompletionHandler() throws IOException {
-        System.out.println("Test: testSuspendTimeoutCompletionHandler");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
-
-                @Override
-                public void service(final Request req, final Response res) {
-                    try {
-                        if (res.isSuspended()) {
-                            super.service(req, res);
-                            return;
-                        }
-
-                        res.suspend(5 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
-
-                            public void resumed(StaticResourcesAdapter attachment) {
-                                System.out.println("Not supposed to be here");
-                            }
-
-                            public void cancelled(StaticResourcesAdapter attachment) {
-                                try {
-                                    System.out.println("Time out");
-                                    res.getChannel().write(ByteBuffer.wrap(testData));
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                }
-                            }
-                        });
-
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
-                        try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-            sendRequest(testData, testString);
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testSuspendDoubleSuspendInvokation() throws IOException {
-        System.out.println("Test: testSuspendDoubleSuspendInvokation");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
-        final CountDownLatch latch2 = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
-
-                @Override
-                public void service(final Request req, final Response res) {
-                    try {
-                        if (res.isSuspended()) {
-                            super.service(req, res);
-                            return;
-                        }
-
-                        res.suspend(60 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
-
-                            public void resumed(StaticResourcesAdapter attachment) {
-                                try {
-                                    System.out.println("Suspended");
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                    latch.countDown();
-                                }
-                            }
-
-                            public void cancelled(StaticResourcesAdapter attachment) {
-                                System.out.println("Not supposed to be here");
-                            }
-                        });
-
-
-                        pe.schedule(new Runnable() {
-
-                            public void run() {
-                                try {
-                                    if (!res.isSuspended()) {
-                                        res.suspend();
-                                    }
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        }, 2, TimeUnit.SECONDS);
-
-
-                        try {
-                            latch.await(5, TimeUnit.SECONDS);
-
-                            res.suspend();
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                            res.getChannel().write(ByteBuffer.wrap(testData));
-                        }
-
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
-                        try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-            sendRequest(testData, testString, false);
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testSuspendDoubleResumeInvokation() throws IOException {
-        System.out.println("Test: testSuspendDoubleSuspendInvokation");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
-        final CountDownLatch latch2 = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
-
-                @Override
-                public void service(final Request req, final Response res) {
-                    try {
-                        if (res.isSuspended()) {
-                            super.service(req, res);
-                            return;
-                        }
-
-                        res.suspend(60 * 1000, this, new CompletionHandler<StaticResourcesAdapter>() {
-
-                            public void resumed(StaticResourcesAdapter attachment) {
-                                try {
-                                    System.out.println("trying to resume");
-                                    res.resume();
-                                    System.out.println("Oups should have failed");
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                    try {
-                                        res.getChannel().write(ByteBuffer.wrap(testData));
-                                    } catch (IOException ex2) {
-                                    }
-                                } finally {
-                                    latch.countDown();
-                                }
-                            }
-
-                            public void cancelled(StaticResourcesAdapter attachment) {
-                                System.out.println("Not supposed to be here");
-                            }
-                        });
-
-
-                        pe.schedule(new Runnable() {
-
-                            public void run() {
-                                try {
-                                    System.out.println("About to resume");
-                                    res.resume();
-                                    System.out.println("Done");
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        }, 2, TimeUnit.SECONDS);
-
-
-                        try {
-                            latch.await(5, TimeUnit.SECONDS);
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                        }
-
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
-                        try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-            sendRequest(testData, testString, true);
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testSuspendResumedCompletionHandlerGrizzlyAdapter() throws IOException {
-        System.out.println("Test: testSuspendResumedCompletionHandlerGrizzlyAdapter");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new GrizzlyAdapter() {
-
-                @Override
-                public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
-                    try {
-
-                        res.suspend(60 * 1000, this, new CompletionHandler<GrizzlyAdapter>() {
-
-                            public void resumed(GrizzlyAdapter attachment) {
-                                try {
-                                    System.out.println("Resuming");
-                                    if (res.isSuspended()) {
-                                        res.getWriter().write(testString);
-                                    }
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                    latch.countDown();
-                                }
-                            }
-
-                            public void cancelled(GrizzlyAdapter attachment) {
-                                System.out.println("Not supposed to be here");
-                            }
-                        });
-
-
-                        pe.schedule(new Runnable() {
-
-                            public void run() {
-                                try {
-                                    System.out.println("Now Resuming");
-                                    if (res.isSuspended()) {
-                                        res.resume();
-                                    }
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                        }, 2, TimeUnit.SECONDS);
-
-
-                        try {
-                            latch.await(5, TimeUnit.SECONDS);
-                        } catch (Throwable t) {
-                            t.printStackTrace();
-                        } finally {
-
-                        }
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            sendRequest(testData, testString);
-
-
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testSuspendTimeoutCompletionHandlerGrizzlyAdapter() throws IOException {
-        System.out.println("Test: testSuspendTimeoutCompletionHandlerGrizzlyAdapter");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        try {
-            createSelectorThread();
-            st.setAdapter(new GrizzlyAdapter() {
-
-                @Override
-                public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
-                    try {
-                        final long t1 = System.currentTimeMillis();
-                        res.suspend(10 * 1000, "foo", new CompletionHandler<String>() {
-
-                            public void cancelled(String attachment) {
-                                try {
-                                    System.out.println("TOOK: " + (System.currentTimeMillis() - t1));
-                                    System.out.println("Cancelling");
-                                    res.getWriter().write(testString);
-                                } catch (Throwable ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                }
-                            }
-
-                            public void resumed(String attachment) {
-                                System.out.println("Not supposed to be here");
-                            }
-                        });
-
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            sendRequest(testData, testString);
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testFastSuspendResumeGrizzlyAdapter() throws IOException {
-        System.out.println("Test: testFastSuspendResumeGrizzlyAdapter");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            createSelectorThread();
-            st.setAdapter(new GrizzlyAdapter() {
-
-                @Override
-                public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
-                    try {
-                        final long t1 = System.currentTimeMillis();
-                        res.suspend(5 * 1000, "foo", new CompletionHandler<String>() {
-
-                            public void resumed(String attachment) {
-                                try {
-                                    System.out.println("TOOK: " + (System.currentTimeMillis() - t1));
-                                    System.out.println("Resumed");
-                                    res.getWriter().write(testString);
-                                // res.flushBuffer();
-                                } catch (Exception ex) {
-                                    ex.printStackTrace();
-                                } finally {
-                                    latch.countDown();
-                                }
-                            }
-
-                            public void cancelled(String attachment) {
-                                System.out.println("Not supposed to be here");
-                            }
-                        });
-
-                    } catch (Throwable t) {
-                        t.printStackTrace();
-                    }
-
-                    new WorkerThreadImpl(new Runnable() {
-
-                        public void run() {
+    public void testFastSuspendResumeGrizzlyAdapter() throws Exception {
+        System.err.println("Test: testFastSuspendResumeGrizzlyAdapter");
+        setAdapterAndListen(new GrizzlyAdapter() {
+            @Override
+            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+                try {
+                    final long t1 = System.currentTimeMillis();
+                    res.suspend(5 * 1000, "foo", new TestCompletionHandler<String>() {
+                        @Override
+                        public void resumed(String attachment) {
                             try {
-
-                                Thread.sleep(1000);
-
-                            } catch (InterruptedException ex) {
-                                Logger.getLogger(SuspendTest.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-
-                            if (!res.isCommitted()) {
-                                System.out.println("Resuming");
-                                res.resume();
-                            }
+                                System.err.println("Resumed TOOK: " + (System.currentTimeMillis() - t1));
+                                res.getWriter().write(testString);
+                            // res.flushBuffer();
+                            } catch (Exception ex) {
+                                ex.printStackTrace();
+                            } 
                         }
-                    }).start();
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
-
-            sendRequest(testData, testString);
-
-
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
-    }
-
-    public void testSuspendResumeNoArgs() throws IOException {
-        System.out.println("Test: testSuspendNoArgs");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
-
-                @Override
-                public void service(final Request req, final Response res) throws IOException {
-                    res.suspend();
-                    res.getChannel().write(ByteBuffer.wrap(testData));
-                    res.resume();
+                    });
+                } catch (Throwable t) {
+                    t.printStackTrace();
                 }
 
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
+                new WorkerThreadImpl(new Runnable() {
+                    public void run() {
                         try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException ex) {
                             ex.printStackTrace();
+                            fail(ex.getMessage());
+                        }
+
+                        if (!res.isCommitted()) {
+                            System.err.println("Resuming");
+                            res.resume();
+                        }else{
+                            fail("response is commited so we dont resume");
                         }
                     }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
+                }).start();
             }
-
-            sendRequest(testData, testString);
-
-
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
+        });
+        sendRequest();
     }
 
-    public void testSuspendResumeOneTransaction() throws IOException {
-        System.out.println("Test: testSuspendResumeOneTransaction");
-        final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
-        final String testString = "Resuming the response";
-        final byte[] testData = testString.getBytes();
-        try {
-            createSelectorThread();
-            st.setAdapter(new StaticResourcesAdapter() {
 
-                @Override
-                public void service(final Request req, final Response res) throws IOException {
+
+    public void testSuspendResumeOneTransaction() throws Exception {
+        System.err.println("Test: testSuspendResumeOneTransaction");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+                public void service(final Request req, final Response res) {                
+                try {
                     res.suspend();
                     res.getChannel().write(ByteBuffer.wrap(testData));
                     res.flush();
                     res.resume();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
                 }
-
-                @Override
-                public void afterService(final Request req, final Response res) {
-                    if (res.isSuspended()) {
-                        try {
-                            super.afterService(req, res);
-                            return;
-                        } catch (Exception ex) {
-                            ex.printStackTrace();
-                        }
-                    }
-                }
-            });
-
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
             }
-
-            sendRequest(testData, testString);
-
-
-        } finally {
-            SelectorThreadUtils.stopSelectorThread(st);
-            pe.shutdown();
-        }
+        });
+        sendRequest();
     }
 
-    private void sendRequest(byte[] testData, String testString) throws IOException {
-
-        sendRequest(testData, testString, true);
+    
+    private void rusumeLater(final GrizzlyResponse res){
+        pe.schedule(new Runnable() {
+            public void run() {                
+                if (res.isSuspended()) {
+                    try {
+                        System.err.println("Now Resuming");
+                        res.resume();
+                    } catch (Throwable ex) {
+                        ex.printStackTrace();
+                        fail("resume failed: "+ex.getMessage());
+                    }
+                }else{
+                    fail("not suspended, so we dont resume");
+                }
+            }
+        }, 2, TimeUnit.SECONDS);
+    }
+    
+    private void sendRequest() throws Exception {
+        sendRequest(true);
     }
 
-    private void sendRequest(byte[] testData, String testString, boolean assertTrue) throws IOException {
-        
+    private void sendRequest(boolean assertResponse) throws Exception {
         Socket s = new Socket("localhost", PORT);
-        s.setSoTimeout(30 * 1000);
-        OutputStream os = s.getOutputStream();
+        try{
+            s.setSoTimeout(30 * 1000);
+            OutputStream os = s.getOutputStream();
 
-        System.out.println(("GET / HTTP/1.1\n"));
-        os.write(("GET / HTTP/1.1\n").getBytes());
-        os.write(("Host: localhost:" + PORT + "\n").getBytes());
-        os.write("\n".getBytes());
+            System.err.println(("GET / HTTP/1.1\n"));
+            os.write(("GET / HTTP/1.1\n").getBytes());
+            os.write(("Host: localhost:" + PORT + "\n").getBytes());
+            os.write("\n".getBytes());
+            os.flush();
 
-        try {
             InputStream is = new DataInputStream(s.getInputStream());
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             String line = null;
-            System.out.println("================== reading the response");
+            System.err.println("================== reading the response");
+            boolean gotCorrectResponse = false;
             while ((line = br.readLine()) != null) {
-                System.out.println("-> " + line + " --> " + line.startsWith(testString));
+                System.err.println("-> " + line + " --> " + line.startsWith(testString));
                 if (line.startsWith(testString)) {
-                    assertTrue(true);
-                    try{
+                    gotCorrectResponse = true;
+                    /*try{
                         s.close();
-                    } catch (IOException ex){};
-                    return;
+                    } catch (IOException ex){};*/
+                    break;
                 }
             }
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            assertFalse(false);
+            if (assertResponse)
+                assertTrue(gotCorrectResponse);
+        }finally{
+           /* if (s!=null){
+                try{
+                    s.close();
+                } catch (IOException ex){};
+            }*/
+        }
+    }
+    
+
+    private class TestStaticResourcesAdapter extends StaticResourcesAdapter {
+        @Override
+        public void service(Request req,Response res) {
+                try {
+                    if (res.isSuspended()) {
+                        super.service(req, res);
+                    }else{
+                        dologic(req,res);
+                    }
+                }catch(junit.framework.AssertionFailedError ae){
+                }
+                catch (Throwable t) {
+                    t.printStackTrace();
+                    fail(t.getMessage());
+                }
+            }
+
+        public void dologic(final Request req, final Response res) throws Throwable {
+        }
+
+        @Override
+        public void afterService(final Request req, final Response res) {
+            if (res.isSuspended()) {
+                try {
+                    super.afterService(req, res);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        }
+
+        protected void writeToSuspendedClient(Response resp){
+            if (resp.isSuspended()) {
+                try {
+                    resp.getChannel().write(ByteBuffer.wrap(testData));
+                } catch (Throwable ex) {
+                    ex.printStackTrace();
+                }
+            }else{
+                fail("Not Suspended.");
+            }
+        }
+        
+        protected void cancelLater(final Response res){
+            pe.schedule(new Runnable() {
+                public void run() {
+                    if (res.isSuspended()) {
+                        try {
+                            System.err.println("Now cancel");
+                            res.cancel();
+                        } catch (Throwable ex) {
+                            ex.printStackTrace();
+                            fail("cancel failed: "+ex.getMessage());
+                        }
+                    }else{
+                        fail("not suspended, so we dont cancel");
+                    }
+                }
+            }, 2, TimeUnit.SECONDS);
+        }
+
+        protected void rusumeLater(final Response res){
+            pe.schedule(new Runnable() {
+                public void run() {
+                    if (res.isSuspended()) {
+                        try {
+                            System.err.println("Now Resuming");
+                            res.resume();
+                        } catch (Throwable ex) {
+                            ex.printStackTrace();
+                            fail("resume failed: "+ex.getMessage());
+                        }
+                    }else{
+                        fail("not suspended, so we dont resume");
+                    }
+                }
+            }, 2, TimeUnit.SECONDS);
+        }
+    }
+
+    
+    private class TestCompletionHandler<StaticResourcesAdapter> implements CompletionHandler<StaticResourcesAdapter> {
+        public void resumed(StaticResourcesAdapter attachment) {
+            fail("Unexpected resume");
+        }
+        public void cancelled(StaticResourcesAdapter attachment) {
+            fail("Unexpected Cancel");
         }
     }
 }
