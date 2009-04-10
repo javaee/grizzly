@@ -3,13 +3,13 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.12-SNAPSHOT</version>
+        <version>1.9.13-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-messagesbus-webserver</artifactId>
-    <packaging>bundle</packaging>
+    <packaging>jar</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-messagesbus-webserver</name>
     <url>https://grizzly.dev.java.net</url>
@@ -20,15 +20,24 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>${felix-version}</version>
-                <extensions>true</extensions>
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
                         <Export-Package>com.sun.grizzly.*;-split-package:=merge-first,javax.servlet.*;-split-package:=merge-first</Export-Package>
                         <Main-Class>com.sun.grizzly.standalone.Comet</Main-Class>
                     </instructions>
+                    <unpackBundle>true</unpackBundle>
                 </configuration>
-            </plugin>   
+                <executions>
+                    <execution>
+                        <id>osgi-bundle</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>bundle</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>

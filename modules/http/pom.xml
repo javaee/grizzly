@@ -3,13 +3,13 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.12-SNAPSHOT</version>
+        <version>1.9.13-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-http</artifactId>
-    <packaging>bundle</packaging>
+    <packaging>jar</packaging>
     <version>${grizzly-version}</version>
     <name>grizzly-http</name>
     <url>https://grizzly.dev.java.net</url>
@@ -20,7 +20,6 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>${felix-version}</version>
-                <extensions>true</extensions>
                 <configuration>
                     <instructions>
                         <Export-Package>
@@ -31,7 +30,17 @@
                         </Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
+                    <unpackBundle>true</unpackBundle>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>osgi-bundle</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>bundle</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

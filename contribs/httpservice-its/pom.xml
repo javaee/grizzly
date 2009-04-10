@@ -5,16 +5,16 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-contribs</artifactId>
-        <version>1.9.12-SNAPSHOT</version>
+        <version>1.9.13-SNAPSHOT</version>
     </parent>
     <groupId>com.sun.grizzly.osgi.httpservice</groupId>
     <artifactId>httpservice-its</artifactId>
-    <packaging>bundle</packaging>
-    <version>1.9.12-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <version>1.9.13-SNAPSHOT</version>
     <name>Grizzly OSGi HttpService Integration Tests</name>
 
     <properties>
-        <grizzly.version>1.9.12-SNAPSHOT</grizzly.version>
+        <grizzly.version>1.9.13-SNAPSHOT</grizzly.version>
         <felix.version>1.4.3</felix.version>
         <pax.version>1.4</pax.version>
         <org.osgi.service.http.port>8080</org.osgi.service.http.port>
@@ -34,7 +34,6 @@
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
                 <version>${felix.version}</version>
-                <extensions>true</extensions>
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
@@ -45,7 +44,17 @@
                             com.sun.grizzly.osgi.httpservice.its.impl.Activator
                         </Bundle-Activator>
                     </instructions>
+                    <unpackBundle>true</unpackBundle>
                 </configuration>
+                <executions>
+                    <execution>
+                        <id>osgi-bundle</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>bundle</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>org.ops4j</groupId>
