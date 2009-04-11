@@ -46,7 +46,7 @@ import org.jvnet.hk2.config.DuckTyped;
  * Binds protocol to a specific endpoint to listen on
  */
 @Configured
-public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface NetworkListener extends ConfigBeanProxy, Injectable {
     /**
      * IP address to listen on
      */

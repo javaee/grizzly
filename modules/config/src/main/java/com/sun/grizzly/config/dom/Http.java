@@ -48,7 +48,7 @@ import org.jvnet.hk2.config.Element;
  * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
 @Configured
-public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Http extends ConfigBeanProxy, Injectable {
     @Attribute(defaultValue="com.sun.grizzly.tcp.StaticResourcesAdapter")
     String getAdapter();
 

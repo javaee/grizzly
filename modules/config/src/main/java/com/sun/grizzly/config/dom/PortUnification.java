@@ -49,7 +49,7 @@ import org.jvnet.hk2.config.Element;
  * Defines logic of hosting several protocol on a single tcp port.
  */
 @Configured
-public interface PortUnification extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface PortUnification extends ConfigBeanProxy, Injectable {
     /**
      * Port-unification name, which could be used as reference
      */

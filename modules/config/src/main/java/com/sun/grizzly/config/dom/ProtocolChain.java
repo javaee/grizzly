@@ -48,7 +48,7 @@ import org.jvnet.hk2.config.Element;
  * Defines the type of protocol chain and describes protocol filters, which will participate in request processing
  */
 @Configured
-public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ProtocolChain extends ConfigBeanProxy, Injectable {
     /**
      * Protocol chain name, which could be used as reference
      */

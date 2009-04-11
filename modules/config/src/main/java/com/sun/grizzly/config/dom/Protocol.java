@@ -46,7 +46,7 @@ import org.jvnet.hk2.config.Element;
  * Defines one single high-level protocol like: http, https, iiop, etc.
  */
 @Configured
-public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Protocol extends ConfigBeanProxy, Injectable {
     /**
      * Defines any HTTP settings for this Protocol
      */
