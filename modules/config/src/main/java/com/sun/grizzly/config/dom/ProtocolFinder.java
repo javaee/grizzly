@@ -48,7 +48,7 @@ import org.jvnet.hk2.config.Configured;
  * specific protocol.
  */
 @Configured
-public interface ProtocolFinder extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ProtocolFinder extends ConfigBeanProxy, Injectable {
     /**
      * Finder name, which could be used as reference
      */

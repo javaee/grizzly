@@ -46,7 +46,7 @@ import org.jvnet.hk2.config.Configured;
  * Defines single protocol filter in a sequence
  */
 @Configured
-public interface ProtocolFilter extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ProtocolFilter extends ConfigBeanProxy, Injectable {
     /**
      * Protocol filter name, which could be used as reference
      */

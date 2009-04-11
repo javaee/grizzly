@@ -44,7 +44,7 @@ import org.jvnet.hk2.config.Element;
 import java.util.List;
 
 @Configured
-public interface Transports extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Transports extends ConfigBeanProxy, Injectable {
     /**
      * Defines public SelectionKey handler, which could be referenced within transport
      */

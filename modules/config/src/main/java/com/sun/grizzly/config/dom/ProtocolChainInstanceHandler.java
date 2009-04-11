@@ -47,7 +47,7 @@ import org.jvnet.hk2.config.Element;
  * Defines protocol chain instantiation and releasing logic
  */
 @Configured
-public interface ProtocolChainInstanceHandler extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ProtocolChainInstanceHandler extends ConfigBeanProxy, Injectable {
     /**
      * Protocol chain instance handler name, which could be used as reference
      */

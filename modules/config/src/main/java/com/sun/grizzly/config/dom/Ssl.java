@@ -45,7 +45,7 @@ import org.jvnet.hk2.config.Configured;
  * Define SSL processing parameters
  */
 @Configured
-public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Ssl extends ConfigBeanProxy, Injectable {
     /**
      * Nickname of the server certificate in the certificate database or the PKCS#11 token. In the certificate, the name
      * format is tokenname:nickname. Including the tokenname: part of the name in this attribute is optional.

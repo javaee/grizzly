@@ -45,7 +45,7 @@ import org.jvnet.hk2.config.Configured;
  * Defines one specific transport and its properties
  */
 @Configured
-public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Transport extends ConfigBeanProxy, Injectable {
     /**
      * The number of acceptor threads listening for the transport's events
      */

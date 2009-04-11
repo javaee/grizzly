@@ -47,7 +47,7 @@ import java.util.List;
  * Contains the description of higher level protocols like: http, https, iiop, etc.
  */
 @Configured
-public interface Protocols extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface Protocols extends ConfigBeanProxy, Injectable {
     /**
      * List of Protocol implementations
      */

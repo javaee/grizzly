@@ -46,7 +46,7 @@ import org.jvnet.hk2.config.Configured;
  * Defines Transport's SelectionKey handling logic
  */
 @Configured
-public interface SelectionKeyHandler extends ConfigBeanProxy, Injectable, PropertyBag{
+public interface SelectionKeyHandler extends ConfigBeanProxy, Injectable{
     /**
      * SelectionKey handler name, which could be used as reference
      */

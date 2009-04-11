@@ -47,7 +47,7 @@ import java.util.List;
  * Contains set of network-listener, which bind protocol to a specific endpoint to listen on
  */
 @Configured
-public interface NetworkListeners extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface NetworkListeners extends ConfigBeanProxy, Injectable {
     /**
      * Defines public thread-pool(s), which could be referenced within network-listener element(s)
      */

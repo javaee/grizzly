@@ -43,7 +43,7 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 
 @Configured
-public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface ThreadPool extends ConfigBeanProxy, Injectable {
 
     /**
      * The classname of a thread pool implementation

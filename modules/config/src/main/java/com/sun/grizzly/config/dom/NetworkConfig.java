@@ -46,7 +46,7 @@ import org.jvnet.hk2.config.Element;
  * Contains complete Grizzly configuration.
  */
 @Configured
-public interface NetworkConfig extends ConfigBeanProxy, Injectable, PropertyBag {
+public interface NetworkConfig extends ConfigBeanProxy, Injectable {
     /**
      * Describes low level transports configuration.  Like tcp, udp, ssl
      * transports configuration

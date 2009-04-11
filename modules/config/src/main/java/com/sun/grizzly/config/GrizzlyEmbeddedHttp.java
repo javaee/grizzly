@@ -31,7 +31,6 @@ import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.config.dom.FileCache;
 import com.sun.grizzly.config.dom.Http;
 import com.sun.grizzly.config.dom.NetworkListener;
-import com.sun.grizzly.config.dom.Property;
 import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.Ssl;
 import com.sun.grizzly.config.dom.ThreadPool;
@@ -260,7 +259,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final ThreadPool pool = networkListener.findThreadPool();
 
         setPort(Integer.parseInt(networkListener.getPort()));
-        configureNetworkingProperties(http, transport, httpProtocol.getSsl());
+        configureHttpListenerProperty(http, transport, httpProtocol.getSsl());
         configureKeepAlive(http);
         configureHttpProtocol(http);
         configureThreadPool(http, pool);
@@ -461,21 +460,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
         setKeepAliveTimeoutInSeconds(timeoutInSeconds);
         setMaxKeepAliveRequests(maxConnections);
-    }
-
-    /**
-     * Configure http-service properties.
-     */
-    private void configureNetworkingProperties(Http http, final Transport transport, final Ssl ssl) {
-        configureHttpListenerProperty(http, transport, ssl);
-        final List<Property> props = http.getProperty();
-        if (props != null) {
-            for (final Property property : props) {
-                if (logger.isLoggable(Level.WARNING)) {
-                    logger.log(Level.WARNING, "pewebcontainer.invalid_property", property.getName());
-                }
-            }
-        }
     }
 
     /**
