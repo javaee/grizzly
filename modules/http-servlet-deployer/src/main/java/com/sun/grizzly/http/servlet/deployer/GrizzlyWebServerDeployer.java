@@ -92,7 +92,6 @@ public class GrizzlyWebServerDeployer {
     private String forcedContext;
     
     private boolean waitToStart = false;
-    private boolean startAdapter = false;
     private boolean cometEnabled = false;
     private boolean forceWarDeployment = false;
     private boolean ajpEnabled = false;
@@ -323,6 +322,75 @@ public class GrizzlyWebServerDeployer {
 
         return context;
     }
+    
+    private List<ServletAdapter> getServletAdapterList(WebApp webApp, String context){
+    	
+    	List<ServletAdapter> list = new ArrayList<ServletAdapter>();
+    	
+    	// validate if we have servletMapping
+    	if(webApp.getServletMapping()==null || webApp.getServletMapping().isEmpty()){
+    		ServletAdapter sa = new ServletAdapter();
+    		
+    		sa.setContextPath(context);
+    		sa.setServletPath("");
+    		
+    		list.add(sa);
+    	} else {
+    	
+	    	for (ServletMapping servletMapping : webApp.getServletMapping()) {
+	            ServletAdapter sa = new ServletAdapter();
+	    	
+		    	List<String> urlPatternList = servletMapping.getUrlPattern();
+		
+		        //TODO support multiple urlPattern ???
+		
+		        // WE WILL GET ONLY THE FIRST urlPattern
+		
+		        String urlPattern = null;
+		        //if empty, assume "/" as context
+		        if (urlPatternList == null || urlPatternList.size() == 0) {
+		            urlPattern = DEFAULT_CONTEXT;
+		        } else {
+		            urlPattern = urlPatternList.get(0);
+		        }
+		
+		        // get the context path. The urlPattern could be "", "/",
+		        // "/bla/xyz/..."
+		        // just to be sure we don't obtain two slash "//"
+		        String contextPath = null;
+		
+		        if (!urlPattern.startsWith("/")) {
+		            contextPath = context + "/" + urlPattern;
+		        } else {
+		            contextPath = context + urlPattern;
+		        }
+		
+		        if (contextPath.indexOf("//") > -1) {
+		            contextPath = contextPath.replaceAll("//", "/");
+		        }
+		
+		        // set context. if the user pass a context, we will use this one. If
+		        // null we will use the one from
+		        // web.xml
+		        if (urlPattern != null) {
+		            sa.setContextPath(context);
+		            // be sure not the get the extension mapping
+		            // like /blabla/*.jsp
+		            sa.setServletPath(getContext(contextPath));
+		        } else {
+		            // we need at least one context.. need to find which one to set
+		            // to default !!!sa.setContextPath(DEFAULT_CONTEXT);
+		        }
+		        
+		        // Set the Servlet
+	            setServlet(webApp, sa, servletMapping);
+	            
+	            list.add(sa);
+	    	}
+    	}
+        
+        return list;
+    }
 
     public void deploy(String rootFolder, String context, String path) throws Exception {
     	
@@ -333,61 +401,17 @@ public class GrizzlyWebServerDeployer {
         // extract the items from the web.xml
         WebApp webApp = extractWebxmlInfo(path);
 
-        if (webApp == null || webApp.getServlet() == null || webApp.getServlet().size() == 0) {
+        if (webApp == null) {
             throw new Exception("invalid");
         }
 
-
-        for (ServletMapping servletMapping : webApp.getServletMapping()) {
-            ServletAdapter sa = new ServletAdapter();
-
-            List<String> urlPatternList = servletMapping.getUrlPattern();
-
-            //TODO support multiple urlPattern ???
-
-            // WE WILL GET ONLY THE FIRST urlPattern
-
-            String urlPattern = null;
-            //if empty, assume "/" as context
-            if (urlPatternList == null || urlPatternList.size() == 0) {
-                urlPattern = DEFAULT_CONTEXT;
-            } else {
-                urlPattern = urlPatternList.get(0);
-            }
-
-            // get the context path. The urlPattern could be "", "/",
-            // "/bla/xyz/..."
-            // just to be sure we don't obtain two slash "//"
-            String contextPath = null;
-
-            if (!urlPattern.startsWith("/")) {
-                contextPath = context + "/" + urlPattern;
-            } else {
-                contextPath = context + urlPattern;
-            }
-
-            if (contextPath.indexOf("//") > -1) {
-                contextPath = contextPath.replaceAll("//", "/");
-            }
-
-            // set context. if the user pass a context, we will use this one. If
-            // null we will use the one from
-            // web.xml
-            if (urlPattern != null) {
-                sa.setContextPath(context);
-                // be sure not the get the extension mapping
-                // like /blabla/*.jsp
-                sa.setServletPath(getContext(contextPath));
-            } else {
-                // we need at least one context.. need to find which one to set
-                // to default !!!sa.setContextPath(DEFAULT_CONTEXT);
-            }
-
-            // Set the Servlet
-            setServlet(webApp, sa, servletMapping);
-
+        // obtain a servletAdapter list
+        List<ServletAdapter> servletAdapterList = getServletAdapterList(webApp, context);
+        
+        for (ServletAdapter sa : servletAdapterList) {
+        	
             // set Filters for this context if there are some
-            setFilters(webApp, sa, contextPath);
+            setFilters(webApp, sa);
 
             // set Listeners
             setListeners(webApp, sa);
@@ -401,10 +425,12 @@ public class GrizzlyWebServerDeployer {
             
             sa.setHandleStaticResources(true);
             
+            String alias = sa.getContextPath() + sa.getServletPath();
+            
             if (logger.isLoggable(Level.FINEST)) {
                 logger.log(Level.FINEST, "sa context=" + sa.getContextPath());
                 logger.log(Level.FINEST, "sa servletPath=" + sa.getServletPath());
-                logger.log(Level.FINEST, "sa alias=" + contextPath);
+                logger.log(Level.FINEST, "sa alias=" + alias);
                 logger.log(Level.FINEST, "sa rootFolder=" + sa.getRootFolder());
             }
             
@@ -413,9 +439,9 @@ public class GrizzlyWebServerDeployer {
 			//keep trace of deployed application
 			deployedApplicationList.add(context);
 			
-            ws.addGrizzlyAdapter(sa, new String[]{contextPath});
+            ws.addGrizzlyAdapter(sa, new String[]{alias});
             
-        }
+		}
         
     }
 
@@ -441,14 +467,6 @@ public class GrizzlyWebServerDeployer {
 
     protected void setLibraryPath(String path) {
 		this.libraryPath = path;
-	}
-
-	public boolean getStartAdapter() {
-		return startAdapter;
-	}
-
-	public void setStartAdapter(boolean enabled) {
-		this.startAdapter = enabled;
 	}
 
 	public boolean getCometEnabled() {
@@ -492,7 +510,6 @@ public class GrizzlyWebServerDeployer {
         System.err.println("    -c, --context=context            The context that will be use for servlet or warfile");
         System.err.println("    --dontstart=                     Default: false, Will not start the server until the start method is called.  Useful for Unit test");
         System.err.println("    --libraryPath                    Add a libraries folder to the classpath.  Can append multiple folder.  Separator = File.pathSeparator");
-        System.err.println("    --startAdapter                   Will start all the servlets");
         System.err.println("    --cometEnabled                   Will start the AsyncFilter for Comet");
         System.err.println("    --forceWarDeployment             Will force deployment of a war file over a expanded folder");
         System.err.println("    --ajpEnabled		             Will enabled mod_jk");
@@ -535,8 +552,6 @@ public class GrizzlyWebServerDeployer {
             } else if (arg.startsWith("--libraryPath=")) {
                 String value = arg.substring("--libraryPath=".length(), arg.length());
                 setLibraryPath(value);
-            } else if (arg.startsWith("--startAdapter")) {
-                setStartAdapter(true);
             } else if (arg.startsWith("--cometEnabled")) {
             	setCometEnabled(true);
             } else if(arg.startsWith("--forceWarDeployment")){
@@ -590,7 +605,7 @@ public class GrizzlyWebServerDeployer {
         }
     }
 
-    protected void setFilters(WebApp webApp, ServletAdapter sa, String context) {
+    protected void setFilters(WebApp webApp, ServletAdapter sa) {
         // Add the Filters
         List<com.sun.grizzly.http.webxml.schema.Filter> filterList = webApp.getFilter();
 
