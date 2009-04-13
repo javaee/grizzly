@@ -141,9 +141,9 @@ public class JAXBWebXml_2_2Parser implements IJAXBWebXmlParser {
 				
 				Object object = servlet.getServletClassOrJspFile().get(0);
 				if(object instanceof ServletClass){
-					servletTmp.setJspFile(((ServletClass)object).getvalue());
+					servletTmp.setServletClass(((ServletClass)object).getvalue());
 				} else if(object instanceof JspFile){
-					servletTmp.setServletClass(((JspFile)object).getvalue());
+					servletTmp.setJspFile(((JspFile)object).getvalue());
 				}
 				
 			}
