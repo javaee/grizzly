@@ -44,13 +44,10 @@ import org.glassfish.grizzly.nio.DefaultNIOTransportFactory;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
-import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.memory.DefaultMemoryManager;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.DefaultScheduleThreadPool;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
-import org.glassfish.grizzly.util.ConcurrentQueuePool;
-import org.glassfish.grizzly.util.ObjectPool;
 
 /**
  *
@@ -79,7 +76,6 @@ public abstract class TransportFactory {
     private boolean isClosed;
     
     protected AttributeBuilder defaultAttributeBuilder;
-    protected ObjectPool<Context> defaultIOEventContextPool;
     protected MemoryManager defaultMemoryManager;
     protected ExecutorService defaultWorkerThreadPool;
     protected ScheduledExecutorService defaultScheduledThreadPool;
@@ -94,14 +90,6 @@ public abstract class TransportFactory {
 
     public void setDefaultAttributeBuilder(AttributeBuilder defaultAttributeBuilder) {
         this.defaultAttributeBuilder = defaultAttributeBuilder;
-    }
-
-    public ObjectPool<Context> getDefaultIOEventContextPool() {
-        return defaultIOEventContextPool;
-    }
-
-    public void setDefaultIOEventContextPool(ObjectPool<Context> defaultIOEventContextPool) {
-        this.defaultIOEventContextPool = defaultIOEventContextPool;
     }
 
     public MemoryManager getDefaultMemoryManager() {
@@ -131,20 +119,6 @@ public abstract class TransportFactory {
     
     public void initialize() {
         defaultAttributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
-        
-        defaultIOEventContextPool =
-                new ConcurrentQueuePool<Context>() {
-                    @Override
-                    public Context newInstance() {
-                        Context context =
-                                new Context(defaultIOEventContextPool);
-                        context.setAttributes(
-                                new IndexedAttributeHolder(
-                                defaultAttributeBuilder));
-
-                        return context;
-                    }
-                };
         defaultMemoryManager = new DefaultMemoryManager();
         defaultWorkerThreadPool = new DefaultThreadPool();
         defaultScheduledThreadPool = new DefaultScheduleThreadPool();
@@ -171,7 +145,6 @@ public abstract class TransportFactory {
     
     protected <T extends Transport> T setupTransport(T transport) {
         transport.setAttributeBuilder(defaultAttributeBuilder);
-        transport.setDefaultContextPool(defaultIOEventContextPool);
         transport.setMemoryManager(defaultMemoryManager);
         transport.setWorkerThreadPool(defaultWorkerThreadPool);
         return transport;

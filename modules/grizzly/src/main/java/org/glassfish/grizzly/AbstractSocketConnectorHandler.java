@@ -44,7 +44,8 @@ import java.net.SocketAddress;
 import java.util.concurrent.Future;
 
 /**
- * Class simplifies the implementation of {@link SocketConnectorHandler}
+ * Abstract class simplifies the implementation of
+ * {@link SocketConnectorHandler}
  * interface by preimplementing some of its methods.
  * 
  * @author Alexey Stashok

@@ -39,17 +39,10 @@
 package org.glassfish.grizzly;
 
 /**
+ * Common I/O result interface.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
-public abstract class AbstractIOResult {
-    protected Connection connection;
-
-    public Connection getConnection() {
-        return connection;
-    }
-
-    protected void setConnection(Connection connection) {
-        this.connection = connection;
-    }
+public interface Result {
+    public Connection getConnection();
 }

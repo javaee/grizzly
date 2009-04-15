@@ -48,6 +48,12 @@ import java.io.IOException;
 public abstract class AbstractProcessor<E extends Context>
         implements Processor<E> {
 
+    /**
+     * Returning null, means that core is responsible to create the
+     * processing {@link Context} itself.
+     * 
+     * @return <tt>null</tt>
+     */
     public E context() {
         return null;
     }

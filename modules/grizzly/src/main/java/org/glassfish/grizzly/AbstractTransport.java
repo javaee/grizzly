@@ -38,18 +38,20 @@
 
 package org.glassfish.grizzly;
 
+import java.io.IOException;
+import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.util.ExceptionHandler;
 import org.glassfish.grizzly.util.ObjectPool;
 import org.glassfish.grizzly.util.StateHolder;
-import java.io.IOException;
-import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
 
 /**
+ * Abstract {@link Transport}.
+ * Implements common transport functionality.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public abstract class AbstractTransport implements Transport {
     protected String name;

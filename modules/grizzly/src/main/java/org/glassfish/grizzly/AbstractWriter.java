@@ -42,8 +42,10 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
+ * Abstract class, which provides transitive dependencies for overloaded
+ * {@link Writer#read(...)} methods.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public abstract class AbstractWriter<L> implements Writer<L> {
 

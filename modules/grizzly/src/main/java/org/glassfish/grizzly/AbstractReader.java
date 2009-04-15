@@ -42,8 +42,10 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
- *
- * @author oleksiys
+ * Abstract class, which provides transitive dependencies for overloaded
+ * {@link Reader#read(...)} methods.
+ * 
+ * @author Alexey Stashok
  */
 public abstract class AbstractReader<L> implements Reader<L> {
     /**

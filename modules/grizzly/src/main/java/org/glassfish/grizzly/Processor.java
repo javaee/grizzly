@@ -41,8 +41,8 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 
 /**
- * Processor implementations are responsible for processing events, 
- * occured on connection.
+ * Processor implementations are responsible for processing I/O events, which
+ * occur on connection.
  * 
  * @author Alexey Stashok
  */

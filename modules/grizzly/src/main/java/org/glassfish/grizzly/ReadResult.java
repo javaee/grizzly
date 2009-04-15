@@ -44,8 +44,10 @@ import org.glassfish.grizzly.util.MessageHolder;
  *
  * @author oleksiys
  */
-public class ReadResult<K, L> extends AbstractIOResult {
-    private MessageHolder<K, L> messageHolder;
+public class ReadResult<K, L> implements Result {
+    private final Connection connection;
+
+    private final MessageHolder<K, L> messageHolder;
     
     private int readSize;
 
@@ -82,5 +84,9 @@ public class ReadResult<K, L> extends AbstractIOResult {
 
     public void setReadSize(int readSize) {
         this.readSize = readSize;
+    }
+
+    public Connection getConnection() {
+        return connection;
     }
 }
