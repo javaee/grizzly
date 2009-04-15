@@ -39,13 +39,26 @@
 package org.glassfish.grizzly;
 
 /**
- *
- * @author oleksiys
+ * Handler, which is used to finer control {@link Readable#read(...)}.
+ * 
+ * @author Alexey Stashok
  */
 public interface Interceptor<R> {
     public static final int DEFAULT = 0;
     public static final int COMPLETED = 1;
     public static final int INCOMPLETED = 2;
     
+    /**
+     * Callback method is called by {@link Readable}, so it is possible to
+     * customize reading process. Mostly {@link Interceptor} is used to control
+     * asynchronous reads.
+     * 
+     * @param event type of intercepted event.
+     * @param context read operation context.
+     * @param result last read operation result.
+     *
+     * @return the implementation specific code to instruct {@link Readable}
+     * how it should continue reading operation.
+     */
     public int intercept(int event, Object context, R result);
 }

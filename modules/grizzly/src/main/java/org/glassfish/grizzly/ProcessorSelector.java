@@ -39,8 +39,9 @@
 package org.glassfish.grizzly;
 
 /**
- * Implementations of the interface will be responsible to add required 
- * event processors in response to a event, which occured on a connection.
+ * Implementations of the interface will be responsible to find correct
+ * {@link Processor}, which will process {@link IOEvent}, which occurred on the
+ * {@link Connection}
  * 
  * @author Alexey Stashok
  */

@@ -44,12 +44,22 @@ package org.glassfish.grizzly;
  * @author Alexey Stashok
  */
 public class ProcessorResult {
+    /**
+     * Enum represents the status/code of {@link ProcessorResult}.
+     */
     public enum Status {
         OK, ERROR, RERUN, TERMINATE;
     }
     
-    private Status status;
-    private Object description;
+    /**
+     * Result status
+     */
+    private final Status status;
+
+    /**
+     * Result description
+     */
+    private final Object description;
 
     public ProcessorResult(Status status) {
         this(status, null);
@@ -60,11 +70,21 @@ public class ProcessorResult {
         this.description = description;
     }
 
-    public Object getDescription() {
-        return description;
-    }
-
+    /**
+     * Get the result status.
+     *
+     * @return the result status.
+     */
     public Status getStatus() {
         return status;
+    }
+
+    /**
+     * Get the {@link ProcessorResult} description.
+     *
+     * @return the {@link ProcessorResult} description.
+     */
+    public Object getDescription() {
+        return description;
     }
 }

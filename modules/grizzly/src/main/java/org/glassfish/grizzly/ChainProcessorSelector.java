@@ -46,8 +46,15 @@ import java.util.List;
 import java.util.ListIterator;
 
 /**
- *
- * @author oleksiys
+ * {@link ProcessorSelector} implementation, which acts like wrapper for chain
+ * of {@link ProcessorSelector}s.
+ * So, when {@link ProcessorSelector#select(IOEvent, Connection)} operation is
+ * called - it delegates selecting to the first {@link ProcessorSelector} from
+ * chain. If first {@link ProcessorSelector} returns not <tt>null</tt>
+ * {@link Processor} - {@link ChainProcessorSelector} returns it as result,
+ * otherwise next {@link ProcessorSelector} will be taken from chain... etc
+ * 
+ * @author Alexey Stashok
  */
 public class ChainProcessorSelector implements ProcessorSelector,
         List<ProcessorSelector> {
@@ -66,6 +73,9 @@ public class ChainProcessorSelector implements ProcessorSelector,
         this.selectorChain = selectorChain;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Processor select(IOEvent ioEvent,
             Connection connection) {
         for(ProcessorSelector processorSelector : selectorChain) {
@@ -78,99 +88,166 @@ public class ChainProcessorSelector implements ProcessorSelector,
         return null;
     }
 
-    /* List implementation */
+    /**
+     * {@inheritDoc}
+     */
     public int size() {
         return selectorChain.size();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isEmpty() {
         return selectorChain.isEmpty();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean contains(Object o) {
         return selectorChain.contains(o);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Iterator<ProcessorSelector> iterator() {
         return selectorChain.iterator();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Object[] toArray() {
         return selectorChain.toArray();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public <T> T[] toArray(T[] a) {
         return selectorChain.toArray(a);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean add(ProcessorSelector o) {
         return selectorChain.add(o);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean remove(Object o) {
         return selectorChain.remove(o);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean containsAll(Collection<?> c) {
         return selectorChain.containsAll(c);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean addAll(Collection<? extends ProcessorSelector> c) {
         return selectorChain.addAll(c);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean addAll(int index,
             Collection<? extends ProcessorSelector> c) {
         return selectorChain.addAll(index, c);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean removeAll(Collection<?> c) {
         return selectorChain.removeAll(c);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean retainAll(Collection<?> c) {
         return selectorChain.retainAll(c);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void clear() {
         selectorChain.clear();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ProcessorSelector get(int index) {
         return selectorChain.get(index);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ProcessorSelector set(int index,
             ProcessorSelector element) {
         return selectorChain.set(index, element);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void add(int index, ProcessorSelector element) {
         selectorChain.add(index, element);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ProcessorSelector remove(int index) {
         return selectorChain.remove(index);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int indexOf(Object o) {
         return selectorChain.indexOf(o);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int lastIndexOf(Object o) {
         return selectorChain.lastIndexOf(o);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ListIterator<ProcessorSelector> listIterator() {
         return selectorChain.listIterator();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ListIterator<ProcessorSelector> listIterator(int index) {
         return selectorChain.listIterator(index);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public List<ProcessorSelector> subList(int fromIndex, int toIndex) {
         return selectorChain.subList(fromIndex, toIndex);
     }
-
 }

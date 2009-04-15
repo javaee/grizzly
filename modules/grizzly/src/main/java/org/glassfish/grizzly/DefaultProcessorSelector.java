@@ -38,6 +38,13 @@
 package org.glassfish.grizzly;
 
 /**
+ * Default {@link ProcessorSelector} implementation, which uses
+ * {@link Connection}'s {@link Processor} preferences.
+ * The {@link DefaultProcessorSelector} first checks {@link Connection's}
+ * associated {@link Processor} ({@link Connection#getProcessor()}). If returned
+ * {@link Processor} is <tt>null</tt> - if delegates selection to
+ * {@link Connection}'s {@link ProcessorSelector}
+ * ({@link Connection#getProcessorSelector()}).
  *
  * @author Alexey Stashok
  */
@@ -49,11 +56,12 @@ public class DefaultProcessorSelector implements ProcessorSelector {
         this.transport = transport;
     }
 
-    public Processor select(IOEvent ioEvent,
-            Connection connection) {
+    /**
+     * {@inheritDoc}
+     */
+    public Processor select(IOEvent ioEvent, Connection connection) {
 
-        Processor eventProcessor =
-                connection.getProcessor();
+        Processor eventProcessor = connection.getProcessor();
 
         if (eventProcessor != null && eventProcessor.isInterested(ioEvent)) {
             return eventProcessor;

@@ -39,8 +39,9 @@
 package org.glassfish.grizzly;
 
 /**
- *
- * @author oleksiys
+ * Enumeration represents the I/O event, occured on a {@link Connection}.
+ * 
+ * @author Alexey Stashok
  */
 public enum IOEvent {
     NONE,

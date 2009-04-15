@@ -47,7 +47,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Class contains information about Grizzly framework
+ * Class contains information about Grizzly framework.
  * 
  * @author Charlie Hunt
  * @author Hubert Iwaniuk

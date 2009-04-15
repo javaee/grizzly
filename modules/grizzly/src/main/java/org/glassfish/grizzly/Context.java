@@ -38,95 +38,179 @@
 
 package org.glassfish.grizzly;
 
-import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.util.ObjectPool;
 import org.glassfish.grizzly.util.PoolableObject;
 
 /**
+ * Object, which is responsible for holding context during I/O event processing.
  *
  * @author Alexey Stashok
  */
 public class Context implements PoolableObject {
+    /**
+     * Processing Connection
+     */
     private Connection connection;
     
+    /**
+     * Processing IOEvent
+     */
     private IOEvent ioEvent;
-    
+
+    /**
+     * Processor, responsible for I/O event processing
+     */
     private Processor processor;
 
+    /**
+     * PostProcessor to be called, on processing completion
+     */
     private PostProcessor postProcessor;
 
+    /**
+     * Attributes, associated with the processing Context
+     */
     private AttributeHolder attributes;
     
-    private ExecutorService processorExecutor;
-
+    /**
+     * Processing task, executed on processorExecutor
+     */
     private ProcessorRunnable processorRunnable;
     
     private final ObjectPool<Context> parentPool;
 
     public Context() {
-        parentPool = null;
+        this(null);
     }
 
     public Context(ObjectPool parentPool) {
         this.parentPool = parentPool;
     }
     
+    /**
+     * Get the processing {@link IOEvent}.
+     *
+     * @return the processing {@link IOEvent}.
+     */
     public IOEvent getIoEvent() {
         return ioEvent;
     }
 
+    /**
+     * Set the processing {@link IOEvent}.
+     *
+     * @param ioEvent the processing {@link IOEvent}.
+     */
     public void setIoEvent(IOEvent ioEvent) {
         this.ioEvent = ioEvent;
     }
 
+    /**
+     * Get the processing {@link Connection}.
+     *
+     * @return the processing {@link Connection}.
+     */
     public Connection getConnection() {
         return connection;
     }
 
+    /**
+     * Set the processing {@link Connection}.
+     *
+     * @param connection the processing {@link Connection}.
+     */
     public void setConnection(Connection connection) {
         this.connection = connection;
     }
 
-    public ExecutorService getProcessorExecutor() {
-        return processorExecutor;
-    }
-
-    public void setProcessorExecutor(
-            ExecutorService processorExecutor) {
-        this.processorExecutor = processorExecutor;
-    }
-
+    /**
+     * Get the {@link ProcessorRunnable} task instance.
+     * 
+     * @return the {@link ProcessorRunnable} task instance.
+     */
     public ProcessorRunnable getProcessorRunnable() {
         return processorRunnable;
     }
 
+    /**
+     * Set the {@link ProcessorRunnable} task instance.
+     *
+     * @param processorRunnable the {@link ProcessorRunnable} task instance.
+     */
     public void setProcessorRunnable(ProcessorRunnable processorRunnable) {
         this.processorRunnable = processorRunnable;
     }
 
+    /**
+     * Get the {@link Processor}, which is responsible to process
+     * the {@link IOEvent}.
+     * 
+     * @return the {@link Processor}, which is responsible to process
+     * the {@link IOEvent}.
+     */
     public Processor getProcessor() {
         return processor;
     }
 
+    /**
+     * Set the {@link Processor}, which is responsible to process
+     * the {@link IOEvent}.
+     *
+     * @param processor the {@link Processor}, which is responsible to process
+     * the {@link IOEvent}.
+     */
     public void setProcessor(Processor processor) {
         this.processor = processor;
     }   
 
+    /**
+     * Get the {@link PostProcessor}, which will be called after
+     * {@link Processor} will finish its execution to finish IOEvent processing.
+     *
+     * @return the {@link PostProcessor}, which will be called after
+     * {@link Processor} will finish its execution to finish IOEvent processing.
+     */
     public PostProcessor getPostProcessor() {
         return postProcessor;
     }
 
+    /**
+     * Set the {@link PostProcessor}, which will be called after
+     * {@link Processor} will finish its execution to finish IOEvent processing.
+     *
+     * @param ioEventPostProcessor the {@link PostProcessor}, which will be
+     * called after {@link Processor} will finish its execution to
+     * finish IOEvent processing.
+     */
     public void setPostProcessor(
             PostProcessor ioEventPostProcessor) {
         this.postProcessor = ioEventPostProcessor;
     }
 
+    /**
+     * Get attributes ({@link AttributeHolder}), associated with the processing
+     * {@link Context}. {@link AttributeHolder} is cleared after each I/O event
+     * processing.
+     * Method may return <tt>null</tt>, if there were no attributes added before.
+     *
+     * @return attributes ({@link AttributeHolder}), associated with the processing
+     * {@link Context}. 
+     */
     public AttributeHolder getAttributes() {
         return attributes;
     }
 
+    /**
+     * Get attributes ({@link AttributeHolder}), associated with the processing
+     * {@link Context}. {@link AttributeHolder} is cleared after each I/O event
+     * processing.
+     * Method will always returns <tt>non-null</tt> {@link AttributeHolder}.
+     *
+     * @return attributes ({@link AttributeHolder}), associated with the processing
+     * {@link Context}.
+     */
     public AttributeHolder obtainAttributes() {
         if (attributes == null) {
             if (connection == null) {
@@ -151,6 +235,11 @@ public class Context implements PoolableObject {
         this.attributes = attributes;
     }
 
+    /**
+     * If implementation uses {@link ObjectPool} to store and reuse
+     * {@link Context} instances - this method will be called before
+     * {@link Context} will be polled from pool.
+     */
     public void prepare() {
         if (attributes == null) {
             attributes = 
@@ -158,21 +247,25 @@ public class Context implements PoolableObject {
         }
     }
 
+    /**
+     * If implementation uses {@link ObjectPool} to store and reuse
+     * {@link Context} instances - this method will be called before
+     * {@link Context} will be offered to pool.
+     */
     public void release() {
         if (attributes != null) {
             attributes.clear();
         }
         
         processor = null;
-        processorExecutor = null;
         postProcessor = null;
         connection = null;
         ioEvent = IOEvent.NONE;
     }
 
     /**
-     * Return this {@link IOEventContext} to the {@link ObjectPool} it was
-     * taken from
+     * Return this {@link Context} to the {@link ObjectPool} it was
+     * taken from.
      */
     public void offerToPool() {
         if (parentPool != null) {

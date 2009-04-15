@@ -41,12 +41,19 @@ package org.glassfish.grizzly;
 import java.util.concurrent.Executor;
 
 /**
- * Executor, which is reponsible for running {@link IOEventContextRunnable}.
+ * Executor, which is reponsible for running {@link ProcessorRunnable}.
  * Executors should be aware whether they spawn new {@link Thread}(s) or use
  * the current one.
  * 
  * @author Alexey Stashok
  */
 public interface ProcessorExecutor extends Executor {
+    /**
+     * Returns <tt>true</tt> if {@link ProcessorExecutor} uses current
+     * {@link Thread} to run I/O event processing, or <tt>false</tt> otherwise.
+     * 
+     * @return <tt>true</tt> if {@link ProcessorExecutor} uses current
+     * {@link Thread} to run I/O event processing, or <tt>false</tt> otherwise.
+     */
     public boolean isCurrentThreadExecutor();
 }
