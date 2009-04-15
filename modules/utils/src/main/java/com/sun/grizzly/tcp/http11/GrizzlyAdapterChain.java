@@ -234,13 +234,24 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
                 String ctx = getContextPath(mapping);
                 mapper.addContext(LOCAL_HOST, ctx, adapter,
                         new String[] {"index.html", "index.htm"}, null);
-                mapper.addWrapper(LOCAL_HOST, ctx,mapping.substring(ctx.length()), adapter);
+                mapper.addWrapper(LOCAL_HOST,ctx,getWrapperPath(ctx, mapping) , adapter);
             }
+        }
+    }
+    
+    private String getWrapperPath(String ctx,String mapping){
+        
+        if (mapping.indexOf("/*.") > 0){
+            return mapping.substring(mapping.lastIndexOf("/") + 1);
+        } else if (!ctx.equals("")){
+            return mapping.substring(ctx.length());
+        } else {
+            return mapping;
         }
     }
 
     private String getContextPath(String mapping){
-       String ctx = "";
+        String ctx = "";
         int slash = mapping.indexOf("/",1);
         if (slash != -1) {
             ctx = mapping.substring(0,slash);
@@ -256,6 +267,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
         if (ctx.equals("/")) {
             ctx = "";
         }
+
         return ctx;
     }
     

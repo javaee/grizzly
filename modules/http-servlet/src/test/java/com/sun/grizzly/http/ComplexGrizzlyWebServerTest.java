@@ -81,7 +81,7 @@ public class ComplexGrizzlyWebServerTest extends TestCase {
      *
      * @throws IOException
      */
-    public void __testComplexAliasMapping() throws IOException {
+    public void testComplexAliasMapping() throws IOException {
         System.out.println("testComplexAliasMapping");
         try {
             startGrizzlyWebServer(PORT);
@@ -136,7 +136,7 @@ public class ComplexGrizzlyWebServerTest extends TestCase {
             protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
                 logger.info(alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
-                resp.getWriter().write(alias);
+                resp.getWriter().write( (alias.indexOf("*") == 0 ? alias : req.getRequestURI()));
             }
         });
        
