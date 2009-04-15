@@ -82,6 +82,8 @@ public interface Transport extends ExceptionHandler {
      * Returns the {@link Transport} mode.
      * <tt>true</tt>, if {@link Transport} is operating in blocking mode, or
      * <tt>false</tt> otherwise.
+     * Specific {@link Transport} {@link Connection}s may override this setting
+     * by {@link Connection#isBlocking()}.
      * 
      * @return the {@link Transport} mode.
      * <tt>true</tt>, if {@link Transport} is operating in blocking mode, or
@@ -91,6 +93,8 @@ public interface Transport extends ExceptionHandler {
 
     /**
      * Sets the {@link Transport} mode.
+     * Specific {@link Transport} {@link Connection}s may override this setting
+     * by {@link Connection#configureBlocking(boolean)}.
      *
      * @param isBlocking the {@link Transport} mode. <tt>true</tt>,
      * if {@link Transport} should operate in blocking mode, or
@@ -100,10 +104,12 @@ public interface Transport extends ExceptionHandler {
 
     /**
      * Gets the default {@link Processor}, which will process {@link Connection}
-     * I/O events, if one doesn't have own {@link Processor} preferences.
-     * If {@link Processor} is <tt>null</tt>, and {@link Connection} doesn't
-     * have any preferred {@link Processor} - then {@link Transport} will try
-     * to get {@link Processor} using {@link ProcessorSelector}.
+     * I/O events in case, if {@link Connection} doesn't have own
+     * {@link Processor} preferences.
+     * If {@link Transport} associated {@link Processor} is <tt>null</tt>,
+     * and {@link Connection} doesn't have any preferred {@link Processor} -
+     * then {@link Transport} will try to get {@link Processor} using
+     * {@link ProcessorSelector#select(IOEvent, Connection)}.
      * 
      * @return the default {@link Processor}, which will process
      * {@link Connection} I/O events, if one doesn't have
@@ -113,10 +119,12 @@ public interface Transport extends ExceptionHandler {
 
     /**
      * Sets the default {@link Processor}, which will process {@link Connection}
-     * I/O events, if one doesn't have own {@link Processor} preferences.
-     * If {@link Processor} is <tt>null</tt>, and {@link Connection} doesn't
-     * have any preferred {@link Processor} - then {@link Transport} will try
-     * to get {@link Processor} using {@link ProcessorSelector}.
+     * I/O events in case, if {@link Connection} doesn't have own
+     * {@link Processor} preferences.
+     * If {@link Transport} associated {@link Processor} is <tt>null</tt>,
+     * and {@link Connection} doesn't have any preferred {@link Processor} -
+     * then {@link Transport} will try to get {@link Processor} using
+     * {@link ProcessorSelector#select(IOEvent, Connection)}.
      *
      * @param processor the default {@link Processor}, which will process
      * {@link Connection} I/O events, if one doesn't have own
@@ -125,33 +133,42 @@ public interface Transport extends ExceptionHandler {
     public void setProcessor(Processor processor);
 
     /**
-     * Gets the default {@link ProcessorSelector}, which will process
-     * {@link Connection} I/O events, in case if this {@link Transport}'s
-     * {@link Processor} is <tt>null</tt> and {@link Connection} doesn't have
-     * neither preferred {@link Processor} nor {@link ProcessorSelector}.
+     * Gets the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process {@link Connection} I/O events, in case if
+     * this {@link Transport}'s {@link Processor} is <tt>null</tt> and
+     * {@link Connection} doesn't have neither preferred {@link Processor}
+     * nor {@link ProcessorSelector}.
      *
-     * @return the default {@link ProcessorSelector}, which will process
-     * {@link Connection} I/O events, in case if this {@link Transport}'s
-     * {@link Processor} is <tt>null</tt> and {@link Connection} doesn't have
-     * neither preferred {@link Processor} nor {@link ProcessorSelector}.
+     * {@link Transport}'s {@link ProcessorSelector} is the last place, where
+     * {@link Transport} will try to get {@link Processor} to process
+     * {@link Connection} I/O event. If {@link ProcessorSelector} is not set -
+     * {@link IllegalStateException} will be thrown.
+     * 
+     * @return the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process {@link Connection} I/O events, in case if
+     * this {@link Transport}'s {@link Processor} is <tt>null</tt> and
+     * {@link Connection} doesn't have neither preferred {@link Processor}
+     * nor {@link ProcessorSelector}.
      */
     public ProcessorSelector getProcessorSelector();
 
     /**
-     * Sets the default {@link ProcessorSelector}, which will process
-     * {@link Connection} I/O events, in case if this {@link Transport}'s
-     * {@link Processor} is <tt>null</tt> and {@link Connection} doesn't have
-     * neither preferred {@link Processor} nor {@link ProcessorSelector}.
+     * Sets the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process {@link Connection} I/O events, in case if
+     * this {@link Transport}'s {@link Processor} is <tt>null</tt> and
+     * {@link Connection} doesn't have neither preferred {@link Processor}
+     * nor {@link ProcessorSelector}.
      *
      * {@link Transport}'s {@link ProcessorSelector} is the last place, where
      * {@link Transport} will try to get {@link Processor} to process
      * {@link Connection} I/O event. If {@link ProcessorSelector} is not set -
      * {@link IllegalStateException} will be thrown.
      *
-     * @param selector the default {@link ProcessorSelector}, which will process
-     * {@link Connection} I/O events, in case if this {@link Transport}'s
-     * {@link Processor} is <tt>null</tt> and {@link Connection} doesn't have
-     * neither preferred {@link Processor} nor {@link ProcessorSelector}.
+     * @param the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process {@link Connection} I/O events, in case if
+     * this {@link Transport}'s {@link Processor} is <tt>null</tt> and
+     * {@link Connection} doesn't have neither preferred {@link Processor}
+     * nor {@link ProcessorSelector}.
      */
     public void setProcessorSelector(ProcessorSelector selector);
 

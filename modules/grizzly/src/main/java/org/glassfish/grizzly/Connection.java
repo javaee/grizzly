@@ -50,21 +50,94 @@ import org.glassfish.grizzly.util.AttributeStorage;
  * @author Alexey Stashok
  */
 public interface Connection<L> extends Closeable, AttributeStorage {
+    /**
+     * Get the {@link Transport}, to which this {@link Connection} belongs to.
+     * @return the {@link Transport}, to which this {@link Connection} belongs to.
+     */
     public Transport getTransport();
 
+    /**
+     * Is {@link Connection} open and ready.
+     * Returns <tt>true</tt>, if connection is open and ready, or <tt>false</tt>
+     * otherwise.
+     * 
+     * @return <tt>true</tt>, if connection is open and ready, or <tt>false</tt>
+     * otherwise.
+     */
     public boolean isOpen();
 
+    /**
+     * Returns the {@link Connection} mode.
+     * <tt>true</tt>, if {@link Connection} is operating in blocking mode, or
+     * <tt>false</tt> otherwise.
+     *
+     * @return the {@link Connection} mode.
+     * <tt>true</tt>, if {@link Connection} is operating in blocking mode, or
+     * <tt>false</tt> otherwise.
+     */
     public void configureBlocking(boolean isBlocking);
 
+    /**
+     * Sets the {@link Connection} mode.
+     *
+     * @param isBlocking the {@link Connection} mode. <tt>true</tt>,
+     * if {@link Connection} should operate in blocking mode, or
+     * <tt>false</tt> otherwise.
+     */
     public boolean isBlocking();
 
+    /**
+     * Gets the default {@link Processor}, which will process {@link Connection}
+     * I/O events.
+     * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
+     * to get {@link Processor} using {@link Connection}'s
+     * {@link ProcessorSelector#select(IOEvent, Connection)}. If
+     * {@link ProcessorSelector}, associated withthe {@link Connection} is also
+     * <tt>null</tt> - {@link Transport} will try to get {@link Processor}
+     * using own settings.
+     *
+     * @return the default {@link Processor}, which will process
+     * {@link Connection} I/O events.
+     */
     public Processor getProcessor();
 
+    /**
+     * Sets the default {@link Processor}, which will process {@link Connection}
+     * I/O events.
+     * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
+     * to get {@link Processor} using {@link Connection}'s
+     * {@link ProcessorSelector#select(IOEvent, Connection)}. If
+     * {@link ProcessorSelector}, associated withthe {@link Connection} is also
+     * <tt>null</tt> - {@link Transport} will try to get {@link Processor}
+     * using own settings.
+     *
+     * @param preferableProcessor the default {@link Processor}, which will
+     * process {@link Connection} I/O events.
+     */
     public void setProcessor(
             Processor preferableProcessor);
 
+    /**
+     * Gets the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process {@link Connection} I/O events, in case if
+     * this {@link Connection}'s {@link Processor} is <tt>null</tt>.
+     *
+     * @return the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process {@link Connection} I/O events, in case if
+     * this {@link Connection}'s {@link Processor} is <tt>null</tt>.
+     */
     public ProcessorSelector getProcessorSelector();
     
+    /**
+     * Sets the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process {@link Connection} I/O events, in case if
+     * this {@link Connection}'s {@link Processor} is <tt>null</tt>.
+     *
+     * @param preferableProcessorSelector the default {@link ProcessorSelector},
+     * which will be used to get {@link Processor} to process {@link Connection}
+     * I/O events, in case if this {@link Connection}'s {@link Processor}
+     * is <tt>null</tt>.
+     */
     public void setProcessorSelector(
             ProcessorSelector preferableProcessorSelector);
 
@@ -80,48 +153,65 @@ public interface Connection<L> extends Closeable, AttributeStorage {
      */
     public L getLocalAddress();
 
+    /**
+     * Close the {@link Connection}
+     * 
+     * @throws java.io.IOException, if I/O error was detected
+     * during {@link Connection} closing.
+     */
     public void close() throws IOException;
 
     /**
-     * Gets the {@link Processor} execution {@link Lock}, which corresponds to
-     * certain {@link IOEvent}.
-     * When lock is not aquired - IOEvent processing will be passed to
-     * correspondent Processor, otherwise, if lock is aquired - IOEvent
-     * processing will not be passed to any <tt>Processor</tt> until the lock
-     * will be released. While the lock is aquired it is still possible to
-     * work with <tt>Connection</tt> using its API: read/write data, etc...
-     *
-     * @param ioEvent {@link IOEvent} to get the lock on.
-     *
-     * @return {@link Lock}, which corresponds to the passed {@link IOEvent}, or
-     * null, if lock was not initialized yet.
+     * Get the {@link Connection} {@link StreamReader}, to read data from the
+     * {@link Connection}.
+     * 
+     * @return the {@link Connection} {@link StreamReader}, to read data from the
+     * {@link Connection}.
      */
-    public ProcessorLock getProcessorLock(IOEvent ioEvent);
-
-    /**
-     * Obtains the {@link Processor} execution {@link Lock}, which corresponds 
-     * to certain {@link IOEvent}.
-     * When lock is not aquired - IOEvent processing will be passed to
-     * correspondent Processor, otherwise, if lock is aquired - IOEvent
-     * processing will not be passed to any <tt>Processor</tt> until the lock
-     * will be released. While the lock is aquired it is still possible to
-     * work with <tt>Connection</tt> using its API: read/write data, etc...
-     *
-     * @param ioEvent {@link IOEvent} to get the lock on.
-     *
-     * @return {@link Lock}, which corresponds to the passed {@link IOEvent}
-     */
-    public ProcessorLock obtainProcessorLock(IOEvent ioEvent);
-
     public StreamReader getStreamReader();
 
+    /**
+     * Get the {@link Connection} {@link StreamWriter}, to write data to the
+     * {@link Connection}.
+     *
+     * @return the {@link Connection} {@link StreamWriter}, to write data to the
+     * {@link Connection}.
+     */
     public StreamWriter getStreamWriter();
 
+    /**
+     * Get the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link Connection}.
+     *
+     * @return the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link Connection}.
+     */
     public int getReadBufferSize();
 
+    /**
+     * Set the default size of {@link Buffer}s, which will be allocated for
+     * reading data from {@link Connection}.
+     *
+     * @param readBufferSize the default size of {@link Buffer}s, which will
+     * be allocated for reading data from {@link Connection}.
+     */
     public void setReadBufferSize(int readBufferSize);
 
+    /**
+     * Get the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link Connection}.
+     *
+     * @return the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link Connection}.
+     */
     public int getWriteBufferSize();
 
+    /**
+     * Set the default size of {@link Buffer}s, which will be allocated for
+     * writing data to {@link Connection}.
+     *
+     * @param writeBufferSize the default size of {@link Buffer}s, which will
+     * be allocated for writing data to {@link Connection}.
+     */
     public void setWriteBufferSize(int writeBufferSize);
 }

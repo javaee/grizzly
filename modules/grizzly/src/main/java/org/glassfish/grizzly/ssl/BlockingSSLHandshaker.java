@@ -47,8 +47,6 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.ProcessorLock;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 
 /**
@@ -89,11 +87,9 @@ public class BlockingSSLHandshaker implements SSLHandshaker {
             handshakeStatus = sslEngine.getHandshakeStatus();
         }
 
-        ProcessorLock readLock = connection.obtainProcessorLock(IOEvent.READ);
         boolean readerMode = reader.isBlocking();
         boolean writerMode = writer.isBlocking();
 
-        readLock.lock();
         try {
             reader.setBlocking(true);
             writer.setBlocking(true);
@@ -150,7 +146,6 @@ public class BlockingSSLHandshaker implements SSLHandshaker {
         } finally {
             reader.setBlocking(readerMode);
             writer.setBlocking(writerMode);
-            readLock.unlock();
         }
 
         return new ReadyFutureImpl<SSLEngine>(sslEngine);

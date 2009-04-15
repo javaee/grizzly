@@ -38,7 +38,6 @@
 
 package org.glassfish.grizzly.nio.transport;
 
-import org.glassfish.grizzly.impl.ProcessorLockImpl;
 import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.attributes.AttributeHolder;
@@ -53,7 +52,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.ProcessorLock;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.AbstractStreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -66,8 +64,6 @@ import org.glassfish.grizzly.streams.AbstractStreamWriter;
  * @author Alexey Stashok
  */
 public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
-    private volatile ProcessorLock[] processorLocks;
-    
     private Logger logger = Grizzly.logger;
 
     private AbstractStreamReader streamReader;
@@ -114,40 +110,6 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
 
     protected AttributeHolder initializeAttributeHolder() {
         return new IndexedAttributeHolder(transport.getAttributeBuilder());
-    }
-
-    public ProcessorLock getProcessorLock(IOEvent ioEvent) {
-        if (processorLocks != null) {
-            ProcessorLock lock = processorLocks[ioEvent.ordinal()];
-            return lock;
-        }
-
-        return null;
-    }
-
-    public ProcessorLock obtainProcessorLock(IOEvent ioEvent) {
-        int ioEventOrdinal = ioEvent.ordinal();
-        if (processorLocks == null) {
-            synchronized(this) {
-                if (processorLocks == null) {
-                    processorLocks = new ProcessorLock[IOEvent.values().length];
-                    processorLocks[ioEventOrdinal] =
-                            new ProcessorLockImpl(this, ioEvent);
-                }
-            }
-        }
-
-        ProcessorLock lock = processorLocks[ioEventOrdinal];
-        if (lock == null) {
-            synchronized(this) {
-                if (processorLocks[ioEventOrdinal] == null) {
-                    lock = new ProcessorLockImpl(this, ioEvent);
-                    processorLocks[ioEventOrdinal] = lock;
-                }
-            }
-        }
-
-        return lock;
     }
 
     /**
