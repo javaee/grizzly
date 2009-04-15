@@ -1093,5 +1093,12 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      */
     public Buffer<K> putDouble(int index, double value);
 
+    /**
+     * Returns {@link Buffer} content as {@link String}
+     * @param charset the {@link Charset}, which will be use
+     * for byte[] -> {@link String} transformation.
+     *
+     * @return {@link String} representation of this {@link Buffer} content.
+     */
     public String contentAsString(Charset charset);
 }

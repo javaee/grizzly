@@ -64,7 +64,6 @@ import org.glassfish.grizzly.filterchain.SingletonFilterChainFactory;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
-import org.glassfish.grizzly.util.ConcurrentQueuePool;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -199,17 +198,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
             if (selectionKeyHandler == null) {
                 selectionKeyHandler = new DefaultSelectionKeyHandler();
-            }
-
-            if (defaultContextPool == null) {
-                defaultContextPool =
-                        new ConcurrentQueuePool<Context>() {
-
-                            @Override
-                            public Context newInstance() {
-                                return new Context(defaultContextPool);
-                            }
-                        };
             }
 
             if (processor == null && processorSelector == null) {

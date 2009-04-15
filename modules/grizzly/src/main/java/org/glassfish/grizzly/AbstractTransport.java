@@ -43,7 +43,6 @@ import java.util.concurrent.ExecutorService;
 import org.glassfish.grizzly.attributes.AttributeBuilder;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.util.ExceptionHandler;
-import org.glassfish.grizzly.util.ObjectPool;
 import org.glassfish.grizzly.util.StateHolder;
 import org.glassfish.grizzly.util.LinkedTransferQueue;
 
@@ -54,60 +53,136 @@ import org.glassfish.grizzly.util.LinkedTransferQueue;
  * @author Alexey Stashok
  */
 public abstract class AbstractTransport implements Transport {
+    /**
+     * Transport name
+     */
     protected String name;
+
+    /**
+     * Transport mode
+     */
     protected boolean isBlocking;
+
+    /**
+     * Transport state controller
+     */
     protected StateHolder<State> state;
-    protected ObjectPool<Context> defaultContextPool;
+
+    /**
+     * Transport default Processor
+     */
     protected Processor processor;
+
+    /**
+     * Transport default ProcessorSelector
+     */
     protected ProcessorSelector processorSelector;
+
+    /**
+     * Transport Strategy
+     */
     protected Strategy strategy;
+
+    /**
+     * Transport MemoryManager
+     */
     protected MemoryManager memoryManager;
+
+    /**
+     * Transport worker thread pool
+     */
     protected ExecutorService workerThreadPool;
+
+    /**
+     * Transport internal thread pool
+     */
     protected ExecutorService internalThreadPool;
+
+    /**
+     * Transport AttributeBuilder, which will be used to create Attributes
+     */
     protected AttributeBuilder attributeBuilder;
 
+    /**
+     * Transport default buffer size for read operations
+     */
     protected int readBufferSize;
+
+    /**
+     * Transport default buffer size for write operations
+     */
     protected int writeBufferSize;
 
-    protected volatile LinkedTransferQueue<ExceptionHandler> exceptionHandlers;
+    /**
+     * Transport ExceptionHandler list
+     */
+    protected LinkedTransferQueue<ExceptionHandler> exceptionHandlers;
     
     public AbstractTransport(String name) {
         this.name = name;
         state = new StateHolder<State>(false, State.STOP);
+        exceptionHandlers = new LinkedTransferQueue<ExceptionHandler>();
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setName(String name) {
         this.name = name;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isBlocking() {
         return isBlocking;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void configureBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public StateHolder<State> getState() {
         return state;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getReadBufferSize() {
         return readBufferSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setReadBufferSize(int readBufferSize) {
         this.readBufferSize = readBufferSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getWriteBufferSize() {
         return writeBufferSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setWriteBufferSize(int writeBufferSize) {
         this.writeBufferSize = writeBufferSize;
     }
@@ -120,88 +195,121 @@ public abstract class AbstractTransport implements Transport {
         return currentState == State.STOP || currentState == State.STOPPING;
     }
 
-    public ObjectPool<Context> getDefaultContextPool() {
-        return defaultContextPool;
-    }
-
-    public void setDefaultContextPool(ObjectPool<Context> defaultContextPool) {
-        this.defaultContextPool = defaultContextPool;
-    }
-
+    /**
+     * {@inheritDoc}
+     */
     public Processor getProcessor() {
         return processor;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setProcessor(Processor processor) {
         this.processor = processor;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ProcessorSelector getProcessorSelector() {
         return processorSelector;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setProcessorSelector(ProcessorSelector selector) {
         processorSelector = selector;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Strategy getStrategy() {
         return strategy;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setStrategy(Strategy strategy) {
         this.strategy = strategy;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public MemoryManager getMemoryManager() {
         return memoryManager;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setMemoryManager(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ExecutorService getWorkerThreadPool() {
         return workerThreadPool;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setWorkerThreadPool(ExecutorService workerThreadPool) {
         this.workerThreadPool = workerThreadPool;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ExecutorService getInternalThreadPool() {
         return internalThreadPool;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setInternalThreadPool(ExecutorService internalThreadPool) {
         this.internalThreadPool = internalThreadPool;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public AttributeBuilder getAttributeBuilder() {
         return attributeBuilder;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setAttributeBuilder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = attributeBuilder;
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public void addExceptionHandler(ExceptionHandler handler) {
-        if (exceptionHandlers == null) {
-            synchronized(state) {
-                if (exceptionHandlers == null) {
-                    exceptionHandlers = new LinkedTransferQueue<ExceptionHandler>();
-                }
-            }
-        }
-        
         exceptionHandlers.add(handler);
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public void removeExceptionHandler(ExceptionHandler handler) {
-        if (exceptionHandlers == null) return;
-        
         exceptionHandlers.remove(handler);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void notifyException(Severity severity, Throwable throwable) {
         if (exceptionHandlers == null || exceptionHandlers.isEmpty()) return;
         for(ExceptionHandler exceptionHandler : exceptionHandlers) {

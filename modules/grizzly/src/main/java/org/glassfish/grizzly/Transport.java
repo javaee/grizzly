@@ -196,6 +196,30 @@ public interface Transport extends ExceptionHandler {
     public void setMemoryManager(MemoryManager memoryManager);
 
     /**
+     * Get the {@link Strategy} implementation, which will be used by
+     * {@link Transport} to process {@link IOEvent}.
+     * {@link Strategy} is responsible for choosing the way, how I/O event
+     * will be processed: using current {@link Thread}, worker {@link Thread};
+     * or make any other decisions.
+     * 
+     * @return the {@link Strategy} implementation, which will be used by
+     * {@link Transport} to process {@link IOEvent}.
+     */
+    public Strategy getStrategy();
+
+    /**
+     * Set the {@link Strategy} implementation, which will be used by
+     * {@link Transport} to process {@link IOEvent}.
+     * {@link Strategy} is responsible for choosing the way, how I/O event
+     * will be processed: using current {@link Thread}, worker {@link Thread};
+     * or make any other decisions.
+     *
+     * @param strategy the {@link Strategy} implementation, which will be used
+     * by {@link Transport} to process {@link IOEvent}.
+     */
+    public void setStrategy(Strategy strategy);
+
+    /**
      * Get the default size of {@link Buffer}s, which will be allocated for
      * reading data from {@link Transport}'s {@link Connection}s.
      * For particullar {@link Connection}, this setting could be overriden by
