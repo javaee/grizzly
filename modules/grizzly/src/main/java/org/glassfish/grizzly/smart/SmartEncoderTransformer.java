@@ -66,7 +66,7 @@ import org.glassfish.grizzly.smart.transformers.LongEncoder;
 import org.glassfish.grizzly.smart.transformers.ShortEncoder;
 import org.glassfish.grizzly.smart.transformers.SmartMemberTransformer;
 import org.glassfish.grizzly.smart.transformers.SmartStringEncoder;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * Smart encoder, which is able to encoder a custom protocol message to a

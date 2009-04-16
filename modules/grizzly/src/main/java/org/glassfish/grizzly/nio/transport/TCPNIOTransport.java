@@ -175,8 +175,8 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 new TCPNIOAsyncQueueWriter(this));
 
         temporarySelectorIO = new TemporarySelectorIO(
-                new TCPNIOTemporarySelectorReader(this, temporarySelectorIO),
-                new TCPNIOTemporarySelectorWriter(this, temporarySelectorIO));
+                new TCPNIOTemporarySelectorReader(this),
+                new TCPNIOTemporarySelectorWriter(this));
 
         PatternFilterChainFactory patternFactory =
                 new SingletonFilterChainFactory();
@@ -247,7 +247,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 selectorPoolSize =((ExtendedThreadPool) workerThreadPool).
                         getMaximumPoolSize();
             }
-            setTemporarySelectorPool(
+            temporarySelectorIO.setSelectorPool(
                     new TemporarySelectorPool(selectorPoolSize));
 
             startSelectorRunners();
@@ -566,19 +566,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
         this.temporarySelectorIO = temporarySelectorIO;
-    }
-
-    public TemporarySelectorPool getTemporarySelectorPool() {
-        if (temporarySelectorIO != null) {
-            return temporarySelectorIO.getSelectorPool();
-        }
-
-        return null;
-    }
-
-    public void setTemporarySelectorPool(
-            TemporarySelectorPool temporarySelectorPool) {
-        temporarySelectorIO.setSelectorPool(temporarySelectorPool);
     }
 
     public void fireIOEvent(IOEvent ioEvent, Connection connection,

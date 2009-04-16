@@ -39,7 +39,7 @@
 package org.glassfish.grizzly;
 
 import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * <tt>Transformer</tt> interface, which knows how to transform the original

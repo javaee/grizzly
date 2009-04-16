@@ -46,7 +46,7 @@ import org.glassfish.grizzly.Transformer;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.smart.SmartTransformer;
 import org.glassfish.grizzly.smart.annotations.Sequence;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  *

@@ -67,7 +67,7 @@ import org.glassfish.grizzly.smart.transformers.LongDecoder;
 import org.glassfish.grizzly.smart.transformers.ShortDecoder;
 import org.glassfish.grizzly.smart.transformers.SmartMemberTransformer;
 import org.glassfish.grizzly.smart.transformers.SmartStringDecoder;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * Smart decoder, which is able to decode a {@link Buffer} to a custom protocol

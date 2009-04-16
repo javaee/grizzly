@@ -42,7 +42,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * Common interface, which represents any kind of connection.

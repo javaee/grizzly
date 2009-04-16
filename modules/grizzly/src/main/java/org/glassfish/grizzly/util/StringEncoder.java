@@ -37,6 +37,7 @@
  */
 package org.glassfish.grizzly.util;
 
+import org.glassfish.grizzly.attributes.AttributeStorage;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import org.glassfish.grizzly.AbstractTransformer;

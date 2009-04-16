@@ -70,13 +70,13 @@ public abstract class TemporarySelectorReader
     private static final int DEFAULT_TIMEOUT = 30000;
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
-    private TemporarySelectorIO temporarySelectorIO;
+    protected final TemporarySelectorsEnabledTransport transport;
     private Logger logger = Grizzly.logger;
     private int timeoutMillis = DEFAULT_TIMEOUT;
 
     public TemporarySelectorReader(
-            TemporarySelectorIO temporarySelectorIO) {
-        this.temporarySelectorIO = temporarySelectorIO;
+            TemporarySelectorsEnabledTransport transport) {
+        this.transport = transport;
     }
 
     public int getTimeout() {
@@ -174,7 +174,8 @@ public abstract class TemporarySelectorReader
             bytesRead = readNow0(connection, buffer, currentResult);
 
             if (bytesRead == 0) {
-                readSelector = temporarySelectorIO.getSelectorPool().poll();
+                readSelector = transport.getTemporarySelectorIO().
+                        getSelectorPool().poll();
 
                 if (readSelector == null) {
                     return bytesRead;
@@ -197,7 +198,8 @@ public abstract class TemporarySelectorReader
                 throw new EOFException();
             }
         } finally {
-            temporarySelectorIO.recycleTemporaryArtifacts(readSelector, key);
+            transport.getTemporarySelectorIO().recycleTemporaryArtifacts(
+                    readSelector, key);
         }
 
         return bytesRead;
@@ -207,14 +209,18 @@ public abstract class TemporarySelectorReader
             Buffer buffer, ReadResult currentResult) throws IOException;
 
     protected Buffer acquireBuffer(Connection connection) {
-        Transport transport = connection.getTransport();
-        return transport.getMemoryManager().
+        Transport connectionTransport = connection.getTransport();
+        return connectionTransport.getMemoryManager().
                 allocate(defaultBufferSize);
     }
 
     private void releaseBuffer(Connection connection,
             Buffer inputBuffer) {
-        Transport transport = connection.getTransport();
-        transport.getMemoryManager().release(inputBuffer);
+        Transport connectionTransport = connection.getTransport();
+        connectionTransport.getMemoryManager().release(inputBuffer);
+    }
+
+    public TemporarySelectorsEnabledTransport getTransport() {
+        return transport;
     }
 }

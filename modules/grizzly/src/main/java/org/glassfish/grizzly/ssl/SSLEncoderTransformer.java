@@ -53,7 +53,7 @@ import org.glassfish.grizzly.Transformer;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.threadpool.WorkerThread;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * <tt>Transformer</tt>, which encrypts plain data, contained in the

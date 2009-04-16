@@ -46,7 +46,7 @@ import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.smart.SmartDecoderTransformer;
 import org.glassfish.grizzly.smart.SmartTransformer;
 import org.glassfish.grizzly.smart.annotations.CharSequence;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 import org.glassfish.grizzly.util.StringDecoder;
 
 /**

@@ -38,8 +38,6 @@
 
 package org.glassfish.grizzly.attributes;
 
-import org.glassfish.grizzly.util.AttributeStorage;
-
 /** 
  * Class used to define dynamic attributes on AttributedObject instances.
  * Note that T cannot be a generic type, due to problems with
@@ -48,10 +46,25 @@ import org.glassfish.grizzly.util.AttributeStorage;
  * (you are programming to interfaces, right?).
  */
 public class Attribute<T> {
+    /**
+     * AttributeBuilder, which was used to create this attribute
+     */
     private AttributeBuilder builder;
+    /**
+     * Attribute name
+     */
     private String name;
+    /**
+     * Attribute initializer, which will be called, if attribute is not set.
+     */
     private NullaryFunction<T> initializer;
+    /**
+     * Attribute default value, which will be used, if attribute is not set.
+     */
     private T defaultValue;
+    /**
+     * Attribute index in AttributeBuilder
+     */
     private int attributeIndex;
 
     @Override

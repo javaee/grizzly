@@ -43,26 +43,21 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 
 /**
  *
  * @author oleksiys
  */
 public class TCPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
-
-    private TCPNIOTransport transport;
-
-    public TCPNIOTemporarySelectorWriter(TCPNIOTransport transport,
-            TemporarySelectorIO temporarySelectorIO) {
-        super(temporarySelectorIO);
-        this.transport = transport;
+    public TCPNIOTemporarySelectorWriter(TCPNIOTransport transport) {
+        super(transport);
     }
 
     @Override
     protected int writeNow0(Connection connection, SocketAddress dstAddress,
             Buffer buffer, WriteResult currentResult) throws IOException {
 
-        return transport.write(connection, buffer, currentResult);
+        return ((TCPNIOTransport) transport).write(connection, buffer,
+                currentResult);
     }
 }

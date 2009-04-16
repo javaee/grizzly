@@ -45,7 +45,7 @@ import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.TransformationResult.Status;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.memory.MemoryManager;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  *

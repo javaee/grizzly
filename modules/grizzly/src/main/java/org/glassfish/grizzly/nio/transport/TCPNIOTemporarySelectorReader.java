@@ -42,24 +42,20 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 
 /**
  *
  * @author oleksiys
  */
 public class TCPNIOTemporarySelectorReader extends TemporarySelectorReader {
-    private TCPNIOTransport transport;
-    
-    public TCPNIOTemporarySelectorReader(TCPNIOTransport transport,
-            TemporarySelectorIO temporarySelectorIO) {
-        super(temporarySelectorIO);
-        this.transport = transport;
+    public TCPNIOTemporarySelectorReader(TCPNIOTransport transport) {
+        super(transport);
     }
 
     @Override
     protected int readNow0(Connection connection, Buffer buffer,
             ReadResult currentResult) throws IOException {
-        return transport.read(connection, buffer, currentResult);
+        return ((TCPNIOTransport) transport).read(connection, buffer,
+                currentResult);
     }
 }

@@ -67,13 +67,13 @@ public abstract class TemporarySelectorWriter
 
     private Logger logger = Grizzly.logger;
 
-    private TemporarySelectorIO temporarySelectorIO;
+    protected final TemporarySelectorsEnabledTransport transport;
 
     private int timeoutMillis = DEFAULT_TIMEOUT;
 
     public TemporarySelectorWriter(
-            TemporarySelectorIO temporarySelectorIO) {
-        this.temporarySelectorIO = temporarySelectorIO;
+            TemporarySelectorsEnabledTransport transport) {
+        this.transport = transport;
     }
 
     public int getTimeout() {
@@ -175,8 +175,9 @@ public abstract class TemporarySelectorWriter
                 } else {
                     attempts++;
                     if (writeSelector == null) {
-                        writeSelector =
-                                temporarySelectorIO.getSelectorPool().poll();
+                        writeSelector = transport.getTemporarySelectorIO().
+                                getSelectorPool().poll();
+
                         if (writeSelector == null) {
                             // Continue using the main one.
                             continue;
@@ -193,10 +194,15 @@ public abstract class TemporarySelectorWriter
                 }
             }
         } finally {
-            temporarySelectorIO.recycleTemporaryArtifacts(writeSelector, key);
+            transport.getTemporarySelectorIO().recycleTemporaryArtifacts(
+                    writeSelector, key);
         }
         
         return bytesWritten;
+    }
+
+    public TemporarySelectorsEnabledTransport getTransport() {
+        return transport;
     }
 
     protected abstract int writeNow0(Connection connection,

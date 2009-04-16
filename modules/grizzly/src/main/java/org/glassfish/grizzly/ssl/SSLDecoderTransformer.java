@@ -50,7 +50,7 @@ import org.glassfish.grizzly.TransformationResult.Status;
 import org.glassfish.grizzly.Transformer;
 import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * <tt>Transformer</tt>, which decodes SSL encrypted data, contained in the

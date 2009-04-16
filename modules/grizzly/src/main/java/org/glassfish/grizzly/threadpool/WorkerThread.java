@@ -40,7 +40,7 @@ package org.glassfish.grizzly.threadpool;
 
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * Interface, which {@link ThreadPool} threads should implement

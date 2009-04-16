@@ -36,9 +36,7 @@
  *
  */
 
-package org.glassfish.grizzly.util;
-
-import org.glassfish.grizzly.attributes.AttributeHolder;
+package org.glassfish.grizzly.attributes;
 
 /**
  * <tt>AttributeStorage</tt> provides access to a storage, where implementations

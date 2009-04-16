@@ -49,7 +49,7 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.threadpool.WorkerThread;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * Utility class, which simplifies the access to the SSL related resources

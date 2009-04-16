@@ -41,7 +41,6 @@ package org.glassfish.grizzly.nio;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorPool;
-import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 
 /**
@@ -102,10 +101,6 @@ public abstract class NIOTransportFactory extends TransportFactory {
         NIOTransport nioTransport = (NIOTransport) transport;
         nioTransport.setSelectorHandler(defaultSelectorHandler);
         nioTransport.setSelectionKeyHandler(defaultSelectionKeyHandler);
-        if (nioTransport instanceof TemporarySelectorsEnabledTransport) {
-            ((TemporarySelectorsEnabledTransport) nioTransport).
-                    setTemporarySelectorPool(defaultTemporarySelectorPool);
-        }
         
         return transport;
     }

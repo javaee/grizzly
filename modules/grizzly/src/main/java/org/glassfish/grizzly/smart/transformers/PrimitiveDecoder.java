@@ -42,7 +42,7 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.TransformationException;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.TransformationResult.Status;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * 

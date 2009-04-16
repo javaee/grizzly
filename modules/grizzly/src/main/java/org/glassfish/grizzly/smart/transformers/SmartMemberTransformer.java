@@ -42,7 +42,7 @@ import java.lang.reflect.Field;
 import java.util.List;
 import org.glassfish.grizzly.Transformer;
 import org.glassfish.grizzly.smart.SmartTransformer;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * Common interface for all Smart members encoders and decoders.

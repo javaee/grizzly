@@ -54,7 +54,7 @@ import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.TransformationResult.Status;
 import org.glassfish.grizzly.Transformer;
 import org.glassfish.grizzly.attributes.AttributeHolder;
-import org.glassfish.grizzly.util.AttributeStorage;
+import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * {@link Transformer}, which works as the decoder on the SSL handshaking phase.
