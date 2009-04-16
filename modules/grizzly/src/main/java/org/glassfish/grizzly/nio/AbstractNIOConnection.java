@@ -50,6 +50,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
+import org.glassfish.grizzly.attributes.IndexedAttributeHolder;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 
@@ -59,7 +60,7 @@ import org.glassfish.grizzly.streams.StreamWriter;
  * @author Alexey Stashok
  */
 public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
-    protected NIOTransport transport;
+    protected final NIOTransport transport;
 
     protected int readBufferSize;
     protected int writeBufferSize;
@@ -71,7 +72,7 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
     protected Processor processor;
     protected ProcessorSelector processorSelector;
     
-    protected volatile AttributeHolder attributes;
+    protected final AttributeHolder attributes;
 
     protected volatile AsyncQueue<AsyncReadQueueRecord> asyncReadQueue;
     protected volatile AsyncQueue<AsyncWriteQueueRecord> asyncWriteQueue;
@@ -79,6 +80,11 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
     protected AtomicBoolean isClosed = new AtomicBoolean(false);
 
     protected boolean isBlocking;
+
+    public AbstractNIOConnection(NIOTransport transport) {
+        this.transport = transport;
+        attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
+    }
 
     public void configureBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
@@ -90,10 +96,6 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
 
     public Transport getTransport() {
         return transport;
-    }
-
-    protected void setTransport(NIOTransport transport) {
-        this.transport = transport;
     }
 
     public int getReadBufferSize() {
@@ -156,18 +158,6 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
                 preferableProcessorSelector;
     }
 
-    public AttributeHolder obtainAttributes() {
-        if (attributes == null) {
-            synchronized(this) {
-                if (attributes == null) {
-                    attributes = initializeAttributeHolder();
-                }
-            } 
-        }
-
-        return attributes;
-    }
-
     public AsyncQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
         return asyncReadQueue;
     }
@@ -204,10 +194,11 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
         return attributes;
     }
 
-    protected void setAttributes(AttributeHolder attributes) {
-        this.attributes = attributes;
+    public AttributeHolder obtainAttributes() {
+        return attributes;
     }
     
+
     public boolean isOpen() {
         return channel != null && channel.isOpen() && !isClosed.get();
     }
@@ -231,6 +222,4 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
     }
 
     protected abstract void preClose();
-
-    protected abstract AttributeHolder initializeAttributeHolder();
 }

@@ -66,13 +66,14 @@ import org.glassfish.grizzly.streams.AbstractStreamWriter;
 public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
     private Logger logger = Grizzly.logger;
 
-    private AbstractStreamReader streamReader;
+    private final AbstractStreamReader streamReader;
 
-    private AbstractStreamWriter streamWriter;
+    private final AbstractStreamWriter streamWriter;
     
     public TCPNIOConnection(TCPNIOTransport transport,
             SelectableChannel channel) {
-        this.transport = transport;
+        super(transport);
+        
         this.channel = channel;
         readBufferSize = transport.getReadBufferSize();
         writeBufferSize = transport.getWriteBufferSize();
@@ -106,10 +107,6 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
             Grizzly.logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
                     "when firing CLOSE event");
         }
-    }
-
-    protected AttributeHolder initializeAttributeHolder() {
-        return new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
 
     /**
