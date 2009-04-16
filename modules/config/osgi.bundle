@@ -7,8 +7,10 @@ Import-Package: \
                         org.jvnet.hk2.config; \
                         org.jvnet.hk2.component; \
                         com.sun.grizzly; \
+                        com.sun.grizzly.filter; \
                         com.sun.grizzly.arp; \
                         com.sun.grizzly.http; \
+                        com.sun.grizzly.ssl; \
                         com.sun.grizzly.http.algorithms; \
                         com.sun.grizzly.tcp; \
-                        com.sun.grizzly.util.http.mapper;
+                        com.sun.grizzly.util.*;

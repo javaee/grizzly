@@ -243,9 +243,11 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      */
     @Override
     protected ProcessorTask newProcessorTask(final boolean initialize) {
-        return asyncExecution
+        SSLProcessorTask t =  (asyncExecution
                 ? new SSLAsyncProcessorTask(initialize, getBufferResponse())
-                : new SSLProcessorTask(initialize, getBufferResponse());
+                : new SSLProcessorTask(initialize, getBufferResponse()));
+        configureProcessorTask(t);
+        return t;
     }
 
     /**
