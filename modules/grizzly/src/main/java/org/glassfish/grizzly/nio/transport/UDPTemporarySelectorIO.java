@@ -46,7 +46,9 @@ import java.nio.channels.Selector;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.WriteResult;
+import org.glassfish.grizzly.Writer;
 import org.glassfish.grizzly.nio.NIOConnection;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 
@@ -56,6 +58,11 @@ import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
  * @author oleksiys
  */
 public class UDPTemporarySelectorIO extends TemporarySelectorIO {
+
+    public UDPTemporarySelectorIO(Reader reader, Writer writer) {
+        super(reader, writer);
+    }
+
     /**
      * Flush the buffer by looping until the {@link Buffer} is empty
      * @param channel {@link DatagramChannel}

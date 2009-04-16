@@ -39,16 +39,14 @@
 package org.glassfish.grizzly.asyncqueue;
 
 /**
- *
- * @author oleksiys
+ * Class encapsulates asynchronous queue implementation:
+ * {@link AsyncQueueReader}, {@link AsyncQueueWriter}.
+ * 
+ * @author Alexey Stashok
  */
 public class AsyncQueueIO {
-    private volatile AsyncQueueReader reader;
-    private volatile AsyncQueueWriter writer;
-
-    public AsyncQueueIO() {
-        this(null, null);
-    }
+    private final AsyncQueueReader reader;
+    private final AsyncQueueWriter writer;
 
     public AsyncQueueIO(AsyncQueueReader reader, AsyncQueueWriter writer) {
         this.reader = reader;
@@ -59,15 +57,7 @@ public class AsyncQueueIO {
         return reader;
     }
 
-    public void setReader(AsyncQueueReader reader) {
-        this.reader = reader;
-    }
-
     public AsyncQueueWriter getWriter() {
         return writer;
-    }
-
-    public void setWriter(AsyncQueueWriter writer) {
-        this.writer = writer;
     }
 }

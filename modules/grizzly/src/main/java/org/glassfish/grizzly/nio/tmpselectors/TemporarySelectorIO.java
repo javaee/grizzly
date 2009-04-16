@@ -54,12 +54,8 @@ import org.glassfish.grizzly.nio.SelectorFactory;
 public class TemporarySelectorIO {
     protected TemporarySelectorPool selectorPool;
 
-    private volatile Reader reader;
-    private volatile Writer writer;
-
-    public TemporarySelectorIO() {
-        this(null, null);
-    }
+    private final Reader reader;
+    private final Writer writer;
 
     public TemporarySelectorIO(Reader reader, Writer writer) {
         this(reader, writer, null);
@@ -67,6 +63,8 @@ public class TemporarySelectorIO {
 
     public TemporarySelectorIO(Reader reader, Writer writer,
             TemporarySelectorPool selectorPool) {
+        this.reader = reader;
+        this.writer = writer;
         this.selectorPool = selectorPool;
     }
 
@@ -82,18 +80,10 @@ public class TemporarySelectorIO {
         return reader;
     }
 
-    public void setReader(Reader reader) {
-        this.reader = reader;
-    }
-
     public Writer getWriter() {
         return writer;
     }
 
-    public void setWriter(Writer writer) {
-        this.writer = writer;
-    }
-    
     protected void recycleTemporaryArtifacts(Selector selector,
             SelectionKey selectionKey) {
         

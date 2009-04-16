@@ -39,10 +39,15 @@
 package org.glassfish.grizzly.asyncqueue;
 
 /**
- * Interface, which Transports should implement if they support AsyncQueues
+ * Interface, which Transports should implement if they support AsyncQueues.
  *
  * @author Alexey Stashok
  */
 public interface AsyncQueueEnabledTransport<K, L> {
+    /**
+     * Get asynchronous queue implementation.
+     *
+     * @return asynchronous queue implementation.
+     */
     public AsyncQueueIO getAsyncQueueIO();
 }
