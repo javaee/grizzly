@@ -218,8 +218,6 @@ public class ResourceAllocationFilter extends FilterAdapter {
             threadPools.put(token, threadPool);
         }
 
-
-        ctx.setProcessorExecutor(threadPool);
         ctx.setCurrentFilterIdx(ctx.getCurrentFilterIdx() + 1);
         threadPool.execute(ctx.getProcessorRunnable());
         return new TerminateAction();
