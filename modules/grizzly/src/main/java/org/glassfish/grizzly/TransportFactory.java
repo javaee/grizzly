@@ -50,13 +50,19 @@ import org.glassfish.grizzly.threadpool.DefaultScheduleThreadPool;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 
 /**
- *
- * @author oleksiys
+ * Factory, responsible for creating and initializing Grizzly {@link Transport}s.
+ * 
+ * @author Alexey Stashok
  */
 public abstract class TransportFactory {
 
     private static volatile TransportFactory instance;
 
+    /**
+     * Get the {@link TransportFactory} instance.
+     * 
+     * @return the {@link TransportFactory} instance.
+     */
     public static synchronized TransportFactory getInstance() {
         if (instance == null || instance.isClosed()) {
             instance = new DefaultNIOTransportFactory();
@@ -65,58 +71,135 @@ public abstract class TransportFactory {
         return instance;
     }
 
-    public static synchronized void setInstance(TransportFactory manager) {
-        instance = manager;
+    /**
+     * Set the {@link TransportFactory} instance.
+     *
+     * @param factory the {@link TransportFactory} instance.
+     */
+    public static synchronized void setInstance(TransportFactory factory) {
+        instance = factory;
     }
 
+    /**
+     * Create instance of TCP {@link Transport}.
+     * 
+     * @return instance of TCP {@link Transport}.
+     */
     public abstract TCPNIOTransport createTCPTransport();
 
+    /**
+     * Create instance of UDP {@link Transport}.
+     *
+     * @return instance of UDP {@link Transport}.
+     */
     public abstract UDPNIOTransport createUDPTransport();
 
+    /**
+     * Is factory closed.
+     */
     private boolean isClosed;
     
+    /**
+     * Default {@link AttributeBuilder} used by all {@link Transport}s.
+     */
     protected AttributeBuilder defaultAttributeBuilder;
+    /**
+     * Default {@link MemoryManager} used by all {@link Transport}s.
+     */
     protected MemoryManager defaultMemoryManager;
+    /**
+     * Default worker thread pool, used by all {@link Transport}s.
+     */
     protected ExecutorService defaultWorkerThreadPool;
+    /**
+     * Default scheduled thread pool, used by all {@link Transport}s.
+     */
     protected ScheduledExecutorService defaultScheduledThreadPool;
 
     protected TransportFactory() {
         initialize();
     }
 
+    /**
+     * Get default {@link AttributeBuilder}, used by all {@link Transport}s.
+     *
+     * @return default {@link AttributeBuilder}, used by all {@link Transport}s.
+     */
     public AttributeBuilder getDefaultAttributeBuilder() {
         return defaultAttributeBuilder;
     }
 
+    /**
+     * Set default {@link AttributeBuilder}, used by all {@link Transport}s.
+     *
+     * @param defaultAttributeBuilder default {@link AttributeBuilder},
+     * used by all {@link Transport}s.
+     */
     public void setDefaultAttributeBuilder(AttributeBuilder defaultAttributeBuilder) {
         this.defaultAttributeBuilder = defaultAttributeBuilder;
     }
 
+    /**
+     * Get default {@link MemoryManager}, used by all {@link Transport}s.
+     *
+     * @return default {@link MemoryManager}, used by all {@link Transport}s.
+     */
     public MemoryManager getDefaultMemoryManager() {
         return defaultMemoryManager;
     }
 
+    /**
+     * Set default {@link MemoryManager}, used by all {@link Transport}s.
+     *
+     * @param defaultMemoryManager default {@link MemoryManager},
+     * used by all {@link Transport}s.
+     */
     public void setDefaultMemoryManager(MemoryManager defaultMemoryManager) {
         this.defaultMemoryManager = defaultMemoryManager;
     }
 
+    /**
+     * Get default worker thread pool, used by all {@link Transport}s.
+     *
+     * @return default worker thread pool, used by all {@link Transport}s.
+     */
     public ExecutorService getDefaultWorkerThreadPool() {
         return defaultWorkerThreadPool;
     }
 
+    /**
+     * Set default worker thread pool, used by all {@link Transport}s.
+     *
+     * @param defaultThreadPool default worker thread pool,
+     * used by all {@link Transport}s.
+     */
     public void setDefaultWorkerThreadPool(ExecutorService defaultThreadPool) {
         this.defaultWorkerThreadPool = defaultThreadPool;
     }
 
+    /**
+     * Get default scheduled thread pool, used by all {@link Transport}s.
+     *
+     * @return default scheduled thread pool, used by all {@link Transport}s.
+     */
     public ScheduledExecutorService getDefaultScheduledThreadPool() {
         return defaultScheduledThreadPool;
     }
 
+    /**
+     * Set default scheduled thread pool, used by all {@link Transport}s.
+     *
+     * @param defaultScheduledThreadPool default scheduled thread pool,
+     * used by all {@link Transport}s.
+     */
     public void setDefaultScheduledThreadPool(
             ScheduledExecutorService defaultScheduledThreadPool) {
         this.defaultScheduledThreadPool = defaultScheduledThreadPool;
     }
     
+    /**
+     * Initialize default factory settings.
+     */
     public void initialize() {
         defaultAttributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
         defaultMemoryManager = new DefaultMemoryManager();
@@ -124,6 +207,9 @@ public abstract class TransportFactory {
         defaultScheduledThreadPool = new DefaultScheduleThreadPool();
     }
 
+    /**
+     * Close the {@link TransportFactory} and release all resources.
+     */
     public synchronized void close() {
         if (!isClosed()) {
             isClosed = true;
@@ -139,10 +225,24 @@ public abstract class TransportFactory {
         }
     }
 
+    /**
+     * Return <tt>true</tt>, if {@link TransportFactory} has been closed, or
+     * <tt>false</tt> otherwise.
+     * 
+     * @return <tt>true</tt>, if {@link TransportFactory} has been closed, or
+     * <tt>false</tt> otherwise.
+     */
     public boolean isClosed() {
         return isClosed;
     }
     
+    /**
+     * Setup {@link Transport} with factory default settings.
+     * 
+     * @param <T> {@link Transport} type.
+     * @param transport {@link Transport}.
+     * @return {@link Transport}, initialized with default settings.
+     */
     protected <T extends Transport> T setupTransport(T transport) {
         transport.setAttributeBuilder(defaultAttributeBuilder);
         transport.setMemoryManager(defaultMemoryManager);
