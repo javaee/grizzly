@@ -47,7 +47,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.nio.tmpselectors.AbstractTemporarySelectorWriter;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
 import org.glassfish.grizzly.streams.AbstractStreamWriter;
 
 /**
@@ -73,8 +73,8 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
         current.flip();
         TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
         if (isBlocking()) {
-            AbstractTemporarySelectorWriter writer =
-                    (AbstractTemporarySelectorWriter)
+            TemporarySelectorWriter writer =
+                    (TemporarySelectorWriter)
                     transport.getTemporarySelectorIO().getWriter();
 
             Future<WriteResult<Buffer, SocketAddress>> future =

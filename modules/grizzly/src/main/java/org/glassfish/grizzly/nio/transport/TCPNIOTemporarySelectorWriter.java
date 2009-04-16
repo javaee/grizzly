@@ -42,14 +42,14 @@ import java.net.SocketAddress;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.nio.tmpselectors.AbstractTemporarySelectorWriter;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 
 /**
  *
  * @author oleksiys
  */
-public class TCPNIOTemporarySelectorWriter extends AbstractTemporarySelectorWriter {
+public class TCPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
 
     private TCPNIOTransport transport;
 

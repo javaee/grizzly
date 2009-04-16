@@ -60,7 +60,7 @@ import org.glassfish.grizzly.nio.NIOConnection;
  *
  * @author oleksiys
  */
-public abstract class AbstractTemporarySelectorWriter
+public abstract class TemporarySelectorWriter
         extends AbstractWriter<SocketAddress> {
 
     private static final int DEFAULT_TIMEOUT = 30000;
@@ -71,7 +71,7 @@ public abstract class AbstractTemporarySelectorWriter
 
     private int timeoutMillis = DEFAULT_TIMEOUT;
 
-    public AbstractTemporarySelectorWriter(
+    public TemporarySelectorWriter(
             TemporarySelectorIO temporarySelectorIO) {
         this.temporarySelectorIO = temporarySelectorIO;
     }

@@ -64,7 +64,7 @@ import org.glassfish.grizzly.util.conditions.Condition;
  *
  * @author oleksiys
  */
-public abstract class AbstractTemporarySelectorReader
+public abstract class TemporarySelectorReader
         extends AbstractReader<SocketAddress> {
 
     private static final int DEFAULT_TIMEOUT = 30000;
@@ -74,7 +74,7 @@ public abstract class AbstractTemporarySelectorReader
     private Logger logger = Grizzly.logger;
     private int timeoutMillis = DEFAULT_TIMEOUT;
 
-    public AbstractTemporarySelectorReader(
+    public TemporarySelectorReader(
             TemporarySelectorIO temporarySelectorIO) {
         this.temporarySelectorIO = temporarySelectorIO;
     }

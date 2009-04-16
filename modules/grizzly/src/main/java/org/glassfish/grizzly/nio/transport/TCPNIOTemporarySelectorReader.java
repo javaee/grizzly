@@ -41,14 +41,14 @@ import java.io.IOException;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.nio.tmpselectors.AbstractTemporarySelectorReader;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorIO;
 
 /**
  *
  * @author oleksiys
  */
-public class TCPNIOTemporarySelectorReader extends AbstractTemporarySelectorReader {
+public class TCPNIOTemporarySelectorReader extends TemporarySelectorReader {
     private TCPNIOTransport transport;
     
     public TCPNIOTemporarySelectorReader(TCPNIOTransport transport,

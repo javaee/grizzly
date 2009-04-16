@@ -50,7 +50,7 @@ import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
-import org.glassfish.grizzly.nio.tmpselectors.AbstractTemporarySelectorReader;
+import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
 import org.glassfish.grizzly.streams.AbstractStreamReader;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.util.conditions.Condition;
@@ -170,8 +170,8 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
             Buffer buffer = newBuffer(bufferSize);
 
             try {
-                AbstractTemporarySelectorReader reader =
-                        (AbstractTemporarySelectorReader)
+                TemporarySelectorReader reader =
+                        (TemporarySelectorReader)
                         transport.getTemporarySelectorIO().getReader();
                 Future future = reader.read(connection, buffer, null, null,
                         timeoutMillis, TimeUnit.MILLISECONDS);
