@@ -43,24 +43,88 @@ import java.net.SocketAddress;
 import java.util.concurrent.Future;
 
 /**
- * Socket based client side interface
+ * Socket based client side connector.
+ * <tt>SocketConnectorHandler</tt> is responsible for creating and initializing
+ * {@link Connection}, and optionally connect is to a specific local/remote
+ * address.
  * 
  * @author Alexey Stashok
  */
 public interface SocketConnectorHandler {
+    /**
+     * Creates, initializes and connects socket to the specific remote host
+     * and port and returns {@link Connection}, representing socket.
+     * 
+     * @param host remote host to connect to.
+     * @param port remote port to connect to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     * 
+     * @throws java.io.IOException
+     */
     public Future<Connection> connect(String host, int port) throws IOException;
     
+    /**
+     * Creates, initializes and connects socket to the specific
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public Future<Connection> connect(SocketAddress remoteAddress)
             throws IOException;
 
+    /**
+     * Creates, initializes socket, binds it to the specific local and remote
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param localAddress local address to bind socket to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public abstract Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException;
 
+    /**
+     * Get the default {@link Processor} to process {@link IOEvent}, occuring
+     * on connection phase.
+     * 
+     * @return the default {@link Processor} to process {@link IOEvent},
+     * occuring on connection phase.
+     */
     public Processor getProcessor();
 
+    /**
+     * Set the default {@link Processor} to process {@link IOEvent}, occuring
+     * on connection phase.
+     *
+     * @param defaultProcessor the default {@link Processor} to process
+     * {@link IOEvent}, occuring on connection phase.
+     */
     public void setProcessor(Processor defaultProcessor);
 
+    /**
+     * Gets the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process I/O events, occuring on connection phase.
+     *
+     * @return the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process I/O events, occuring on connection phase.
+     */
     public ProcessorSelector getProcessorSelector();
 
+    /**
+     * Sets the default {@link ProcessorSelector}, which will be used to get
+     * {@link Processor} to process I/O events, occuring on connection phase.
+     *
+     * @param defaultProcessorSelector the default {@link ProcessorSelector},
+     * which will be used to get {@link Processor} to process I/O events,
+     * occuring on connection phase.
+     */
     public void setProcessorSelector(ProcessorSelector defaultProcessorSelector);
 }

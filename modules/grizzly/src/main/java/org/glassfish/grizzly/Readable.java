@@ -44,8 +44,12 @@ import java.util.concurrent.Future;
 import org.glassfish.grizzly.util.conditions.Condition;
 
 /**
+ * Implementatios of this interface are able to read data from internal source
+ * to a {@link Buffer}.
  *
- * @author oleksiys
+ * Grizzly {@link Connection} extends {@link Readable}.
+ * 
+ * @author Alexey Stashok
  */
 public interface Readable<L> extends Closeable {
     /**

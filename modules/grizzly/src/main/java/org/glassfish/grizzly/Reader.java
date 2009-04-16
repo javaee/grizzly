@@ -42,8 +42,13 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
+ * Implementatios of this interface are able to read data from
+ * {@link Connection} to a {@link Buffer}.
  *
- * @author oleksiys
+ * There are two basic Reader implementations in Grizzly:
+ * {@link AsyncQueueReader}, {@link TemporarySelectorReader}.
+ *
+ * @author Alexey Stashok
  */
 public interface Reader<L> {
     public static final int READ_EVENT = 1;

@@ -41,8 +41,8 @@ package org.glassfish.grizzly;
 import java.io.IOException;
 
 /**
- *
- * @author oleksiys
+ * 
+ * @author Alexey Stashok
  */
 public interface Strategy<E> {
     public E prepare(Connection connection, IOEvent ioEvent);

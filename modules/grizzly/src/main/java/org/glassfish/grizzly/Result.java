@@ -44,5 +44,10 @@ package org.glassfish.grizzly;
  * @author Alexey Stashok
  */
 public interface Result {
+    /**
+     * Get {@link Connection}, associated with the result.
+     *
+     * @return {@link Connection}, associated with the result.
+     */
     public Connection getConnection();
 }

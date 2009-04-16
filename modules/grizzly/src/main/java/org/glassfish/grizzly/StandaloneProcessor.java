@@ -45,18 +45,33 @@ import java.io.IOException;
  * {@link Connection} lifecycle should be managed explicitly,
  * using read/write/accept/connect methods.
  *
+ * This {@link Processor} could be set on {@link Connection} to avoid it from
+ * being processed by {@link FilterChain} or other {@link Processor}. In this
+ * case {@link Connection} could be used like regular Java {@link Socket}.
+ *
  * @author Alexey Stashok
  */
 public class StandaloneProcessor extends AbstractProcessor {
 
+    /**
+     * This method should never be called, because
+     * {@link StandaloneProcessor#isInterested(IOEvent)} returns false for any
+     * {@link IOEvent}.
+     */
     public ProcessorResult process(Context context) throws IOException {
         throw new IllegalStateException("NullProcessor should never be executed");
     }
 
+    /**
+     * {@link StandaloneProcessor} is not interested in any {@link IOEvent}.
+     */
     public boolean isInterested(IOEvent ioEvent) {
         return false;
     }
 
+    /**
+     * Method does nothing.
+     */
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
     }
 }

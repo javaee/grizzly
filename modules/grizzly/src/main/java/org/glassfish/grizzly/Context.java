@@ -163,7 +163,7 @@ public class Context implements PoolableObject {
      */
     public void setProcessor(Processor processor) {
         this.processor = processor;
-    }   
+    }
 
     /**
      * Get the {@link PostProcessor}, which will be called after
@@ -184,8 +184,7 @@ public class Context implements PoolableObject {
      * called after {@link Processor} will finish its execution to
      * finish IOEvent processing.
      */
-    public void setPostProcessor(
-            PostProcessor ioEventPostProcessor) {
+    public void setPostProcessor(PostProcessor ioEventPostProcessor) {
         this.postProcessor = ioEventPostProcessor;
     }
 

@@ -41,14 +41,24 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.util.MessageHolder;
 
 /**
- *
- * @author oleksiys
+ * Result of read operation, retuned by {@link Readable}.
+ * 
+ * @author Alexey Stashok
  */
 public class ReadResult<K, L> implements Result {
+    /**
+     * Connection, from which data were read.
+     */
     private final Connection connection;
 
+    /**
+     * Holder of message data and source address.
+     */
     private final MessageHolder<K, L> messageHolder;
     
+    /**
+     * Number of bytes read.
+     */
     private int readSize;
 
     public ReadResult(Connection connection) {
@@ -62,31 +72,66 @@ public class ReadResult<K, L> implements Result {
         this.readSize = readSize;
     }
 
+    /**
+     * Get the {@link Connection} data were read from.
+     * 
+     * @return the {@link Connection} data were read from.
+     */
+    public Connection getConnection() {
+        return connection;
+    }
+
+    /**
+     * Get the message, which was read.
+     * 
+     * @return the message, which was read.
+     */
     public K getMessage() {
         return messageHolder.getMessage();
     }
 
-    public void setMessage(K buffer) {
-        messageHolder.setMessage(buffer);
+    /**
+     * Set the message, which was read.
+     *
+     * @param message the message, which was read.
+     */
+    public void setMessage(K message) {
+        messageHolder.setMessage(message);
     }
 
+    /**
+     * Get the source address, the message was read from.
+     *
+     * @return the source address, the message was read from.
+     */
     public L getSrcAddress() {
         return messageHolder.getAddress();
     }
 
+    /**
+     * Set the source address, the message was read from.
+     *
+     * @param srcAddress the source address, the message was read from.
+     */
     public void setSrcAddress(L srcAddress) {
         messageHolder.setAddress(srcAddress);
     }
 
+    /**
+     * Get the number of bytes, which were read.
+     *
+     * @return the number of bytes, which were read.
+     */
     public int getReadSize() {
         return readSize;
     }
 
+    /**
+     * Set the number of bytes, which were read.
+     *
+     * @param readSize the number of bytes, which were read.
+     */
     public void setReadSize(int readSize) {
         this.readSize = readSize;
-    }
-
-    public Connection getConnection() {
-        return connection;
     }
 }

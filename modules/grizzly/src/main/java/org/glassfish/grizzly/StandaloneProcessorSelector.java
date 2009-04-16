@@ -43,11 +43,20 @@ package org.glassfish.grizzly;
  * occurred {@link IOEvent}.
  * {@link Connection} I/O events should be processed explicitly by calling
  * read/write/accept/connect methods.
+ *
+ * Setting {@link StandaloneProcessorSelector} has the same effect as setting
+ * {@link StandaloneProcessor}, though if {@link StandaloneProcessorSelector} is
+ * set - there is still possibility to overwrite processing logic by providing
+ * custom {@link Processor}.
  * 
  * @author Alexey Stashok
  */
 public class StandaloneProcessorSelector implements ProcessorSelector {
 
+    /**
+     * Always return null, which means no {@link Processor} was found to process
+     * {@link IOEvent}.
+     */
     public Processor select(IOEvent ioEvent, Connection connection) {
         return null;
     }

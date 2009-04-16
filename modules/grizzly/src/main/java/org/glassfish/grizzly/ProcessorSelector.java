@@ -40,7 +40,7 @@ package org.glassfish.grizzly;
 
 /**
  * Implementations of the interface will be responsible to find correct
- * {@link Processor}, which will process {@link IOEvent}, which occurred on the
+ * {@link Processor}, which will process {@link IOEvent}, occurred on the
  * {@link Connection}
  * 
  * @author Alexey Stashok
@@ -54,6 +54,5 @@ public interface ProcessorSelector {
      * 
      * @return the {@link Processor}, which will process connection event.
      */
-    public Processor select(IOEvent ioEvent,
-            Connection connection);
+    public Processor select(IOEvent ioEvent, Connection connection);
 }

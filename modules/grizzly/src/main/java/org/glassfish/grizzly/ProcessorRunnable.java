@@ -43,19 +43,47 @@ import java.io.IOException;
 import java.util.logging.Level;
 
 /**
- *
+ * {@link Runnable} task, which encapsulates {@link Processor} execution
+ * information and actually runs {@link Processor}
+ * to process occured {@link IOEvent}.
+ * Usually {@link ProcessorRunnable} task is constructed by {@link Transport}
+ * and passed to {@link Strategy}, which makes decision how this task should
+ * be executed.
+ * 
  * @author Alexey Stashok
  */
 public class ProcessorRunnable implements Runnable {
 
+    /**
+     * {@link Processor} execution {@link Context}.
+     */
     private Context context;
 
+    /**
+     * {@link IOEvent}, which occured on {@link Connection}.
+     */
     private IOEvent ioEvent;
+
+    /**
+     * Connection
+     */
     private Connection connection;
+
+    /**
+     * {@link Processor}, which is going to process {@link IOEvent}.
+     */
     private Processor processor;
+
+    /**
+     * PostProcessor to be called, on processing completion
+     */
     private PostProcessor postProcessor;
 
-    private boolean isResumed;
+    /**
+     * Is task in postponed state.
+     * It means that task was terminated but not completed.
+     */
+    private boolean isPostponed;
 
     public ProcessorRunnable(Context context) {
         this.context = context;
@@ -69,54 +97,120 @@ public class ProcessorRunnable implements Runnable {
         this.postProcessor = postProcessor;
     }
 
-    public boolean isResumed() {
-        return isResumed;
+    /**
+     * Returns <tt>true</tt> is task was postponed
+     * (terminated, but not completed), so it's possible to resume task
+     * processing. <tt>Fasle</tt> will be returned otherwise.
+     * 
+     * @return <tt>true</tt> is task was postponed, or <tt>fasle</tt> will
+     * be returned otherwise.
+     */
+    public boolean isPostponed() {
+        return isPostponed;
     }
 
-    public void setResumed(boolean isResumed) {
-        this.isResumed = isResumed;
-    }
-
+    /**
+     * Get the processing {@link IOEvent}.
+     *
+     * @return the processing {@link IOEvent}.
+     */
     public IOEvent getIoEvent() {
         return ioEvent;
     }
 
+    /**
+     * Set the processing {@link IOEvent}.
+     *
+     * @param ioEvent the processing {@link IOEvent}.
+     */
     public void setIoEvent(IOEvent ioEvent) {
         this.ioEvent = ioEvent;
     }
 
+    /**
+     * Get the processing {@link Connection}.
+     *
+     * @return the processing {@link Connection}.
+     */
     public Connection getConnection() {
         return connection;
     }
 
+    /**
+     * Set the processing {@link Connection}.
+     *
+     * @param connection the processing {@link Connection}.
+     */
     public void setConnection(Connection connection) {
         this.connection = connection;
     }
 
+    /**
+     * Get the {@link Processor}, which is responsible to process
+     * the {@link IOEvent}.
+     *
+     * @return the {@link Processor}, which is responsible to process
+     * the {@link IOEvent}.
+     */
     public Processor getProcessor() {
         return processor;
     }
 
+    /**
+     * Set the {@link Processor}, which is responsible to process
+     * the {@link IOEvent}.
+     *
+     * @param processor the {@link Processor}, which is responsible to process
+     * the {@link IOEvent}.
+     */
     public void setProcessor(Processor processor) {
         this.processor = processor;
     }
 
+    /**
+     * Get the {@link PostProcessor}, which will be called after
+     * {@link Processor} will finish its execution to finish IOEvent processing.
+     *
+     * @return the {@link PostProcessor}, which will be called after
+     * {@link Processor} will finish its execution to finish IOEvent processing.
+     */
     public PostProcessor getPostProcessor() {
         return postProcessor;
     }
 
-    public void setPostProcessor(PostProcessor postProcessor) {
-        this.postProcessor = postProcessor;
+    /**
+     * Set the {@link PostProcessor}, which will be called after
+     * {@link Processor} will finish its execution to finish IOEvent processing.
+     *
+     * @param ioEventPostProcessor the {@link PostProcessor}, which will be
+     * called after {@link Processor} will finish its execution to
+     * finish IOEvent processing.
+     */
+    public void setPostProcessor(PostProcessor ioEventPostProcessor) {
+        this.postProcessor = ioEventPostProcessor;
     }
 
+    /**
+     * Get the processing {@link Context}.
+     * 
+     * @return the processing {@link Context}.
+     */
     public Context getContext() {
         return context;
     }
 
+    /**
+     * Set the processing {@link Context}.
+     *
+     * @param context the processing {@link Context}.
+     */
     public void setContext(Context context) {
         this.context = context;
     }
 
+    /**
+     * Runs the IOEvent processing.
+     */
     public void run() {
         if (context == null) {
             createContext();
@@ -130,11 +224,9 @@ public class ProcessorRunnable implements Runnable {
         ProcessorResult result = null;
 
         try {
-            if (!isResumed) {
+            if (!isPostponed) {
                 processor.beforeProcess(context);
             }
-
-            isResumed = true;
 
             do {
                 result = processor.process(context);
@@ -143,6 +235,8 @@ public class ProcessorRunnable implements Runnable {
             
             if (result == null || result.getStatus() != Status.TERMINATE) {
                 postProcess(context, result);
+            } else {
+                isPostponed = true;
             }
         } catch (IOException e) {
             result = new ProcessorResult(Status.ERROR, e);
@@ -155,6 +249,9 @@ public class ProcessorRunnable implements Runnable {
         }
     }
 
+    /**
+     * Create {@link Context} instance.
+     */
     protected void createContext() {
         context = processor.context();
         if (context == null) {
@@ -162,6 +259,9 @@ public class ProcessorRunnable implements Runnable {
         }
     }
 
+    /**
+     * Initialize {@link Context} with task's settings.
+     */
     protected void initContext() {
         context.setIoEvent(ioEvent);
         context.setConnection(connection);
@@ -176,23 +276,13 @@ public class ProcessorRunnable implements Runnable {
         postProcessor = context.getPostProcessor();
     }
 
-    private void logException(Context context, Throwable e) {
-        State transportState = context.getConnection().getTransport().
-                getState().getState(false);
-
-        if (transportState != State.STOPPING && transportState != State.STOP) {
-            Grizzly.logger.log(Level.WARNING,
-                    "Processor execution exception. Processor: " +
-                    processor + " Context: " + context, e);
-        } else {
-            Grizzly.logger.log(Level.FINE,
-                    "Processor execution exception, " +
-                    "however transport was in the stopping phase: " + transportState +
-                    " Processor: " +
-                    processor + " Context: " + context, e);
-        }
-    }
-
+    /**
+     * Finishing processing by calling post-process methods on {@link Processor}
+     * and {@link PostProcessor}.
+     * 
+     * @param context processing {@link Context}.
+     * @param result {@link Processor} result.
+     */
     private void postProcess(Context context, ProcessorResult result) {
         try {
             processor.afterProcess(context);
@@ -208,5 +298,28 @@ public class ProcessorRunnable implements Runnable {
             }
         }
         context.offerToPool();
+    }
+
+    /**
+     * Logs the exception.
+     * 
+     * @param context processing {@link Context}.
+     * @param e {@link Exception}, which occured.
+     */
+    private void logException(Context context, Throwable e) {
+        State transportState = context.getConnection().getTransport().
+                getState().getState(false);
+
+        if (transportState != State.STOPPING && transportState != State.STOP) {
+            Grizzly.logger.log(Level.WARNING,
+                    "Processor execution exception. Processor: " +
+                    processor + " Context: " + context, e);
+        } else {
+            Grizzly.logger.log(Level.FINE,
+                    "Processor execution exception, " +
+                    "however transport was in the stopping phase: " + transportState +
+                    " Processor: " +
+                    processor + " Context: " + context, e);
+        }
     }
 }
