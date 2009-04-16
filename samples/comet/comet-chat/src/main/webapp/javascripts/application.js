@@ -47,8 +47,6 @@ var app = {
 	 '&message=' + encodeURI(message);
       new Ajax.Request(app.url, {
 	 postBody: query,
-	 requestHeaders: ['Content-Type',
-			  'application/x-www-form-urlencoded; charset=UTF-8'],
 	 onComplete: function() {
 	    $('message').disabled = false;
 	    $('post-button').disabled = false;
