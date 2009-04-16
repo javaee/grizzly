@@ -43,8 +43,11 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
+ * Implementatios of this interface are able to write data from a {@link Buffer}.
  *
- * @author oleksiys
+ * Grizzly {@link Connection} extends {@link Writable}.
+ *
+ * @author Alexey Stashok
  */
 public interface Writable<L> extends Closeable {
     /**

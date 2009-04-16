@@ -41,14 +41,24 @@ package org.glassfish.grizzly;
 import org.glassfish.grizzly.util.MessageHolder;
 
 /**
+ * Result of write operation, retuned by {@link Writable}.
  *
  * @author Alexey Stashok
  */
 public class WriteResult<K, L> implements Result {
+    /**
+     * Connection, from which data were read.
+     */
     private final Connection connection;
 
+    /**
+     * Holder of message data and source address.
+     */
     private final MessageHolder<K, L> messageHolder;
 
+    /**
+     * Number of bytes written.
+     */
     private int writtenSize;
 
     public WriteResult(Connection connection) {
@@ -62,31 +72,66 @@ public class WriteResult<K, L> implements Result {
         this.writtenSize = writeSize;
     }
 
+    /**
+     * Get the {@link Connection} data were read from.
+     *
+     * @return the {@link Connection} data were read from.
+     */
+    public Connection getConnection() {
+        return connection;
+    }
+
+    /**
+     * Get the message, which was read.
+     *
+     * @return the message, which was read.
+     */
     public K getMessage() {
         return messageHolder.getMessage();
     }
 
-    public void setMessage(K buffer) {
-        messageHolder.setMessage(buffer);
+    /**
+     * Set the message, which was read.
+     *
+     * @param message the message, which was read.
+     */
+    public void setMessage(K message) {
+        messageHolder.setMessage(message);
     }
 
+    /**
+     * Get the destination address, the message was written to.
+     *
+     * @return the destination address, the message was written to.
+     */
     public L getDstAddress() {
         return messageHolder.getAddress();
     }
 
+    /**
+     * Set the destination address, the message was written to.
+     *
+     * @param dstAddress the destination address, the message was written to.
+     */
     public void setDstAddress(L dstAddress) {
         messageHolder.setAddress(dstAddress);
     }
 
+    /**
+     * Get the number of bytes, which were written.
+     *
+     * @return the number of bytes, which were written.
+     */
     public int getWrittenSize() {
         return writtenSize;
     }
 
+    /**
+     * Set the number of bytes, which were written.
+     *
+     * @param writeSize the number of bytes, which were written.
+     */
     public void setWrittenSize(int writeSize) {
         this.writtenSize = writeSize;
-    }
-
-    public Connection getConnection() {
-        return connection;
     }
 }
