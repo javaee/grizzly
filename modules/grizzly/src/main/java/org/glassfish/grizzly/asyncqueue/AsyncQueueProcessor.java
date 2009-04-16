@@ -43,7 +43,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Processor;
 
 /**
- * Common interface for {@link AsyncQueue} processors
+ * Common interface for {@link AsyncQueue} processors.
  * 
  * @author Alexey Stashok
  */

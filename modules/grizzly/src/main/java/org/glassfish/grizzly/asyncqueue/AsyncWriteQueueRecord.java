@@ -45,7 +45,7 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.WriteResult;
 
 /**
- * {@link AsyncQueue} write data unit
+ * {@link AsyncQueue} write element unit
  * 
  * @author Alexey Stashok
  */

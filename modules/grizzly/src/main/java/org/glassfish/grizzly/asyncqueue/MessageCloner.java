@@ -51,5 +51,20 @@ import org.glassfish.grizzly.Connection;
  * @author Alexey Stashok
  */
 public interface MessageCloner<E> {
+    /**
+     * Method will be called by {@link AsyncQueueWriter}, when message
+     * could not be written directly, and will be added to the queue.
+     * Cloner may create a clone of original message and return it to the
+     * {@link AsyncQueueWriter} instead of original one.
+     * Using MessageCloner, developer has a chance to clone a message only in
+     * case, when it is really required.
+     *
+     * @param connection {@link Connection}, where the {@link Buffer} will
+     * be written.
+     * @param originalByteBuffer {@link Buffer} to be written.
+     *
+     * @return original {@link Buffer} or its clone to be added to asynchronous
+     * queue.
+     */
     public E clone(Connection connection, E originalByteBuffer);
 }

@@ -41,7 +41,7 @@ package org.glassfish.grizzly.asyncqueue;
 import org.glassfish.grizzly.ReadResult;
 
 /**
- * {@link AsyncQueue} read data unit
+ * {@link AsyncQueue} read element unit
  * 
  * @author Alexey Stashok
  */

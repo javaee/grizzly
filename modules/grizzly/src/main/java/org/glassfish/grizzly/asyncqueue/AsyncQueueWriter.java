@@ -55,7 +55,7 @@ import org.glassfish.grizzly.Writer;
 public interface AsyncQueueWriter<L> 
         extends Writer<L>, AsyncQueueProcessor {
     /**
-     * Method writes the <tt>message</tt> to the specific address.
+     * Method writes the {@link Buffer} to the specific address.
      *
      * @param connection the {@link Connection} to write to
      * @param dstAddress the destination address the <tt>message</tt> will be

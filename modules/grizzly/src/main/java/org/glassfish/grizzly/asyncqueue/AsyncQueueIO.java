@@ -53,10 +53,20 @@ public class AsyncQueueIO {
         this.writer = writer;
     }
 
+    /**
+     * Get {@link AsyncQueueReader} implementation.
+     * 
+     * @return {@link AsyncQueueReader} implementation.
+     */
     public AsyncQueueReader getReader() {
         return reader;
     }
 
+    /**
+     * Get {@link AsyncQueueWriter} implementation.
+     *
+     * @return {@link AsyncQueueWriter} implementation.
+     */
     public AsyncQueueWriter getWriter() {
         return writer;
     }
