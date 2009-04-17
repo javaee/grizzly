@@ -479,7 +479,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             //       what's happening ?
             if (stateHolder.getState() == State.STARTED &&
                     selectorHandler.getStateHolder().getState() == State.STARTED) {
-                logger.log(Level.SEVERE, "Selector was unexpectedly closed.");
+                logger.log(Level.SEVERE, "Selector was unexpectedly closed.", e);
                 notifyException(e);
             } else {
                 logger.log(Level.FINE, "doSelect Selector closed");
@@ -503,7 +503,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             //       what's happening ?
             if (stateHolder.getState() == State.STARTED &&
                     selectorHandler.getStateHolder().getState() == State.STARTED) {
-                logger.log(Level.SEVERE, "Selector was unexpectedly closed.");
+                logger.log(Level.SEVERE, "Selector was unexpectedly closed.", e);
                 notifyException(e);
             } else {
                 logger.log(Level.FINE, "doSelect IOException", e);
