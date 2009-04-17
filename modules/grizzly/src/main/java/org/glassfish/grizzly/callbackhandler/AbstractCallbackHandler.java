@@ -42,15 +42,21 @@ import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.util.IOEventMask;
+import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.ProcessorResult;
+import org.glassfish.grizzly.AbstractProcessor;
 import org.glassfish.grizzly.util.ArrayIOEventMask;
 import java.io.IOException;
 import java.util.logging.Level;
-import org.glassfish.grizzly.AbstractProcessor;
 
 /**
+ * Base {@link CallbackHandler} implementation, which delegates
+ * {@link Processor#process(Context)} call to appropriate {@link CallbackHandler}
+ * method.
  *
- * @author oleksiys
+ * @see CallbackHandler
+ * 
+ * @author Alexey Stashok
  */
 public abstract class AbstractCallbackHandler extends AbstractProcessor
         implements CallbackHandler {
@@ -60,14 +66,24 @@ public abstract class AbstractCallbackHandler extends AbstractProcessor
             IOEventMask.CLIENT_EVENTS_MASK);
 
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isInterested(IOEvent ioEvent) {
         return interestedIoEventsMask.isInterested(ioEvent);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
         interestedIoEventsMask.setInterested(ioEvent, isInterested);
     }
 
+    /**
+     * Delegate {@link IOEvent} processing to appropriate
+     * {@link CallbackHandler} method.
+     */
     public ProcessorResult process(Context context)
             throws IOException {
         switch (context.getIoEvent()) {

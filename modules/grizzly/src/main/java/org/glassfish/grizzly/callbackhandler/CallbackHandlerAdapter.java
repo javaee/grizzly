@@ -42,22 +42,40 @@ import java.io.IOException;
 import org.glassfish.grizzly.Context;
 
 /**
+ * Empty adapter for {@link CallbackHandler} interface.
  *
- * @author oleksiys
+ * @see CallbackHandler
+ * 
+ * @author Alexey Stashok
  */
 public class CallbackHandlerAdapter extends AbstractCallbackHandler {
+    /**
+     * {@inheritDoc}
+     */
     public void onAccept(Context context) throws IOException {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void onConnect(Context context) throws IOException {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void onRead(Context context) throws IOException {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void onWrite(Context context) throws IOException {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void onClose(Context context) throws IOException {
     }
 }

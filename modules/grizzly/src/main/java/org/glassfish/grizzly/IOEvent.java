@@ -39,16 +39,48 @@
 package org.glassfish.grizzly;
 
 /**
- * Enumeration represents the I/O event, occured on a {@link Connection}.
+ * Enumeration represents the I/O events, occured on a {@link Connection}.
+ *
+ * @see Connection
  * 
  * @author Alexey Stashok
  */
 public enum IOEvent {
+    /**
+     * no event
+     */
     NONE,
+
+    /**
+     * Event occures on a server {@link Connection}, when it becomes ready
+     * to accept new client {@link Connection}.
+     *
+     * Note, this event occures on server code for server {@link Connection}.
+     */
     SERVER_ACCEPT,
+
+    /**
+     * Event occures on a client {@link Connection}, just after it was accepted
+     * by the server.
+     *
+     * Note, this event occures on server code for client {@link Connection}.
+     */
     ACCEPTED,
+
+    /**
+     * Event occures on a {@link Connection}, once it was connected to server.
+     */
     CONNECTED,
+    /**
+     * Event occures on a {@link Connection}, once it gets available for read.
+     */
     READ,
+    /**
+     * Event occures on a {@link Connection}, once it  gets available for write.
+     */
     WRITE,
+    /**
+     * Event occures on a {@link Connection}, once it gets closed.
+     */
     CLOSED
 }

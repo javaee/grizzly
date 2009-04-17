@@ -40,59 +40,63 @@ package org.glassfish.grizzly.callbackhandler;
 
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Processor;
+import org.glassfish.grizzly.IOEvent;
 import java.io.IOException;
 
 /**
- * Callback handler for non blocking client operations.
+ * Callback handler, which works like adapter for {@link Processor}, where
+ * each {@link IOEvent} could be processed in separate method.
  *
- * @param E  object containing information about the current 
- *        non blocking connection
+ * @see Processor
+ * @see IOEvent
+ * 
  * @author Jeanfrancois Arcand
  */
 public interface CallbackHandler extends Processor {
     /**
-     * This method is called when an non blocking OP_ACCEPT is ready
+     * This method is called when {@link IOEvent#ACCEPTED} event occured on
+     * {@link Connection}.
      * 
-     * @param context an object containing information about the current 
-     *        non blocking connection. 
+     * @param context an object containing information about the event
+     * processing.
      */
     public abstract void onAccept(Context context) throws IOException;
 
     /**
-     * This method is called when an non blocking OP_CONNECT is ready
-     * to get processed. This method <strong>must</strong> invoke ConnectorHandler.finishConnect()
-     * to complete the connection operations.
-     * 
-     * @param context an object containing information about the current 
-     *        non blocking connection. 
+     * This method is called when {@link IOEvent#CONNECTED} event occured on
+     * {@link Connection}.
+     *
+     * @param context an object containing information about the event
+     * processing.
      */
     public abstract void onConnect(Context context) throws IOException;
     
     
     /**
-     * This method is called when an non blocking OP_READ is ready
-     * to get processed.
-     * @param context an object containing information about the current 
-     *        non blocking connection. 
+     * This method is called when {@link IOEvent#READ} event occured on
+     * {@link Connection}.
+     *
+     * @param context an object containing information about the event
+     * processing.
      */
     public abstract void onRead(Context context) throws IOException;
     
     
     /**
-     * This method is called when an non blocking OP_WRITE is ready
-     * to get processed.
-     * @param context an object containing information about the current 
-     *        non blocking connection. 
+     * This method is called when {@link IOEvent#WRITE} event occured on
+     * {@link Connection}.
+     *
+     * @param context an object containing information about the event
+     * processing.
      */
     public abstract void onWrite(Context context) throws IOException;
 
     /**
-     * This method is called when an non blocking OP_CONNECT is ready
-     * to get processed. This method <strong>must</strong> invoke ConnectorHandler.finishConnect()
-     * to complete the connection operations.
-     * 
-     * @param context an object containing information about the current 
-     *        non blocking connection. 
+     * This method is called when {@link IOEvent#CLOSED} event occured on
+     * {@link Connection}.
+     *
+     * @param context an object containing information about the event
+     * processing.
      */
     public abstract void onClose(Context context) throws IOException;
 }
