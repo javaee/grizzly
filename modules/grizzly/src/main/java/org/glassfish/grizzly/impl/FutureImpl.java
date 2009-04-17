@@ -45,8 +45,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
+ * Simple {@link Future} implementation, which uses synchronization
+ * {@link Object} to synchronize during the lifecycle.
  *
- * @author oleksiys
+ * @see Future
+ * 
+ * @author Alexey Stashok
  */
 public class FutureImpl<R> implements Future<R> {
 
@@ -67,12 +71,22 @@ public class FutureImpl<R> implements Future<R> {
         this.sync = sync;
     }
 
+    /**
+     * Get current result value without any blocking.
+     * 
+     * @return current result value without any blocking.
+     */
     public R getResult() {
         synchronized(sync) {
             return result;
         }
     }
 
+    /**
+     * Set the result value and notify about operation completion.
+     * 
+     * @param result the result value
+     */
     public void setResult(R result) {
         synchronized(sync) {
             this.result = result;
@@ -80,6 +94,9 @@ public class FutureImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean cancel(boolean mayInterruptIfRunning) {
         synchronized(sync) {
             isCancelled = true;
@@ -88,18 +105,27 @@ public class FutureImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isCancelled() {
         synchronized(sync) {
             return isCancelled;
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isDone() {
         synchronized(sync) {
             return isDone;
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public R get() throws InterruptedException, ExecutionException {
         synchronized (sync) {
             for (;;) {
@@ -118,6 +144,9 @@ public class FutureImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public R get(long timeout, TimeUnit unit) throws
             InterruptedException, ExecutionException, TimeoutException {
         long startTime = System.currentTimeMillis();
@@ -141,6 +170,11 @@ public class FutureImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * Notify about the failure, occured during asynchronous operation execution.
+     * 
+     * @param failure
+     */
     public void failure(Throwable failure) {
         synchronized(sync) {
             this.failure = failure;
@@ -148,6 +182,9 @@ public class FutureImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * Notify blocked listeners threads about operation completion.
+     */
     protected void notifyHaveResult() {
         isDone = true;
         sync.notifyAll();

@@ -47,8 +47,13 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
+ * Simple {@link Future} implementation, which uses {@link ReentrantLock}
+ * to synchronize during the lifecycle.
  *
- * @author oleksiys
+ * @see Future
+ * @see ReentrantLock
+ * 
+ * @author Alexey Stashok
  */
 public class FutureLockImpl<R> implements Future<R> {
 
@@ -72,6 +77,11 @@ public class FutureLockImpl<R> implements Future<R> {
         latch = new CountDownLatch(1);
     }
 
+    /**
+     * Get current result value without any blocking.
+     *
+     * @return current result value without any blocking.
+     */
     public R getResult() {
         try {
             lock.lock();
@@ -81,6 +91,11 @@ public class FutureLockImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * Set the result value and notify about operation completion.
+     *
+     * @param result the result value
+     */
     public void setResult(R result) {
         try {
             lock.lock();
@@ -91,6 +106,9 @@ public class FutureLockImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean cancel(boolean mayInterruptIfRunning) {
         try {
             lock.lock();
@@ -102,6 +120,9 @@ public class FutureLockImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isCancelled() {
         try {
             lock.lock();
@@ -111,6 +132,9 @@ public class FutureLockImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isDone() {
         try {
             lock.lock();
@@ -120,6 +144,9 @@ public class FutureLockImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public R get() throws InterruptedException, ExecutionException {
         latch.await();
         
@@ -137,6 +164,9 @@ public class FutureLockImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public R get(long timeout, TimeUnit unit) throws
             InterruptedException, ExecutionException, TimeoutException {
         boolean isTimeOut = latch.await(timeout, unit);
@@ -158,6 +188,11 @@ public class FutureLockImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * Notify about the failure, occured during asynchronous operation execution.
+     *
+     * @param failure
+     */
     public void failure(Throwable failure) {
         try {
             lock.lock();
@@ -168,6 +203,9 @@ public class FutureLockImpl<R> implements Future<R> {
         }
     }
 
+    /**
+     * Notify blocked listeners threads about operation completion.
+     */
     protected void notifyHaveResult() {
         isDone = true;
         latch.countDown();
