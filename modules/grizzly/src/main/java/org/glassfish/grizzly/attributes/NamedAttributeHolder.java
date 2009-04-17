@@ -43,7 +43,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * {@link AttributeHolder} implementation, which doesn't support indexed access
+ * to {@link Attribute}s.
  *
+ * @see AttributeHolder
+ * @see IndexedAttributeHolder
+ * 
  * @author Alexey Stashok
  */
 public class NamedAttributeHolder implements AttributeHolder {
@@ -56,10 +61,16 @@ public class NamedAttributeHolder implements AttributeHolder {
         attributesMap = new HashMap<String, Object>();
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public Object getAttribute(String name) {
         return attributesMap.get(name);
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public void setAttribute(String name, Object value) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute == null) {
@@ -69,23 +80,41 @@ public class NamedAttributeHolder implements AttributeHolder {
         attributesMap.put(name, value);
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public Object removeAttribute(String name) {
         return attributesMap.remove(name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Set<String> getAttributeNames() {
         return attributesMap.keySet();
     }
 
 
+    /**
+     * {@inheritDoc}
+     */
     public void clear() {
         attributesMap.clear();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public AttributeBuilder getAttributeBuilder() {
         return attributeBuilder;
     }
 
+    /**
+     * Always returns null, as <tt>NamedAttributeHolder</tt> doesn't support
+     * indexing.
+     * 
+     * @return <tt>null</tt>
+     */
     public IndexedAttributeAccessor getIndexedAttributeAccessor() {
         return null;
     }

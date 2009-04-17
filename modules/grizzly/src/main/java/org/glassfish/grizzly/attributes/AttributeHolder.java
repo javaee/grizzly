@@ -41,8 +41,11 @@ package org.glassfish.grizzly.attributes;
 import java.util.Set;
 
 /**
- * Interface declares common functionality for objects, which could have
- * associated attributes.
+ * Interface declares common functionality for objects, which have associated
+ * {@link Attribute}s.
+ *
+ * @see IndexedAttributeHolder
+ * @see NamedAttributeHolder
  * 
  * @author Alexey Stashok
  */
@@ -66,16 +69,16 @@ public interface AttributeHolder {
     /**
      * Return an object based on a name.
      * @param name - name of an attribute
-     * @return - attribute value for the <ttnamekey</tt>, null if <tt>name</tt>
+     * @return - attribute value for the <tt>name</tt>, null if <tt>name</tt>
      *           does not exist in <tt>attributes</tt>
      */
     public Object getAttribute(String name);
 
 
     /**
-     * Return a <code>Set</code> of attribute names.
+     * Return a {@link Set} of attribute names.
      * 
-     * @return - <code>Set</code> of attribute names
+     * @return - {@link Set} of attribute names
      */
     public Set<String> getAttributeNames();
     
@@ -95,9 +98,10 @@ public interface AttributeHolder {
     
     /**
      * If AttributeHolder supports attribute access by index - it will return
-     * an IndexedAttributeAccessor
+     * an {@link IndexedAttributeAccessor}, which will make {@link Attribute}
+     * access as fast as access to array element.
      * 
-     * @return IndexedAttributeAccessor
+     * @return {@link IndexedAttributeAccessor}.
      */
     public IndexedAttributeAccessor getIndexedAttributeAccessor();
 }

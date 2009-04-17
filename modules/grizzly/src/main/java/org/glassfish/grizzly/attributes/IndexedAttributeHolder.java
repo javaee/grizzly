@@ -43,6 +43,12 @@ import java.util.Set;
 import org.glassfish.grizzly.util.LightArrayList;
 
 /**
+ * {@link AttributeHolder}, which supports indexed access to stored
+ * {@link Attribute}s. Access to such indexed {@link Attribute}s could be as
+ * fast as access to array.
+ *
+ * @see AttributeHolder
+ * @see NamedAttributeHolder
  *
  * @author Alexey Stashok
  */
@@ -59,6 +65,9 @@ public class IndexedAttributeHolder implements AttributeHolder {
         indexedAttributeAccessor = new IndexedAttributeAccessorImpl();
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public Object getAttribute(String name) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
@@ -68,6 +77,9 @@ public class IndexedAttributeHolder implements AttributeHolder {
         return null;
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public void setAttribute(String name, Object value) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute == null) {
@@ -77,6 +89,9 @@ public class IndexedAttributeHolder implements AttributeHolder {
         indexedAttributeAccessor.setAttribute(attribute.index(), value);        
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public Object removeAttribute(String name) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
@@ -93,6 +108,9 @@ public class IndexedAttributeHolder implements AttributeHolder {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Set<String> getAttributeNames() {
         Set<String> result = new HashSet<String>();
 
@@ -107,19 +125,38 @@ public class IndexedAttributeHolder implements AttributeHolder {
         return result;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void clear() {
         attributeValues.clear();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public AttributeBuilder getAttributeBuilder() {
         return attributeBuilder;
     }
 
+    /**
+     * Returns {@link IndexedAttributeAccessor} for accessing {@link Attribute}s
+     * by index.
+     *
+     * @return {@link IndexedAttributeAccessor} for accessing {@link Attribute}s
+     * by index.
+     */
     public IndexedAttributeAccessor getIndexedAttributeAccessor() {
         return indexedAttributeAccessor;
     }
     
+    /**
+     * {@link IndexedAttributeAccessor} implementation.
+     */
     protected class IndexedAttributeAccessorImpl implements IndexedAttributeAccessor {
+        /**
+         * {@inheritDoc}
+         */
         public Object getAttribute(int index) {
             if (index >= attributeValues.size()) {
                 return null;
@@ -128,6 +165,9 @@ public class IndexedAttributeHolder implements AttributeHolder {
             return attributeValues.get(index);
         }
 
+        /**
+         * {@inheritDoc}
+         */
         public void setAttribute(int index, Object value) {
             int attrCount = attributeValues.size();
             if (attrCount <= index) {

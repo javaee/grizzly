@@ -39,13 +39,35 @@
 package org.glassfish.grizzly.attributes;
 
 /**
- * <tt>AttributeStorage</tt> provides access to a storage, where implementations
- * could save their state.
+ * <tt>AttributeStorage</tt> provides access to a {@link AttributeHolder}, where
+ * application can store {@link Attribute}s.
+ * This interface lets us describe class, which is not {@link AttributeHolder}
+ * itself, but has associated {@link AttributeHolder}.
+ *
+ * @see AttributeHolder
  *
  * @author Alexey Stashok
  */
 public interface AttributeStorage {
+    /**
+     * Get associated {@link AttributeHolder}.
+     * Implementation may return <tt>null</tt> if {@link AttributeHolder} wasn't
+     * initialized yet.
+     *
+     * @return associated {@link AttributeHolder}.
+     * Implementation may return <tt>null</tt> if {@link AttributeHolder} wasn't
+     * initialized yet.
+     */
     public AttributeHolder getAttributes();
 
+    /**
+     * Get associated {@link AttributeHolder}.
+     * Unlike {@link AttributeStorage#getAttributes()} - method never
+     * returns <tt>null</tt>.
+     *
+     * @return associated {@link AttributeHolder}.
+     * Unlike {@link AttributeStorage#getAttributes()} - method never
+     * returns <tt>null</tt>.
+     */
     public AttributeHolder obtainAttributes();
 }

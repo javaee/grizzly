@@ -44,7 +44,10 @@ import java.util.Map;
 import org.glassfish.grizzly.util.LightArrayList;
 
 /**
+ * Default {@link AttributeBuilder} implementation.
  *
+ * @see AttributeBuilder
+ * 
  * @author Alexey Stashok
  */
 public class DefaultAttributeBuilder implements AttributeBuilder {
@@ -63,10 +66,16 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
         attribute.setIndex(index);
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public synchronized <T> Attribute<T> createAttribute(String name) {
         return createAttribute(name, (T) null);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public synchronized <T> Attribute<T> createAttribute(String name, 
             T defaultValue) {
         Attribute<T> attribute = name2Attribute.get(name);
@@ -80,6 +89,9 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
         return attribute;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public synchronized <T> Attribute<T> createAttribute(String name, 
             NullaryFunction<T> initializer) {
         Attribute<T> attribute = name2Attribute.get(name);

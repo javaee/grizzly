@@ -39,11 +39,14 @@
 package org.glassfish.grizzly.attributes;
 
 /** 
- * Class used to define dynamic attributes on AttributedObject instances.
- * Note that T cannot be a generic type, due to problems with
- * Class<T> when T is a generic.  To work around this problem,
- * simply create an interface that extends the generic type
- * (you are programming to interfaces, right?).
+ * Class used to define dynamic typed attributes on {@link AttributeHolder}
+ * instances.
+ * Storing attribute values in {@link AttributeHolder} has two advantage
+ * comparing to Map storage:
+ *      1) <tt>Attribute</tt> value is typed, and could be checked at
+ *         compiletime.
+ *      2) Access to <tt>Attribute</tt> value, if used with
+ *         {@link IndexedAttributeHolder}, could be as fast as access to array.
  */
 public class Attribute<T> {
     /**
@@ -87,6 +90,12 @@ public class Attribute<T> {
         this.defaultValue = null;
     }
 
+    /**
+     * Get attribute value, stored on the {@link AttributeHolder}.
+     * 
+     * @param attributeHolder {@link AttributeHolder}.
+     * @return attribute value
+     */
     public T get(AttributeHolder attributeHolder) {
         T result = weakGet(attributeHolder);
         
@@ -105,6 +114,12 @@ public class Attribute<T> {
         return result;
     }
 
+    /**
+     * Get attribute value, stored on the {@link AttributeStorage}.
+     *
+     * @param storage {@link AttributeStorage}.
+     * @return attribute value
+     */
     public T get(AttributeStorage storage) {
         AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
@@ -125,21 +140,38 @@ public class Attribute<T> {
         return result;
     }
 
-    public void set(AttributeHolder attributeHolder, T arg) {
+    /**
+     * Set attribute value, stored on the {@link AttributeHolder}.
+     *
+     * @param attributeHolder {@link AttributeHolder}.
+     * @param value attribute value to set.
+     */
+    public void set(AttributeHolder attributeHolder, T value) {
         IndexedAttributeAccessor indexedAccessor = 
                 attributeHolder.getIndexedAttributeAccessor();
         
         if (indexedAccessor != null) {
-            indexedAccessor.setAttribute(attributeIndex, arg);
+            indexedAccessor.setAttribute(attributeIndex, value);
         } else {
-            attributeHolder.setAttribute(name, arg);
+            attributeHolder.setAttribute(name, value);
         }
     }
 
-    public void set(AttributeStorage storage, T arg) {
-        set(storage.obtainAttributes(), arg);
+    /**
+     * Set attribute value, stored on the {@link AttributeStorage}.
+     *
+     * @param storage {@link AttributeStorage}.
+     * @param value attribute value to set.
+     */
+    public void set(AttributeStorage storage, T value) {
+        set(storage.obtainAttributes(), value);
     }
 
+    /**
+     * Remove attribute value, stored on the {@link AttributeHolder}.
+     *
+     * @param attributeHolder {@link AttributeHolder}.
+     */
     public T remove(AttributeHolder attributeHolder) {
         T result = weakGet(attributeHolder);
         
@@ -150,6 +182,11 @@ public class Attribute<T> {
         return result;
     }
 
+    /**
+     * Remove attribute value, stored on the {@link AttributeStorage}.
+     *
+     * @param storage {@link AttributeStorage}.
+     */
     public T remove(AttributeStorage storage) {
         AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
@@ -159,10 +196,26 @@ public class Attribute<T> {
         return null;
     }
     
+    /**
+     * Checks if this attribute is set on the {@link AttributeHolder}.
+     * Returns <tt>true</tt>, if attribute is set, of <tt>false</tt> otherwise.
+     * 
+     * @param attributeHolder {@link AttributeHolder}.
+     * 
+     * @return <tt>true</tt>, if attribute is set, of <tt>false</tt> otherwise.
+     */
     public boolean isSet(AttributeHolder attributeHolder) {
         return weakGet(attributeHolder) != null;
     }
 
+    /**
+     * Checks if this attribute is set on the {@link AttributeStorage}.
+     * Returns <tt>true</tt>, if attribute is set, of <tt>false</tt> otherwise.
+     *
+     * @param storage {@link AttributeStorage}.
+     *
+     * @return <tt>true</tt>, if attribute is set, of <tt>false</tt> otherwise.
+     */
     public boolean isSet(AttributeStorage storage) {
         AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
@@ -172,14 +225,32 @@ public class Attribute<T> {
         return false;
     }
     
+    /**
+     * Return attribute name, which is used as attribute key on
+     * non-indexed {@link AttributeHolder}s.
+     * 
+     * @return attribute name.
+     */
     public String name() {
         return name;
     }
 
+    /**
+     * Return attribute name, which is used as attribute key on
+     * indexed {@link AttributeHolder}s.
+     *
+     * @return attribute indexed.
+     */
     public int index() {
         return attributeIndex;
     }
     
+    /**
+     * Assign integer index to {@link Attribute}, to make access to its value
+     * as fast as array[index].
+     * 
+     * @param index attribute index.
+     */
     protected void setIndex(int index) {
         attributeIndex = index;
     }

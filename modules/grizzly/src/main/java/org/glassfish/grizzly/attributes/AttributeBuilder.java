@@ -39,7 +39,14 @@
 package org.glassfish.grizzly.attributes;
 
 /**
+ * <tt>AttributeBuilder</tt> is responsible for creating and indexing
+ * {@link Attribute}s.
+ * For faster access to {@link Attribute} value, each {@link Attribute} has
+ * assigned index. <tt>AttributeBuilder</tt> is responsible to assign each
+ * {@link Attribute} unique index.
  *
+ * @see DefaultAttributeBuilder
+ * 
  * @author Alexey Stashok
  */
 public interface AttributeBuilder {
@@ -76,20 +83,4 @@ public interface AttributeBuilder {
      * @return Attribute<T>
      */
     public <T> Attribute<T> createAttribute(String name, NullaryFunction<T> initializer);
-    
-    /**
-     * Get Attribute by name
-     * 
-     * @param name
-     * @return Attribute
-     */
-//    public Attribute getAttributeByName(String name);
-    
-    /**
-     * Get Attribute by index
-     * 
-     * @param index
-     * @return Attribute
-     */
-//    public Attribute getAttributeByIndex(int index);
 }

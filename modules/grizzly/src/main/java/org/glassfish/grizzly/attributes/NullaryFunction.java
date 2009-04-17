@@ -39,9 +39,21 @@
 package org.glassfish.grizzly.attributes;
 
 /**
+ * {@link Attribute} initializer.
+ *
+ * Is used by {@link Attribute#get(AttributeHolder)}, if there is no attribute
+ * value stored in {@link AttributeHolder}, or attribute value is <tt>null</tt>.
+ *
+ * @see Attribute
+ * @see AttributeHolder
  * 
  * @author Ken Cavanaugh
  */
 public interface NullaryFunction<T> {
+    /**
+     * Returns default {@link Attribute} value.
+     *
+     * @return default {@link Attribute} value.
+     */
     public T evaluate();
 }

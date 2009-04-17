@@ -39,23 +39,24 @@
 package org.glassfish.grizzly.attributes;
 
 /** 
- * The interface that an Object must implement in order to support
- * indexed Attributes.  The get and set methods are only for use by the
- * Attribute class.
+ * The interface declares, that {@link AttributeHolder} supports
+ * indexed {@link Attribute} access.
+ *
+ * @see AttributeHolder
  */
 public interface IndexedAttributeAccessor {
 
     /** 
      * Internal method for dynamic attribute support.
-     * Return the value of the attribute at index.  If
-     * the attribute at index is not set, set it to the
+     * Return the value of the attribute by index.  If
+     * the attribute with such index is not set, set it to the
      * default value and return the default.
      */
     public Object getAttribute(int index);
 
     /** 
      * Internal method for dynamic attribute support.
-     * Set the attribute at index to obj.
+     * Set the attribute with the index to value.
      */
-    public void setAttribute(int index, Object obj);
+    public void setAttribute(int index, Object value);
 }

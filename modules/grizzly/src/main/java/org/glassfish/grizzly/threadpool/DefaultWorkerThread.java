@@ -52,8 +52,8 @@ import org.glassfish.grizzly.memory.DefaultMemoryManager.BufferInfo;
  */
 public class DefaultWorkerThread extends Thread implements WorkerThread {
 
-    private AttributeBuilder attrBuilder;
-    private AttributeHolder attributes;
+    private final AttributeBuilder attrBuilder;
+    private final AttributeHolder attributes;
 
     private BufferInfo associatedBuffer;
     private Context cachedContext;
@@ -78,6 +78,10 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         return attributes;
     }
 
+    public AttributeHolder obtainAttributes() {
+        return attributes;
+    }
+
     public BufferInfo getAssociatedBuffer() {
         return associatedBuffer;
     }
@@ -92,10 +96,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
 
     public void setCachedContext(Context cachedContext) {
         this.cachedContext = cachedContext;
-    }
-
-    public AttributeHolder obtainAttributes() {
-        return attributes;
     }
 
     public long getTransactionTimeout(TimeUnit timeunit) {
@@ -119,10 +119,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         transactionStartedTimeMillis = 0;
     }
     
-    protected void setAttributes(AttributeHolder attributes) {
-        this.attributes = attributes;
-    }
-
     protected AttributeHolder createAttributeHolder() {
         return new IndexedAttributeHolder(attrBuilder);
     }
