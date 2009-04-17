@@ -39,12 +39,29 @@
 package org.glassfish.grizzly.filterchain;
 
 /**
- * Factory, which is responsible for creating, 
- * releasing of <code>FilterChain</code>(s)
+ * Factory, which is responsible for creating,  releasing {@link FilterChain}s.
+ * By default Grizzly uses {@link SingletonFilterChainFactory} implementation,
+ * which operates just with one {@link FilterChain} instance, but it's possible
+ * to support more complex scenarious.
+ *
+ * @see FilterChain
+ * @see SingletonFilterChainFactory
+ * @see PatternFilterChainFactory
  * 
  * @author Alexey Stashok
  */
 public interface FilterChainFactory {
+    /**
+     * Create {@link FilterChain} instance.
+     *
+     * @return {@link FilterChain} instance.
+     */
     public FilterChain create();
+
+    /**
+     * Release {@link FilterChain} instance.
+     *
+     * @chain {@link FilterChain} instance to be released.
+     */
     public void release(FilterChain chain);
 }

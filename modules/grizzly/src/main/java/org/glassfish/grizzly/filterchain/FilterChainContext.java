@@ -40,6 +40,8 @@ package org.glassfish.grizzly.filterchain;
 
 import java.util.List;
 import org.glassfish.grizzly.Context;
+import org.glassfish.grizzly.ssl.SSLFilter;
+import org.glassfish.grizzly.ssl.SSLStreamReader;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.util.LightArrayList;
@@ -47,19 +49,48 @@ import org.glassfish.grizzly.util.MessageHolder;
 import org.glassfish.grizzly.util.ObjectPool;
 
 /**
+ * {@link FilterChain} {@link Context} implementation.
  *
- * @author oleksiys
+ * @see Context
+ * @see FilterChain
+ * 
+ * @author Alexey Stashok
  */
 public class FilterChainContext extends Context {
 
+    /**
+     * Current processing {@link Filter}
+     */
     private Filter currentFilter;
+
+    /**
+     * {@link MessageHolder}, containing information about processing message
+     */
     private MessageHolder messageHolder;
+
+    /**
+     * Current context {@link StreamReader}
+     */
     private StreamReader streamReader;
+    /**
+     * Current context {@link StreamWriter}
+     */
     private StreamWriter streamWriter;
 
+    /**
+     * List of {@link Filter}s, which have been executed already
+     */
     private List<Filter> executedFilters;
 
+    /**
+     * Index of the currently executing {@link Filter} in
+     * the {@link FilterChainContext#filters} list.
+     */
     private int currentFilterIdx;
+
+    /**
+     * List of {@link Filter}s.
+     */
     private List<Filter> filters;
     
     public FilterChainContext(ObjectPool parentPool) {
@@ -70,74 +101,192 @@ public class FilterChainContext extends Context {
     }
 
     
+    /**
+     * Get {@link List} of executed {@link Filter}s.
+     * 
+     * @return {@link List} of executed {@link Filter}s.
+     */
     public List<Filter> getExecutedFilters() {
         return executedFilters;
     }
 
+    /**
+     * Set {@link List} of executed {@link Filter}s.
+     *
+     * @param executedFilters {@link List} of executed {@link Filter}s.
+     */
     protected void setExecutedFilters(List<Filter> executedFilters) {
         this.executedFilters = executedFilters;
     }
 
+    /**
+     * Get {@link List} of {@link Filter}s.
+     *
+     * @return {@link List} of {@link Filter}s.
+     */
     public List<Filter> getFilters() {
         return filters;
     }
 
-    public void setFilters(List<Filter> nextFilters) {
-        this.filters = nextFilters;
+    /**
+     * Set {@link List} of {@link Filter}s.
+     *
+     * @param filters {@link List} of {@link Filter}s.
+     */
+    public void setFilters(List<Filter> filters) {
+        this.filters = filters;
     }
 
+    /**
+     * Get index of the currently executing {@link Filter} in
+     * the {@link FilterChainContext#filters} list.
+     *
+     * @return index of the currently executing {@link Filter} in
+     * the {@link FilterChainContext#filters} list.
+     */
     public int getCurrentFilterIdx() {
         return currentFilterIdx;
     }
 
+    /**
+     * Set index of the currently executing {@link Filter} in
+     * the {@link FilterChainContext#filters} list.
+     *
+     * @param currentFilterIdx index of the currently executing {@link Filter}
+     * in the {@link FilterChainContext#filters} list.
+     */
     public void setCurrentFilterIdx(int currentFilterIdx) {
         this.currentFilterIdx = currentFilterIdx;
     }
 
+    /**
+     * Get {@link FilterChain}, which runs the {@link Filter}.
+     *
+     * @return {@link FilterChain}, which runs the {@link Filter}.
+     */
     public FilterChain getFilterChain() {
         return (FilterChain) getProcessor();
     }
 
+    /**
+     * Get {@link Filter}, which is currently running.
+     * 
+     * @return {@link Filter}, which is currently running.
+     */
     public Filter getCurrentFilter() {
         return currentFilter;
     }
 
+    /**
+     * Set {@link Filter}, which is currently running.
+     *
+     * @param currentFilter {@link Filter}, which is currently running.
+     */
     protected void setCurrentFilter(Filter currentFilter) {
         this.currentFilter = currentFilter;
     }
 
+    /**
+     * Get message object, associated with the current processing.
+     * 
+     * Usually {@link FilterChain} represents sequence of parser and process
+     * {@link Filter}s. Each parser can change the message representation until
+     * it will come to processor {@link Filter}.
+     *
+     * @return message object, associated with the current processing.
+     */
     public Object getMessage() {
         return messageHolder.getMessage();
     }
 
+    /**
+     * Set message object, associated with the current processing.
+     *
+     * Usually {@link FilterChain} represents sequence of parser and process
+     * {@link Filter}s. Each parser can change the message representation until
+     * it will come to processor {@link Filter}.
+     *
+     * @param message message object, associated with the current processing.
+     */
     public void setMessage(Object message) {
         messageHolder.setMessage(message);
     }
 
+    /**
+     * Get address, associated with the current {@link IOEvent} processing.
+     * When we process {@link IOEvent#READ} event - it represents sender address,
+     * or when process {@link IOEvent#WRITE} - address of receiver.
+     * 
+     * @return address, associated with the current {@link IOEvent} processing.
+     */
     public Object getAddress() {
         return messageHolder.getAddress();
     }
 
+    /**
+     * Set address, associated with the current {@link IOEvent} processing.
+     * When we process {@link IOEvent#READ} event - it represents sender address,
+     * or when process {@link IOEvent#WRITE} - address of receiver.
+     *
+     * @param address address, associated with the current {@link IOEvent} processing.
+     */
     public void setAddress(Object address) {
         messageHolder.setAddress(address);
     }
 
+    /**
+     * Get the {@link StreamReader}, associated with processing.
+     * {@link Filter}s are allowed to change context associated
+     * {@link StreamReader}. For example {@link SSLFilter} wraps original
+     * <tt>FilterChainContext</tt>'s {@link StreamReader} with
+     * {@link SSLStreamReader} and next filter on chain will work with
+     * SSL-enabled {@link StreamReader}.
+     *
+     * @return the {@link StreamReader}, associated with processing.
+     */
     public StreamReader getStreamReader() {
         return streamReader;
     }
 
+    /**
+     * Set the {@link StreamReader}, associated with processing.
+     * {@link Filter}s are allowed to change context associated
+     * {@link StreamReader}. For example {@link SSLFilter} wraps original
+     * <tt>FilterChainContext</tt>'s {@link StreamReader} with
+     * {@link SSLStreamReader} and next filter on chain will work with
+     * SSL-enabled {@link StreamReader}.
+     *
+     * @param streamReader the {@link StreamReader}, associated with processing.
+     */
     public void setStreamReader(StreamReader streamReader) {
         this.streamReader = streamReader;
     }
 
+    /**
+     * Get the {@link StreamWriter}, associated with processing.
+     * {@link Filter}s are allowed to change context associated
+     * {@link StreamWriter}.
+     *
+     * @return the {@link StreamWriter}, associated with processing.
+     */
     public StreamWriter getStreamWriter() {
         return streamWriter;
     }
 
+    /**
+     * Set the {@link StreamWriter}, associated with processing.
+     * {@link Filter}s are allowed to change context associated
+     * {@link StreamWriter}.
+     *
+     * @param streamWriter the {@link StreamWriter}, associated with processing.
+     */
     public void setStreamWriter(StreamWriter streamWriter) {
         this.streamWriter = streamWriter;
     }
 
+    /**
+     * Release the context associated resources.
+     */
     @Override
     public void release() {
         currentFilter = null;

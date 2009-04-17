@@ -41,26 +41,38 @@ package org.glassfish.grizzly.filterchain;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.Processor;
-import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.ProcessorSelector;
 
 /**
- * ProcessorSelector implementation, which let's ProtocolFilterChain to
- * process SelectionKey event.
+ * {@link ProcessorSelector} implementation, which delegates processing
+ * of {@link IOEvent} to the {@link FilterChain}.
+ *
+ * @see ProcessorSelector
  * 
  * @author Alexey Stashok
  */
 public class FilterChainProcessorSelector implements ProcessorSelector {
 
-    protected Transport transport;
+    /**
+     * {@link FilterChainFactory}, responsible for creating {@link FilterChain}
+     * instances
+     */
     protected FilterChainFactory factory;
 
-    public FilterChainProcessorSelector(Transport transport,
-            FilterChainFactory factory) {
-        this.transport = transport;
+    public FilterChainProcessorSelector(FilterChainFactory factory) {
         this.factory = factory;
     }
 
+    /**
+     * Returns {@link FilterChain} instance, if it's interested in processing
+     * passed {@link IOEvent}, or <tt>null</tt> otherwise.
+     * 
+     * @param ioEvent {@link IOEvent} to process.
+     * @param connection {@link Connection}, where {@link IOEvent} occured.
+     *
+     * @return {@link FilterChain} instance, if it's interested in processing
+     * passed {@link IOEvent}, or <tt>null</tt> otherwise.
+     */
     public Processor select(IOEvent ioEvent, Connection connection) {
 
         FilterChain chain = factory.create();

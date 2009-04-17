@@ -38,8 +38,15 @@
 
 package org.glassfish.grizzly.filterchain;
 
+/**
+ * {@link NextAction} type, which is expected only on post processing phase.
+ * Instructs {@link FilterChain} to re-process the {@link IOEvent} processing
+ * again from the beginning.
+ * 
+ * @author Alexey Stashok
+ */
 public class RerunChainAction extends AbstractNextAction {
-    public static final int TYPE = 4;
+    public static final int TYPE = 3;
 
     public RerunChainAction() {
         super(TYPE);

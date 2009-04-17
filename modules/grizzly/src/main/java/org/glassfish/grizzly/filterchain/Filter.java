@@ -54,17 +54,18 @@ import org.glassfish.grizzly.attributes.Attribute;
  * processed by different threads simultaneously. In general, this implies that 
  * Filter classes should not maintain state information in instance variables. 
  * Instead, state information should be maintained via suitable modifications to
- * the attributes of the {@link FilterChainContext} that is passed to the 
- * {@link Filter#execute(FilterChainContext, NextAction)},
- * {@link Filter#postexecute(FilterChainContext, NextAction)} methods.
+ * the attributes of the {@link FilterChainContext} that is passed to the
+ * appropriate {@link Filter} processing methods.
  *
  * Filter implementations typically retrieve and store state information
- * in the {@link FilterChainContext} instance that is passed as a parameter to the 
- * {@link Filter#execute(FilterChainContext, NextAction)},
- * {@link Filter#postexecute(FilterChainContext, NextAction)} methods.
+ * in the {@link FilterChainContext} instance that is passed as a parameter
+ * to the appropriate {@link Filter} processing methods,
  * using particular {@link Attribute}s that can
  * be acquired via {@link Attribute#get(FilterChainContext)} method.
  *
+ * @see FilterChain
+ * @see Attribute
+ * 
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */

@@ -38,6 +38,12 @@
 
 package org.glassfish.grizzly.filterchain;
 
+/**
+ * {@link NextAction}, which instructs {@link FilterChain} to suspend filter
+ * chain execution, both execute and post-execute phases.
+ *
+ * @author Alexey Stashok
+ */
 public class SuspendAction extends AbstractNextAction {
     public static final int TYPE = 2;
 

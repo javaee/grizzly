@@ -44,7 +44,10 @@ import java.util.List;
 import java.util.ListIterator;
 
 /**
- * FilterChain facade, which implements all the {@link List} related methods.
+ * {@link FilterChain} facade, which implements all the {@link List} related
+ * methods.
+ *
+ * @see FilterChain
  * 
  * @author Alexey Stashok
  */

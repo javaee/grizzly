@@ -39,18 +39,51 @@
 package org.glassfish.grizzly.filterchain;
 
 /**
- * Common interface for Transports, which support FilterChains
+ * Common interface for Transports, which support {@link FilterChain}s.
+ *
+ * @see Transport
+ * @see FilterChainFactory
+ * @see FilterChain
  * 
  * @author Alexey Stashok
  */
-public interface FilterChainEnabledTransport {    
+public interface FilterChainEnabledTransport {
+    /**
+     * Get {@link FilterChainFactory}, responsible to construct
+     * {@link FilterChain} instance.
+     *
+     * @return {@link FilterChainFactory}, responsible to construct
+     * {@link FilterChain} instance.
+     */
     public FilterChainFactory getFilterChainFactory();
     
+    /**
+     * Set {@link FilterChainFactory}, responsible to construct
+     * {@link FilterChain} instance.
+     *
+     * @param factory {@link FilterChainFactory}, responsible to construct
+     * {@link FilterChain} instance.
+     */
     public void setFilterChainFactory(FilterChainFactory factory);
 
+    /**
+     * Get {@link FilterChain} instance.
+     * 
+     * @return {@link FilterChain} instance.
+     */
     public FilterChain getFilterChain();
     
-    public void setFilterChain(FilterChain filterChain);
-    
+    /**
+     * Get default transport {@link Filter}, which is aware of {@link Transport}
+     * specifics; knows how to read/write data on {@link Transport}'s
+     * from/to {@link Connection}s.
+     *
+     * Each {@link Transport} should provide default transport {@link Filter}
+     * implementation.
+     *
+     * @return default transport {@link Filter}, which is aware of
+     * {@link Transport} specifics; knows how to read/write data on
+     * {@link Transport}'s from/to {@link Connection}s.
+     */
     public Filter getDefaultTransportFilter();
 }

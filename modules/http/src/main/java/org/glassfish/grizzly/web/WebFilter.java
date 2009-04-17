@@ -56,7 +56,7 @@ import org.glassfish.grizzly.filterchain.Filter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.TerminateAction;
+import org.glassfish.grizzly.filterchain.SuspendAction;
 import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLStreamReader;
 import org.glassfish.grizzly.ssl.SSLStreamWriter;
@@ -223,7 +223,7 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
 
         boolean isSuspend = processorTask.getRequest().getResponse().isSuspended();
         if (isSuspend) {
-            return new TerminateAction();
+            return new SuspendAction();
         }
 
         if (processorTask != null){

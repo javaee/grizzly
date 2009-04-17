@@ -53,7 +53,7 @@ import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.StopAction;
-import org.glassfish.grizzly.filterchain.TerminateAction;
+import org.glassfish.grizzly.filterchain.SuspendAction;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 
@@ -220,7 +220,7 @@ public class ResourceAllocationFilter extends FilterAdapter {
 
         ctx.setCurrentFilterIdx(ctx.getCurrentFilterIdx() + 1);
         threadPool.execute(ctx.getProcessorRunnable());
-        return new TerminateAction();
+        return new SuspendAction();
     }
 
 

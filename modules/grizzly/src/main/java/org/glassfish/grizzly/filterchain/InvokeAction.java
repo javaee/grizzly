@@ -39,6 +39,22 @@ package org.glassfish.grizzly.filterchain;
 
 import java.util.List;
 
+/**
+ * {@link NextAction} implementation, which instructs {@link FilterChain} to
+ * process next {@link Filter} in chain.
+ *
+ * Normally, after receiving this instruction from {@link Filter},
+ * {@link FilterChain} takes {@link Filter} with index:
+ * {@link InvokeAction#getNextFilterIdx()} from {@link InvokeAction#getFilters()}
+ * chain.
+ *
+ * So any {@link Filter} implementation is free to change the {@link Filter}
+ * execution sequence.
+ *
+ * @see NextAction
+ * 
+ * @author Alexey Stashok
+ */
 public class InvokeAction extends AbstractNextAction {
     public static final int TYPE = 0;
     

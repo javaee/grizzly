@@ -38,8 +38,8 @@
 
 package org.glassfish.grizzly.filterchain;
 
-import org.glassfish.grizzly.Processor;
 import java.util.List;
+import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.Codec;
 
 /**
@@ -49,34 +49,35 @@ import org.glassfish.grizzly.Codec;
  * that end, the Chain API models a computation as a series of "protocol filter"
  * that can be combined into a "protocol chain". 
  * </p><p>
- * The API for Filter consists of a two methods (execute() and 
- * postExecute) which is passed a "protocol context" parameter containing the 
- * dynamic state of the computation, and whose return value is a boolean 
- * that determines whether or not processing for the current chain has been 
- * completed (false), or whether processing should be delegated to the next 
- * Filter in the chain (true). The owning ProtocolChain  must call the
- * postExectute() method of each Filter in a FilterChain in reverse
- * order of the invocation of their execute() methods.
+ * The API for Filter consists of a two set of methods (handleXXX() and
+ * postXXX) which is passed a "protocol context" parameter containing the
+ * dynamic state of the computation, and whose return value is a
+ * {@link NextAction} that instructs <tt>FilterChain</tt>, how it should
+ * continue processing. The owning ProtocolChain  must call the
+ * postXXX() method of each Filter in a FilterChain in reverse
+ * order of the invocation of their handleXXX() methods.
  * </p><p>
  * The following picture describe how it Filter(s) 
  * </p><p><pre><code>
  * -----------------------------------------------------------------------------
- * - Filter1.execute() --> Filter2.execute() -------|          -
+ * - Filter1.handleXXX() --> Filter2.handleXXX()                    |          -
  * -                                                                |          -
  * -                                                                |          -
  * -                                                                |          -
- * - Filter1.postExecute() <-- Filter2.postExecute()|          -    
+ * - Filter1.postXXX() <-- Filter2.postXXX()                        |          -
  * -----------------------------------------------------------------------------
  * </code></pre></p><p>
  * The "context" abstraction is designed to isolate Filter
  * implementations from the environment in which they are run 
  * (such as a Filter that can be used in either IIOP or HTTP parsing, 
  * without being tied directly to the API contracts of either of these 
- * environments). For ProtocolFilter that need to allocate resources prior to 
+ * environments). For Filter that need to allocate resources prior to 
  * delegation, and then release them upon return (even if a delegated-to 
- * Filter throws an exception), the "postExecute" method can be used 
+ * Filter throws an exception), the "postXXX" method can be used
  * for cleanup. 
  * </p>
+ *
+ * @see Filter
  * 
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok

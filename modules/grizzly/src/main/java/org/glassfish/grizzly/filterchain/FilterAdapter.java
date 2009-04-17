@@ -42,13 +42,10 @@ import java.io.IOException;
 import org.glassfish.grizzly.Context;
 
 /**
- * {@link FilterAdapter} redirects execution of 
- * {@link Filter#execute(FilterChainContext, NextAction)}
- * {@link Filter#postExecute(FilterChainContext, NextAction)} methods to the
- * specific handle<ioEvent>() methods, depending on 
- * {@link FilterChainContext#getIoEvent()}, and contains "empty" implementation
- * those methods.
+ * Provides empty implementation for {@link Filter} processing methods.
  *
+ * @see Filter
+ * 
  * @author Alexey Stashok
  */
 public class FilterAdapter implements Filter {

@@ -40,6 +40,13 @@ package org.glassfish.grizzly.filterchain;
 
 import java.util.List;
 
+/**
+ * Base implementation of {@link NextAction}
+ *
+ * @see NextAction
+ * 
+ * @author Alexey Stashok
+ */
 public abstract class AbstractNextAction implements NextAction {
 
     protected int type;
@@ -51,22 +58,43 @@ public abstract class AbstractNextAction implements NextAction {
         this.type = type;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int type() {
         return type;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public List<Filter> getFilters() {
         return filters;
     }
 
-    public void setFilters(List<Filter> nextFilters) {
-        this.filters = nextFilters;
+    /**
+     * Set the {@link Filter} list.
+     * 
+     * @param nextFilters the {@link Filter} list.
+     */
+    public void setFilters(List<Filter> filters) {
+        this.filters = filters;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getNextFilterIdx() {
         return nextFilterIdx;
     }
     
+    /**
+     * Sets index of the {@link Filter} in
+     * {@link NextAction#getFilters()} list, which should be executed next.
+     *
+     * @param nextFilterIdx index of the {@link Filter} in
+     * {@link NextAction#getFilters()} list, which should be executed next.
+     */
     public void setNextFilterIdx(int nextFilterIdx) {
         this.nextFilterIdx = nextFilterIdx;
     }

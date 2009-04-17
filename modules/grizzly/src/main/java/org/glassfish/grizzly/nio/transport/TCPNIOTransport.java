@@ -542,20 +542,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 "FilterChainFactory API: " + factory.getClass().getName());
     }
 
-    public void setFilterChain(FilterChain filterChain) {
-        FilterChainFactory factory = getFilterChainFactory();
-        if (factory instanceof PatternFilterChainFactory) {
-            ((PatternFilterChainFactory) factory).setFilterChainPattern(filterChain);
-            return;
-        }
-
-        throw new IllegalStateException(
-                "Transport FilterChainFactory doesn't " +
-                "support creating of FilterChain by a patterns. " +
-                "It means you have to add/remove Filters using " +
-                "FilterChainFactory API: " + factory.getClass().getName());
-    }
-
     public Filter getDefaultTransportFilter() {
         return defaultTransportFilter;
     }

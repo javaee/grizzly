@@ -52,6 +52,8 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
  * Abstract {@link FilterChain} implementation,
  * which redirects {@link com.sun.grizzly.Processor#process(com.sun.grizzly.Context)}
  * call to the {@link AbstractFilterChain#execute(com.sun.grizzly.filterchain.FilterChainContext)}
+ *
+ * @see FilterChain
  * 
  * @author Alexey Stashok
  */
@@ -62,6 +64,9 @@ public abstract class AbstractFilterChain implements FilterChain {
     protected IOEventMask interestedIoEventsMask = new ArrayIOEventMask(
             IOEventMask.CLIENT_EVENTS_MASK).xor(new ArrayIOEventMask(IOEvent.WRITE));
 
+    /**
+     * {@link FilterChainContext} object pool.
+     */
     protected final ObjectPool<FilterChainContext> filterChainContextPool =
             new ConcurrentQueuePool<FilterChainContext>() {
         @Override
@@ -104,33 +109,66 @@ public abstract class AbstractFilterChain implements FilterChain {
         this.factory = factory;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isInterested(IOEvent ioEvent) {
         return interestedIoEventsMask.isInterested(ioEvent);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
         interestedIoEventsMask.setInterested(ioEvent, isInterested);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public FilterChainFactory getFactory() {
         return factory;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void beforeProcess(Context context) throws IOException {
     }
 
+    /**
+     * Delegates processing to {@link AbstractFilterChain#execute(org.glassfish.grizzly.filterchain.FilterChainContext)}
+     *
+     * @param context processing {@link Context}
+     * @return {@link ProcessorResult}
+     * @throws java.io.IOException
+     */
     public ProcessorResult process(Context context)
             throws IOException {
         return execute((FilterChainContext) context);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void afterProcess(Context context) throws IOException {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public FilterChainContext context() {
         return filterChainContextPool.poll();
     }
     
+    /**
+     * Method processes occured {@link IOEvent} on this {@link FilterChain}.
+     * 
+     * @param context processing context
+     * @return {@link ProcessorResult}
+     * 
+     * @throws java.io.IOException
+     */
     public abstract ProcessorResult execute(FilterChainContext context)
             throws IOException;
 }

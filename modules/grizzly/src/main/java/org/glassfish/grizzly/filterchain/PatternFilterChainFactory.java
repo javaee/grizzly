@@ -39,13 +39,23 @@
 package org.glassfish.grizzly.filterchain;
 
 /**
- * FilterChainFactory implementation, which is able to create FilterChain
- * instances by the given FilterChain pattern.
+ * {@link FilterChainFactory} implementation, which is able to create new
+ * {@link FilterChain} instances by the given pattern.
  * 
  * @author Alexey Stashok
  */
 public interface PatternFilterChainFactory extends FilterChainFactory {
+    /**
+     * Get {@link FilterChain} instance pattern.
+     *
+     * @return {@link FilterChain} instance pattern.
+     */
     public FilterChain getFilterChainPattern();
 
+    /**
+     * Set {@link FilterChain} instance pattern.
+     *
+     * @param chain {@link FilterChain} instance pattern.
+     */
     public void setFilterChainPattern(FilterChain chain);
 }

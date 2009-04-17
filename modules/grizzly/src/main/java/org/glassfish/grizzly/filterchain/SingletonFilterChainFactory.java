@@ -39,9 +39,8 @@
 package org.glassfish.grizzly.filterchain;
 
 /**
- * <code>FilterChainFactory</code> implementation, which contains just single
- * <code>FilterChain</code> instance, which is used for processing all the
- * connection events.
+ * {@link FilterChainFactory} implementation, which operates just with a single
+ * {@link FilterChain} instance.
  * 
  * @author Alexey Stashok
  */
@@ -55,17 +54,35 @@ public class SingletonFilterChainFactory implements PatternFilterChainFactory {
         this.chain = chain;
     }
     
+    /**
+     * Returns singleton chain instance (always the same).
+     * 
+     * @return singleton chain instance (always the same).
+     */
     public FilterChain create() {
         return chain;
     }
 
+    /**
+     * Do nothing
+     */
     public void release(FilterChain chain) {
     }
 
+    /**
+     * Returns {@link FilterChain} pattern, which is chain instance.
+     * 
+     * @return {@link FilterChain} pattern, which is chain instance.
+     */
     public FilterChain getFilterChainPattern() {
         return chain;
     }
 
+    /**
+     * Sets {@link FilterChain} pattern, which is chain instance.
+     *
+     * @param chain {@link FilterChain} pattern, which is chain instance.
+     */
     public void setFilterChainPattern(FilterChain chain) {
         this.chain = chain;
     }

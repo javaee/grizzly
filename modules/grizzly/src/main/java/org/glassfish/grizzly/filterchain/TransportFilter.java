@@ -53,6 +53,10 @@ import java.io.IOException;
 public class TransportFilter extends FilterAdapter {
     public static final String WORKER_THREAD_BUFFER_NAME = "thread-buffer";
 
+    /**
+     * Delegates reading operation to {@link Transport}'s specific transport
+     * filter.
+     */
     @Override
     public NextAction handleRead(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
@@ -66,6 +70,10 @@ public class TransportFilter extends FilterAdapter {
         return null;
     }
 
+    /**
+     * Delegates writing operation to {@link Transport}'s specific transport
+     * filter.
+     */
     @Override
     public NextAction handleWrite(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
@@ -79,6 +87,10 @@ public class TransportFilter extends FilterAdapter {
         return null;
     }
 
+    /**
+     * Delegates post reading processing to {@link Transport}'s specific
+     * transport filter.
+     */
     @Override
     public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
@@ -92,6 +104,10 @@ public class TransportFilter extends FilterAdapter {
         return null;
     }
 
+    /**
+     * Delegates post writing processing to {@link Transport}'s specific
+     * transport filter.
+     */
     @Override
     public NextAction postWrite(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
@@ -105,6 +121,13 @@ public class TransportFilter extends FilterAdapter {
         return null;
     }
 
+    /**
+     * Get default {@link Transport} specific transport filter.
+     *
+     * @param transport {@link Transport}.
+     *
+     * @return default {@link Transport} specific transport filter.
+     */
     protected Filter getDefaultTransportFilter(Transport transport) {
         if (transport instanceof FilterChainEnabledTransport) {
             Filter defaultTransportFilter = 

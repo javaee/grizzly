@@ -45,7 +45,7 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.StopAction;
-import org.glassfish.grizzly.filterchain.TerminateAction;
+import org.glassfish.grizzly.filterchain.SuspendAction;
 import org.glassfish.grizzly.web.FileCache;
 import org.glassfish.grizzly.web.ProcessorTask;
 import org.glassfish.grizzly.web.TaskEvent;
@@ -91,8 +91,8 @@ public class AsyncWebFilter extends WebFilter<AsyncWebFilterConfig>
                 return new StopAction();
             }
 
-            // Terminate further FilterChain execution on the current thread
-            return new TerminateAction();
+            // Suspend further FilterChain execution on the current thread
+            return new SuspendAction();
         } else {
             return super.handleRead(ctx, nextAction);
         }

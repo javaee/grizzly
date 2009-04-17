@@ -80,10 +80,10 @@ public class ProcessorRunnable implements Runnable {
     private PostProcessor postProcessor;
 
     /**
-     * Is task in postponed state.
+     * Is task in suspended state.
      * It means that task was terminated but not completed.
      */
-    private boolean isPostponed;
+    private boolean isSuspended;
 
     public ProcessorRunnable(Context context) {
         this.context = context;
@@ -98,15 +98,15 @@ public class ProcessorRunnable implements Runnable {
     }
 
     /**
-     * Returns <tt>true</tt> is task was postponed
+     * Returns <tt>true</tt> is task was suspended
      * (terminated, but not completed), so it's possible to resume task
      * processing. <tt>Fasle</tt> will be returned otherwise.
      * 
-     * @return <tt>true</tt> is task was postponed, or <tt>fasle</tt> will
+     * @return <tt>true</tt> is task was suspended, or <tt>fasle</tt> will
      * be returned otherwise.
      */
-    public boolean isPostponed() {
-        return isPostponed;
+    public boolean isSuspended() {
+        return isSuspended;
     }
 
     /**
@@ -224,7 +224,7 @@ public class ProcessorRunnable implements Runnable {
         ProcessorResult result = null;
 
         try {
-            if (!isPostponed) {
+            if (!isSuspended) {
                 processor.beforeProcess(context);
             }
 
@@ -236,7 +236,7 @@ public class ProcessorRunnable implements Runnable {
             if (result == null || result.getStatus() != Status.TERMINATE) {
                 postProcess(context, result);
             } else {
-                isPostponed = true;
+                isSuspended = true;
             }
         } catch (IOException e) {
             result = new ProcessorResult(Status.ERROR, e);

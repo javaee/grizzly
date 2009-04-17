@@ -49,6 +49,9 @@ import org.glassfish.grizzly.util.LightArrayList;
 
 /**
  * Default {@link FilterChain} implementation
+ *
+ * @see FilterChain
+ * @see Filter
  * 
  * @author Alexey Stashok
  */
@@ -148,12 +151,14 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * InvokeAction = 0
      * StopAction = 1
      * SuspendAction = 2
-     * TerminateAction = 3
-     * RerunChainAction = 4
+     * RerunChainAction = 3
      */
     private static final boolean[] isContinueExecution = new boolean[] {true,
-                                                    false, false, false, true};
+                                                    false, false, true};
     
+    /**
+     * Logger
+     */
     private Logger logger = Grizzly.logger;
 
     public DefaultFilterChain(FilterChainFactory factory) {
@@ -163,7 +168,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     
     /**
      * Execute this FilterChain.
-     * @param ctx {@link FilterChainContext}
+     * @param ctx {@link FilterChainContext} processing context
      * @throws java.lang.Exception 
      */
     public ProcessorResult execute(FilterChainContext ctx) {
@@ -193,11 +198,11 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     }    
 
     /**
-     * Execute the {@link Filter#execute()} method.
-     * @param chain filer chain
-     * @param offset position of the first filter in the chain to be executed
-     * @param direction direction of execution
-     * @param ctx {@link FilterChainContext}
+     * Sequentially lets each {@link Filter} in chain to process {@link IOEvent}.
+     * 
+     * @param ctx {@link FilterChainContext} processing context
+     * @param executor {@link FilterExecutor}, which will call appropriate
+     *          filter operation to process {@link IOEvent}.
      * @return <tt>false</tt> to terminate exectution, or <tt>true</tt> for
      *         normal exection process
      */
@@ -240,7 +245,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
             ctx.getExecutedFilters().add(currentFilter);
 
             if (!isContinueExecution[nextAction.type()]) {
-                return nextAction.type() != TerminateAction.TYPE;
+                return nextAction.type() != SuspendAction.TYPE;
             }
 
             chain = nextAction.getFilters();
@@ -254,8 +259,13 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     }
         
     /**
-     * Execute the {@link Filter#postExecute()} method.
-     * @param ctx {@link FilterChainContext}
+     * Sequentially lets each executed {@link Filter} to post process
+     * {@link IOEvent}. The {@link Filter}s will be called in opposite order
+     * they were called on processing phase.
+     *
+     * @param ctx {@link FilterChainContext} processing context
+     * @param executor {@link FilterExecutor}, which will call appropriate
+     *          filter operation to post process {@link IOEvent}.
      * @return <tt>false</tt> to terminate exectution, or <tt>true</tt> for
      *         normal exection process
      */
@@ -335,6 +345,10 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
         return null;
     }
 
+    /**
+     * Executes appropriate {@link Filter} processing method to process occured
+     * {@link IOEvent}.
+     */
     public interface FilterExecutor {
         public NextAction execute(Filter filter, FilterChainContext context,
                 NextAction nextAction) throws IOException;

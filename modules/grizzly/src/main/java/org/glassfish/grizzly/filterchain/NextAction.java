@@ -44,12 +44,30 @@ import java.util.List;
  * The interface defines the instruction for a {@link FilterChain},
  * how it should continue filter chain execution.
  *
+ * @see Filter
+ * @see FilterChain
+ *
  * @author Alexey Stashok
  */
 public interface NextAction {
+    /**
+     * Get <tt>NextAction</tt> type
+     * @return <tt>NextAction</tt> type
+     */
     public int type();
 
+    /**
+     * Get list of {@link Filter}s.
+     * @return list of {@link Filter}s.
+     */
     public List<Filter> getFilters();
 
+    /**
+     * Gets index of the {@link Filter} in
+     * {@link NextAction#getFilters()} list, which should be executed next.
+     *
+     * @return index of the {@link Filter} in
+     * {@link NextAction#getFilters()} list, which should be executed next.
+     */
     public int getNextFilterIdx();
 }
