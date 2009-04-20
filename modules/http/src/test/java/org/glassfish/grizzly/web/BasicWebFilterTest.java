@@ -56,11 +56,11 @@ import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 
 /**
- * Basic {@link SelectoThread} test.
+ * Basic {@link WebFilter} test.
  * 
  * @author Jeanfrancois Arcand
  */
-public class BasicSelectorThreadTest extends TestCase {
+public class BasicWebFilterTest extends TestCase {
 
     public static final int PORT = 18890;
     private static Logger logger = Logger.getLogger("grizzly.test");
