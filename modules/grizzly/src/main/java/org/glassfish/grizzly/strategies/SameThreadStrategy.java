@@ -58,16 +58,25 @@ public class SameThreadStrategy implements Strategy {
         sameThreadProcessorExecutor = new CurrentThreadExecutor();
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public Object prepare(Connection connection, IOEvent ioEvent) {
         return null;
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public void executeProcessor(Object strategyContext,
             ProcessorRunnable processorRunnable) throws IOException {
 
         sameThreadProcessorExecutor.execute(processorRunnable);
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public boolean isTerminateThread(Object strategyContext) {
         return false;
     }

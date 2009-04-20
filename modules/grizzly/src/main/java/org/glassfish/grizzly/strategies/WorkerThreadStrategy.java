@@ -82,10 +82,16 @@ public class WorkerThreadStrategy implements Strategy {
             workerThreadProcessorExecutor};
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public Object prepare(Connection connection, IOEvent ioEvent) {
         return null;
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public void executeProcessor(Object strategyContext,
             ProcessorRunnable processorRunnable) throws IOException {
 
@@ -93,6 +99,9 @@ public class WorkerThreadStrategy implements Strategy {
         executor.execute(processorRunnable);
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public boolean isTerminateThread(Object strategyContext) {
         return false;
     }

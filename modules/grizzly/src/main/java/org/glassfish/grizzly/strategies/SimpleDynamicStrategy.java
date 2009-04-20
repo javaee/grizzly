@@ -55,6 +55,16 @@ import org.glassfish.grizzly.util.WorkerThreadExecutor;
  * on statistics. This implementation takes in consideration number of
  * {@link SelectionKey}s, which were selected last time by {@link Selector}.
  *
+ * <tt>SimpleDynamicStrategy</tt> is able to use 3 strategies underneath:
+ * {@link SameThreadStrategy}, {@link LeaderFollowerStrategy},
+ * {@link WorkerThreadStrategy}. And is able to switch between them basing on
+ * corresponding thresholds (threshold represents the number of selected
+ * {@link SelectionKey}s).
+ *
+ * So the strategy is getting applied following way:
+ *
+ * {@link SameThreadStrategy} --(leader-follower threshold)--> {@link LeaderFollowerStrategy} --(worker-thread threshold)--> {@link WorkerThreadStrategy}.
+ *
  * @author Alexey Stashok
  */
 public class SimpleDynamicStrategy implements Strategy<DynamicStrategyContext> {
@@ -78,12 +88,18 @@ public class SimpleDynamicStrategy implements Strategy<DynamicStrategyContext> {
                 sameThreadProcessorExecutor, workerThreadProcessorExecutor);
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public DynamicStrategyContext prepare(final Connection connection,
             final IOEvent ioEvent) {
         return new DynamicStrategyContext(
                 ((NIOConnection) connection).getSelectorRunner().getLastSelectedKeysCount());
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public void executeProcessor(final DynamicStrategyContext strategyContext,
             final ProcessorRunnable processorRunnable) throws IOException {
         final int lastSelectedKeysCount;
@@ -109,28 +125,64 @@ public class SimpleDynamicStrategy implements Strategy<DynamicStrategyContext> {
 
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public boolean isTerminateThread(DynamicStrategyContext strategyContext) {
         return strategyContext.isTerminateThread;
     }
 
+    /**
+     * Returns the number of {@link SelectionKey}s, which should be selected
+     * from a {@link Selector}, to make it apply {@link LeaderFollowerStrategy}.
+     * 
+     * @return the number of {@link SelectionKey}s, which should be selected
+     * from a {@link Selector}, to make it apply {@link LeaderFollowerStrategy}.
+     */
     public int getLeaderFollowerThreshold() {
         return leaderFollowerThreshold;
     }
 
+    /**
+     * Set the number of {@link SelectionKey}s, which should be selected
+     * from a {@link Selector}, to make it apply {@link LeaderFollowerStrategy}.
+     *
+     * @param leaderFollowerThreshold the number of {@link SelectionKey}s,
+     * which should be selected from a {@link Selector}, to make it apply
+     * {@link LeaderFollowerStrategy}.
+     */
     public void setLeaderFollowerThreshold(int leaderFollowerThreshold) {
         this.leaderFollowerThreshold = leaderFollowerThreshold;
         checkThresholds();
     }
 
+    /**
+     * Returns the number of {@link SelectionKey}s, which should be selected
+     * from a {@link Selector}, to make it apply {@link WorkerThreadStrategy}.
+     *
+     * @return the number of {@link SelectionKey}s, which should be selected
+     * from a {@link Selector}, to make it apply {@link WorkerThreadStrategy}.
+     */
     public int getWorkerThreadThreshold() {
         return workerThreadThreshold;
     }
 
+    /**
+     * Set the number of {@link SelectionKey}s, which should be selected
+     * from a {@link Selector}, to make it apply {@link WorkerThreadStrategy}.
+     *
+     * @param workerThreadThreshold the number of {@link SelectionKey}s,
+     * which should be selected from a {@link Selector}, to make it apply
+     * {@link WorkerThreadStrategy}.
+     */
     public void setWorkerThreadThreshold(int workerThreadThreshold) {
         this.workerThreadThreshold = workerThreadThreshold;
         checkThresholds();
     }
 
+    /**
+     * Check if thresholds are set correctly.
+     */
     private void checkThresholds() {
         if (leaderFollowerThreshold >= 0 &&
                 workerThreadThreshold >= leaderFollowerThreshold) return;

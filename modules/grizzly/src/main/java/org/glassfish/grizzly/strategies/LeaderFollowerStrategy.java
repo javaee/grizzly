@@ -70,10 +70,16 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
         this.workerThreadProcessorExecutor = workerThreadProcessorExecutor;
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public Boolean prepare(Connection connection, IOEvent ioEvent) {
         return true;
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public void executeProcessor(Boolean strategyContext,
             ProcessorRunnable processorRunnable) throws IOException {
 
@@ -90,6 +96,9 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
         executor.execute(processorRunnable);
     }
 
+   /**
+    * {@inheritDoc}
+    */
     public boolean isTerminateThread(Boolean strategyContext) {
         return strategyContext;
     }
