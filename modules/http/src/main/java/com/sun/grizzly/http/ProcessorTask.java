@@ -1147,7 +1147,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             } catch (Exception ex){
                 if (logger.isLoggable(Level.FINEST)){
                     logger.log(Level.FINEST,
-                            "ACTION_CLIENT_FLUSH",ex); 
+                            "ACTION_FINISH_RESPONSE",ex); 
                 }
                 error = true;
                 response.setErrorException(ex);                
