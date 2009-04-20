@@ -44,13 +44,32 @@ import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 
-/** Write the primitive Java types and arrays of primitives to some data sink.  
+/**
+ * Write the primitive Java types and arrays of primitives to some data sink.
  * This may include internal buffering for efficiency reasons.
+ *
+ * Note, that <tt>StreamWriter</tt> implementation may not be thread-safe.
+ *
  * @author Ken Cavanaugh
+ * @author Alexey Stashok
  */
 public interface StreamWriter extends Closeable {
+
+    /**
+     * Returns the {@link StreamReader} mode.
+     * <tt>true</tt>, if {@link StreamReader} is operating in blocking mode, or
+     * <tt>false</tt> otherwise.
+     *
+     * @return the {@link StreamReader} mode.
+     */
     public boolean isBlocking();
 
+    /**
+     * Sets the {@link StreamReader} mode.
+     *
+     * @param isBlocking <tt>true</tt>, if {@link StreamReader} is operating in
+     * blocking mode, or <tt>false</tt> otherwise.
+     */
     public void setBlocking(boolean isBlocking);
 
     /**
@@ -72,40 +91,145 @@ public interface StreamWriter extends Closeable {
     Future<Integer> close(CompletionHandler<Integer> completionHandler)
             throws IOException;
 
+    /**
+     * Write the <tt>boolean</tt> value to the <tt>StreamWriter</tt>.
+     * 
+     * @param data <tt>boolean</tt> value.
+     * @throws java.io.IOException
+     */
     void writeBoolean(boolean data) throws IOException;
 
+    /**
+     * Write the <tt>byte</tt> value to the <tt>StreamWriter</tt>.
+     *
+     * @param data <tt>byte</tt> value.
+     * @throws java.io.IOException
+     */
     void writeByte(byte data) throws IOException;
 
+    /**
+     * Write the <tt>char</tt> value to the <tt>StreamWriter</tt>.
+     *
+     * @param data <tt>char</tt> value.
+     * @throws java.io.IOException
+     */
     void writeChar(char data) throws IOException;
 
+    /**
+     * Write the <tt>short</tt> value to the <tt>StreamWriter</tt>.
+     *
+     * @param data <tt>short</tt> value.
+     * @throws java.io.IOException
+     */
     void writeShort(short data) throws IOException;
 
+    /**
+     * Write the <tt>int</tt> value to the <tt>StreamWriter</tt>.
+     *
+     * @param data <tt>int</tt> value.
+     * @throws java.io.IOException
+     */
     void writeInt(int data) throws IOException;
 
+    /**
+     * Write the <tt>long</tt> value to the <tt>StreamWriter</tt>.
+     *
+     * @param data <tt>long</tt> value.
+     * @throws java.io.IOException
+     */
     void writeLong(long data) throws IOException;
 
+    /**
+     * Write the <tt>float</tt> value to the <tt>StreamWriter</tt>.
+     *
+     * @param data <tt>float</tt> value.
+     * @throws java.io.IOException
+     */
     void writeFloat(float data) throws IOException;
 
+    /**
+     * Write the <tt>double</tt> value to the <tt>StreamWriter</tt>.
+     *
+     * @param data <tt>double</tt> value.
+     * @throws java.io.IOException
+     */
     void writeDouble(double data) throws IOException;
 
+    /**
+     * Write the array of <tt>boolean</tt> values to the <tt>StreamWriter</tt>.
+     *
+     * @param data array of <tt>boolean</tt> values.
+     * @throws java.io.IOException
+     */
     void writeBooleanArray(boolean[] data) throws IOException;
 
+    /**
+     * Write the array of <tt>byte</tt> values to the <tt>StreamWriter</tt>.
+     *
+     * @param data array of <tt>byte</tt> values.
+     * @throws java.io.IOException
+     */
     void writeByteArray(byte[] data) throws IOException;
 
+    /**
+     * Write the array of <tt>char</tt> values to the <tt>StreamWriter</tt>.
+     *
+     * @param data array of <tt>char</tt> values.
+     * @throws java.io.IOException
+     */
     void writeCharArray(final char[] data) throws IOException;
 
+    /**
+     * Write the array of <tt>short</tt> values to the <tt>StreamWriter</tt>.
+     *
+     * @param data array of <tt>short</tt> values.
+     * @throws java.io.IOException
+     */
     void writeShortArray(short[] data) throws IOException;
 
+    /**
+     * Write the array of <tt>int</tt> values to the <tt>StreamWriter</tt>.
+     *
+     * @param data array of <tt>int</tt> values.
+     * @throws java.io.IOException
+     */
     void writeIntArray(int[] data) throws IOException;
 
+    /**
+     * Write the array of <tt>long</tt> values to the <tt>StreamWriter</tt>.
+     *
+     * @param data array of <tt>long</tt> values.
+     * @throws java.io.IOException
+     */
     void writeLongArray(long[] data) throws IOException;
 
+    /**
+     * Write the array of <tt>float</tt> values to the <tt>StreamWriter</tt>.
+     *
+     * @param data array of <tt>float</tt> values.
+     * @throws java.io.IOException
+     */
     void writeFloatArray(float[] data) throws IOException;
 
+    /**
+     * Write the array of <tt>double</tt> values to the <tt>StreamWriter</tt>.
+     *
+     * @param data array of <tt>double</tt> values.
+     * @throws java.io.IOException
+     */
     void writeDoubleArray(double[] data) throws IOException;
 
     /**
-     * Puts {@link StreamReader} available data to this {@link StreamWriter}
+     * Write the {@link Buffer} to the <tt>StreamWriter</tt>.
+     *
+     * @param buffer {@link Buffer}.
+     * 
+     * @throws java.io.IOException
+     */
+    public void writeBuffer(Buffer buffer) throws IOException;
+
+    /**
+     * Puts {@link StreamReader} available data to this <tt>StreamWriter</tt>
      * This method will make possible direct writing from {@link StreamReader},
      * avoiding {@link Buffer} copying.
      *
@@ -113,35 +237,54 @@ public interface StreamWriter extends Closeable {
      */
     void writeStream(StreamReader stream) throws IOException;
 
+    /**
+     * Get the {@link Connection} this <tt>StreamWriter</tt> belongs to.
+     *
+     * @return the {@link Connection} this <tt>StreamWriter</tt> belongs to.
+     */
     Connection getConnection();
 
-    public void writeBuffer(Buffer buffer) throws IOException;
-
+    /**
+     * Get the current {@link Buffer}, where the <tt>StreamWriter</tt> buffers
+     * output.
+     * 
+     * @return the current {@link Buffer}, where the <tt>StreamWriter</tt> buffers
+     * output.
+     */
     Buffer getBuffer();
 
+    /**
+     * Get the preferred {@link Buffer} size to be used for <tt>StreamWriter</tt>
+     * write operations.
+     *
+     * @return the preferred {@link Buffer} size to be used for <tt>StreamWriter</tt>
+     * write operations.
+     */
     int getBufferSize();
 
+    /**
+     * Set the preferred {@link Buffer} size to be used for <tt>StreamWriter</tt>
+     * write operations.
+     *
+     * @param size the preferred {@link Buffer} size to be used for
+     * <tt>StreamWriter</tt> write operations.
+     */
     void setBufferSize(int size);
 
-    long getTimeout(TimeUnit timeunit);
-    void setTimeout(long timeout, TimeUnit timeunit);
-
-    /* We need a means to remember positions within the stream that
-     *  can be restored
-     * later, so that we can 
+    /**
+     * Get the timeout for <tt>StreamWriter</tt> I/O operations.
      *
-     * Need this in reader and writer!
-    
-    / ** Save the current position in the stream for possible later use.
-     * Saving a Position on a stream has implications on buffer usage: the
-     * buffers in use that include the Position and after it will NOT be
-     * sent to the overflow handler until the Position is closed.
-     * /
-    Position save() ;
-    
-    / ** Restore the current position in the stream to the Position.
-     * /
-    void restore( Position pos ) ; 
+     * @param timeunit timeout unit {@link TimeUnit}.
+     * @return the timeout for <tt>StreamWriter</tt> I/O operations.
      */
+    long getTimeout(TimeUnit timeunit);
+
+    /**
+     * Set the timeout for <tt>StreamWriter</tt> I/O operations.
+     *
+     * @param timeout the timeout for <tt>StreamWriter</tt> I/O operations.
+     * @param timeunit timeout unit {@link TimeUnit}.
+     */
+    void setTimeout(long timeout, TimeUnit timeunit);
 }
 

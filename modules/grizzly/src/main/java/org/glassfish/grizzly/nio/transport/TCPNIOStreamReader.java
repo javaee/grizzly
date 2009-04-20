@@ -65,8 +65,8 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         super(connection);
     }
 
-    public Future notifyCondition(Condition<StreamReader> condition,
-            CompletionHandler completionHandler) {
+    public Future<Integer> notifyCondition(Condition<StreamReader> condition,
+            CompletionHandler<Integer> completionHandler) {
 
         if (notifyObject != null) {
             throw new IllegalStateException("Only one available listener allowed!");
@@ -78,7 +78,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                 completionHandler.failed(null, exception);
             }
 
-            return new ReadyFutureImpl(exception);
+            return new ReadyFutureImpl<Integer>(exception);
         }
 
         int availableDataSize = availableDataSize();
@@ -87,7 +87,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                 completionHandler.completed(null, availableDataSize);
             }
 
-            return new ReadyFutureImpl(availableDataSize);
+            return new ReadyFutureImpl<Integer>(availableDataSize);
         } else {
             if (isBlocking()) {
                 return notifyConditionBlocking(condition, completionHandler);
@@ -98,11 +98,11 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
     }
     
 
-    private Future notifyConditionNonBlocking(
+    private Future<Integer> notifyConditionNonBlocking(
             final Condition<StreamReader> condition,
-            CompletionHandler completionHandler) {
+            CompletionHandler<Integer> completionHandler) {
 
-        final FutureImpl future = new FutureImpl(sync);
+        final FutureImpl<Integer> future = new FutureImpl<Integer>(sync);
         synchronized (sync) {
             try {
                 notifyObject = new NotifyObject(future, completionHandler, condition);
@@ -143,10 +143,11 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         return future;
     }
 
-    private Future notifyConditionBlocking(Condition<StreamReader> condition,
-            CompletionHandler completionHandler) {
+    private Future<Integer> notifyConditionBlocking(
+            Condition<StreamReader> condition,
+            CompletionHandler<Integer> completionHandler) {
 
-        FutureImpl future = new FutureImpl();
+        FutureImpl<Integer> future = new FutureImpl<Integer>();
         notifyObject = new NotifyObject(future, completionHandler, condition);
 
         try {

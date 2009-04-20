@@ -90,10 +90,16 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         setConnection(connection);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isBlocking() {
         return isBlocking;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
@@ -147,10 +153,16 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         return overflow(completionHandler);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void close() throws IOException {
         close(null);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Future<Integer> close(CompletionHandler<Integer> completionHandler)
             throws IOException {
         try {
@@ -178,6 +190,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeBuffer(Buffer b) throws IOException {
         writeBuffer(b, null);
     }
@@ -194,6 +209,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeStream(StreamReader streamReader) throws IOException {
         AbstractStreamReader readerImpl = (AbstractStreamReader) streamReader;
         Buffer readerBuffer;
@@ -204,22 +222,34 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeBoolean(final boolean data) throws IOException {
         ensure(1);
         final byte value = data ? (byte) 1 : (byte) 0;
         buffer.put(value);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeByte(final byte data) throws IOException {
         ensure(1);
         buffer.put(data);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeChar(final char data) throws IOException {
         ensure(2);
         buffer.putChar(data);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeShort(final short data) throws IOException {
         ensure(2);
         buffer.putShort(data);
@@ -230,21 +260,33 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         buffer.putInt(data);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeLong(final long data) throws IOException {
         ensure(8);
         buffer.putLong(data);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeFloat(final float data) throws IOException {
         ensure(4);
         buffer.putFloat(data);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeDouble(final double data) throws IOException {
         ensure(8);
         buffer.putDouble(data);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeBooleanArray(final boolean[] data) throws IOException {
         ensure(1);
         int ctr = 0;
@@ -265,6 +307,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeByteArray(final byte[] data) throws IOException {
         ensure(1);
         int ctr = 0;
@@ -281,6 +326,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeCharArray(final char[] data) throws IOException {
         ensure(2);
         int ctr = 0;
@@ -299,6 +347,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeShortArray(final short[] data) throws IOException {
         ensure(2);
         int ctr = 0;
@@ -318,6 +369,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeIntArray(final int[] data) throws IOException {
         ensure(4);
         int ctr = 0;
@@ -336,6 +390,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeLongArray(final long[] data) throws IOException {
         ensure(8);
         int ctr = 0;
@@ -354,6 +411,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeFloatArray(final float[] data) throws IOException {
         ensure(4);
         int ctr = 0;
@@ -374,6 +434,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void writeDoubleArray(final double[] data) throws IOException {
         ensure(8);
         int ctr = 0;
@@ -393,6 +456,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Connection getConnection() {
         return connection;
     }
@@ -406,6 +472,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         this.connection = connection;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Buffer getBuffer() {
         return buffer;
     }
@@ -414,18 +483,30 @@ public abstract class AbstractStreamWriter implements StreamWriter {
          return getConnection().getTransport().getMemoryManager().allocate(size);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getBufferSize() {
         return bufferSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setBufferSize(int size) {
         this.bufferSize = size;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public long getTimeout(TimeUnit timeunit) {
         return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setTimeout(long timeout, TimeUnit timeunit) {
         timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
     }

@@ -45,26 +45,96 @@ import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.util.conditions.Condition;
 
-/** Interface that defines methods for reading primitive types and arrays
+/**
+ * Interface that defines methods for reading primitive types and arrays
  * of primitive types from a stream.  A stream is implemented as a sequence
- * of BufferWrappers which are supplied by the receiveData method.
- * The stream consumes the BufferWrappers: after all data has been read from
- * a BufferWrapper, BufferWrapper.dispose() is called on the BufferWrapper.
+ * of {@link Buffer}s which are supplied by the receiveData method.
+ * The stream consumes the {@link Buffer}s: after all data has been read from
+ * a {@link Buffer}, {@link Buffer#dispose()} is called.
+ *
+ * Note, that <tt>StreamReader</tt> implementation may not be thread-safe.
+ *
+ * @see StreamWriter
+ * @see Connection
+ *
  * @author Ken Cavanaugh
+ * @author Alexey Stashok
  */
 public interface StreamReader extends Closeable {
-    public Future notifyAvailable(int length);
 
-    public Future notifyAvailable(int length, CompletionHandler completionHandler);
-
-    public Future notifyCondition(Condition<StreamReader> condition);
-
-    public Future notifyCondition(Condition<StreamReader> condition,
-            CompletionHandler completionHandler);
-
+    /**
+     * Returns the {@link StreamReader} mode.
+     * <tt>true</tt>, if {@link StreamReader} is operating in blocking mode, or
+     * <tt>false</tt> otherwise.
+     *
+     * @return the {@link StreamReader} mode.
+     */
     public boolean isBlocking();
 
+    /**
+     * Sets the {@link StreamReader} mode.
+     *
+     * @param isBlocking <tt>true</tt>, if {@link StreamReader} is operating in
+     * blocking mode, or <tt>false</tt> otherwise.
+     */
     public void setBlocking(boolean isBlocking);
+
+    /**
+     * Method returns {@link Future}, using which it's possible check if
+     * <tt>StreamReader</tt> has required amound of bytes available
+     * for reading reading.
+     *
+     * @param size number of bytes, which should become available on
+     *        <tt>StreamReader</tt>.
+     * @return {@link Future}, using which it's possible to check whether
+     * <tt>StreamReader</tt> has required amount of bytes available for reading.
+     */
+    public Future<Integer> notifyAvailable(int size);
+
+    /**
+     * Method returns {@link Future}, using which it's possible check if
+     * <tt>StreamReader</tt> has required amound of bytes available
+     * for reading reading.
+     * {@link CompletionHandler} is also passed to get notified, once required
+     * number of bytes will become available for reading.
+     *
+     * @param size number of bytes, which should become available on
+     *        <tt>StreamReader</tt>.
+     * @param completionHandler {@link CompletionHandler}, which will be notified
+     *        once required number of bytes will become available.
+     * 
+     * @return {@link Future}, using which it's possible to check whether
+     * <tt>StreamReader</tt> has required amount of bytes available for reading.
+     */
+    public Future<Integer> notifyAvailable(int size,
+            CompletionHandler<Integer> completionHandler);
+
+    /**
+     * Method returns {@link Future}, using which it's possible check if
+     * <tt>StreamReader</tt> meets specific {@link Condition}.
+     *
+     * @param condition {@link Condition} <tt>StreamReader</tt> should meet.
+     *
+     * @return {@link Future}, using which it's possible to check whether
+     * <tt>StreamReader</tt> meets the required {@link Condition}.
+     */
+    public Future<Integer> notifyCondition(Condition<StreamReader> condition);
+
+    /**
+     * Method returns {@link Future}, using which it's possible check if
+     * <tt>StreamReader</tt> meets specific {@link Condition}.
+     * {@link CompletionHandler} is also passed to get notified, once
+     * the {@link Condition} will be satisfied.
+     *
+     * @param condition {@link Condition} <tt>StreamReader</tt> should meet.
+     * @param completionHandler {@link CompletionHandler}, which will be
+     * notified, once the {@link Condition} will be satisfied.
+     *
+     * @return {@link Future}, using which it's possible to check whether
+     * <tt>StreamReader</tt> meets the required {@link Condition}.
+     */
+    public Future<Integer> notifyCondition(Condition<StreamReader> condition,
+            CompletionHandler<Integer> completionHandler);
     
     /**
      * Add more data to the beginning of the stream.
@@ -180,25 +250,78 @@ public interface StreamReader extends Closeable {
      */
     void readDoubleArray(double[] data) throws IOException;
 
+    /**
+     * Returns <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
+     * or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
+     * or <tt>false</tt> otherwise.
+     */
     boolean isClosed();
 
+    /**
+     * Returns the current <tt>StreamReader</tt>'s source {@link Buffer} and
+     * makes next available {@link Buffer} current.
+     * 
+     * @return the current <tt>StreamReader</tt>'s source {@link Buffer}
+     * @throws java.io.IOException
+     */
     Buffer readBuffer() throws IOException;
     
     /**
-     * Return the current {@link StreamReader}'s source {@link Buffer}.
-     * @return the current {@link StreamReader}'s source {@link Buffer}.
+     * Return the current <tt>StreamReader</tt>'s source {@link Buffer}.
+     * Unlike {@link StreamReader#readBuffer()}, this method doesn't
+     * make any internal updates of current {@link Buffer}.
+     *
+     * @return the current <tt>StreamReader</tt>'s source {@link Buffer}.
      */
     Buffer getBuffer();
 
+    /**
+     * Finishes processing of the current <tt>StreamReader</tt>'s source
+     * {@link Buffer}. This method doesn't call {@link Buffer#dispose()}.
+     */
     void finishBuffer();
 
+    /**
+     * Get the {@link Connection} this <tt>StreamReader</tt> belongs to.
+     * 
+     * @return the {@link Connection} this <tt>StreamReader</tt> belongs to.
+     */
     Connection getConnection();
 
+    /**
+     * Get the preferred {@link Buffer} size to be used for <tt>StreamReader</tt>
+     * read operations.
+     * 
+     * @return the preferred {@link Buffer} size to be used for <tt>StreamReader</tt>
+     * read operations.
+     */
     int getBufferSize();
 
+    /**
+     * Set the preferred {@link Buffer} size to be used for <tt>StreamReader</tt>
+     * read operations.
+     *
+     * @param size the preferred {@link Buffer} size to be used for
+     * <tt>StreamReader</tt> read operations.
+     */
     void setBufferSize(int size);
 
+    /**
+     * Get the timeout for <tt>StreamReader</tt> I/O operations.
+     * 
+     * @param timeunit timeout unit {@link TimeUnit}.
+     * @return the timeout for <tt>StreamReader</tt> I/O operations.
+     */
     long getTimeout(TimeUnit timeunit);
+
+    /**
+     * Set the timeout for <tt>StreamReader</tt> I/O operations.
+     * 
+     * @param timeout the timeout for <tt>StreamReader</tt> I/O operations.
+     * @param timeunit timeout unit {@link TimeUnit}.
+     */
     void setTimeout(long timeout, TimeUnit timeunit);
 }
 

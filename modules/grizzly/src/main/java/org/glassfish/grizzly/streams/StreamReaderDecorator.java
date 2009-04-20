@@ -64,11 +64,17 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
         this.underlyingReader = underlyingReader;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isBlocking() {
         return underlyingReader.isBlocking();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setBlocking(boolean isBlocking) {
         underlyingReader.setBlocking(isBlocking);
@@ -84,8 +90,11 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
     }
 
 
-    public Future notifyCondition(Condition<StreamReader> condition,
-            CompletionHandler completionHandler) {
+    /**
+     * {@inheritDoc}
+     */
+    public Future<Integer> notifyCondition(Condition<StreamReader> condition,
+            CompletionHandler<Integer> completionHandler) {
         if (notifyObject != null) {
             throw new IllegalStateException("Only one available listener allowed!");
         }

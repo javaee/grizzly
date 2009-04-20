@@ -51,7 +51,8 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.util.conditions.Condition;
 
-/** Each method reads data from the current ByteBuffer.  If not enough data
+/**
+ * Each method reads data from the current ByteBuffer.  If not enough data
  * is present in the current ByteBuffer, discard is called on the current
  * ByteBuffer and we advance to the next ByteBuffer, or block if not enough 
  * data is present.  If close() is called, all subsequent method calls will
@@ -63,7 +64,8 @@ import org.glassfish.grizzly.util.conditions.Condition;
  * The other methods must be invoked only by one thread, which is the reader of
  * this data stream.
  * 
- *  @author Ken Cavanaugh
+ * @author Ken Cavanaugh
+ * @author Alexey Stashok
  */
 public abstract class AbstractStreamReader implements StreamReader {
 
@@ -133,10 +135,16 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isBlocking() {
         return isBlocking;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
@@ -206,7 +214,8 @@ public abstract class AbstractStreamReader implements StreamReader {
     }
 
     /**
-     * Cause all subsequent method calls on this object to throw IllegalStateException.
+     * Closes the <tt>StreamReader</tt> and causes all subsequent method calls
+     * on this object to throw IllegalStateException.
      */
     public void close() {
         closed = true;
@@ -233,6 +242,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean isClosed() {
         return closed;
     }
@@ -306,10 +318,16 @@ public abstract class AbstractStreamReader implements StreamReader {
         return null;
     }
     
+    /**
+     * {@inheritDoc}
+     */
     public int availableDataSize() {
         return queueSize + currentAvailable();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public boolean readBoolean() throws IOException {
         if (!checkRemaining(1)) {
             ensureRead();
@@ -317,6 +335,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         return current.get() == 1 ? true : false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public byte readByte() throws IOException {
         if (!checkRemaining(1)) {
             ensureRead();
@@ -324,6 +345,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         return current.get();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public char readChar()  throws IOException {
         if (checkRemaining(2)) {
             return current.getChar();
@@ -331,6 +355,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         return (char) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public short readShort() throws IOException {
         if (checkRemaining(2)) {
             return current.getShort();
@@ -338,6 +365,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         return (short) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int readInt() throws IOException {
         if (checkRemaining(4)) {
             return current.getInt();
@@ -345,6 +375,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         return (readShort() & 0xffff) << 16 | readShort() & 0xffff;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public long readLong() throws IOException {
         if (checkRemaining(8)) {
             return current.getLong();
@@ -352,6 +385,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         return (readInt() & 0xffffffffL) << 32 | readInt() & 0xffffffffL;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     final public float readFloat() throws IOException {
         if (checkRemaining(4)) {
             return current.getFloat();
@@ -359,9 +395,11 @@ public abstract class AbstractStreamReader implements StreamReader {
 
 
         return Float.intBitsToFloat(readInt());
-
     }
 
+    /**
+     * {@inheritDoc}
+     */
     final public double readDouble() throws IOException {
         if (checkRemaining(8)) {
             return current.getDouble();
@@ -375,6 +413,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readBooleanArray(boolean[] data) throws IOException {
         arraySizeCheck(data.length);
         for (int ctr = 0; ctr < data.length; ctr++) {
@@ -382,10 +423,16 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readByteArray(final byte[] data) throws IOException {
         readByteArray(data, 0, data.length);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readByteArray(byte[] data, int offset, int length) throws IOException {
         arraySizeCheck(length);
         while (true) {
@@ -406,7 +453,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
     public void readBytes(final Buffer buffer) throws IOException {
         buffer.reset();
         arraySizeCheck(buffer.remaining());
@@ -427,6 +476,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readCharArray(final char[] data) throws IOException {
         arraySizeCheck(2 * data.length);
         for (int i = 0; i < data.length; i++) {
@@ -434,6 +486,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readShortArray(final short[] data) throws IOException {
         arraySizeCheck(2 * data.length);
         for (int i = 0; i < data.length; i++) {
@@ -441,6 +496,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readIntArray(final int[] data) throws IOException {
         arraySizeCheck(4 * data.length);
         for (int i = 0; i < data.length; i++) {
@@ -448,6 +506,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readLongArray(final long[] data) throws IOException {
         arraySizeCheck(8 * data.length);
         for (int i = 0; i < data.length; i++) {
@@ -455,6 +516,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readFloatArray(final float[] data) throws IOException {
         arraySizeCheck(4 * data.length);
         for (int i = 0; i < data.length; i++) {
@@ -462,6 +526,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void readDoubleArray(final double[] data) throws IOException {
         arraySizeCheck(8 * data.length);
         for (int i = 0; i < data.length; i++) {
@@ -470,12 +537,18 @@ public abstract class AbstractStreamReader implements StreamReader {
 
     }
 
-    public Future notifyAvailable(int size) {
+    /**
+     * {@inheritDoc}
+     */
+    public Future<Integer> notifyAvailable(int size) {
         return notifyAvailable(size, null);
     }
 
-    public Future notifyAvailable(final int size,
-            CompletionHandler completionHandler) {
+    /**
+     * {@inheritDoc}
+     */
+    public Future<Integer> notifyAvailable(final int size,
+            CompletionHandler<Integer> completionHandler) {
         return notifyCondition(new Condition<StreamReader>() {
             public boolean check(StreamReader reader) {
                 return reader.availableDataSize() >= size;
@@ -483,12 +556,15 @@ public abstract class AbstractStreamReader implements StreamReader {
         }, completionHandler);
     }
 
-    public Future notifyCondition(Condition<StreamReader> condition) {
+    /**
+     * {@inheritDoc}
+     */
+    public Future<Integer> notifyCondition(Condition<StreamReader> condition) {
         return notifyCondition(condition, null);
     }
 
-    private void notifySuccess(FutureImpl future,
-            CompletionHandler completionHandler, int size) {
+    private void notifySuccess(FutureImpl<Integer> future,
+            CompletionHandler<Integer> completionHandler, int size) {
         if (completionHandler != null) {
             completionHandler.completed(null, size);
         }
@@ -496,8 +572,8 @@ public abstract class AbstractStreamReader implements StreamReader {
         future.setResult(size);
     }
 
-    private void notifyFailure(FutureImpl future,
-            CompletionHandler completionHandler, Throwable e) {
+    private void notifyFailure(FutureImpl<Integer> future,
+            CompletionHandler<Integer> completionHandler, Throwable e) {
         if (completionHandler != null) {
             completionHandler.failed(null, e);
         }
@@ -505,6 +581,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         future.failure(e);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Buffer readBuffer() throws IOException {
         checkRemaining(1);
         Buffer retBuffer = current;
@@ -512,7 +591,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         return retBuffer;
     }
 
-
+    /**
+     * {@inheritDoc}
+     */
     public Buffer getBuffer() {
         if (current == null) {
             try {
@@ -525,6 +606,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         return current;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void finishBuffer() {
         Buffer next = pollBuffer();
         if (next != null) {
@@ -534,6 +618,9 @@ public abstract class AbstractStreamReader implements StreamReader {
         current = next;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public Connection getConnection() {
         return connection;
     }
@@ -551,30 +638,42 @@ public abstract class AbstractStreamReader implements StreamReader {
         return getConnection().getTransport().getMemoryManager().allocate(size);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getBufferSize() {
         return bufferSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setBufferSize(int size) {
         this.bufferSize = size;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public long getTimeout(TimeUnit timeunit) {
         return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setTimeout(long timeout, TimeUnit timeunit) {
         timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
     }
 
     protected static class NotifyObject {
 
-        private FutureImpl future;
-        private CompletionHandler completionHandler;
+        private FutureImpl<Integer> future;
+        private CompletionHandler<Integer> completionHandler;
         private Condition<StreamReader> condition;
 
-        public NotifyObject(FutureImpl future,
-                CompletionHandler completionHandler,
+        public NotifyObject(FutureImpl<Integer> future,
+                CompletionHandler<Integer> completionHandler,
                 Condition<StreamReader> condition) {
             this.future = future;
             this.completionHandler = completionHandler;

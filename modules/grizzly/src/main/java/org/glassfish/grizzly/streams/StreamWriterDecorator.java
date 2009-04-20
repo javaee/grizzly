@@ -53,6 +53,9 @@ public abstract class StreamWriterDecorator extends AbstractStreamWriter {
         setUnderlyingWriter(underlyingWriter);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Connection getConnection() {
         return underlyingWriter.getConnection();
@@ -66,16 +69,25 @@ public abstract class StreamWriterDecorator extends AbstractStreamWriter {
         this.underlyingWriter = underlyingWriter;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isBlocking() {
         return underlyingWriter.isBlocking();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setBlocking(boolean isBlocking) {
         underlyingWriter.setBlocking(isBlocking);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected Future close0(CompletionHandler completionHandler) throws IOException {
         flush();
