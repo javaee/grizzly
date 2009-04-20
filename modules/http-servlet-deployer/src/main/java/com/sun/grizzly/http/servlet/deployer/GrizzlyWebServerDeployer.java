@@ -43,10 +43,13 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -84,6 +87,8 @@ public class GrizzlyWebServerDeployer {
 
     protected static Logger logger = Logger.getLogger("GrizzlyWebServerDeployerLogger");
     public static final String DEFAULT_CONTEXT = "/";
+    public static final String WEB_XML_PATH = "WEB-INF" + File.separator + "web.xml";
+    
     private GrizzlyWebServer ws = null;
     
     private String locations;
@@ -112,9 +117,9 @@ public class GrizzlyWebServerDeployer {
 
     }
     
-    private void deployWar(String location) throws Exception{
+    private void deployWar(String location) throws Exception {
         webxmlPath = appendWarContentToClassPath(location);
-        deploy(webxmlPath, getContext(webxmlPath), webxmlPath + File.separator + "WEB-INF" + File.separator + "web.xml");
+        deploy(webxmlPath, getContext(webxmlPath), webxmlPath + WEB_XML_PATH);
     }
     
     private void deployServlet(String location) throws Exception{
@@ -129,9 +134,9 @@ public class GrizzlyWebServerDeployer {
     	deploy(null, context, location);
     }
     
-    private void deployExpandedWar(String location) throws Exception{
+    private void deployExpandedWar(String location) throws Exception {
         webxmlPath = appendWarContentToClassPath(location);
-        deploy(webxmlPath, getContext(webxmlPath), webxmlPath + File.separator + "WEB-INF" + File.separator + "web.xml");
+        deploy(webxmlPath, getContext(webxmlPath), webxmlPath + WEB_XML_PATH);
     }
     
     private Map<String, File> getFile(String location){
@@ -222,18 +227,18 @@ public class GrizzlyWebServerDeployer {
         return fileList;
     }
 
-    public void findApplications(String locations) throws Exception {
+    public void deployApplications(String locations) throws Exception {
 
     	if(locations!=null && locations.length()>0){
 	        String[] location = locations.split(File.pathSeparator);
 	        
 	        for (int i = 0; i < location.length; i++) {
-				findApplication(location[i]);
+				deployApplication(location[i]);
 			}
     	}
     }
     
-    private void findApplication(String location) throws Exception{
+    private void deployApplication(String location) throws Exception{
     	// #1
         if (location.endsWith(".war")) {
             deployWar(location);
@@ -300,13 +305,16 @@ public class GrizzlyWebServerDeployer {
         }
     }
 
+    /**
+     * Return the context that will be used to deploy the application
+     * @param path  : file path where the application is
+     * @return the context
+     */
     public String getContext(String path) {
 
         if (path == null) {
             return DEFAULT_CONTEXT;
         }
-
-        String context = DEFAULT_CONTEXT;
 
         // need to replace "/" and "\\" par File.separator
         // that will fix the case on Windows when user enter c:/... instead of
@@ -314,18 +322,86 @@ public class GrizzlyWebServerDeployer {
         path = path.replaceAll("[/\\\\]+", "\\" + File.separator);
         path = path.replaceAll("\\\\", "\\" + File.separator);
 
+        // remove the trailing File.separator
+        if(path.endsWith(File.separator) && path.length()>1){
+        	path = path.substring(0,path.length()-1);
+        }
+
+        
         int lastIndex = path.lastIndexOf(File.separator);
 
         if (lastIndex > 0) {
-            context = "/" + path.substring(lastIndex + 1);
+        	path = DEFAULT_CONTEXT + path.substring(lastIndex + 1);
+        } else if(lastIndex == 0){
+        	path = DEFAULT_CONTEXT;
         }
 
-        return context;
+        return path;
     }
     
-    private List<ServletAdapter> getServletAdapterList(WebApp webApp, String context){
+    /**
+     * 
+     * @param path
+     * @return
+     */
+    public String getServletPath(String path) {
+
+        if (path == null) {
+            return DEFAULT_CONTEXT;
+        }
+        
+        // need to replace "\" and "\\" by "/"
+        path = path.replaceAll("\\\\", "/");
+        
+        // the path need to start by "/"
+        if(!path.startsWith("/")){
+        	path = DEFAULT_CONTEXT + path;
+        }
+        
+        // we could have multiples options
+        // /servlet
+        // /servlet/
+        // /servlet/subpath
+        // /servlet/subpath/
+        // /servlet/* or /servlet/*.x
+        // all theses must return /servlet
+        
+        // remove the trailing "/"
+        if(path.endsWith("/") && path.length()>1){
+        	path = path.substring(0,path.length()-1);
+        } else if(!path.endsWith("/")){
+        	
+        	// find the last "/"
+        	int index = path.lastIndexOf("/");
+        	
+        	// find if we have a wildcard "*" or a extension "."
+        	if(path.lastIndexOf("*")>index || path.lastIndexOf(".")>index){
+            	
+        		// do we have something like : /a.cdcdcd or /* or /*.abc
+        		if(index==0){
+        			return "/";
+        		} else {
+	            	//remove the urlpattern
+	            	if(index<path.length()){
+	            		path = path.substring(0,index);
+	            	}
+        		}
+        	} 
+        	
+        }
+
+        return path;
+    }
+    
+    /**
+     * 
+     * @param webApp  Contains the info about the web.xml
+     * @param context context of the application
+     * @return a list of ServletAdapter with the UrlPattern for each Servlet.
+     */
+    private ConcurrentMap<ServletAdapter, List<String>> getServletAdapterList(WebApp webApp, String context){
     	
-    	List<ServletAdapter> list = new ArrayList<ServletAdapter>();
+    	ConcurrentMap<ServletAdapter, List<String>> servletAdapterMap = new ConcurrentHashMap<ServletAdapter, List<String>>();
     	
     	// validate if we have servletMapping
     	if(webApp.getServletMapping()==null || webApp.getServletMapping().isEmpty()){
@@ -334,7 +410,9 @@ public class GrizzlyWebServerDeployer {
     		sa.setContextPath(context);
     		sa.setServletPath("");
     		
-    		list.add(sa);
+    		List<String> aliasList = new ArrayList<String>();
+    		aliasList.add(DEFAULT_CONTEXT);
+    		servletAdapterMap.put(sa, aliasList);
     	} else {
     	
 	    	for (ServletMapping servletMapping : webApp.getServletMapping()) {
@@ -342,10 +420,12 @@ public class GrizzlyWebServerDeployer {
 	    	
 		    	List<String> urlPatternList = servletMapping.getUrlPattern();
 		
-		        //TODO support multiple urlPattern ???
+		        //TODO support multiple urlPattern ???  for that the SA need to have multiple servletpath ?
+		    	// ex  : urlPattern = /xxx/1.y
+		    	//       urlPattern = /xxx/yyy/1.z
+		    	//       the servlet path will not be the same.. do we create 2 SA ?
 		
 		        // WE WILL GET ONLY THE FIRST urlPattern
-		
 		        String urlPattern = null;
 		        //if empty, assume "/" as context
 		        if (urlPatternList == null || urlPatternList.size() == 0) {
@@ -353,49 +433,44 @@ public class GrizzlyWebServerDeployer {
 		        } else {
 		            urlPattern = urlPatternList.get(0);
 		        }
-		
+		        
 		        // get the context path. The urlPattern could be "", "/",
 		        // "/bla/xyz/..."
 		        // just to be sure we don't obtain two slash "//"
-		        String contextPath = null;
+		        String servletUrlPattern = null;
 		
 		        if (!urlPattern.startsWith("/")) {
-		            contextPath = context + "/" + urlPattern;
-		        } else {
-		            contextPath = context + urlPattern;
-		        }
+		        	urlPattern = "/" + urlPattern;
+		        } 
+		        
+		        servletUrlPattern = urlPattern;
 		
-		        if (contextPath.indexOf("//") > -1) {
-		            contextPath = contextPath.replaceAll("//", "/");
-		        }
-		
-		        // set context. if the user pass a context, we will use this one. If
-		        // null we will use the one from
-		        // web.xml
-		        if (urlPattern != null) {
-		            sa.setContextPath(context);
-		            // be sure not the get the extension mapping
-		            // like /blabla/*.jsp
-		            sa.setServletPath(getContext(contextPath));
-		        } else {
-		            // we need at least one context.. need to find which one to set
-		            // to default !!!sa.setContextPath(DEFAULT_CONTEXT);
+		        if (servletUrlPattern.indexOf("//") > -1) {
+		        	servletUrlPattern = servletUrlPattern.replaceAll("//", "/");
 		        }
 		        
+		        sa.setContextPath(context);
+		        
+		        // be sure not the get the extension mapping
+	            // like /blabla/*.jsp
+		        sa.setServletPath(getServletPath(servletUrlPattern));
+		
 		        // Set the Servlet
 	            setServlet(webApp, sa, servletMapping);
 	            
-	            list.add(sa);
+	            List<String> aliasList = new ArrayList<String>();
+	            aliasList.add(urlPattern);
+	    		servletAdapterMap.put(sa, aliasList);
 	    	}
     	}
         
-        return list;
+        return servletAdapterMap;
     }
 
     public void deploy(String rootFolder, String context, String path) throws Exception {
     	
         if (logger.isLoggable(Level.INFO)) {
-            logger.log(Level.INFO, "deployed application path=" + path);
+            logger.log(Level.INFO, "Will deploy application path=" + path);
         }
 
         // extract the items from the web.xml
@@ -406,9 +481,9 @@ public class GrizzlyWebServerDeployer {
         }
 
         // obtain a servletAdapter list
-        List<ServletAdapter> servletAdapterList = getServletAdapterList(webApp, context);
+        ConcurrentMap<ServletAdapter, List<String>> servletAdapterList = getServletAdapterList(webApp, context);
         
-        for (ServletAdapter sa : servletAdapterList) {
+        for (ServletAdapter sa : servletAdapterList.keySet()) {
         	
             // set Filters for this context if there are some
             setFilters(webApp, sa);
@@ -425,24 +500,86 @@ public class GrizzlyWebServerDeployer {
             
             sa.setHandleStaticResources(true);
             
-            String alias = sa.getContextPath() + sa.getServletPath();
+            // create the alias array from the list of urlPattern
+            String alias[] = getAlias(sa, servletAdapterList.get(sa));
+            
+            if(alias==null){
+            	alias = new String[]{DEFAULT_CONTEXT};
+            }
             
             if (logger.isLoggable(Level.FINEST)) {
                 logger.log(Level.FINEST, "sa context=" + sa.getContextPath());
                 logger.log(Level.FINEST, "sa servletPath=" + sa.getServletPath());
-                logger.log(Level.FINEST, "sa alias=" + alias);
+                
+                StringBuffer sb = new StringBuffer();
+                sb.append("[");
+                for (String item : alias) {
+					sb.append(item).append(",");
+				}
+                sb.deleteCharAt(sb.length()-1);
+                sb.append("]");
+                logger.log(Level.FINEST, "sa alias=" + sb.toString());
                 logger.log(Level.FINEST, "sa rootFolder=" + sa.getRootFolder());
             }
             
 			SelectorThread.setWebAppRootPath(rootFolder);
             
-			//keep trace of deployed application
+			// keep trace of deployed application
 			deployedApplicationList.add(context);
 			
-            ws.addGrizzlyAdapter(sa, new String[]{alias});
+            ws.addGrizzlyAdapter(sa, alias);
             
 		}
         
+        if (logger.isLoggable(Level.INFO)) {
+            logger.log(Level.INFO, "deployed application path=" + path);
+        }
+        
+    }
+    
+    /**
+     * 
+     * @param sa ServletAdapter
+     * @param aliases contains the list of UrlPattern for this ServletAdapter
+     * @return the alias list for this ServletAdapter
+     */
+    public String[] getAlias(ServletAdapter sa, Collection<String> aliases){
+    	
+    	if(sa==null || aliases==null){
+    		return null;
+    	}
+    	
+    	List<String> aliasList = new ArrayList<String>();
+    	
+        for (String urlPattern : aliases) {
+        	
+        	String mapping = "";
+        	
+        	if(!sa.getServletPath().equals(urlPattern)){
+        		mapping = urlPattern.substring(urlPattern.indexOf(sa.getServletPath()));
+        	}
+        	
+        	// the alias is the context + servletPath + mapping
+        	String aliasTmp = sa.getContextPath() + sa.getServletPath() + mapping; 
+        	
+            if (aliasTmp.indexOf("//") > -1) {
+            	aliasTmp = aliasTmp.replaceAll("//", "/");
+	        }
+            
+            aliasList.add(aliasTmp);
+            
+            /*
+            // if the urlPattern is "/", we want to map the default "" too
+            if(urlPattern.equals("/")){
+            	aliasList.add("");
+            }
+            */
+            
+		}
+        
+        String[] array = new String[aliasList.size()];
+        
+        return aliasList.toArray(array);
     }
 
     protected void setLocations(String filename) {
@@ -748,6 +885,11 @@ public class GrizzlyWebServerDeployer {
         ClassLoader urlClassloader = new URLClassLoader(classpathList.toArray(urls), Thread.currentThread().getContextClassLoader());
         Thread.currentThread().setContextClassLoader(urlClassloader);
         
+        //be sure to that the path ends by File.separator
+        if(path!=null && !path.endsWith(File.separator)){
+        	path = path + File.separator;
+        }
+        
         return path;
     }
 
@@ -782,7 +924,7 @@ public class GrizzlyWebServerDeployer {
                     logger.log(Level.FINEST, "Application(s) Found = " + locations);
                 }
 
-                findApplications(locations);
+                deployApplications(locations);
 
             }
             
