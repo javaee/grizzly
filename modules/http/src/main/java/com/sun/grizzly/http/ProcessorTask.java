@@ -676,7 +676,15 @@ public class ProcessorTask extends TaskBase implements Processor,
             wt.getAttachment().setAttribute("suspend",Boolean.TRUE);
             key.attach(response.getResponseAttachment());             
             return;
-        }        
+        }      
+        finishResponse();
+    }
+    
+    
+    /**
+     * Finish the response
+     */
+    public void finishResponse(){
         
         if (selectorThread.isMonitoringEnabled()) {
             request.updateCounters();  
@@ -1132,6 +1140,23 @@ public class ProcessorTask extends TaskBase implements Processor,
                     response.setErrorException(ex);
                 }
             } 
+        } else if (actionCode == ActionCode.ACTION_FINISH_RESPONSE){           
+            finishResponse();
+            try{
+                postProcess();
+            } catch (Exception ex){
+                if (logger.isLoggable(Level.FINEST)){
+                    logger.log(Level.FINEST,
+                            "ACTION_CLIENT_FLUSH",ex); 
+                }
+                error = true;
+                response.setErrorException(ex);                
+            }
+            if (!keepAlive){
+                selectorThread.cancelKey(key);
+            }
+            recycle();
+            selectorThread.returnTask(this);
         }
     }
 

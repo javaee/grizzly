@@ -180,6 +180,8 @@ public final class ActionCode {
      */
     public static final ActionCode RESET_SUSPEND_TIMEOUT = new ActionCode(22);
     
+    public static ActionCode ACTION_FINISH_RESPONSE  = new ActionCode(23);
+    
     
     // ----------------------------------------------------------- Constructors
     int code;
