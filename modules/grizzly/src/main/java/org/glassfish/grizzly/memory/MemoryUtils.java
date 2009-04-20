@@ -44,16 +44,40 @@ import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 
 /**
- * Class has useful methods to simplify the work with {@link Buffer}s
+ * Class has useful methods to simplify the work with {@link Buffer}s.
+ *
+ * @see MemoryManager
+ * @see WrapperAware
  * 
  * @author Alexey Stashok
  */
 public class MemoryUtils {
+    /**
+     * Returns {@link Buffer}, which wraps the {@link String}.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param s {@link String}
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link String}.
+     */
     public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
             String s) {
         return MemoryUtils.wrap(memoryManager, s, Charset.defaultCharset());
     }
 
+    /**
+     * Returns {@link Buffer}, which wraps the {@link String} with the specific
+     * {@link Charset}.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param s {@link String}
+     * @param charset {@link Charset}, which will be used, when converting
+     * {@link String} to byte array.
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link String}.
+     */
     public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
             String s, Charset charset) {
         try {
@@ -64,11 +88,32 @@ public class MemoryUtils {
         }
     }
 
+    /**
+     * Returns {@link Buffer}, which wraps the byte array.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param data byte array to wrap.
+     *
+     * @return {@link Buffer} wrapper on top of passed byte array.
+     */
     public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
             byte[] array) {
         return wrap(memoryManager, array, 0, array.length);
     }
 
+    /**
+     * Returns {@link Buffer}, which wraps the part of byte array with
+     * specific offset and length.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param data byte array to wrap
+     * @param offset byte buffer offset
+     * @param length byte buffer length
+     *
+     * @return {@link Buffer} wrapper on top of passed byte array.
+     */
     public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
             byte[] array, int offset, int length) {
         if (memoryManager instanceof WrapperAware) {
@@ -81,10 +126,23 @@ public class MemoryUtils {
         return buffer;
     }
 
+    /**
+     * Returns {@link Buffer}, which wraps the {@link ByteBuffer}.
+     *
+     * @param memoryManager {@link MemoryManager}, which should be
+     *                       used for wrapping.
+     * @param byteBuffer {@link ByteBuffer} to wrap
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link ByteBuffer}.
+     */
     public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
             ByteBuffer byteBuffer) {
         if (memoryManager instanceof WrapperAware) {
             return ((WrapperAware<E>) memoryManager).wrap(byteBuffer);
+        } else if (byteBuffer.hasArray()) {
+            return wrap(memoryManager, byteBuffer.array(),
+                    byteBuffer.arrayOffset() + byteBuffer.position(),
+                    byteBuffer.remaining());
         }
 
         throw new IllegalStateException("Can not wrap ByteBuffer");

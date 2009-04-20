@@ -43,13 +43,21 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 /**
- * The simple Buffer manager implementation, 
+ * The simple Buffer manager implementation, which works as wrapper above
+ * {@link ByteBuffer}s. It's possible to work either with direct or heap
+ * {@link ByteBuffer}s.
  *
+ * @see MemoryManager
+ * @see ByteBuffer
+ * 
  * @author Jean-Francois Arcand
  * @author Alexey Stashok
  */
 public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
         WrapperAware<ByteBufferWrapper> {
+    /**
+     * Is direct ByteBuffer should be used?
+     */
     protected boolean isDirect;
     
     public ByteBufferManager() {
@@ -60,6 +68,12 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
         this.isDirect = isDirect;
     }
 
+    /**
+     * Allocates {@link ByteBuffer} of required size.
+     * 
+     * @param size {@link ByteBuffer} size.
+     * @return allocated {@link ByteBuffer}.
+     */
     protected ByteBuffer allocate0(int size) {
         if (isDirect) {
             return ByteBuffer.allocateDirect(size);
@@ -68,10 +82,16 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ByteBufferWrapper allocate(final int size) {
         return wrap(allocate0(size));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
             int newSize) {
         ByteBufferWrapper newBuffer = allocate(newSize);
@@ -80,29 +100,58 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
         return newBuffer;
     }
 
+    /**
+     * Lets JVM Garbage collector to release buffer.
+     */
     public void release(ByteBufferWrapper buffer) {
     }
 
+    /**
+     * Returns <tt>true</tt>, if <tt>ByteBufferManager</tt> works with direct
+     * {@link ByteBuffer}s, or <tt>false</tt> otherwise.
+     * 
+     * @return <tt>true</tt>, if <tt>ByteBufferManager</tt> works with direct
+     * {@link ByteBuffer}s, or <tt>false</tt> otherwise.
+     */
     public boolean isDirect() {
         return isDirect;
     }
 
+    /**
+     * Set <tt>true</tt>, if <tt>ByteBufferManager</tt> works with direct
+     * {@link ByteBuffer}s, or <tt>false</tt> otherwise.
+     *
+     * @param isDirect <tt>true</tt>, if <tt>ByteBufferManager</tt> works with
+     * direct {@link ByteBuffer}s, or <tt>false</tt> otherwise.
+     */
     public void setDirect(boolean isDirect) {
         this.isDirect = isDirect;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ByteBufferWrapper wrap(byte[] data) {
         return wrap(data, 0, data.length);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ByteBufferWrapper wrap(byte[] data, int offset, int length) {
         return wrap(ByteBuffer.wrap(data, offset, length));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ByteBufferWrapper wrap(String s) {
         return wrap(s, Charset.defaultCharset());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ByteBufferWrapper wrap(String s, Charset charset) {
         try {
             byte[] byteRepresentation = s.getBytes(charset.name());
@@ -112,6 +161,9 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
         return new ByteBufferWrapper(this, byteBuffer);
     }

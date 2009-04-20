@@ -41,11 +41,43 @@ package org.glassfish.grizzly.memory;
 import org.glassfish.grizzly.Buffer;
 
 /**
+ * <tt>MemoryManager</tt>, responsible for allocating and releasing memory,
+ * required during application runtime.
+ * <tt>MemoryManager</tt> implementations work with Grizzly {@link Buffer}s.
  *
- * @author oleksiys
+ * @see Buffer
+ *
+ * @author Alexey Stashok
  */
 public interface MemoryManager<E extends Buffer> {
+    /**
+     * Allocated {@link Buffer} of the required size.
+     *
+     * @param size {@link Buffer} size to be allocated.
+     * @return allocated {@link Buffer}.
+     */
     public E allocate(int size);
+
+    /**
+     * Reallocate {@link Buffer} to a required size.
+     * Implementation may choose the way, how reallocation could be done, either
+     * by allocating new {@link Buffer} of required size and copying old
+     * {@link Buffer} content there, or perform more complex logic related to
+     * memory pooling etc.
+     *
+     * @param oldBuffer old {@link Buffer} to be reallocated.
+     * @param newSize new {@link Buffer} required size.
+     * @return reallocated {@link Buffer}.
+     */
     public E reallocate(E oldBuffer, int newSize);
+
+    /**
+     * Release {@link Buffer}.
+     * Implementation may ignore releasing and let JVM Garbage collector to take
+     * care about the {@link Buffer}, or return {@link Buffer} to pool, in case
+     * of more complex <tt>MemoryManager</tt> implementation.
+     *
+     * @param buffer {@link Buffer} to be released.
+     */
     public void release(E buffer);
 }

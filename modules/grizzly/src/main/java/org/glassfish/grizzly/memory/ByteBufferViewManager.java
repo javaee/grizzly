@@ -41,10 +41,15 @@ package org.glassfish.grizzly.memory;
 import java.nio.ByteBuffer;
 
 /**
- * The ByteBuffer manager implementation, which doesn't allocate ByteBuffers each
- * time allocate is called. Instead this implementation preallocates large ByteBuffer,
- * and returns ByteBuffer view of required size for each allocate method call.
+ * The {@link ByteBufferManager} implementation, which doesn't allocate
+ * {@link ByteBuffer}s each time allocate is called. Instead of this,
+ * implementation preallocates large {@link ByteBuffer} pool, and returns
+ * {@link ByteBuffer} view of required size for each allocate method call.
  *
+ * @see MemoryManager
+ * @see ByteBufferManager
+ * @see ByteBuffer
+ * 
  * @author Jean-Francois Arcand
  * @author Alexey Stashok
  */
@@ -55,8 +60,14 @@ public class ByteBufferViewManager extends ByteBufferManager {
      */
     public static final int DEFAULT_CAPACITY = 512 * 1024;
 
+    /**
+     * Large {@link ByteBuffer} pool.
+     */
     protected ByteBuffer largeByteBuffer;
     
+    /**
+     * Capacity of the large {@link ByteBuffer} pool.
+     */
     protected int capacity;
     
         
@@ -73,6 +84,15 @@ public class ByteBufferViewManager extends ByteBufferManager {
         this.capacity = capacity;
     }
 
+    /**
+     * Allocates {@link Buffer} of required size, which is actually sliced from
+     * large preallocated {@link ByteBuffer} pool.
+     * 
+     * @param size size of the {@link Buffer} to be allocated.
+     * 
+     * @return {@link Buffer} of required size, which is actualled sliced from
+     * large preallocated {@link ByteBuffer} pool.
+     */
     @Override
     public synchronized ByteBufferWrapper allocate(int size) {
         if (largeByteBuffer == null || largeByteBuffer.remaining() < size) {
@@ -82,12 +102,23 @@ public class ByteBufferViewManager extends ByteBufferManager {
         return wrap(slice(largeByteBuffer, size));
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public synchronized ByteBufferWrapper reallocate(
             ByteBufferWrapper oldBuffer, int newSize) {
         return super.reallocate(oldBuffer, newSize);
     }
 
+    /**
+     * Slice {@link ByteBuffer} of required size from big chunk.
+     *
+     * @param chunk big {@link ByteBuffer} pool.
+     * @param size required slice size.
+     *
+     * @return sliced {@link ByteBuffer} of required size.
+     */
     protected static ByteBuffer slice(ByteBuffer chunk, int size) {
         chunk.limit(chunk.position() + size);
         ByteBuffer view = chunk.slice();

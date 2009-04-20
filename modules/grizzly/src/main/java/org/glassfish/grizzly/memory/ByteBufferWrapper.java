@@ -45,8 +45,15 @@ import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 
 /**
+ * {@link Buffer} implementation, which uses the {@link ByteBuffer} underneath.
  *
- * @author oleksiys
+ * @see Buffer
+ * @see MemoryManager
+ * @see ByteBuffer
+ *
+ * @author Ken Cavanaugh
+ * @author John Vieten
+ * @author Alexey Stashok
  */
 public class ByteBufferWrapper implements Buffer<ByteBuffer> {
     public static boolean DEBUG_MODE = false;

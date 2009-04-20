@@ -43,13 +43,63 @@ import java.nio.charset.Charset;
 import org.glassfish.grizzly.Buffer;
 
 /**
+ * {@link MemoryManager}s, which implement this interface, are able to convert
+ * frequently used Java buffer types to Grizzly {@link Buffer}.
  *
- * @author oleksiys
+ * @see MemoryUtils
+ * @see MemoryManager
+ * 
+ * @author Alexey Stashok
  */
 public interface WrapperAware<E extends Buffer> {
+    /**
+     * Returns {@link Buffer}, which wraps the byte array.
+     *
+     * @param data byte array to wrap
+     *
+     * @return {@link Buffer} wrapper on top of passed byte array.
+     */
     public E wrap(byte[] data);
+
+    /**
+     * Returns {@link Buffer}, which wraps the part of byte array with
+     * specific offset and length.
+     *
+     * @param data byte array to wrap
+     * @param offset byte buffer offset
+     * @param length byte buffer length
+     *
+     * @return {@link Buffer} wrapper on top of passed byte array.
+     */
     public E wrap(byte[] data, int offset, int length);
+    
+    /**
+     * Returns {@link Buffer}, which wraps the {@link String}.
+     *
+     * @param s {@link String}
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link String}.
+     */
     public E wrap(String s);
+
+    /**
+     * Returns {@link Buffer}, which wraps the {@link String} with the specific
+     * {@link Charset}.
+     *
+     * @param s {@link String}
+     * @param charset {@link Charset}, which will be used, when converting
+     * {@link String} to byte array.
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link String}.
+     */
     public E wrap(String s, Charset charset);
+
+    /**
+     * Returns {@link Buffer}, which wraps the {@link ByteBuffer}.
+     *
+     * @param byteBuffer {@link ByteBuffer} to wrap
+     *
+     * @return {@link Buffer} wrapper on top of passed {@link ByteBuffer}.
+     */
     public E wrap(ByteBuffer byteBuffer);
 }

@@ -41,38 +41,86 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 
 /**
+ * Default {@link MemoryManager}, used in Grizzly.
+ * <tt>DefaultMemory</tt> has simple {@link Buffer} pooling implementation,
+ * which makes released {@link Buffer}'s memory to be reused.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class DefaultMemoryManager extends ByteBufferViewManager {
     public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 64;
     
+    /**
+     * Max size of memory pool for one thread.
+     */
     private int maxThreadBufferSize = DEFAULT_MAX_BUFFER_SIZE;
 
     private boolean isMonitoring;
+
+    /**
+     * Real amount of bytes, which was allocated.
+     */
     private AtomicLong totalBytesAllocated = new AtomicLong();
     
+    /**
+     * Get the maximum size of memory pool for one thread.
+     *
+     * @return the maximum size of memory pool for one thread.
+     */
     public int getMaxThreadBufferSize() {
         return maxThreadBufferSize;
     }
 
+    /**
+     * Set the maximum size of memory pool for one thread.
+     *
+     * @param maxThreadBufferSize the maximum size of memory pool for one thread.
+     */
     public void setMaxThreadBufferSize(int maxThreadBufferSize) {
         this.maxThreadBufferSize = maxThreadBufferSize;
     }
 
+    /**
+     * Is monotoring enabled.
+     * 
+     * @return <tt>true</tt>, if monitoring is enabled, or <tt>false</tt>
+     * otherwise.
+     */
     public boolean isMonitoring() {
         return isMonitoring;
     }
 
+    /**
+     * Set monotoring mode.
+     *
+     * @param isMonitoring <tt>true</tt>, if monitoring is enabled, or
+     * <tt>false</tt> otherwise.
+     */
     public void setMonitoring(boolean isMonitoring) {
         this.isMonitoring = isMonitoring;
         ByteBufferWrapper.DEBUG_MODE = isMonitoring;
     }
 
+    /**
+     * Get real number of bytes allocated by this {@link MemoryManager}.
+     * It doesn't count bytes, which were pooled and then reused.
+     * 
+     * @return real number of bytes allocated by this {@link MemoryManager}.
+     */
     public long getTotalBytesAllocated() {
         return totalBytesAllocated.get();
     }
 
+    /**
+     * Allocates {@link Buffer} of required size.
+     * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
+     * memory pool. If it's not possible - it delegates allocation to 
+     * {@link ByteBufferViewManager}.
+     * 
+     * @param size number of bytes to be allocated.
+     * 
+     * @return allocated {@link ByteBufferWrapper}.
+     */
     @Override
     public ByteBufferWrapper allocate(int size) {
         if (isDefaultWorkerThread()) {
@@ -82,19 +130,10 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
                 return incAllocated(super.allocate(size));
             }
 
-            ByteBuffer byteBuffer = bufferInfo.buffer;
-            if (byteBuffer.remaining() >= size) {
-                ByteBuffer allocatedByteBuffer;
-                if (byteBuffer.position() == 0) {
-                    allocatedByteBuffer = byteBuffer;
-                    bufferInfo.buffer = null;
-                } else {
-                    allocatedByteBuffer = slice(byteBuffer, size);
-                }
-                
-                bufferInfo.lastAllocatedBuffer = allocatedByteBuffer;
-                return wrap(allocatedByteBuffer);
+            ByteBufferWrapper allocatedFromPool = allocateFromPool(bufferInfo, size);
 
+            if (allocatedFromPool != null) {
+                return allocatedFromPool;
             } else {
                 return incAllocated(super.allocate(size));
             }
@@ -104,11 +143,69 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
         }
     }
 
+    /**
+     * Reallocate {@link Buffer} to a required size.
+     * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
+     * memory pool. If it's not possible - it delegates reallocation to
+     * {@link ByteBufferViewManager}.
+     *
+     * @param oldBuffer old {@link Buffer} we want to reallocate.
+     * @param newSize {@link Buffer} required size.
+     *
+     * @return reallocated {@link Buffer}.
+     */
+
     @Override
-    public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer, int newSize) {
-        return super.reallocate(oldBuffer, newSize);
+    public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
+            int newSize) {
+        if (oldBuffer.capacity() <= newSize) return oldBuffer;
+        
+        if (isDefaultWorkerThread()) {
+            final BufferInfo bufferInfo = getThreadBuffer();
+            if (bufferInfo != null &&
+                    bufferInfo.buffer != null &&
+                    bufferInfo.lastAllocatedBuffer == oldBuffer.visible &&
+                    bufferInfo.buffer.remaining() + oldBuffer.capacity() >= newSize) {
+                final ByteBuffer bufferPool = bufferInfo.buffer;
+                bufferPool.position(bufferPool.position() - oldBuffer.capacity());
+
+                return allocateFromPool(bufferInfo, newSize);
+            }
+        }
+
+        return incAllocated(super.reallocate(oldBuffer, newSize));
     }
 
+    private ByteBufferWrapper allocateFromPool(final BufferInfo bufferInfo,
+            final int size) {
+        if (bufferInfo == null || bufferInfo.buffer == null) return null;
+        final ByteBuffer bufferPool = bufferInfo.buffer;
+        if (bufferPool.remaining() >= size) {
+            ByteBuffer allocatedByteBuffer;
+
+            if (bufferPool.position() == 0) {
+                allocatedByteBuffer = bufferPool;
+                bufferInfo.buffer = null;
+            } else {
+                allocatedByteBuffer = slice(bufferPool, size);
+            }
+
+            bufferInfo.lastAllocatedBuffer = allocatedByteBuffer;
+            return wrap(allocatedByteBuffer);
+        }
+
+        return null;
+    }
+
+
+    /**
+     * Release {@link Buffer}.
+     * <tt>DefaultMemoryManager</tt> will checks if it's possible to return
+     * the buffer to thread local pool. If not - let's garbage collector utilize
+     * the memory.
+     *
+     * @param buffer {@link Buffer} to be released.
+     */
     @Override
     public void release(ByteBufferWrapper buffer) {
         if (isDefaultWorkerThread()) {
@@ -143,6 +240,11 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
         super.release(buffer);
     }
 
+    /**
+     * Get the size of local thread memory pool.
+     * 
+     * @return the size of local thread memory pool.
+     */
     public int getReadyThreadBufferSize() {
         if (isDefaultWorkerThread()) {
             BufferInfo bi = getThreadBuffer();
@@ -160,13 +262,31 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
         return new TrimAwareWrapper(this, byteBuffer);
     }
 
-
+    /**
+     * Get thread associated memory pool info.
+     * 
+     * @return thread associated memory pool info.
+     */
     private BufferInfo getThreadBuffer() {
         DefaultWorkerThread workerThread =
                 (DefaultWorkerThread) Thread.currentThread();
         return workerThread.getAssociatedBuffer();
     }
 
+    /**
+     * Set thread associated memory pool info.
+     * 
+     * @param bufferInfo thread associated memory pool info.
+     */
+    private void setThreadBuffer(BufferInfo bufferInfo) {
+        DefaultWorkerThread workerThread =
+                (DefaultWorkerThread) Thread.currentThread();
+        workerThread.setAssociatedBuffer(bufferInfo);
+    }
+
+    /**
+     * Counts total allocated memory size.
+     */
     private ByteBufferWrapper incAllocated(ByteBufferWrapper allocated) {
         if (isMonitoring) {
             totalBytesAllocated.addAndGet(allocated.capacity());
@@ -175,12 +295,15 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
         return allocated;
     }
 
-    private void setThreadBuffer(BufferInfo bufferInfo) {
-        DefaultWorkerThread workerThread =
-                (DefaultWorkerThread) Thread.currentThread();
-        workerThread.setAssociatedBuffer(bufferInfo);
-    }
-
+    /**
+     * If possible, prepends passed underlyingBuffer to thread local memory
+     * pool.
+     * 
+     * @param bufferInfo thread associated memory pool info.
+     * @param underlyingBuffer {@link ByteBuffer} to prepend
+     * @return <tt>true</tt>, if {@link ByteBuffer} was prepended,
+     * or <tt>false</tt> otherwise.
+     */
     private boolean prepend(BufferInfo bufferInfo, ByteBuffer underlyingBuffer) {
         if (bufferInfo != null &&
                 bufferInfo.lastAllocatedBuffer == underlyingBuffer) {
@@ -203,8 +326,18 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
         return Thread.currentThread() instanceof DefaultWorkerThread;
     }
 
+    /**
+     * Information about thread associated memory pool.
+     */
     public class BufferInfo {
+        /**
+         * Memory pool
+         */
         public ByteBuffer buffer;
+
+        /**
+         * Last allocated {@link ByteBuffer}.
+         */
         public ByteBuffer lastAllocatedBuffer;
 
         @Override
@@ -215,6 +348,11 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
     }
 
+    /**
+     * {@link ByteBufferWrapper} implementation, which supports triming. In
+     * other words it's possible to return unused {@link Buffer} space to
+     * pool.
+     */
     public class TrimAwareWrapper extends ByteBufferWrapper {
 
         public TrimAwareWrapper(ByteBufferManager memoryManager,
