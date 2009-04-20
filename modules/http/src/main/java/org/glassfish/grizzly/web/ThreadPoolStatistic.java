@@ -41,12 +41,9 @@ package org.glassfish.grizzly.web;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
 import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
 
 /**
@@ -98,7 +95,7 @@ public class ThreadPoolStatistic {
     /**
      * The Thread Pool used when gathering count statistic.
      */
-    private ScheduledThreadPoolExecutor countAverageExecutor;
+    private ScheduledExecutorService countAverageExecutor;
     
     
     /**
@@ -158,17 +155,11 @@ public class ThreadPoolStatistic {
      * @param port Port number for which thread pool (connection) stats will be
      * gathered
      */
-    public ThreadPoolStatistic(String name) {
+    public ThreadPoolStatistic(String name,
+            ScheduledExecutorService scheduledExecutorService) {
+
         this.name = name;
-        
-        countAverageExecutor = new ScheduledThreadPoolExecutor(3,
-            new ThreadFactory(){
-                public Thread newThread(Runnable r) {
-                    return new DefaultWorkerThread(
-                            Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
-                            "Grizzly-ThreadPoolStatistic", r);
-                }
-        });    
+        countAverageExecutor =  scheduledExecutorService;
     }
     
     

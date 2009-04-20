@@ -620,7 +620,8 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
      */
     protected void initMonitoringLevel() {
         if (threadPoolStat != null) return;
-        threadPoolStat = new ThreadPoolStatistic(name);
+        threadPoolStat = new ThreadPoolStatistic(name,
+                config.getScheduledThreadPool());
         threadPoolStat.setThreadPool(config.getWorkerThreadPool());
     }
      
