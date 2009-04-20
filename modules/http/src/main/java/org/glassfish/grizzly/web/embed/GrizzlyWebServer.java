@@ -279,12 +279,13 @@ import org.glassfish.grizzly.web.container.util.http.mapper.Mapper;
  *
  *  * <strong>Synchronous Web Server servicing two Servlet using SSL</strong>
  *
- *      GrizzlyWebServer ws = new GrizzlyWebServer(443,path,5,true);
- *      SSlConfig sslConfig = new SSLConfig();
- *      sslConfig.setTrustStoreFile("Path-to-trustore");
- *      sslConfig.setKeyStoreFile("Path-to-Trustore");
- *      ws.setSSLConfig(sslConfig);
- *
+        GrizzlyWebServer ws = new GrizzlyWebServer(443,path,5,true);
+        SSLContextConfigurator sslConfig = new SSLContextConfigurator();
+        sslConfig.setTrustStoreFile("Path-to-trustore");
+        sslConfig.setKeyStoreFile("Path-to-Trustore");
+        ws.setSSLConfiguration(new SSLEngineConfigurator(
+                sslConfig.createSSLContext(), false, false, false);
+ 
         ServletAdapter sa = new ServletAdapter();
         sa.setRootFolder(".");
         sa.setServletInstance(new ServletTest("Adapter-1"));
@@ -299,6 +300,7 @@ import org.glassfish.grizzly.web.container.util.http.mapper.Mapper;
         ws.start();
  * </code></pre></p>
  * @author Jeanfrancois Arcand
+ * @author Alexey Stashok
  */
 public class GrizzlyWebServer {
     // The host
@@ -454,7 +456,7 @@ public class GrizzlyWebServer {
 
     /**
      * Remove a {@link GrizzlyAdapter}
-     * return true of the operation was successful.
+     * return <tt>true</tt>, if the operation was successful.
      */
     public boolean removeGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter){
         if (adapters.size() > 1){
