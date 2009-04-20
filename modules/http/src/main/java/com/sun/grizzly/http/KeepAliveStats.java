@@ -37,7 +37,7 @@
  */
 package com.sun.grizzly.http;
 
-
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Class collecting keep-alive statistics.
@@ -51,11 +51,11 @@ package com.sun.grizzly.http;
  */
 public class KeepAliveStats {
 
-    private int countConnections;
-    private int countHits;
-    private int countFlushes;
-    private int countRefusals;
-    private int countTimeouts;
+    private final AtomicInteger countConnections = new AtomicInteger();
+    private final AtomicInteger countHits        = new AtomicInteger();
+    private final AtomicInteger countFlushes     = new AtomicInteger();
+    private final AtomicInteger countRefusals    = new AtomicInteger();
+    private final AtomicInteger countTimeouts    = new AtomicInteger();
 
 
 
@@ -64,24 +64,24 @@ public class KeepAliveStats {
      * 
      * @return Number of connections in keep-alive mode
      */    
-    public synchronized int getCountConnections() {
-        return countConnections;
+    public  int getCountConnections() {
+        return countConnections.get();
     }
 
     
     /** 
      * Increments the number of connections in keep-alive mode.
      */    
-    public synchronized void incrementCountConnections() {
-        countConnections++;
+    public void incrementCountConnections() {
+        countConnections.incrementAndGet();
     }
     
     
     /** 
      * Decrement the number of connections in keep-alive mode.
      */    
-    protected synchronized void decrementCountConnections() {
-        countConnections--;
+    protected void decrementCountConnections() {
+        countConnections.decrementAndGet();
     }
 
     
@@ -90,8 +90,8 @@ public class KeepAliveStats {
      *
      * @return Number of requests received by connections in keep-alive mode.
      */    
-    public synchronized int getCountHits() {
-        return countHits;
+    public int getCountHits() {
+        return countHits.get();
     }
 
 
@@ -99,8 +99,8 @@ public class KeepAliveStats {
      * Increments the number of requests received by connections in
      * keep-alive mode.
      */    
-    public synchronized void incrementCountHits() {
-        countHits++;
+    public void incrementCountHits() {
+        countHits.incrementAndGet();
     }
 
     
@@ -109,16 +109,16 @@ public class KeepAliveStats {
      *
      * @return Number of keep-alive connections that were closed
      */    
-    public synchronized int getCountFlushes() {
-        return countFlushes;
+    public int getCountFlushes() {
+        return countFlushes.get();
     }
 
     
     /** 
      * Increments the number of keep-alive connections that were closed
      */    
-    public synchronized void incrementCountFlushes() {
-        countFlushes++;
+    public void incrementCountFlushes() {
+        countFlushes.incrementAndGet();
     }
 
 
@@ -127,16 +127,16 @@ public class KeepAliveStats {
      *
      * @return Number of keep-alive connections that were rejected.
      */    
-    public synchronized int getCountRefusals() {
-        return countRefusals;
+    public int getCountRefusals() {
+        return countRefusals.get();
     }
     
 
     /** 
      * Increments the number of keep-alive connections that were rejected.
      */    
-    public synchronized void incrementCountRefusals() {
-        countRefusals++;
+    public void incrementCountRefusals() {
+        countRefusals.incrementAndGet();
     }
 
 
@@ -145,15 +145,15 @@ public class KeepAliveStats {
      *
      * @return Number of keep-alive connections that timed out.
      */    
-    public synchronized int getCountTimeouts() {
-        return countTimeouts;
+    public int getCountTimeouts() {
+        return countTimeouts.get();
     }
 
     
     /** 
      * Increments the number of keep-alive connections that timed out.
      */    
-    public synchronized void incrementCountTimeouts() {
-        countTimeouts++;
+    public void incrementCountTimeouts() {
+        countTimeouts.incrementAndGet();
     }
 }
