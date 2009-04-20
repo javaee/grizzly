@@ -739,6 +739,7 @@ public class Response<A> {
             }
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
             ra.resume();
+            req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
             isSuspended = false;
             ra = null;
             lock.release();
@@ -760,6 +761,7 @@ public class Response<A> {
             }
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);  
             ra.timeout(false);
+            req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
             isSuspended = false;
             lock.release();
         } else {
