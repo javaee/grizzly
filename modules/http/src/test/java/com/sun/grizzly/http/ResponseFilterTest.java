@@ -117,7 +117,7 @@ public class ResponseFilterTest extends TestCase {
 
     }
 
-    public void testResponseFilter() throws IOException {
+    public void testResponseFilter() throws Exception {
         System.out.println("Test: testResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Added after invoking Adapter";
@@ -136,6 +136,7 @@ public class ResponseFilterTest extends TestCase {
                                 bc.append(testData, 0, testData.length);
                             } catch (IOException ex) {
                                 ex.printStackTrace();
+                                fail(ex.getMessage());
                             }
                         }
                     });
@@ -152,16 +153,15 @@ public class ResponseFilterTest extends TestCase {
                         return;
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        fail(ex.getMessage());
                     }
                 }
             });
 
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+
+            st.listen();
+            st.enableMonitoring();
+
 
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(500000);
@@ -172,28 +172,24 @@ public class ResponseFilterTest extends TestCase {
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            try {
-                InputStream is = new DataInputStream(s.getInputStream());
-                BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                String line = null;
-                while ((line = br.readLine()) != null) {
-                    System.out.println("-> " + line);
-                    if (line.contains(testString)) {
-                        assertTrue(true);
-                        return;
-                    }
+            InputStream is = new DataInputStream(s.getInputStream());
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                System.out.println("-> " + line);
+                if (line.contains(testString)) {
+                    assertTrue(true);
+                    return;
                 }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                assertFalse(false);
             }
+
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
         }
     }
 
-    public void testCompleteNewBCResponseFilter() throws IOException {
+    public void testCompleteNewBCResponseFilter() throws Exception {
         System.out.println("Test: testCompleteNewBCResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Added after invoking Adapter";
@@ -225,16 +221,14 @@ public class ResponseFilterTest extends TestCase {
                         return;
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        fail(ex.getMessage());
                     }
                 }
             });
 
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            st.listen();
+            st.enableMonitoring();
+
 
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(500000);
@@ -245,28 +239,24 @@ public class ResponseFilterTest extends TestCase {
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            try {
-                InputStream is = new DataInputStream(s.getInputStream());
-                BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                String line = null;
-                while ((line = br.readLine()) != null) {
-                    System.out.println("-> " + line);
-                    if (line.contains("AppendingNewBytes")) {
-                        assertTrue(true);
-                        return;
-                    }
+            InputStream is = new DataInputStream(s.getInputStream());
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                System.out.println("-> " + line);
+                if (line.contains("AppendingNewBytes")) {
+                    assertTrue(true);
+                    return;
                 }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                assertFalse(false);
             }
+
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
         }
     }
 
-    public void testComplexByteChunkManipulation() throws IOException {
+    public void testComplexByteChunkManipulation() throws Exception {
         System.out.println("Test: testComplexByteChunkManipulation");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         try {
@@ -297,16 +287,14 @@ public class ResponseFilterTest extends TestCase {
                         return;
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        fail(ex.getMessage());
                     }
                 }
             });
 
-            try {
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            st.listen();
+            st.enableMonitoring();
+
 
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(500000);
@@ -317,20 +305,16 @@ public class ResponseFilterTest extends TestCase {
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            try {
-                InputStream is = new DataInputStream(s.getInputStream());
-                BufferedReader br = new BufferedReader(new InputStreamReader(is));
-                String line = null;
-                while ((line = br.readLine()) != null) {
-                    System.out.println("-> " + line);
-                    if (line.contains("AppendingNewBytes")) {
-                        assertTrue(true);
-                        return;
-                    }
+
+            InputStream is = new DataInputStream(s.getInputStream());
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line = null;
+            while ((line = br.readLine()) != null) {
+                System.out.println("-> " + line);
+                if (line.contains("AppendingNewBytes")) {
+                    assertTrue(true);
+                    return;
                 }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                assertFalse(false);
             }
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);

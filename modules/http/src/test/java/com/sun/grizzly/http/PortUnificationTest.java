@@ -168,6 +168,7 @@ public class PortUnificationTest extends TestCase {
                 os = new DataOutputStream(response.getOutputStream());
                 os.writeInt(Integer.MAX_VALUE);
             } catch (IOException ex) {
+                fail(ex.getMessage());
             } finally {
                 if (os != null) {
                     try {

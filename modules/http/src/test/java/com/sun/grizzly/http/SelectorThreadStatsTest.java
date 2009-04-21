@@ -71,7 +71,7 @@ public class SelectorThreadStatsTest extends TestCase {
     private static Logger logger = Logger.getLogger("grizzly.test");
     private SelectorThread st;
 
-    public void createSelectorThread() {
+    public void createSelectorThread() throws Exception {
         st = new SelectorThread() {
 
             /**
@@ -132,15 +132,12 @@ public class SelectorThreadStatsTest extends TestCase {
         st.setMaxKeepAliveRequests(8196);
         //st.setKeepAliveThreadCount(500);
 
-        try {
             st.listen();
             st.enableMonitoring();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+
     }
 
-    public void testKeepAliveConnection() throws IOException {
+    public void testKeepAliveConnection() throws Exception {
         try {
             createSelectorThread();
             String testString = "KAS:  conns=1, flushes=0, hits=1, refusals=0, timeouts=0";
@@ -167,7 +164,7 @@ public class SelectorThreadStatsTest extends TestCase {
         }
     }
 
-    public void testGetHits() throws IOException {
+    public void testGetHits() throws Exception {
 
         try {
             createSelectorThread();

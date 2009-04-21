@@ -118,7 +118,7 @@ public class RedirectTest extends TestCase {
 
     }
     
-    public void testRedirectWithHyperlink() throws IOException {
+    public void testRedirectWithHyperlink() throws Exception {
         System.out.println("Test: testRedirectWithHyperlink");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "TestingHyperlinkInRedirectBody";
@@ -134,16 +134,14 @@ public class RedirectTest extends TestCase {
                         res.sendRedirect("/foo/password.txt");
                     } catch (Throwable t) {
                         t.printStackTrace();
+                        fail(t.getMessage());
                     }
                 }
             });
-            
-            try {
+
                 st.listen();
                 st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+
             
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(5000);
@@ -154,7 +152,6 @@ public class RedirectTest extends TestCase {
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            try{
                 InputStream is = new DataInputStream(s.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 String line = null;
@@ -165,10 +162,6 @@ public class RedirectTest extends TestCase {
                         return;
                     }
                 }
-            } catch (IOException ex){
-                ex.printStackTrace();
-                assertFalse(false);
-            }
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
@@ -176,7 +169,7 @@ public class RedirectTest extends TestCase {
     }
          
          
-    public void testRedirectWithInvalidHyperlink() throws IOException {
+    public void testRedirectWithInvalidHyperlink() throws Exception {
         System.out.println("Test: testRedirectWithHyperlink");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "TestingHyperlinkInRedirectBody";
@@ -192,16 +185,14 @@ public class RedirectTest extends TestCase {
                         res.sendRedirect("/foo/../../password.txt");
                     } catch (Throwable t) {
                         t.printStackTrace();
+                        fail(t.getMessage());
                     }
                 }
             });
             
-            try {
                 st.listen();
                 st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+
 
             URL url = new URL("http://localhost:" + PORT);
             HttpURLConnection connection =
@@ -215,11 +206,7 @@ public class RedirectTest extends TestCase {
             try{
                 InputStream is = new DataInputStream(connection.getInputStream());
             } catch (IOException ex){
-                if (connection.getResponseCode() == 400){
-                    assertTrue(true);
-                } else {
-                    assertFalse(false);
-                }
+                assertTrue(connection.getResponseCode() == 400);
             }
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);

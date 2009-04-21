@@ -107,7 +107,7 @@ public class ArpSSLTest extends TestCase {
         System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
     }
 
-    public void testSimplePacket() throws IOException {
+    public void testSimplePacket() throws Exception {
         createSelectorThread();
         try {
             HostnameVerifier hv = new HostnameVerifier() {
@@ -150,7 +150,7 @@ public class ArpSSLTest extends TestCase {
         }
     }
     
-    public void createSelectorThread() {
+    public void createSelectorThread() throws Exception {
         st = new SSLSelectorThread();
         st.setPort(PORT);
         st.setAdapter(new MyAdapter());
@@ -178,12 +178,9 @@ public class ArpSSLTest extends TestCase {
         st.setEnableAsyncExecution(true);
         st.setAdapter(new MyAdapter());
 
-        try {
-            st.listen();
-            st.enableMonitoring();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-        }
+        st.listen();
+        st.enableMonitoring();
+
     }
 
     private class MyAsyncFilter implements AsyncFilter {
