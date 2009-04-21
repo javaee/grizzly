@@ -94,7 +94,7 @@ public class ResponseFilterTest extends TestCase {
         TransportFactory.getInstance().close();
     }
 
-    public void ttestResponseFilter() throws IOException {
+    public void testResponseFilter() throws IOException {
         System.out.println("Test: testResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Added after invoking Adapter";
@@ -163,7 +163,7 @@ public class ResponseFilterTest extends TestCase {
         }
     }
 
-    public void ttestCompleteNewBCResponseFilter() throws IOException {
+    public void testCompleteNewBCResponseFilter() throws IOException {
         System.out.println("Test: testCompleteNewBCResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         try {
