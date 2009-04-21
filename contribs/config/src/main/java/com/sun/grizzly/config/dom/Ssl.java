@@ -77,14 +77,6 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     void setKeyStore(String location);
 
     /**
-     * Name of this SSL configuration
-     */
-    @Attribute
-    String getName();
-
-    void setName(String value);
-
-    /**
      * A comma-separated list of the SSL2 ciphers used, with the prefix + to enable or - to disable, for example +rc4.
      * Allowed values are rc4, rc4export, rc2, rc2export, idea, des, desede3. If no value is specified, all supported
      * ciphers are assumed to be enabled. NOT Used in PE

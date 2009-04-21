@@ -68,7 +68,7 @@ public class GrizzlyServiceListener {
     // TODO: Pending Grizzly issue 54
     public void configure(NetworkListener networkListener, boolean isWebProfile, Habitat habitat) {
         if (System.getProperty("product.name") == null) {
-            System.setProperty("product.name", "Grizzly");
+            System.setProperty("product.name", "GlassFish/v3");
         }
         //TODO: Configure via domain.xml
         //grizzlyListener.setController(controller);

@@ -50,7 +50,7 @@ public interface ProtocolFilter extends ConfigBeanProxy, Injectable {
     /**
      * Protocol filter name, which could be used as reference
      */
-    @Attribute
+    @Attribute(key = true)
     String getName();
 
     void setName(String value);

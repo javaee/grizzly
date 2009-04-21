@@ -37,13 +37,13 @@
 
 package com.sun.grizzly.config.dom;
 
-import java.util.List;
-
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
+
+import java.util.List;
 
 /**
  * Defines logic of hosting several protocol on a single tcp port.
@@ -53,7 +53,7 @@ public interface PortUnification extends ConfigBeanProxy, Injectable {
     /**
      * Port-unification name, which could be used as reference
      */
-    @Attribute
+    @Attribute(key = true)
     String getName();
 
     void setName(String value);

@@ -58,7 +58,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable {
     /**
      * Protocol name which could be used as reference
      */
-    @Attribute(required = true)
+    @Attribute(required = true, key = true)
     String getName();
 
     void setName(String value);
