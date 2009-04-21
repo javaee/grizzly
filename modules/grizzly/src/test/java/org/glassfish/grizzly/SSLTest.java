@@ -42,7 +42,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.BlockingSSLHandshaker;
 import org.glassfish.grizzly.ssl.SSLContextConfigurator;
@@ -64,11 +63,14 @@ public class SSLTest extends TestCase {
     public void testSimpleSyncSSL() throws Exception {
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
-        
-        SSLEngineConfigurator clientSSLEngineConfigurator =
+        SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        if (sslContextConfigurator.validateConfiguration(true)) {
+            clientSSLEngineConfigurator =
                 new SSLEngineConfigurator(
                 sslContextConfigurator.createSSLContext());
-
+        } else {
+            fail("Failed to validate SSLContextConfiguration.");
+        }
         TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
@@ -85,7 +87,7 @@ public class SSLTest extends TestCase {
             transport.configureBlocking(true);
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.setProcessor(null);
@@ -97,7 +99,7 @@ public class SSLTest extends TestCase {
             writer.setBlocking(true);
 
             SSLHandshaker handshaker = new BlockingSSLHandshaker();
-            
+
             Future handshakeFuture = handshaker.handshake(reader, writer,
                     clientSSLEngineConfigurator);
 
@@ -145,9 +147,13 @@ public class SSLTest extends TestCase {
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
 
-        SSLEngineConfigurator clientSSLEngineConfigurator =
+        SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        if (sslContextConfigurator.validateConfiguration(true)) {
+        clientSSLEngineConfigurator =
                 new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
-
+        } else {
+            fail("Failed to validate SSLContextConfiguration.");
+        }
         TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
@@ -164,7 +170,7 @@ public class SSLTest extends TestCase {
             transport.configureBlocking(true);
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.setProcessor(null);
@@ -225,12 +231,14 @@ public class SSLTest extends TestCase {
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
         if (cacertsUrl != null) {
             sslContextConfigurator.setTrustStoreFile(cacertsUrl.getFile());
+            sslContextConfigurator.setTrustStorePass("changeit");
         }
 
         // override system properties
         URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
         if (keystoreUrl != null) {
             sslContextConfigurator.setKeyStoreFile(keystoreUrl.getFile());
+            sslContextConfigurator.setKeyStorePass("changeit");
         }
 
         SSLContextConfigurator.DEFAULT_CONFIG = sslContextConfigurator;

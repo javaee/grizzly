@@ -40,7 +40,9 @@ package org.glassfish.grizzly.web;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.File;
 import java.net.URL;
+import java.net.URISyntaxException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
@@ -78,29 +80,34 @@ public class ArpSSLTest extends TestCase {
     private AsyncWebFilter webFilter;
 
     @Override
-    public void setUp() {
+    public void setUp() throws URISyntaxException {
         sslConfig = new SSLContextConfigurator();
         ClassLoader cl = getClass().getClassLoader();
         // override system properties
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
         if (cacertsUrl != null) {
-            sslConfig.setTrustStoreFile(cacertsUrl.getFile());
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
         }
-        
-        logger.log(Level.INFO, "SSL certs path: " + sslConfig.getTrustStoreFile());
-        
+
+        logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
+
         // override system properties
         URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
         if (keystoreUrl != null) {
-            sslConfig.setKeyStoreFile(keystoreUrl.getFile());
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
         }
         
-        logger.log(Level.INFO, "SSL keystore path: " + sslConfig.getKeyStoreFile());
+        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
         SSLContextConfigurator.DEFAULT_CONFIG = sslConfig;
-        sslConfig.publish(System.getProperties());
-        
-        System.setProperty("javax.net.ssl.trustStore", sslConfig.getTrustStoreFile());
-        System.setProperty("javax.net.ssl.keyStore", sslConfig.getKeyStoreFile());
+
+        System.setProperty("javax.net.ssl.trustStore", trustStoreFile);
+        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+        System.setProperty("javax.net.ssl.keyStore", keyStoreFile);
+        System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
     }
 
     public void testSimplePacket() throws IOException {
