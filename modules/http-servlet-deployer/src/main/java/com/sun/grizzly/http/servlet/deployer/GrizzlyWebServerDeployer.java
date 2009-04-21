@@ -832,8 +832,8 @@ public class GrizzlyWebServerDeployer {
             path = ExpandJar.expand(appRoot);
         } else if(appliPath != null){
             path = appliPath;
-            classesURL = new URL("file://" + path + "WEB-INF/classes/");
-            appRoot = new URL("file://" + path);
+            classesURL = new URL("file:///" + path + "WEB-INF/classes/");
+            appRoot = new URL("file:///" + path);
         }
 
         if(appliPath != null){
