@@ -52,7 +52,7 @@ public interface ProtocolFinder extends ConfigBeanProxy, Injectable {
     /**
      * Finder name, which could be used as reference
      */
-    @Attribute
+    @Attribute(key = true)
     String getName();
 
     void setName(String value);

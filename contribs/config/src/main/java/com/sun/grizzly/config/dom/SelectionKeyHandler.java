@@ -50,7 +50,7 @@ public interface SelectionKeyHandler extends ConfigBeanProxy, Injectable{
     /**
      * SelectionKey handler name, which could be used as reference
      */
-    @Attribute
+    @Attribute(key = true)
     String getName();
 
     void setName(String value);
