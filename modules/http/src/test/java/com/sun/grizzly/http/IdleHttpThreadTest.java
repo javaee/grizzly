@@ -117,7 +117,7 @@ public class IdleHttpThreadTest extends TestCase {
 
     }
 
-    public void testKillIdleThread() throws IOException {
+    public void testKillIdleThread() throws Exception {
         System.out.println("Test: testKillIdleThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
@@ -148,18 +148,15 @@ public class IdleHttpThreadTest extends TestCase {
                         return;
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        fail(ex.getMessage());
                     }
                 }
             });
 
-            try {
                 st.setTransactionTimeout(5 * 1000);
 
                 st.listen();
                 st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
 
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(10 * 1000);
@@ -190,7 +187,7 @@ public class IdleHttpThreadTest extends TestCase {
         }
     }
     
-    public void testKeepAliveIdleConnection() throws IOException {
+    public void testKeepAliveIdleConnection() throws Exception {
         System.out.println("Test: testKeepAliveIdleConnection");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "timedout";
@@ -214,17 +211,14 @@ public class IdleHttpThreadTest extends TestCase {
                         return;
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        fail(ex.getMessage());
                     }
                 }
             });
 
-            try {
                 st.setKeepAliveTimeoutInSeconds(5);
                 st.listen();
                 st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
 
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(10 * 1000);
@@ -258,7 +252,7 @@ public class IdleHttpThreadTest extends TestCase {
         }
     }
     
-    public void testKillLoopingWhileThread() throws IOException {
+    public void testKillLoopingWhileThread() throws Exception {
         System.out.println("Test: testKillLoopingWhileThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
@@ -291,18 +285,15 @@ public class IdleHttpThreadTest extends TestCase {
                         return;
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        fail(ex.getMessage());
                     }
                 }
             });
 
-            try {
-                st.setTransactionTimeout(5 * 1000);
+            st.setTransactionTimeout(5 * 1000);
 
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            st.listen();
+            st.enableMonitoring();
 
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(10 * 1000);
@@ -333,7 +324,7 @@ public class IdleHttpThreadTest extends TestCase {
         }
     }    
     
-   public void testKillBlockingQueueThread() throws IOException {
+   public void testKillBlockingQueueThread() throws Exception {
         System.out.println("Test: testKillBlockingQueueThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
@@ -364,18 +355,17 @@ public class IdleHttpThreadTest extends TestCase {
                         return;
                     } catch (Exception ex) {
                         ex.printStackTrace();
+                        fail(ex.getMessage());
                     }
                 }
             });
 
-            try {
-                st.setTransactionTimeout(5 * 1000);
 
-                st.listen();
-                st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+            st.setTransactionTimeout(5 * 1000);
+
+            st.listen();
+            st.enableMonitoring();
+
 
             Socket s = new Socket("localhost", PORT);
             s.setSoTimeout(10 * 1000);

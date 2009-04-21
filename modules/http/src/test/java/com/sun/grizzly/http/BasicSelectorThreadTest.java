@@ -39,10 +39,6 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
-import com.sun.grizzly.tcp.CompletionHandler;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
@@ -51,13 +47,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.ProtocolException;
 import java.net.URL;
-import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
@@ -124,7 +116,7 @@ public class BasicSelectorThreadTest extends TestCase {
     }
 
 
-    public void testHelloWorldGrizzlyAdapter() throws IOException {
+    public void testHelloWorldGrizzlyAdapter() throws Exception {
         System.out.println("Test: testHelloWorldGrizzlyAdapter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "HelloWorld";
@@ -133,12 +125,9 @@ public class BasicSelectorThreadTest extends TestCase {
             createSelectorThread();
             st.setAdapter(new HelloWorldAdapter());
 
-            try {
                 st.listen();
                 st.enableMonitoring();
-            } catch (Exception ex) {
-                ex.printStackTrace();
-            }
+
 
             sendRequest(testData, testString);
 
@@ -157,6 +146,7 @@ public class BasicSelectorThreadTest extends TestCase {
                 response.getWriter().println("HelloWorld");
             } catch (IOException ex) {
                 ex.printStackTrace();
+                fail(ex.getMessage());
             }
         } 
     }
@@ -164,13 +154,13 @@ public class BasicSelectorThreadTest extends TestCase {
 
 
     private String sendRequest(byte[] testData, String testString)
-            throws MalformedURLException, ProtocolException, IOException {
+            throws Exception {
 
         return sendRequest(testData, testString, true);
     }
 
     private String sendRequest(byte[] testData, String testString, boolean assertTrue)
-            throws MalformedURLException, ProtocolException, IOException {
+            throws Exception {
         byte[] response = new byte[testData.length];
 
         URL url = new URL("http://localhost:" + PORT);
