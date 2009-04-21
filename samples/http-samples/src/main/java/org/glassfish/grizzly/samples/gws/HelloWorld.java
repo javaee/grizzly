@@ -40,9 +40,6 @@
 package org.glassfish.grizzly.samples.gws;
 
 import java.io.IOException;
-import java.net.URL;
-import org.glassfish.grizzly.ssl.SSLContextConfigurator;
-import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
 import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
 import org.glassfish.grizzly.web.container.http11.GrizzlyResponse;
@@ -60,10 +57,7 @@ public class HelloWorld {
 
     public static void main(String[] args) throws IOException {
         // Initialize GrizzlyWebServer
-        GrizzlyWebServer gws = new GrizzlyWebServer(PORT, ".", true);
-        // Provide GrizzlyWebServer with SSL configuration
-        gws.setSSLConfiguration(initializeSSL());
-
+        GrizzlyWebServer gws = new GrizzlyWebServer(PORT);
         // Add HelloWorld GrizzlyAdapter
         gws.addGrizzlyAdapter(new HelloWorldAdapter(), new String[] {"/hello"});
         // Start Web server
@@ -71,7 +65,7 @@ public class HelloWorld {
 
         // <-------------- RUNNING -------------->
 
-        System.out.println("You can access adapter by: https://localhost:" +
+        System.out.println("You can access adapter by: http://localhost:" +
                 PORT + "/hello/");
         System.out.println("Press <ENTER> key to exit...");
         System.in.read();
@@ -79,30 +73,6 @@ public class HelloWorld {
         // Stop Web server
         gws.stop();
     }
-
-    private static SSLEngineConfigurator initializeSSL() {
-        // Initialize SSLContext configuration
-        SSLContextConfigurator sslContextConfig = new SSLContextConfigurator();
-
-        // Set key store
-        ClassLoader cl = HelloWorld.class.getClassLoader();
-        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
-        if (cacertsUrl != null) {
-            sslContextConfig.setTrustStoreFile(cacertsUrl.getFile());
-        }
-
-        // Set trust store
-        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
-        if (keystoreUrl != null) {
-            sslContextConfig.setKeyStoreFile(keystoreUrl.getFile());
-        }
-
-
-        // Create SSLEngine configurator
-        return new SSLEngineConfigurator(sslContextConfig.createSSLContext(),
-                false, false, false);
-    }
-
 
     /**
      * Custom HTTP Adapter implementation

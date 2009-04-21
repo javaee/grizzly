@@ -52,7 +52,7 @@ import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
 import org.glassfish.grizzly.web.container.http11.GrizzlyResponse;
 
 /**
- * Example shows, how HTTP protocol could be enabled using Grizzly
+ * Example shows, how HTTPS protocol could be enabled using Grizzly
  * {@link FilterChain} by initializing and adding {@link WebFilter}.
  *
  * @see WebFilter

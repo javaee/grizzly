@@ -40,13 +40,16 @@
 package org.glassfish.grizzly.samples.gws;
 
 import java.io.IOException;
+import java.net.URL;
+import org.glassfish.grizzly.ssl.SSLContextConfigurator;
+import org.glassfish.grizzly.ssl.SSLEngineConfigurator;
 import org.glassfish.grizzly.web.container.http11.GrizzlyAdapter;
 import org.glassfish.grizzly.web.container.http11.GrizzlyRequest;
 import org.glassfish.grizzly.web.container.http11.GrizzlyResponse;
 import org.glassfish.grizzly.web.embed.GrizzlyWebServer;
 
 /**
- * Simple example of using {@link GrizzlyWebServer}.
+ * Simple example of using {@link GrizzlyWebServer} operating over HTTPS.
  *
  * @see GrizzlyWebServer
  * 
@@ -57,7 +60,10 @@ public class HelloWorldSecured {
 
     public static void main(String[] args) throws IOException {
         // Initialize GrizzlyWebServer
-        GrizzlyWebServer gws = new GrizzlyWebServer(PORT);
+        GrizzlyWebServer gws = new GrizzlyWebServer(PORT, ".", true);
+        // Provide GrizzlyWebServer with SSL configuration
+        gws.setSSLConfiguration(initializeSSL());
+
         // Add HelloWorld GrizzlyAdapter
         gws.addGrizzlyAdapter(new HelloWorldAdapter(), new String[] {"/hello"});
         // Start Web server
@@ -65,7 +71,7 @@ public class HelloWorldSecured {
 
         // <-------------- RUNNING -------------->
 
-        System.out.println("You can access adapter by: http://localhost:" +
+        System.out.println("You can access adapter by: https://localhost:" +
                 PORT + "/hello/");
         System.out.println("Press <ENTER> key to exit...");
         System.in.read();
@@ -73,6 +79,30 @@ public class HelloWorldSecured {
         // Stop Web server
         gws.stop();
     }
+
+    private static SSLEngineConfigurator initializeSSL() {
+        // Initialize SSLContext configuration
+        SSLContextConfigurator sslContextConfig = new SSLContextConfigurator();
+
+        // Set key store
+        ClassLoader cl = HelloWorldSecured.class.getClassLoader();
+        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        if (cacertsUrl != null) {
+            sslContextConfig.setTrustStoreFile(cacertsUrl.getFile());
+        }
+
+        // Set trust store
+        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        if (keystoreUrl != null) {
+            sslContextConfig.setKeyStoreFile(keystoreUrl.getFile());
+        }
+
+
+        // Create SSLEngine configurator
+        return new SSLEngineConfigurator(sslContextConfig.createSSLContext(),
+                false, false, false);
+    }
+
 
     /**
      * Custom HTTP Adapter implementation
