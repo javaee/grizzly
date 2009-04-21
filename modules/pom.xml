@@ -28,6 +28,5 @@
         <module>grizzlet</module>
         <module>messages-bus</module>
         <module>bundles</module>
-        <module>config</module>
     </modules>
 </project>
