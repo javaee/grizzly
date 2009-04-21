@@ -47,8 +47,12 @@ import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.streams.StreamWriterDecorator;
 
 /**
+ * SSL aware {@link StreamWriter} implementation, which work like a wrapper over
+ * existing {@link StreamWriter}.
  *
- * @author oleksiys
+ * @see SSLStreamReader
+ *
+ * @author Alexey Stashok
  */
 public class SSLStreamWriter extends StreamWriterDecorator {
 

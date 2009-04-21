@@ -56,8 +56,12 @@ import org.glassfish.grizzly.streams.StreamReaderDecorator;
 import org.glassfish.grizzly.util.conditions.Condition;
 
 /**
+ * SSL aware {@link StreamReader} implementation, which work like a wrapper over
+ * existing {@link StreamReader}.
  *
- * @author oleksiys
+ * @see SSLStreamWriter
+ * 
+ * @author Alexey Stashok
  */
 public class SSLStreamReader extends StreamReaderDecorator {
     public static Attribute<LinkedList> sslAttribute =

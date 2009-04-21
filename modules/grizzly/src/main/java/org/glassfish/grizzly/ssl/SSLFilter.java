@@ -69,10 +69,21 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
         this(null);
     }
     
+    /**
+     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
+     * 
+     * @param sslEngineConfigurator SSLEngine configurator
+     */
     public SSLFilter(SSLEngineConfigurator sslEngineConfigurator) {
         this(sslEngineConfigurator, null);
-        }
+    }
 
+    /**
+     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator} and
+     * custom {@link SSLHandshaker}
+     *
+     * @param sslEngineConfigurator SSLEngine configurator
+     */
     public SSLFilter(SSLEngineConfigurator sslEngineConfigurator,
             SSLHandshaker sslHandshaker) {
         if (sslEngineConfigurator == null) {
@@ -89,6 +100,10 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
         this.sslHandshaker = sslHandshaker;
     }
 
+    /**
+     * Wraps {@link FilterChainContext} default {@link StreamReader} and
+     * {@link StreamWriter} with SSL aware ones.
+     */
     @Override
     public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
@@ -130,6 +145,9 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
         return nextAction;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
@@ -144,6 +162,9 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
         return nextAction;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
@@ -159,12 +180,18 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
         return nextAction;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public NextAction postWrite(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public NextAction postClose(FilterChainContext ctx, NextAction nextAction)
             throws IOException {

@@ -42,12 +42,28 @@ import java.util.concurrent.Future;
 import javax.net.ssl.SSLEngine;
 
 /**
- * Implementation is responsible to perform SSL handshake.
+ * General interface for SSL handshaking logic.
  * There could be blocking and non-blocking implementations.
  *
  * @author Alexey Stashok
  */
 public interface SSLHandshaker {
+    /**
+     * Execute SSL handshake using given {@link Connection}'s
+     * {@link SSLStreamReader} and {@link SSLStreamWriter}.
+     *
+     * @param reader {@link SSLStreamReader}
+     * @param writer {@link SSLStreamWriter}
+     * @param configurator {@link SSLEngineConfigurator} SSLEngine configuration
+     *
+     * @return {@link Future} to monitor handshake state.
+     *
+     * @see BlockingSSLHandshaker
+     * @see SSLStreamReader
+     * @see SSLStreamWriter
+     *
+     * @throws java.io.IOException
+     */
     public Future<SSLEngine> handshake(
             SSLStreamReader reader,
             SSLStreamWriter writer,

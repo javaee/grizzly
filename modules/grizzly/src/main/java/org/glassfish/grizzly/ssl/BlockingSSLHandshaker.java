@@ -50,13 +50,18 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 
 /**
- * Default {@link SSLHandshaker} implementation.
+ * Blocking {@link SSLHandshaker} implementation.
+ *
+ * @see SSLHandshaker
  * 
  * @author Alexey Stashok
  */
 public class BlockingSSLHandshaker implements SSLHandshaker {
     private Logger logger = Grizzly.logger;
 
+    /**
+     * {@inheritDoc}
+     */
     public Future<SSLEngine> handshake(
             SSLStreamReader reader,
             SSLStreamWriter writer,
