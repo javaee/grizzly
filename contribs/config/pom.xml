@@ -1,17 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         <!--
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
         <version>1.9.15-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
+    -->
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-config</artifactId>
     <packaging>hk2-jar</packaging>
-    <version>${grizzly-version}</version>
+    <version>1.0.0</version>
     <name>grizzly-config</name>
     <url>https://grizzly.dev.java.net</url>
     <repositories>
@@ -60,7 +62,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>${felix-version}</version>
+                <version>1.4.0</version>
                 <configuration>
                     <supportedProjectTypes>
                         <supportedProjectType>hk2-jar</supportedProjectType>
@@ -151,5 +153,6 @@
     <properties>
         <hk2.version>0.3.50</hk2.version>
         <hk2.plugin.version>0.3.50</hk2.plugin.version>
+        <grizzly-version>1.9.14</grizzly-version>
     </properties>
 </project>
