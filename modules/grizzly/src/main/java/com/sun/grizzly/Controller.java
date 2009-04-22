@@ -307,7 +307,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         controllers.add(this);
     }
 
-
     /**
      * This method handle the processing of all Selector's interest op
      * (OP_ACCEPT,OP_READ,OP_WRITE,OP_CONNECT) by delegating to its Handler.
@@ -325,13 +324,31 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             
             selectorHandler.preSelect(serverCtx);
 
+            final long selectStart = System.currentTimeMillis();
             Set<SelectionKey> readyKeys = selectorHandler.select(serverCtx);
+            final long selectionTime = System.currentTimeMillis() - selectStart;
+
             if (readyKeys.size() != 0) {
+                selectorHandler.setEmptySpinCounter(0);
                 handleSelectedKeys(readyKeys,selectorHandler,serverCtx);
                 readyKeys.clear();
+            } else {
+                // Detect empty spin issue
+                if (selectionTime < emptySpinTimeThreshold) {
+                    int emptySpinCounter = selectorHandler.getEmptySpinCounter();
+                    emptySpinCounter++;
+                    if (emptySpinCounter > emptySpinCountThreshold) {
+                        // Woraround empty selector spin issue
+                        workaroundSelectorSpin(selectorHandler);
+                        emptySpinCounter = 0;
+                    }
+
+                    selectorHandler.setEmptySpinCounter(emptySpinCounter);
+                }
             }
+            
             selectorHandler.postSelect(serverCtx);
-        }catch(Throwable e){
+        } catch(Throwable e) {
             handleSelectException(e,selectorHandler, null);
         }
     }
@@ -471,7 +488,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param selectorHandler
      * @param key
      */
-    private void handleSelectException(Throwable e,SelectorHandler selectorHandler,SelectionKey key){
+    private void handleSelectException(Throwable e,
+            SelectorHandler selectorHandler, SelectionKey key) {
         if (e instanceof ClosedSelectorException) {
             // TODO: This could indicate that the Controller is
             //       shutting down. Hence, we need to handle this Exception
@@ -479,14 +497,18 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             //       what's happening ?
             if (stateHolder.getState() == State.STARTED &&
                     selectorHandler.getStateHolder().getState() == State.STARTED) {
-                logger.log(Level.SEVERE, "Selector was unexpectedly closed.", e);
+                logger.log(Level.WARNING, "Selector was unexpectedly closed.", e);
                 notifyException(e);
+                try {
+                    workaroundSelectorSpin(selectorHandler);
+                } catch (Exception ee) {
+                    logger.log(Level.SEVERE, "Can not workaround Selector close.", ee);
+                }
             } else {
                 logger.log(Level.FINE, "doSelect Selector closed");
             }
 
-        }
-        else if( e instanceof ClosedChannelException) {
+        } else if (e instanceof ClosedChannelException) {
             // Don't use stateLock. This case is not strict
             if (stateHolder.getState() == State.STARTED &&
                     selectorHandler.getStateHolder().getState() == State.STARTED) {
@@ -496,7 +518,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 }
                 notifyException(e);
             }
-        }else if (e instanceof IOException) {
+        } else if (e instanceof IOException) {
             // TODO: This could indicate that the Controller is
             //       shutting down. Hence, we need to handle this Exception
             //       appropriately. Perhaps check the state before logging
@@ -510,13 +532,13 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             }
 
         } else {
-            try{
-                if (key != null){
+            try {
+                if (key != null) {
                     selectorHandler.getSelectionKeyHandler().cancel(key);
                 }
                 notifyException(e);
                 logger.log(Level.SEVERE,"doSelect exception",e);
-            } catch (Throwable t2){
+            } catch (Throwable t2) {
                 // An unexpected exception occured, most probably caused by
                 // a bad logger. Since logger can be externally configurable,
                 // just output the exception on the screen and continue the
@@ -525,7 +547,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             }
         }
     }
-
 
     /**
      * Register a SelectionKey.
@@ -586,7 +607,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param key {@link SelectionKey}
      * @return {@link Context}
      */
-    /* package */ public NIOContext pollContext(SelectionKey key) {
+    public NIOContext pollContext(SelectionKey key) {
         return pollContext(key,null);
     }
 
@@ -597,7 +618,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param opType the current SelectionKey op.
      * @return {@link Context}
      */
-    /* package */ public NIOContext pollContext(SelectionKey key, OpType opType) {
+    public NIOContext pollContext(SelectionKey key, OpType opType) {
 
         NIOContext ctx = contexts.poll();
         ctx.setController(this);
@@ -619,7 +640,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param context
      * @param selectorHandler
      */
-    /* package */ public void configureContext(NIOContext ctx,SelectorHandler selectorHandler){
+    public void configureContext(NIOContext ctx,SelectorHandler selectorHandler){
         ctx.setSelectorHandler(selectorHandler);
         ctx.setThreadPool(selectorHandler.getThreadPool());
         ctx.setAsyncQueueReader(selectorHandler.getAsyncQueueReader());
@@ -1309,5 +1330,26 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             }
         }
         return null;
+    }
+
+    private final int emptySpinCountThreshold = 100;
+    private final int emptySpinTimeThreshold = 500;
+
+    private void workaroundSelectorSpin(SelectorHandler selectorHandler)
+            throws IOException {
+        Selector oldSelector = selectorHandler.getSelector();
+        Selector newSelector = Selector.open();
+
+        Set<SelectionKey> keys = oldSelector.keys();
+        for(SelectionKey key : keys) {
+            key.channel().register(newSelector, key.interestOps());
+        }
+
+        selectorHandler.setSelector(newSelector);
+
+        try {
+            oldSelector.close();
+        } catch (Exception e) {
+        }
     }
 }
