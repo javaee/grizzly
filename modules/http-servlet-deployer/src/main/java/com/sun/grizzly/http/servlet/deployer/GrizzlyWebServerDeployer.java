@@ -277,7 +277,7 @@ public class GrizzlyWebServerDeployer {
                  */
 
                 // #4 : this folder in a expanded war
-                File webxmlFile = new File(location + File.separator + "WEB-INF" + File.separator + "web.xml");
+                File webxmlFile = new File(location + File.separator + WEB_XML_PATH);
 
                 if (webxmlFile.exists()) {
                 	deployExpandedWar(location + File.separator);
@@ -292,7 +292,7 @@ public class GrizzlyWebServerDeployer {
                     } else {
 
                         // this folder contains multiple war or webapps
-                        File webapp = new File(file.getPath() + File.separator + "WEB-INF" + File.separator + "web.xml");
+                        File webapp = new File(file.getPath() + File.separator + WEB_XML_PATH);
 
                         if (webapp.exists()) {
                         	deployExpandedWar(file.getPath() + File.separator);
@@ -312,28 +312,31 @@ public class GrizzlyWebServerDeployer {
      */
     public String getContext(String path) {
 
-        if (path == null) {
+        if (path == null || path.trim().length()==0) {
             return DEFAULT_CONTEXT;
         }
 
         // need to replace "/" and "\\" par File.separator
         // that will fix the case on Windows when user enter c:/... instead of
         // c:\\
-        path = path.replaceAll("[/\\\\]+", "\\" + File.separator);
-        path = path.replaceAll("\\\\", "\\" + File.separator);
-
+        //path = path.replaceAll("[/\\\\]+", "\\" + File.separator);
+        //path = path.replaceAll("\\\\", "\\" + File.separator);
+        
+        path = path.replaceAll("[/\\\\]+", "\\" + "/");
+        path = path.replaceAll("\\\\", "\\" + "/");
+        
         // remove the trailing File.separator
-        if(path.endsWith(File.separator) && path.length()>1){
+        if(path.endsWith("/") && path.length()>1){
         	path = path.substring(0,path.length()-1);
         }
-
         
-        int lastIndex = path.lastIndexOf(File.separator);
+        int lastIndex = path.lastIndexOf("/");
 
         if (lastIndex > 0) {
         	path = DEFAULT_CONTEXT + path.substring(lastIndex + 1);
-        } else if(lastIndex == 0){
-        	path = DEFAULT_CONTEXT;
+        } else if(lastIndex==-1){
+        	// need to add the default_context
+        	path = DEFAULT_CONTEXT + path;
         }
 
         return path;
