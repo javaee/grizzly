@@ -1,6 +1,6 @@
 -exportcontents: \
                         com.sun.grizzly.config; \
-                        com.sun.grizzly.config.dom; version=${grizzly-version}
+                        com.sun.grizzly.config.dom; version=${grizzly.version}
 
 Import-Package: \
                         com.sun.enterprise.v3.services.impl; \
