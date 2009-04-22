@@ -159,12 +159,6 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
     private SocketChannel socketChannel;
     
     /**
-     * Default {@link SSLContext}, created on
-     * top of default <code>SSLConfiguration</code>
-     */
-    private static volatile SSLContext defaultSSLContext;
-    
-    /**
      * Is the connection established.
      */
     private volatile boolean isConnected;
@@ -228,12 +222,12 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
     /**
      * SSL read postprocessor for <code>AsyncQueueReadable</code>
      */
-    private volatile AsyncQueueDataProcessor sslReadPostProcessor;
+    private final AsyncQueueDataProcessor sslReadPostProcessor;
 
     /**
      * SSL write preprocessor for <code>AsyncQueueWritable</code>
      */
-    private volatile AsyncQueueDataProcessor sslWritePreProcessor;
+    private final AsyncQueueDataProcessor sslWritePreProcessor;
     
     /**
      * Connector's write mode
@@ -245,10 +239,8 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
      */
     private boolean isAsyncReadQueueMode;
 
-    private Object lock = new Object();
-
     public SSLConnectorHandler() {
-        this(defaultSSLContext);
+        this(SSLConfig.DEFAULT_CONFIG.createSSLContext());
     }
     
     public SSLConnectorHandler(SSLConfig sslConfig) {
@@ -256,19 +248,9 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
     }
     
     public SSLConnectorHandler(SSLContext sslContext) {
-        if (sslContext == null) {
-            if (defaultSSLContext == null) {
-                synchronized (SSLConnectorHandler.class) {
-                    if (defaultSSLContext == null) {
-                        defaultSSLContext = SSLConfig.DEFAULT_CONFIG.createSSLContext();
-                    }
-                }
-            }
-            
-            sslContext = defaultSSLContext;
-        }
-        
         this.sslContext = sslContext;
+        sslReadPostProcessor = new SSLReadPostProcessor();
+        sslWritePreProcessor = new SSLWritePreProcessor();
     }
     
     public boolean getDelegateSSLTasks() {
@@ -1293,26 +1275,10 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
     }
     
     private AsyncQueueDataProcessor obtainSSLReadPostProcessor() {
-        if (sslReadPostProcessor == null) {
-            synchronized(lock) {
-                if (sslReadPostProcessor == null) {
-                    sslReadPostProcessor = new SSLReadPostProcessor();
-                }
-            }
-        }
-        
         return sslReadPostProcessor;
     }
 
     private AsyncQueueDataProcessor obtainSSLWritePreProcessor() {
-        if (sslWritePreProcessor == null) {
-            synchronized(lock) {
-                if (sslWritePreProcessor == null) {
-                    sslWritePreProcessor = new SSLWritePreProcessor();
-                }
-            }
-        }
-        
         return sslWritePreProcessor;
     }
     
