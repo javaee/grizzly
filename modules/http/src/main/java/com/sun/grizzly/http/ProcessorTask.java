@@ -455,6 +455,13 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     private final TaskEvent<ProcessorTask> event = new TaskEvent<ProcessorTask>(this);
 
+
+    private static final String HEADER_ORIGIN = "Origin";
+    private static final String HEADER_CONNECTION = "Connection";
+    private static final String HEADER_UPGRADE = "Upgrade";
+    private static final String HEADER_WEBSOCKET_ORIGIN = "WebSocket-Origin";
+    private static final String WEBSOCKET = "WebSocket";
+    
     // ----------------------------------------------------- Constructor ---- //
 
     public ProcessorTask(){
@@ -735,39 +742,67 @@ public class ProcessorTask extends TaskBase implements Processor,
         inputBuffer.nextRequest();
         outputBuffer.nextRequest();
     }
-    
-    
+       
+
     /**
      * Invoke the {@link Adapter}, which usualy invoke the Servlet
      * Container.
      */
     public void invokeAdapter(){
-        // Process the request in the adapter
         if (!error) {
-            try {
-                adapter.service(request, response);
-                // Handle when the response was committed before a serious
-                // error occurred.  Throwing a ServletException should both
-                // set the status to 500 and set the errorException.
-                // If we fail here, then the response is likely already 
-                // committed, so we can't try and set headers.
-                if(keepAlive && !error) { // Avoid checking twice.
-                    error = response.getErrorException() != null ||
-                            statusDropsConnection(response.getStatus());
+            if (WEBSOCKET.equals(request.getHeader(HEADER_UPGRADE))){
+                 wsUpgrade();
+            }else{
+                try {
+                    adapter.service(request, response);
+                    // Handle when the response was committed before a serious
+                    // error occurred.  Throwing a ServletException should both
+                    // set the status to 500 and set the errorException.
+                    // If we fail here, then the response is likely already
+                    // committed, so we can't try and set headers.
+                    if(keepAlive && !error) { // Avoid checking twice.
+                        error = response.getErrorException() != null ||
+                                statusDropsConnection(response.getStatus());
+                    }
+                } catch (InterruptedIOException e) {
+                    error = true;
+                } catch (Throwable t) {
+                    logger.log(Level.SEVERE,
+                            sm.getString("processorTask.serviceError"), t);
+                    // 500 - Internal Server Error
+                    response.setStatus(500);
+                    error = true;
                 }
-            } catch (InterruptedIOException e) {
-                error = true;
-            } catch (Throwable t) {
-                logger.log(Level.SEVERE,
-                        sm.getString("processorTask.serviceError"), t);
-                // 500 - Internal Server Error
-                response.setStatus(500);
-                error = true;
             }
         }
     }
     
-    
+
+    /**
+     * upgrade connetion to websocket
+     */
+    private void wsUpgrade(){
+        //todo suspend read until protocol switch is done ?
+        response.setStatus(101);
+        response.setMessage("Web Socket Protocol Handshake");
+        response.setHeader(HEADER_UPGRADE, WEBSOCKET);
+        response.setHeader(HEADER_CONNECTION, HEADER_UPGRADE);
+        String location = request.requestURI().toString();
+        //todo add https check. change to wss ws  in location
+        System.err.println("LOCATION:"+location);
+        response.setHeader("WebSocket-Location", location);
+        String origin = request.getHeader(HEADER_ORIGIN);
+        response.setHeader(HEADER_WEBSOCKET_ORIGIN, origin);
+
+        WebSocketConnection wsclient = WebScocketContext.clientConnected(location,key);
+        if (wsclient != null){ 
+            key.attach(wsclient);
+            //todo kill the httpsession ?
+        }else{//todo set correct header  for  invalid url
+             response.setHeader("uhm location not exist ?", location);
+        }
+    }
+
     /**
      * Parse the request line and the http header.
      */
