@@ -274,6 +274,8 @@ public class TCPSelectorHandler implements SelectorHandler {
      */
     protected final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
+    protected int emptySpinCounter;
+    
     public TCPSelectorHandler(){
         this(Role.CLIENT_SERVER);
     }
@@ -1342,5 +1344,19 @@ public class TCPSelectorHandler implements SelectorHandler {
         if (isClient) return Role.CLIENT;
 
         return Role.CLIENT_SERVER;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public int getEmptySpinCounter() {
+        return emptySpinCounter;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void setEmptySpinCounter(int emptySpinCounter) {
+        this.emptySpinCounter = emptySpinCounter;
     }
 }

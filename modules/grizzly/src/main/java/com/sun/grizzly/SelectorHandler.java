@@ -335,4 +335,14 @@ public interface SelectorHandler extends Handler, Copyable,
      * Closes {@link SelectableChannel}
      */
     public void closeChannel(SelectableChannel channel);
+
+    /**
+     * Get empty spin counter
+     */
+    public int getEmptySpinCounter();
+
+    /**
+     * Set empty spin counter
+     */
+    public void setEmptySpinCounter(int emptySpinCounter);
 }
