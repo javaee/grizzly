@@ -42,7 +42,6 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.NIOContext;
-import com.sun.grizzly.ProtocolChainContextTask;
 import com.sun.grizzly.ProtocolParser;
 import com.sun.grizzly.filter.ParserProtocolFilter;
 import com.sun.grizzly.util.ByteBufferFactory;

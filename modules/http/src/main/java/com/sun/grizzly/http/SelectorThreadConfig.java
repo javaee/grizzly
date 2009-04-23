@@ -153,6 +153,9 @@ public class SelectorThreadConfig{
 
     private final static String SSL_CONFIGURATION_SSLIMPL =
             "com.sun.grizzly.ssl.sslImplementation";
+    
+   private final static String ASYNC_HANDLER_ENABLED_CONTEXT_PATH =
+           "com.sun.grizzly.arp.asyncHandlerContextPath";
 
    /**
      * The string manager for this package.
@@ -368,6 +371,13 @@ public class SelectorThreadConfig{
             }
         }
 
+        String list = System.getProperty(ASYNC_HANDLER_ENABLED_CONTEXT_PATH);
+        if (list != null){
+            StringTokenizer st = new StringTokenizer(list, ",");
+            while (st.hasMoreTokens()){
+                selectorThread.addAsyncEnabledContextPath(st.nextToken());
+            }
+        }
     }
 
     

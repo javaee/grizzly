@@ -63,12 +63,12 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     /**
      * The {@link StreamAlgorithm} classes.
      */
-    private Class algorithmClass;
+    protected Class algorithmClass;
     
     /**
      * The current TCP port.
      */
-    private int port;
+    protected int port;
     
     /**
      * Logger
@@ -122,7 +122,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             workerThread.setStreamAlgorithm(streamAlgorithm);
         }
         SelectionKey key = ctx.getSelectionKey();
-        configureByteBufferInputStream(inputStream, ctx, workerThread);
+        configureInputBuffer(inputStream, ctx, workerThread);
         SocketChannel socketChannel =
                 (SocketChannel)key.channel();
         streamAlgorithm.setChannel(socketChannel);
@@ -155,8 +155,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                 processorTask.setDropConnection(false);
             }
                        
-            configureProcessorTask(processorTask, ctx, workerThread, 
-                    streamAlgorithm.getHandler());
+            configureProcessorTask(processorTask, ctx, streamAlgorithm.getHandler());
             
             try{
                 keepAlive = processorTask.process(inputStream,null);
@@ -217,8 +216,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
      * Configure {@link ProcessorTask}.
      */
     protected void configureProcessorTask(ProcessorTask processorTask, 
-            Context context, HttpWorkerThread workerThread, 
-            Interceptor handler) {
+            Context context, Interceptor handler) {
         SelectionKey key = context.getSelectionKey();
         
         processorTask.setSelectorHandler(context.getSelectorHandler());
@@ -233,8 +231,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     /**
      * Configure {@link InputReader}.
      */
-    protected void configureByteBufferInputStream(
-            InputReader inputStream, Context context, 
+    protected void configureInputBuffer(InputReader inputStream, Context context, 
             HttpWorkerThread workerThread) {
         inputStream.setSelectionKey(context.getSelectionKey());
         inputStream.setByteBuffer(workerThread.getByteBuffer());
@@ -248,4 +245,5 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     protected boolean isSecure() {
         return false;
     }
+
 }

@@ -44,6 +44,7 @@ import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.TCPSelectorHandler;
+import com.sun.grizzly.arp.AsyncInterceptor;
 import com.sun.grizzly.arp.AsyncProtocolFilter;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
@@ -78,6 +79,8 @@ import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.res.StringManager;
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import javax.management.ObjectName;
 import javax.management.MBeanServer;
 import javax.management.MBeanRegistration;
@@ -85,6 +88,7 @@ import javax.management.MBeanRegistration;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Properties;
 import java.util.StringTokenizer;
@@ -554,6 +558,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     // Force keep-alive
     protected boolean forceKeepAlive = false;
     
+    // AsyncInterceptor implemenation.
+    private AsyncInterceptor asyncInterceptor;
+    
     // ---------------------------------------------------- Constructor --//
     
     
@@ -705,7 +712,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     protected ProtocolFilter createHttpParserFilter() {
         if (asyncExecution){
-            return new AsyncProtocolFilter(algorithmClass,port);
+           AsyncProtocolFilter f = new AsyncProtocolFilter(algorithmClass,port);
+           if (asyncInterceptor != null) {
+               f.setInterceptor(asyncInterceptor);
+           }
+           return f;
         } else {
             return new DefaultProtocolFilter(algorithmClass, port);
         }
@@ -2352,5 +2363,18 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     public boolean getForceKeepAlive(){
         return forceKeepAlive;
+    }
+    
+    /**
+     * Add a context-path that will be allowed to execute using the 
+     * {@link AsyncHandler}.
+     * 
+     * @param s A context-path that will be allowed to execute using the
+     */
+    public void addAsyncEnabledContextPath(String s){
+        if (asyncInterceptor == null){
+            asyncInterceptor = new AsyncInterceptor();
+        }
+        asyncInterceptor.addContextPath(s);
     }
 }
