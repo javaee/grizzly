@@ -92,7 +92,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable {
     /**
      * This is an id for the work-queue e.g. "thread-pool-1", "thread-pool-2" etc
      */
-    @Attribute(required = true)
+    @Attribute(required = true, key=true)
     String getThreadPoolId();
 
     void setThreadPoolId(String value);
