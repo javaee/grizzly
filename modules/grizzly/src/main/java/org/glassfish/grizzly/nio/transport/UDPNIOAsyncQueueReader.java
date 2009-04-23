@@ -46,8 +46,11 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -57,7 +60,6 @@ import org.glassfish.grizzly.nio.NIOConnection;
  * @author Alexey Stashok
  */
 public class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
-
     public UDPNIOAsyncQueueReader(NIOTransport transport) {
         super(transport);
     }
@@ -65,9 +67,19 @@ public class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
     @Override
     protected int read0(Connection connection, Buffer buffer,
             ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
-//        NIOConnection nioConnection = (NIOConnection) connection;
-//        return nioConnection.readNow(buffer);
-        return -1;
+        return ((UDPNIOTransport) transport).read(connection, buffer,
+                currentResult);
+    }
+
+    protected void addRecord(Connection connection,
+            Buffer buffer,
+            CompletionHandler completionHandler,
+            Interceptor<ReadResult> interceptor) {
+        AsyncReadQueueRecord record = new AsyncReadQueueRecord();
+        record.set(buffer, new FutureImpl(),
+                new ReadResult(connection),
+                completionHandler, interceptor);
+        ((TCPNIOConnection) connection).obtainAsyncReadQueue().getQueue().add(record);
     }
 
     @Override
@@ -80,14 +92,12 @@ public class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
     }
 
     public Context context() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return null;
     }
 
     public void beforeProcess(Context context) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     public void afterProcess(Context context) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 }

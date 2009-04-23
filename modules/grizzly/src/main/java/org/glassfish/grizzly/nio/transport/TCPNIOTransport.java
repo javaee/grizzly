@@ -89,6 +89,7 @@ import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.ProcessorRunnable;
 import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.SocketBinder;
 import org.glassfish.grizzly.SocketConnectorHandler;
 import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.nio.SelectorRunner;
@@ -102,8 +103,8 @@ import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
  * @author Jean-Francois Arcand
  */
 public class TCPNIOTransport extends AbstractNIOTransport implements
-        SocketAcceptor, SocketConnectorHandler, AsyncQueueEnabledTransport,
-        FilterChainEnabledTransport,
+        SocketAcceptor, SocketBinder, SocketConnectorHandler,
+        AsyncQueueEnabledTransport, FilterChainEnabledTransport,
         TemporarySelectorsEnabledTransport {
 
     private Logger logger = Grizzly.logger;
@@ -128,6 +129,10 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
      * Transport AsyncQueueIO
      */
     protected AsyncQueueIO asyncQueueIO;
+    /**
+     * Server socket backlog.
+     */
+    protected TemporarySelectorIO temporarySelectorIO;
     /**
      * The server socket time out
      */
@@ -155,19 +160,20 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
      */
     protected int connectionTimeout =
             TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
-    /**
-     * Server socket backlog.
-     */
-    protected TemporarySelectorIO temporarySelectorIO;
     private Filter defaultTransportFilter;
-    protected RegisterChannelCompletionHandler registerChannelCompletionHandler;
-    private EnableInterestPostProcessor enablingInterestPostProcessor;
+    protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
+    private final EnableInterestPostProcessor enablingInterestPostProcessor;
     
     public TCPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
+    }
+
+    protected TCPNIOTransport(String name) {
+        super(name);
+        
         readBufferSize = DEFAULT_READ_BUFFER_SIZE;
         writeBufferSize = DEFAULT_WRITE_BUFFER_SIZE;
-        
+
         registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
         enablingInterestPostProcessor = new EnableInterestPostProcessor();
 
@@ -187,10 +193,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
 
         defaultTransportFilter = new TCPNIOTransportFilter(this);
-    }
-
-    protected TCPNIOTransport(String name) {
-        super(name);
     }
 
     @Override
@@ -445,7 +447,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    protected NIOConnection obtainNIOConnection(SelectableChannel channel) {
+    protected NIOConnection obtainNIOConnection(SocketChannel channel) {
         TCPNIOConnection connection = new TCPNIOConnection(this, channel);
         connection.configureBlocking(isBlocking);
         return connection;

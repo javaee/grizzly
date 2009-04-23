@@ -39,40 +39,37 @@
 package org.glassfish.grizzly.nio.transport;
 
 import org.glassfish.grizzly.IOEvent;
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.ProcessorResult;
-import org.glassfish.grizzly.nio.NIOConnection;
 import java.io.IOException;
-import java.net.Socket;
+import java.net.DatagramSocket;
 import java.net.SocketAddress;
+import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import org.glassfish.grizzly.AbstractProcessor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.AbstractSocketConnectorHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
+import org.glassfish.grizzly.nio.SelectorRunner;
 
 /**
- * TCP NIO transport client side ConnectorHandler implementation
+ * UDP NIO transport client side ConnectorHandler implementation
  * 
  * @author Alexey Stashok
  */
-public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
+public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     
     protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
     
     protected boolean isReuseAddress;
     protected int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
-    public TCPNIOConnectorHandler(TCPNIOTransport transport) {
+    public UDPNIOConnectorHandler(UDPNIOTransport transport) {
         super(transport);
-        TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
+        UDPNIOTransport nioTransport = (UDPNIOTransport) transport;
         connectionTimeout = nioTransport.getConnectionTimeout();
         isReuseAddress = nioTransport.isReuseAddress();
     }
@@ -98,53 +95,41 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
     protected Future<Connection> connectAsync(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
-        SocketChannel socketChannel = SocketChannel.open();
-        Socket socket = socketChannel.socket();
+        DatagramChannel datagramChannel = DatagramChannel.open();
+        DatagramSocket socket = datagramChannel.socket();
         socket.setReuseAddress(isReuseAddress);
         
         if (localAddress != null) {
             socket.bind(localAddress);
         }
 
-        socketChannel.configureBlocking(false);
+        datagramChannel.configureBlocking(false);
 
-        TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
+        UDPNIOTransport nioTransport = (UDPNIOTransport) transport;
         
-        TCPNIOConnection newConnection = (TCPNIOConnection)
-                nioTransport.obtainNIOConnection(socketChannel);
+        UDPNIOConnection newConnection = (UDPNIOConnection)
+                nioTransport.obtainNIOConnection(datagramChannel);
         
         FutureImpl connectFuture = new FutureImpl();
-        
-        ConnectorEventProcessor finishConnectProcessor =
-                new ConnectorEventProcessor(connectFuture);
-        newConnection.setProcessor(finishConnectProcessor);
-        
-        boolean isConnected = socketChannel.connect(remoteAddress);
-        
-        if (isConnected) {
-            // if connected immediately - register channel on selector with
-            // OP_READ interest
-            Future<RegisterChannelResult> registerChannelFuture =
-                    nioTransport.getNioChannelDistributor().
-                    registerChannelAsync(socketChannel, SelectionKey.OP_READ,
-                    newConnection, null);
 
-            // Wait until the SelectableChannel will be registered on the Selector
-            RegisterChannelResult result = waitNIOFuture(registerChannelFuture);
-
-            // make sure completion handler is called
-            nioTransport.registerChannelCompletionHandler.completed(null, result);
-            
-            transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
-        } else {
-            Future registerChannelFuture =
-                    nioTransport.getNioChannelDistributor().registerChannelAsync(
-                    socketChannel, SelectionKey.OP_CONNECT, newConnection,
-                    nioTransport.registerChannelCompletionHandler);
-
-            // Wait until the SelectableChannel will be registered on the Selector
-            waitNIOFuture(registerChannelFuture);
+        if (remoteAddress != null) {
+            datagramChannel.connect(remoteAddress);
         }
+        
+        // if connected immediately - register channel on selector with OP_READ
+        // interest
+        Future<RegisterChannelResult> registerChannelFuture =
+                nioTransport.getNioChannelDistributor().
+                registerChannelAsync(datagramChannel, SelectionKey.OP_READ,
+                newConnection, null);
+
+        // Wait until the SelectableChannel will be registered on the Selector
+        RegisterChannelResult result = waitNIOFuture(registerChannelFuture);
+
+        // make sure completion handler is called
+        nioTransport.registerChannelCompletionHandler.completed(null, result);
+
+        transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
         
         return connectFuture;
     }
@@ -183,69 +168,6 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             }
         } catch (CancellationException e) {
             throw new IOException("Connection was cancelled!");
-        }
-    }
-
-    /**
-     * Processor, which will be notified, once OP_CONNECT will be ready
-     */
-    protected class ConnectorEventProcessor extends AbstractProcessor {
-        private FutureImpl<Connection> connectFuture;
-
-        public ConnectorEventProcessor(FutureImpl<Connection> future) {
-            this.connectFuture = future;
-        }
-        
-        /**
-         * Method will be called by framework, when async connect will be completed
-         * 
-         * @param context processing context
-         * @throws java.io.IOException
-         */
-        public ProcessorResult process(Context context)
-                throws IOException {
-            try {
-                NIOConnection connection = (NIOConnection) 
-                        context.getConnection();
-                
-                TCPNIOTransport transport =
-                        (TCPNIOTransport) connection.getTransport();
-
-                SocketChannel channel = (SocketChannel) connection.getChannel();
-                if (!channel.isConnected()) {
-                    channel.finishConnect();
-                }
-
-                // Unregister OP_CONNECT interest
-                transport.getSelectorHandler().unregisterKey(
-                        connection.getSelectorRunner(),
-                        connection.getSelectionKey(),
-                        SelectionKey.OP_CONNECT);
-
-                transport.configureChannel(channel);
-                connection.setProcessor(defaultProcessor);
-                connection.setProcessorSelector(defaultProcessorSelector);
-
-                // Execute CONNECTED event one more time for default {@link Processor}
-                transport.fireIOEvent(IOEvent.CONNECTED, connection);
-                
-                transport.getSelectorHandler().registerKey(
-                        connection.getSelectorRunner(),
-                        connection.getSelectionKey(),
-                        SelectionKey.OP_READ);
-                
-                connectFuture.setResult(connection);
-            } catch (Exception e) {
-                connectFuture.failure(e);
-            }
-            return null;
-        }
-
-        public boolean isInterested(IOEvent ioEvent) {
-            return true;
-        }
-
-        public void setInterested(IOEvent ioEvent, boolean isInterested) {
         }
     }
 }

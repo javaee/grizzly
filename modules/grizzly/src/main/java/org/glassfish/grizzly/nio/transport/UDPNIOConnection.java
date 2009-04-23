@@ -43,9 +43,9 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.nio.channels.SelectableChannel;
+import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
+import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
@@ -57,27 +57,33 @@ import org.glassfish.grizzly.streams.AbstractStreamWriter;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
- * for the {@link TCPNIOTransport}
+ * for the {@link UDPNIOTransport}
  *
  * @author Alexey Stashok
  */
-public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
+public class UDPNIOConnection extends AbstractNIOConnection<SocketAddress> {
     private Logger logger = Grizzly.logger;
 
     private final AbstractStreamReader streamReader;
 
     private final AbstractStreamWriter streamWriter;
     
-    public TCPNIOConnection(TCPNIOTransport transport,
-            SelectableChannel channel) {
+    public UDPNIOConnection(UDPNIOTransport transport,
+            DatagramChannel channel) {
         super(transport);
         
         this.channel = channel;
         readBufferSize = transport.getReadBufferSize();
         writeBufferSize = transport.getWriteBufferSize();
         
-        streamReader = new TCPNIOStreamReader(this);
-        streamWriter = new TCPNIOStreamWriter(this);
+        streamReader = new UDPNIOStreamReader(this);
+        streamWriter = new UDPNIOStreamWriter(this);
+    }
+
+    public Future register() throws IOException {
+        return transport.getNioChannelDistributor().registerChannelAsync(
+                channel, SelectionKey.OP_READ, this,
+                ((UDPNIOTransport) transport).registerChannelCompletionHandler);
     }
 
     @Override
@@ -115,7 +121,7 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
      */
     public SocketAddress getPeerAddress() {
         if (channel != null) {
-            return ((SocketChannel) channel).socket().getRemoteSocketAddress();
+            return ((DatagramChannel) channel).socket().getRemoteSocketAddress();
         }
 
         return null;
@@ -129,7 +135,7 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
      */
     public SocketAddress getLocalAddress() {
         if (channel != null) {
-            return ((SocketChannel) channel).socket().getLocalSocketAddress();
+            return ((DatagramChannel) channel).socket().getLocalSocketAddress();
         }
 
         return null;

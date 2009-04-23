@@ -47,7 +47,10 @@ import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.Future;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.Interceptor;
 import org.glassfish.grizzly.nio.NIOConnection;
 
 /**
@@ -63,17 +66,30 @@ public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     }
 
     @Override
-    protected int write0(Connection connection, SocketAddress dstAddress,
-            Buffer buffer, WriteResult<Buffer, SocketAddress> currentResult)
-            throws IOException {
-//        NIOConnection nioConnection = (NIOConnection) connection;
-//        return nioConnection.writeNow(dstAddress, buffer).getWrittenSize();
+    public Future<WriteResult<Buffer, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, Buffer buffer,
+            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+            Interceptor<WriteResult> interceptor,
+            MessageCloner<Buffer> cloner) throws IOException {
 
-        return -1;
+        if (dstAddress != null) {
+            throw new UnsupportedOperationException(
+                    "Destination address should be null for UDP!");
+        }
+
+        return super.write(connection, null, buffer, completionHandler,
+                interceptor, cloner);
     }
 
-    protected void onReadyToWrite(Connection connection)
+    protected int write0(Connection connection, SocketAddress dstAddress,
+            Buffer buffer,
+            WriteResult<Buffer, SocketAddress> currentResult)
             throws IOException {
+        return ((UDPNIOTransport) transport).write(connection, dstAddress,
+                buffer, currentResult);
+    }
+
+    protected void onReadyToWrite(Connection connection) throws IOException {
         NIOConnection nioConnection = (NIOConnection) connection;
 
         transport.getSelectorHandler().registerKey(
@@ -82,14 +98,12 @@ public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
     }
 
     public Context context() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return null;
     }
 
     public void beforeProcess(Context context) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     public void afterProcess(Context context) throws IOException {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 }
