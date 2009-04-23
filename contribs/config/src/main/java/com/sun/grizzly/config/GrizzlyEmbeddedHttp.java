@@ -280,7 +280,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                             Integer.toString(getMaxThreads())
                     });
         }
-        final Boolean enableComet = Boolean.valueOf(System.getProperty("v3.grizzly.cometSupport", "false"));
+        final Boolean enableComet = toBoolean(http.getEnableCometSupport());
         if (enableComet && !"admin-listener".equalsIgnoreCase(networkListener.getName())) {
             configureComet(habitat);
         }
