@@ -298,16 +298,7 @@ public class SelectorThreadConfig{
             } catch (IOException ex) {
                 ;
             }
-        }
-
-        if (System.getProperty(FACTORY_TIMEOUT) != null){
-            try{
-                SelectorFactory.timeout = 
-                  Integer.parseInt(System.getProperty(FACTORY_TIMEOUT));
-            } catch (NumberFormatException ex){
-                ;
-            }
-        }     
+        } 
         
         if (System.getProperty(SNOOP_LOGGING)!= null){
             SelectorThread.setEnableNioLogging(
