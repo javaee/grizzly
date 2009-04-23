@@ -186,8 +186,8 @@ public class SSLUtils {
             ByteBuffer inputBB, SSLEngine sslEngine) throws IOException{
         
         SSLEngineResult result = null;
-        do{
-            try{
+        do {
+            try {
                result = unwrap(byteBuffer,inputBB,sslEngine);
             } catch (Throwable ex){
                 Logger logger = LoggerUtils.getLogger();
@@ -211,14 +211,18 @@ public class SSLUtils {
                         }
                         break;
                     case BUFFER_OVERFLOW:
-                         byteBuffer = reallocate(byteBuffer);
-                         break;
+//                         byteBuffer = reallocate(byteBuffer);
+                        if (byteBuffer.position() == 0) {
+                            throw new IOException("Buffer overflow");
+                        }
+                        break;
                     default:                       
                         throw new 
                              IOException("Unwrap error: "+ result.getStatus());
                  }   
              }
         } while (inputBB.position() > 0 && result!= null &&
+                result.getStatus() != Status.BUFFER_OVERFLOW &&
                 result.getStatus() != Status.BUFFER_UNDERFLOW &&
                 result.getStatus() != Status.CLOSED);
         return byteBuffer;
