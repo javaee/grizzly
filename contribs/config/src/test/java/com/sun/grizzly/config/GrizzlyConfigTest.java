@@ -31,10 +31,10 @@ public class GrizzlyConfigTest {
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
                 setRootFolder(listener, count++);
             }
-            final String content = getContent(new URL("http://localhost:8080").openConnection());
-            final String content2 = getContent(new URL("http://localhost:8181").openConnection());
-            Assert.assertEquals(content, "<html><body>You've found the server on port 8080</body></html>");
-            Assert.assertEquals(content2, "<html><body>You've found the server on port 8181</body></html>");
+            final String content = getContent(new URL("http://localhost:38082").openConnection());
+            final String content2 = getContent(new URL("http://localhost:38083").openConnection());
+            Assert.assertEquals(content, "<html><body>You've found the server on port 38082</body></html>");
+            Assert.assertEquals(content2, "<html><body>You've found the server on port 38083</body></html>");
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
