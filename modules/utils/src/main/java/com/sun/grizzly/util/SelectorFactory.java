@@ -83,7 +83,6 @@ public class SelectorFactory{
                 while(toadd-->0){
                     selectors.add(createSelector());                    
                 }
-                LoggerUtils.getLogger().severe("**  CREATED SELECTOR in cache **************************** "+ a);
             }else{
                 reduce(-toadd);
             }
@@ -127,7 +126,7 @@ public class SelectorFactory{
         }
         Selector selector = selectors.poll();
         if (selector == null){
-            LoggerUtils.getLogger().warning("Temp Selector leak detected. cachelimit: "+maxSelectors);
+            LoggerUtils.getLogger().warning("Temp Selector leak or inroper config detected. cachelimit: "+maxSelectors);
         }
         return selector;
     }
