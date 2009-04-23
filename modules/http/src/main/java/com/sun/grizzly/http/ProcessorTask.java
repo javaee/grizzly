@@ -70,7 +70,6 @@ import com.sun.grizzly.tcp.ActionHook;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.Processor;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;

@@ -45,6 +45,7 @@ import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.ByteBufferFactory;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
+import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.SSLSupport;
 import java.io.InputStream;
@@ -74,10 +75,10 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
      */
     @Override
     protected void configureProcessorTask(ProcessorTask processorTask,
-            Context context, HttpWorkerThread workerThread,
-            Interceptor handler, InputStream inputStream) {
-        super.configureProcessorTask(processorTask, context, workerThread,
+            Context context, Interceptor handler, InputStream inputStream) {
+        super.configureProcessorTask(processorTask, context,
                 handler, inputStream);
+        WorkerThread workerThread = (WorkerThread) Thread.currentThread();
         
         SSLSupport sslSupport = sslImplementation.
                 getSSLSupport(workerThread.getSSLEngine());
@@ -94,7 +95,7 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
      * {@inheritDoc}
      */
     @Override
-    protected InputReader createByteBufferInputStream() {
+    protected InputReader createInputReader() {
         return new SSLAsyncStream(ByteBufferFactory.allocateView(bbSize,false));
     }
 
@@ -102,7 +103,7 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
      * {@inheritDoc}
      */
     @Override
-    protected void configureByteBufferInputStream(
+    protected void configureInputBuffer(
             InputReader inputStream, Context context, 
             HttpWorkerThread workerThread) {
         ((SSLAsyncStream) inputStream).setSslEngine(workerThread.getSSLEngine());
