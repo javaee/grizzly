@@ -42,15 +42,20 @@ import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
-import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.LinkedTransferQueue;
-import com.sun.grizzly.util.SelectorFactory;
+import com.sun.grizzly.util.PipelineThreadPool;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -114,7 +119,7 @@ public class CometEngine {
     /**
      * The {@link ExecutorService} used to execute {@link CometTask}
      */
-    protected ExtendedThreadPool threadPool;
+    protected ExecutorService threadPool;
 
 
     /**
@@ -179,9 +184,9 @@ public class CometEngine {
                 }); */
         
         //ExecutorService tpe = threadPool = new DefaultExecutorService(4, 8, 30,
-              //  TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), "CometWorker-");        
-        ExtendedThreadPool tpe = new com.sun.grizzly.util.FixedThreadPool(8,"CometWorker");
-        setThreadPool(tpe);
+              //  TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), "CometWorker-");
+        ExecutorService tpe = new com.sun.grizzly.util.FixedThreadPool(8,"CometWorker");
+        threadPool = tpe;
     }
 
     /**
@@ -207,19 +212,9 @@ public class CometEngine {
      * shuttdownnow is called on the existing threadpool.
      * does notupdate existing notificationhandlers
      */
-    public void setThreadPool(ExtendedThreadPool threadPool) {
+    public void setThreadPool(ExecutorService threadPool) {
         if (threadPool != null){
-            int oldsize = 0;
-            if (this.threadPool != null){
-                oldsize = this.threadPool.getMaximumPoolSize();
-                this.threadPool.shutdownNow();                
-            }
-            int delta = threadPool.getMaximumPoolSize() - oldsize;
-            try {
-                SelectorFactory.changeSelectorsBy(delta);
-            } catch (IOException ex) {
-                logger.log(Level.WARNING,"Failed to increase temp selector cache", ex);
-            }
+            this.threadPool.shutdownNow();
             this.threadPool = threadPool;
         }
     }
@@ -228,7 +223,7 @@ public class CometEngine {
      * returns the threadpool comet is using
      * @return ExecutorService
      */
-    public ExtendedThreadPool getThreadPool() {
+    public ExecutorService getThreadPool() {
         return threadPool;
     }
 
