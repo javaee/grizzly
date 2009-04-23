@@ -59,7 +59,13 @@ public class SelectorFactory{
      */
     private static volatile int maxSelectors = DEFAULT_MAX_SELECTORS;
     
-    
+    static{
+        try {
+            setMaxSelectors(maxSelectors);
+        } catch (IOException ex) {
+           LoggerUtils.getLogger().log(Level.WARNING,"static init of SelectorFactory failed",ex);
+        }
+    }
     /**
      * Cache of {@link Selector}
      */
@@ -122,7 +128,7 @@ public class SelectorFactory{
     public final static Selector getSelector() {
         Selector selector = selectors.poll();
         if (selector == null){
-            LoggerUtils.getLogger().warning("Temp Selector leak detected.");
+            LoggerUtils.getLogger().warning("Temp Selector leak detected. cachelimit: "+maxSelectors);
         }
         return selector;
     }
