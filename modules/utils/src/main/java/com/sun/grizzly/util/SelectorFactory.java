@@ -59,13 +59,6 @@ public class SelectorFactory{
      */
     private static volatile int maxSelectors = DEFAULT_MAX_SELECTORS;
     
-    static{
-        try {
-            setMaxSelectors(maxSelectors);
-        } catch (IOException ex) {
-           LoggerUtils.getLogger().log(Level.WARNING,"static init of SelectorFactory failed",ex);
-        }
-    }
     /**
      * Cache of {@link Selector}
      */
@@ -76,25 +69,24 @@ public class SelectorFactory{
     /**
      * have we created the Selector instances.
      */
-    private static boolean initialized = false;
-    
+    private static volatile boolean initialized = false;
+
     /**
      * Set max selector pool size.
      * @param size max pool size
      */
     public final static void setMaxSelectors(int size) throws IOException {
         synchronized(selectors) {
-            if (size > maxSelectors || !initialized) {
-                // if not initialized yet - grow cache by size
-                if (!initialized) maxSelectors = 0;
-
-                for(int i=0; i<size - maxSelectors; i++) {
-                    selectors.add(createSelector());
+            int toadd = (initialized ?size-maxSelectors:maxSelectors);
+            if (toadd>0){
+                int a = toadd;
+                while(toadd-->0){
+                    selectors.add(createSelector());                    
                 }
-            }  else if (size < maxSelectors) {
-                reduce(size);
+                LoggerUtils.getLogger().severe("**  CREATED SELECTOR in cache **************************** "+ a);
+            }else{
+                reduce(-toadd);
             }
-
             maxSelectors = size;
             initialized = true;
         }
@@ -126,6 +118,13 @@ public class SelectorFactory{
      * @return {@link Selector}
      */
     public final static Selector getSelector() {
+        if (!initialized){
+            try{
+                setMaxSelectors(maxSelectors);
+            } catch (IOException ex) {
+                LoggerUtils.getLogger().log(Level.WARNING,"static init of SelectorFactory failed",ex);
+            }
+        }
         Selector selector = selectors.poll();
         if (selector == null){
             LoggerUtils.getLogger().warning("Temp Selector leak detected. cachelimit: "+maxSelectors);
@@ -191,8 +190,8 @@ public class SelectorFactory{
     /**
      * Decrease {@link Selector} pool size
      */
-    private static void reduce(int size) {
-        for(int i=0; i<maxSelectors - size; i++) {
+    private static void reduce(int tokill) {
+        while(tokill-->0){
             try {
                 Selector selector = selectors.poll();
                 selector.close();
