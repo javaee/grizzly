@@ -58,7 +58,8 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Suspend the processing of the request and associated {@link ProtocolChain}
+ * Suspend the processing of the request and associated
+ * {@link com.sun.grizzly.ProtocolChain}
  * 
  * <p>
  * When a connection is suspended, the framework will not continue the execution
@@ -73,44 +74,53 @@ import java.util.logging.Logger;
  * not be interrupted and the connection automatically closed.
  * </p>
  * 
- * <p> 
- * A connection can be suspended  before ({@link #Suspend.BEFORE}) the 
- * ProtocolChain invoke the next ProtocolFilter, or after ({@link #Suspend.AFTER})
- * all ProtocolFilter has been called (e.g. when {@link #postExecute} is invoked).
+ * <p>
+ * A connection can be suspended before
+ * ({@link SuspendableFilter.Suspend#BEFORE}) the
+ * {@link com.sun.grizzly.ProtocolChain} invoke the next {@link ProtocolFilter},
+ * or after ({@link SuspendableFilter.Suspend#AFTER}) all {@link ProtocolFilter}
+ * has been called (e.g. when {@link #postExecute} is invoked).
  * </p>
+ *
+ * <p> This {@link ProtocolFilter} <strong>must always</strong> be invoked after
+ * some read operation has occurred.</p>
  * 
- * <p> This ProtocolFilter <strong>must always</strong> be invoked after some
- * read operation has occurred.</p>
- * 
- * <p> A common usage of SuspendableFilter could be: </p>
+ * <p> A common usage of {@link SuspendableFilter} could be: </p>
+ * <p><pre><code>
+  final ProtocolFilter readFilter = new ReadFilter();
+  final SuspendableFilter suspendFilter = new SuspendableFilter();
+  final ProtocolFilter yourProtocolFilter = new YourProtocolFilter();
+
+  Suspendable suspendable =
+      suspendFilter.suspend("YOUR TOKEN", timeout, attachment, new SuspendableHandler() {
+
+      public void interupted(A attachment) {
+          // Add if you need write something before the connection get closed
+      }
+
+      public void resumed(A attachment) {
+          // When the connection is resumed
+      }
+
+      public void expired(A attachment) {
+          // When the connection is expired.
+  }, {@link SuspendableFilter.Suspend);
+ * </code></pre></p>
+ * <p>
+ * This magic <code>"YOUR TOKEN"</code> is ... TODO 
+ * </p>
+ *
+ * <p>
+ * As an example, all clients that send the bytes 'grizzly is cool' will be
+ * suspended for 5 seconds before the {@link com.sun.grizzly.filter.EchoFilter}
+ * is called.
+ * </p>
  * <p><pre><code>
         final ProtocolFilter readFilter = new ReadFilter();
         final SuspendableFilter suspendFilter = new SuspendableFilter();
-        final ProtocolFilter yourProtocolFilter = new YourProtocolFilter();
- * 
-        Suspendable suspendable = 
- *          suspendFilter.suspend("YOUR TOKEN", timeout, attachment, new SuspendableHandler() {
-
-            public void interupted(A attachment) {
-                // Add if you need write something before the connection get closed
-            }
-
-            public void resumed(A attachment) {
-                // When the connection is resumed
-            }
-
-            public void expired(A attachment) {
-                // When the connection is expired.
-        }, {@link #Suspend); 
- * 
- * As an example, all client that send the bytes 'grizzly is cool' will be
- * suspended for 5 seconds before the {@link EchoFilter} is called.
- *  
-        final ProtocolFilter readFilter = new ReadFilter();
-        final SuspendableFilter suspendFilter = new SuspendableFilter();
         final ProtocolFilter echoFilter = new EchoFilter();
- * 
-        suspendable 
+
+        suspendable
                 = suspendFilter.suspend("grizzly is cool", 5000, null, new SuspendableHandler() {
 
             public void interupted(Object attachment) {
@@ -221,9 +231,9 @@ public class SuspendableFilter<T> implements ProtocolFilter {
      * @param match The String used to decide if a connection and its associated
      * bytes need to be suspended.
      * @param expireTime the time in milliseconds before a connection is resumed.
-     * @param attachment The object that will be returned when the {@link SuspendableHandler}
+     * @param attachement The object that will be returned when the {@link SuspendableHandler}
      * methods are invoked.
-     * @param handler A {@link SuspendableHandler} used to get notification about the suspended
+     * @param sh A {@link SuspendableHandler} used to get notification about the suspended
      * connection state.
      * @return A {@link Suspendable}
      */    
@@ -239,9 +249,9 @@ public class SuspendableFilter<T> implements ProtocolFilter {
      * @param match The String used to decide if a connection and its associated
      * bytes need to be suspended.
      * @param expireTime the time in milliseconds before a connection is resumed.
-     * @param attachment The object that will be returned when the {@link SuspendableHandler}
+     * @param attachement The object that will be returned when the {@link SuspendableHandler}
      * methods are invoked.
-     * @param handler A {@link SuspendableHandler} used to get notification about the suspended
+     * @param sh A {@link SuspendableHandler} used to get notification about the suspended
      * connection state.
      * @param suspendWhen Suspend before or after the next ProtocolChain execution,
      * @return A {@link Suspendable}
