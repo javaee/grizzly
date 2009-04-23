@@ -36,6 +36,7 @@
  */
 package com.sun.grizzly.config.dom;
 
+import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -91,7 +92,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
     void setProtocol(String value);
 
     @DuckTyped
-    ThreadPool findThreadPool();
+    ThreadPool findThreadPool(Habitat habitat);
 
     /**
      * Reference to a thread-pool, defined earlier in the document.
@@ -113,7 +114,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
     void setTransport(String value);
 
     class Duck {
-        public static Protocol findProtocol(final NetworkListener listener) {
+        public static Protocol findProtocol(NetworkListener listener) {
             String name = listener.getProtocol();
             final NetworkConfig networkConfig = listener.getParent().getParent(NetworkConfig.class);
             for (final Protocol protocol : networkConfig.getProtocols().getProtocol()) {
@@ -124,10 +125,9 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
             return null;
         }
 
-        public static ThreadPool findThreadPool(final NetworkListener listener) {
+        public static ThreadPool findThreadPool(NetworkListener listener, Habitat habitat) {
             final String name = listener.getThreadPool();
-            final NetworkListeners listeners = listener.getParent(NetworkListeners.class);
-            for (final ThreadPool threadPool : listeners.getThreadPool()) {
+            for (final ThreadPool threadPool : habitat.getAllByType(ThreadPool.class)) {
                 if (threadPool.getThreadPoolId().equals(name)) {
                     return threadPool;
                 }
@@ -135,7 +135,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
             return null;
         }
 
-        public static Transport findTransport(final NetworkListener listener) {
+        public static Transport findTransport(NetworkListener listener) {
             final String name = listener.getTransport();
             final NetworkConfig networkConfig = listener.getParent().getParent(NetworkConfig.class);
             for (final Transport transport : networkConfig.getTransports().getTransport()) {

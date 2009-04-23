@@ -256,7 +256,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final Protocol httpProtocol = networkListener.findProtocol();
         final Http http = httpProtocol.getHttp();
         final Transport transport = networkListener.findTransport();
-        final ThreadPool pool = networkListener.findThreadPool();
+        final ThreadPool pool = networkListener.findThreadPool(habitat);
 
         setPort(Integer.parseInt(networkListener.getPort()));
         configureHttpListenerProperty(http, transport, httpProtocol.getSsl());
