@@ -44,6 +44,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /**
  * Class contains set of useful operations commonly used in the framework
@@ -245,6 +247,45 @@ public class Utils {
         } finally {
             byteBuffer.limit(curLimit);
             byteBuffer.position(curPosition);                
+        }
+    }
+
+
+    public static int findBytes(final ByteBuffer bb, Pattern pattern) {
+        final int curPosition = bb.position();
+        int curLimit = bb.limit();
+        bb.position(0);
+        bb.limit(curPosition);
+        try {
+            Matcher matcher = pattern.matcher(new MyCharSequence(curPosition, bb));
+            if (matcher.find())
+                return matcher.start();
+            return -1;
+        } finally {
+            bb.limit(curLimit);
+            bb.position(curPosition);
+        }
+    }
+
+    private static class MyCharSequence implements CharSequence {
+        private final int curPosition;
+        private final ByteBuffer bb;
+
+        public MyCharSequence(int curPosition, ByteBuffer bb) {
+            this.curPosition = curPosition;
+            this.bb = bb;
+        }
+
+        public int length() {
+            return curPosition;
+        }
+
+        public char charAt(int index) {
+            return (char) bb.get(index);
+        }
+
+        public CharSequence subSequence(int start, int end) {
+            throw new UnsupportedOperationException();
         }
     }
 }
