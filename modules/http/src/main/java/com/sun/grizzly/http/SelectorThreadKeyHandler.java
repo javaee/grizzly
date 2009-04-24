@@ -118,6 +118,10 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                         (!(attachment instanceof SelectionKeyAttachment) ||
                         ((SelectionKeyAttachment)attachment).timedOut(key))){
                             selectorHandler.addPendingKeyCancel(key);
+                            //preventing further idle timeout detection for same key
+                            //due to we dont directly cancel key anymore we cant rely in key.isvalid detection
+                            ((SelectionKeyAttachment)attachment).
+                                    setTimeout(SelectionKeyAttachment.UNLIMITED_TIMEOUT);
                         }
                 }
             }

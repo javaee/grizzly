@@ -458,7 +458,7 @@ public class CometContext<E> {
                 if (cancelkey){
                     // dont want to do that in non selector thread:
                     // canceled key wont get canceled again due to isvalid check
-                    key.cancel(); 
+                    //key.cancel();
                 }
                 task.callInterrupt = true;
                 task.interruptFlushAPT = flushAPT;                                
