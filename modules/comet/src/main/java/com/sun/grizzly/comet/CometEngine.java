@@ -42,20 +42,13 @@ import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.LinkedTransferQueue;
-import com.sun.grizzly.util.PipelineThreadPool;
-import com.sun.grizzly.util.WorkerThreadImpl;
+import com.sun.grizzly.util.SelectorFactory;
 import java.io.IOException;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -119,7 +112,7 @@ public class CometEngine {
     /**
      * The {@link ExecutorService} used to execute {@link CometTask}
      */
-    protected ExecutorService threadPool;
+    protected ExtendedThreadPool threadPool;
 
 
     /**
@@ -150,16 +143,6 @@ public class CometEngine {
      * Store updatedCometContextCometContext.
      */
     protected final static ThreadLocal<CometTask> updatedContexts = new ThreadLocal<CometTask>();
-
-    private static final SelectionKey dumykey = new SelectionKey() {
-                public SelectableChannel channel()       {throw ISE;}
-                public int interestOps()                 {throw ISE;}
-                public SelectionKey interestOps(int ops) {throw ISE;}
-                public int readyOps()                    {throw ISE;}
-                public Selector selector()               {throw ISE;}
-                public boolean isValid()                 {return true;}
-                public void cancel()                     { }
-            };
             
     /**
      * Creat a singleton and initialize all lists required.
@@ -185,8 +168,8 @@ public class CometEngine {
         
         //ExecutorService tpe = threadPool = new DefaultExecutorService(4, 8, 30,
               //  TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), "CometWorker-");
-        ExecutorService tpe = new com.sun.grizzly.util.FixedThreadPool(8,"CometWorker");
-        threadPool = tpe;
+        ExtendedThreadPool tpe = new com.sun.grizzly.util.FixedThreadPool(8,"CometWorker");
+        setThreadPool(tpe);
     }
 
     /**
@@ -210,20 +193,31 @@ public class CometEngine {
     /**
      * sets the default threadpool that DefaultNotificationHandler use.
      * shuttdownnow is called on the existing threadpool.
-     * does notupdate existing notificationhandlers
+     * does notupdate existing notificationhandlers.
      */
-    public void setThreadPool(ExecutorService threadPool) {
+    public void setThreadPool(ExtendedThreadPool threadPool) {
         if (threadPool != null){
-            this.threadPool.shutdownNow();
+            int oldsize = 0;
+            if (this.threadPool != null){
+                oldsize = this.threadPool.getMaximumPoolSize();
+                this.threadPool.shutdownNow();
+            }
             this.threadPool = threadPool;
+            int delta = threadPool.getMaximumPoolSize() - oldsize;
+            try {
+                System.err.println("comet stuff delta:"+delta);
+                SelectorFactory.changeSelectorsBy(delta);
+            } catch (IOException ex) {
+                logger.log(Level.WARNING, "comet failed to resize Selector cache", ex);
+            }
         }
     }
 
     /**
      * returns the threadpool comet is using
-     * @return ExecutorService
+     * @return ExtendedThreadPool
      */
-    public ExecutorService getThreadPool() {
+    public ExtendedThreadPool getThreadPool() {
         return threadPool;
     }
 

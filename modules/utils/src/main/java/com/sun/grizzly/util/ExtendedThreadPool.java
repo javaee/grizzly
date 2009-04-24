@@ -38,6 +38,7 @@
 package com.sun.grizzly.util;
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
@@ -47,7 +48,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Alexey Stashok
  */
-public interface ExtendedThreadPool {
+public interface ExtendedThreadPool extends ExecutorService {
 
     /**
      * Returns the approximate number of threads that are actively

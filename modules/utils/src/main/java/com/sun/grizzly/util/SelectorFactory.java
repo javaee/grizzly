@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -39,8 +39,7 @@ package com.sun.grizzly.util;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
-import java.util.EmptyStackException;
-import java.util.Stack;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,54 +48,65 @@ import java.util.logging.Logger;
  *
  * @author Scott Oaks
  * @author Jean-Francois Arcand
+ * @author gustav trede
  */
 public class SelectorFactory{
-    
+
     public static final int DEFAULT_MAX_SELECTORS = 20;
-    
-    /**
-     * The timeout before we exit.
-     */
-    public static long timeout = 5000;
-    
-    
+
+
     /**
      * The number of {@link Selector} to create.
      */
-    private static int maxSelectors = DEFAULT_MAX_SELECTORS;
-    
-    
+    private static volatile int maxSelectors = DEFAULT_MAX_SELECTORS;
+
     /**
      * Cache of {@link Selector}
      */
-    private final static Stack<Selector> selectors = new Stack<Selector>();
-    
-    
+    private final static LinkedTransferQueue<Selector> selectors
+            = new LinkedTransferQueue<Selector>();
+
+
     /**
      * have we created the Selector instances.
      */
-    private static boolean initialized = false;
-    
+    private static volatile boolean initialized = false;
+
     /**
      * Set max selector pool size.
      * @param size max pool size
      */
     public final static void setMaxSelectors(int size) throws IOException {
         synchronized(selectors) {
-            if (size > maxSelectors || !initialized) {
-                // if not initialized yet - grow cache by size
-                if (!initialized) maxSelectors = 0;
-                
-                grow(size);
-            }  else if (size < maxSelectors) {
-                reduce(size);
+            if (size < 0){
+                LoggerUtils.getLogger().log(Level.WARNING,"tried to remove too many selectors "+size+">="+maxSelectors,new Exception());
+                return;
             }
-            
+            int toadd = (initialized?size-maxSelectors:size);
+            if (toadd>0){
+                while(toadd-->0){
+                    selectors.add(createSelector());
+                }
+            }else{
+                reduce(-toadd);
+            }
             maxSelectors = size;
             initialized = true;
         }
     }
-    
+
+    /**
+     * Changes the Selector cache size
+     * @param delta
+     * @throws java.io.IOException
+     */
+    public final static void changeSelectorsBy(int delta) throws IOException{
+        synchronized(selectors) {
+            setMaxSelectors(maxSelectors+delta);
+        }
+    }
+
+
     /**
      * Returns max selector pool size
      * @return max pool size
@@ -104,62 +114,54 @@ public class SelectorFactory{
     public final static int getMaxSelectors() {
         return maxSelectors;
     }
-    
+
     /**
+     * Please ensure to use try finally around get and return of selector so avoid leaks.
      * Get a exclusive {@link Selector}
      * @return {@link Selector}
      */
     public final static Selector getSelector() {
-        synchronized(selectors) {
-            if (!initialized) {
-                try {
-                    setMaxSelectors(maxSelectors);
-                } catch (IOException e) {
-                    Logger logger = LoggerUtils.getLogger();
-                    if (logger.isLoggable(Level.WARNING)) {
-                        logger.log(Level.WARNING, "SelectorFactory lazy initialization", e);
-                    }
-                }
-            }
-            
-            Selector s = null;
-            try {
-                if ( selectors.size() != 0 )
-                    s = selectors.pop();
-            } catch (EmptyStackException ex){}
-                       
-            int attempts = 0;
+        if (!initialized){
             try{
-                while (s == null && attempts < 2) {
-                    selectors.wait(timeout);
-                    try {
-                        if ( selectors.size() != 0 )
-                            s = selectors.pop();
-                    } catch (EmptyStackException ex){
-                        break;
-                    }
-                    attempts++;
-                }
-            } catch (InterruptedException ex){}
-            return s;
+                setMaxSelectors(maxSelectors);
+            } catch (IOException ex) {
+                LoggerUtils.getLogger().log(Level.WARNING,"static init of SelectorFactory failed",ex);
+            }
         }
+        Selector selector = null;
+        selector = selectors.poll();
+        /*try {
+            selector = selectors.poll(5, TimeUnit.SECONDS);        
+        } catch (InterruptedException ex) {
+            Logger.getLogger(SelectorFactory.class.getName()).log(Level.SEVERE, null, ex);
+        }*/
+        if (selector == null){
+            LoggerUtils.getLogger().warning("Temp Selector leak or inroper config detected. cachelimit: "+maxSelectors);
+            /*try {
+                Thread.sleep(300);
+                selector = selectors.poll();
+            if (selector == null)
+                System.err.println("Temp Selector leak not fixed by sleeop");
+            else
+                System.err.println("Temp Selector FIXED sleeop");
+            } catch (InterruptedException ex) {
+                Logger.getLogger(SelectorFactory.class.getName()).log(Level.SEVERE, null, ex);
+            }*/
+        }
+        return selector;
     }
 
-
     /**
+     * Please ensure to use try finally around get and return of selector so avoid leaks.
      * Return the {@link Selector} to the cache
      * @param s {@link Selector}
      */
     public final static void returnSelector(Selector s) {
-        synchronized(selectors) {
-            selectors.push(s);
-            if (selectors.size() == 1)
-                selectors.notify();
-        }
+        selectors.offer(s);
     }
 
     /**
-     * Executes <code>Selector.selectNow()</code> and returns 
+     * Executes <code>Selector.selectNow()</code> and returns
      * the {@link Selector} to the cache
      */
     public final static void selectNowAndReturnSelector(Selector s) {
@@ -168,14 +170,14 @@ public class SelectorFactory{
             returnSelector(s);
         } catch(IOException e) {
             Logger logger = LoggerUtils.getLogger();
-            logger.log(Level.WARNING, 
+            logger.log(Level.WARNING,
                     "Unexpected problem when releasing temporary Selector", e);
             try {
                 s.close();
             } catch(IOException ee) {
                 // We are not interested
             }
-            
+
             try {
                 reimburseSelector();
             } catch(IOException ee) {
@@ -188,7 +190,7 @@ public class SelectorFactory{
     /**
      * Add Selector to the cache.
      * This method could be called to reimberse a lost or problematic Selector.
-     * 
+     *
      * @throws java.io.IOException
      */
     public final static void reimburseSelector() throws IOException {
@@ -203,25 +205,21 @@ public class SelectorFactory{
     protected static Selector createSelector() throws IOException {
         return Selector.open();
     }
-    
-    
-    /**
-     * Increase {@link Selector} pool size
-     */
-    private static void grow(int size) throws IOException {
-        for(int i=0; i<size - maxSelectors; i++) {
-            selectors.add(createSelector());
-        }
-    }
 
     /**
      * Decrease {@link Selector} pool size
      */
-    private static void reduce(int size) {
-        for(int i=0; i<maxSelectors - size; i++) {
+    private static void reduce(int tokill) {
+        while(tokill-->0){
             try {
-                Selector selector = selectors.pop();
-                selector.close();
+                Selector selector = selectors.poll();
+                if (selector != null){
+                    selector.close();
+                }else{
+                    // can happen in concurrent usage, if selectors are in use and hence not in cache.
+                    LoggerUtils.getLogger().warning("SelectorFactory cache could not remove the desired number, too few selectors in cache.");
+                    return;
+                }
             } catch(IOException e) {
                 Logger logger = LoggerUtils.getLogger();
                 if (logger.isLoggable(Level.FINE)) {
