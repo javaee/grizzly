@@ -222,9 +222,9 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler {
      */
     public void cancel(SelectionKey key) {
         if (key != null ) {
-            if (key.isValid()){
+           /* if (key.isValid()){
                 key.cancel();
-            }
+            }*/
             doAfterKeyCancel(key);
         }
     }

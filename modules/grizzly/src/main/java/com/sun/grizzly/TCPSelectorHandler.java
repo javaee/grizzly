@@ -563,11 +563,11 @@ public class TCPSelectorHandler implements SelectorHandler {
         if (executePendingIOinSelectorThread){
             selectionKeyHandler.cancel(key);
         }else{
-            if (key.isValid()){
+           /* if (key.isValid()){
                 //we want to do this in the selector.select thread hence we do it now
                 // saving us the extra parsing for SelectionKey later
                 key.cancel();
-            }
+            }*/
             pendingIO.add(key);
         }
     }
