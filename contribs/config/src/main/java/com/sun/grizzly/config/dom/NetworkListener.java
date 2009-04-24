@@ -39,6 +39,7 @@ package com.sun.grizzly.config.dom;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
+import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
@@ -92,7 +93,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
     void setProtocol(String value);
 
     @DuckTyped
-    ThreadPool findThreadPool(Habitat habitat);
+    ThreadPool findThreadPool();
 
     /**
      * Reference to a thread-pool, defined earlier in the document.
@@ -125,9 +126,9 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
             return null;
         }
 
-        public static ThreadPool findThreadPool(NetworkListener listener, Habitat habitat) {
+        public static ThreadPool findThreadPool(NetworkListener listener) {
             final String name = listener.getThreadPool();
-            for (final ThreadPool threadPool : habitat.getAllByType(ThreadPool.class)) {
+            for (final ThreadPool threadPool : ConfigBean.unwrap(listener).getHabitat().getAllByType(ThreadPool.class)) {
                 if (threadPool.getThreadPoolId().equals(name)) {
                     return threadPool;
                 }
