@@ -70,6 +70,6 @@ public class GrizzlyConfigTest {
     public void defaults() {
         final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
-        Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "200"); 
+        Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5"); 
     }
 }
