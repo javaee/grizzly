@@ -274,7 +274,8 @@ public class TCPSelectorHandler implements SelectorHandler {
      */
     protected final AtomicBoolean isShutDown = new AtomicBoolean(false);
 
-    protected int emptySpinCounter;
+    private long lastSpinTimestamp;
+    private int emptySpinCounter;
     
     public TCPSelectorHandler(){
         this(Role.CLIENT_SERVER);
@@ -1349,14 +1350,23 @@ public class TCPSelectorHandler implements SelectorHandler {
     /**
      * {@inheritDoc}
      */
-    public int getEmptySpinCounter() {
-        return emptySpinCounter;
+    public void resetSpinCounter(){
+        emptySpinCounter  = 0;       
     }
 
     /**
      * {@inheritDoc}
      */
-    public void setEmptySpinCounter(int emptySpinCounter) {
-        this.emptySpinCounter = emptySpinCounter;
+    public int getSpinRate(){
+        if (emptySpinCounter == 0){
+            lastSpinTimestamp = System.nanoTime();
+        }else
+        if (++emptySpinCounter == 1000) {
+            long deltatime = System.nanoTime() - lastSpinTimestamp;
+            int contspinspersec = (int) (1000 * 1000000000L / deltatime);
+            emptySpinCounter  = 0;
+            return contspinspersec;
+        }
+        return 0;
     }
 }
