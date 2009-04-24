@@ -59,8 +59,8 @@ public abstract class ContextTask implements Callable, Runnable {
     
     public void recycle() {        
         if (context != null) {
-            context.getController().returnContext(context);
-            context = null;
+            NIOContext oldContext = resetContext();
+            oldContext.getController().returnContext(oldContext);
         }                
     }
 
@@ -71,5 +71,10 @@ public abstract class ContextTask implements Callable, Runnable {
             // same thing as ignoring Future return value in NIOContextext
         }
     }
-    
+
+    private NIOContext resetContext() {
+        final NIOContext localContext = context;
+        context = null;
+        return localContext;
+    }
 }
