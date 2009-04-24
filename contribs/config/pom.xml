@@ -187,8 +187,8 @@
         </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.54</hk2.version>
-        <hk2.plugin.version>0.3.54</hk2.plugin.version>
+        <hk2.version>0.3.55</hk2.version>
+        <hk2.plugin.version>0.3.55</hk2.plugin.version>
         <grizzly.version>1.9.14</grizzly.version>
     </properties>
 </project>
