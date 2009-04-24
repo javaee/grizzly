@@ -39,9 +39,12 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
+import org.glassfish.grizzly.streams.StreamWriter;
 
 /**
  * Unit test for {@link UDPNIOTransport}
@@ -67,6 +70,64 @@ public class UDPNIOTransportTest extends TestCase {
             e.printStackTrace(System.out);
             assertTrue("Exception!!!", false);
         } finally {
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testConnectorHandlerConnect() throws Exception {
+        Connection connection = null;
+        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testConnectorHandlerConnectAndWrite() throws Exception {
+        Connection connection = null;
+        StreamWriter writer = null;
+
+        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.configureBlocking(true);
+            connection.setProcessor(null);
+            writer = connection.getStreamWriter();
+            byte[] sendingBytes = "Hello".getBytes();
+            writer.writeByteArray(sendingBytes);
+            Future<Integer> writeFuture = writer.flush();
+            Integer bytesWritten = writeFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(writeFuture.isDone());
+            assertEquals(sendingBytes.length, (int) bytesWritten);
+        } finally {
+            if (writer != null) {
+                writer.close();
+            }
+
+            if (connection != null) {
+                connection.close();
+            }
+
             transport.stop();
             TransportFactory.getInstance().close();
         }

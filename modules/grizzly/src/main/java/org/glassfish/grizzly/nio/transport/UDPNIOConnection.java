@@ -42,6 +42,7 @@ import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.nio.SelectorRunner;
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.SocketAddress;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
@@ -73,8 +74,9 @@ public class UDPNIOConnection extends AbstractNIOConnection<SocketAddress> {
         super(transport);
         
         this.channel = channel;
-        readBufferSize = transport.getReadBufferSize();
-        writeBufferSize = transport.getWriteBufferSize();
+
+        setReadBufferSize(transport.getReadBufferSize());
+        setWriteBufferSize(transport.getWriteBufferSize());
         
         streamReader = new UDPNIOStreamReader(this);
         streamWriter = new UDPNIOStreamWriter(this);
@@ -139,6 +141,44 @@ public class UDPNIOConnection extends AbstractNIOConnection<SocketAddress> {
         }
 
         return null;
+    }
+
+    @Override
+    public void setReadBufferSize(final int readBufferSize) {
+        final DatagramSocket socket = ((DatagramChannel) channel).socket();
+
+        try {
+            final int socketReadBufferSize = socket.getReceiveBufferSize();
+            if (readBufferSize != -1) {
+                if (readBufferSize > socketReadBufferSize) {
+                    socket.setReceiveBufferSize(readBufferSize);
+                }
+                super.setReadBufferSize(readBufferSize);
+            } else {
+                super.setReadBufferSize(socketReadBufferSize);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error setting read buffer size", e);
+        }
+    }
+
+    @Override
+    public void setWriteBufferSize(int writeBufferSize) {
+        final DatagramSocket socket = ((DatagramChannel) channel).socket();
+
+        try {
+            final int socketWriteBufferSize = socket.getSendBufferSize();
+            if (writeBufferSize != -1) {
+                if (writeBufferSize > socketWriteBufferSize) {
+                    socket.setSendBufferSize(writeBufferSize);
+                }
+                super.setWriteBufferSize(writeBufferSize);
+            } else {
+                super.setWriteBufferSize(socketWriteBufferSize);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Error setting write buffer size", e);
+        }
     }
 }
     

@@ -151,14 +151,14 @@ public class UDPNIOTransport extends AbstractNIOTransport
     public UDPNIOTransport(String name) {
         super(name);
 
-//        readBufferSize = DEFAULT_READ_BUFFER_SIZE;
-//        writeBufferSize = DEFAULT_WRITE_BUFFER_SIZE;
+        readBufferSize = -1;
+        writeBufferSize = -1;
 
         registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
         enablingInterestPostProcessor = new EnableInterestPostProcessor();
 
-        asyncQueueIO = new AsyncQueueIO(new TCPNIOAsyncQueueReader(this),
-                new TCPNIOAsyncQueueWriter(this));
+        asyncQueueIO = new AsyncQueueIO(new UDPNIOAsyncQueueReader(this),
+                new UDPNIOAsyncQueueWriter(this));
 
         temporarySelectorIO = new TemporarySelectorIO(
                 new UDPNIOTemporarySelectorReader(this),
@@ -688,7 +688,6 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
                 if (connection != null) {
                     SelectorRunner selectorRunner = result.getSelectorRunner();
-                    System.out.println("Register. runner: " + selectorRunner);
                     connection.setSelectionKey(selectionKey);
                     connection.setSelectorRunner(selectorRunner);
                 }

@@ -51,9 +51,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.AbstractSocketConnectorHandler;
-import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
-import org.glassfish.grizzly.nio.SelectorRunner;
 
 /**
  * UDP NIO transport client side ConnectorHandler implementation
@@ -110,8 +109,6 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         UDPNIOConnection newConnection = (UDPNIOConnection)
                 nioTransport.obtainNIOConnection(datagramChannel);
         
-        FutureImpl connectFuture = new FutureImpl();
-
         if (remoteAddress != null) {
             datagramChannel.connect(remoteAddress);
         }
@@ -131,7 +128,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
         
-        return connectFuture;
+        return new ReadyFutureImpl(newConnection);
     }
 
     public boolean isReuseAddress() {
