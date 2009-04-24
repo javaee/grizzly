@@ -131,7 +131,7 @@ public class HttpSessionImpl implements HttpSession {
      * {@inheritDoc}
      */
     public void setMaxInactiveInterval(int sessionTimeout) {
-        session.setTimestamp(sessionTimeout);
+        session.setSessionTimeout(sessionTimeout);
     }
 
     /**
