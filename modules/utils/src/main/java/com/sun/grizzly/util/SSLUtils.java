@@ -93,32 +93,28 @@ public class SSLUtils {
     public static int doSecureRead(SelectableChannel channel, SSLEngine sslEngine,
             ByteBuffer byteBuffer, ByteBuffer inputBB) throws IOException {
         
+        boolean isFirstTime = true;
+        
         int initialPosition = byteBuffer.position();
-        int byteRead = 0;
         
         // We need to make sure the unwrap worked properly and we have all
         // the packets properly read. If the SSLEngine fail to unwrap all the 
         // bytes, the byteBuffer will be empty event if some encrypted bytes
         // are available. 
         while (byteBuffer.position() == initialPosition){
-            int currentRead = SSLUtils.doRead(channel, inputBB,
-                    sslEngine,readTimeout);
-
-            if (currentRead > 0) {
-                byteRead += currentRead;
+            int currentRead;
+            if (isFirstTime && inputBB.position() > 0) {
+                currentRead = inputBB.position();
+                isFirstTime = false;
+            } else {
+                currentRead = SSLUtils.doRead(channel, inputBB,
+                        sslEngine, readTimeout);
             }
             
-            if (currentRead > 0 || inputBB.position() > 0) {
+            if (currentRead > 0) {
                 try{
                     byteBuffer = SSLUtils.unwrapAll(byteBuffer,
                             inputBB, sslEngine);
-                    
-                    if (currentRead == -1 && 
-                            byteBuffer.position() == initialPosition) {
-                        // if last read was -1 and unwrap decoded nothing then return -1
-                        byteRead = -1;
-                        break;
-                    }
                 } catch (IOException ex){
                     Logger logger = LoggerUtils.getLogger();
                     if ( logger.isLoggable(Level.FINE) )
@@ -126,14 +122,13 @@ public class SSLUtils {
                     return -1;
                 }
             } else if (currentRead == -1) {
-                byteRead = -1;
-                break;
+                return -1;
             } else {
                 break;
             }   
         }
 
-        return byteRead;
+        return byteBuffer.position() - initialPosition;
     }   
 
     /**
