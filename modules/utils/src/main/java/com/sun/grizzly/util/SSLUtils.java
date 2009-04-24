@@ -87,7 +87,7 @@ public class SSLUtils {
      * @param sslEngine{@link SSLEngine}
      * @param byteBuffer buffer for application decrypted data
      * @param inputBB buffer for reading enrypted data from socket
-     * @return  number of bytes read
+     * @return  number of bytes produced
      * @throws java.io.IOException 
      */    
     public static int doSecureRead(SelectableChannel channel, SSLEngine sslEngine,
