@@ -337,12 +337,13 @@ public interface SelectorHandler extends Handler, Copyable,
     public void closeChannel(SelectableChannel channel);
 
     /**
-     * Get empty spin counter
+     * Resets the spincounter
      */
-    public int getEmptySpinCounter();
+    public void resetSpinCounter();
 
     /**
-     * Set empty spin counter
+     * Returns the selector spinrate
+     * @return
      */
-    public void setEmptySpinCounter(int emptySpinCounter);
+    public int getSpinRate();
 }

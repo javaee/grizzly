@@ -329,21 +329,17 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             final long selectionTime = System.currentTimeMillis() - selectStart;
 
             if (readyKeys.size() != 0) {
-                selectorHandler.setEmptySpinCounter(0);
+                selectorHandler.resetSpinCounter();
                 handleSelectedKeys(readyKeys,selectorHandler,serverCtx);
                 readyKeys.clear();
             } else {
-                // Detect empty spin issue
-                if (selectionTime < emptySpinTimeThreshold) {
-                    int emptySpinCounter = selectorHandler.getEmptySpinCounter();
-                    emptySpinCounter++;
-                    if (emptySpinCounter > emptySpinCountThreshold) {
-                        // Woraround empty selector spin issue
+                if (selectionTime < 500){
+                    long sr = selectorHandler.getSpinRate();
+                    if (sr>1000){
                         workaroundSelectorSpin(selectorHandler);
-                        emptySpinCounter = 0;
                     }
-
-                    selectorHandler.setEmptySpinCounter(emptySpinCounter);
+                }else{
+                    selectorHandler.resetSpinCounter();
                 }
             }
             
@@ -1332,17 +1328,17 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         return null;
     }
 
-    private final int emptySpinCountThreshold = 100;
-    private final int emptySpinTimeThreshold = 500;
-
     private void workaroundSelectorSpin(SelectorHandler selectorHandler)
             throws IOException {
         Selector oldSelector = selectorHandler.getSelector();
         Selector newSelector = Selector.open();
 
         Set<SelectionKey> keys = oldSelector.keys();
-        for(SelectionKey key : keys) {
-            key.channel().register(newSelector, key.interestOps());
+        for(SelectionKey key : keys) {            
+            try{
+                key.channel().register(newSelector, key.interestOps(),key.attachment());
+            }catch(Exception e) {
+            }
         }
 
         selectorHandler.setSelector(newSelector);
