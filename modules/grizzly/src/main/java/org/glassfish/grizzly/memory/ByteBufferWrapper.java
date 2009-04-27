@@ -58,7 +58,7 @@ import org.glassfish.grizzly.Buffer;
 public class ByteBufferWrapper implements Buffer<ByteBuffer> {
     public static boolean DEBUG_MODE = false;
 
-    protected ByteBufferManager memoryManager;
+    protected final ByteBufferManager memoryManager;
     
     protected ByteBuffer visible;
 
@@ -87,9 +87,9 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
     public void dispose() {
         checkDispose();
         memoryManager.release(this);
-        memoryManager = null;
-        visible = null;
 
+        visible = null;
+        
         if (DEBUG_MODE) {
             disposeStackTrace = new Exception("ByteBufferWrapper was disposed from: ");
         }

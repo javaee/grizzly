@@ -70,10 +70,9 @@ public class SlabByteBufferWrapper extends ByteBufferWrapper {
      */
     public SlabByteBufferWrapper(final ByteBufferManager allocator, final Slab slab,
             final int size) {
-        this.memoryManager = allocator;
+        super(allocator, slab.allocate(size));
         this.slab = slab;
         this.slabPosition = slab.currentPosition();
-        visible = slab.allocate(size);
        
     }
 

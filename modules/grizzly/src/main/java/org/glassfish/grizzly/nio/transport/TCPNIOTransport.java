@@ -746,15 +746,14 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    public class EnableInterestPostProcessor
-            implements PostProcessor {
+    public class EnableInterestPostProcessor implements PostProcessor {
 
         public void process(ProcessorResult result,
                 Context context) throws IOException {
             if (result == null || result.getStatus() == Status.OK) {
                 IOEvent ioEvent = context.getIoEvent();
-                enableInterest(
-                        (NIOConnection) context.getConnection(), ioEvent);
+                enableInterest((NIOConnection) context.getConnection(),
+                        ioEvent);
             }
         }
     }
@@ -775,6 +774,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                     SelectorRunner selectorRunner = result.getSelectorRunner();
                     connection.setSelectionKey(selectionKey);
                     connection.setSelectorRunner(selectorRunner);
+                    connection.resetAddresses();
                 }
             } catch (Exception e) {
                 Grizzly.logger.log(Level.FINE, "Exception happened, when " +

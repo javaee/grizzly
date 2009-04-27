@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -67,6 +68,9 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
     private final AbstractStreamReader streamReader;
 
     private final AbstractStreamWriter streamWriter;
+
+    private SocketAddress localSocketAddress;
+    private SocketAddress peerSocketAddress;
     
     public TCPNIOConnection(TCPNIOTransport transport,
             SelectableChannel channel) {
@@ -75,6 +79,8 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
         this.channel = channel;
         readBufferSize = transport.getReadBufferSize();
         writeBufferSize = transport.getWriteBufferSize();
+
+        resetAddresses();
         
         streamReader = new TCPNIOStreamReader(this);
         streamWriter = new TCPNIOStreamWriter(this);
@@ -114,11 +120,7 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
      *         connected to, or <tt>null</tt> if it is unconnected.
      */
     public SocketAddress getPeerAddress() {
-        if (channel != null) {
-            return ((SocketChannel) channel).socket().getRemoteSocketAddress();
-        }
-
-        return null;
+        return peerSocketAddress;
     }
     
     /**
@@ -128,11 +130,22 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
      *      or <tt>null</tt> if it is unconnected.
      */
     public SocketAddress getLocalAddress() {
-        if (channel != null) {
-            return ((SocketChannel) channel).socket().getLocalSocketAddress();
-        }
+        return localSocketAddress;
+    }
 
-        return null;
+    protected void resetAddresses() {
+        if (channel != null) {
+            if (channel instanceof SocketChannel) {
+                localSocketAddress =
+                        ((SocketChannel) channel).socket().getLocalSocketAddress();
+                peerSocketAddress =
+                        ((SocketChannel) channel).socket().getRemoteSocketAddress();
+            } else if (channel instanceof ServerSocketChannel) {
+                localSocketAddress =
+                        ((ServerSocketChannel) channel).socket().getLocalSocketAddress();
+                peerSocketAddress = null;
+            }
+        }
     }
 }
     
