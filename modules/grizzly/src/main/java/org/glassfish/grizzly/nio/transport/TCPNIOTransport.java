@@ -467,7 +467,12 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             socket.setSoLinger(true, linger);
         }
 
-        socket.setTcpNoDelay(tcpNoDelay);
+        try {
+            socket.setTcpNoDelay(tcpNoDelay);
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Can not set TcpNoDelay to " + tcpNoDelay,
+                    e);
+        }
         socket.setReuseAddress(reuseAddress);
     }
 
