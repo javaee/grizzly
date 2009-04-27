@@ -263,6 +263,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     private final static LinkedTransferQueue<Controller> controllers =
             new LinkedTransferQueue<Controller>();
 
+    /**
+     * The threshold for detecting selector.select spin on linux,
+     * used for enabling workaround to prevent server from hanging.
+     */
+    private final static int spinRateTreshhold = 2000;
 
     // -------------------------------------------------------------------- //
 
@@ -324,23 +329,19 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             
             selectorHandler.preSelect(serverCtx);
 
-            final long selectStart = System.currentTimeMillis();
             Set<SelectionKey> readyKeys = selectorHandler.select(serverCtx);
-            final long selectionTime = System.currentTimeMillis() - selectStart;
 
             if (readyKeys.size() != 0) {
                 selectorHandler.resetSpinCounter();
                 handleSelectedKeys(readyKeys,selectorHandler,serverCtx);
                 readyKeys.clear();
             } else {
-                if (selectionTime < 500){
-                    long sr = selectorHandler.getSpinRate();
-                    if (sr>1000){
-                        workaroundSelectorSpin(selectorHandler);
-                    }
-                }else{
-                    selectorHandler.resetSpinCounter();
+                long sr = selectorHandler.getSpinRate();
+                if (sr > spinRateTreshhold){
+                    workaroundSelectorSpin(selectorHandler);
                 }
+                //we dont need to resetSpinCounter() at select timeouts
+                //due to the long select time of 1 second makes it to not trigger a K per second rate.
             }
             
             selectorHandler.postSelect(serverCtx);
