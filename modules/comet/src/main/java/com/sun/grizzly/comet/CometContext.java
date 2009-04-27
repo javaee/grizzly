@@ -43,6 +43,7 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -394,7 +395,7 @@ public class CometContext<E> {
         CometTask task = handlers.remove(handler);
         if (task != null){
             if (resume){
-                CometEngine.getEngine().flushPostExecute(task,true,false);
+                CometEngine.getEngine().flushPostExecute(task,false);
             }
             return true;
         }
@@ -435,7 +436,7 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean resumeCometHandler(CometHandler handler){
-        boolean status = interrupt(handlers.get(handler),false,true,false,false);
+        boolean status = CometEngine.getEngine().interrupt(handlers.get(handler),false);
         if (status){
             try {
                 handler.onTerminate(eventTerminate);
@@ -444,46 +445,6 @@ public class CometContext<E> {
         return status;
     }
 
-    /**
-     * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
-     */
-    protected boolean interrupt(final CometTask task,
-            final boolean notifyInterrupt, final boolean flushAPT,
-            final boolean cancelkey, boolean asyncExecution) {
-        if (task != null && handlers.remove(task.cometHandler) != null){
-            final SelectionKey key = task.getSelectionKey();            
-             // setting attachment non asynced to ensure grizzly dont keep calling us
-            key.attach(System.currentTimeMillis());
-            if (asyncExecution){
-                if (cancelkey){
-                    key.cancel();
-                }
-                task.callInterrupt = true;
-                task.interruptFlushAPT = flushAPT;                                
-                ((WorkerThreadImpl)Thread.currentThread()).
-                        getPendingIOhandler().addPendingIO(task);                
-            }else{
-                interrupt0(task, notifyInterrupt, flushAPT, cancelkey);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * interrupt logic in its own method, so it can be executed either async or sync.<br>
-     * cometHandler.onInterrupt is performed async due to its functionality is unknown,
-     * hence not safe to run in the performance critical selector thread.
-     */
-    protected void interrupt0(CometTask task,
-            boolean notifyInterrupt, boolean flushAPT, boolean cancelkey){
-        if (notifyInterrupt){
-            try{
-                task.cometHandler.onInterrupt(eventInterrupt);
-            }catch(IOException e) { }
-        }        
-        CometEngine.cometEngine.flushPostExecute(task,flushAPT,cancelkey);
-    }
 
     /**
      * Return true if this {@link CometHandler} is still active, e.g. there is 
@@ -493,6 +454,14 @@ public class CometContext<E> {
      */
     public boolean isActive(CometHandler handler){
         return handlers.containsKey(handler);
+    }
+    
+    /**
+     * Return the internal list of active {@link CometHandler}
+     * @return Return the internal list of active {@link CometHandler}
+     */
+    protected ConcurrentHashMap<CometHandler,CometTask> handlers(){
+        return handlers;
     }
 
     /**

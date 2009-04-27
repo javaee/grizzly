@@ -92,9 +92,10 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
     /**
      * performs doTask() or cometContext.interrupt0
      */
+    @Override
     public void run(){        
         if (callInterrupt){
-            cometContext.interrupt0(this, true, interruptFlushAPT, true);
+            CometEngine.getEngine().interrupt0(this, true);
         }else{
             try{
                 doTask();
@@ -131,7 +132,7 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
     @Override
     public boolean timedOut(SelectionKey key){
         //System.err.println("cometTask.timedout() :  isactive: "+cometContext.isActive(cometHandler)+"  attachment:"+key.attachment());
-        cometContext.interrupt(this, true, true, true, true);
+        CometEngine.getEngine().interrupt(this, true);
         return false;
     }
 
@@ -141,7 +142,7 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
     @Override
     public void handleSelectedKey(SelectionKey selectionKey) {
         if (!selectionKey.isValid()){
-            cometContext.interrupt(this, true, false,true, true);
+            CometEngine.getEngine().interrupt(this, true);
             return;
         }
         if (cometHandlerIsAsyncRegistered){
@@ -176,7 +177,7 @@ public class CometTask extends com.sun.grizzly.comet.CometTask{
         }
         finally{
            if (connectionclosed){
-               cometContext.interrupt(this, true, false,true, true);
+               CometEngine.getEngine().interrupt(this, true);
            }else{
                //cometContext.interrupt(this, false, false, true,false, true);
                //System.err.println("**** ready key detected : "+mainKey.attachment() +" isactive:"+cometContext.isActive(cometHandler));

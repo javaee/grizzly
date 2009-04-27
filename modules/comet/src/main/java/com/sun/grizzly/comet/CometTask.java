@@ -97,12 +97,6 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
      *  true if run() should call cometcontext.interrupt0
      */
     protected boolean callInterrupt;
-
-    /**
-     *  true if interrupt should flushAPT
-     */
-    protected boolean interruptFlushAPT;
-
     
     public CometTask() {
         this(null,null);
@@ -118,11 +112,11 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
     }
 
     /**
-     * performs doTask() or cometContext.interrupt0
+     * Performs doTask() or cometContext.interrupt0
      */
     public void run(){        
         if (callInterrupt){
-            cometContext.interrupt0(this, true, interruptFlushAPT, true);
+            CometEngine.getEngine().interrupt0(this, true);
         }else{
             try{
                 doTask();
@@ -141,7 +135,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
     }
 
     /**
-     * this should never be called for for comet, due to we are nulling the attachment
+     * This should never be called for for comet, due to we are nulling the attachment
      * and completely overriding the selector.select logic.<br>
      * called by grizzly when the selectionkey is canceled and its socket closed.<br>     
      *
@@ -149,8 +143,6 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
      */
     @Override
     public void release(SelectionKey selectionKey) {
-        //logger.warning("cometTask.release() :  isactive: "+cometContext.isActive(cometHandler)+"  attachment:"+selectionKey.attachment());
-        //cometContext.interrupt(this, true, false,false, true);
     }
 
     /**
@@ -158,8 +150,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
      */
     @Override
     public boolean timedOut(SelectionKey key){
-        //System.err.println("cometTask.timedout() :  isactive: "+cometContext.isActive(cometHandler)+"  attachment:"+key.attachment());
-        cometContext.interrupt(this, true, true, true, true);
+        CometEngine.getEngine().interrupt(this, true);
         return false;
     }
 
@@ -169,7 +160,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
     @Override
     public void handleSelectedKey(SelectionKey selectionKey) {
         if (!selectionKey.isValid()){
-            cometContext.interrupt(this, true, false,true, true);
+            CometEngine.getEngine().interrupt(this, true);
             return;
         }
         if (cometHandlerIsAsyncRegistered){
@@ -201,14 +192,10 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
                 read(ByteBuffer.allocate(1)) == -1;
         } catch (IOException ex) {
             
-        }
-        finally{
-           if (connectionclosed){
-               cometContext.interrupt(this, true, false,true, true);
-           }else{
-               //cometContext.interrupt(this, false, false, true,false, true);
-               //System.err.println("**** ready key detected : "+mainKey.attachment() +" isactive:"+cometContext.isActive(cometHandler));
-           }
+        } finally{
+            if (connectionclosed){
+               CometEngine.getEngine().interrupt(this, true);
+            }
         }
     }
 
@@ -275,7 +262,7 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
                         try{
                             cometHandler.onInterrupt(cometContext.eventInterrupt);
                         }catch(IOException e) { }
-                        CometEngine.cometEngine.flushPostExecute(this,true,false);
+                        CometEngine.cometEngine.flushPostExecute(this,false);
 
                         clearBuffer = false;
 

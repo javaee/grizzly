@@ -38,10 +38,9 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
-import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
-import java.nio.channels.SelectionKey;
 import java.util.Iterator;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The main object used by {@link CometHandler}. 
@@ -127,7 +126,7 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean resumeCometHandler(CometHandler handler){
-        boolean status = interrupt(handlers.get(handler),false,true,false,false);
+        boolean status = CometEngine.getEngine().interrupt(handlers.get(handler),false);
         if (status){
             try {
                 handler.onTerminate(eventTerminate);
@@ -179,7 +178,16 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
             resetSuspendIdleTimeout(); 
         }
     }
-
+    
+    /**
+     * Return the internal list of active {@link CometHandler}
+     * @return Return the internal list of active {@link CometHandler}
+     */
+    @Override
+    protected ConcurrentHashMap<com.sun.grizzly.comet.CometHandler,com.sun.grizzly.comet.CometTask> handlers(){
+        return handlers;
+    }
+    
     /**
      * {@inheritDoc}
      */     
@@ -188,50 +196,5 @@ public class CometContext<E> extends com.sun.grizzly.comet.CometContext<E>{
         ((com.sun.enterprise.web.connector.grizzly.comet.CometHandler)handler).onInitialize(eventInitialize); 
     }
     
-    /**
-     * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
-     */
-    protected boolean interrupt(final CometTask task,
-            final boolean notifyInterrupt, final boolean flushAPT,
-            final boolean cancelkey, boolean asyncExecution) {
-        if (task != null && handlers.remove(task.getCometHandler()) != null){
-            final SelectionKey key = task.getSelectionKey();
-             // setting attachment non asynced to ensure grizzly dont keep calling us
-            key.attach(System.currentTimeMillis());
-            if (asyncExecution){
-                if (cancelkey){
-                    // dont want to do that in non selector thread:
-                    // canceled key wont get canceled again due to isvalid check
-                    key.cancel();
-                }
-                task.callInterrupt = true;
-                task.interruptFlushAPT = flushAPT;
-                ((WorkerThreadImpl)Thread.currentThread()).
-                        getPendingIOhandler().addPendingIO(task);
-
-            }else{
-                interrupt0(task, notifyInterrupt, flushAPT, cancelkey);
-            }
-            return true;
-        }
-        return false;
-    }
-
-
-    /**
-     * interrupt logic in its own method, so it can be executed either async or sync.<br>
-     * cometHandler.onInterrupt is performed async due to its functionality is unknown,
-     * hence not safe to run in the performance critical selector thread.
-     */
-    @Override
-    protected void interrupt0(com.sun.grizzly.comet.CometTask task,
-            boolean notifyInterrupt, boolean flushAPT, boolean cancelkey){
-        if (notifyInterrupt){
-            try{
-                ((CometHandler)task.getCometHandler()).onInterrupt(((CometEvent)eventInterrupt));
-            }catch(IOException e) { }
-        }
-        CometEngine.getEngine().flushPostExecute(task,flushAPT,cancelkey);
-    }
 }
 
