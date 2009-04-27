@@ -45,10 +45,10 @@ import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.SelectorFactory;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -396,36 +396,72 @@ public class CometEngine {
     }
 
     /**
+     * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
+     * @param task. The {@link CometTask} encapsulating the suspended connection.
+     * @param finishExecution Finish the current execution.
+     */
+    protected boolean interrupt(final CometTask task, final boolean finishExecution) {
+        if (task != null && task.getCometContext().handlers().remove(task.cometHandler) != null){
+            final SelectionKey key = task.getSelectionKey();            
+             // setting attachment non asynced to ensure grizzly dont keep calling us
+            key.attach(System.currentTimeMillis());
+            if (finishExecution){
+                key.cancel();
+                
+                task.callInterrupt = true;                               
+                ((WorkerThreadImpl)Thread.currentThread()).
+                        getPendingIOhandler().addPendingIO(task);                
+            }else{
+                interrupt0(task, finishExecution);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Interrupt logic in its own method, so it can be executed either async or sync.<br>
+     * cometHandler.onInterrupt is performed async due to its functionality is unknown,
+     * hence not safe to run in the performance critical selector thread.
+     * @param task. The {@link CometTask} encapsulating the suspended connection.
+     * @param finishExecution Finish the current execution.
+     */
+    protected void interrupt0(CometTask task, boolean finishExecution){
+        if (finishExecution){
+            try{
+                task.cometHandler.onInterrupt(task.getCometContext().eventInterrupt);
+            }catch(IOException e) { }
+        }        
+        flushPostExecute(task,finishExecution);
+    }
+    
+    
+    /**
      * Ensures {@link ProcessorTask} is recycled and that {@link Selectionkey} is canceled when needed.
      *
      * @param task
-     * @param aptflush
      * @param cancelkey
      */
-    protected void flushPostExecute(final CometTask task, boolean aptflush,boolean cancelkey) {
+    protected void flushPostExecute(final CometTask task,boolean cancelkey) {
         AsyncProcessorTask apt = task.getAsyncProcessorTask();        
         ProcessorTask p = task.getAsyncProcessorTask().getAsyncExecutor().getProcessorTask();
         p.setReRegisterSelectionKey(false);
         p.setAptCancelKey(cancelkey);
-        if (!aptflush){
-            p.terminateProcess();
-        }else{
-            if (apt.getStage() == AsyncTask.POST_EXECUTE){
-                try{
-                    //All comet IO operations sync on handler except close
-                    synchronized(task.cometHandler){
-                        apt.doTask();
-                    }
-                } catch (IllegalStateException ex){
-                    if (logger.isLoggable(Level.FINEST)){
-                        logger.log(Level.FINEST,"Resuming Response failed at aptflush",ex);
-                    }
-                } catch (Throwable ex) {
-                    logger.log(Level.SEVERE,"Resuming  failed at aptflush",ex);
+        if (apt.getStage() == AsyncTask.POST_EXECUTE){
+            try{
+                //All comet IO operations sync on handler except close
+                synchronized(task.cometHandler){
+                    apt.doTask();
                 }
-            }else{
-                logger.warning("APTflush called at wrong stage");
+            } catch (IllegalStateException ex){
+                if (logger.isLoggable(Level.FINEST)){
+                    logger.log(Level.FINEST,"Resuming Response failed at aptflush",ex);
+                }
+            } catch (Throwable ex) {
+                logger.log(Level.SEVERE,"Resuming  failed at aptflush",ex);
             }
+        }else{
+            logger.warning("APTflush called at wrong stage");
         }
     }
 

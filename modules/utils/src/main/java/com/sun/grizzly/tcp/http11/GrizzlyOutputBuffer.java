@@ -57,7 +57,6 @@ package com.sun.grizzly.tcp.http11;
 
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.FileOutputBuffer;
-import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.C2BConverter;

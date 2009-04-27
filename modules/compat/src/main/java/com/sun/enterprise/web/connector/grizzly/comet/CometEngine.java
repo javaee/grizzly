@@ -38,10 +38,9 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
-import com.sun.grizzly.arp.AsyncProcessorTask;
-import com.sun.grizzly.arp.AsyncTask;
-import com.sun.grizzly.http.ProcessorTask;
-import java.util.logging.Level;
+import com.sun.grizzly.util.WorkerThreadImpl;
+import java.io.IOException;
+import java.nio.channels.SelectionKey;
 
 /**
  * Main class allowing Comet support on top of Grizzly Asynchronous
@@ -130,7 +129,12 @@ public class CometEngine extends com.sun.grizzly.comet.CometEngine {
     public CometContext getCometContext(String contextPath){
         return (CometContext)activeContexts.get(contextPath);
     }
-
+    
+    @Override
+    protected boolean interrupt(final com.sun.grizzly.comet.CometTask task, 
+            final boolean finishExecution) {
+        return super.interrupt(task, finishExecution);
+    }
     /**
      *
      * @param task
@@ -138,8 +142,52 @@ public class CometEngine extends com.sun.grizzly.comet.CometEngine {
      * @param cancelkey
      */
     @Override
-    protected void flushPostExecute(final com.sun.grizzly.comet.CometTask task, boolean aptflush,boolean cancelkey) {
-        super.flushPostExecute(task, aptflush, cancelkey);
+    protected void flushPostExecute(final com.sun.grizzly.comet.CometTask task, 
+            boolean finishExecution) {
+        super.flushPostExecute(task, finishExecution);
     }
 
+    /**
+     * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
+     */
+    protected boolean interrupt(final CometTask task,final boolean finishExecution) {
+        if (task != null && task.getCometContext().handlers().remove(task.getCometHandler()) != null){
+            final SelectionKey key = task.getSelectionKey();
+             // setting attachment non asynced to ensure grizzly dont keep calling us
+            key.attach(System.currentTimeMillis());
+            if (finishExecution){
+                // dont want to do that in non selector thread:
+                // canceled key wont get canceled again due to isvalid check
+                key.cancel();
+
+                task.callInterrupt = true;
+                task.interruptFlushAPT = finishExecution;
+                ((WorkerThreadImpl)Thread.currentThread()).
+                        getPendingIOhandler().addPendingIO(task);
+
+            }else{
+                interrupt0(task, finishExecution);
+            }
+            return true;
+        }
+        return false;
+    }
+
+
+    /**
+     * interrupt logic in its own method, so it can be executed either async or sync.<br>
+     * cometHandler.onInterrupt is performed async due to its functionality is unknown,
+     * hence not safe to run in the performance critical selector thread.
+     */
+    @Override
+    protected void interrupt0(com.sun.grizzly.comet.CometTask task,
+            boolean finishExecution){
+        if (finishExecution){
+            try{
+                ((CometHandler)task.getCometHandler()).onInterrupt((
+                        (CometEvent)((CometContext)task.getCometContext()).eventInterrupt));
+            }catch(IOException e) { }
+        }
+        flushPostExecute(task,finishExecution);
+    }
 }
