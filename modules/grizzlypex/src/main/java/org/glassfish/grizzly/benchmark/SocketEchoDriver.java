@@ -56,7 +56,6 @@ public class SocketEchoDriver extends EchoDriverBase {
     private InputStream is;
     private OutputStream os;
 
-    private byte counter;
     @Override
     public void prepare(TestCase testCase) {
         super.prepare(testCase);
@@ -78,7 +77,6 @@ public class SocketEchoDriver extends EchoDriverBase {
 
     @Override
     public void run(TestCase testCase) {
-        buffer[0] = counter++;
         try {
             os.write(buffer);
             os.flush();
