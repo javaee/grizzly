@@ -809,14 +809,6 @@ public class TCPSelectorHandler implements SelectorHandler {
             //logical replacement of 3 interest changes with 1 that is the complement to them.
             //if opaccept is known to not be of interest we could 0 the interest instead.
              key.interestOps(key.interestOps() & (SelectionKey.OP_ACCEPT) );
-             /*
-            // disable OP_CONNECT on key before doing anything else
-            key.interestOps(key.interestOps() & (~SelectionKey.OP_CONNECT));
-
-            // No OP_READ nor OP_WRITE allowed yet.
-            key.interestOps(key.interestOps() & (~SelectionKey.OP_WRITE));
-            key.interestOps(key.interestOps() & (~SelectionKey.OP_READ));*/
-
         } catch(CancelledKeyException e) {
             // Even if key was cancelled - we need to notify CallBackHandler
             if (logger.isLoggable(Level.FINE)) {
