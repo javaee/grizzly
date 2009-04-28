@@ -48,7 +48,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable {
     /**
      * The classname of a thread pool implementation
      */
-    @Attribute
+    @Attribute(defaultValue = "com.sun.grizzly.http.StatsThreadPool")
     String getClassname();
 
     void setClassname(String value);
