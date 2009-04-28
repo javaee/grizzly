@@ -5,7 +5,7 @@
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-config</artifactId>
     <packaging>hk2-jar</packaging>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <name>grizzly-config</name>
     <url>https://grizzly.dev.java.net</url>
     <repositories>
