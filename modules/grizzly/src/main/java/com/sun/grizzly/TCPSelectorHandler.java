@@ -589,7 +589,7 @@ public class TCPSelectorHandler implements SelectorHandler {
             default:
                 opToRegister.offer(new SelectionKeyOP(key,ops));
         }
-        selector.wakeup();
+        wakeUp();
     }
 
     public void register(SelectableChannel channel, int ops) {
@@ -598,7 +598,18 @@ public class TCPSelectorHandler implements SelectorHandler {
         }
 
         opToRegister.offer(new SelectionKeyOP(null,ops,channel));
-        selector.wakeup();
+        wakeUp();
+    }
+    
+    /**
+     * Workaround for NIO issue 6524172
+     */
+    private void wakeUp(){
+        try{
+            selector.wakeup();
+        } catch (NullPointerException ne){
+            // Swallow as this is a JDK issue.
+        }
     }
 
     /**
@@ -627,7 +638,7 @@ public class TCPSelectorHandler implements SelectorHandler {
         keyOP.setRemoteAddress(remoteAddress);
         keyOP.setCallbackHandler(callbackHandler);
         opToRegister.offer(keyOP);
-        selector.wakeup();
+        wakeUp();
     }
 
     /**
