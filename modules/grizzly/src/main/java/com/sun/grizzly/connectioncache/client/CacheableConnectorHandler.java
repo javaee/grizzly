@@ -45,6 +45,7 @@ import com.sun.grizzly.ConnectorHandler;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.Controller.Protocol;
+import com.sun.grizzly.DefaultCallbackHandler;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.NIOContext;
 import com.sun.grizzly.SelectorHandler;
@@ -206,15 +207,7 @@ public class CacheableConnectorHandler
     //---------------------- CallbackHandler implementation --------------------------------
     public void onConnect(IOEvent ioEvent) {
         if (underlyingCallbackHandler == null) {
-            underlyingCallbackHandler = new CallbackHandler<Context>(){
-                public void onConnect(IOEvent<Context> ioEvent) {
-                    SelectionKey key = ioEvent.attachment().getSelectionKey();
-                    finishConnect(key);
-                    ioEvent.attachment().getSelectorHandler().register(key,SelectionKey.OP_READ);
-                }
-                public void onRead(IOEvent<Context> ioEvent) {}
-                public void onWrite(IOEvent<Context> ioEvent) {}
-            };
+            underlyingCallbackHandler = new DefaultCallbackHandler(this);
         }
         
         underlyingCallbackHandler.onConnect(ioEvent);
