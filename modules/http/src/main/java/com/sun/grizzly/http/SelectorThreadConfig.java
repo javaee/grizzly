@@ -129,6 +129,9 @@ public class SelectorThreadConfig{
     private final static String WRITE_TIMEOUT = 
         "com.sun.grizzly.writeTimeout";     
     
+    private final static String IDLE_THREAD_TIMEOUT = 
+        "com.sun.grizzly.idleThreadTimeout";    
+    
     private final static String BUFFER_RESPONSE = 
         "com.sun.grizzly.http.bufferResponse"; 
     
@@ -200,6 +203,17 @@ public class SelectorThreadConfig{
                                             sm.getString("selectorThread.invalidWriteTimeout"));
             }
         } 
+        
+        if (System.getProperty(IDLE_THREAD_TIMEOUT) != null){
+            try{
+                int timeout =  Integer.parseInt(
+                        System.getProperty(IDLE_THREAD_TIMEOUT));
+                selectorThread.setTransactionTimeout(timeout);
+            } catch (NumberFormatException ex){
+                SelectorThread.logger().log(Level.WARNING, 
+                                            sm.getString("selectorThread.invalidWriteTimeout"));
+            }
+        }
         
         String threadPoolClassname = null;
         int minWorkerThreads = StatsThreadPool.DEFAULT_MIN_THREAD_COUNT;
