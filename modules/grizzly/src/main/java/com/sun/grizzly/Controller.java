@@ -447,7 +447,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     private void dolog(String msg, SelectionKey key) {
-        logger.log(Level.FINE, msg + key + " attachment: " + key.attachment());
+        if (logger.isLoggable(Level.FINE)){
+            logger.log(Level.FINE, msg + key + " attachment: " + key.attachment());
+        }
     }
 
     /**
@@ -913,7 +915,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 int selectorHandlerCount = selectorHandlers.size();
                 readySelectorHandlerCounter = new AtomicInteger(selectorHandlerCount);
                 stoppedSelectorHandlerCounter = new AtomicInteger(selectorHandlerCount);
-
 
                 Iterator<SelectorHandler> it = selectorHandlers.iterator();
                 for (; it.hasNext() && selectorHandlerCount-- > 0;) {
