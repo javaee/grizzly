@@ -1382,7 +1382,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     /**
      * Create the {@link ExecutorService} used to execute kernel like operations.
      */
-    public ExecutorService createKernelExecutor(){
+    protected ExecutorService createKernelExecutor(){
         return Executors.newCachedThreadPool(new WorkerThreadFactory("grizzly-kernel"));
     }
     
