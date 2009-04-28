@@ -50,7 +50,6 @@ import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.SupportStateHolder;
 import com.sun.grizzly.util.WorkerThreadFactory;
-import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
