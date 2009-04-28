@@ -142,6 +142,19 @@ public class MapperTest extends TestCase {
             stopGrizzlyWebServer();
         }
     }
+    
+     public void testWrongMappingRootContext() throws IOException {
+        System.out.println("testWrongMappingRootContext");
+        try {
+            startGrizzlyWebServer(PORT);
+            String alias = "/*.a";
+            addAdapter(alias);
+            HttpURLConnection conn = getConnection("/aaa.html");
+            assertEquals(HttpServletResponse.SC_NOT_FOUND, getResponseCodeFromAlias(conn));
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
 
 
 
