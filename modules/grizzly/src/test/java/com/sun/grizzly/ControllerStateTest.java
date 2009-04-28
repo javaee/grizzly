@@ -50,8 +50,6 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import junit.framework.TestCase;
 
 /**
@@ -62,7 +60,7 @@ public class ControllerStateTest extends TestCase {
     public static final int PORT = 17502;
     public static final int SIMULT_CONTROLLER_START = 50;
     
-    public void ttestControllerPauseResume() throws IOException {
+    public void testControllerPauseResume() throws IOException {
         Controller controller = createController(PORT);
         
         try {

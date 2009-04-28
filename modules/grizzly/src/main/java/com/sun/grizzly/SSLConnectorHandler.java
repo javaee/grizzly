@@ -416,7 +416,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
                 }
             });
             callbackHandler = new DefaultCallbackHandler(this,false);        
-            new WorkerThreadImpl("GrizzlySSLConnectorHandler-Controller",controller).start();
+            controller.executeUsingKernelExecutor();
             
             try {
                 latch.await();

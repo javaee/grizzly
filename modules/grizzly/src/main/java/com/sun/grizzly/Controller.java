@@ -49,6 +49,7 @@ import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.SupportStateHolder;
+import com.sun.grizzly.util.WorkerThreadFactory;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
@@ -62,6 +63,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -262,6 +264,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     private final static LinkedTransferQueue<Controller> controllers =
             new LinkedTransferQueue<Controller>();
+    
+    // Internal Thread Pool.
+    private ExecutorService kernelExecutor;
 
     /**
      * The threshold for detecting selector.select spin on linux,
@@ -309,6 +314,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (connectorHandlerPool == null) {
             connectorHandlerPool = new DefaultConnectorHandlerPool(this);
         }
+        kernelExecutor = createKernelExecutor();
         controllers.add(this);
     }
 
@@ -947,6 +953,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     public void start() throws IOException {
         stateHolder.getStateLocker().writeLock().lock();
         boolean isUnlocked = false;
+        if (kernelExecutor.isShutdown()){
+            // Re-create 
+            kernelExecutor = createKernelExecutor();
+        }
+        
         try {
             if (stateHolder.getState(false) == null ||
                     stateHolder.getState(false) == State.STOPPED) {
@@ -1060,6 +1071,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 latch.await();
             } catch(InterruptedException e) {}
         }
+        kernelExecutor.shutdownNow();
     }
 
 
@@ -1115,7 +1127,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
 
         for (int i=0; i < readThreadControllers.length; i++) {
-            new WorkerThreadImpl("GrizzlyReadController-" + i,readThreadControllers[i]).start();
+            kernelExecutor.submit(readThreadControllers[i]);
         }
     }
 
@@ -1159,8 +1171,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (selectorHandler.getSelector() != null) {
             notifyReady();
         }
-        new WorkerThreadImpl("GrizzlySelectorRunner-" + selectorHandler.protocol(),
-                selectorRunner).start();
+        kernelExecutor.submit(selectorRunner);
     }
 
 
@@ -1349,4 +1360,31 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         } catch (Exception e) {
         }
     }
+    
+    /**
+     * Execute the {@link Controller#run} using the internal/kernel 
+     * {@link Executors}
+     */
+    protected void executeUsingKernelExecutor(){
+        kernelExecutor.submit(this);
+    }
+    
+    /**
+     * Execute the {@link Runnable} using the internal kernel 
+     * {@link Executors}. Do not invoke that method for application's task
+     * as this is the {@link ExecutorService} used internally to spawn 
+     * Thread.
+     * @param r a Runnable
+     */
+    public void executeUsingKernelExecutor(Runnable r){
+        kernelExecutor.submit(r);
+    }
+    
+    /**
+     * Create the {@link ExecutorService} used to execute kernel like operations.
+     */
+    public ExecutorService createKernelExecutor(){
+        return Executors.newCachedThreadPool(new WorkerThreadFactory("grizzly-kernel"));
+    }
+    
 }

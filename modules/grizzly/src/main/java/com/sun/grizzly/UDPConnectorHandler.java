@@ -288,7 +288,7 @@ public class UDPConnectorHandler implements
                 }
             });                     
             callbackHandler = new DefaultCallbackHandler(this, false);
-            new WorkerThreadImpl("GrizzlyUDPConnectorHandler-Controller",controller).start();
+            controller.executeUsingKernelExecutor();
             
             try {
                 latch.await();

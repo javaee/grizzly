@@ -38,12 +38,10 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.tcp.PendingIOhandler;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.StateHolder.ConditionListener;
 import com.sun.grizzly.util.WorkerThreadImpl;
-import java.nio.channels.SelectionKey;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 

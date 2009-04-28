@@ -350,9 +350,8 @@ public class TCPConnectorHandler implements
                 }
             });
 
-            callbackHandler = new DefaultCallbackHandler(this,false);
-            
-            new WorkerThreadImpl("GrizzlyTCPConnectorHandler-Controller",controller).start();
+            callbackHandler = new DefaultCallbackHandler(this,false);            
+            controller.executeUsingKernelExecutor();
             
             try {
                 latch.await();
