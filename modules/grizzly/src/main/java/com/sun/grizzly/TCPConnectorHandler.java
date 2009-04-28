@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly;
 
+import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.async.AsyncQueueDataProcessor;
 import com.sun.grizzly.async.AsyncQueueReadUnit;
 import com.sun.grizzly.async.AsyncQueueReadable;
@@ -97,26 +98,14 @@ import java.util.logging.Level;
  *
  * @author Jeanfrancois Arcand
  */
-public class TCPConnectorHandler implements 
-        ConnectorHandler<TCPSelectorHandler, CallbackHandler>, 
+public class TCPConnectorHandler extends
+        AbstractConnectorHandler<TCPSelectorHandler, CallbackHandler> implements
         AsyncQueueWritable, AsyncQueueReadable {
     
     /**
      * default TCP channel connection timeout in milliseconds
      */
     private static final int DEFAULT_CONNECTION_TIMEOUT = 30 * 1000;
-    
-    /**
-     * The underlying TCPSelectorHandler used to mange SelectionKeys.
-     */
-    protected TCPSelectorHandler selectorHandler;
-    
-    
-    /**
-     * A {@link CallbackHandler} handler invoked by the TCPSelectorHandler
-     * when a non blocking operation is ready to be processed.
-     */
-    private CallbackHandler callbackHandler;
     
     
     /**
@@ -127,21 +116,9 @@ public class TCPConnectorHandler implements
     
     
     /**
-     * The connection's SocketChannel.
-     */
-    private SocketChannel socketChannel;
-    
-    
-    /**
      * Is the connection established.
      */
     private volatile boolean isConnected;
-    
-    
-    /**
-     * The internal Controller used (in case not specified).
-     */
-    private Controller controller;
     
     
     /**
@@ -179,8 +156,11 @@ public class TCPConnectorHandler implements
      * Connection timeout is milliseconds
      */
     protected int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
-    
-    
+
+    public TCPConnectorHandler() {
+        protocol(Protocol.TCP);
+    }
+        
     /**
      * Connect to hostname:port. When an aysnchronous event happens (e.g
      * OP_READ or OP_WRITE), the {@link Controller} will invoke
@@ -382,7 +362,7 @@ public class TCPConnectorHandler implements
             throw new NotYetConnectedException();
         }
         
-        SelectionKey key = socketChannel.keyFor(selectorHandler.getSelector());
+        SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
         if (blocking){
             inputStream.setSelectionKey(key);
             return inputStream.read(byteBuffer);
@@ -394,7 +374,7 @@ public class TCPConnectorHandler implements
             int nRead = -1;
             
             try{
-                nRead = socketChannel.read(byteBuffer);
+                nRead = ((SocketChannel) underlyingChannel).read(byteBuffer);
             } catch (IOException ex){
                 nRead = -1;
                 throw ex;
@@ -430,7 +410,7 @@ public class TCPConnectorHandler implements
         }
         
         if (blocking){
-            return OutputWriter.flushChannel(socketChannel,byteBuffer);
+            return OutputWriter.flushChannel(underlyingChannel, byteBuffer);
         } else {
             
             if (callbackHandler == null){
@@ -438,12 +418,12 @@ public class TCPConnectorHandler implements
                         ("Non blocking write needs a CallbackHandler");
             }
             
-            SelectionKey key = socketChannel.keyFor(selectorHandler.getSelector());
+            SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
             int nWrite = 1;
             int totalWriteBytes = 0;
             try{
                 while (nWrite > 0 && byteBuffer.hasRemaining()){
-                    nWrite = socketChannel.write(byteBuffer);
+                    nWrite = ((SocketChannel) underlyingChannel).write(byteBuffer);
                     totalWriteBytes += nWrite;
                 }
             } catch (IOException ex){
@@ -491,7 +471,7 @@ public class TCPConnectorHandler implements
             AsyncReadCondition condition, 
             AsyncQueueDataProcessor readPostProcessor) throws IOException {
         return selectorHandler.getAsyncQueueReader().read(
-                socketChannel.keyFor(selectorHandler.getSelector()), buffer, 
+                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
                 callbackHandler, condition, readPostProcessor);
     }
 
@@ -533,7 +513,7 @@ public class TCPConnectorHandler implements
             AsyncQueueDataProcessor writePreProcessor,
             ByteBufferCloner cloner) throws IOException {
         return selectorHandler.getAsyncQueueWriter().write(
-                socketChannel.keyFor(selectorHandler.getSelector()), buffer,
+                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
                 callbackHandler, writePreProcessor, cloner);
     }
 
@@ -579,7 +559,7 @@ public class TCPConnectorHandler implements
             AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner)
             throws IOException {
         return selectorHandler.getAsyncQueueWriter().write(
-                socketChannel.keyFor(selectorHandler.getSelector()), dstAddress,
+                underlyingChannel.keyFor(selectorHandler.getSelector()), dstAddress,
                 buffer, callbackHandler, writePreProcessor, cloner);
     }
 
@@ -588,16 +568,16 @@ public class TCPConnectorHandler implements
      * Close the underlying connection.
      */
     public void close() throws IOException{
-        if (socketChannel != null){
+        if (underlyingChannel != null){
             if (selectorHandler != null){
                 SelectionKey key =
-                        socketChannel.keyFor(selectorHandler.getSelector());
+                        underlyingChannel.keyFor(selectorHandler.getSelector());
                 
                 if (key == null) return;
                 
                 selectorHandler.getSelectionKeyHandler().cancel(key);
             } else {
-                socketChannel.close();
+                underlyingChannel.close();
             }
         }
         
@@ -622,7 +602,8 @@ public class TCPConnectorHandler implements
                 Controller.logger().log(Level.FINE, "Finish connect");
             }
             
-            socketChannel = (SocketChannel)key.channel();
+            final SocketChannel socketChannel = (SocketChannel) key.channel();
+            underlyingChannel = socketChannel;
             socketChannel.finishConnect();
             isConnected = socketChannel.isConnected();
             configureChannel(socketChannel);
@@ -676,7 +657,8 @@ public class TCPConnectorHandler implements
      * interface
      * @return this {@link ConnectorHandler}'s protocol
      */
-    public Controller.Protocol protocol(){
+    @Override
+    public final Controller.Protocol protocol(){
         return Controller.Protocol.TCP;
     }
     
@@ -686,70 +668,7 @@ public class TCPConnectorHandler implements
      * @return <tt>true</tt> if connected, otherwise <tt>false</tt>
      */
     public boolean isConnected(){
-        return isConnected && socketChannel.isOpen();
-    }
-    
-    
-    /**
-     * Return the  {@link Controller}
-     * @return the  {@link Controller}
-     */
-    public Controller getController() {
-        return controller;
-    }
-    
-    
-    /**
-     * Set the {@link Controller} to use with this instance.
-     * @param controller the {@link Controller} to use with this instance.
-     */
-    public void setController(Controller controller) {
-        this.controller = controller;
-    }
-    
-    
-    /**
-     * Return the current {@link SocketChannel} used.
-     * @return the current {@link SocketChannel} used.
-     */
-    public SelectableChannel getUnderlyingChannel() {
-        return socketChannel;
-    }
-    
-    
-    /**
-     * Set the {@link SocketChannel}.
-     * @param the {@link SocketChannel} to use.
-     */  
-    protected void setUnderlyingChannel(SocketChannel socketChannel){
-        this.socketChannel = socketChannel;
-    }   
-    
-    
-    /**
-     * Return the {@link CallbackHandler}. 
-     * @return the {@link CallbackHandler}. 
-     */
-    public CallbackHandler getCallbackHandler() {
-        return callbackHandler;
-    }
-    
-
-    /**
-     * Set the {@link CallbackHandler}. 
-     * @param callbackHandler the {@link CallbackHandler}. 
-     */   
-    public void setCallbackHandler(CallbackHandler callbackHandler) {
-        this.callbackHandler = callbackHandler;
-    }
-    
-    
-    /**
-     * Return the associated {@link SelectorHandler}.
-     * @return the associated {@link SelectorHandler}.
-     */
-    public TCPSelectorHandler getSelectorHandler() {
-        return selectorHandler;
+        return isConnected && underlyingChannel.isOpen();
     }
     
     

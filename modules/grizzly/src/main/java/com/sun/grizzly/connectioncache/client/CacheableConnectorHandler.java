@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.connectioncache.client;
 
+import com.sun.grizzly.AbstractConnectorHandler;
 import com.sun.grizzly.CallbackHandler;
 import com.sun.grizzly.CallbackHandlerSelectionKeyAttachment;
 import com.sun.grizzly.ConnectorHandler;
@@ -52,7 +53,6 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 
@@ -62,10 +62,11 @@ import java.nio.channels.Selector;
  *
  * @author Alexey Stashok
  */
-public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandler, CallbackHandler>,
-        CallbackHandler {
+public class CacheableConnectorHandler 
+        extends AbstractConnectorHandler<SelectorHandler, CallbackHandler>
+        implements CallbackHandler {
+
     private SocketAddress targetAddress;
-    private Protocol protocol;
     
     private CacheableConnectorHandlerPool parentPool;
     private ConnectorHandler underlyingConnectorHandler;
@@ -76,14 +77,6 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
     public CacheableConnectorHandler(CacheableConnectorHandlerPool parentPool) {
         this.parentPool = parentPool;
         connectExecutor = new ConnectExecutor();
-    }
-    
-    void setProtocol(Protocol protocol) {
-        this.protocol = protocol;
-    }
-    
-    public Protocol protocol() {
-        return protocol;
     }
     
     // connect method #1
@@ -188,34 +181,11 @@ public class CacheableConnectorHandler implements ConnectorHandler<SelectorHandl
             }
         }
     }
-    
-    public void setController(Controller controller) {
-        underlyingConnectorHandler.setController(controller);
-    }
-    
-    public Controller getController() {
-        return underlyingConnectorHandler.getController();
-    }
+
     
     public ConnectorHandler getUnderlyingConnectorHandler() {
         return underlyingConnectorHandler;
     }
-
-    public SelectableChannel getUnderlyingChannel() {
-        return underlyingConnectorHandler.getUnderlyingChannel();
-    }
-    
-    public CallbackHandler getCallbackHandler() {
-        return underlyingConnectorHandler.getCallbackHandler();
-    }
-    
-    public void setCallbackHandler(CallbackHandler callbackHandler) {
-        underlyingConnectorHandler.setCallbackHandler(callbackHandler);
-    }
-    
-    public SelectorHandler getSelectorHandler() {
-        return underlyingConnectorHandler.getSelectorHandler();
-    }    
     
     private void notifyCallbackHandlerPseudoConnect() throws ClosedChannelException {
         Selector protocolSelector = underlyingConnectorHandler.getSelectorHandler().getSelector();

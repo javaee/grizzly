@@ -83,7 +83,7 @@ public class CacheableConnectorHandlerPool implements
 
     public CacheableConnectorHandler acquireConnectorHandler(Protocol protocol) {
         CacheableConnectorHandler connectorHandler = connectorInstanceHandler.acquire();
-        connectorHandler.setProtocol(protocol);
+        connectorHandler.protocol(protocol);
         return connectorHandler;
     }
     

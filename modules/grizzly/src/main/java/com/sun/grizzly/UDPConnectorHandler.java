@@ -38,6 +38,7 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.async.AsyncQueueDataProcessor;
 import com.sun.grizzly.async.AsyncQueueReadUnit;
 import com.sun.grizzly.async.AsyncQueueReadable;
@@ -55,7 +56,6 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.NotYetConnectedException;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.DatagramChannel;
 import java.util.concurrent.CountDownLatch;
@@ -75,39 +75,14 @@ import java.util.logging.Level;
  *
  * @author Jeanfrancois Arcand
  */
-public class UDPConnectorHandler implements 
-        ConnectorHandler<UDPSelectorHandler, CallbackHandler>, 
-        AsyncQueueWritable, AsyncQueueReadable {
-    
-    /**
-     * The underlying UDPSelectorHandler used to mange SelectionKeys.
-     */
-    protected UDPSelectorHandler selectorHandler;
-    
-    
-    /**
-     * A {@link CallbackHandler} handler invoked by the UDPSelectorHandler
-     * when a non blocking operation is ready to be processed.
-     */
-    protected CallbackHandler callbackHandler;
-    
-    
-    /**
-     * The connection's DatagramChannel.
-     */
-    protected DatagramChannel datagramChannel;
-    
-    
+public class UDPConnectorHandler
+        extends AbstractConnectorHandler<UDPSelectorHandler, CallbackHandler>
+        implements AsyncQueueWritable, AsyncQueueReadable {
+
     /**
      * Is the connection established.
      */
     protected volatile boolean isConnected;
-    
-    
-    /**
-     * The internal Controller used (in case not specified).
-     */
-    protected Controller controller;
     
     
     /**
@@ -127,8 +102,12 @@ public class UDPConnectorHandler implements
      * to execute a blocking read operation.
      */
     protected InputReader inputStream;
+
+    public UDPConnectorHandler() {
+        protocol(Protocol.UDP);
+    }
     
-    
+
     /**
      * Connect to hostname:port. When an aysnchronous event happens (e.g
      * OP_READ or OP_WRITE), the {@link Controller} will invoke
@@ -313,7 +292,7 @@ public class UDPConnectorHandler implements
             throw new NotYetConnectedException();
         }
         
-        SelectionKey key = datagramChannel.keyFor(selectorHandler.getSelector());
+        SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
         if (blocking){
             if (inputStream == null) {
                 inputStream = new InputReader();
@@ -341,7 +320,7 @@ public class UDPConnectorHandler implements
                 throw new IllegalStateException
                         ("Non blocking read needs a CallbackHandler");
             }
-            int nRead = datagramChannel.read(byteBuffer);
+            int nRead = ((DatagramChannel) underlyingChannel).read(byteBuffer);
             
             if (nRead == 0){
                 selectorHandler.register(key, SelectionKey.OP_READ);
@@ -370,10 +349,10 @@ public class UDPConnectorHandler implements
                 throw new IllegalStateException
                         ("Non blocking write needs a CallbackHandler");
             }
-            SelectionKey key = datagramChannel.keyFor(selectorHandler.getSelector());
+            SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
             int nWrite = -1;
             try{
-                nWrite = datagramChannel.write(byteBuffer);
+                nWrite = ((DatagramChannel) underlyingChannel).write(byteBuffer);
             } catch (IOException ex){
                 nWrite = -1;
                 throw ex;
@@ -419,7 +398,7 @@ public class UDPConnectorHandler implements
             AsyncReadCondition condition, 
             AsyncQueueDataProcessor readPostProcessor) throws IOException {
         return selectorHandler.getAsyncQueueReader().read(
-                datagramChannel.keyFor(selectorHandler.getSelector()), buffer, 
+                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
                 callbackHandler, condition, readPostProcessor);
     }
 
@@ -460,7 +439,7 @@ public class UDPConnectorHandler implements
             AsyncQueueDataProcessor writePreProcessor,
             ByteBufferCloner cloner) throws IOException {
         return selectorHandler.getAsyncQueueWriter().write(
-                datagramChannel.keyFor(selectorHandler.getSelector()), buffer,
+                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
                 callbackHandler, writePreProcessor, cloner);
     }
 
@@ -506,7 +485,7 @@ public class UDPConnectorHandler implements
             AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner)
             throws IOException {
         return selectorHandler.getAsyncQueueWriter().write(
-                datagramChannel.keyFor(selectorHandler.getSelector()), dstAddress,
+                underlyingChannel.keyFor(selectorHandler.getSelector()), dstAddress,
                 buffer, callbackHandler, writePreProcessor, cloner);
     }
 
@@ -529,7 +508,7 @@ public class UDPConnectorHandler implements
                     ("Non blocking read needs a CallbackHandler");
         }
         
-        return datagramChannel.send(byteBuffer,socketAddress);
+        return ((DatagramChannel) underlyingChannel).send(byteBuffer,socketAddress);
     }
     
     
@@ -544,14 +523,15 @@ public class UDPConnectorHandler implements
             throw new NotYetConnectedException();
         }
         
-        SelectionKey key = datagramChannel.keyFor(selectorHandler.getSelector());
+        SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
         
         if (callbackHandler == null){
             throw new IllegalStateException
                     ("Non blocking read needs a CallbackHandler");
         }
         
-        SocketAddress socketAddress = datagramChannel.receive(byteBuffer);
+        SocketAddress socketAddress =
+                ((DatagramChannel) underlyingChannel).receive(byteBuffer);
         return socketAddress;
     }
     
@@ -560,16 +540,16 @@ public class UDPConnectorHandler implements
      * Close the underlying connection.
      */
     public void close() throws IOException{
-        if (datagramChannel != null){
+        if (underlyingChannel != null){
             if (selectorHandler != null){
                 SelectionKey key =
-                        datagramChannel.keyFor(selectorHandler.getSelector());
+                        underlyingChannel.keyFor(selectorHandler.getSelector());
                 
                 if (key == null) return;
                 
                 selectorHandler.getSelectionKeyHandler().cancel(key);
             } else {
-                datagramChannel.close();
+                underlyingChannel.close();
             }
         }
         
@@ -591,7 +571,8 @@ public class UDPConnectorHandler implements
             Controller.logger().log(Level.FINE, "Finish connect");
         }
         
-        datagramChannel = (DatagramChannel)key.channel();
+        final DatagramChannel datagramChannel = (DatagramChannel)key.channel();
+        underlyingChannel = datagramChannel;
         isConnected = datagramChannel.isConnected();
         synchronized(this) {
             if (isConnectedLatch != null) {
@@ -605,6 +586,7 @@ public class UDPConnectorHandler implements
      * A token decribing the protocol supported by an implementation of this
      * interface
      */
+    @Override
     public Controller.Protocol protocol(){
         return Controller.Protocol.UDP;
     }
@@ -615,60 +597,6 @@ public class UDPConnectorHandler implements
      * @return true if connected, othewise false
      */
     public boolean isConnected(){
-        return isConnected && datagramChannel.isOpen();
-    }
-    
-    
-    /**
-     * Return the  {@link Controller}
-     * @return the  {@link Controller}
-     */
-    public Controller getController() {
-        return controller;
-    }
-    
-    
-    /**
-     * Set the {@link Controller} to use with this instance.
-     * @param controller the {@link Controller} to use with this instance.
-     */
-    public void setController(Controller controller) {
-        this.controller = controller;
-    }
-    
-    
-    /**
-     * Return the current {@link SocketChannel} used.
-     * @return the current {@link SocketChannel} used.
-     */
-    public SelectableChannel getUnderlyingChannel() {
-        return datagramChannel;
-    }
-    
-    
-    /**
-     * Return the {@link CallbackHandler}. 
-     * @return the {@link CallbackHandler}. 
-     */
-    public CallbackHandler getCallbackHandler() {
-        return callbackHandler;
-    }
-    
-
-    /**
-     * Set the {@link CallbackHandler}. 
-     * @param callbackHandler the {@link CallbackHandler}. 
-     */   
-    public void setCallbackHandler(CallbackHandler callbackHandler) {
-        this.callbackHandler = callbackHandler;
-    }   
-    
-        
-    /**
-     * Return the associated {@link SelectorHandler}.
-     * @return the associated {@link SelectorHandler}.
-     */
-    public UDPSelectorHandler getSelectorHandler() {
-        return selectorHandler;
+        return isConnected && underlyingChannel.isOpen();
     }
 }
