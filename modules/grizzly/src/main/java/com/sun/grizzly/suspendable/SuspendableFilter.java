@@ -208,7 +208,6 @@ public class SuspendableFilter<T> implements ProtocolFilter {
     public SuspendableFilter(int nextFilterPosition){
         this.nextFilterPosition = nextFilterPosition;
     }
-
     
     // -------------------------------------------------- Suspend API ------- //
     
@@ -280,7 +279,14 @@ public class SuspendableFilter<T> implements ProtocolFilter {
     public boolean execute(Context ctx) throws IOException { 
         WorkerThread wt = (WorkerThread)Thread.currentThread();
         ByteBuffer bb = wt.getByteBuffer();
-        controller = ctx.getController();
+        
+        if (controller == null){
+            synchronized(this){
+                controller = ctx.getController();
+                controller.executeUsingKernelExecutor(suspendableMonitor);
+            }
+        }
+
                 
         if (ctx.getProtocol() == Controller.Protocol.TCP){
             ctx.getSelectionKey().attach(null);

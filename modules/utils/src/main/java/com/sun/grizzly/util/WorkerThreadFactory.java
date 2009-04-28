@@ -34,8 +34,16 @@ public class WorkerThreadFactory implements ThreadFactory{
     /**
      * The {@link ThreadGroup}
      */
-    private final static ThreadGroup threadGroup = new ThreadGroup("Grizzly");
+    private final ThreadGroup threadGroup;
+ 
+    public WorkerThreadFactory(){
+        threadGroup = new ThreadGroup("Grizzly");
+    }
     
+    
+    public WorkerThreadFactory(String name){
+        threadGroup = new ThreadGroup(name);
+    }
     
     /**
      * Create a new {@link WorkerThread}.

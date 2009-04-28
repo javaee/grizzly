@@ -60,7 +60,7 @@ import java.nio.channels.SelectableChannel;
  * TODO: Add Pipelining/Multiplexing support.
  * @author Jeanfrancois Arcand
  */
-public class SuspendableMonitor {
+public class SuspendableMonitor implements Runnable {
 
     /**
      * The {@link Selector}
@@ -80,156 +80,137 @@ public class SuspendableMonitor {
      * Start a new Thread with a Selector running.
      */
     public SuspendableMonitor() {
-        start();
     }
 
-    public void start() {
-        new WorkerThreadImpl(null,"GrizzlySuspendableMonitor") {
 
-            {
-                setDaemon(true);
-            }
+    @SuppressWarnings("empty-statement")
+    @Override
+    public void run() {
+        try {
+            selector = Selector.open();
+        } catch (IOException ex) {
+            // Most probably a fd leak.
+            logger.log(Level.SEVERE, "SuspendableMonitor.open()", ex);
+            return;
+        }
+        while (true) {
+            SelectionKey foreignKey = null;
+            KeyHandler kh = null;                    
+            int selectorState = 0;
 
-            @SuppressWarnings("empty-statement")
-            @Override
-            public void run() {
+            try {
                 try {
-                    selector = Selector.open();
-                } catch (IOException ex) {
-                    // Most probably a fd leak.
-                    logger.log(Level.SEVERE, "SuspendableMonitor.open()", ex);
-                    return;
+                    selectorState = selector.select(1000);
+                } catch (CancelledKeyException ex) {
+                    ;
                 }
-                while (true) {
-                    SelectionKey foreignKey = null;
-                    KeyHandler kh = null;                    
-                    int selectorState = 0;
 
-                    try {
+                Iterator<KeyHandler> keys = 
+                        keysToRegister.iterator();
+
+                SelectableChannel channel;
+                while (keys.hasNext()){
+                    kh = keys.next();
+                    channel =  kh.getKey().channel();
+                    if (kh.getKey().isValid() && channel.isOpen()) {
+                        foreignKey = channel
+                            .register(selector,SelectionKey.OP_READ,kh);  
+                        kh.setForeignKey(foreignKey);
+                        keys.remove();
+                    } 
+                }  
+
+                expireIdleKeys();
+
+                if (selectorState <= 0) {
+                    selector.selectedKeys().clear();
+                }
+            } catch (Throwable t) {
+                logger.log(Level.SEVERE,"SuspendableMonitor",t);
+                try{
+                    if (kh != null) {
                         try {
-                            selectorState = selector.select(1000);
-                        } catch (CancelledKeyException ex) {
-                            ;
-                        }
-                        
-                        Iterator<KeyHandler> keys = 
-                                keysToRegister.iterator();
-
-                        SelectableChannel channel;
-                        while (keys.hasNext()){
-                            kh = keys.next();
-                            channel =  kh.getKey().channel();
-                            if (kh.getKey().isValid() && channel.isOpen()) {
-                                foreignKey = channel
-                                    .register(selector,SelectionKey.OP_READ,kh);  
-                                kh.setForeignKey(foreignKey);
-                                keys.remove();
-                            } 
-                        }  
-                        
-                      /*  readyKeys = selector.selectedKeys();
-                        iterator = readyKeys.iterator();
-                        // TODO: Support pipelining
-                       /* while (iterator.hasNext()) {
-                            key = iterator.next();
-                            if (key.isReadable()) {
-                            //SuspendableMonitor.this.interrupted(key);
-                            }
-                        }*/
-                        expireIdleKeys();
-
-                        if (selectorState <= 0) {
-                            selector.selectedKeys().clear();
-                        }
-                    } catch (Throwable t) {
-                        logger.log(Level.SEVERE,"SuspendableMonitor",t);
-                        try{
-                            if (kh != null) {
-                                try {
-                                    interrupted(kh.getKey());
-                                } catch (Throwable t2) {
-                                    logger.log(Level.SEVERE, "SuspendableMonitor", t2);
-                                }
-                            }
-
-                            if (selectorState <= 0) {
-                                selector.selectedKeys().clear();
-                            }
-                        } catch (Throwable t2){
+                            interrupted(kh.getKey());
+                        } catch (Throwable t2) {
                             logger.log(Level.SEVERE, "SuspendableMonitor", t2);
                         }
                     }
+
+                    if (selectorState <= 0) {
+                        selector.selectedKeys().clear();
+                    }
+                } catch (Throwable t2){
+                    logger.log(Level.SEVERE, "SuspendableMonitor", t2);
                 }
             }
-
-
-            /**
-             * Expire the SelectionKey?
-             */
-            protected void expireIdleKeys() {
-                Set<SelectionKey> readyKeys = selector.keys();
-                if (readyKeys.isEmpty()) {
-                    return;
-                }
-                long current = System.currentTimeMillis();
-                Iterator<SelectionKey> iterator = readyKeys.iterator();
-                SelectionKey key;
-                while (iterator.hasNext()) {
-                    key = iterator.next();
-                    KeyHandler kh = (KeyHandler) key.attachment();
-                    if (kh == null) {
-                        return;
-                    }
-
-                    long expire = kh.getRegistrationTime();
-                     
-                    if (expire == -1){
-                        continue;
-                    }
-
-                    if (current - expire >= kh.getSuspendableHandler().getExpireTime()) {
-                        kh.setRegistrationTime(-1);
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.log(Level.FINE, "Expiring: " 
-                                    + key + " attachment: " + key.attachment());
-                        }
-                        try {
-                            kh.getSuspendableHandler().getSuspendableHandler()
-                                    .expired(kh.getSuspendableHandler().getAttachment());
-                        } catch (Throwable t) {
-                            if (logger.isLoggable(Level.FINE) && kh != null) {
-                                logger.log(Level.FINE, "Interrupting: " + t);
-                            }
-                        }
-                        kh.getSuspendableHandler().getSuspendableFilter()
-                                .resume(kh.getKey());                        
-                    }
-                }
-            }
-
-            /**
-             * Interrupt a suspended SelectionKey that have timed out.
-             */
-            protected void interrupted(SelectionKey key) {
-                key.cancel();
-
-                KeyHandler kh = (KeyHandler) key.attachment();
-                kh.getSuspendableHandler().getSelectorHandler()
-                        .getSelectionKeyHandler().cancel(kh.getKey());
-                if (logger.isLoggable(Level.FINE) && kh != null) {
-                    logger.log(Level.FINE, "Interrupting: " + kh.getKey());
-                }
-
-                if (kh != null) {
-                    kh.getSuspendableHandler().getSuspendableHandler().
-                            interupted(kh.getSuspendableHandler().getAttachment());
-                    kh.getSuspendableHandler().getSuspendableFilter()
-                            .suspendedKeys.remove(kh.getKey());
-                }
-            }
-        }.start();
+        }
     }
 
+
+    /**
+     * Expire the SelectionKey?
+     */
+    protected void expireIdleKeys() {
+        Set<SelectionKey> readyKeys = selector.keys();
+        if (readyKeys.isEmpty()) {
+            return;
+        }
+        long current = System.currentTimeMillis();
+        Iterator<SelectionKey> iterator = readyKeys.iterator();
+        SelectionKey key;
+        while (iterator.hasNext()) {
+            key = iterator.next();
+            KeyHandler kh = (KeyHandler) key.attachment();
+            if (kh == null) {
+                return;
+            }
+
+            long expire = kh.getRegistrationTime();
+
+            if (expire == -1){
+                continue;
+            }
+
+            if (current - expire >= kh.getSuspendableHandler().getExpireTime()) {
+                kh.setRegistrationTime(-1);
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "Expiring: " 
+                            + key + " attachment: " + key.attachment());
+                }
+                try {
+                    kh.getSuspendableHandler().getSuspendableHandler()
+                            .expired(kh.getSuspendableHandler().getAttachment());
+                } catch (Throwable t) {
+                    if (logger.isLoggable(Level.FINE) && kh != null) {
+                        logger.log(Level.FINE, "Interrupting: " + t);
+                    }
+                }
+                kh.getSuspendableHandler().getSuspendableFilter()
+                        .resume(kh.getKey());                        
+            }
+        }
+    }
+
+    /**
+     * Interrupt a suspended SelectionKey that have timed out.
+     */
+    protected void interrupted(SelectionKey key) {
+        key.cancel();
+
+        KeyHandler kh = (KeyHandler) key.attachment();
+        kh.getSuspendableHandler().getSelectorHandler()
+                .getSelectionKeyHandler().cancel(kh.getKey());
+        if (logger.isLoggable(Level.FINE) && kh != null) {
+            logger.log(Level.FINE, "Interrupting: " + kh.getKey());
+        }
+
+        if (kh != null) {
+            kh.getSuspendableHandler().getSuspendableHandler().
+                    interupted(kh.getSuspendableHandler().getAttachment());
+            kh.getSuspendableHandler().getSuspendableFilter()
+                    .suspendedKeys.remove(kh.getKey());
+        }
+    }
     
     /**
      * Suspend the {@link ReadableChannel} represented by this {@link SuspendableFilter.KeyHandler}
