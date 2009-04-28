@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly;
 
+import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.async.AsyncQueueDataProcessor;
 import com.sun.grizzly.async.AsyncQueueReadUnit;
 import com.sun.grizzly.async.AsyncQueueReadable;
@@ -58,7 +59,6 @@ import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AlreadyConnectedException;
 import java.nio.channels.NotYetConnectedException;
-import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
@@ -112,24 +112,14 @@ import javax.net.ssl.SSLException;
  * @author Alexey Stashok
  * @author Jeanfrancois Arcand
  */
-public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler, 
-        SSLCallbackHandler>, AsyncQueueWritable, AsyncQueueReadable {
+public class SSLConnectorHandler
+        extends AbstractConnectorHandler<SSLSelectorHandler, SSLCallbackHandler>
+        implements  AsyncQueueWritable, AsyncQueueReadable {
     
     /**
      * Default Logger.
      */
     private static Logger logger = Logger.getLogger("grizzly");
-    
-    /**
-     * The underlying SSLSelectorHandler used to mange SelectionKeys.
-     */
-    protected SSLSelectorHandler selectorHandler;
-    
-    /**
-     * A {@link SSLCallbackHandler} handler invoked by the SSLSelectorHandler
-     * when a non blocking operation is ready to be processed.
-     */
-    private SSLCallbackHandler callbackHandler;
     
     /*
      * An empty ByteBuffer used for handshaking
@@ -154,11 +144,6 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
     private ByteBuffer asyncHandshakeBuffer;
     
     /**
-     * The connection's SocketChannel.
-     */
-    private SocketChannel socketChannel;
-    
-    /**
      * Is the connection established.
      */
     private volatile boolean isConnected;
@@ -167,11 +152,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
      * Is the handshake phase completed
      */
     private volatile boolean isHandshakeDone;
-    
-    /**
-     * The internal Controller used (in case not specified).
-     */
-    private Controller controller;
+
     
     /**
      * IsConnected Latch related
@@ -251,6 +232,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         this.sslContext = sslContext;
         sslReadPostProcessor = new SSLReadPostProcessor();
         sslWritePreProcessor = new SSLWritePreProcessor();
+        protocol(Protocol.TLS);
     }
     
     public boolean getDelegateSSLTasks() {
@@ -448,7 +430,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         handshakeStatus = sslEngine.getHandshakeStatus();
         
         if (blocking) {
-            SSLUtils.doHandshake(socketChannel, byteBuffer, securedInputBuffer, 
+            SSLUtils.doHandshake(underlyingChannel, byteBuffer, securedInputBuffer,
                     securedOutputBuffer, sslEngine, handshakeStatus);
             securedOutputBuffer.limit(securedOutputBuffer.position());
             finishHandshake();
@@ -479,7 +461,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         }
         
         if (blocking) {
-            return SSLUtils.doSecureRead(socketChannel, sslEngine,
+            return SSLUtils.doSecureRead(underlyingChannel, sslEngine,
                     byteBuffer, securedInputBuffer);
         } else {
             isAsyncReadQueueMode = false;
@@ -513,7 +495,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         }
         
         if (blocking) {
-            long nWrite = SSLOutputWriter.flushChannel(socketChannel,
+            long nWrite = SSLOutputWriter.flushChannel(underlyingChannel,
                     byteBuffer, securedOutputBuffer, sslEngine);
             // Mark securedOutputBuffer as empty
             securedOutputBuffer.position(securedOutputBuffer.limit());
@@ -573,7 +555,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
             AsyncQueueDataProcessor readPostProcessor) throws IOException {
         isAsyncReadQueueMode = true;
         return selectorHandler.getAsyncQueueReader().read(
-                socketChannel.keyFor(selectorHandler.getSelector()), buffer,
+                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
                 callbackHandler, condition, readPostProcessor);
     }
     
@@ -617,7 +599,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
             ByteBufferCloner cloner) throws IOException {
         isAsyncWriteQueueMode = true;
         return selectorHandler.getAsyncQueueWriter().write(
-                socketChannel.keyFor(selectorHandler.getSelector()), buffer,
+                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
                 callbackHandler, writePreProcessor, cloner);
     }
 
@@ -664,7 +646,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
             throws IOException {
         isAsyncWriteQueueMode = true;
         return selectorHandler.getAsyncQueueWriter().write(
-                socketChannel.keyFor(selectorHandler.getSelector()), dstAddress,
+                underlyingChannel.keyFor(selectorHandler.getSelector()), dstAddress,
                 buffer, callbackHandler, writePreProcessor, cloner);
     }
 
@@ -676,22 +658,22 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         if (logger.isLoggable(Level.FINE)) {
             IOException ioe = new IOException("Logging stacktrace...");
             logger.log(Level.FINE, "Closing SSLConnectorHandler " + this +
-                    " Channel: " + socketChannel + " engine: " + sslEngine, ioe);
+                    " Channel: " + underlyingChannel + " engine: " + sslEngine, ioe);
         }
 
-        if (socketChannel != null) {
+        if (underlyingChannel != null) {
             if (isConnected) {
                 try {
                     if (securedOutputBuffer.hasRemaining()) {
                         // if there is something is securedOutputBuffer - flush it
-                        OutputWriter.flushChannel(socketChannel,
+                        OutputWriter.flushChannel(underlyingChannel,
                                 securedOutputBuffer);
                     }
                     
                     // Close secure outbound channel and flush data
                     sslEngine.closeOutbound();
                     SSLUtils.wrap(EMPTY_BUFFER, securedOutputBuffer, sslEngine);
-                    OutputWriter.flushChannel(socketChannel,
+                    OutputWriter.flushChannel(underlyingChannel,
                             securedOutputBuffer);
                 } catch (IOException e) {
                     logger.log(Level.FINE,
@@ -701,7 +683,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
             
             if (selectorHandler != null) {
                 SelectionKey key =
-                        socketChannel.keyFor(selectorHandler.getSelector());
+                        underlyingChannel.keyFor(selectorHandler.getSelector());
                 
                 if (key == null) {
                     return;
@@ -709,7 +691,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
                 selectorHandler.getSelectionKeyHandler().close(key);
             }
             
-            socketChannel.close();
+            underlyingChannel.close();
         }
         
         if (controller != null && isStandalone) {
@@ -735,7 +717,9 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
                 logger.log(Level.FINE, "Finish connect");
             }
 
-            socketChannel = (SocketChannel) key.channel();
+            final SocketChannel socketChannel = (SocketChannel) key.channel();
+            underlyingChannel = socketChannel;
+            
             socketChannel.finishConnect();
             isConnected = socketChannel.isConnected();
             if (isConnected) {
@@ -763,6 +747,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
      * interface
      * @return this {@link ConnectorHandler}'s protocol
      */
+    @Override
     public Controller.Protocol protocol() {
         return Controller.Protocol.TLS;
     }
@@ -773,7 +758,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
      * @return <tt>true</tt> if connected, otherwise <tt>false</tt>
      */
     public boolean isConnected() {
-        return isConnected && socketChannel.isOpen();
+        return isConnected && underlyingChannel.isOpen();
     }
     
     /**
@@ -848,68 +833,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
     public ByteBuffer getSecuredOutputBuffer() {
         return securedOutputBuffer;
     }
-    
-    /**
-     * Return the  {@link Controller}
-     * @return the  {@link Controller}
-     */
-    public Controller getController() {
-        return controller;
-    }
-    
-    
-    /**
-     * Set the {@link Controller} to use with this instance.
-     * @param controller the {@link Controller} to use with this instance.
-     */
-    public void setController(Controller controller) {
-        this.controller = controller;
-    }
-    
-    
-    /**
-     * Return the current {@link SocketChannel} used.
-     * @return the current {@link SocketChannel} used.
-     */
-    public SelectableChannel getUnderlyingChannel() {
-        return socketChannel;
-    }
-    
-    
-    /**
-     * Set the {@link SocketChannel}.
-     * @param the {@link SocketChannel} to use.
-     */  
-    protected void setUnderlyingChannel(SocketChannel socketChannel){
-        this.socketChannel = socketChannel;
-    }
-    
-    
-    /**
-     * Return the {@link CallbackHandler}. 
-     * @return the {@link CallbackHandler}. 
-     */
-    public SSLCallbackHandler getCallbackHandler() {
-        return callbackHandler;
-    }
-    
 
-    /**
-     * Set the {@link CallbackHandler}. 
-     * @param callbackHandler the {@link CallbackHandler}. 
-     */   
-    public void setCallbackHandler(SSLCallbackHandler callbackHandler) {
-        this.callbackHandler = callbackHandler;
-    }
-    
-    
-    /**
-     * Return the associated {@link SelectorHandler}.
-     * @return the associated {@link SelectorHandler}.
-     */
-    public SSLSelectorHandler getSelectorHandler() {
-        return selectorHandler;
-    }
     
     /**
      * Gets the size of the largest application buffer that may occur when
@@ -948,7 +872,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         int bytesRead = -1;
         
         try{
-            bytesRead = socketChannel.read(securedInputBuffer);
+            bytesRead = ((SocketChannel) underlyingChannel).read(securedInputBuffer);
         } finally {
            if (bytesRead == -1){
                 SelectionKeyHandler skh = selectorHandler.getSelectionKeyHandler();
@@ -1058,7 +982,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         
         updateSSLEngineStatus(result);
         
-        int count = socketChannel.write(securedOutputBuffer);
+        int count = ((SocketChannel) underlyingChannel).write(securedOutputBuffer);
         if (logger.isLoggable(Level.FINE)) {
             logger.log(Level.FINE, "asyncWrite. written: " + count +
                     " securedOutputBuffer: " + securedOutputBuffer);
@@ -1213,7 +1137,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
      * @return {@link SelectionKey}
      */
     private SelectionKey getSelectionKey() {
-        return socketChannel.keyFor(selectorHandler.getSelector());
+        return underlyingChannel.keyFor(selectorHandler.getSelector());
     }
     
     /**
@@ -1235,7 +1159,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         
         try{
             while (nWrite > 0 && securedOutputBuffer.hasRemaining()) {
-                nWrite = socketChannel.write(securedOutputBuffer);
+                nWrite = ((SocketChannel) underlyingChannel).write(securedOutputBuffer);
             }
         } catch (IOException ex){
             nWrite = -1;
@@ -1250,7 +1174,7 @@ public class SSLConnectorHandler implements ConnectorHandler<SSLSelectorHandler,
         }
         
         if (securedOutputBuffer.hasRemaining()) {
-            SelectionKey key = socketChannel.keyFor(selectorHandler.getSelector());
+            SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
             selectorHandler.register(key, SelectionKey.OP_WRITE);
             
             return false;

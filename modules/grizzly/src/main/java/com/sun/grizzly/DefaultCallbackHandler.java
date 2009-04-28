@@ -39,7 +39,6 @@ package com.sun.grizzly;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 
 /**
@@ -122,13 +121,11 @@ public class DefaultCallbackHandler implements SSLCallbackHandler<Context> {
      */
     public void onConnect(IOEvent<Context> ioEvent) {
         SelectionKey key = ioEvent.attachment().getSelectionKey();
-        if (ioEvent.attachment().getProtocol() == Controller.Protocol.TCP){
-            ((TCPConnectorHandler)connectorHandler).setUnderlyingChannel(
-                    (SocketChannel)key.channel());
-        } else if (ioEvent.attachment().getProtocol() == Controller.Protocol.TLS){
-            ((SSLConnectorHandler)connectorHandler).setUnderlyingChannel(
-                    (SocketChannel)key.channel());            
+        if (connectorHandler instanceof AbstractConnectorHandler) {
+            ((AbstractConnectorHandler) connectorHandler).setUnderlyingChannel(
+                    key.channel());
         }
+        
         try {
             connectorHandler.finishConnect(key);
             ioEvent.attachment().getSelectorHandler().register(key,
