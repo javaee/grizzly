@@ -453,13 +453,6 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Used by terminateProcess() method
      */
     private final TaskEvent<ProcessorTask> event = new TaskEvent<ProcessorTask>(this);
-
-
-    private static final String HEADER_ORIGIN = "Origin";
-    private static final String HEADER_CONNECTION = "Connection";
-    private static final String HEADER_UPGRADE = "Upgrade";
-    private static final String HEADER_WEBSOCKET_ORIGIN = "WebSocket-Origin";
-    private static final String WEBSOCKET = "WebSocket";
     
     // ----------------------------------------------------- Constructor ---- //
 
