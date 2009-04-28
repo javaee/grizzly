@@ -90,7 +90,7 @@ import java.util.logging.Logger;
  *
  * @author Jeanfrancois Arcand
  */
-public class TCPSelectorHandler implements SelectorHandler {
+public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaround {
 
 
     /**

@@ -239,6 +239,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * used for enabling workaround to prevent server from hanging.
      */
     private final static int spinRateTreshhold = 2000;
+    
+    private boolean isLinux = false;
 
     // -------------------------------------------------------------------- //
     /**
@@ -255,6 +257,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
         stateHolder = new StateHolder<State>(true);
         initializeDefaults();
+        
+         if (System.getProperty("os.name").equalsIgnoreCase("linux") 
+                && !System.getProperty("java.version").startsWith("1.7")) {
+            isLinux = true;
+        } 
     }
 
     /**
@@ -303,16 +310,16 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             Set<SelectionKey> readyKeys = selectorHandler.select(serverCtx);
 
             if (readyKeys.size() != 0) {
-                selectorHandler.resetSpinCounter();
+                if (isLinux && selectorHandler instanceof LinuxSpinningWorkaround) {
+                    ((LinuxSpinningWorkaround)selectorHandler).resetSpinCounter();
+                }
                 handleSelectedKeys(readyKeys, selectorHandler, serverCtx);
                 readyKeys.clear();
-            } else {
-                long sr = selectorHandler.getSpinRate();
+            } else if (isLinux && selectorHandler instanceof LinuxSpinningWorkaround) {                
+                long sr = ((LinuxSpinningWorkaround)selectorHandler).getSpinRate();
                 if (sr > spinRateTreshhold) {
                     workaroundSelectorSpin(selectorHandler);
                 }
-            //we dont need to resetSpinCounter() at select timeouts
-            //due to the long select time of 1 second makes it to not trigger a K per second rate.
             }
 
             selectorHandler.postSelect(serverCtx);
