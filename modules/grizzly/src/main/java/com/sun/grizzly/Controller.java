@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly;
 
 import com.sun.grizzly.util.AttributeHolder;
@@ -149,124 +148,92 @@ import static com.sun.grizzly.Context.OpType;
 public class Controller implements Runnable, Lifecycle, Copyable,
         ConnectorHandlerPool, AttributeHolder, SupportStateHolder<State> {
 
-    public enum Protocol { UDP, TCP , TLS, CUSTOM }
+    public enum Protocol {
 
-
+        UDP, TCP, TLS, CUSTOM
+    }
     /**
      * A cached list of Context. Context are by default stateless.
      */
     private ConcurrentLinkedQueuePool<NIOContext> contexts;
-
-
     /**
      * The ProtocolChainInstanceHandler used by this instance. If not set, and instance
      * of the DefaultInstanceHandler will be created.
      */
     protected ProtocolChainInstanceHandler instanceHandler;
-
-
     /**
      * The SelectionKey Handler used by this instance. If not set, and instance
      * of the DefaultSelectionKeyHandler will be created.
      */
     protected SelectionKeyHandler selectionKeyHandler;
-
-
     /**
      * The SelectorHandler, which will manage connection accept,
      * if readThreadsCount > 0 and spread connection processing between
      * different read threads
      */
     protected ComplexSelectorHandler multiReadThreadSelectorHandler = null;
-
-
     /**
      * The ConnectorHandlerPool, which is responsible for creating/caching
      * ConnectorHandler instances.
      */
     protected ConnectorHandlerPool connectorHandlerPool = null;
-
-
     /**
      * The set of {@link SelectorHandler}s used by this instance. If not set, the instance
      * of the TCPSelectorHandler will be added by default.
      */
     protected LinkedTransferQueue<SelectorHandler> selectorHandlers;
-
-
     /**
      * Current {@link Controller} state
      */
     protected StateHolder<State> stateHolder;
-
-
     /**
      * The number of read threads
      */
     protected int readThreadsCount = 0;
-
-
     /**
      * The array of {@link Controller}s to be used for reading
      */
     protected ReadController[] readThreadControllers;
-
-
     /**
      * Default Logger.
      */
     protected static Logger logger = Logger.getLogger("grizzly");
-
-
     /**
      * Default Thread Pool (called ExecutorService).If not set, and instance
      * of the DefaultThreadPool will be created.
      */
     protected ExecutorService threadPool;
-
-
     /**
      * Collection of {@link Controller} state listeners, which
      * will are notified on {@link Controller} state change.
      */
     protected final Collection<ControllerStateListener> stateListeners =
             new LinkedTransferQueue<ControllerStateListener>();
-
-
     /**
      * Internal countdown counter of {@link SelectorHandler}s, which
      * are ready to process
      */
     protected AtomicInteger readySelectorHandlerCounter;
-
     /**
      * Internal countdown counter of {@link SelectorHandler}s, which stopped
      */
     protected AtomicInteger stoppedSelectorHandlerCounter;
-
-
     /**
      * <tt>true</tt> if OP_READ and OP_WRITE can be handled concurrently.
      */
     private boolean handleReadWriteConcurrently = true;
-
-
     /**
      * Attributes, associated with the {@link Controller} instance
      */
     protected Map<String, Object> attributes;
-
-
     /**
      * The current Controller instance.
      *
      */
     private final static LinkedTransferQueue<Controller> controllers =
             new LinkedTransferQueue<Controller>();
-    
     // Internal Thread Pool.
     private ExecutorService kernelExecutor;
-
     /**
      * The threshold for detecting selector.select spin on linux,
      * used for enabling workaround to prevent server from hanging.
@@ -274,12 +241,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     private final static int spinRateTreshhold = 2000;
 
     // -------------------------------------------------------------------- //
-
     /**
      * Controller constructor
      */
     public Controller() {
         contexts = new ConcurrentLinkedQueuePool<NIOContext>() {
+
             @Override
             public NIOContext newInstance() {
                 return new NIOContext();
@@ -289,7 +256,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         stateHolder = new StateHolder<State>(true);
         initializeDefaults();
     }
-
 
     /**
      * This method initializes this Controller's default thread pool,
@@ -307,7 +273,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (instanceHandler == null) {
             instanceHandler = new DefaultProtocolChainInstanceHandler();
         }
-        if (selectorHandlers == null){
+        if (selectorHandlers == null) {
             selectorHandlers = new LinkedTransferQueue<SelectorHandler>();
         }
         if (connectorHandlerPool == null) {
@@ -326,32 +292,32 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * by InstanceHandler.
      * @param selectorHandler - the {@link SelectorHandler}
      */
-    protected void doSelect(SelectorHandler selectorHandler,NIOContext serverCtx){        
+    protected void doSelect(SelectorHandler selectorHandler, NIOContext serverCtx) {
         try {
-            if (selectorHandler.getSelectionKeyHandler() == null){
+            if (selectorHandler.getSelectionKeyHandler() == null) {
                 initSelectionKeyHandler(selectorHandler);
             }
-            
+
             selectorHandler.preSelect(serverCtx);
 
             Set<SelectionKey> readyKeys = selectorHandler.select(serverCtx);
 
             if (readyKeys.size() != 0) {
                 selectorHandler.resetSpinCounter();
-                handleSelectedKeys(readyKeys,selectorHandler,serverCtx);
+                handleSelectedKeys(readyKeys, selectorHandler, serverCtx);
                 readyKeys.clear();
             } else {
                 long sr = selectorHandler.getSpinRate();
-                if (sr > spinRateTreshhold){
+                if (sr > spinRateTreshhold) {
                     workaroundSelectorSpin(selectorHandler);
                 }
-                //we dont need to resetSpinCounter() at select timeouts
-                //due to the long select time of 1 second makes it to not trigger a K per second rate.
+            //we dont need to resetSpinCounter() at select timeouts
+            //due to the long select time of 1 second makes it to not trigger a K per second rate.
             }
-            
+
             selectorHandler.postSelect(serverCtx);
-        } catch(Throwable e) {
-            handleSelectException(e,selectorHandler, null);
+        } catch (Throwable e) {
+            handleSelectException(e, selectorHandler, null);
         }
     }
 
@@ -359,14 +325,15 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Init SelectionKeyHandler
      * @param selectorHandler
      */
-    private void initSelectionKeyHandler(SelectorHandler selectorHandler){
+    private void initSelectionKeyHandler(SelectorHandler selectorHandler) {
         if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "Set DefaultSelectionKeyHandler to SelectorHandler: " + selectorHandler);
+            logger.log(Level.FINE, "Set DefaultSelectionKeyHandler to SelectorHandler: " 
+                    + selectorHandler);
         }
         SelectionKeyHandler assgnSelectionKeyHandler = null;
         if (selectorHandler.getPreferredSelectionKeyHandler() != null) {
             Class<? extends SelectionKeyHandler> keyHandlerClass =
-                        selectorHandler.getPreferredSelectionKeyHandler();
+                    selectorHandler.getPreferredSelectionKeyHandler();
             try {
                 assgnSelectionKeyHandler = keyHandlerClass.newInstance();
                 assgnSelectionKeyHandler.setSelectorHandler(selectorHandler);
@@ -391,98 +358,97 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param selectorHandler
      * @param serverCtx
      */
-  private void handleSelectedKeys(Set<SelectionKey> readyKeys,
-            SelectorHandler selectorHandler, NIOContext serverCtx){
+    private void handleSelectedKeys(Set<SelectionKey> readyKeys,
+            SelectorHandler selectorHandler, NIOContext serverCtx) {
         final boolean isLogLevelFine = logger.isLoggable(Level.FINE);
-        for(SelectionKey key:readyKeys) {
-          try{
-            Object attachment = key.attachment();
-            if (attachment instanceof SelectedKeyAttachmentLogic){
-                ((SelectedKeyAttachmentLogic)attachment).handleSelectedKey(key);
-                continue;
-            }
+        for (SelectionKey key : readyKeys) {
+            try {
+                Object attachment = key.attachment();
+                if (attachment instanceof SelectedKeyAttachmentLogic) {
+                    ((SelectedKeyAttachmentLogic) attachment).handleSelectedKey(key);
+                    continue;
+                }
 
-            if (!key.isValid()){
-                selectorHandler.addPendingKeyCancel(key);
-                continue;
-            }
+                if (!key.isValid()) {
+                    selectorHandler.addPendingKeyCancel(key);
+                    continue;
+                }
 
-            final int readyOps = key.readyOps();
-            if ((readyOps & SelectionKey.OP_ACCEPT) != 0){
-                if (readThreadsCount > 0 &&
-                        multiReadThreadSelectorHandler.supportsProtocol(selectorHandler.protocol())) {
-                    if (isLogLevelFine) {
-                        dolog("OP_ACCEPT passed to multi readthread handler on ",key);
-                    }
-                    multiReadThreadSelectorHandler.onAcceptInterest(key, serverCtx);
-                } else {
-                    if (isLogLevelFine){
-                        dolog("OP_ACCEPT on ",key);
-                    }
-                    selectorHandler.onAcceptInterest(key, serverCtx);
-                }
-                continue;
-            }
-            if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
-                if (isLogLevelFine){
-                    dolog("OP_CONNECT on ",key);
-                }
-                selectorHandler.onConnectInterest(key, serverCtx);
-                continue;
-            }
-
-            boolean delegateToWorker = false;
-            OpType opType = null;
-            boolean skipOpWrite = false;
-            // OP_READ will always be processed first, then
-            // based on the handleReadWriteConcurrently, the OP_WRITE
-            // might be processed just after or during the next
-            // Selector.select() invocation.
-            if ((readyOps & SelectionKey.OP_READ) != 0) {
-                if (isLogLevelFine){
-                    dolog("OP_READ on ",key);
-                }
-                delegateToWorker = selectorHandler.onReadInterest(key,serverCtx);
-                if (delegateToWorker) {
-                    opType = OpType.OP_READ;
-                }
-                if (!handleReadWriteConcurrently){
-                    skipOpWrite = true;
-                }
-            }
-            // The OP_READ processing might have closed the
-            // Selection, hence we must make sure the
-            // SelectionKey is still valid.
-            if (!skipOpWrite && (readyOps & SelectionKey.OP_WRITE) != 0 && key.isValid()) {
-                if (isLogLevelFine){
-                    dolog("OP_WRITE on ",key);
-                }
-                boolean opWriteDelegate = selectorHandler.onWriteInterest(key,serverCtx);
-                delegateToWorker |= opWriteDelegate;
-                if (opWriteDelegate) {
-                    if (opType == OpType.OP_READ) {
-                        opType = OpType.OP_READ_WRITE;
+                final int readyOps = key.readyOps();
+                if ((readyOps & SelectionKey.OP_ACCEPT) != 0) {
+                    if (readThreadsCount > 0 &&
+                            multiReadThreadSelectorHandler.supportsProtocol(selectorHandler.protocol())) {
+                        if (isLogLevelFine) {
+                            dolog("OP_ACCEPT passed to multi readthread handler on ", key);
+                        }
+                        multiReadThreadSelectorHandler.onAcceptInterest(key, serverCtx);
                     } else {
-                        opType = OpType.OP_WRITE;
+                        if (isLogLevelFine) {
+                            dolog("OP_ACCEPT on ", key);
+                        }
+                        selectorHandler.onAcceptInterest(key, serverCtx);
+                    }
+                    continue;
+                }
+                if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
+                    if (isLogLevelFine) {
+                        dolog("OP_CONNECT on ", key);
+                    }
+                    selectorHandler.onConnectInterest(key, serverCtx);
+                    continue;
+                }
+
+                boolean delegateToWorker = false;
+                OpType opType = null;
+                boolean skipOpWrite = false;
+                // OP_READ will always be processed first, then
+                // based on the handleReadWriteConcurrently, the OP_WRITE
+                // might be processed just after or during the next
+                // Selector.select() invocation.
+                if ((readyOps & SelectionKey.OP_READ) != 0) {
+                    if (isLogLevelFine) {
+                        dolog("OP_READ on ", key);
+                    }
+                    delegateToWorker = selectorHandler.onReadInterest(key, serverCtx);
+                    if (delegateToWorker) {
+                        opType = OpType.OP_READ;
+                    }
+                    if (!handleReadWriteConcurrently) {
+                        skipOpWrite = true;
                     }
                 }
-            }
+                // The OP_READ processing might have closed the
+                // Selection, hence we must make sure the
+                // SelectionKey is still valid.
+                if (!skipOpWrite && (readyOps & SelectionKey.OP_WRITE) != 0 && key.isValid()) {
+                    if (isLogLevelFine) {
+                        dolog("OP_WRITE on ", key);
+                    }
+                    boolean opWriteDelegate = selectorHandler.onWriteInterest(key, serverCtx);
+                    delegateToWorker |= opWriteDelegate;
+                    if (opWriteDelegate) {
+                        if (opType == OpType.OP_READ) {
+                            opType = OpType.OP_READ_WRITE;
+                        } else {
+                            opType = OpType.OP_WRITE;
+                        }
+                    }
+                }
 
-            if (delegateToWorker) {
-                NIOContext context = pollContext(key, opType);
-                configureContext(context,selectorHandler);
-                context.execute(context.getProtocolChainContextTask());
+                if (delegateToWorker) {
+                    NIOContext context = pollContext(key, opType);
+                    configureContext(context, selectorHandler);
+                    context.execute(context.getProtocolChainContextTask());
+                }
+            } catch (Throwable e) {
+                handleSelectException(e, selectorHandler, key);
             }
-          } catch(Throwable e) {
-              handleSelectException(e, selectorHandler, key);
-          }
         }
     }
 
-    private void dolog(String msg, SelectionKey key){
-        logger.log(Level.FINE,msg+key+" attachment: "+key.attachment());
+    private void dolog(String msg, SelectionKey key) {
+        logger.log(Level.FINE, msg + key + " attachment: " + key.attachment());
     }
-
 
     /**
      *
@@ -515,7 +481,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             if (stateHolder.getState() == State.STARTED &&
                     selectorHandler.getStateHolder().getState() == State.STARTED) {
                 logger.log(Level.WARNING, "Channel was unexpectedly closed");
-                if (key != null){
+                if (key != null) {
                     selectorHandler.getSelectionKeyHandler().cancel(key);
                 }
                 notifyException(e);
@@ -539,7 +505,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                     selectorHandler.getSelectionKeyHandler().cancel(key);
                 }
                 notifyException(e);
-                logger.log(Level.SEVERE,"doSelect exception",e);
+                logger.log(Level.SEVERE, "doSelect exception", e);
             } catch (Throwable t2) {
                 // An unexpected exception occured, most probably caused by
                 // a bad logger. Since logger can be externally configurable,
@@ -554,10 +520,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Register a SelectionKey.
      * @param key <tt>SelectionKey</tt> to register
      */
-    public void registerKey(SelectionKey key){
-        registerKey(key,SelectionKey.OP_READ);
+    public void registerKey(SelectionKey key) {
+        registerKey(key, SelectionKey.OP_READ);
     }
-
 
     /**
      * Register a SelectionKey on the first SelectorHandler that was added
@@ -565,10 +530,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param key <tt>SelectionKey</tt> to register
      * @param ops - the interest op to register
      */
-    public void registerKey(SelectionKey key, int ops){
+    public void registerKey(SelectionKey key, int ops) {
         registerKey(key, ops, selectorHandlers.peek().protocol());
     }
-
 
     /**
      * Register a SelectionKey.
@@ -576,21 +540,20 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param ops - the interest op to register
      * @param protocol specified protocol SelectorHandler key should be registered on
      */
-    public void registerKey(SelectionKey key, int ops, Protocol protocol){
+    public void registerKey(SelectionKey key, int ops, Protocol protocol) {
         if (stateHolder.getState() == State.STOPPED) {
             return;
         }
 
-        getSelectorHandler(protocol).register(key,ops);
+        getSelectorHandler(protocol).register(key, ops);
     }
-
 
     /**
      * Cancel a SelectionKey
      * @param key <tt>SelectionKey</tt> to cancel
      * @deprecated
      */
-    public void cancelKey(SelectionKey key){
+    public void cancelKey(SelectionKey key) {
         if (stateHolder.getState() == State.STOPPED) {
             return;
         }
@@ -610,9 +573,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @return {@link Context}
      */
     public NIOContext pollContext(SelectionKey key) {
-        return pollContext(key,null);
+        return pollContext(key, null);
     }
-
 
     /**
      * Get an instance of a {@link NIOContext}
@@ -628,21 +590,19 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (opType != null) {
             ctx.setCurrentOpType(opType);
         } else {
-            if (key != null){
+            if (key != null) {
                 ctx.configureOpType(key);
             }
         }
         return ctx;
     }
 
-
-
     /**
      * Configure the {@link Context}
      * @param context
      * @param selectorHandler
      */
-    public void configureContext(NIOContext ctx,SelectorHandler selectorHandler){
+    public void configureContext(NIOContext ctx, SelectorHandler selectorHandler) {
         ctx.setSelectorHandler(selectorHandler);
         ctx.setThreadPool(selectorHandler.getThreadPool());
         ctx.setAsyncQueueReader(selectorHandler.getAsyncQueueReader());
@@ -654,8 +614,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      *
      * @param ctx - the {@link Context}
      */
-    public void returnContext(Context ctx){
-        if(ctx.decrementRefCount()>0) {
+    public void returnContext(Context ctx) {
+        if (ctx.decrementRefCount() > 0) {
             return;
         }
 
@@ -666,7 +626,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
     }
 
-
     /**
      * Return the current <code>Logger</code> used by this Controller.
      */
@@ -674,34 +633,29 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         return logger;
     }
 
-
     /**
      * Set the Logger single instance to use.
      */
-    public static void setLogger(Logger l){
+    public static void setLogger(Logger l) {
         logger = l;
         LoggerUtils.setLogger(l);
     }
 
     // ------------------------------------------------------ Handlers ------//
-
-
     /**
      * Set the {@link ProtocolChainInstanceHandler} to use for
      * creating instance of {@link ProtocolChain}.
      */
-    public void setProtocolChainInstanceHandler(ProtocolChainInstanceHandler
-            instanceHandler){
+    public void setProtocolChainInstanceHandler(ProtocolChainInstanceHandler instanceHandler) {
         this.instanceHandler = instanceHandler;
     }
 
     /**
      * Return the {@link ProtocolChainInstanceHandler}
      */
-    public ProtocolChainInstanceHandler getProtocolChainInstanceHandler(){
+    public ProtocolChainInstanceHandler getProtocolChainInstanceHandler() {
         return instanceHandler;
     }
-
 
     /**
      * @deprecated
@@ -709,20 +663,18 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * cycle of SelectionKey.
      * Method is deprecated. Use SelectorHandler.setSelectionKeyHandler() instead
      */
-    public void setSelectionKeyHandler(SelectionKeyHandler selectionKeyHandler){
+    public void setSelectionKeyHandler(SelectionKeyHandler selectionKeyHandler) {
         this.selectionKeyHandler = selectionKeyHandler;
     }
-
 
     /**
      * @deprecated
      * Return the {@link SelectionKeyHandler}
      * Method is deprecated. Use SelectorHandler.getSelectionKeyHandler() instead
      */
-    public SelectionKeyHandler getSelectionKeyHandler(){
+    public SelectionKeyHandler getSelectionKeyHandler() {
         return selectionKeyHandler;
     }
-
 
     /**
      * Add a {@link SelectorHandler}
@@ -743,24 +695,22 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
     }
 
-
     /**
      * Set the first {@link SelectorHandler}
      * @param selectorHandler - the {@link SelectorHandler}
      */
-    public void setSelectorHandler(SelectorHandler selectorHandler){
+    public void setSelectorHandler(SelectorHandler selectorHandler) {
         addSelectorHandler(selectorHandler);
     }
-
 
     /**
      * Return the {@link SelectorHandler} associated with the protocol.
      * @param protocol - the {@link Controller.Protocol}
      * @return {@link SelectorHandler}
      */
-    public SelectorHandler getSelectorHandler(Protocol protocol){
-        for (SelectorHandler selectorHandler: selectorHandlers){
-            if (selectorHandler.protocol() == protocol){
+    public SelectorHandler getSelectorHandler(Protocol protocol) {
+        for (SelectorHandler selectorHandler : selectorHandlers) {
+            if (selectorHandler.protocol() == protocol) {
                 return selectorHandler;
             }
         }
@@ -773,9 +723,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param selector - the {@link Selector}
      * @return {@link SelectorHandler}
      */
-    public SelectorHandler getSelectorHandler(Selector selector){
-        for (SelectorHandler selectorHandler: selectorHandlers){
-            if (selectorHandler.getSelector() == selector){
+    public SelectorHandler getSelectorHandler(Selector selector) {
+        for (SelectorHandler selectorHandler : selectorHandlers) {
+            if (selectorHandler.getSelector() == selector) {
                 return selectorHandler;
             }
         }
@@ -786,10 +736,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Return the list {@link SelectorHandler}
      * @return {@link ConcurrentLinkedQueue}
      */
-    public LinkedTransferQueue getSelectorHandlers(){
+    public LinkedTransferQueue getSelectorHandlers() {
         return selectorHandlers;
     }
-
 
     /**
      * Shuts down {@link SelectorHandler} and removes it from this
@@ -803,14 +752,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
     }
 
-
     /**
      * Return the {@link ExecutorService} (Thread Pool) used by this Controller.
      */
     public ExecutorService getThreadPool() {
         return threadPool;
     }
-
 
     /**
      * Set the {@link ExecutorService} (Thread Pool).
@@ -819,14 +766,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         this.threadPool = threadPool;
     }
 
-
     /**
      * Return the number of Reader threads count.
      */
     public int getReadThreadsCount() {
         return readThreadsCount;
     }
-
 
     /**
      * Set the number of Reader threads count.
@@ -835,14 +780,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         this.readThreadsCount = readThreadsCount;
     }
 
-
     /**
      * Return the <code>ConnectorHandlerPool</code> used.
      */
     public ConnectorHandlerPool getConnectorHandlerPool() {
         return connectorHandlerPool;
     }
-
 
     /**
      * Set the <code>ConnectorHandlerPool</code> used.
@@ -852,23 +795,19 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     // ------------------------------------------------------ Runnable -------//
-
-
     /**
      * Execute this Controller.
      */
     public void run() {
-        try{
+        try {
             start();
-        } catch(IOException e){
+        } catch (IOException e) {
             notifyException(e);
             throw new RuntimeException(e.getCause());
         }
     }
 
     // -------------------------------------------------------- Copyable ----//
-
-
     /**
      * Copy this Controller state to another instance of a Controller.
      */
@@ -885,7 +824,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     // -------------------------------------------------------- Lifecycle ----//
-
     /**
      * Add controller state listener
      */
@@ -904,11 +842,10 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Notify controller started
      */
     public void notifyStarted() {
-        for(ControllerStateListener stateListener : stateListeners) {
+        for (ControllerStateListener stateListener : stateListeners) {
             stateListener.onStarted();
         }
     }
-
 
     /**
      * Notify controller is ready
@@ -921,29 +858,26 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
     }
 
-
     /**
      * Notify controller stopped
      */
     public void notifyStopped() {
         if (stoppedSelectorHandlerCounter.decrementAndGet() == 0) {
             // Notify internal listeners
-            synchronized(stoppedSelectorHandlerCounter) {
+            synchronized (stoppedSelectorHandlerCounter) {
                 stoppedSelectorHandlerCounter.notifyAll();
             }
         }
     }
 
-
     /**
      * Notify exception occured
      */
     protected void notifyException(Throwable e) {
-        for(ControllerStateListener stateListener : stateListeners) {
+        for (ControllerStateListener stateListener : stateListeners) {
             stateListener.onException(e);
         }
     }
-
 
     /**
      * Start the Controller. If the thread pool and/or Handler has not been
@@ -952,11 +886,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     public void start() throws IOException {
         stateHolder.getStateLocker().writeLock().lock();
         boolean isUnlocked = false;
-        if (kernelExecutor.isShutdown()){
+        if (kernelExecutor.isShutdown()) {
             // Re-create 
             kernelExecutor = createKernelExecutor();
         }
-        
+
         try {
             if (stateHolder.getState(false) == null ||
                     stateHolder.getState(false) == State.STOPPED) {
@@ -1020,14 +954,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
     }
 
-
     /**
      * Stop the Controller by canceling all the registered keys.
      */
     public void stop() throws IOException {
         stop(false);
     }
-
 
     /**
      * Stop the Controller by canceling all the registered keys.
@@ -1046,6 +978,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
             if (!isAsync) {
                 addStateListener(new ControllerStateListenerAdapter() {
+
                     @Override
                     public void onException(Throwable e) {
                         removeStateListener(this);
@@ -1057,7 +990,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                         removeStateListener(this);
                         latch.countDown();
                     }
-
                 });
             }
             stateHolder.setState(State.STOPPED, false);
@@ -1068,11 +1000,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (!isAsync) {
             try {
                 latch.await();
-            } catch(InterruptedException e) {}
+            } catch (InterruptedException e) {
+            }
         }
         kernelExecutor.shutdownNow();
     }
-
 
     /**
      * Pause this {@link Controller} and associated {@link SelectorHandler}s
@@ -1080,7 +1012,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     public void pause() throws IOException {
         stateHolder.setState(State.PAUSED);
     }
-
 
     /**
      * Resume this {@link Controller} and associated {@link SelectorHandler}s
@@ -1094,7 +1025,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         stateHolder.setState(State.STARTED);
     }
 
-
     /**
      * Gets this {@link Controller}'s {@link StateHolder}
      * @return {@link StateHolder}
@@ -1102,7 +1032,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     public StateHolder<State> getStateHolder() {
         return stateHolder;
     }
-
 
     /**
      * Initialize the number of ReadThreadController.
@@ -1114,7 +1043,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
 
         readThreadControllers = new ReadController[readThreadsCount];
-        for(int i=0; i<readThreadsCount; i++) {
+        for (int i = 0; i < readThreadsCount; i++) {
             ReadController controller = new ReadController();
             copyTo(controller);
             controller.setReadThreadsCount(0);
@@ -1125,18 +1054,19 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             addSelectorHandlerOnReadControllers(selectorHandler);
         }
 
-        for (int i=0; i < readThreadControllers.length; i++) {
+        for (int i = 0; i < readThreadControllers.length; i++) {
             kernelExecutor.submit(readThreadControllers[i]);
         }
     }
-
 
     /**
      * Register {@link SelectorHandler} on all read controllers
      * @param selectorHandler
      */
     private void addSelectorHandlerOnReadControllers(SelectorHandler selectorHandler) {
-        if (readThreadControllers == null || readThreadsCount == 0) return;
+        if (readThreadControllers == null || readThreadsCount == 0) {
+            return;
+        }
 
         // Attributes need to be shared among SelectorHandler and its read-copies
         if (selectorHandler.getAttributes() == null) {
@@ -1147,7 +1077,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             SelectorHandler copySelectorHandler = Cloner.clone(selectorHandler);
             try {
                 copySelectorHandler.setSelector(Selector.open());
-            } catch(IOException e) {
+            } catch (IOException e) {
                 logger.log(Level.SEVERE, "Error opening selector!", e);
             }
 
@@ -1155,13 +1085,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
     }
 
-
     /**
      * Starts <code>SelectorHandlerRunner</code>
      * @param selectorHandler
      */
     protected void startSelectorHandlerRunner(SelectorHandler selectorHandler) {
-        if (selectorHandler.getThreadPool() == null){
+        if (selectorHandler.getThreadPool() == null) {
             selectorHandler.setThreadPool(threadPool);
         }
         Runnable selectorRunner = new SelectorHandlerRunner(this, selectorHandler);
@@ -1173,19 +1102,19 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         kernelExecutor.submit(selectorRunner);
     }
 
-
     /**
      * Register {@link SelectorHandler} on all read controllers
      * @param selectorHandler
      */
     private void removeSelectorHandlerOnReadControllers(SelectorHandler selectorHandler) {
-        if (readThreadControllers == null) return;
+        if (readThreadControllers == null) {
+            return;
+        }
 
         for (ReadController readController : readThreadControllers) {
             readController.removeSelectorHandlerClone(selectorHandler);
         }
     }
-
 
     /**
      * Is this Controller started?
@@ -1197,26 +1126,22 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
 
     // ----------- ConnectorHandlerPool interface implementation ----------- //
-
-
     /**
      * Return an instance of a {@link ConnectorHandler} based on the
      * Protocol requested.
      */
-    public ConnectorHandler acquireConnectorHandler(Protocol protocol){
+    public ConnectorHandler acquireConnectorHandler(Protocol protocol) {
         return connectorHandlerPool.acquireConnectorHandler(protocol);
     }
-
 
     /**
      * Return a {@link ConnectorHandler} to the pool of ConnectorHandler.
      * Any reference to the returned must not be re-used as that instance
      * can always be acquired again, causing unexpected results.
      */
-    public void releaseConnectorHandler(ConnectorHandler connectorHandler){
+    public void releaseConnectorHandler(ConnectorHandler connectorHandler) {
         connectorHandlerPool.releaseConnectorHandler(connectorHandler);
     }
-
 
     /**
      * <tt>true</tt> if OP_ERAD and OP_WRITE can be handled concurrently.
@@ -1226,7 +1151,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     public boolean isHandleReadWriteConcurrently() {
         return handleReadWriteConcurrently;
     }
-
 
     /**
      * <tt>true</tt> if OP_ERAD and OP_WRITE can be handled concurrently.
@@ -1242,8 +1166,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * not get stopped
      */
     protected void waitUntilSeletorHandlersStop() {
-        synchronized(stoppedSelectorHandlerCounter) {
-            while(stoppedSelectorHandlerCounter.get() > 0 ||
+        synchronized (stoppedSelectorHandlerCounter) {
+            while (stoppedSelectorHandlerCounter.get() > 0 ||
                     !State.STOPPED.equals(stateHolder.getState())) {
                 try {
                     stoppedSelectorHandlerCounter.wait(1000);
@@ -1254,7 +1178,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     // ----------- AttributeHolder interface implementation ----------- //
-
     /**
      * Remove a key/value object.
      * Method is not thread safe
@@ -1263,7 +1186,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @return  attribute which has been removed
      */
     public Object removeAttribute(String key) {
-        if (attributes == null) return null;
+        if (attributes == null) {
+            return null;
+        }
 
         return attributes.remove(key);
     }
@@ -1292,7 +1217,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      *           does not exist in <tt>attributes</tt>
      */
     public Object getAttribute(String key) {
-        if (attributes == null) return null;
+        if (attributes == null) {
+            return null;
+        }
 
         return attributes.get(key);
     }
@@ -1309,7 +1236,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         this.attributes = attributes;
     }
 
-
     /**
      * Return a {@link Map} of attribute name/value pairs.
      * Updates, performed on the returned {@link Map} will be reflected in
@@ -1321,17 +1247,16 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         return attributes;
     }
 
-
     /**
      * Return the Controller which is handling the {@link Handler}
      * @param handler The handler (like {@link SelectorHandler})
      * @return The Controller associated with the Handler, or null if not
      * associated.
      */
-    public static Controller getHandlerController(Handler handler){
-        if (handler instanceof SelectorHandler){
-            for (Controller controller: controllers){
-                if (controller.getSelectorHandlers().contains(handler)){
+    public static Controller getHandlerController(Handler handler) {
+        if (handler instanceof SelectorHandler) {
+            for (Controller controller : controllers) {
+                if (controller.getSelectorHandlers().contains(handler)) {
                     return controller;
                 }
             }
@@ -1345,10 +1270,10 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         Selector newSelector = Selector.open();
 
         Set<SelectionKey> keys = oldSelector.keys();
-        for(SelectionKey key : keys) {            
-            try{
-                key.channel().register(newSelector, key.interestOps(),key.attachment());
-            }catch(Exception e) {
+        for (SelectionKey key : keys) {
+            try {
+                key.channel().register(newSelector, key.interestOps(), key.attachment());
+            } catch (Exception e) {
             }
         }
 
@@ -1359,15 +1284,15 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         } catch (Exception e) {
         }
     }
-    
+
     /**
      * Execute the {@link Controller#run} using the internal/kernel 
      * {@link Executors}
      */
-    protected void executeUsingKernelExecutor(){
+    protected void executeUsingKernelExecutor() {
         kernelExecutor.submit(this);
     }
-    
+
     /**
      * Execute the {@link Runnable} using the internal kernel 
      * {@link Executors}. Do not invoke that method for application's task
@@ -1375,15 +1300,14 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Thread.
      * @param r a Runnable
      */
-    public void executeUsingKernelExecutor(Runnable r){
+    public void executeUsingKernelExecutor(Runnable r) {
         kernelExecutor.submit(r);
     }
-    
+
     /**
      * Create the {@link ExecutorService} used to execute kernel like operations.
      */
-    protected ExecutorService createKernelExecutor(){
+    protected ExecutorService createKernelExecutor() {
         return Executors.newCachedThreadPool(new WorkerThreadFactory("grizzly-kernel"));
     }
-    
 }
