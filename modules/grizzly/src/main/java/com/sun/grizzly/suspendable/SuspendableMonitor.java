@@ -80,18 +80,17 @@ public class SuspendableMonitor implements Runnable {
      * Start a new Thread with a Selector running.
      */
     public SuspendableMonitor() {
-    }
-
-
-    @SuppressWarnings("empty-statement")
-    public void run() {
         try {
             selector = Selector.open();
         } catch (IOException ex) {
             // Most probably a fd leak.
             logger.log(Level.SEVERE, "SuspendableMonitor.open()", ex);
-            return;
         }
+    }
+
+
+    @SuppressWarnings("empty-statement")
+     public void run() {
         while (true) {
             SelectionKey foreignKey = null;
             KeyHandler kh = null;                    
