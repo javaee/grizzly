@@ -51,7 +51,9 @@ import java.util.concurrent.ExecutorService;
  */
 public class WorkerThreadImpl extends WorkerThread {
     
-    private static final int DEFAULT_BYTE_BUFFER_SIZE = 8192;
+    public static final int DEFAULT_BYTE_BUFFER_SIZE = 8192;
+    
+    public static final ByteBufferType DEFAULT_BYTEBUFFER_TYPE = ByteBufferType.HEAP_VIEW;;
     
     /**
      * The {@link ExecutorService} on which this thread synchronize.

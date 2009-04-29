@@ -80,12 +80,12 @@ public class DefaultThreadPool extends ThreadPoolExecutor
     /**
      * The initial ByteBuffer size for newly created WorkerThread instances
      */
-    protected int initialByteBufferSize = 8192;
+    protected int initialByteBufferSize = WorkerThreadImpl.DEFAULT_BYTE_BUFFER_SIZE;
 
     /**
      * The {@link ByteBufferType}
      */
-    protected ByteBufferType byteBufferType = ByteBufferType.HEAP_VIEW;
+    protected ByteBufferType byteBufferType = WorkerThreadImpl.DEFAULT_BYTEBUFFER_TYPE;
 
     public DefaultThreadPool() {
         this(DEFAULT_MIN_THREAD_COUNT, DEFAULT_MAX_THREAD_COUNT,
