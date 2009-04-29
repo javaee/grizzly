@@ -702,6 +702,15 @@ public class InternalInputBuffer implements InputBuffer {
 
     }
 
+    /**
+     * Return the number of bytes left after a valid http request has been 
+     * processed.
+     * @return the number of bytes left after a valid http request has been 
+     * processed. 
+     */
+    public int available(){
+        return lastValid;
+    }
 
     // ---------------------------------------------------- InputBuffer Methods
 

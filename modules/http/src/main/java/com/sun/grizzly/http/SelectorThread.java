@@ -1068,7 +1068,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         }
 
         initProcessorTask(maxPoolSize);
-        SelectorFactory.setMaxSelectors(maxPoolSize);
+        
+        if (SelectorFactory.getMaxSelectors() < maxPoolSize){
+            SelectorFactory.setMaxSelectors(maxPoolSize);
+        }
         selectorThreads.put(port, this);
 
         initialized = true;     
