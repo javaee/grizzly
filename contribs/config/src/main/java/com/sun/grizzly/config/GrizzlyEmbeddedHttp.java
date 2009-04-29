@@ -48,6 +48,8 @@ import com.sun.grizzly.util.DefaultThreadPool;
 import org.jvnet.hk2.component.Habitat;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -57,8 +59,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.lang.management.ManagementFactory;
 
 /**
  * Implementation of Grizzly embedded HTTP listener
@@ -481,6 +482,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
             final int keepAlive = Integer.parseInt(http.getTimeoutInSeconds());
+            final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutInSeconds());
 
             final DefaultThreadPool pool = new StatsThreadPool(minThreads, maxThreads, maxQueueSize,
                     keepAlive, TimeUnit.SECONDS) {
@@ -489,8 +491,23 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             setThreadPool(pool);
             setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthInBytes()));
 
+            List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
+            boolean debugMode = false;
+            for (String s : l) {
+                if (s.trim().startsWith("-Xrunjdwp:")) {
+                    debugMode = true;
+                    break;
+                }
+            }
+            if (!debugMode) {
+                // Idle Threads cannot be alive more than 15 minutes by default
+                setTransactionTimeout(timeout);
+            } else {
+                // Disable the mechanism
+                setTransactionTimeout(-1);
+            }
         } catch (NumberFormatException ex) {
-            logger.log(Level.WARNING, " Invalid request-processing attribute", ex);
+            logger.log(Level.WARNING, " Invalid thread-pool attribute", ex);
         }
     }
 
