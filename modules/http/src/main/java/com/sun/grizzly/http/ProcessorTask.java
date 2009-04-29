@@ -623,13 +623,8 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * Process an HTTP request using a non blocking {@link Socket}
      */      
-    protected boolean doProcess() throws Exception {      
-        if (!handleKeepAliveBlockingThread){
-            boolean exitWhile = parseRequest();
-            if ( exitWhile ) return exitWhile;
-            invokeAdapter();
-            postResponse();
-        } else {
+    protected boolean doProcess() throws Exception {     
+        if (handleKeepAliveBlockingThread) {
             int soTimeout = ((InputReader)inputStream).getReadTimeout();
             DefaultThreadPool st =(DefaultThreadPool) getThreadPool();
             if ( useKeepAliveAlgorithm ) {
@@ -645,19 +640,18 @@ public class ProcessorTask extends TaskBase implements Processor,
                 }
                 ((InputReader)inputStream).setReadTimeout(soTimeout);
             }
-
-            while (started && !error && keepAlive) {
-                boolean exitWhile = parseRequest();
-
-                if (maxKeepAliveRequests > 0 && --keepAliveLeft == 0){
-                    keepAlive = false;
-                }
-                if ( exitWhile ) return exitWhile;
-
-                invokeAdapter();
-                postResponse();
-            }
         }
+
+        do{
+            boolean exitWhile = parseRequest();
+            if (handleKeepAliveBlockingThread && maxKeepAliveRequests > 0 && --keepAliveLeft == 0){
+                keepAlive = false;
+            }
+            if ( exitWhile ) return exitWhile;
+
+            invokeAdapter();
+            postResponse();
+        } while (!error && keepAlive && inputBuffer.available() > 0);
         return error;
     }
 

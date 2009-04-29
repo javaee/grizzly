@@ -39,7 +39,6 @@ package com.sun.grizzly.util;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -136,17 +135,7 @@ public class SelectorFactory{
             Logger.getLogger(SelectorFactory.class.getName()).log(Level.SEVERE, null, ex);
         }*/
         if (selector == null){
-            LoggerUtils.getLogger().warning("Temp Selector leak or inroper config detected. cachelimit: "+maxSelectors);
-            /*try {
-                Thread.sleep(300);
-                selector = selectors.poll();
-            if (selector == null)
-                System.err.println("Temp Selector leak not fixed by sleeop");
-            else
-                System.err.println("Temp Selector FIXED sleeop");
-            } catch (InterruptedException ex) {
-                Logger.getLogger(SelectorFactory.class.getName()).log(Level.SEVERE, null, ex);
-            }*/
+            LoggerUtils.getLogger().warning("No Selector available. Increase default: "+maxSelectors);
         }
         return selector;
     }
