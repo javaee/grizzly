@@ -60,6 +60,8 @@ import com.sun.grizzly.ReinvokeAware;
 import com.sun.grizzly.SelectionKeyHandler;
 import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.util.ByteBufferFactory;
+import com.sun.grizzly.util.DefaultThreadPool;
+import com.sun.grizzly.util.WorkerThreadImpl;
 
 /**
  * Simple {@link ProtocolFilter} implementation which read the available bytes
@@ -116,12 +118,23 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
             }
             return false;
         }
-
-
+        
         if (byteBuffer == null) {
             byteBuffer = ((WorkerThread)Thread.currentThread()).getByteBuffer();
+            
+            int size = WorkerThreadImpl.DEFAULT_BYTE_BUFFER_SIZE;
+            ByteBufferFactory.ByteBufferType bbt= WorkerThreadImpl.DEFAULT_BYTEBUFFER_TYPE;
+            
+            if (ctx.getSelectorHandler().getThreadPool() instanceof DefaultThreadPool){
+                DefaultThreadPool tp = 
+                        (DefaultThreadPool)ctx.getSelectorHandler().getThreadPool();
+                size = tp.getInitialByteBufferSize();
+                bbt = tp.getByteBufferType();
+            }
+            
             if (byteBuffer == null) {
-                byteBuffer = ByteBufferFactory.allocateView(8192, false);
+                byteBuffer = ByteBufferFactory.allocateView(size,
+                        bbt == ByteBufferFactory.ByteBufferType.DIRECT);
                 ((WorkerThread)Thread.currentThread()).setByteBuffer(byteBuffer);
             }
         }
