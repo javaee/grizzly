@@ -44,6 +44,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.attributes.Attribute;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -56,6 +58,9 @@ import org.glassfish.grizzly.filterchain.NextAction;
  * @author Alexey Stashok
  */
 public class LifeCycleFilter extends FilterAdapter {
+    private Attribute<Integer> connectionIdAttribute =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("connection-id");
+
     private AtomicInteger totalConnectionNumber;
     private Map<Connection, Integer> activeConnectionsMap;
 
@@ -120,8 +125,9 @@ public class LifeCycleFilter extends FilterAdapter {
      * @param connection new {@link Connection}
      */
     private void newConnection(Connection connection) {
-        activeConnectionsMap.put(connection,
-                totalConnectionNumber.incrementAndGet());
+        final Integer id = totalConnectionNumber.incrementAndGet();
+        connectionIdAttribute.set(connection, id);
+        activeConnectionsMap.put(connection, id);
     }
 
     /**
