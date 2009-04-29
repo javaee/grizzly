@@ -1236,16 +1236,14 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @return {@link Context}
      */
     protected NIOContext pollContext(final Context serverContext,
-            final SelectionKey key, final Context.OpType opType) {
+            final SelectionKey key, final Context.OpType opType) {      
+        Controller c = serverContext.getController();
         ProtocolChain protocolChain = instanceHandler != null ?
             instanceHandler.poll() :
-            serverContext.getController().getProtocolChainInstanceHandler().poll();
+            c.getProtocolChainInstanceHandler().poll();
 
-        final NIOContext context = serverContext.getController().pollContext(key, opType);
-        context.setSelectionKey(key);
-        context.setSelectorHandler(this);
-        context.setAsyncQueueReader(asyncQueueReader);
-        context.setAsyncQueueWriter(asyncQueueWriter);
+        final NIOContext context = c.pollContext();
+        c.configureContext(key, opType, context, this);      
         context.setProtocolChain(protocolChain);
         return context;
     }

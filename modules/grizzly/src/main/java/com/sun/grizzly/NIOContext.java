@@ -427,7 +427,7 @@ public class NIOContext implements Context {
      * {@link SelectionKey#readyOps()} values.
      * @param key
      */
-    protected void configureOpType(SelectionKey key) {
+    public void configureOpType(SelectionKey key) {
         int readyOps = key.readyOps();
         switch (readyOps) {
             case SelectionKey.OP_CONNECT:
