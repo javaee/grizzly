@@ -69,7 +69,7 @@ public class SelectorHandlerRunner implements Runnable {
         
         ((WorkerThreadImpl)Thread.currentThread()).setPendingIOhandler(selectorHandler);
 
-        NIOContext serverCtx = controller.pollContext(null,null);
+        NIOContext serverCtx = controller.pollContext();
         serverCtx.setSelectorHandler(selectorHandler);
 
         StateHolder<State> controllerStateHolder = controller.getStateHolder();

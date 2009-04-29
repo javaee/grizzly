@@ -447,8 +447,8 @@ public class SuspendableFilter<T> implements ProtocolFilter {
             kh.getSuspendableHandler().getSelectorHandler()
                     .register(key.channel(), SelectionKey.OP_READ);
         } else {
-            NIOContext ctx = controller.pollContext(key);
-            controller.configureContext(ctx,
+            NIOContext ctx = controller.pollContext();
+            controller.configureContext(key, null, ctx,
                     kh.getSuspendableHandler().getSelectorHandler());
             ctx.execute(new SuspendableContextTask(
                     protocolChain, kh.getThreadAttachment(),

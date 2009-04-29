@@ -59,6 +59,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -240,7 +241,15 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     private final static int spinRateTreshhold = 2000;
     
+    /**
+     * Enable workaround Linux spinning Selector
+     */
     private boolean isLinux = false;
+    
+    /**
+     * Allow {@link Context} caching.
+     */
+    private boolean allowContextCaching = false;
 
     // -------------------------------------------------------------------- //
     /**
@@ -443,8 +452,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 }
 
                 if (delegateToWorker) {
-                    NIOContext context = pollContext(key, opType);
-                    configureContext(context, selectorHandler);
+                    NIOContext context = pollContext();
+                    configureContext(key, opType,context, selectorHandler);
                     context.execute(context.getProtocolChainContextTask());
                 }
             } catch (Throwable e) {
@@ -577,24 +586,37 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     /**
-     * Get an instance of a {@link Context}
-     * @param key {@link SelectionKey}
+     * Get an instance of a {@link NIOContext}
      * @return {@link Context}
      */
-    public NIOContext pollContext(SelectionKey key) {
-        return pollContext(key, null);
+    public NIOContext pollContext() {
+        NIOContext ctx = null;
+        try{
+            if (!allowContextCaching) {
+                ctx = new NIOContext();
+            } else {
+                ctx = contexts.poll();
+            }
+        } finally {
+            ctx.setController(this);
+        }
+        return ctx;
     }
 
     /**
-     * Get an instance of a {@link NIOContext}
+     * Configure the {@link Context}
      * @param key {@link SelectionKey}
      * @param opType the current SelectionKey op.
-     * @return {@link Context}
+     * @param context
+     * @param selectorHandler
      */
-    public NIOContext pollContext(SelectionKey key, OpType opType) {
-
-        NIOContext ctx = contexts.poll();
-        ctx.setController(this);
+    public void configureContext(SelectionKey key, OpType opType,
+            NIOContext ctx, SelectorHandler selectorHandler) {
+        
+        ctx.setSelectorHandler(selectorHandler);
+        ctx.setThreadPool(selectorHandler.getThreadPool());
+        ctx.setAsyncQueueReader(selectorHandler.getAsyncQueueReader());
+        ctx.setAsyncQueueWriter(selectorHandler.getAsyncQueueWriter());
         ctx.setSelectionKey(key);
         if (opType != null) {
             ctx.setCurrentOpType(opType);
@@ -603,27 +625,17 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 ctx.configureOpType(key);
             }
         }
-        return ctx;
     }
 
     /**
-     * Configure the {@link Context}
-     * @param context
-     * @param selectorHandler
-     */
-    public void configureContext(NIOContext ctx, SelectorHandler selectorHandler) {
-        ctx.setSelectorHandler(selectorHandler);
-        ctx.setThreadPool(selectorHandler.getThreadPool());
-        ctx.setAsyncQueueReader(selectorHandler.getAsyncQueueReader());
-        ctx.setAsyncQueueWriter(selectorHandler.getAsyncQueueWriter());
-    }
-
-    /**
-     * Return a {@link Context} to its pool if it is not shared.
+     * Return a {@link Context} to its pool if it is not shared. if 
+     * {@link #allowContextCaching} is false, the instance is not cached.
      *
      * @param ctx - the {@link Context}
      */
     public void returnContext(Context ctx) {
+        if (!allowContextCaching) return;
+        
         if (ctx.decrementRefCount() > 0) {
             return;
         }
@@ -1318,4 +1330,23 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     protected ExecutorService createKernelExecutor() {
         return Executors.newCachedThreadPool(new WorkerThreadFactory("grizzly-kernel"));
     }
+    
+    /**
+     * Are {@link Context} instance cached/pooled or a new instance gets created
+     * for every transaction?
+     * @return true if {@link Context} get cached. Default is <tt>false</tt>
+     */
+    public boolean isAllowContextCaching() {
+        return allowContextCaching;
+    }
+
+    /**
+     * Set to <tt>true</tt> for enabling caching of {@link Context}.
+     * 
+     * @param allowContextCaching <tt>true</tt> for enabling caching of {@link Context}.
+     */
+    public void setAllowContextCaching(boolean allowContextCaching) {
+        this.allowContextCaching = allowContextCaching;
+    }
+
 }
