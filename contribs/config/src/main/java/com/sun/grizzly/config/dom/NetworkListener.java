@@ -36,7 +36,6 @@
  */
 package com.sun.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBean;
@@ -76,7 +75,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
     /**
      * Port to listen on
      */
-    @Attribute
+    @Attribute(required = true)
     String getPort();
 
     void setPort(String value);

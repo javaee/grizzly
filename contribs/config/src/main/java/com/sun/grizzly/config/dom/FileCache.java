@@ -60,17 +60,17 @@ public interface FileCache extends ConfigBeanProxy, Injectable {
      * How old files can get before aging out of cache in seconds
      */
     @Attribute(defaultValue = "30")
-    String getMaxAge();
+    String getMaxAgeInSeconds();
 
-    void setMaxAge(final String maxAge);
+    void setMaxAgeInSeconds(final String maxAge);
 
     /**
      * Maximum cache size on the disk
      */
     @Attribute(defaultValue = "10485760")
-    String getMaxCacheSize();
+    String getMaxCacheSizeInBytes();
 
-    void setMaxCacheSize(final String maxCacheSize);
+    void setMaxCacheSizeInBytes(final String maxCacheSize);
 
     /**
      * Maximum number of files in the file cache.

@@ -54,30 +54,30 @@ public interface Http extends ConfigBeanProxy, Injectable {
 
     void setAdapter(String adapter);
 
-    @Attribute
+    @Attribute(defaultValue = "true")
     String getChunkingDisabled();
 
     void setChunkingDisabled(String disabled);
 
-    @Attribute
+    @Attribute(defaultValue = "false")
     String getCompression();
 
     void getCompression(String compression);
 
-    @Attribute
+    @Attribute(defaultValue = "text/html,text/xml,text/plain")
     String getCompressableMimeType();
 
     void setCompressableMimeType(String type);
 
-    @Attribute
-    String getCompressionMinSize();
+    @Attribute(defaultValue = "2048")
+    String getCompressionMinSizeInBytes();
 
-    void setCompressionMinSize(String size);
+    void setCompressionMinSizeInBytes(String size);
 
-    @Attribute
-    String getConnectionUploadTimeout();
+    @Attribute(defaultValue = "300000")
+    String getConnectionUploadTimeoutInMillis();
 
-    void setConnectionUploadTimeout(String timeout);
+    void setConnectionUploadTimeoutInMillis(String timeout);
 
     /**
      * Setting the default response-type. Specified as a semi-colon delimited string consisting of content-type,
@@ -119,7 +119,7 @@ public interface Http extends ConfigBeanProxy, Injectable {
 
     void setEnableCometSupport(String enable);
 
-    @Attribute
+    @Attribute(defaultValue = "false")
     String getEnableRcmSupport();
 
     void setEnableRcmSupport(String enable);
@@ -144,10 +144,10 @@ public interface Http extends ConfigBeanProxy, Injectable {
     /**
      * The size of the buffer used by the request processing threads for reading the request data
      */
-    @Attribute(defaultValue = "4096")
-    String getHeaderBufferLength();
+    @Attribute(defaultValue = "8192")
+    String getHeaderBufferLengthInBytes();
 
-    void setHeaderBufferLength(String length);
+    void setHeaderBufferLengthInBytes(String length);
 
     /**
      * Max number of connection in the Keep Alive mode
@@ -157,10 +157,10 @@ public interface Http extends ConfigBeanProxy, Injectable {
 
     void setMaxConnections(String max);
 
-    @Attribute
-    String getMaxPostSize();
+    @Attribute(defaultValue = "2097152")
+    String getMaxPostSizeInBytes();
 
-    void setMaxPostSize(String max);
+    void setMaxPostSizeInBytes(String max);
 
     @Attribute
     String getNoCompressionUserAgents();
@@ -180,18 +180,18 @@ public interface Http extends ConfigBeanProxy, Injectable {
     /**
      * Size of the buffer for request bodies in bytes
      */
-    @Attribute(defaultValue = "4096")
-    String getRequestBodyBufferSize();
+    @Attribute(defaultValue = "8192")
+    String getRequestBodyBufferSizeInBytes();
 
-    void setRequestBodyBufferSize(String size);
+    void setRequestBodyBufferSizeInBytes(String size);
 
     /**
      * Time after which the request times out in seconds
      */
     @Attribute(defaultValue = "30")
-    String getRequestTimeout();
+    String getRequestTimeoutInSeconds();
 
-    void setRequestTimeout(String timeout);
+    void setRequestTimeoutInSeconds(String timeout);
 
     @Attribute
     String getRestrictedUserAgents();
@@ -202,9 +202,9 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * Size of the buffer for request bodies in bytes
      */
     @Attribute(defaultValue = "8192")
-    String getSendBufferSize();
+    String getSendBufferSizeInBytes();
 
-    void setSendBufferSize(String size);
+    void setSendBufferSizeInBytes(String size);
 
     /**
      * Tells the server what to put in the host name section of any URLs it sends to the client. This affects URLs the
@@ -221,9 +221,9 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
      */
     @Attribute(defaultValue = "30")
-    String getTimeout();
+    String getTimeoutInSeconds();
 
-    void setTimeout(String timeout);
+    void setTimeoutInSeconds(String timeout);
 
     @Attribute
     String getTraceEnabled();

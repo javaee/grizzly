@@ -68,7 +68,7 @@ public interface ProtocolFinder extends ConfigBeanProxy, Injectable {
     /**
      * Finder logic implementation class
      */
-    @Attribute
+    @Attribute(required = true)
     String getClassname();
 
     void setClassname(String value);

@@ -49,15 +49,15 @@ public interface Transport extends ConfigBeanProxy, Injectable {
     /**
      * The number of acceptor threads listening for the transport's events
      */
-    @Attribute(defaultValue = "1")
+    @Attribute(defaultValue = "-1")
     String getAcceptorThreads();
 
     void setAcceptorThreads(String value);
 
-    @Attribute
-    String getBufferSize();
+    @Attribute(defaultValue = "8192")
+    String getBufferSizeInBytes();
 
-    void setBufferSize(String size);
+    void setBufferSizeInBytes(String size);
 
     /**
      * Type of ByteBuffer, which will be used with transport. Possible values are: HEAP and DIRECT
@@ -97,9 +97,9 @@ public interface Transport extends ConfigBeanProxy, Injectable {
      * Timeout, after which idle key will be cancelled and channel closed
      */
     @Attribute(defaultValue = "30")
-    String getIdleKeyTimeout();
+    String getIdleKeyTimeoutInSeconds();
 
-    void setIdleKeyTimeout(String value);
+    void setIdleKeyTimeoutInSeconds(String value);
 
     /**
      * The max number of connections the transport should handle at the same time
@@ -118,12 +118,12 @@ public interface Transport extends ConfigBeanProxy, Injectable {
     void setName(String value);
 
     /**
-     * Read operation timeout
+     * Read operation timeout in ms
      */
-    @Attribute
-    String getReadTimeout();
+    @Attribute(defaultValue = "30000")
+    String getReadTimeoutInMillis();
 
-    void setReadTimeout(String value);
+    void setReadTimeoutInMillis(String value);
 
     /**
      * Use public SelectionKey handler, which was defined earlier in the document.
@@ -137,24 +137,20 @@ public interface Transport extends ConfigBeanProxy, Injectable {
      * The time, in milliseconds, a NIO Selector will block waiting for events (users requests).
      */
     @Attribute
-    String getSelectorPollTimeout();
+    String getSelectorPollTimeoutInMillis();
 
-    void setSelectorPollTimeout(String timeout);
-
-    @Attribute
-    String getUseNioDirectByteBuffer();
-
-    void setUseNioDirectByteBuffer(String useDirectByteBuffer);
+    void setSelectorPollTimeoutInMillis(String timeout);
 
     /**
-     * Write operation timeout
+     * Write operation timeout in ms
      */
-    @Attribute
-    String getWriteTimeout();
+    @Attribute(defaultValue = "30000")
+    String getWriteTimeoutInMillis();
 
-    void setWriteTimeout(String value);
+    void setWriteTimeoutInMillis(String value);
 
     @Attribute
     String getTcpNoDelay();
+
     void setTcpNoDelay(String noDelay);
 }
