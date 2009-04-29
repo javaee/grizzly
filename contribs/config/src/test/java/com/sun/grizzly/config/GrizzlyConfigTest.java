@@ -72,4 +72,14 @@ public class GrizzlyConfigTest {
         final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
         Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5"); 
     }
+
+    public void badConfig() throws IOException, InstantiationException {
+        try {
+            final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
+            grizzlyConfig.setupNetwork();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
+        }
+    }
 }

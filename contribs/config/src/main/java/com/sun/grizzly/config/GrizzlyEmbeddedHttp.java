@@ -57,6 +57,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 /**
  * Implementation of Grizzly embedded HTTP listener
@@ -82,6 +84,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     /**
      * Constructor
+     *
      * @param grizzlyServiceListener
      */
     public GrizzlyEmbeddedHttp(GrizzlyServiceListener grizzlyServiceListener) {
@@ -115,7 +118,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         //selectorHandler.setReuseAddress(false);
         final DefaultProtocolChainInstanceHandler instanceHandler = new DefaultProtocolChainInstanceHandler() {
             private final ConcurrentLinkedQueue<ProtocolChain> chains =
-                new ConcurrentLinkedQueue<ProtocolChain>();
+                    new ConcurrentLinkedQueue<ProtocolChain>();
 
             /**
              * Always return instance of ProtocolChain.
@@ -135,7 +138,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
              * Pool an instance of ProtocolChain.
              */
             @Override
-            public boolean offer(final ProtocolChain instance) {
+            public boolean offer(ProtocolChain instance) {
                 return chains.offer(instance);
             }
         };
@@ -164,14 +167,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             // exception occured during shutdown.
             try {
                 if (selectorHandler != null
-                    && selectorHandler.getSelector() != null) {
+                        && selectorHandler.getSelector() != null) {
                     selectorHandler.getSelector().close();
                 }
             } catch (IOException ex) {
             }
             try {
                 if (udpSelectorHandler != null
-                    && udpSelectorHandler.getSelector() != null) {
+                        && udpSelectorHandler.getSelector() != null) {
                     udpSelectorHandler.getSelector().close();
                 }
             } catch (IOException ex) {
@@ -204,7 +207,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     protected ProtocolFilter createReadFilter() {
         final ReadFilter readFilter = new ReadFilter();
         readFilter.setContinuousExecution(
-            Boolean.valueOf(System.getProperty("v3.grizzly.readFilter.continuousExecution", "false")));
+                Boolean.valueOf(System.getProperty("v3.grizzly.readFilter.continuousExecution", "false")));
         return readFilter;
     }
 
@@ -237,7 +240,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Configure <code>TCPSelectorHandler</code>
      */
-    protected void configureSelectorHandler(final UDPSelectorHandler selectorHandler) {
+    protected void configureSelectorHandler(UDPSelectorHandler selectorHandler) {
         selectorHandler.setPort(port);
         selectorHandler.setReuseAddress(getReuseAddress());
         selectorHandler.setThreadPool(threadPool);
@@ -248,7 +251,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         return isHttpSecured;
     }
 
-    public void setHttpSecured(final boolean httpSecured) {
+    public void setHttpSecured(boolean httpSecured) {
         isHttpSecured = httpSecured;
     }
 
@@ -259,6 +262,15 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final ThreadPool pool = networkListener.findThreadPool();
 
         setPort(Integer.parseInt(networkListener.getPort()));
+        try {
+            setAddress(InetAddress.getByName(networkListener.getAddress()));
+        } catch (UnknownHostException e) {
+            logger.log(Level.WARNING, "Invalid address for {0}: {1}",
+                    new Object[]{
+                            networkListener.getName(),
+                            networkListener.getAddress()
+                    });
+        }
         configureHttpListenerProperty(http, transport, httpProtocol.getSsl());
         configureKeepAlive(http);
         configureHttpProtocol(http);
@@ -276,8 +288,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             logger.log(Level.WARNING, "pewebcontainer.invalid_acceptor_threads",
                     new Object[]{
                             acceptorThreads,
-                            httpProtocol.getName(),
-                            Integer.toString(getMaxThreads())
+                            transport.getName()
                     });
         }
         final Boolean enableComet = toBoolean(http.getEnableCometSupport());
@@ -320,7 +331,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      *
      * @param habitat
      */
-    private final void configureComet(final Habitat habitat) {
+    private final void configureComet(Habitat habitat) {
         final AsyncFilter cometFilter = habitat.getComponent(AsyncFilter.class, "comet");
         if (cometFilter != null) {
             setEnableAsyncExecution(true);
@@ -333,28 +344,25 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Configure the Grizzly FileCache mechanism
      */
-    private void configureFileCache(final FileCache cache) {
+    private void configureFileCache(FileCache cache) {
         if (cache == null) {
             return;
         }
         final boolean enabled = toBoolean(cache.getEnabled());
         setFileCacheIsEnabled(enabled);
         setLargeFileCacheEnabled(enabled);
-        setSecondsMaxAge(Integer.parseInt(cache.getMaxAge()));
+        setSecondsMaxAge(Integer.parseInt(cache.getMaxAgeInSeconds()));
         setMaxCacheEntries(Integer.parseInt(cache.getMaxFilesCount()));
-        setMaxLargeCacheSize(Integer.parseInt(cache.getMaxCacheSize()));
+        setMaxLargeCacheSize(Integer.parseInt(cache.getMaxCacheSizeInBytes()));
     }
 
-    private void configureHttpListenerProperty(final Http http, final Transport transport, final Ssl ssl)
+    private void configureHttpListenerProperty(Http http, Transport transport, Ssl ssl)
             throws NumberFormatException {
-        if (transport.getBufferSize() != null) {
-            setBufferSize(Integer.parseInt(transport.getBufferSize()));
-        }
-        if (transport.getUseNioDirectByteBuffer() != null) {
-            setUseByteBufferView(toBoolean(transport.getUseNioDirectByteBuffer()));
+        if (transport.getBufferSizeInBytes() != null) {
+            setBufferSize(Integer.parseInt(transport.getBufferSizeInBytes()));
         }
         try {
-            setAdapter((Adapter)Class.forName(http.getAdapter()).newInstance());
+            setAdapter((Adapter) Class.forName(http.getAdapter()).newInstance());
         } catch (Exception e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
         }
@@ -364,8 +372,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (http.getEnableAuthPassThrough() != null) {
             setProperty("authPassthroughEnabled", toBoolean(http.getEnableAuthPassThrough()));
         }
-        if (http.getMaxPostSize() != null) {
-            setMaxPostSize(Integer.parseInt(http.getMaxPostSize()));
+        if (http.getMaxPostSizeInBytes() != null) {
+            setMaxPostSize(Integer.parseInt(http.getMaxPostSizeInBytes()));
         }
         if (http.getCompression() != null) {
             setCompression(http.getCompression());
@@ -376,8 +384,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (http.getNoCompressionUserAgents() != null) {
             setNoCompressionUserAgents(http.getNoCompressionUserAgents());
         }
-        if (http.getCompressionMinSize() != null) {
-            setCompressionMinSize(Integer.parseInt(http.getCompressionMinSize()));
+        if (http.getCompressionMinSizeInBytes() != null) {
+            setCompressionMinSize(Integer.parseInt(http.getCompressionMinSizeInBytes()));
         }
         if (http.getRestrictedUserAgents() != null) {
             setRestrictedUserAgents(http.getRestrictedUserAgents());
@@ -385,8 +393,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (http.getEnableRcmSupport() != null) {
             enableRcmSupport(toBoolean(http.getEnableRcmSupport()));
         }
-        if (http.getConnectionUploadTimeout() != null) {
-            setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeout()));
+        if (http.getConnectionUploadTimeoutInMillis() != null) {
+            setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutInMillis()));
         }
         if (http.getDisableUploadTimeout() != null) {
             setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
@@ -409,7 +417,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
     }
 
-    private void configSslOptions(final Ssl ssl) {
+    private void configSslOptions(Ssl ssl) {
         if (ssl != null) {
             if (ssl.getCrlFile() != null) {
                 setProperty("crlFile", ssl.getCrlFile());
@@ -417,15 +425,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             if (ssl.getTrustAlgorithm() != null) {
                 setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
             }
-            if (ssl.getTrustMaxCertLength() != null) {
-                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLength());
+            if (ssl.getTrustMaxCertLengthInBytes() != null) {
+                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthInBytes());
             }
         }
     }
 
     /**
      * Configures the given HTTP grizzlyListener with the given http-protocol config.
-     *
      */
     private void configureHttpProtocol(Http http) {
         if (http == null) {
@@ -437,17 +444,16 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     /**
      * Configures the keep-alive properties on the given Connector from the given keep-alive config.
-     *
      */
     private void configureKeepAlive(Http http) {
         int timeoutInSeconds = 60;
         int maxConnections = 256;
         if (http != null) {
             try {
-                timeoutInSeconds = Integer.parseInt(http.getTimeout());
+                timeoutInSeconds = Integer.parseInt(http.getTimeoutInSeconds());
             } catch (NumberFormatException ex) {
                 String msg = _rb.getString("pewebcontainer.invalidKeepAliveTimeout");
-                msg = MessageFormat.format(msg, http.getTimeout(), Integer.toString(timeoutInSeconds));
+                msg = MessageFormat.format(msg, http.getTimeoutInSeconds(), Integer.toString(timeoutInSeconds));
                 logger.log(Level.WARNING, msg, ex);
             }
             try {
@@ -465,7 +471,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Configures an HTTP grizzlyListener with the given request-processing config.
      */
-    private void configureThreadPool(Http http, final ThreadPool threadPool) {
+    private void configureThreadPool(Http http, ThreadPool threadPool) {
         if (threadPool == null) {
             return;
         }
@@ -474,21 +480,21 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     : Integer.parseInt(threadPool.getMaxQueueSize());
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
-            final int keepAlive = Integer.parseInt(http.getTimeout());
+            final int keepAlive = Integer.parseInt(http.getTimeoutInSeconds());
 
             final DefaultThreadPool pool = new StatsThreadPool(minThreads, maxThreads, maxQueueSize,
                     keepAlive, TimeUnit.SECONDS) {
             };
 
             setThreadPool(pool);
-            setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLength()));
+            setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthInBytes()));
 
         } catch (NumberFormatException ex) {
             logger.log(Level.WARNING, " Invalid request-processing attribute", ex);
         }
     }
 
-    private boolean toBoolean(final String value) {
+    private boolean toBoolean(String value) {
         final String v = null != value ? value.trim() : value;
         return "true".equals(v)
                 || "yes".equals(v)
