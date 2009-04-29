@@ -56,7 +56,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable {
     /**
      * Idle threads are removed from pool, after this time (in seconds)
      */
-    @Attribute(defaultValue = "300")
+    @Attribute(defaultValue = "900")
     String getIdleThreadTimeoutInSeconds();
 
     void setIdleThreadTimeoutInSeconds(String value);
