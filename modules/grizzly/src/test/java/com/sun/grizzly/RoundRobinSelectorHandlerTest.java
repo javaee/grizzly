@@ -60,6 +60,7 @@ public class RoundRobinSelectorHandlerTest extends TestCase {
     
     public void testSimplePacket() throws IOException {
         final Controller controller = new Controller();
+        controller.setReadThreadsCount(0);
         controller.setThreadPool(new DefaultThreadPool());
         
         // Thread pool and SelectionKeyHandler will be copied from controller

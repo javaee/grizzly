@@ -59,7 +59,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -297,8 +296,18 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
         kernelExecutor = createKernelExecutor();
         controllers.add(this);
+        autoConfigureCore();
     }
 
+    /**
+     * Auto-configure the number of {@link ReaderThread} based on the core
+     * processor.
+     */
+    private void autoConfigureCore(){
+        readThreadsCount = Runtime.getRuntime().availableProcessors();
+    }
+    
+    
     /**
      * This method handle the processing of all Selector's interest op
      * (OP_ACCEPT,OP_READ,OP_WRITE,OP_CONNECT) by delegating to its Handler.
