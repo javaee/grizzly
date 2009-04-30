@@ -238,7 +238,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * The threshold for detecting selector.select spin on linux,
      * used for enabling workaround to prevent server from hanging.
      */
-    private final static int spinRateTreshhold = 2000;
+    private final static int spinRateTreshold = 2000;
     
     /**
      * Enable workaround Linux spinning Selector
@@ -327,15 +327,18 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
             Set<SelectionKey> readyKeys = selectorHandler.select(serverCtx);
 
+            final boolean isSpinWorkaround = isLinux &&
+                    selectorHandler instanceof LinuxSpinningWorkaround;
+
             if (readyKeys.size() != 0) {
-                if (isLinux && selectorHandler instanceof LinuxSpinningWorkaround) {
-                    ((LinuxSpinningWorkaround)selectorHandler).resetSpinCounter();
+                if (isSpinWorkaround) {
+                    ((LinuxSpinningWorkaround) selectorHandler).resetSpinCounter();
                 }
                 handleSelectedKeys(readyKeys, selectorHandler, serverCtx);
                 readyKeys.clear();
-            } else if (isLinux && selectorHandler instanceof LinuxSpinningWorkaround) {                
-                long sr = ((LinuxSpinningWorkaround)selectorHandler).getSpinRate();
-                if (sr > spinRateTreshhold) {
+            } else if (isSpinWorkaround) {
+                long sr = ((LinuxSpinningWorkaround) selectorHandler).getSpinRate();
+                if (sr > spinRateTreshold) {
                     workaroundSelectorSpin(selectorHandler);
                 }
             }

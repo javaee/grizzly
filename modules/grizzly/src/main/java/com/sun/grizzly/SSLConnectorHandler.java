@@ -51,7 +51,6 @@ import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.SSLOutputWriter;
 import com.sun.grizzly.util.SSLUtils;
-import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketAddress;
