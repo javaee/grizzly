@@ -55,9 +55,9 @@ public interface Transport extends ConfigBeanProxy, Injectable {
     void setAcceptorThreads(String value);
 
     @Attribute(defaultValue = "8192")
-    String getBufferSizeInBytes();
+    String getBufferSizeBytes();
 
-    void setBufferSizeInBytes(String size);
+    void setBufferSizeBytes(String size);
 
     /**
      * Type of ByteBuffer, which will be used with transport. Possible values are: HEAP and DIRECT
@@ -97,9 +97,9 @@ public interface Transport extends ConfigBeanProxy, Injectable {
      * Timeout, after which idle key will be cancelled and channel closed
      */
     @Attribute(defaultValue = "30")
-    String getIdleKeyTimeoutInSeconds();
+    String getIdleKeyTimeoutSeconds();
 
-    void setIdleKeyTimeoutInSeconds(String value);
+    void setIdleKeyTimeoutSeconds(String value);
 
     /**
      * The max number of connections the transport should handle at the same time
@@ -121,9 +121,9 @@ public interface Transport extends ConfigBeanProxy, Injectable {
      * Read operation timeout in ms
      */
     @Attribute(defaultValue = "30000")
-    String getReadTimeoutInMillis();
+    String getReadTimeoutMillis();
 
-    void setReadTimeoutInMillis(String value);
+    void setReadTimeoutMillis(String value);
 
     /**
      * Use public SelectionKey handler, which was defined earlier in the document.
@@ -137,17 +137,17 @@ public interface Transport extends ConfigBeanProxy, Injectable {
      * The time, in milliseconds, a NIO Selector will block waiting for events (users requests).
      */
     @Attribute
-    String getSelectorPollTimeoutInMillis();
+    String getSelectorPollTimeoutMillis();
 
-    void setSelectorPollTimeoutInMillis(String timeout);
+    void setSelectorPollTimeoutMillis(String timeout);
 
     /**
      * Write operation timeout in ms
      */
     @Attribute(defaultValue = "30000")
-    String getWriteTimeoutInMillis();
+    String getWriteTimeoutMillis();
 
-    void setWriteTimeoutInMillis(String value);
+    void setWriteTimeoutMillis(String value);
 
     @Attribute
     String getTcpNoDelay();

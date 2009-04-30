@@ -352,15 +352,15 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final boolean enabled = toBoolean(cache.getEnabled());
         setFileCacheIsEnabled(enabled);
         setLargeFileCacheEnabled(enabled);
-        setSecondsMaxAge(Integer.parseInt(cache.getMaxAgeInSeconds()));
+        setSecondsMaxAge(Integer.parseInt(cache.getMaxAgeSeconds()));
         setMaxCacheEntries(Integer.parseInt(cache.getMaxFilesCount()));
-        setMaxLargeCacheSize(Integer.parseInt(cache.getMaxCacheSizeInBytes()));
+        setMaxLargeCacheSize(Integer.parseInt(cache.getMaxCacheSizeBytes()));
     }
 
     private void configureHttpListenerProperty(Http http, Transport transport, Ssl ssl)
             throws NumberFormatException {
-        if (transport.getBufferSizeInBytes() != null) {
-            setBufferSize(Integer.parseInt(transport.getBufferSizeInBytes()));
+        if (transport.getBufferSizeBytes() != null) {
+            setBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
         }
         try {
             setAdapter((Adapter) Class.forName(http.getAdapter()).newInstance());
@@ -373,8 +373,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (http.getEnableAuthPassThrough() != null) {
             setProperty("authPassthroughEnabled", toBoolean(http.getEnableAuthPassThrough()));
         }
-        if (http.getMaxPostSizeInBytes() != null) {
-            setMaxPostSize(Integer.parseInt(http.getMaxPostSizeInBytes()));
+        if (http.getMaxPostSizeBytes() != null) {
+            setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
         }
         if (http.getCompression() != null) {
             setCompression(http.getCompression());
@@ -385,8 +385,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (http.getNoCompressionUserAgents() != null) {
             setNoCompressionUserAgents(http.getNoCompressionUserAgents());
         }
-        if (http.getCompressionMinSizeInBytes() != null) {
-            setCompressionMinSize(Integer.parseInt(http.getCompressionMinSizeInBytes()));
+        if (http.getCompressionMinSizeBytes() != null) {
+            setCompressionMinSize(Integer.parseInt(http.getCompressionMinSizeBytes()));
         }
         if (http.getRestrictedUserAgents() != null) {
             setRestrictedUserAgents(http.getRestrictedUserAgents());
@@ -394,8 +394,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (http.getEnableRcmSupport() != null) {
             enableRcmSupport(toBoolean(http.getEnableRcmSupport()));
         }
-        if (http.getConnectionUploadTimeoutInMillis() != null) {
-            setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutInMillis()));
+        if (http.getConnectionUploadTimeoutMillis() != null) {
+            setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
         }
         if (http.getDisableUploadTimeout() != null) {
             setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
@@ -426,8 +426,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             if (ssl.getTrustAlgorithm() != null) {
                 setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
             }
-            if (ssl.getTrustMaxCertLengthInBytes() != null) {
-                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthInBytes());
+            if (ssl.getTrustMaxCertLengthBytes() != null) {
+                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthBytes());
             }
         }
     }
@@ -451,10 +451,10 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         int maxConnections = 256;
         if (http != null) {
             try {
-                timeoutInSeconds = Integer.parseInt(http.getTimeoutInSeconds());
+                timeoutInSeconds = Integer.parseInt(http.getTimeoutSeconds());
             } catch (NumberFormatException ex) {
                 String msg = _rb.getString("pewebcontainer.invalidKeepAliveTimeout");
-                msg = MessageFormat.format(msg, http.getTimeoutInSeconds(), Integer.toString(timeoutInSeconds));
+                msg = MessageFormat.format(msg, http.getTimeoutSeconds(), Integer.toString(timeoutInSeconds));
                 logger.log(Level.WARNING, msg, ex);
             }
             try {
@@ -481,15 +481,15 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     : Integer.parseInt(threadPool.getMaxQueueSize());
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
-            final int keepAlive = Integer.parseInt(http.getTimeoutInSeconds());
-            final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutInSeconds());
+            final int keepAlive = Integer.parseInt(http.getTimeoutSeconds());
+            final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
 
             final DefaultThreadPool pool = new StatsThreadPool(minThreads, maxThreads, maxQueueSize,
                     keepAlive, TimeUnit.SECONDS) {
             };
 
             setThreadPool(pool);
-            setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthInBytes()));
+            setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthBytes()));
 
             List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
             boolean debugMode = false;

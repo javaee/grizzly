@@ -48,13 +48,6 @@ import org.jvnet.hk2.config.Element;
  */
 @Configured
 public interface ProtocolChainInstanceHandler extends ConfigBeanProxy, Injectable {
-    /**
-     * Protocol chain instance handler name, which could be used as reference
-     */
-    @Attribute
-    String getName();
-
-    void setName(String value);
 
     /**
      * Protocol chain instance handler implementation class
