@@ -57,9 +57,9 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable {
      * Idle threads are removed from pool, after this time (in seconds)
      */
     @Attribute(defaultValue = "900")
-    String getIdleThreadTimeoutInSeconds();
+    String getIdleThreadTimeoutSeconds();
 
-    void setIdleThreadTimeoutInSeconds(String value);
+    void setIdleThreadTimeoutSeconds(String value);
 
     /**
      * The maxim number of tasks, which could be queued on the thread pool.  -1 disables any maximum checks.

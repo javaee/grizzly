@@ -70,20 +70,20 @@ public interface Http extends ConfigBeanProxy, Injectable {
     void setCompressableMimeType(String type);
 
     @Attribute(defaultValue = "2048")
-    String getCompressionMinSizeInBytes();
+    String getCompressionMinSizeBytes();
 
-    void setCompressionMinSizeInBytes(String size);
+    void setCompressionMinSizeBytes(String size);
 
     @Attribute(defaultValue = "300000")
-    String getConnectionUploadTimeoutInMillis();
+    String getConnectionUploadTimeoutMillis();
 
-    void setConnectionUploadTimeoutInMillis(String timeout);
+    void setConnectionUploadTimeoutMillis(String timeout);
 
     /**
      * Setting the default response-type. Specified as a semi-colon delimited string consisting of content-type,
      * encoding, language, charset
      */
-    @Attribute(defaultValue = "text/html; charset=iso-8859-1")
+    @Attribute(defaultValue = "text/plain; charset=iso-8859-1")
     String getDefaultResponseType();
 
     void setDefaultResponseType(final String defaultResponseType);
@@ -136,7 +136,7 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * The response type to be forced if the content served cannot be matched by any of the MIME mappings for
      * extensions. Specified as a semi-colon delimited string consisting of content-type, encoding, language, charset
      */
-    @Attribute(defaultValue = "text/html; charset=iso-8859-1")
+    @Attribute(defaultValue = "text/plain; charset=iso-8859-1")
     String getForcedResponseType();
 
     void setForcedResponseType(final String forcedResponseType);
@@ -145,9 +145,9 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * The size of the buffer used by the request processing threads for reading the request data
      */
     @Attribute(defaultValue = "8192")
-    String getHeaderBufferLengthInBytes();
+    String getHeaderBufferLengthBytes();
 
-    void setHeaderBufferLengthInBytes(String length);
+    void setHeaderBufferLengthBytes(String length);
 
     /**
      * Max number of connection in the Keep Alive mode
@@ -158,9 +158,9 @@ public interface Http extends ConfigBeanProxy, Injectable {
     void setMaxConnections(String max);
 
     @Attribute(defaultValue = "2097152")
-    String getMaxPostSizeInBytes();
+    String getMaxPostSizeBytes();
 
-    void setMaxPostSizeInBytes(String max);
+    void setMaxPostSizeBytes(String max);
 
     @Attribute
     String getNoCompressionUserAgents();
@@ -181,17 +181,17 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * Size of the buffer for request bodies in bytes
      */
     @Attribute(defaultValue = "8192")
-    String getRequestBodyBufferSizeInBytes();
+    String getRequestBodyBufferSizeBytes();
 
-    void setRequestBodyBufferSizeInBytes(String size);
+    void setRequestBodyBufferSizeBytes(String size);
 
     /**
      * Time after which the request times out in seconds
      */
     @Attribute(defaultValue = "30")
-    String getRequestTimeoutInSeconds();
+    String getRequestTimeoutSeconds();
 
-    void setRequestTimeoutInSeconds(String timeout);
+    void setRequestTimeoutSeconds(String timeout);
 
     @Attribute
     String getRestrictedUserAgents();
@@ -202,9 +202,9 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * Size of the buffer for request bodies in bytes
      */
     @Attribute(defaultValue = "8192")
-    String getSendBufferSizeInBytes();
+    String getSendBufferSizeBytes();
 
-    void setSendBufferSizeInBytes(String size);
+    void setSendBufferSizeBytes(String size);
 
     /**
      * Tells the server what to put in the host name section of any URLs it sends to the client. This affects URLs the
@@ -221,9 +221,9 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
      */
     @Attribute(defaultValue = "30")
-    String getTimeoutInSeconds();
+    String getTimeoutSeconds();
 
-    void setTimeoutInSeconds(String timeout);
+    void setTimeoutSeconds(String timeout);
 
     @Attribute
     String getTraceEnabled();
