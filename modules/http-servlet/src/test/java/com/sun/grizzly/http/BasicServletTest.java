@@ -37,18 +37,15 @@
  */
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import junit.framework.TestCase;
 
-import javax.servlet.ServletException;
 import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.*;
+import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.logging.Logger;
 
 /**
@@ -56,21 +53,19 @@ import java.util.logging.Logger;
  *
  * @author Jeanfrancois Arcand
  */
-public class BasicServletTest extends TestCase {
+public class BasicServletTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18890;
     private static Logger logger = Logger.getLogger("grizzly.test");
-    private GrizzlyWebServer gws;
     private String header = "text/html;charset=utf8";
 
     public void testSetHeaderTest() throws IOException {
         System.out.println("testSetHeaderTest");
         try {
-            newGWS(PORT);
-            gws.start();
+            startGrizzlyWebServer(PORT);
             String alias = "/1";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection(alias);
+            HttpURLConnection conn = getConnection(alias, PORT);
             String s = conn.getHeaderField("Content-Type");
             assertEquals(s, header);
         } finally {
@@ -87,7 +82,7 @@ public class BasicServletTest extends TestCase {
             servletAdapter.setContextPath("/contextPath");
             servletAdapter.setServletPath("/servletPath");
             gws.start();
-            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo");
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
             String s = conn.getHeaderField("Path-Info");
             assertEquals(s, "/pathInfo");
         } finally {
@@ -104,7 +99,7 @@ public class BasicServletTest extends TestCase {
             servletAdapter.setContextPath("/");
             servletAdapter.setServletPath("/");
             gws.start();
-            HttpURLConnection conn = getConnection("/index.html");
+            HttpURLConnection conn = getConnection("/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             String s = conn.getHeaderField("Request-Was");
@@ -154,23 +149,11 @@ public class BasicServletTest extends TestCase {
             gws.addGrizzlyAdapter(sa2, new String[]{"/2"});
             gws.start();
 
-            assertEquals(200, getConnection("/1").getResponseCode());
-            assertEquals(200, getConnection("/2").getResponseCode());
+            assertEquals(200, getConnection("/1", PORT).getResponseCode());
+            assertEquals(200, getConnection("/2", PORT).getResponseCode());
         } finally {
             stopGrizzlyWebServer();
         }
-    }
-
-    private HttpURLConnection getConnection(String alias) throws IOException {
-        URL url = new URL("http", "localhost", PORT, alias);
-        HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-        urlConn.connect();
-        return urlConn;
-    }
-
-    private int getResponseCodeFromAlias(HttpURLConnection urlConn)
-            throws IOException {
-        return urlConn.getResponseCode();
     }
 
     private ServletAdapter addAdapter(final String alias) {
@@ -191,13 +174,5 @@ public class BasicServletTest extends TestCase {
         });
         gws.addGrizzlyAdapter(adapter, new String[]{alias});
         return adapter;
-    }
-
-    private void newGWS(int port) throws IOException {
-        gws = new GrizzlyWebServer(port);
-    }
-
-    private void stopGrizzlyWebServer() {
-        gws.stop();
     }
 }

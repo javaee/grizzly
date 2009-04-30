@@ -37,34 +37,27 @@
  */
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import junit.framework.TestCase;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.net.URL;
+import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.util.logging.Logger;
 
 /**
- * Test {@link GrizzlyAdapterChain} use of the {@link Mapper}
+ * Test {@link com.sun.grizzly.tcp.http11.GrizzlyAdapterChain} use of the {@link com.sun.grizzly.http.MapperTest}
  *
  * @author Jeanfrancois Arcand
  */
-public class MapperTest extends TestCase {
+public class MapperTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18080;
     private static Logger logger = Logger.getLogger("grizzly.test");
-    private GrizzlyWebServer gws;
-  
-    
-   public void testOverlapingMapping() throws IOException {
+
+    public void testOverlapingMapping() throws IOException {
         System.out.println("testOverlapingMapping");
         try {
             startGrizzlyWebServer(PORT);
@@ -74,7 +67,7 @@ public class MapperTest extends TestCase {
             }
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias);
+                HttpURLConnection conn = getConnection(alias, PORT);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
@@ -90,7 +83,7 @@ public class MapperTest extends TestCase {
             startGrizzlyWebServer(PORT);
             String alias = "/";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection("/index.html");
+            HttpURLConnection conn = getConnection("/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
@@ -105,7 +98,7 @@ public class MapperTest extends TestCase {
             startGrizzlyWebServer(PORT);
             String alias = "/a/b/c";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection("/aaa.html");
+            HttpURLConnection conn = getConnection("/aaa.html", PORT);
             assertEquals(HttpServletResponse.SC_NOT_FOUND,
                     getResponseCodeFromAlias(conn));
         } finally {
@@ -119,7 +112,7 @@ public class MapperTest extends TestCase {
             startGrizzlyWebServer(PORT);
             String alias = "/a/b/c/*.html";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection("/a/b/c/index.html");
+            HttpURLConnection conn = getConnection("/a/b/c/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
@@ -134,7 +127,7 @@ public class MapperTest extends TestCase {
             startGrizzlyWebServer(PORT);
             String alias = "/*.html";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection("/index.html");
+            HttpURLConnection conn = getConnection("/index.html", PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
@@ -149,32 +142,13 @@ public class MapperTest extends TestCase {
             startGrizzlyWebServer(PORT);
             String alias = "/*.a";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection("/aaa.html");
+            HttpURLConnection conn = getConnection("/aaa.html", PORT);
             assertEquals(HttpServletResponse.SC_NOT_FOUND, getResponseCodeFromAlias(conn));
         } finally {
             stopGrizzlyWebServer();
         }
     }
 
-
-
-    private String readResponse(HttpURLConnection conn) throws IOException {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream()));
-        return reader.readLine();
-    }
-
-    private HttpURLConnection getConnection(String alias) throws IOException {
-        URL url = new URL("http", "localhost", PORT, alias);
-        HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-        urlConn.connect();
-        return urlConn;
-    }
-
-    private int getResponseCodeFromAlias(HttpURLConnection urlConn)
-            throws IOException {
-        return urlConn.getResponseCode();
-    }
 
     private ServletAdapter addAdapter(final String alias) {
         ServletAdapter adapter = new ServletAdapter(new HttpServlet() {
@@ -192,12 +166,4 @@ public class MapperTest extends TestCase {
         return adapter;
     }
 
-    private void startGrizzlyWebServer(int port) throws IOException {
-        gws = new GrizzlyWebServer(port);
-        gws.start();
-    }
-
-    private void stopGrizzlyWebServer() {
-        gws.stop();
-    }
 }
