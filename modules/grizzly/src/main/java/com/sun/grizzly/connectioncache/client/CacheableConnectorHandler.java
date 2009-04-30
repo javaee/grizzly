@@ -64,14 +64,12 @@ import java.nio.channels.Selector;
  * @author Alexey Stashok
  */
 public class CacheableConnectorHandler 
-        extends AbstractConnectorHandler<SelectorHandler, CallbackHandler>
-        implements CallbackHandler {
+        extends AbstractConnectorHandler<SelectorHandler, CallbackHandler> {
 
     private SocketAddress targetAddress;
     
     private CacheableConnectorHandlerPool parentPool;
     private ConnectorHandler underlyingConnectorHandler;
-    private CallbackHandler underlyingCallbackHandler;
     
     private ConnectExecutor connectExecutor;
     
@@ -144,7 +142,12 @@ public class CacheableConnectorHandler
      */
     private void doConnect(SocketAddress targetAddress) throws IOException {
         this.targetAddress = targetAddress;
-        underlyingCallbackHandler = connectExecutor.callbackHandler;
+        callbackHandler = connectExecutor.callbackHandler;
+
+        if (callbackHandler == null) {
+            callbackHandler = new DefaultCallbackHandler(this);
+        }
+
         underlyingConnectorHandler = parentPool.
                 getOutboundConnectionCache().get(
                 new CacheableConnectorInfo(parentPool, connectExecutor,
@@ -154,7 +157,7 @@ public class CacheableConnectorHandler
         /* check whether NEW connection was created, or taken from cache */
         if (!connectExecutor.wasCalled()) { // if taken from cache
             //if connection is taken from cache - explicitly notify callback handler
-            underlyingConnectorHandler.setCallbackHandler(this);
+            underlyingConnectorHandler.setCallbackHandler(callbackHandler);
             notifyCallbackHandlerPseudoConnect();
         }
     }
@@ -203,25 +206,8 @@ public class CacheableConnectorHandler
         context.setSelectionKey(key);
         context.configureOpType(key);
         context.setSelectorHandler(underlyingConnectorHandler.getSelectorHandler());
-        key.attach(new CallbackHandlerSelectionKeyAttachment(this));
-        onConnect(new IOEvent.DefaultIOEvent<Context>(context));
-    }
-    
-    //---------------------- CallbackHandler implementation --------------------------------
-    public void onConnect(IOEvent ioEvent) {
-        if (underlyingCallbackHandler == null) {
-            underlyingCallbackHandler = new DefaultCallbackHandler(this);
-        }
-        
-        underlyingCallbackHandler.onConnect(ioEvent);
-    }
-    
-    public void onRead(IOEvent ioEvent) {
-        underlyingCallbackHandler.onRead(ioEvent);
-    }
-    
-    public void onWrite(IOEvent ioEvent) {
-        underlyingCallbackHandler.onWrite(ioEvent);
+        key.attach(new CallbackHandlerSelectionKeyAttachment(callbackHandler));
+        callbackHandler.onConnect(new IOEvent.DefaultIOEvent<Context>(context));
     }
     
     /**
@@ -281,17 +267,24 @@ public class CacheableConnectorHandler
         public void invokeProtocolConnect() throws IOException {
             wasCalled = true;
             switch(methodNumber) {
-            case 1: underlyingConnectorHandler.connect(remoteAddress, CacheableConnectorHandler.this, selectorHandler);
+            case 1: underlyingConnectorHandler.connect(remoteAddress,
+                    CacheableConnectorHandler.this.callbackHandler,
+                    selectorHandler);
             break;
             case 2:
-            case 3: underlyingConnectorHandler.connect(remoteAddress, CacheableConnectorHandler.this);
+            case 3: underlyingConnectorHandler.connect(remoteAddress,
+                    CacheableConnectorHandler.this.callbackHandler);
             break;
-            case 4: underlyingConnectorHandler.connect(remoteAddress, localAddress, CacheableConnectorHandler.this, selectorHandler);
+            case 4: underlyingConnectorHandler.connect(remoteAddress,
+                    localAddress, CacheableConnectorHandler.this.callbackHandler,
+                    selectorHandler);
             break;
             case 5:
-            case 6: underlyingConnectorHandler.connect(remoteAddress, localAddress, CacheableConnectorHandler.this);
+            case 6: underlyingConnectorHandler.connect(remoteAddress,
+                    localAddress, CacheableConnectorHandler.this.callbackHandler);
             break;
-            default: throw new IllegalStateException("Can not find appropriate connect method: " + methodNumber);
+            default: throw new IllegalStateException(
+                    "Can not find appropriate connect method: " + methodNumber);
             }
         }
     }
