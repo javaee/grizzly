@@ -97,6 +97,7 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
         // first lookup needs to be done for full match.
         boolean cutOff = false;
         while (true) {
+            logger.debug("CutOff: " + cutOff + ", alias: " + alias);
             alias = OSGiCleanMapper.map(alias, cutOff);
             if (alias == null) {
                 if (cutOff) {
@@ -120,6 +121,12 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
                 invoked = true;
                 if (response.getStatus() != 404) {
                     break;
+                } else if ("/".equals(alias)) {
+                    // 404 in "/", cutoff algo will not escape this one.
+                    break;
+                } else if (!cutOff){
+                    // not found and haven't run in cutoff mode
+                    cutOff = true;
                 }
             }
         }
