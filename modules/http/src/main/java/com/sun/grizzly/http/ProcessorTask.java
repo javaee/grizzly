@@ -969,8 +969,8 @@ public class ProcessorTask extends TaskBase implements Processor,
             try {
                 outputBuffer.endRequest();
             } catch (IOException e) {
-                if (logger.isLoggable(Level.WARNING)){
-                    logger.log(Level.WARNING,"End Request", e);
+                if (logger.isLoggable(Level.FINE)){
+                    logger.log(Level.FINE,"End Request", e);
                     error = true;
                     response.setErrorException(e);
                 }
