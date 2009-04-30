@@ -172,7 +172,8 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
                 resp.getWriter().write(alias);
             }
         });
-        gws.addGrizzlyAdapter(adapter, new String[]{alias});
+        addAdapter(alias, adapter);
         return adapter;
     }
+
 }

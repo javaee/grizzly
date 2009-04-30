@@ -37,15 +37,15 @@
  */
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import junit.framework.TestCase;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.io.IOException;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
 
 /**
  * Contains utility methods for testing {@link com.sun.grizzly.http.embed.GrizzlyWebServer}.
@@ -84,5 +84,9 @@ public abstract class GrizzlyWebServerAbstractTest extends TestCase {
 
     protected void newGWS(int port) throws IOException {
         gws = new GrizzlyWebServer(port);
+    }
+
+    protected void addAdapter(String alias, GrizzlyAdapter adapter) {
+        gws.addGrizzlyAdapter(adapter, new String[]{alias});
     }
 }
