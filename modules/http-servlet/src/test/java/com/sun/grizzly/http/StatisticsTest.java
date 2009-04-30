@@ -98,7 +98,12 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
             stopGrizzlyWebServer();
         }
     }
-
+    
+    // REMOVE ME WHEN ENABLING THE ABOVE TEST
+    public void testDummy() throws IOException {
+        assertEquals(1, 1);
+    }
+    
     class ZerowingAdapter extends GrizzlyAdapter {
         public void service(GrizzlyRequest request, GrizzlyResponse response) {
             try {
