@@ -88,7 +88,7 @@ public class Utils {
      * @return number of bytes were read
      * @throws <code>IOException</code> if any error was occured during read
      */
-    public static int readWithTemporarySelector(SelectableChannel channel,
+    public static Result readWithTemporarySelector(SelectableChannel channel,
             ByteBuffer byteBuffer, long readTimeout) throws IOException {
         int count = 1;
         int byteRead = 0;
@@ -96,6 +96,7 @@ public class Utils {
         Selector readSelector = null;
         SelectionKey tmpKey = null;
 
+        Result r = new Result(0, false);
         try {
             ReadableByteChannel readableChannel = (ReadableByteChannel) channel;
             while (count > 0){
@@ -104,14 +105,15 @@ public class Utils {
                     byteRead += count;
                 } else if (count == -1 && byteRead == 0) {
                     byteRead = -1;
-                }
+                } 
             }
             
-            if (byteRead == 0 && byteBuffer.position() == preReadInputBBPos) {
+            if (byteRead >= 0 && byteBuffer.position() == preReadInputBBPos) {
                 readSelector = SelectorFactory.getSelector();
 
                 if ( readSelector == null ){
-                    return 0;
+                    return r;
+
                 }
                 count = 1;
                 
@@ -122,7 +124,7 @@ public class Utils {
                     tmpKey.interestOps() & (~SelectionKey.OP_READ));
 
                 if ( code == 0 ){
-                    return 0; // Return on the main Selector and try again.
+                    return r;
                 }
 
                 while (count > 0){
@@ -131,7 +133,7 @@ public class Utils {
                         byteRead += count;
                     } else if (count == -1 && byteRead == 0) {
                         byteRead = -1;
-                    }
+                    } 
                 }
             } else if (byteRead == 0 && byteBuffer.position() != preReadInputBBPos) {
                 byteRead += (byteBuffer.position() - preReadInputBBPos);
@@ -146,7 +148,11 @@ public class Utils {
             }
         }
 
-        return byteRead;
+        if (count == -1 || byteRead == -1){
+            r.isClosed = true;
+        }
+        r.bytesRead = byteRead;
+        return r;
     } 
     
     
@@ -286,6 +292,17 @@ public class Utils {
 
         public CharSequence subSequence(int start, int end) {
             throw new UnsupportedOperationException();
+        }
+    }
+    
+    
+    public static class Result{
+        public int bytesRead = 0;
+        public boolean isClosed = false;
+
+        public Result(int i, boolean b) {
+            bytesRead = i;
+            isClosed = b;
         }
     }
 }

@@ -240,7 +240,7 @@ public class PUReadFilter extends ReadFilter {
                         // Try to read more data
                         int bytesRead = Utils.readWithTemporarySelector(
                                 selectionKey.channel(),
-                                protocolRequest.getByteBuffer(), readTimeout);
+                                protocolRequest.getByteBuffer(), readTimeout).bytesRead;
 
                         if (isloglevelfine) {
                             logger.log(Level.FINE, "PUReadFilter. Read more bytes: " + bytesRead);

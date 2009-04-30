@@ -247,7 +247,7 @@ public class TLSPUPreProcessor implements PUPreProcessor {
             
             if (inputBB.position() == 0) {
                 byteRead = SSLUtils.doRead(channel, inputBB, sslEngine, 
-                        SSLUtils.getReadTimeout());
+                        SSLUtils.getReadTimeout()).bytesRead;
             } else {
                 byteRead = inputBB.position();
             }

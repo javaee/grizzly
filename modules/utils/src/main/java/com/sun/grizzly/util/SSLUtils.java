@@ -90,12 +90,13 @@ public class SSLUtils {
      * @return  number of bytes produced
      * @throws java.io.IOException 
      */    
-    public static int doSecureRead(SelectableChannel channel, SSLEngine sslEngine,
+    public static Utils.Result doSecureRead(SelectableChannel channel, SSLEngine sslEngine,
             ByteBuffer byteBuffer, ByteBuffer inputBB) throws IOException {
         
         boolean isFirstTime = true;
         
         int initialPosition = byteBuffer.position();
+        Utils.Result r = new Utils.Result(-1, true);
         
         // We need to make sure the unwrap worked properly and we have all
         // the packets properly read. If the SSLEngine fail to unwrap all the 
@@ -107,11 +108,11 @@ public class SSLUtils {
                 currentRead = inputBB.position();
                 isFirstTime = false;
             } else {
-                currentRead = SSLUtils.doRead(channel, inputBB,
+                r = SSLUtils.doRead(channel, inputBB,
                         sslEngine, readTimeout);
             }
             
-            if (currentRead > 0) {
+            if (r.bytesRead > 0) {
                 try{
                     byteBuffer = SSLUtils.unwrapAll(byteBuffer,
                             inputBB, sslEngine);
@@ -119,16 +120,21 @@ public class SSLUtils {
                     Logger logger = LoggerUtils.getLogger();
                     if ( logger.isLoggable(Level.FINE) )
                         logger.log(Level.FINE,"SSLUtils.unwrapAll",ex);
-                    return -1;
+                    r.isClosed = true;
+                    r.bytesRead = -1;
+                    return r;
                 }
-            } else if (currentRead == -1) {
-                return -1;
+            } else if (r.isClosed) {
+                r.bytesRead = -1;
+                return r;
             } else {
                 break;
             }   
         }
 
-        return byteBuffer.position() - initialPosition;
+        r.bytesRead = byteBuffer.position() - initialPosition;
+        r.isClosed = false;
+        return r;
     }   
 
     /**
@@ -141,30 +147,29 @@ public class SSLUtils {
      *                be exectuted as a Selector.selectNow();
      * @return the bytes read.
      */
-    public static int doRead(SelectableChannel channel, ByteBuffer inputBB, 
+    public static Utils.Result doRead(SelectableChannel channel, ByteBuffer inputBB, 
             SSLEngine sslEngine, int timeout) { 
         
-        if (channel == null) return -1;
+        Utils.Result r = new Utils.Result(-1, true);
+        if (channel == null) return r;
 
         try {
-            int bytesRead = Utils.readWithTemporarySelector(channel, 
+            r = Utils.readWithTemporarySelector(channel, 
                     inputBB, timeout);
             
-            if (bytesRead == -1) {
+            if (r.isClosed) {
                 try {
                     sslEngine.closeInbound();
                 } catch (IOException ex) {
                 }
             }
-
-            return bytesRead;
         } catch (Throwable t){
             Logger logger = LoggerUtils.getLogger();
             if ( logger.isLoggable(Level.FINEST) ){
                 logger.log(Level.FINEST,"doRead",t);
-            }            
-            return -1;
+            }  
         }
+        return r;
     } 
     
     
@@ -410,7 +415,7 @@ public class SSLUtils {
             switch (handshakeStatus) {
                case NEED_UNWRAP:
                     if (!useReadyBuffer) {
-                        if (doRead(channel, inputBB, sslEngine, timeout) <= eof) {
+                        if (doRead(channel, inputBB, sslEngine, timeout).bytesRead <= eof) {
                             try {
                                 sslEngine.closeInbound();
                             } catch (IOException ex) {
