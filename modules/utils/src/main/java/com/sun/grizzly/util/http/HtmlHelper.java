@@ -95,8 +95,7 @@ public class HtmlHelper{
  
     
     /**
-     * When Grizzlu has reached its connection-queue pool limits, an HTML
-     * error pages will to be returned to the clients.
+     * Return a defauk error page.
      *
      * @return A {@link ByteBuffer} containings the HTTP response.
      */

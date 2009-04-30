@@ -136,7 +136,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
         }
     }
     
-     public void __testWrongMappingRootContext() throws IOException {
+     public void testWrongMappingRootContext() throws IOException {
         System.out.println("testWrongMappingRootContext");
         try {
             startGrizzlyWebServer(PORT);

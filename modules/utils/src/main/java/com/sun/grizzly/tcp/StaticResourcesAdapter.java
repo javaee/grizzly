@@ -249,6 +249,7 @@ public class StaticResourcesAdapter implements Adapter {
          * With Grizzly, we just return a 404 with a simple error message.
          */ 
         res.setMessage("Not Found");
+        res.setStatus(404);
         ByteBuffer bb = HtmlHelper.getErrorPage("Not Found","HTTP/1.1 404 Not Found\r\n", "Grizzly");
         res.setContentLength(bb.limit());
         res.setContentType("text/html");

@@ -47,6 +47,7 @@ import com.sun.grizzly.util.http.mapper.MappingData;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The GrizzlyAdapterChain class allow the invokation of multiple {@link GrizzlyAdapter}
@@ -99,6 +100,10 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      * Use the deprecated mechanism.
      */
     private boolean oldMappingAlgorithm = false;
+    /**
+     * Is the root context configured?
+     */
+    private boolean isRootConfigured = false;
 
     public GrizzlyAdapterChain() {
         mapper.setDefaultHostName(LOCAL_HOST);
@@ -221,16 +226,42 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
             adapters.put(adapter, mappings);
             for (String mapping : mappings) {
                 String ctx = getContextPath(mapping);
-                mapper.addContext(LOCAL_HOST, ctx, adapter,
-                        new String[]{"index.html", "index.htm"}, null);
-                mapper.addWrapper(LOCAL_HOST, ctx, getWrapperPath(ctx, mapping), adapter);
+                String wrapper = getWrapperPath(ctx, mapping);
+                if (!ctx.equals("")){
+                    mapper.addContext(LOCAL_HOST, ctx, adapter,
+                            new String[]{"index.html", "index.htm"}, null);
+                } else {
+                    if (!isRootConfigured && wrapper.startsWith("*.")){
+                        isRootConfigured = true;
+                        GrizzlyAdapter a = new GrizzlyAdapter(getRootFolder()){
+                            {
+                                setHandleStaticResources(true);
+                            }
+
+                            @Override
+                            public void service(GrizzlyRequest request, GrizzlyResponse response) {
+                                try {
+                                    customizedErrorPage(request.getRequest(), response.getResponse());
+                                } catch (Exception ex) {
+                                    ;
+                                }
+                            }
+                        };
+                        mapper.addContext(LOCAL_HOST, ctx, a,
+                                new String[]{"index.html", "index.htm"}, null);            
+                    } else {              
+                        mapper.addContext(LOCAL_HOST, ctx, adapter,
+                            new String[]{"index.html", "index.htm"}, null);
+                    }      
+                }
+                mapper.addWrapper(LOCAL_HOST,ctx, wrapper , adapter);
             }
         }
     }
 
     private String getWrapperPath(String ctx, String mapping) {
 
-        if (mapping.indexOf("/*.") > 0) {
+        if (mapping.indexOf("*.") > 0) {
             return mapping.substring(mapping.lastIndexOf("/") + 1);
         } else if (!ctx.equals("")) {
             return mapping.substring(ctx.length());
@@ -248,7 +279,16 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
             ctx = mapping;
         }
 
-        if (ctx.startsWith("/*")) {
+        if (ctx.startsWith("/*.") ||ctx.startsWith("*.") ) {
+            if (ctx.indexOf("/") == ctx.lastIndexOf("/")){
+                ctx = "";
+            } else {
+                ctx = ctx.substring(1);
+            }
+        }
+        
+        
+        if (ctx.startsWith("/*") || ctx.startsWith("*")) {
             ctx = "";
         }
 
