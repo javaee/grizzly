@@ -43,7 +43,6 @@ import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import junit.framework.TestCase;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -52,10 +51,8 @@ import javax.servlet.*;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.*;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
@@ -67,11 +64,10 @@ import java.util.logging.Logger;
  * @author Hubert Iwaniuk
  * @since Jan 22, 2009
  */
-public class GrizzlyWebServerTest extends TestCase {
+public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18890+10;
     private static Logger logger = Logger.getLogger("grizzly.test");
-    private GrizzlyWebServer gws;
 
     public void testAddGrizzlyAdapterAfterStart() throws IOException {
         System.out.println("testAddGrizzlyAdapterAfterStart");
@@ -79,7 +75,7 @@ public class GrizzlyWebServerTest extends TestCase {
             startGrizzlyWebServer(PORT);
             String alias = "/1";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection(alias);
+            HttpURLConnection conn = getConnection(alias, PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
@@ -98,7 +94,7 @@ public class GrizzlyWebServerTest extends TestCase {
             }
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias);
+                HttpURLConnection conn = getConnection(alias, PORT);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
@@ -118,7 +114,7 @@ public class GrizzlyWebServerTest extends TestCase {
             }
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias);
+                HttpURLConnection conn = getConnection(alias, PORT);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 if (alias.startsWith(readResponse(conn))){
@@ -144,13 +140,13 @@ public class GrizzlyWebServerTest extends TestCase {
             gws.removeGrizzlyAdapter(adapter);
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias);
+                HttpURLConnection conn = getConnection(alias, PORT);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
             }
             assertEquals(HttpServletResponse.SC_NOT_FOUND,
-                    getResponseCodeFromAlias(getConnection("/0")));
+                    getResponseCodeFromAlias(getConnection("/0", PORT)));
         } finally {
             stopGrizzlyWebServer();
         }
@@ -327,7 +323,7 @@ public class GrizzlyWebServerTest extends TestCase {
             }
             gws.start();
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias);
+                HttpURLConnection conn = getConnection(alias, PORT);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
@@ -335,7 +331,7 @@ public class GrizzlyWebServerTest extends TestCase {
             String alias = "/2";
             addAdapter(alias);
 
-            HttpURLConnection conn = getConnection(alias);
+            HttpURLConnection conn = getConnection(alias, PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
@@ -354,7 +350,7 @@ public class GrizzlyWebServerTest extends TestCase {
             }
             gws.start();
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias);
+                HttpURLConnection conn = getConnection(alias, PORT);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
@@ -362,31 +358,13 @@ public class GrizzlyWebServerTest extends TestCase {
             String alias = "/4";
             addAdapter(alias);
 
-            HttpURLConnection conn = getConnection(alias);
+            HttpURLConnection conn = getConnection(alias, PORT);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
         } finally {
             stopGrizzlyWebServer();
         }
-    }
-
-    private String readResponse(HttpURLConnection conn) throws IOException {
-        BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream()));
-        return reader.readLine();
-    }
-
-    private HttpURLConnection getConnection(String alias) throws IOException {
-        URL url = new URL("http", "localhost", PORT, alias);
-        HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-        urlConn.connect();
-        return urlConn;
-    }
-
-    private int getResponseCodeFromAlias(HttpURLConnection urlConn)
-            throws IOException {
-        return urlConn.getResponseCode();
     }
 
     private ServletAdapter addAdapter(final String alias) {
@@ -403,14 +381,5 @@ public class GrizzlyWebServerTest extends TestCase {
         });
         gws.addGrizzlyAdapter(adapter, new String[]{alias});
         return adapter;
-    }
-
-    private void startGrizzlyWebServer(int port) throws IOException {
-        gws = new GrizzlyWebServer(port);
-        gws.start();
-    }
-
-    private void stopGrizzlyWebServer() {
-        gws.stop();
     }
 }

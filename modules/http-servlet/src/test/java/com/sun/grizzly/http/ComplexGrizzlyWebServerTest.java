@@ -37,22 +37,16 @@
  */
 package com.sun.grizzly.http;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.logging.Logger;
+import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import com.sun.grizzly.http.servlet.ServletAdapter;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import junit.framework.TestCase;
-
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
-import com.sun.grizzly.http.servlet.ServletAdapter;
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.util.logging.Logger;
 
 /**
  * {@link GrizzlyWebServer} tests.
@@ -60,11 +54,10 @@ import com.sun.grizzly.http.servlet.ServletAdapter;
  * @author Hubert Iwaniuk
  * @since Jan 22, 2009
  */
-public class ComplexGrizzlyWebServerTest extends TestCase {
+public class ComplexGrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18890 + 10;
     private static Logger logger = Logger.getLogger("grizzly.test");
-    private GrizzlyWebServer gws;
 
     /**
      * Want to test multiple servletMapping
@@ -79,7 +72,7 @@ public class ComplexGrizzlyWebServerTest extends TestCase {
      * URL = http://localhost:port/test/servlet1/test.1
      * URL = http://localhost:port/test/servlet1/1
      *
-     * @throws IOException
+     * @throws IOException Error.
      */
     public void testComplexAliasMapping() throws IOException {
         System.out.println("testComplexAliasMapping");
@@ -96,37 +89,20 @@ public class ComplexGrizzlyWebServerTest extends TestCase {
             }
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(context + servletPath + alias);
+                HttpURLConnection conn = getConnection(context + servletPath + alias, PORT);
                 assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
                 assertEquals(context + servletPath + alias, readResponse(conn));
             }
            
             //special test
             String url = context + servletPath + "/test.a";
-            HttpURLConnection conn = getConnection(url);
+            HttpURLConnection conn = getConnection(url, PORT);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
             assertEquals(url, readResponse(conn));
            
         } finally {
             stopGrizzlyWebServer();
         }
-    }
-
-    private String readResponse(HttpURLConnection conn) throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-        return reader.readLine();
-    }
-
-    private HttpURLConnection getConnection(String alias) throws IOException {
-        logger.info("sending request to " + alias);
-        URL url = new URL("http", "localhost", PORT, alias);
-        HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
-        urlConn.connect();
-        return urlConn;
-    }
-
-    private int getResponseCodeFromAlias(HttpURLConnection urlConn) throws IOException {
-        return urlConn.getResponseCode();
     }
 
     private ServletAdapter addAdapter(final String alias, final String context, final String servletPath, final String rootFolder) {
@@ -147,14 +123,5 @@ public class ComplexGrizzlyWebServerTest extends TestCase {
        
         gws.addGrizzlyAdapter(adapter, new String[] { alias });
         return adapter;
-    }
-
-    private void startGrizzlyWebServer(int port) throws IOException {
-        gws = new GrizzlyWebServer(port);
-        gws.start();
-    }
-
-    private void stopGrizzlyWebServer() {
-        gws.stop();
     }
 }
