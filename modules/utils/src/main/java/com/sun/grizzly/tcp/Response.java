@@ -346,8 +346,7 @@ public class Response<A> {
     // -------------------- Methods --------------------
     
     
-    public void reset() 
-        throws IllegalStateException {
+    public void reset() throws IllegalStateException {
         
         // Reset the headers only if this is the main request,
         // not for included
@@ -376,6 +375,19 @@ public class Response<A> {
         }
         
         action(ActionCode.ACTION_RESET, this);
+    }
+    
+    
+    /**
+     * Reset only the response's body.
+     * @throws java.lang.IllegalStateException
+     */
+    public void resetBody() throws IllegalStateException {
+         if (commited) {
+             throw new IllegalStateException();
+        }
+        
+        action(ActionCode.ACTION_RESET, this);       
     }
     
     public void flush() throws IOException {
