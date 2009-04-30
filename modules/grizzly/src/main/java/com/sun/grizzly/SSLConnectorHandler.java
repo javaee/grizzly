@@ -462,7 +462,7 @@ public class SSLConnectorHandler
         
         if (blocking) {
             return SSLUtils.doSecureRead(underlyingChannel, sslEngine,
-                    byteBuffer, securedInputBuffer);
+                    byteBuffer, securedInputBuffer).bytesRead;
         } else {
             isAsyncReadQueueMode = false;
             int nRead = doReadAsync(byteBuffer);

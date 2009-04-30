@@ -80,7 +80,7 @@ public class SSLAsyncStream extends InputReader {
         int byteRead = 0;
         while (byteBuffer.position() == initialPosition){
             int count = SSLUtils.doRead((SocketChannel) key.channel(), inputBB,
-                    sslEngine, readTimeout);
+                    sslEngine, readTimeout).bytesRead;
             if (count > 0) {
                 byteRead += count;
                 try{

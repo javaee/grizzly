@@ -90,6 +90,10 @@ public class InputReader extends InputStream {
      */
     private boolean secure = false;
     
+    /**
+     * Is the underlying {@link SocketChannel} closed?
+     */
+    private boolean isClosed = false;
     
     // ------------------------------------------------- Constructor -------//
     
@@ -138,6 +142,7 @@ public class InputReader extends InputStream {
      */
     @Override
     public void close () {
+        isClosed = true;
     }
 
     
@@ -232,6 +237,7 @@ public class InputReader extends InputStream {
     public void recycle(){
         byteBuffer = null;  
         key = null;
+        isClosed = false;
     }
     
     
@@ -250,7 +256,7 @@ public class InputReader extends InputStream {
      * @throws java.io.IOException 
      */
     protected int doRead() throws IOException{        
-        if ( key == null ) return -1;
+        if ( key == null || isClosed ) return -1;
  
         int nRead = -1;
         try{
@@ -288,21 +294,22 @@ public class InputReader extends InputStream {
         final WorkerThread workerThread = 
                 (WorkerThread)Thread.currentThread();
 
-        int bytesRead = SSLUtils.doSecureRead((SocketChannel) key.channel(), 
+        Utils.Result r = SSLUtils.doSecureRead((SocketChannel) key.channel(), 
                 workerThread.getSSLEngine(), byteBuffer, 
                 workerThread.getInputBB());
-        byteBuffer.flip();
         
-        return bytesRead;
+        byteBuffer.flip();       
+        isClosed = r.isClosed;      
+        return r.bytesRead;
     }   
         
         
     protected int doClearRead() throws IOException{
-        int bytesRead = Utils.readWithTemporarySelector(key.channel(), 
+        Utils.Result r = Utils.readWithTemporarySelector(key.channel(), 
                 byteBuffer, readTimeout);
         byteBuffer.flip();
-
-        return bytesRead;
+        isClosed = r.isClosed;
+        return r.bytesRead;
     } 
 
     

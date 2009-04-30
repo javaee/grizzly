@@ -99,7 +99,7 @@ public class HttpProtocolHandler implements ProtocolHandler {
             
             while(tmpBuffer.hasRemaining() && totalReadBytes < DEFAULT_HTTP_HEADER_BUFFER_SIZE) {
                 int count = Utils.readWithTemporarySelector(
-                        protocolRequest.getChannel(), tmpBuffer, 2);
+                        protocolRequest.getChannel(), tmpBuffer, 2).bytesRead;
                 if (count == -1) {
                     break;
                 }
