@@ -72,12 +72,13 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
             int count = 0;
             int calls = 0;
             for (int i = 0; i < 10; i++) {
+                System.out.println("Request " + i);
                 conn = getConnection("/data", PORT);
                 readResponse(conn);
                 count += 1024;
                 calls += 1;
                 assertEquals(calls, requestStatistics.getRequestCount());
-                //assertEquals(count, requestStatistics.getBytesSent());
+                assertEquals(count, requestStatistics.getBytesSent());
 
 /*
                 conn = getConnection("/stats", PORT);
