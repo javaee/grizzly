@@ -1734,6 +1734,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         // Add RequestInfo to RequestGroupInfo
         requestInfo.setGlobalProcessor(selectorThread.getRequestGroupInfo());
 
+        hasRequestInfoRegistered = true;
         if ( selectorThread.getManagement() == null ) return;
       
         try {
@@ -1750,7 +1751,6 @@ public class ProcessorTask extends TaskBase implements Processor,
                        ex);
         }
 
-        hasRequestInfoRegistered = true;
     }
     
 
