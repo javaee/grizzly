@@ -128,7 +128,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
         public static ThreadPool findThreadPool(NetworkListener listener) {
             final String name = listener.getThreadPool();
             for (final ThreadPool threadPool : ConfigBean.unwrap(listener).getHabitat().getAllByType(ThreadPool.class)) {
-                if (threadPool.getThreadPoolId().equals(name)) {
+                if (threadPool.getName().equals(name)) {
                     return threadPool;
                 }
             }
