@@ -379,15 +379,11 @@ public class Response<A> {
     
     
     /**
-     * Reset only the response's body.
-     * @throws java.lang.IllegalStateException
+     * Discard any write operations on the {@link Response}. Invoking that method
+     * prevent any write operation to be fluxhed on the network.
      */
-    public void resetBody() throws IllegalStateException {
-         if (commited) {
-             throw new IllegalStateException();
-        }
-        
-        action(ActionCode.ACTION_RESET, this);       
+    public void discardUpstreamWrites() throws IllegalStateException {
+        action(ActionCode.ACTION_DISCARD_UPSTREAM_WRITE, this);       
     }
     
     public void flush() throws IOException {
