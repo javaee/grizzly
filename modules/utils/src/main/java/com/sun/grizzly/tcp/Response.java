@@ -693,9 +693,6 @@ public class Response<A> {
         errorURI = null;
         headers.clear();
 
-        // update counters
-        bytesWritten=0;
-        
         isSuspended = false;
         ra = null;
     }
