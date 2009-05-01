@@ -33,7 +33,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>org.apache.commons.*,com.sun.grizzly.*</Export-Package>
+                        <Export-Package>org.apache.commons.*;-split-package:=merge-first,com.sun.grizzly.*;-split-package:=merge-first</Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
                         <Main-Class>com.sun.grizzly.samples.http.embed.GrizzlyEmbedWebServer</Main-Class>
                     </instructions>
