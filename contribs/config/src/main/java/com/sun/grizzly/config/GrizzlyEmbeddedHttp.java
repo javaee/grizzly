@@ -501,7 +501,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             }
             if (!debugMode) {
                 // Idle Threads cannot be alive more than 15 minutes by default
-                setTransactionTimeout(timeout);
+                setTransactionTimeout(timeout * 1000);
             } else {
                 // Disable the mechanism
                 setTransactionTimeout(-1);
