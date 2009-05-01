@@ -304,6 +304,15 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
             logger.finest("flushChannel isAsyncHttpWriteEnabled=" +
                     isAsyncHttpWriteEnabled + " bb=" + bb);
         }
+        
+        if (SelectorThread.isEnableNioLogging()){
+            ByteBuffer dd = bb.duplicate();
+            
+            int length = dd.limit();
+            byte[] dump = new byte[length];
+            dd.get(dump,0,length);
+            logger.info(new String(dump));         
+        }
 
         if (!isAsyncHttpWriteEnabled) {
             OutputWriter.flushChannel(((SocketChannel) channel), bb);
