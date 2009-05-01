@@ -8,7 +8,7 @@
         </protocol>
     </protocols>
     <network-listeners>
-        <thread-pool thread-pool-id="defaultThreadPool"/>
+        <thread-pool name="defaultThreadPool"/>
         <network-listener name="http-listener" port="38084" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
         <network-listener name="https-listener" address="yourmachine" port="38085" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
     </network-listeners>
