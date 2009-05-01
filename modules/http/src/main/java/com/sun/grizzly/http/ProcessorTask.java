@@ -454,6 +454,9 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     private final TaskEvent<ProcessorTask> event = new TaskEvent<ProcessorTask>(this);
     
+    // Has processing of this object completed.
+    private boolean isProcessingCompleted = false;
+    
     // ----------------------------------------------------- Constructor ---- //
 
     public ProcessorTask(){
@@ -662,6 +665,9 @@ public class ProcessorTask extends TaskBase implements Processor,
      * @param output the OutputStream to write bytes
      */       
     public void postResponse() throws Exception{
+        if (isProcessingCompleted){
+            return;
+        }
         
         // Do not commit the response;
         if (response.isSuspended()){
@@ -678,7 +684,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Finish the response
      */
     public void finishResponse(){
-
+        isProcessingCompleted = true;
         try {
             adapter.afterService(request,response);
         } catch (Exception ex) {
@@ -837,7 +843,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * commited.
      */      
     public void postProcess() throws Exception {        
-        if (response.isSuspended()){
+        if (response.isSuspended() || isProcessingCompleted){
             return;
         }
         
@@ -1131,7 +1137,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                     response.setErrorException(ex);
                 }
             } 
-        } else if (actionCode == ActionCode.ACTION_FINISH_RESPONSE){           
+        } else if (actionCode == ActionCode.ACTION_FINISH_RESPONSE){             
             finishResponse();
             try{
                 postProcess();
@@ -1935,6 +1941,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         reRegisterSelectionKey = true;
         aptCancelKey = false;
         key = null;
+        isProcessingCompleted = false;
     }
     
     // ----------------------------------------------------- Compression ----//
