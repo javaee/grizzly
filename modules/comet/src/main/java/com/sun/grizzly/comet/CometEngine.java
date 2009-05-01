@@ -205,7 +205,6 @@ public class CometEngine {
             this.threadPool = threadPool;
             int delta = threadPool.getMaximumPoolSize() - oldsize;
             try {
-                System.err.println("comet stuff delta:"+delta);
                 SelectorFactory.changeSelectorsBy(delta);
             } catch (IOException ex) {
                 logger.log(Level.WARNING, "comet failed to resize Selector cache", ex);
