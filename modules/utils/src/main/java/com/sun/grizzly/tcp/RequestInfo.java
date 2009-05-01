@@ -233,10 +233,9 @@ public class RequestInfo  {
      */
     void updateCounters() {
         bytesReceived+=req.getBytesRead();
-        bytesSent+=req.getResponse().getBytesWritten();
+        bytesSent=req.getResponse().getBytesWritten();
 
         requestCount++;
-
         int responseStatus = req.getResponse().getStatus();
 
         // START S1AS
