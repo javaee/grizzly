@@ -984,23 +984,14 @@ public class ProcessorTask extends TaskBase implements Processor,
         } else if (actionCode == ActionCode.ACTION_RESET) {
 
             // Reset response
-
             // Note: This must be called before the response is committed
-
             outputBuffer.reset();
-            
-        } else if (actionCode == ActionCode.ACTION_CUSTOM) {
-
-            // Do nothing
-
+        } else if (actionCode == ActionCode.ACTION_DISCARD_UPSTREAM_WRITE) {
+            outputBuffer.discardUpstreamBytes();                      
         } else if (actionCode == ActionCode.ACTION_START) {
-
             started = true;
-
         } else if (actionCode == ActionCode.ACTION_STOP) {
-
             started = false;
-
         } else if (actionCode == ActionCode.ACTION_REQ_SSL_ATTRIBUTE ) {
 
             try {

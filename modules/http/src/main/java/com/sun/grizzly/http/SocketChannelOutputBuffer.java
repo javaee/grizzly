@@ -147,6 +147,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      */
     protected static int maxBufferedBytes = MAX_BUFFERED_BYTES;
     
+    // Do not allow any more writing.
+    protected boolean discardBytes = false;
     
     // ----------------------------------------------------------- Constructors
     
@@ -269,6 +271,9 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     @Override
     public void realWriteBytes(byte cbuf[], int off, int len)
         throws IOException {
+        
+        if (discardBytes) return;
+        
         if (len > 0) {
             if (!useSocketBuffer){
                 int remaining = outputByteBuffer.remaining();
@@ -304,6 +309,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
             logger.finest("flushChannel isAsyncHttpWriteEnabled=" +
                     isAsyncHttpWriteEnabled + " bb=" + bb);
         }
+        
+        if (discardBytes) return;
         
         if (SelectorThread.isEnableNioLogging()){
             ByteBuffer dd = bb.duplicate();
@@ -392,6 +399,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      */
     @Override
     public void recycle() {        
+        discardBytes = false;
         response.recycle();
         socketBuffer.recycle();
         pos = 0;
@@ -553,6 +561,12 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         outputByteBuffer.clear();
     }
     
+    /**
+     * Stop buffering bytes, discard any upcoming writes.
+     */
+    public void discardUpstreamBytes(){
+        discardBytes = true;
+    }
     
     /**
      * Create an instance of {@link ByteBuffer}
