@@ -222,15 +222,12 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler {
      */
     public void cancel(SelectionKey key) {
         if (key != null ) {
-           /* if (key.isValid()){
-                key.cancel();
-            }*/
             doAfterKeyCancel(key);
         }
     }
 
     /**
-     * performed when a key is canceled.<br>
+     * Performed when a key is canceled.<br>
      * closes the channel and notifies {@link ConnectionCloseHandler } ,
      * if SelectionKey.attachment() instanceof {@link SelectionKeyAttachment} then
      * its release method is called.

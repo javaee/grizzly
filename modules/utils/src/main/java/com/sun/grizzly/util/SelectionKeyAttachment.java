@@ -48,6 +48,7 @@ import java.nio.channels.SelectionKey;
  */
 public abstract class SelectionKeyAttachment {
     public static final long UNLIMITED_TIMEOUT = Long.MIN_VALUE;
+    public static final long DEREGISTERED = Long.MIN_VALUE +1;
     
     protected long timeout = UNLIMITED_TIMEOUT;
 
