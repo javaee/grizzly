@@ -45,6 +45,7 @@ import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.filter.EchoFilter;
+import com.sun.grizzly.util.PipelineThreadPool;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.NonBlockingTCPIOClient;
 import com.sun.grizzly.utils.Utils;
@@ -52,6 +53,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 
 /**
@@ -139,6 +141,8 @@ public class PUBasicTest extends TestCase {
         
         Controller controller = createController(PORT, puReadFilter);
         controller.setReadThreadsCount(5);
+        controller.setThreadPool(new PipelineThreadPool("", 5, 20,
+                Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
         
         List<NonBlockingTCPIOClient> clients = null;
         
