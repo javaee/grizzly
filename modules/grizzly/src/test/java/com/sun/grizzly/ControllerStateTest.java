@@ -41,6 +41,7 @@ package com.sun.grizzly;
 import com.sun.grizzly.filter.EchoFilter;
 import com.sun.grizzly.filter.LogFilter;
 import com.sun.grizzly.filter.ReadFilter;
+import com.sun.grizzly.util.PipelineThreadPool;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.TCPIOClient;
@@ -50,6 +51,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 
 /**
@@ -145,6 +147,10 @@ public class ControllerStateTest extends TestCase {
     public void testConcurrentControllerStart() {
         final int[] resultControllerStarted = new int[1];
         final Controller controller = createController(PORT);
+        
+        controller.setThreadPool(new PipelineThreadPool("", 5,
+                SIMULT_CONTROLLER_START * 5,
+                Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
         
         final Callable<Object>[] callables = new Callable[SIMULT_CONTROLLER_START];
         for (int x = 0; x < SIMULT_CONTROLLER_START - 1; x++) {

@@ -46,6 +46,7 @@ import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.filter.EchoFilter;
+import com.sun.grizzly.util.PipelineThreadPool;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.NonBlockingIOClient;
 import com.sun.grizzly.utils.NonBlockingSSLIOClient;
@@ -58,6 +59,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
@@ -110,6 +112,8 @@ public class PUPreProcessorTest extends TestCase {
         
         Controller controller = createController(PORT, puReadFilter);
         controller.setReadThreadsCount(5);
+        controller.setThreadPool(new PipelineThreadPool("", 5, 20,
+                Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
 
         List<NonBlockingIOClient> clients = new ArrayList<NonBlockingIOClient>(2);
         

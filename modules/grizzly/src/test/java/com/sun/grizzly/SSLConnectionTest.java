@@ -40,6 +40,7 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.filter.SSLReadFilter;
 import com.sun.grizzly.filter.SSLEchoFilter;
+import com.sun.grizzly.util.PipelineThreadPool;
 import com.sun.grizzly.utils.ControllerUtils;
 import java.io.File;
 import java.io.IOException;
@@ -155,7 +156,8 @@ public class SSLConnectionTest extends TestCase {
     
     public void testSeveralPackets() throws IOException {
         final Controller controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
-        controller.setReadThreadsCount(5);
+        controller.setThreadPool(new PipelineThreadPool("", 5, CLIENTS_COUNT * 2,
+                Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
         ControllerUtils.startController(controller);
         try {
             
