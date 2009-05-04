@@ -303,6 +303,10 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     private void autoConfigureCore(){
         readThreadsCount = Runtime.getRuntime().availableProcessors();
+        if (logger.isLoggable(Level.FINE)){
+            logger.fine("Controller auto-configured with 2 ReadController " +
+                    "based on underlying cores/processors.");
+        }
     }
 
 
