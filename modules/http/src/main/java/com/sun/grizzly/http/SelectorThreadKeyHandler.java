@@ -83,6 +83,10 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
 
     @Override
     public void doRegisterKey(SelectionKey key, int ops, long currentTime) {
+        if (key.attachment().equals(SelectionKeyAttachment.DEREGISTERED)){
+            return;
+        }
+
         if (!key.isValid()){
             selectorHandler.addPendingKeyCancel(key);
         }else{
