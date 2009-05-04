@@ -108,12 +108,12 @@ public class SelectorHandlerRunner implements Runnable {
         
         try {
             if (isPostponed) {
+                isPostponed = false;
+
                 isPostponedInThread = !continueSelect(selectorHandler, serverContext);
                 if (isPostponedInThread) {
                     return;
                 }
-                
-                isPostponed = false;
             } else {
                 selectorHandler.getStateHolder().setState(State.STARTED);
             }
@@ -369,6 +369,7 @@ public class SelectorHandlerRunner implements Runnable {
     private SelectorHandlerRunner postpone() {
         key = null;
         isPostponed = true;
+        ((WorkerThreadImpl)Thread.currentThread()).setPendingIOhandler(null);
         return this;
     }
 
