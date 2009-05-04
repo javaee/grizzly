@@ -565,6 +565,11 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * Stop buffering bytes, discard any upcoming writes.
      */
     public void discardUpstreamBytes(){
+        try{
+            flush();
+        } catch (IOException ex){
+            logger.log(Level.WARNING,"",ex);
+        }
         discardBytes = true;
     }
     
