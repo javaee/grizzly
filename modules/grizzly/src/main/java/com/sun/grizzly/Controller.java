@@ -44,21 +44,17 @@ import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.SupportStateHolder;
 import com.sun.grizzly.util.WorkerThreadFactory;
 import java.io.IOException;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -232,29 +228,36 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     private final static LinkedTransferQueue<Controller> controllers =
             new LinkedTransferQueue<Controller>();
+
     // Internal Thread Pool.
     private ExecutorService kernelExecutor;
-    /**
-     * The threshold for detecting selector.select spin on linux,
-     * used for enabling workaround to prevent server from hanging.
-     */
-    private final static int spinRateTreshold = 2000;
     
     /**
      * Enable workaround Linux spinning Selector
      */
-    private boolean isLinux = false;
+    static final boolean isLinux =
+            System.getProperty("os.name").equalsIgnoreCase("linux") &&
+                !System.getProperty("java.version").startsWith("1.7");;
     
     /**
      * Allow {@link Context} caching.
      */
     private boolean allowContextCaching = false;
 
+    /**
+     * Flag, which indicates if {@link SelectorHandlerRunner} should use
+     * Leader/Follower strategy.
+     */
+    private boolean useLeaderFollowerStrategy = true;
+
     // -------------------------------------------------------------------- //
     /**
      * Controller constructor
      */
     public Controller() {
+        useLeaderFollowerStrategy =
+                !Boolean.getBoolean("com.sun.grizzly.disableLeaderFollower");
+
         contexts = new ConcurrentLinkedQueuePool<NIOContext>() {
 
             @Override
@@ -265,11 +268,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
         stateHolder = new StateHolder<State>(true);
         initializeDefaults();
-        
-         if (System.getProperty("os.name").equalsIgnoreCase("linux") 
-                && !System.getProperty("java.version").startsWith("1.7")) {
-            isLinux = true;
-        } 
     }
 
     /**
@@ -306,245 +304,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     private void autoConfigureCore(){
         readThreadsCount = Runtime.getRuntime().availableProcessors();
     }
-    
-    
-    /**
-     * This method handle the processing of all Selector's interest op
-     * (OP_ACCEPT,OP_READ,OP_WRITE,OP_CONNECT) by delegating to its Handler.
-     * By default, all java.nio.channels.Selector operations are implemented
-     * using SelectorHandler. All SelectionKey operations are implemented by
-     * SelectionKeyHandler. Finally, ProtocolChain creation/re-use are implemented
-     * by InstanceHandler.
-     * @param selectorHandler - the {@link SelectorHandler}
-     */
-    protected void doSelect(SelectorHandler selectorHandler, NIOContext serverCtx) {
-        try {
-            if (selectorHandler.getSelectionKeyHandler() == null) {
-                initSelectionKeyHandler(selectorHandler);
-            }
 
-            selectorHandler.preSelect(serverCtx);
-
-            Set<SelectionKey> readyKeys = selectorHandler.select(serverCtx);
-
-            final boolean isSpinWorkaround = isLinux &&
-                    selectorHandler instanceof LinuxSpinningWorkaround;
-
-            if (readyKeys.size() != 0) {
-                if (isSpinWorkaround) {
-                    ((LinuxSpinningWorkaround) selectorHandler).resetSpinCounter();
-                }
-                handleSelectedKeys(readyKeys, selectorHandler, serverCtx);
-                readyKeys.clear();
-            } else if (isSpinWorkaround) {
-                long sr = ((LinuxSpinningWorkaround) selectorHandler).getSpinRate();
-                if (sr > spinRateTreshold) {
-                    workaroundSelectorSpin(selectorHandler);
-                }
-            }
-
-            selectorHandler.postSelect(serverCtx);
-        } catch (Throwable e) {
-            handleSelectException(e, selectorHandler, null);
-        }
-    }
-
-    /**
-     * Init SelectionKeyHandler
-     * @param selectorHandler
-     */
-    private void initSelectionKeyHandler(SelectorHandler selectorHandler) {
-        if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "Set DefaultSelectionKeyHandler to SelectorHandler: " 
-                    + selectorHandler);
-        }
-        SelectionKeyHandler assgnSelectionKeyHandler = null;
-        if (selectorHandler.getPreferredSelectionKeyHandler() != null) {
-            Class<? extends SelectionKeyHandler> keyHandlerClass =
-                    selectorHandler.getPreferredSelectionKeyHandler();
-            try {
-                assgnSelectionKeyHandler = keyHandlerClass.newInstance();
-                assgnSelectionKeyHandler.setSelectorHandler(selectorHandler);
-            } catch (Exception e) {
-                if (logger.isLoggable(Level.WARNING)) {
-                    logger.log(Level.WARNING,
-                            "Exception initializing preffered SelectionKeyHandler '" +
-                            keyHandlerClass + "' for the SelectorHandler '" +
-                            selectorHandler + "'");
-                }
-            }
-        }
-        if (assgnSelectionKeyHandler == null) {
-            assgnSelectionKeyHandler = new DefaultSelectionKeyHandler(selectorHandler);
-        }
-        selectorHandler.setSelectionKeyHandler(assgnSelectionKeyHandler);
-    }
-
-    /**
-     * logic performed on the selected keys
-     * @param readyKeys
-     * @param selectorHandler
-     * @param serverCtx
-     */
-    private void handleSelectedKeys(Set<SelectionKey> readyKeys,
-            SelectorHandler selectorHandler, NIOContext serverCtx) {
-        final boolean isLogLevelFine = logger.isLoggable(Level.FINE);
-        for (SelectionKey key : readyKeys) {
-            try {
-                Object attachment = key.attachment();
-                if (attachment instanceof SelectedKeyAttachmentLogic) {
-                    ((SelectedKeyAttachmentLogic) attachment).handleSelectedKey(key);
-                    continue;
-                }
-
-                if (!key.isValid()) {
-                    selectorHandler.addPendingKeyCancel(key);
-                    continue;
-                }
-
-                final int readyOps = key.readyOps();
-                if ((readyOps & SelectionKey.OP_ACCEPT) != 0) {
-                    if (readThreadsCount > 0 &&
-                            multiReadThreadSelectorHandler.supportsProtocol(selectorHandler.protocol())) {
-                        if (isLogLevelFine) {
-                            dolog("OP_ACCEPT passed to multi readthread handler on ", key);
-                        }
-                        multiReadThreadSelectorHandler.onAcceptInterest(key, serverCtx);
-                    } else {
-                        if (isLogLevelFine) {
-                            dolog("OP_ACCEPT on ", key);
-                        }
-                        selectorHandler.onAcceptInterest(key, serverCtx);
-                    }
-                    continue;
-                }
-                if ((readyOps & SelectionKey.OP_CONNECT) != 0) {
-                    if (isLogLevelFine) {
-                        dolog("OP_CONNECT on ", key);
-                    }
-                    selectorHandler.onConnectInterest(key, serverCtx);
-                    continue;
-                }
-
-                boolean delegateToWorker = false;
-                OpType opType = null;
-                boolean skipOpWrite = false;
-                // OP_READ will always be processed first, then
-                // based on the handleReadWriteConcurrently, the OP_WRITE
-                // might be processed just after or during the next
-                // Selector.select() invocation.
-                if ((readyOps & SelectionKey.OP_READ) != 0) {
-                    if (isLogLevelFine) {
-                        dolog("OP_READ on ", key);
-                    }
-                    delegateToWorker = selectorHandler.onReadInterest(key, serverCtx);
-                    if (delegateToWorker) {
-                        opType = OpType.OP_READ;
-                    }
-                    if (!handleReadWriteConcurrently) {
-                        skipOpWrite = true;
-                    }
-                }
-                // The OP_READ processing might have closed the
-                // Selection, hence we must make sure the
-                // SelectionKey is still valid.
-                if (!skipOpWrite && (readyOps & SelectionKey.OP_WRITE) != 0 && key.isValid()) {
-                    if (isLogLevelFine) {
-                        dolog("OP_WRITE on ", key);
-                    }
-                    boolean opWriteDelegate = selectorHandler.onWriteInterest(key, serverCtx);
-                    delegateToWorker |= opWriteDelegate;
-                    if (opWriteDelegate) {
-                        if (opType == OpType.OP_READ) {
-                            opType = OpType.OP_READ_WRITE;
-                        } else {
-                            opType = OpType.OP_WRITE;
-                        }
-                    }
-                }
-
-                if (delegateToWorker) {
-                    NIOContext context = pollContext();
-                    configureContext(key, opType,context, selectorHandler);
-                    context.execute(context.getProtocolChainContextTask());
-                }
-            } catch (Throwable e) {
-                handleSelectException(e, selectorHandler, key);
-            }
-        }
-    }
-
-    private void dolog(String msg, SelectionKey key) {
-        if (logger.isLoggable(Level.FINE)){
-            logger.log(Level.FINE, msg + key + " attachment: " + key.attachment());
-        }
-    }
-
-    /**
-     *
-     * @param e
-     * @param selectorHandler
-     * @param key
-     */
-    private void handleSelectException(Throwable e,
-            SelectorHandler selectorHandler, SelectionKey key) {
-        if (e instanceof ClosedSelectorException) {
-            // TODO: This could indicate that the Controller is
-            //       shutting down. Hence, we need to handle this Exception
-            //       appropriately. Perhaps check the state before logging
-            //       what's happening ?
-            if (stateHolder.getState() == State.STARTED &&
-                    selectorHandler.getStateHolder().getState() == State.STARTED) {
-                logger.log(Level.WARNING, "Selector was unexpectedly closed.", e);
-                notifyException(e);
-                try {
-                    workaroundSelectorSpin(selectorHandler);
-                } catch (Exception ee) {
-                    logger.log(Level.SEVERE, "Can not workaround Selector close.", ee);
-                }
-            } else {
-                logger.log(Level.FINE, "doSelect Selector closed");
-            }
-
-        } else if (e instanceof ClosedChannelException) {
-            // Don't use stateLock. This case is not strict
-            if (stateHolder.getState() == State.STARTED &&
-                    selectorHandler.getStateHolder().getState() == State.STARTED) {
-                logger.log(Level.WARNING, "Channel was unexpectedly closed");
-                if (key != null) {
-                    selectorHandler.getSelectionKeyHandler().cancel(key);
-                }
-                notifyException(e);
-            }
-        } else if (e instanceof IOException) {
-            // TODO: This could indicate that the Controller is
-            //       shutting down. Hence, we need to handle this Exception
-            //       appropriately. Perhaps check the state before logging
-            //       what's happening ?
-            if (stateHolder.getState() == State.STARTED &&
-                    selectorHandler.getStateHolder().getState() == State.STARTED) {
-                logger.log(Level.SEVERE, "Selector was unexpectedly closed.", e);
-                notifyException(e);
-            } else {
-                logger.log(Level.FINE, "doSelect IOException", e);
-            }
-
-        } else {
-            try {
-                if (key != null) {
-                    selectorHandler.getSelectionKeyHandler().cancel(key);
-                }
-                notifyException(e);
-                logger.log(Level.SEVERE, "doSelect exception", e);
-            } catch (Throwable t2) {
-                // An unexpected exception occured, most probably caused by
-                // a bad logger. Since logger can be externally configurable,
-                // just output the exception on the screen and continue the
-                // normal execution.
-                t2.printStackTrace();
-            }
-        }
-    }
 
     /**
      * Register a SelectionKey.
@@ -924,6 +684,10 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             kernelExecutor = createKernelExecutor();
         }
 
+        if (threadPool.isShutdown()) {
+            threadPool = new DefaultThreadPool();
+        }
+
         try {
             if (stateHolder.getState(false) == null ||
                     stateHolder.getState(false) == State.STOPPED) {
@@ -1087,7 +851,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
 
         for (int i = 0; i < readThreadControllers.length; i++) {
-            kernelExecutor.submit(readThreadControllers[i]);
+            kernelExecutor.execute(readThreadControllers[i]);
         }
     }
 
@@ -1131,7 +895,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (selectorHandler.getSelector() != null) {
             notifyReady();
         }
-        kernelExecutor.submit(selectorRunner);
+
+        if (useLeaderFollowerStrategy) {
+            threadPool.execute(selectorRunner);
+        } else {
+            kernelExecutor.execute(selectorRunner);
+        }
     }
 
     /**
@@ -1296,27 +1065,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         return null;
     }
 
-    private void workaroundSelectorSpin(SelectorHandler selectorHandler)
-            throws IOException {
-        Selector oldSelector = selectorHandler.getSelector();
-        Selector newSelector = Selector.open();
-
-        Set<SelectionKey> keys = oldSelector.keys();
-        for (SelectionKey key : keys) {
-            try {
-                key.channel().register(newSelector, key.interestOps(), key.attachment());
-            } catch (Exception e) {
-            }
-        }
-
-        selectorHandler.setSelector(newSelector);
-
-        try {
-            oldSelector.close();
-        } catch (Exception e) {
-        }
-    }
-
     /**
      * Execute the {@link Controller#run} using the internal/kernel 
      * {@link Executors}
@@ -1361,4 +1109,23 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         this.allowContextCaching = allowContextCaching;
     }
 
+    /**
+     * Is Leader/Follower strategy used?
+     *
+     * @return <tt>true</tt>, if Leader/follower strategy is used, or
+     * <tt>false</tt> otherwise.
+     */
+    public boolean useLeaderFollowerStrategy() {
+        return useLeaderFollowerStrategy;
+    }
+
+    /**
+     * Set, if Leader/Follower strategy should be used.
+     * 
+     * @param useLeaderFollowerStrategy <tt>true</tt>, if Leader/follower
+     * strategy should be used, or <tt>false</tt> otherwise.
+     */
+    public void useLeaderFollowerStrategy(boolean useLeaderFollowerStrategy) {
+        this.useLeaderFollowerStrategy = useLeaderFollowerStrategy;
+    }
 }
