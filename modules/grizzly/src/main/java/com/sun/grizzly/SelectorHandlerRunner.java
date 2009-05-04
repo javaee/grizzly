@@ -353,6 +353,7 @@ public class SelectorHandlerRunner implements Runnable {
                      * Thread and after that the Thread will be released.
                      */
                     selectorHandler.getThreadPool().execute(postpone());
+                    ((WorkerThreadImpl) Thread.currentThread()).reset();
                     context.execute(context.getProtocolChainContextTask(), false);
                     return false;
                 } else {

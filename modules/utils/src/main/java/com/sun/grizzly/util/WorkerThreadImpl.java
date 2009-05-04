@@ -309,7 +309,7 @@ public class WorkerThreadImpl extends WorkerThread {
     }
     
     @Override
-    protected void reset() {
+    public void reset() {
         if (threadAttachment != null) {
             /** 
              * ThreadAttachment was created during prev. processing and wasn't

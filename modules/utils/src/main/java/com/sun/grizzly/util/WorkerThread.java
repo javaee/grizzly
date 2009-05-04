@@ -205,7 +205,7 @@ public abstract class WorkerThread extends Thread {
      */
     public abstract void attach(ThreadAttachment threadAttachment);
     
-    protected void reset() {
+    public void reset() {
         if (byteBuffer != null) {
             byteBuffer.clear();
         }
