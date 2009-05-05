@@ -10,8 +10,9 @@ Import-Package: \
                         com.sun.grizzly; \
                         com.sun.grizzly.filter; \
                         com.sun.grizzly.arp; \
+                        com.sun.grizzly.comet; \
                         com.sun.grizzly.http; \
-                        com.sun.grizzly.ssl; \
                         com.sun.grizzly.http.algorithms; \
+                        com.sun.grizzly.ssl; \
                         com.sun.grizzly.tcp; \
                         com.sun.grizzly.util.*;
