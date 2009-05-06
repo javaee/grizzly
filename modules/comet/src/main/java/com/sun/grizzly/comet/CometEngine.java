@@ -80,6 +80,13 @@ import java.util.logging.Logger;
  */
 public class CometEngine {
 
+    // Disable suspended connection time out for a {@link CometContext#setExpirationDelay}
+    public final static int DISABLE_SUSPEND_TIMEOUT = -1;
+    
+    // Disable client detection close for a {@link CometContext#setExpirationDelay}
+    public final static int DISABLE_CLIENT_DISCONNECTION_DETECTION = 0;
+    
+    
     /**
      * The token used to support BEFORE_REQUEST_PROCESSING polling.
      */
@@ -369,7 +376,8 @@ public class CometEngine {
                 cometTask.setTimeout(System.currentTimeMillis());
             }
             SelectionKey mainKey = apt.getAsyncExecutor().getProcessorTask().getSelectionKey(); 
-            if (mainKey.isValid()){
+            if (mainKey.isValid() && cometContext.getExpirationDelay() 
+                    != DISABLE_CLIENT_DISCONNECTION_DETECTION){
                 try{
                     mainKey.interestOps(SelectionKey.OP_READ);
                     mainKey.attach(cometTask);
