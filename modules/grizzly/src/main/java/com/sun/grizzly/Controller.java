@@ -48,6 +48,7 @@ import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.SupportStateHolder;
 import com.sun.grizzly.util.WorkerThreadFactory;
+import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -369,7 +370,18 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         NIOContext ctx = null;
         try{
             if (!allowContextCaching) {
-                ctx = new NIOContext();
+                final Thread thread = Thread.currentThread();
+                if (thread instanceof WorkerThreadImpl) {
+                    ctx = (NIOContext) ((WorkerThreadImpl) thread).getContext();
+                    
+                    if (ctx != null) {
+                        ((WorkerThreadImpl) thread).setContext(null);
+                    } else {
+                       ctx = new NIOContext();
+                    }
+                } else {
+                    ctx = new NIOContext();
+                }
             } else {
                 ctx = contexts.poll();
             }
@@ -410,7 +422,18 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param ctx - the {@link Context}
      */
     public void returnContext(Context ctx) {
-        if (!allowContextCaching) return;
+        if (!allowContextCaching) {
+            final Thread thread = Thread.currentThread();
+            if (thread instanceof WorkerThreadImpl) {
+                final WorkerThreadImpl wti = (WorkerThreadImpl) thread;
+                if (wti.getContext() == null) {
+                    ctx.recycle();
+                    wti.setContext(ctx);
+                }
+            }
+
+            return;
+        }
         
         if (ctx.decrementRefCount() > 0) {
             return;
