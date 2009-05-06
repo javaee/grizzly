@@ -311,20 +311,29 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      * {@inheritDoc}
      */
     public void writeByteArray(final byte[] data) throws IOException {
+        writeByteArray(data, 0, data.length);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void writeByteArray(byte[] data, int offset, int length) throws IOException {
         ensure(1);
         int ctr = 0;
         while (true) {
-            final int dataSizeToWrite = Math.min(data.length - ctr,
+            final int dataSizeToWrite = Math.min(length - ctr,
                     buffer.remaining());
-            buffer.put(data, ctr, dataSizeToWrite);
+            buffer.put(data, offset + ctr, dataSizeToWrite);
             ctr += dataSizeToWrite;
 
-            if (ctr == data.length) {
+            if (ctr == length) {
                 break;
             }
             overflow();
         }
     }
+
+
 
     /**
      * {@inheritDoc}

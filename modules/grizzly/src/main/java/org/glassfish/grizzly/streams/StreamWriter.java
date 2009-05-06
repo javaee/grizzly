@@ -161,7 +161,7 @@ public interface StreamWriter extends Closeable {
      * @param data array of <tt>boolean</tt> values.
      * @throws java.io.IOException
      */
-    void writeBooleanArray(boolean[] data) throws IOException;
+    void writeBooleanArray(final boolean[] data) throws IOException;
 
     /**
      * Write the array of <tt>byte</tt> values to the <tt>StreamWriter</tt>.
@@ -169,7 +169,20 @@ public interface StreamWriter extends Closeable {
      * @param data array of <tt>byte</tt> values.
      * @throws java.io.IOException
      */
-    void writeByteArray(byte[] data) throws IOException;
+    void writeByteArray(final byte[] data) throws IOException;
+
+    /**
+     * Write the part of array of <tt>byte</tt> values to the
+     * <tt>StreamWriter</tt>, using specific offset and length values.
+     *
+     * @param data array of <tt>byte</tt> values.
+     * @param offset array offset to start from.
+     * @param length number of bytes to write.
+     * 
+     * @throws java.io.IOException
+     */
+    void writeByteArray(final byte[] data, int offset, int length)
+            throws IOException;
 
     /**
      * Write the array of <tt>char</tt> values to the <tt>StreamWriter</tt>.
