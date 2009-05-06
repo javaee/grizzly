@@ -90,6 +90,8 @@ public class WorkerThreadImpl extends WorkerThread {
      * selectorhandler.postselect by worker threads instead of the selector thread.
      */
     private PendingIOhandler pendingIOhandler;
+
+    private Object context;
     
     /**
      * Create a Thread that will synchronizes/block on
@@ -306,6 +308,14 @@ public class WorkerThreadImpl extends WorkerThread {
      */
     public void setPendingIOhandler(PendingIOhandler pendingIOhandler) {
         this.pendingIOhandler = pendingIOhandler;
+    }
+
+    public Object getContext() {
+        return context;
+    }
+
+    public void setContext(Object context) {
+        this.context = context;
     }
     
     @Override

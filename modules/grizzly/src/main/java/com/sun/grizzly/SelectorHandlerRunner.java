@@ -340,10 +340,6 @@ public class SelectorHandlerRunner implements Runnable {
             }
 
             if (delegateToWorker) {
-                NIOContext context = controller.pollContext();
-                controller.configureContext(key, opType, context,
-                        selectorHandler);
-
                 if (controller.useLeaderFollowerStrategy()) {
                     /*
                      * If Leader/follower strategy is used - we postpone this
@@ -353,10 +349,16 @@ public class SelectorHandlerRunner implements Runnable {
                      * Thread and after that the Thread will be released.
                      */
                     selectorHandler.getThreadPool().execute(postpone());
+                    NIOContext context = controller.pollContext();
+                    controller.configureContext(key, opType, context,
+                            selectorHandler);
                     ((WorkerThreadImpl) Thread.currentThread()).reset();
                     context.execute(context.getProtocolChainContextTask(), false);
                     return false;
                 } else {
+                    NIOContext context = controller.pollContext();
+                    controller.configureContext(key, opType, context,
+                            selectorHandler);
                     context.execute(context.getProtocolChainContextTask());
                 }
             }
