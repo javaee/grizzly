@@ -140,8 +140,10 @@ public class PUBasicTest extends TestCase {
         }
         
         Controller controller = createController(PORT, puReadFilter);
-        controller.setReadThreadsCount(5);
-        controller.setThreadPool(new PipelineThreadPool("", 5, 20,
+        final int readThreadsCount = 5;
+        controller.setReadThreadsCount(readThreadsCount);
+        controller.setThreadPool(new PipelineThreadPool("",
+                readThreadsCount + 1, 20,
                 Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
         
         List<NonBlockingTCPIOClient> clients = null;
