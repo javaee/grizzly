@@ -157,7 +157,7 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
                 SocketChannel channel = (SocketChannel)key.channel();
 
                 // As soon as bytes are ready, invoke the next ProtocolFilter.
-                while ((count = channel.read(byteBuffer)) == 0) {
+                while ((count = channel.read(byteBuffer)) > -1) {
 
                     // Avoid calling the Selector.
                     if (++loop >= readAttempts){
