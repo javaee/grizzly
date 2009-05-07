@@ -64,7 +64,7 @@ public class CometdServlet extends HttpServlet {
     /**
      * The EventRouter used to route JSON message.
      */
-    private final EventRouter eventRouter;
+    private EventRouter eventRouter;
 
     public CometdServlet() {
         bayeuxParser = new BayeuxParser();
@@ -127,4 +127,21 @@ public class CometdServlet extends HttpServlet {
         };
         eventRouter.route(cometdReq, cometdRes);
     }
+
+    /**
+     * return the current {@link EventRouter} implementation.
+     * @return
+     */
+    public EventRouter getEventRouter() {
+        return eventRouter;
+    }
+    
+    /**
+     * Set the {@link EventRouter}
+     * @param eventRouter the {@link EventRouter}
+     */
+    public void setEventRouter(EventRouter eventRouter){
+        this.eventRouter = eventRouter;
+    }
+    
 }
