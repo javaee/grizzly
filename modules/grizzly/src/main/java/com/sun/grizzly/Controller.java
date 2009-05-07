@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -149,6 +150,10 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
         UDP, TCP, TLS, CUSTOM
     }
+    /**
+     * Maximum number of {@link Threads} created by a {@link DefaultThreadPool}
+     */
+    private int maxThreads = DefaultThreadPool.DEFAULT_MAX_THREAD_COUNT;
     /**
      * A cached list of Context. Context are by default stateless.
      */
@@ -281,9 +286,13 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * SelectorHandler(s) or ConnectorHandlerPool.
      */
     private void initializeDefaults() {
+        autoConfigureCore();
         if (threadPool == null) {
             threadPool = new DefaultThreadPool();
-        }
+        }        
+        if (threadPool instanceof ThreadPoolExecutor){
+            ((ThreadPoolExecutor)threadPool).setMaximumPoolSize(maxThreads);
+        }       
         if (instanceHandler == null) {
             instanceHandler = new DefaultProtocolChainInstanceHandler();
         }
@@ -295,7 +304,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
         kernelExecutor = createKernelExecutor();
         controllers.add(this);
-        autoConfigureCore();
     }
 
     /**
@@ -304,9 +312,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     private void autoConfigureCore(){
         readThreadsCount = Runtime.getRuntime().availableProcessors();
+        maxThreads = maxThreads * readThreadsCount;
         if (logger.isLoggable(Level.FINE)){
             logger.fine("Controller auto-configured with 2 ReadController " +
-                    "based on underlying cores/processors.");
+                    "based on underlying cores/processors, with a Thread Pool " +
+                    "of maximum size " + maxThreads);
         }
     }
 
