@@ -754,7 +754,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
             if ( handler != null && 
                     handler.handle(request,Handler.HEADERS_PARSED)
                         == Handler.BREAK){
-                keepAlive = keepAlive(request);
+                keepAlive = (request.protocol().equals(Constants.HTTP_11));
                 return true;
             }
 
