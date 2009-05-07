@@ -74,7 +74,9 @@ public class SSLTest extends TestCase {
         TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new SSLFilter());
+        transport.getFilterChain().add(new SSLFilter(
+                new SSLEngineConfigurator(
+                sslContextConfigurator.createSSLContext(), false, false, false)));
         transport.getFilterChain().add(new EchoFilter());
 
         SSLStreamReader reader = null;
@@ -157,7 +159,9 @@ public class SSLTest extends TestCase {
         TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new SSLFilter());
+        transport.getFilterChain().add(new SSLFilter(
+                new SSLEngineConfigurator(
+                sslContextConfigurator.createSSLContext(), false, false, false)));
         transport.getFilterChain().add(new EchoFilter());
 
         SSLStreamReader reader = null;
@@ -241,8 +245,6 @@ public class SSLTest extends TestCase {
             sslContextConfigurator.setKeyStorePass("changeit");
         }
 
-        SSLContextConfigurator.DEFAULT_CONFIG = sslContextConfigurator;
-        
         return sslContextConfigurator;
     }
 }

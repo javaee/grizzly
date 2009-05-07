@@ -95,7 +95,7 @@ public class SSLContextConfigurator {
      * {@link System#getProperties()} of javax.net.ssl family you should refresh
      * this configuration by calling {@link #retrieve(java.util.Properties)}.
      */
-    public static SSLContextConfigurator DEFAULT_CONFIG = new SSLContextConfigurator();
+    public static final SSLContextConfigurator DEFAULT_CONFIG = new SSLContextConfigurator();
 
     private String trustStoreProvider;
     private String keyStoreProvider;
