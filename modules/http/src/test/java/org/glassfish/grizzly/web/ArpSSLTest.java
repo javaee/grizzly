@@ -76,41 +76,9 @@ public class ArpSSLTest extends TestCase {
 
     public static final int PORT = 18890;
     private static Logger logger = Logger.getLogger("grizzly.test");
-    private SSLContextConfigurator sslConfig;
     private AsyncWebFilter webFilter;
 
-    @Override
-    public void setUp() throws URISyntaxException {
-        sslConfig = new SSLContextConfigurator();
-        ClassLoader cl = getClass().getClassLoader();
-        // override system properties
-        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
-        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
-        if (cacertsUrl != null) {
-            sslConfig.setTrustStoreFile(trustStoreFile);
-            sslConfig.setTrustStorePass("changeit");
-        }
-
-        logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
-
-        // override system properties
-        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
-        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
-        if (keystoreUrl != null) {
-            sslConfig.setKeyStoreFile(keyStoreFile);
-            sslConfig.setKeyStorePass("changeit");
-        }
-        
-        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
-        SSLContextConfigurator.DEFAULT_CONFIG = sslConfig;
-
-        System.setProperty("javax.net.ssl.trustStore", trustStoreFile);
-        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
-        System.setProperty("javax.net.ssl.keyStore", keyStoreFile);
-        System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
-    }
-
-    public void testSimplePacket() throws IOException {
+    public void testSimplePacket() throws Exception {
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
 
         AsyncWebFilterConfig webConfig = new AsyncWebFilterConfig();
@@ -135,11 +103,9 @@ public class ArpSSLTest extends TestCase {
 
         webFilter = new AsyncWebFilter("async-filter", webConfig);
 
-
-
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(new SSLFilter(new SSLEngineConfigurator(
-                sslConfig.createSSLContext(), false, false, false)));
+                createSSLConfig().createSSLContext(), false, false, false)));
 
         transport.getFilterChain().add(webFilter);
 
@@ -240,5 +206,39 @@ public class ArpSSLTest extends TestCase {
 
         public void fireAdapterEvent(String string, Object object) {
         }
+    }
+
+    private SSLContextConfigurator createSSLConfig() throws URISyntaxException {
+        SSLContextConfigurator sslConfig = new SSLContextConfigurator();
+        ClassLoader cl = getClass().getClassLoader();
+        // override system properties
+        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
+        if (cacertsUrl != null) {
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
+        }
+
+        logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
+
+        // override system properties
+        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
+        if (keystoreUrl != null) {
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
+        }
+
+        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
+
+
+        // public SSL configuration for HttpsURLConnection
+        System.setProperty("javax.net.ssl.trustStore", trustStoreFile);
+        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+        System.setProperty("javax.net.ssl.keyStore", keyStoreFile);
+        System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
+
+
+        return sslConfig;
     }
 }
