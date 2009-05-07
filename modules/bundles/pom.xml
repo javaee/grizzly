@@ -3,7 +3,7 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>2dot0</version>
+        <version>1.9.16-SNAPSHOT</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -15,8 +15,6 @@
     <url>https://grizzly.dev.java.net</url>
     <modules>
         <module>http</module>
-        <module>comet</module>
-        <module>cometd</module>
-        <module>jruby</module>
+        <module>http-servlet</module>
     </modules>
 </project>
