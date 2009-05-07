@@ -292,6 +292,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }        
         if (threadPool instanceof ThreadPoolExecutor){
             ((ThreadPoolExecutor)threadPool).setMaximumPoolSize(maxThreads);
+            ((ThreadPoolExecutor)threadPool).setCorePoolSize(maxThreads);
         }       
         if (instanceHandler == null) {
             instanceHandler = new DefaultProtocolChainInstanceHandler();
