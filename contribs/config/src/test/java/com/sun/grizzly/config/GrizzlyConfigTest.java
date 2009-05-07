@@ -1,5 +1,6 @@
 package com.sun.grizzly.config;
 
+import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.ThreadPool;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import org.testng.Assert;
@@ -12,17 +13,16 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.URLConnection;
-import java.util.logging.Logger;
+import java.util.List;
 
 /**
  * Created Jan 5, 2009
  *
  * @author <a href="mailto:justin.lee@sun.com">Justin Lee</a>
  */
+@SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
 @Test
 public class GrizzlyConfigTest {
-    private static final Logger log = Logger.getLogger(GrizzlyConfigTest.class.getName());
-
     public void processConfig() throws IOException, InstantiationException {
         try {
             final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
@@ -35,6 +35,45 @@ public class GrizzlyConfigTest {
             final String content2 = getContent(new URL("http://localhost:38083").openConnection());
             Assert.assertEquals(content, "<html><body>You've found the server on port 38082</body></html>");
             Assert.assertEquals(content2, "<html><body>You've found the server on port 38083</body></html>");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
+    public void references() {
+        final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+        final List<NetworkListener> list = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener();
+        final NetworkListener listener = list.get(0);
+        boolean found = false;
+        for (NetworkListener ref : listener.findProtocol().findNetworkListeners()) {
+            found |= ref.getName().equals(listener.getName());
+        }
+        Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Protocol");
+
+        found = false;
+        for (NetworkListener ref : listener.findTransport().findNetworkListeners()) {
+            found |= ref.getName().equals(listener.getName());
+        }
+        Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Transport");
+
+        found = false;
+        for (NetworkListener ref : listener.findThreadPool().findNetworkListeners()) {
+            found |= ref.getName().equals(listener.getName());
+        }
+        Assert.assertTrue(found, "Should find the NetworkListener in the list of references from ThreadPool");
+    }
+
+    public void defaults() {
+        final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+        final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
+        Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
+    }
+
+    public void badConfig() throws IOException, InstantiationException {
+        try {
+            final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
+            grizzlyConfig.setupNetwork();
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
@@ -65,21 +104,5 @@ public class GrizzlyConfigTest {
         writer.flush();
         writer.close();
         adapter.setRootFolder(name);
-    }
-
-    public void defaults() {
-        final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
-        final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
-        Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5"); 
-    }
-
-    public void badConfig() throws IOException, InstantiationException {
-        try {
-            final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
-            grizzlyConfig.setupNetwork();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e.getMessage());
-        }
     }
 }

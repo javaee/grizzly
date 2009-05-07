@@ -40,6 +40,12 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
+import org.jvnet.hk2.config.ConfigBean;
+
+import java.util.List;
+import java.util.Collection;
+import java.util.ArrayList;
 
 /**
  * Defines one specific transport and its properties
@@ -153,4 +159,23 @@ public interface Transport extends ConfigBeanProxy, Injectable {
     String getTcpNoDelay();
 
     void setTcpNoDelay(String noDelay);
+
+    @DuckTyped
+    List<NetworkListener> findNetworkListeners();
+
+    class Duck {
+
+        static public List<NetworkListener> findNetworkListeners(Transport transport) {
+            final Collection<NetworkListener> listeners = ConfigBean.unwrap(transport).getHabitat().getAllByType(NetworkListener.class);
+            List<NetworkListener> refs = new ArrayList<NetworkListener>();
+            for (NetworkListener listener : listeners) {
+                if (listener.getTransport().equals(transport.getName())) {
+                    refs.add(listener);
+                }
+            }
+            return refs;
+        }
+
+    }
+
 }
