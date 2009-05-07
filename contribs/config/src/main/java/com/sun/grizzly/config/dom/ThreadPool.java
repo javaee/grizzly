@@ -41,6 +41,12 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
+import org.jvnet.hk2.config.ConfigBean;
+
+import java.util.List;
+import java.util.Collection;
+import java.util.ArrayList;
 
 @Configured
 public interface ThreadPool extends ConfigBeanProxy, Injectable {
@@ -96,4 +102,22 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable {
     String getName();
 
     void setName(String value);
+
+    @DuckTyped
+    List<NetworkListener> findNetworkListeners();
+
+    class Duck {
+
+        static public List<NetworkListener> findNetworkListeners(ThreadPool threadpool) {
+            final Collection<NetworkListener> listeners = ConfigBean.unwrap(threadpool).getHabitat().getAllByType(NetworkListener.class);
+            List<NetworkListener> refs = new ArrayList<NetworkListener>();
+            for (NetworkListener listener : listeners) {
+                if (listener.getThreadPool().equals(threadpool.getName())) {
+                    refs.add(listener);
+                }
+            }
+            return refs;
+        }
+
+    }
 }
