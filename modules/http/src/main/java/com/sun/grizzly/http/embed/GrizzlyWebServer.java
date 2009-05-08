@@ -595,9 +595,6 @@ public class GrizzlyWebServer {
             adapterChains.setRootFolder(webResourcesPath);
             adapterChains.setHandleStaticResources(true);
             grizzlyListener.setAdapter(adapterChains);
-        } else if (adapters.size() == 1){
-            grizzlyListener.setAdapter(adapters.keySet().iterator().next());
-            adapters.keySet().iterator().next().setRootFolder(webResourcesPath);
         } else {          
             for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
                 // For backward compatibility
