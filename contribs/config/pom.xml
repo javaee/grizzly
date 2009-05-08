@@ -183,12 +183,12 @@
             <groupId>stax</groupId>
             <artifactId>stax</artifactId>
             <version>1.2.0</version>
-            <scope>compile</scope>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
     <properties>
         <hk2.version>0.3.55</hk2.version>
         <hk2.plugin.version>0.3.55</hk2.plugin.version>
-        <grizzly.version>1.9.14</grizzly.version>
+        <grizzly.version>1.9.15</grizzly.version>
     </properties>
 </project>
