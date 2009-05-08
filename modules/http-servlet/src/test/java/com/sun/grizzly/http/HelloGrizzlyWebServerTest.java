@@ -93,27 +93,14 @@ public class HelloGrizzlyWebServerTest extends TestCase {
             HttpURLConnection conn = getConnection(url);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
            
-            System.out.println("");
-            System.out.println("");
-            System.out.println("");
-            System.out.println("");
-            System.out.println("");
-            System.out.println("");
-            System.out.println("");
-            System.out.println("");
-            System.out.println("");
+            String response = readResponse(conn).toString();
+            assertEquals("Hello, world!", response.trim());
            
-            System.out.println(readResponse(conn));
-           
-            //assertEquals(url, );
-
         } finally {
             stopGrizzlyWebServer();
         }
     }
    
-   
-
    
     private StringBuffer readResponse(HttpURLConnection conn) throws IOException {
         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
