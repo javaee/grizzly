@@ -146,6 +146,7 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
 
         boolean invokeNextFilter = true;
         int count = -1;
+        int nRead = 0;
         SocketAddress socketAddress = null;
         Exception exception = null;
         SelectionKey key = ctx.getSelectionKey();
@@ -159,9 +160,10 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
                 // As soon as bytes are ready, invoke the next ProtocolFilter.
                 while ((count = channel.read(byteBuffer)) > -1) {
 
+                    nRead += count;
                     // Avoid calling the Selector.
                     if (++loop >= readAttempts){
-                        if (ctx.getKeyRegistrationState()
+                        if (nRead == 0 && ctx.getKeyRegistrationState()
                                 != Context.KeyRegistrationState.NONE){
                             ctx.setAttribute(ProtocolFilter.SUCCESSFUL_READ,
                                              Boolean.FALSE);
