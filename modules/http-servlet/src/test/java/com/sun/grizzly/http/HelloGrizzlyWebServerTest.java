@@ -100,6 +100,49 @@ public class HelloGrizzlyWebServerTest extends TestCase {
             stopGrizzlyWebServer();
         }
     }
+    
+    public void __testMultiPath() throws IOException {
+        System.out.println("testMultiPath");
+        try {
+            startGrizzlyWebServer(PORT);
+            String[] aliases = new String[] { "*.php" };
+
+            String context = "/";
+            String servletPath = "notvalid/php_test";
+            String rootFolder = ".";
+           
+            ServletAdapter adapter = new ServletAdapter();
+            adapter.setServletInstance(new HelloServlet());
+
+            adapter.setContextPath(context);
+            adapter.setServletPath(servletPath);
+            adapter.setRootFolder(rootFolder);
+
+            gws.addGrizzlyAdapter(adapter, aliases);
+
+            gws.start();
+           
+            String url = null;
+            HttpURLConnection conn = null;
+            String response = null;
+            
+            url = context + servletPath + "/index.php";
+            conn = getConnection(url);
+            assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+           
+            response = readResponse(conn).toString();
+            assertEquals("Hello, world!", response.trim());
+            
+            // should failed
+            url = context + servletPath + "/hello.1";
+            conn = getConnection(url);
+            assertEquals(HttpServletResponse.SC_NOT_FOUND, getResponseCodeFromAlias(conn));
+           
+           
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
    
    
     private StringBuffer readResponse(HttpURLConnection conn) throws IOException {
