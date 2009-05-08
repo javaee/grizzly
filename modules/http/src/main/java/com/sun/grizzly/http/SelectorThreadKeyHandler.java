@@ -83,7 +83,8 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
 
     @Override
     public void doRegisterKey(SelectionKey key, int ops, long currentTime) {
-        if (key.attachment().equals(SelectionKeyAttachment.DEREGISTERED)){
+        if (key.attachment() != null 
+                && key.attachment().equals(SelectionKeyAttachment.DEREGISTERED)){
             return;
         }
 
