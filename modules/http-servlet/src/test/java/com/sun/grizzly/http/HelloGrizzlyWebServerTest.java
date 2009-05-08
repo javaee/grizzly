@@ -101,7 +101,7 @@ public class HelloGrizzlyWebServerTest extends TestCase {
         }
     }
     
-    public void __testMultiPath() throws IOException {
+    public void testMultiPath() throws IOException {
         System.out.println("testMultiPath");
         try {
             startGrizzlyWebServer(PORT);
