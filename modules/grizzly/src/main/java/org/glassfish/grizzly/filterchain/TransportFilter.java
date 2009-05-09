@@ -40,6 +40,7 @@ package org.glassfish.grizzly.filterchain;
 
 import org.glassfish.grizzly.Transport;
 import java.io.IOException;
+import org.glassfish.grizzly.Connection;
 
 /**
  * Transport {@link Filter} implementation, which should work with any
@@ -54,16 +55,62 @@ public class TransportFilter extends FilterAdapter {
     public static final String WORKER_THREAD_BUFFER_NAME = "thread-buffer";
 
     /**
+     * Delegates accept operation to {@link Transport}'s specific transport
+     * filter.
+     */
+    @Override
+    public NextAction handleAccept(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        initializeContext(ctx);
+
+        final Filter defaultTransportFilter = getDefaultTransportFilter(
+                ctx.getConnection().getTransport());
+
+        if (defaultTransportFilter != null) {
+            ctx.setDefaultTransportFilter(defaultTransportFilter);
+            return defaultTransportFilter.handleAccept(ctx, nextAction);
+        }
+
+        return null;
+    }
+
+    /**
+     * Delegates connect operation to {@link Transport}'s specific transport
+     * filter.
+     */
+    @Override
+    public NextAction handleConnect(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        initializeContext(ctx);
+
+        final Filter defaultTransportFilter = getDefaultTransportFilter(
+                ctx.getConnection().getTransport());
+
+        if (defaultTransportFilter != null) {
+            ctx.setDefaultTransportFilter(defaultTransportFilter);
+            return defaultTransportFilter.handleConnect(ctx, nextAction);
+        }
+
+        return null;
+    }
+
+    /**
      * Delegates reading operation to {@link Transport}'s specific transport
      * filter.
      */
     @Override
-    public NextAction handleRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        Filter defaultTransportFilter = getDefaultTransportFilter(
+    public NextAction handleRead(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        initializeContext(ctx);
+
+        final Filter defaultTransportFilter = getDefaultTransportFilter(
                 ctx.getConnection().getTransport());
 
         if (defaultTransportFilter != null) {
+            ctx.setDefaultTransportFilter(defaultTransportFilter);
             return defaultTransportFilter.handleRead(ctx, nextAction);
         }
         
@@ -75,13 +122,72 @@ public class TransportFilter extends FilterAdapter {
      * filter.
      */
     @Override
-    public NextAction handleWrite(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        Filter defaultTransportFilter = getDefaultTransportFilter(
+    public NextAction handleWrite(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        initializeContext(ctx);
+
+        final Filter defaultTransportFilter = getDefaultTransportFilter(
                 ctx.getConnection().getTransport());
 
         if (defaultTransportFilter != null) {
+            ctx.setDefaultTransportFilter(defaultTransportFilter);
             return defaultTransportFilter.handleWrite(ctx, nextAction);
+        }
+
+        return null;
+    }
+
+    /**
+     * Delegates close operation to {@link Transport}'s specific transport
+     * filter.
+     */
+    @Override
+    public NextAction handleClose(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        initializeContext(ctx);
+
+        final Filter defaultTransportFilter = getDefaultTransportFilter(
+                ctx.getConnection().getTransport());
+
+        if (defaultTransportFilter != null) {
+            ctx.setDefaultTransportFilter(defaultTransportFilter);
+            return defaultTransportFilter.handleClose(ctx, nextAction);
+        }
+
+        return null;
+    }
+
+    /**
+     * Delegates post accepting processing to {@link Transport}'s specific
+     * transport filter.
+     */
+    @Override
+    public NextAction postAccept(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        final Filter defaultTransportFilter = ctx.getDefaultTransportFilter();
+
+        if (defaultTransportFilter != null) {
+            return defaultTransportFilter.postAccept(ctx, nextAction);
+        }
+
+        return null;
+    }
+
+    /**
+     * Delegates post connecting processing to {@link Transport}'s specific
+     * transport filter.
+     */
+    @Override
+    public NextAction postConnect(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        final Filter defaultTransportFilter = ctx.getDefaultTransportFilter();
+
+        if (defaultTransportFilter != null) {
+            return defaultTransportFilter.postRead(ctx, nextAction);
         }
 
         return null;
@@ -92,13 +198,13 @@ public class TransportFilter extends FilterAdapter {
      * transport filter.
      */
     @Override
-    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        Filter defaultTransportFilter = getDefaultTransportFilter(
-                ctx.getConnection().getTransport());
+    public NextAction postRead(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        final Filter defaultTransportFilter = ctx.getDefaultTransportFilter();
 
         if (defaultTransportFilter != null) {
-            return defaultTransportFilter.postRead(ctx, nextAction);
+            return defaultTransportFilter.postConnect(ctx, nextAction);
         }
         
         return null;
@@ -109,13 +215,30 @@ public class TransportFilter extends FilterAdapter {
      * transport filter.
      */
     @Override
-    public NextAction postWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        Filter defaultTransportFilter = getDefaultTransportFilter(
-                ctx.getConnection().getTransport());
+    public NextAction postWrite(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        final Filter defaultTransportFilter = ctx.getDefaultTransportFilter();
 
         if (defaultTransportFilter != null) {
             return defaultTransportFilter.postWrite(ctx, nextAction);
+        }
+
+        return null;
+    }
+
+    /**
+     * Delegates post closing processing to {@link Transport}'s specific
+     * transport filter.
+     */
+    @Override
+    public NextAction postClose(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+
+        final Filter defaultTransportFilter = ctx.getDefaultTransportFilter();
+
+        if (defaultTransportFilter != null) {
+            return defaultTransportFilter.postClose(ctx, nextAction);
         }
 
         return null;
@@ -128,17 +251,21 @@ public class TransportFilter extends FilterAdapter {
      *
      * @return default {@link Transport} specific transport filter.
      */
-    protected Filter getDefaultTransportFilter(Transport transport) {
+    protected Filter getDefaultTransportFilter(final Transport transport) {
         if (transport instanceof FilterChainEnabledTransport) {
-            Filter defaultTransportFilter = 
+            final Filter defaultTransportFilter =
                     ((FilterChainEnabledTransport) transport).
                     getDefaultTransportFilter();
             
-            if (defaultTransportFilter != null) {
-                return defaultTransportFilter;
-            }
+            return defaultTransportFilter;
         }
         
         return null;
+    }
+
+    private static final void initializeContext(final FilterChainContext ctx) {
+        final Connection connection = ctx.getConnection();
+        ctx.setStreamReader(connection.getStreamReader());
+        ctx.setStreamWriter(connection.getStreamWriter());
     }
 }

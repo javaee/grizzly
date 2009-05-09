@@ -92,6 +92,8 @@ public class FilterChainContext extends Context {
      * List of {@link Filter}s.
      */
     private List<Filter> filters;
+
+    private Filter defaultTransportFilter;
     
     public FilterChainContext(ObjectPool parentPool) {
         super(parentPool);
@@ -284,6 +286,14 @@ public class FilterChainContext extends Context {
         this.streamWriter = streamWriter;
     }
 
+    Filter getDefaultTransportFilter() {
+        return defaultTransportFilter;
+    }
+
+    void setDefaultTransportFilter(final Filter defaultTransportFilter) {
+        this.defaultTransportFilter = defaultTransportFilter;
+    }
+
     /**
      * Release the context associated resources.
      */
@@ -296,6 +306,7 @@ public class FilterChainContext extends Context {
         streamWriter = null;
         filters = null;
         executedFilters.clear();
+        defaultTransportFilter = null;
         super.release();
     }
 

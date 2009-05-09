@@ -584,7 +584,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                     executeProcessor(ioEvent, connection, conProcessor,
                             null, null, strategyContext);
                 } else {
-                    disableInterest((NIOConnection) connection,ioEvent);
+                    disableInterest((NIOConnection) connection, ioEvent);
                 }
             }
         } catch (IOException e) {
