@@ -922,15 +922,52 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     public void configureChannel(SelectableChannel channel) throws IOException{
         Socket socket = ((SocketChannel) channel).socket();
+
         channel.configureBlocking(false);
-        if(socketTimeout > 0 ) {
-            socket.setSoTimeout(socketTimeout);
+
+        if (!channel.isOpen()){
+            return;
         }
-        if(linger > 0 ) {
-            socket.setSoLinger( true, linger);
+
+        try{
+            if(socketTimeout >= 0 ) {
+                socket.setSoTimeout(socketTimeout);
+            }
+        } catch (SocketException ex){
+            if (logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
+                        "setSoTimeout exception ",ex);
+            }
         }
-        socket.setTcpNoDelay(tcpNoDelay);
-        socket.setReuseAddress(reuseAddress);
+
+        try{
+            if(linger >= 0 ) {
+                socket.setSoLinger( true, linger);
+            }
+        } catch (SocketException ex){
+            if (logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
+                        "setSoLinger exception ",ex);
+            }
+        }
+
+        try{
+            socket.setTcpNoDelay(tcpNoDelay);
+        } catch (SocketException ex){
+            if (logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
+                        "setTcpNoDelay exception ",ex);
+            }
+        }
+
+        try{
+            socket.setReuseAddress(reuseAddress);
+        } catch (SocketException ex){
+            if (logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
+                        "setReuseAddress exception ",ex);
+            }
+        }
     }
 
 
