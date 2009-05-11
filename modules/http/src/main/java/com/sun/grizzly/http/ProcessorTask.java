@@ -1142,9 +1142,9 @@ public class ProcessorTask extends TaskBase implements Processor,
             }
             if (!keepAlive){
                 selectorThread.cancelKey(key);
+                recycle();
+                selectorThread.returnTask(this);
             }
-            recycle();
-            selectorThread.returnTask(this);
         }
     }
 
