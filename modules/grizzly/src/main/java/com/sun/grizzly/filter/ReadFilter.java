@@ -205,7 +205,9 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
             } else if (count == -1 && protocol != UDP){
                 ctx.setKeyRegistrationState(
                         Context.KeyRegistrationState.CANCEL);
-                invokeNextFilter = false;
+                if (nRead == 0) {
+                    invokeNextFilter = false;
+                }
                 if (skh instanceof BaseSelectionKeyHandler){
                     ((BaseSelectionKeyHandler)skh).notifyRemotlyClose(key);
                 }                
@@ -229,7 +231,6 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
      *         needs to be invoked.
      */
     public boolean postExecute(Context ctx) throws IOException {
-
         final SelectorHandler selectorHandler =
                 ctx.getSelectorHandler();
         final SelectionKey key = ctx.getSelectionKey();
