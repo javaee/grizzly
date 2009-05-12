@@ -40,7 +40,6 @@ package com.sun.grizzly;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 
 /**
@@ -177,11 +176,10 @@ public class DefaultProtocolChain implements ProtocolChain, ReinvokeAware {
                 (ProtocolChainInstruction) ctx.removeAttribute(
                 PROTOCOL_CHAIN_POST_INSTRUCTION);
         
-        if (postInstruction != null && 
+        if (postInstruction != null &&
                 postInstruction == ProtocolChainInstruction.REINVOKE) {
             reinvokeChain = true;
         } else if (continousExecution
-            && currentPosition == protocolFilters.size() -1
             && (Boolean)ctx.removeAttribute(ProtocolFilter.SUCCESSFUL_READ) 
                 == Boolean.TRUE) {
             reinvokeChain = true;    
