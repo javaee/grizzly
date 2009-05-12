@@ -148,7 +148,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 waitNIOFuture(registerChannelFuture);
             }
         } catch (IOException e) {
-            return new ReadyFutureImpl(new ExecutionException(e));
+            return new ReadyFutureImpl(e);
         }
         
         return connectFuture;
