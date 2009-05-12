@@ -143,11 +143,6 @@ public class SSLConnectorHandler
     private ByteBuffer asyncHandshakeBuffer;
     
     /**
-     * Is the connection established.
-     */
-    private volatile boolean isConnected;
-    
-    /**
      * Is the handshake phase completed
      */
     private volatile boolean isHandshakeDone;
@@ -751,14 +746,6 @@ public class SSLConnectorHandler
         return Controller.Protocol.TLS;
     }
     
-    
-    /**
-     * Is the underlying SocketChannel connected.
-     * @return <tt>true</tt> if connected, otherwise <tt>false</tt>
-     */
-    public boolean isConnected() {
-        return isConnected && underlyingChannel.isOpen();
-    }
     
     /**
      * Is the underlying SocketChannel connected.

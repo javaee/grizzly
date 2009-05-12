@@ -231,4 +231,11 @@ public interface ConnectorHandler<E extends SelectorHandler, P extends CallbackH
      * @param callbackHandler handler
      */
     public void setCallbackHandler(P callbackHandler);
+
+    /**
+     * Is the underlying channel connected.
+     *
+     * @return <tt>true</tt> if connected, otherwise <tt>false</tt>
+     */
+    public boolean isConnected();
 }

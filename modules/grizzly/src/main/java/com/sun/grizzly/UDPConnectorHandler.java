@@ -80,12 +80,6 @@ public class UDPConnectorHandler
         implements AsyncQueueWritable, AsyncQueueReadable {
 
     /**
-     * Is the connection established.
-     */
-    protected volatile boolean isConnected;
-    
-    
-    /**
      * IsConnected Latch related
      */
     protected CountDownLatch isConnectedLatch;
@@ -589,14 +583,5 @@ public class UDPConnectorHandler
     @Override
     public Controller.Protocol protocol(){
         return Controller.Protocol.UDP;
-    }
-    
-    
-    /**
-     * Is the underlying DatagramChannel connected.
-     * @return true if connected, othewise false
-     */
-    public boolean isConnected(){
-        return isConnected && underlyingChannel.isOpen();
     }
 }
