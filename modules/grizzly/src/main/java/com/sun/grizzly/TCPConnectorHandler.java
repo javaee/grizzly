@@ -116,12 +116,6 @@ public class TCPConnectorHandler extends
     
     
     /**
-     * Is the connection established.
-     */
-    private volatile boolean isConnected;
-    
-    
-    /**
      * IsConnected Latch related
      */
     private CountDownLatch isConnectedLatch;
@@ -660,15 +654,6 @@ public class TCPConnectorHandler extends
     @Override
     public final Controller.Protocol protocol(){
         return Controller.Protocol.TCP;
-    }
-    
-    
-    /**
-     * Is the underlying SocketChannel connected.
-     * @return <tt>true</tt> if connected, otherwise <tt>false</tt>
-     */
-    public boolean isConnected(){
-        return isConnected && underlyingChannel.isOpen();
     }
     
     

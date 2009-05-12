@@ -186,7 +186,10 @@ public class CacheableConnectorHandler
         }
     }
 
-    
+    public boolean isConnected() {
+        return underlyingConnectorHandler != null && underlyingConnectorHandler.isConnected();
+    }
+
     public ConnectorHandler getUnderlyingConnectorHandler() {
         return underlyingConnectorHandler;
     }

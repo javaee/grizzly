@@ -76,6 +76,11 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
      * The connection's SelectableChannel.
      */
     protected SelectableChannel underlyingChannel;
+
+    /**
+     * Is the connection established.
+     */
+    protected volatile boolean isConnected;
     
     /**
      * Get the <tt>ConnectorHandler</tt> {@link Protocol}.
@@ -156,5 +161,13 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
      */
     public void setCallbackHandler(K callbackHandler) {
         this.callbackHandler = callbackHandler;
+    }
+
+    /**
+     * Is the underlying channel connected.
+     * @return <tt>true</tt> if connected, otherwise <tt>false</tt>
+     */
+    public boolean isConnected(){
+        return isConnected && underlyingChannel != null && underlyingChannel.isOpen();
     }
 }
