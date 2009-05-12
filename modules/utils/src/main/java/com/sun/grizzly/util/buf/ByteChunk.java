@@ -441,8 +441,9 @@ public final class ByteChunk implements Cloneable, Serializable {
 	// This seems like a potential place for huge memory use, but it's
 	// the same algorithm as makeSpace() has always effectively used.
 	int desiredSize = buff.length * 2;
-	if (limit > 0 && desiredSize > limit)
+	if (limit > 0 && desiredSize > limit && limit > (end-start)){
 	    desiredSize = limit;
+        }
 	byte[] tmp=new byte[desiredSize];
 	System.arraycopy(buff, start, tmp, 0, end-start);
 	buff = tmp;
