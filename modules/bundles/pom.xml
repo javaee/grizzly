@@ -22,5 +22,6 @@
         <module>grizzlet</module>
         <module>messagesbus</module>
         <module>webserver</module>
+        <module>http-servlet-deployer</module>
     </modules>
 </project>
