@@ -280,7 +280,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
                 if (len > remaining){                
                     if (outputByteBuffer.capacity() >= maxBufferedBytes){
                         outputByteBuffer.put(cbuf,off,remaining);
-                        flush();
+                        flushBuffer();
                         realWriteBytes(cbuf,off+remaining,len-remaining);
                         return;
                     } else {                
