@@ -45,6 +45,7 @@ import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.StateHolder.ConditionListener;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
@@ -391,7 +392,12 @@ public class SelectorHandlerRunner implements Runnable {
     private void handleSelectException(Throwable e,
             SelectorHandler selectorHandler, SelectionKey key) {
         final StateHolder<State> stateHolder = controller.getStateHolder();
-        if (e instanceof ClosedSelectorException) {
+        if (e instanceof CancelledKeyException) {
+            // Exception occurs, when channel is getting asynchronously closed
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "The key is cancelled asynchronously!");
+            }
+        } else if (e instanceof ClosedSelectorException) {
             // TODO: This could indicate that the Controller is
             //       shutting down. Hence, we need to handle this Exception
             //       appropriately. Perhaps check the state before logging
@@ -426,7 +432,7 @@ public class SelectorHandlerRunner implements Runnable {
             //       what's happening ?
             if (stateHolder.getState() == State.STARTED &&
                     selectorHandler.getStateHolder().getState() == State.STARTED) {
-                logger.log(Level.SEVERE, "Selector was unexpectedly closed.", e);
+                logger.log(Level.SEVERE, "doSelect IOException", e);
                 controller.notifyException(e);
             } else {
                 logger.log(Level.FINE, "doSelect IOException", e);
