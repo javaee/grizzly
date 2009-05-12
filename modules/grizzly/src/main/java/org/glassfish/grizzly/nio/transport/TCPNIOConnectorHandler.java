@@ -56,6 +56,7 @@ import org.glassfish.grizzly.AbstractProcessor;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.AbstractSocketConnectorHandler;
 import org.glassfish.grizzly.impl.FutureImpl;
+import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.RegisterChannelResult;
 
 /**
@@ -118,32 +119,36 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         ConnectorEventProcessor finishConnectProcessor =
                 new ConnectorEventProcessor(connectFuture);
         newConnection.setProcessor(finishConnectProcessor);
-        
-        boolean isConnected = socketChannel.connect(remoteAddress);
-        
-        if (isConnected) {
-            // if connected immediately - register channel on selector with
-            // OP_READ interest
-            Future<RegisterChannelResult> registerChannelFuture =
-                    nioTransport.getNioChannelDistributor().
-                    registerChannelAsync(socketChannel, SelectionKey.OP_READ,
-                    newConnection, null);
 
-            // Wait until the SelectableChannel will be registered on the Selector
-            RegisterChannelResult result = waitNIOFuture(registerChannelFuture);
+        try {
+            boolean isConnected = socketChannel.connect(remoteAddress);
 
-            // make sure completion handler is called
-            nioTransport.registerChannelCompletionHandler.completed(null, result);
-            
-            transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
-        } else {
-            Future registerChannelFuture =
-                    nioTransport.getNioChannelDistributor().registerChannelAsync(
-                    socketChannel, SelectionKey.OP_CONNECT, newConnection,
-                    nioTransport.registerChannelCompletionHandler);
+            if (isConnected) {
+                // if connected immediately - register channel on selector with
+                // OP_READ interest
+                Future<RegisterChannelResult> registerChannelFuture =
+                        nioTransport.getNioChannelDistributor().
+                        registerChannelAsync(socketChannel, SelectionKey.OP_READ,
+                        newConnection, null);
 
-            // Wait until the SelectableChannel will be registered on the Selector
-            waitNIOFuture(registerChannelFuture);
+                // Wait until the SelectableChannel will be registered on the Selector
+                RegisterChannelResult result = waitNIOFuture(registerChannelFuture);
+
+                // make sure completion handler is called
+                nioTransport.registerChannelCompletionHandler.completed(null, result);
+
+                transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
+            } else {
+                Future registerChannelFuture =
+                        nioTransport.getNioChannelDistributor().registerChannelAsync(
+                        socketChannel, SelectionKey.OP_CONNECT, newConnection,
+                        nioTransport.registerChannelCompletionHandler);
+
+                // Wait until the SelectableChannel will be registered on the Selector
+                waitNIOFuture(registerChannelFuture);
+            }
+        } catch (IOException e) {
+            return new ReadyFutureImpl(new ExecutionException(e));
         }
         
         return connectFuture;
