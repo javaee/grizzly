@@ -67,11 +67,11 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
         return super.flush(new ResetCounterCompletionHandler(completionHandler));
     }
     
-
     protected Future<Integer> flush0(Buffer current,
             CompletionHandler<Integer> completionHandler) throws IOException {
         current.flip();
-        UDPNIOTransport transport = (UDPNIOTransport) connection.getTransport();
+        final UDPNIOTransport transport = (UDPNIOTransport) connection.getTransport();
+
         if (isBlocking()) {
             TemporarySelectorWriter writer =
                     (TemporarySelectorWriter)

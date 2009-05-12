@@ -127,7 +127,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     /**
      * The Server connection.
      */
-    protected UDPNIOConnection serverConnection;
+    protected UDPNIOServerConnection serverConnection;
     /**
      * FilterChainFactory implementation
      */
@@ -216,7 +216,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
             }
 
             DatagramChannel serverSocketChannel = DatagramChannel.open();
-            serverConnection = new UDPNIOConnection(this, serverSocketChannel);
+            serverConnection = new UDPNIOServerConnection(this, serverSocketChannel);
 
             DatagramSocket socket = serverSocketChannel.socket();
             socket.setReuseAddress(reuseAddress);
@@ -229,6 +229,21 @@ public class UDPNIOTransport extends AbstractNIOTransport
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public void unbind() throws IOException {
+        state.getStateLocker().writeLock().lock();
+
+        try {
+            if (serverConnection != null) {
+                serverConnection.close();
+                serverConnection = null;
+            }
+        } finally {
+            state.getStateLocker().writeLock().unlock();
+        }
+    }
 
     public Future<Connection> connect(String host, int port)
             throws IOException {
@@ -601,14 +616,14 @@ public class UDPNIOTransport extends AbstractNIOTransport
             isAllocated = true;
         }
 
-        final int initalPos = buffer.position();
+        final int initialPos = buffer.position();
         SocketAddress srcAddress = null;
         
         if (buffer.hasRemaining()) {
             UDPNIOConnection udpConnection = (UDPNIOConnection) connection;
             srcAddress = ((DatagramChannel) udpConnection.getChannel()).receive(
                     (ByteBuffer) buffer.underlying());
-            read = buffer.position() - initalPos;
+            read = buffer.position() - initialPos;
         }
 
         if (isAllocated) {

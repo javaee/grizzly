@@ -93,9 +93,10 @@ public interface SocketBinder {
     public void bind(SocketAddress socketAddress, int backlog) throws IOException;
 
     /**
-     * Accept a {@link Connection}
+     * Unbinds {@link Transport}.
      *
-     * @return {@link Future}
      * @throws java.io.IOException
      */
+    public void unbind() throws IOException;
+
 }

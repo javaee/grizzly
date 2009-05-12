@@ -46,6 +46,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Filter;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.filterchain.StopAction;
 
 /**
@@ -67,11 +68,11 @@ public class UDPNIOTransportFilter extends FilterAdapter {
             NextAction nextAction) throws IOException {
         UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
 
-
         UDPNIOStreamReader reader =
                 (UDPNIOStreamReader) connection.getStreamReader();
-        Buffer buffer = reader.read0();
-        reader.appendBuffer(buffer);
+        ReadResult<Buffer, SocketAddress> result = reader.readAddressable0();
+        reader.appendBuffer(result.getMessage());
+        ctx.setAddress(result.getSrcAddress());
 
         if (reader.availableDataSize() > 0) {
             ctx.setStreamReader(connection.getStreamReader());

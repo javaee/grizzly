@@ -44,6 +44,7 @@ import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -93,6 +94,45 @@ public class TCPNIOTransportTest extends TestCase {
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testBindUnbind() throws Exception {
+        Connection connection = null;
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.close();
+
+            transport.unbind();
+
+            future = transport.connect("localhost", PORT);
+            try {
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue("Server connection should be closed!", false);
+            } catch (ExecutionException e) {
+                assertTrue(e.getCause() instanceof IOException);
+            }
+            assertTrue(connection != null);
+
+            transport.bind(PORT);
+
+            future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
         } finally {

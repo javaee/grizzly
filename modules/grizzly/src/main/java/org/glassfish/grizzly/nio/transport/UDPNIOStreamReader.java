@@ -40,6 +40,7 @@ package org.glassfish.grizzly.nio.transport;
 
 import java.io.EOFException;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import org.glassfish.grizzly.Buffer;
@@ -97,7 +98,6 @@ public class UDPNIOStreamReader extends AbstractStreamReader {
         }
     }
     
-
     private Future<Integer> notifyConditionNonBlocking(
             final Condition<StreamReader> condition,
             CompletionHandler<Integer> completionHandler) {
@@ -162,52 +162,64 @@ public class UDPNIOStreamReader extends AbstractStreamReader {
         return future;
     }
     
-    @Override
     protected Buffer read0() throws IOException {
-        Connection connection = getConnection();
-        
-        if (isBlocking()) {
-            UDPNIOTransport transport = (UDPNIOTransport) connection.getTransport();
-            Buffer buffer = newBuffer(bufferSize);
+        final ReadResult<Buffer, SocketAddress> result = readAddressable0();
+        if (result != null) {
+            return result.getMessage();
+        }
 
+        return null;
+    }
+
+    protected ReadResult<Buffer, SocketAddress> readAddressable0()
+            throws IOException {
+        
+        final Connection connection = getConnection();
+        final UDPNIOTransport transport =
+                (UDPNIOTransport) connection.getTransport();
+        final Buffer buffer = newBuffer(bufferSize);
+
+        if (isBlocking()) {
+
+            ReadResult<Buffer, SocketAddress> result;
             try {
                 TemporarySelectorReader reader =
                         (TemporarySelectorReader)
                         transport.getTemporarySelectorIO().getReader();
-                Future future = reader.read(connection, buffer, null, null,
+                Future<ReadResult<Buffer, SocketAddress>> future = reader.read(
+                        connection, buffer, null, null,
                         timeoutMillis, TimeUnit.MILLISECONDS);
-                future.get();
+                result = future.get();
                 buffer.trim();
             } catch (Exception e) {
                 buffer.dispose();
                 throw new EOFException();
             }
 
-            return buffer;
-            
-        } else {
-            UDPNIOTransport transport = (UDPNIOTransport) connection.getTransport();
-            Buffer buffer = newBuffer(bufferSize);
+            return result;
 
+        } else {
+            final ReadResult<Buffer, SocketAddress> result =
+                    new ReadResult<Buffer, SocketAddress>(connection);
+            
             try {
-                int readBytes = transport.read(connection, buffer);
+                int readBytes = transport.read(connection, buffer, result);
                 if (readBytes <= 0) {
                     if (readBytes == -1) {
                         throw new EOFException();
                     }
 
                     buffer.dispose();
-                    buffer = null;
+                    return null;
                 } else {
                     buffer.trim();
                 }
             } catch (IOException e) {
                 buffer.dispose();
-                buffer = null;
                 throw e;
             }
 
-            return buffer;
+            return result;
         }
     }
 }

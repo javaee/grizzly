@@ -39,12 +39,17 @@
 package org.glassfish.grizzly;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.nio.transport.UDPNIOConnection;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
+import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
+import org.glassfish.grizzly.util.EchoFilter;
 
 /**
  * Unit test for {@link UDPNIOTransport}
@@ -124,6 +129,51 @@ public class UDPNIOTransportTest extends TestCase {
                 writer.close();
             }
 
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void ttestSimpleEcho() throws Exception {
+        Connection connection = null;
+        StreamReader reader = null;
+        StreamWriter writer = null;
+        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new EchoFilter());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = (UDPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.configureBlocking(true);
+            connection.setProcessor(null);
+
+            byte[] originalMessage = "Hello".getBytes();
+            writer = connection.getStreamWriter();
+            writer.writeByteArray(originalMessage);
+            Future<Integer> writeFuture = writer.flush();
+
+            assertTrue("Write timeout", writeFuture.isDone());
+            assertEquals(originalMessage.length, (int) writeFuture.get());
+
+
+            reader = connection.getStreamReader();
+            Future readFuture = reader.notifyAvailable(originalMessage.length);
+            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
+
+            byte[] echoMessage = new byte[originalMessage.length];
+            reader.readByteArray(echoMessage);
+            assertTrue(Arrays.equals(echoMessage, originalMessage));
+        } finally {
             if (connection != null) {
                 connection.close();
             }

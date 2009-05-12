@@ -82,6 +82,10 @@ public class UDPNIOConnection extends AbstractNIOConnection<SocketAddress> {
         streamWriter = new UDPNIOStreamWriter(this);
     }
 
+    public boolean isConnected() {
+        return channel != null && ((DatagramChannel) channel).isConnected();
+    }
+
     public Future register() throws IOException {
         return transport.getNioChannelDistributor().registerChannelAsync(
                 channel, SelectionKey.OP_READ, this,

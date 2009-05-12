@@ -369,6 +369,22 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    public void unbind() throws IOException {
+        state.getStateLocker().writeLock().lock();
+
+        try {
+            if (serverConnection != null) {
+                serverConnection.close();
+                serverConnection = null;
+            }
+        } finally {
+            state.getStateLocker().writeLock().unlock();
+        }
+    }
+
     public Future<Connection> accept() throws IOException {
         return serverConnection.accept();
     }

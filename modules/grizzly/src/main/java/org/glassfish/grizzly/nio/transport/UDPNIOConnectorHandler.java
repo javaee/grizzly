@@ -113,6 +113,9 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             datagramChannel.connect(remoteAddress);
         }
         
+        newConnection.setProcessor(defaultProcessor);
+        newConnection.setProcessorSelector(defaultProcessorSelector);
+
         // if connected immediately - register channel on selector with OP_READ
         // interest
         Future<RegisterChannelResult> registerChannelFuture =
@@ -125,7 +128,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         // make sure completion handler is called
         nioTransport.registerChannelCompletionHandler.completed(null, result);
-
+        
         transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
         
         return new ReadyFutureImpl(newConnection);
