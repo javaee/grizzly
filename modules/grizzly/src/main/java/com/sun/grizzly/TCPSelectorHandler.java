@@ -43,7 +43,6 @@ import com.sun.grizzly.async.AsyncQueueReader;
 import com.sun.grizzly.async.AsyncQueueWriter;
 import com.sun.grizzly.async.TCPAsyncQueueWriter;
 import com.sun.grizzly.async.TCPAsyncQueueReader;
-import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.LinkedTransferQueue;
@@ -52,7 +51,6 @@ import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import java.io.IOException;
 import java.net.BindException;
-import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -1391,10 +1389,9 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * {@inheritDoc}
      */
     public int getSpinRate(){
-        if (emptySpinCounter == 0){
+        if (emptySpinCounter++ == 0){
             lastSpinTimestamp = System.nanoTime();
-        }else
-        if (++emptySpinCounter == 1000) {
+        } else if (emptySpinCounter == 1000) {
             long deltatime = System.nanoTime() - lastSpinTimestamp;
             int contspinspersec = (int) (1000 * 1000000000L / deltatime);
             emptySpinCounter  = 0;
