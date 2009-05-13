@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -72,12 +73,12 @@ public class StandaloneTest extends TestCase {
             transport.setProcessorSelector(new StandaloneProcessorSelector());
 
             // Start listen on specific port
-            transport.bind(PORT);
+            final TCPNIOServerConnection serverConnection = transport.bind(PORT);
             // Start transport
             transport.start();
 
             // Start echo server thread
-            startEchoServerThread(transport, messageSize);
+            startEchoServerThread(transport, serverConnection, messageSize);
 
             // Connect to the server
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
@@ -122,12 +123,13 @@ public class StandaloneTest extends TestCase {
     }
 
     private void startEchoServerThread(final TCPNIOTransport transport,
+            final TCPNIOServerConnection serverConnection,
             final int messageSize) {
         new Thread(new Runnable() {
             public void run() {
                 while(!transport.isStopped()) {
                     try {
-                        Future<Connection> acceptFuture = transport.accept();
+                        Future<Connection> acceptFuture = serverConnection.accept();
                         Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
                         assertTrue(acceptFuture.isDone());
 

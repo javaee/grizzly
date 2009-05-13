@@ -50,6 +50,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -125,9 +127,9 @@ public class UDPNIOTransport extends AbstractNIOTransport
             UDPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
 
     /**
-     * The Server connection.
+     * The Server connections.
      */
-    protected UDPNIOServerConnection serverConnection;
+    protected final Collection<UDPNIOServerConnection> serverConnections;
     /**
      * FilterChainFactory implementation
      */
@@ -171,52 +173,53 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
         filterChainFactory = patternFactory;
 
-
         defaultTransportFilter = new UDPNIOTransportFilter(this);
+        serverConnections = new ConcurrentLinkedQueue<UDPNIOServerConnection>();
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(int port) throws IOException {
-        bind(new InetSocketAddress(port));
+    public UDPNIOServerConnection bind(int port) throws IOException {
+        return bind(new InetSocketAddress(port));
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(String host, int port) throws IOException {
-        bind(host, port, 50);
+    public UDPNIOServerConnection bind(String host, int port)
+            throws IOException {
+        return bind(host, port, 50);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(String host, int port, int backlog) throws IOException {
-        bind(new InetSocketAddress(host, port), backlog);
+    public UDPNIOServerConnection bind(String host, int port, int backlog)
+            throws IOException {
+        return bind(new InetSocketAddress(host, port), backlog);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(SocketAddress socketAddress) throws IOException {
-        bind(socketAddress, 4096);
+    public UDPNIOServerConnection bind(SocketAddress socketAddress)
+            throws IOException {
+        return bind(socketAddress, 4096);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(SocketAddress socketAddress, int backlog) throws IOException {
+    public UDPNIOServerConnection bind(SocketAddress socketAddress, int backlog)
+            throws IOException {
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (state.getState(false) != State.STOP) {
-                Grizzly.logger.log(Level.WARNING,
-                        "Transport is not in STOPPED state!");
-            }
-
             DatagramChannel serverSocketChannel = DatagramChannel.open();
-            serverConnection = new UDPNIOServerConnection(this, serverSocketChannel);
+            final UDPNIOServerConnection serverConnection =
+                    new UDPNIOServerConnection(this, serverSocketChannel);
+            serverConnections.add(serverConnection);
 
             DatagramSocket socket = serverSocketChannel.socket();
             socket.setReuseAddress(reuseAddress);
@@ -224,6 +227,12 @@ public class UDPNIOTransport extends AbstractNIOTransport
             socket.bind(socketAddress);
 
             serverSocketChannel.configureBlocking(false);
+
+            if (!isStopped()) {
+                serverConnection.register();
+            }
+
+            return serverConnection;
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -232,14 +241,25 @@ public class UDPNIOTransport extends AbstractNIOTransport
     /**
      * {@inheritDoc}
      */
-    public void unbind() throws IOException {
+    public void unbind(Connection connection) throws IOException {
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (serverConnection != null) {
-                serverConnection.close();
-                serverConnection = null;
+            if (connection != null &&
+                    serverConnections.remove((UDPNIOServerConnection) connection)) {
+                connection.close();
             }
+        } finally {
+            state.getStateLocker().writeLock().unlock();
+        }
+    }
+
+    @Override
+    public void unbindAll() throws IOException {
+        state.getStateLocker().writeLock().lock();
+
+        try {
+            stopServerConnections();
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -353,17 +373,22 @@ public class UDPNIOTransport extends AbstractNIOTransport
                     new TemporarySelectorPool(selectorPoolSize));
 
             startSelectorRunners();
-
-            if (serverConnection != null) {
-                try {
-                    serverConnection.register().get(connectionTimeout,
-                            TimeUnit.MILLISECONDS);
-                } catch (Exception e) {
-                    throw new IOException("Can not register server connection");
-                }
-            }
+            
+            registerServerConnections();
         } finally {
             state.getStateLocker().writeLock().unlock();
+        }
+    }
+
+    private void registerServerConnections() {
+        for (UDPNIOServerConnection serverConnection : serverConnections) {
+            try {
+                serverConnection.register();
+            } catch (Exception e) {
+                logger.log(Level.WARNING,
+                        "Exception occurred when starting server connection: " +
+                        serverConnection, e);
+            }
         }
     }
 
@@ -380,12 +405,24 @@ public class UDPNIOTransport extends AbstractNIOTransport
                 internalThreadPool = null;
             }
 
-            if (serverConnection != null) {
-                serverConnection.close();
-            }
+            stopServerConnections();
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
+    }
+
+    private void stopServerConnections() {
+        for (Connection serverConnection : serverConnections) {
+            try {
+                serverConnection.close();
+            } catch (Exception e) {
+                logger.log(Level.FINE,
+                        "Exception occurred when closing server connection: " +
+                        serverConnection, e);
+            }
+        }
+
+        serverConnections.clear();
     }
 
     @Override
@@ -590,13 +627,17 @@ public class UDPNIOTransport extends AbstractNIOTransport
                 selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
     }
 
-    void disableInterest(NIOConnection connection,
-            IOEvent ioEvent) throws IOException {
-        SelectionKey key = connection.getSelectionKey();
+    void disableInterest(final NIOConnection connection, final IOEvent ioEvent)
+            throws IOException {
+        final int interest =
+                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent);
 
-        getSelectorHandler().unregisterKey(
-                connection.getSelectorRunner(), key,
-                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent));
+        final SelectionKey key = connection.getSelectionKey();
+
+        if (interest > 0) {
+            getSelectorHandler().unregisterKey(
+                    connection.getSelectorRunner(), key, interest);
+        }
     }
     
     public int read(Connection connection, Buffer buffer) throws IOException {

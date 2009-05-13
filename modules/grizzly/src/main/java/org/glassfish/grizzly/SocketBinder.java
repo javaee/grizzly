@@ -53,50 +53,68 @@ public interface SocketBinder {
      * Binds Transport to the specific port on localhost.
      *
      * @param port
+     * @return bound {@link Connection}
+     *
      * @throws java.io.IOException
      */
-    public void bind(int port) throws IOException;
+    public Connection bind(int port) throws IOException;
 
     /**
      * Binds Transport to the specific host and port.
      *
      * @param host the local host the server will bind to
      * @param port
+     * @return bound {@link Connection}
+     *
      * @throws java.io.IOException
      */
-    public void bind(String host, int port) throws IOException;
+    public Connection bind(String host, int port) throws IOException;
 
     /**
      * Binds Transport to the specific host and port.
      * @param host the local host the server will bind to
      * @param port
      * @param backlog the maximum length of the queue
+     * @return bound {@link Connection}
+     *
      * @throws java.io.IOException
      */
-    public void bind(String host, int port, int backlog) throws IOException;
+    public Connection bind(String host, int port, int backlog) throws IOException;
 
     /**
      * Binds Transport to the specific SocketAddress.
      *
      * @param socketAddress the local address the server will bind to
+     * @return bound {@link Connection}
+     *
      * @throws java.io.IOException
      */
-    public void bind(SocketAddress socketAddress) throws IOException;
+    public Connection bind(SocketAddress socketAddress) throws IOException;
 
     /**
      * Binds Transport to the specific SocketAddress.
      *
      * @param socketAddress the local address the server will bind to
      * @param backlog the maximum length of the queue
-     * @throws java.io.IOException
-     */
-    public void bind(SocketAddress socketAddress, int backlog) throws IOException;
-
-    /**
-     * Unbinds {@link Transport}.
+     * @return bound {@link Connection}
      *
      * @throws java.io.IOException
      */
-    public void unbind() throws IOException;
+    public Connection bind(SocketAddress socketAddress, int backlog) throws IOException;
+
+    /**
+     * Unbinds bound {@link Transport} connection.
+     * @param bound {@link Connection}
+     *
+     * @throws java.io.IOException
+     */
+    public void unbind(Connection connection) throws IOException;
+
+    /**
+     * Unbinds all bound {@link Transport} connections.
+     *
+     * @throws java.io.IOException
+     */
+    public void unbindAll() throws IOException;
 
 }

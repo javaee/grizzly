@@ -38,7 +38,10 @@
 
 package org.glassfish.grizzly.nio.transport;
 
+import java.io.IOException;
 import java.nio.channels.DatagramChannel;
+import java.util.logging.Level;
+import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.ProcessorSelector;
 
@@ -70,6 +73,18 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
         }
 
         return processorSelector;
+    }
+
+    @Override
+    protected void preClose() {
+        try {
+            ((UDPNIOTransport) transport).unbind(this);
+        } catch (IOException e) {
+            Grizzly.logger.log(Level.FINE,
+                    "Exception occurred, when unbind connection: " + this, e);
+        }
+
+        super.preClose();
     }
 
 

@@ -51,7 +51,6 @@ import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.nio.NIOConnection;
-import org.glassfish.grizzly.SocketAcceptor;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueReader;
 import org.glassfish.grizzly.asyncqueue.AsyncQueueWriter;
 import org.glassfish.grizzly.filterchain.DefaultFilterChain;
@@ -76,6 +75,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -103,7 +105,7 @@ import org.glassfish.grizzly.threadpool.ExtendedThreadPool;
  * @author Jean-Francois Arcand
  */
 public class TCPNIOTransport extends AbstractNIOTransport implements
-        SocketAcceptor, SocketBinder, SocketConnectorHandler,
+        SocketBinder, SocketConnectorHandler,
         AsyncQueueEnabledTransport, FilterChainEnabledTransport,
         TemporarySelectorsEnabledTransport {
 
@@ -118,9 +120,9 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
      */
     private static final int DEFAULT_SELECTOR_RUNNERS_COUNT = 2;
     /**
-     * The Server connection.
+     * The Server connections.
      */
-    protected TCPNIOServerConnection serverConnection;
+    protected final Collection<TCPNIOServerConnection> serverConnections;
     /**
      * FilterChainFactory implementation
      */
@@ -193,6 +195,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
 
         defaultTransportFilter = new TCPNIOTransportFilter(this);
+        serverConnections = new ConcurrentLinkedQueue<TCPNIOServerConnection>();
     }
 
     @Override
@@ -254,11 +257,21 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
             startSelectorRunners();
 
-            if (serverConnection != null) {
-                serverConnection.listen();
-            }
+            listenServerConnections();
         } finally {
             state.getStateLocker().writeLock().unlock();
+        }
+    }
+
+    private void listenServerConnections() {
+        for (TCPNIOServerConnection serverConnection : serverConnections) {
+            try {
+                serverConnection.listen();
+            } catch (Exception e) {
+                logger.log(Level.WARNING,
+                        "Exception occurred when starting server connection: " +
+                        serverConnection, e);
+            }
         }
     }
 
@@ -275,12 +288,24 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 internalThreadPool = null;
             }
 
-            if (serverConnection != null) {
-                serverConnection.close();
-            }
+            stopServerConnections();
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
+    }
+
+    private void stopServerConnections() {
+        for (Connection serverConnection : serverConnections) {
+            try {
+                serverConnection.close();
+            } catch (Exception e) {
+                logger.log(Level.FINE,
+                        "Exception occurred when closing server connection: " +
+                        serverConnection, e);
+            }
+        }
+
+        serverConnections.clear();
     }
 
     @Override
@@ -316,47 +341,48 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * {@inheritDoc}
      */
-    public void bind(int port) throws IOException {
-        bind(new InetSocketAddress(port));
+    public TCPNIOServerConnection bind(int port) throws IOException {
+        return bind(new InetSocketAddress(port));
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(String host, int port) throws IOException {
-        bind(host, port, 50);
+    public TCPNIOServerConnection bind(String host, int port)
+            throws IOException {
+        return bind(host, port, 50);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(String host, int port, int backlog) throws IOException {
-        bind(new InetSocketAddress(host, port), backlog);
+    public TCPNIOServerConnection bind(String host, int port, int backlog)
+            throws IOException {
+        return bind(new InetSocketAddress(host, port), backlog);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(SocketAddress socketAddress) throws IOException {
-        bind(socketAddress, 4096);
+    public TCPNIOServerConnection bind(SocketAddress socketAddress)
+            throws IOException {
+        return bind(socketAddress, 4096);
     }
 
     /**
      * {@inheritDoc}
      */
-    public void bind(SocketAddress socketAddress, int backlog) throws IOException {
+    public TCPNIOServerConnection bind(SocketAddress socketAddress, int backlog)
+            throws IOException {
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (state.getState(false) != State.STOP) {
-                Grizzly.logger.log(Level.WARNING,
-                        "Transport is not in STOPPED state!");
-            }
-
             ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
-            serverConnection = new TCPNIOServerConnection(this,
-                    serverSocketChannel);
+            final TCPNIOServerConnection serverConnection =
+                    new TCPNIOServerConnection(this, serverSocketChannel);
 
+            serverConnections.add(serverConnection);
+            
             ServerSocket serverSocket = serverSocketChannel.socket();
             serverSocket.setReuseAddress(reuseAddress);
             serverSocket.setSoTimeout(serverSocketSoTimeout);
@@ -364,6 +390,12 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             serverSocket.bind(socketAddress, backlog);
 
             serverSocketChannel.configureBlocking(false);
+
+            if (!isStopped()) {
+                serverConnection.listen();
+            }
+
+            return serverConnection;
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -372,21 +404,28 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * {@inheritDoc}
      */
-    public void unbind() throws IOException {
+    public void unbind(Connection connection) throws IOException {
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (serverConnection != null) {
-                serverConnection.close();
-                serverConnection = null;
+            if (connection != null &&
+                    serverConnections.remove((TCPNIOServerConnection) connection)) {
+                connection.close();
             }
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
     }
 
-    public Future<Connection> accept() throws IOException {
-        return serverConnection.accept();
+    @Override
+    public void unbindAll() throws IOException {
+        state.getStateLocker().writeLock().lock();
+
+        try {
+            stopServerConnections();
+        } finally {
+            state.getStateLocker().writeLock().unlock();
+        }
     }
 
     public Future<Connection> connect(String host, int port)
@@ -577,8 +616,8 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         this.temporarySelectorIO = temporarySelectorIO;
     }
 
-    public void fireIOEvent(IOEvent ioEvent, Connection connection,
-            Object strategyContext) throws IOException {
+    public void fireIOEvent(final IOEvent ioEvent, final Connection connection,
+            final Object strategyContext) throws IOException {
 
         try {
             // First of all try operations, which could run in standalone mode
@@ -590,7 +629,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                         strategyContext);
             } else {
                 if (ioEvent == IOEvent.SERVER_ACCEPT &&
-                        serverConnection.tryAccept()) {
+                        ((TCPNIOServerConnection) connection).tryAccept()) {
                     return;
                 }
 
@@ -695,13 +734,17 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
     }
 
-    void disableInterest(NIOConnection connection,
-            IOEvent ioEvent) throws IOException {
-        SelectionKey key = connection.getSelectionKey();
-        
-        getSelectorHandler().unregisterKey(
-                connection.getSelectorRunner(), key,
-                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent));
+    void disableInterest(final NIOConnection connection, final IOEvent ioEvent)
+            throws IOException {
+        final int interest =
+                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent);
+
+        final SelectionKey key = connection.getSelectionKey();
+
+        if (interest > 0) {
+            getSelectorHandler().unregisterKey(
+                    connection.getSelectorRunner(), key, interest);
+        }
     }
 
     public int read(Connection connection, Buffer buffer) throws IOException {

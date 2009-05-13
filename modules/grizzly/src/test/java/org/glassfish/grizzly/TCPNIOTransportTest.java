@@ -53,6 +53,7 @@ import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.StopAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
+import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
 import org.glassfish.grizzly.nio.transport.TCPNIOStreamReader;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -119,7 +120,7 @@ public class TCPNIOTransportTest extends TestCase {
             assertTrue(connection != null);
             connection.close();
 
-            transport.unbind();
+            transport.unbindAll();
 
             future = transport.connect("localhost", PORT);
             try {
@@ -135,6 +136,46 @@ public class TCPNIOTransportTest extends TestCase {
             future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testMultiBind() throws Exception {
+        Connection connection = null;
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+
+        try {
+            final TCPNIOServerConnection serverConnection1 = transport.bind(PORT);
+            final TCPNIOServerConnection serverConnection2 = transport.bind(PORT + 1);
+            
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.close();
+
+            future = transport.connect("localhost", PORT + 1);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.close();
+            
+            transport.unbind(serverConnection1);
+
+            future = transport.connect("localhost", PORT);
+            try {
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue("Server connection should be closed!", false);
+            } catch (ExecutionException e) {
+                assertTrue(e.getCause() instanceof IOException);
+            }
+
         } finally {
             if (connection != null) {
                 connection.close();

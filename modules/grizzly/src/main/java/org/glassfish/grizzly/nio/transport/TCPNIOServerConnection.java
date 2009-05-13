@@ -189,6 +189,15 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         if (acceptListener != null) {
             acceptListener.failure(new IOException("Connection is closed"));
         }
+
+        try {
+            ((TCPNIOTransport) transport).unbind(this);
+        } catch (IOException e) {
+            Grizzly.logger.log(Level.FINE,
+                    "Exception occurred, when unbind connection: " + this, e);
+        }
+
+        super.preClose();
     }
 
     protected void throwUnsupportReadWrite() {
