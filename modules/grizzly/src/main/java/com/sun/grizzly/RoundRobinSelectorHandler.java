@@ -124,6 +124,6 @@ public class RoundRobinSelectorHandler extends TCPSelectorHandler
      * @return{@link ReadController}
      */
     private ReadController nextController() {
-        return rrControllers[roundRobinCounter++ % rrControllers.length];
+        return rrControllers[((roundRobinCounter++) & 0x7fffffff) % rrControllers.length];
     }
 }
