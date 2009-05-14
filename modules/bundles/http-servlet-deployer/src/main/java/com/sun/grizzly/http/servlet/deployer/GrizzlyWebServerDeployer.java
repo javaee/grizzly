@@ -642,20 +642,62 @@ public class GrizzlyWebServerDeployer {
 	}
 
 	public void printHelpAndExit() {
+		System.err.println();
+		System.err.println();
         System.err.println("Usage: " + GrizzlyWebServerDeployer.class.getCanonicalName());
         System.err.println();
-        System.err.println("    -p, --port=port                  Runs Servlet on the specified port.");
-        System.err.println("                                     Default: 8080");
-        System.err.println("    -a, --application=application path      The Servlet folder or jar or war location.  Can append multiple application.  Separator = File.pathSeparator");
-        System.err.println("    -c, --context=context            The context that will be use for servlet or warfile");
-        System.err.println("    --dontstart=                     Default: false, Will not start the server until the start method is called.  Useful for Unit test");
-        System.err.println("    --libraryPath                    Add a libraries folder to the classpath.  Can append multiple folder.  Separator = File.pathSeparator");
-        System.err.println("    --cometEnabled                   Will start the AsyncFilter for Comet");
-        System.err.println("    --forceWarDeployment             Will force deployment of a war file over a expanded folder");
-        System.err.println("    --ajpEnabled		             Will enabled mod_jk");
-        System.err.println("    -h, --help                       Show this help message.");
+        System.err.println("  -p, --port=[port]           Runs Servlet on the specified port.");
+        System.err.println("  -a, --application=[path]    Application(s) path(s).");
+        System.err.println("  -c, --context=[context]     Force the context for a servlet.");
+        System.err.println("  --dontstart=[true/false]    Won't start the server.");
+        System.err.println("  --libraryPath=[path]        Add a libraries folder to the classpath.");
+        System.err.println("  --cometEnabled              Starts the AsyncFilter for Comet");
+        System.err.println("  --forceWarDeployment        Force war's deployment over a expanded folder.");
+        System.err.println("  --ajpEnabled                Enable mod_jk.");
+        System.err.println("  -h, --help                  Show this help message.");
+        System.err.println("  --longhelp                  Show detailled help message.");
         System.exit(1);
     }
+	
+	public void printLongHelpAndExit(){
+		System.err.println();
+		System.err.println();
+        System.err.println("Usage: " + GrizzlyWebServerDeployer.class.getCanonicalName());
+        System.err.println();
+        System.err.println("  -p, --port=[port]           Runs Servlet on the specified port.");
+        System.err.println("                              Default: 8080");
+        System.err.println();
+        System.err.println("  -a, --application=[path]    Application(s) path(s).");
+        System.err.println();
+        System.err.println("                              Application(s) deployed can be :");
+        System.err.println("                              Servlet(s), war(s) and expanded war folder(s).");
+        System.err.println("                              To deploy multiple applications");
+        System.err.println("                              use File.pathSeparator"); 
+        System.err.println();
+        System.err.println("                              Example : -a /app.war:/servlet/web.xml:/warfolder/");
+        System.err.println("  -c, --context=[context]     Force the context for a servlet.");
+        System.err.println("                              Only valid for servlet deployed using"); 
+        System.err.println("                              -a [path]/[filename].xml");
+        System.err.println();
+        System.err.println("  --dontstart=[true/false]    Won't start the server.");
+        System.err.println("                              You will need to call the start method.");
+        System.err.println("                              Useful for Unit testing.");
+        System.err.println();
+        System.err.println("  --libraryPath=[path]        Add a libraries folder to the classpath.");
+        System.err.println("                              You can append multiple folders using");
+        System.err.println("                              File.pathSeparator");
+        System.err.println();
+        System.err.println("                              Example : --libraryPath=/libs:/common_libs");
+        System.err.println();
+        System.err.println("  --cometEnabled              Starts the AsyncFilter for Comet.");
+        System.err.println("                              You need to active this for comet applications.");
+        System.err.println();
+        System.err.println("  --forceWarDeployment        Force war's deployment over a expanded folder.");
+        System.err.println("                              Will deploy the war instead of the folder.");
+        System.err.println();
+        System.err.println("  --ajpEnabled                Enable mod_jk.");
+        System.exit(1);
+	}
 	
 	public boolean parseOptions(String[] args) {
         // parse options
@@ -664,6 +706,8 @@ public class GrizzlyWebServerDeployer {
 
             if ("-h".equals(arg) || "--help".equals(arg)) {
                 printHelpAndExit();
+            } else if("--longhelp".equals(arg)){
+            	printLongHelpAndExit();
             } else if ("-a".equals(arg)) {
                 i++;
                 if(i<args.length){
