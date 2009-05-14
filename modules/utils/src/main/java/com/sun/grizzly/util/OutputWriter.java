@@ -100,12 +100,14 @@ public class OutputWriter {
         int attempts = 0;
         int nWrite = 0;
         int len = -1;
+        long elapsedTime = 0;
         try {
             WritableByteChannel writableChannel = (WritableByteChannel) channel;
             while ( bb.hasRemaining() ) {
                 len = writableChannel.write(bb);
                 if (len > 0){
                     attempts = 0;
+                    elapsedTime = 0;
                     nWrite += len;
                 } else {
                     attempts++;
@@ -119,10 +121,12 @@ public class OutputWriter {
                              SelectionKey.OP_WRITE);
                     }
                     
+                    long startTime = System.currentTimeMillis();
                     if (writeSelector.select(writeTimeout) == 0) {
-                        if (attempts > 2)
-                            throw new IOException("Client disconnected");
-                    } 
+                        elapsedTime += (System.currentTimeMillis() - startTime);
+                        if (attempts > 2 && ( writeTimeout > 0 && elapsedTime >= writeTimeout ) )
+                            throw new IOException("Client is busy or timed out");
+                    }
                 }
             }   
         } catch (IOException ex){
@@ -198,11 +202,13 @@ public class OutputWriter {
         
         long nWrite = 0;
         long len = -1;
+        long elapsedTime = 0;
         try {
             while (nWrite < totalBytes ) {
                 len = socketChannel.write(bb);
                 if (len > 0){
                     attempts = 0;
+                    elapsedTime = 0;
                     nWrite += len;
                 } else {
                     if ( writeSelector == null ){
@@ -215,10 +221,12 @@ public class OutputWriter {
                     
                     key = socketChannel.register(writeSelector,  
                                                  SelectionKey.OP_WRITE);
-                    
+
+                    long startTime = System.currentTimeMillis();
                     if (writeSelector.select(writeTimeout) == 0) {
-                        if (attempts > 2)
-                            throw new IOException("Client disconnected");
+                        elapsedTime += (System.currentTimeMillis() - startTime);
+                        if (attempts > 2 && ( writeTimeout > 0 && elapsedTime >= writeTimeout ) )
+                            throw new IOException("Client is busy or timed out");
                     } 
                 } 
             }   
@@ -298,11 +306,13 @@ public class OutputWriter {
         Selector writeSelector = null;
         int attempts = 0;
         int nWrite = 0;
+        long elapsedTime = 0;
         try {
             while ( bb.hasRemaining() ) {
                 int len = datagramChannel.send(bb,socketAddress);
                 if (len > 0){
                     attempts = 0;
+                    elapsedTime = 0;
                     nWrite += len;
                 } else {
                     if ( writeSelector == null ){
@@ -315,10 +325,12 @@ public class OutputWriter {
                     
                     key = datagramChannel.register(writeSelector, 
                                                    SelectionKey.OP_WRITE);
-                    
+
+                    long startTime = System.currentTimeMillis();
                     if (writeSelector.select(writeTimeout) == 0) {
-                        if (attempts > 2)
-                            throw new IOException("Client disconnected");
+                        elapsedTime += (System.currentTimeMillis() - startTime);
+                        if (attempts > 2 && ( writeTimeout > 0 && elapsedTime >= writeTimeout ) )
+                            throw new IOException("Client is busy or timed out");
                     } else {
                         attempts--;
                     }
