@@ -643,31 +643,28 @@ public class GrizzlyWebServerDeployer {
 
 	public void printHelpAndExit() {
 		System.err.println();
-		System.err.println();
         System.err.println("Usage: " + GrizzlyWebServerDeployer.class.getCanonicalName());
         System.err.println();
-        System.err.println("  -p, --port=[port]           Runs Servlet on the specified port.");
-        System.err.println("  -a, --application=[path]    Application(s) path(s).");
-        System.err.println("  -c, --context=[context]     Force the context for a servlet.");
+        System.err.println("  --application=[path]*       Application(s) path(s).");
+        System.err.println("  --port=[port]               Runs Servlet on the specified port.");
+        System.err.println("  --context=[context]         Force the context for a servlet.");
         System.err.println("  --dontstart=[true/false]    Won't start the server.");
         System.err.println("  --libraryPath=[path]        Add a libraries folder to the classpath.");
         System.err.println("  --cometEnabled              Starts the AsyncFilter for Comet");
-        System.err.println("  --forceWarDeployment        Force war's deployment over a expanded folder.");
+        System.err.println("  --forceWar                  Force war's deployment over a expanded folder.");
         System.err.println("  --ajpEnabled                Enable mod_jk.");
-        System.err.println("  -h, --help                  Show this help message.");
+        System.err.println("  --help                      Show this help message.");
         System.err.println("  --longhelp                  Show detailled help message.");
+        System.err.println();
+        System.err.println("  * are mandatory");
         System.exit(1);
     }
 	
 	public void printLongHelpAndExit(){
 		System.err.println();
-		System.err.println();
         System.err.println("Usage: " + GrizzlyWebServerDeployer.class.getCanonicalName());
         System.err.println();
-        System.err.println("  -p, --port=[port]           Runs Servlet on the specified port.");
-        System.err.println("                              Default: 8080");
-        System.err.println();
-        System.err.println("  -a, --application=[path]    Application(s) path(s).");
+        System.err.println("  -a, --application=[path]*   Application(s) path(s).");
         System.err.println();
         System.err.println("                              Application(s) deployed can be :");
         System.err.println("                              Servlet(s), war(s) and expanded war folder(s).");
@@ -675,6 +672,10 @@ public class GrizzlyWebServerDeployer {
         System.err.println("                              use File.pathSeparator"); 
         System.err.println();
         System.err.println("                              Example : -a /app.war:/servlet/web.xml:/warfolder/");
+        System.err.println();
+        System.err.println("  -p, --port=[port]           Runs Servlet on the specified port.");
+        System.err.println("                              Default: 8080");
+        System.err.println();
         System.err.println("  -c, --context=[context]     Force the context for a servlet.");
         System.err.println("                              Only valid for servlet deployed using"); 
         System.err.println("                              -a [path]/[filename].xml");
@@ -682,6 +683,7 @@ public class GrizzlyWebServerDeployer {
         System.err.println("  --dontstart=[true/false]    Won't start the server.");
         System.err.println("                              You will need to call the start method.");
         System.err.println("                              Useful for Unit testing.");
+        System.err.println("                              Default : false");
         System.err.println();
         System.err.println("  --libraryPath=[path]        Add a libraries folder to the classpath.");
         System.err.println("                              You can append multiple folders using");
@@ -689,13 +691,20 @@ public class GrizzlyWebServerDeployer {
         System.err.println();
         System.err.println("                              Example : --libraryPath=/libs:/common_libs");
         System.err.println();
-        System.err.println("  --cometEnabled              Starts the AsyncFilter for Comet.");
+        System.err.println("  --cometEnabled=[true/false] Starts the AsyncFilter for Comet.");
         System.err.println("                              You need to active this for comet applications.");
+        System.err.println("                              Default : false");
         System.err.println();
-        System.err.println("  --forceWarDeployment        Force war's deployment over a expanded folder.");
+        System.err.println("  --forceWar=[true/false]     Force war's deployment over a expanded folder.");
         System.err.println("                              Will deploy the war instead of the folder.");
+        System.err.println("                              Default : false");
         System.err.println();
-        System.err.println("  --ajpEnabled                Enable mod_jk.");
+        System.err.println("  --ajpEnabled=[true/false]   Enable mod_jk.");
+        System.err.println("                              Default : false");
+        System.err.println();
+        System.err.println("  Default values will be applied if invalid values are passed.");
+        System.err.println();
+        System.err.println("  * are mandatory");
         System.exit(1);
 	}
 	
@@ -731,17 +740,16 @@ public class GrizzlyWebServerDeployer {
             } else if (arg.startsWith("--context=")) {
             	setForcedContext(arg.substring("--context=".length(), arg.length()));
             } else if (arg.startsWith("--dontstart=")) {
-                String waitToStart = arg.substring("--dontstart=".length(), arg.length());
-                setWaitToStart(waitToStart);
+                setWaitToStart(Boolean.parseBoolean(arg.substring("--dontstart=".length(), arg.length())));
             } else if (arg.startsWith("--libraryPath=")) {
                 String value = arg.substring("--libraryPath=".length(), arg.length());
                 setLibraryPath(value);
-            } else if (arg.startsWith("--cometEnabled")) {
-            	setCometEnabled(true);
-            } else if(arg.startsWith("--forceWarDeployment")){
-            	setForceWarDeployment(true);
+            } else if (arg.startsWith("--cometEnabled=")) {
+            	setCometEnabled(Boolean.parseBoolean(arg.substring("--cometEnabled=".length(), arg.length())));
+            } else if(arg.startsWith("--forceWar")){
+            	setForceWarDeployment(Boolean.parseBoolean(arg.substring("--forceWar=".length(), arg.length())));
             } else if(arg.startsWith("--ajpEnabled")){
-            	setAjpEnabled(true);
+            	setAjpEnabled(Boolean.parseBoolean(arg.substring("--ajpEnabled=".length(), arg.length())));
             }
             
         }
@@ -1016,10 +1024,8 @@ public class GrizzlyWebServerDeployer {
 
     }
     
-    private void setWaitToStart(String dontStart){
-    	if(dontStart!=null && dontStart.equalsIgnoreCase("true")){
-    		waitToStart = true;
-    	}
+    private void setWaitToStart(boolean dontStart){
+    	waitToStart = dontStart;
     }
     
     private String getForcedContext() {
