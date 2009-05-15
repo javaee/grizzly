@@ -433,6 +433,10 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param ctx - the {@link Context}
      */
     public void returnContext(Context ctx) {
+        if (ctx.decrementRefCount() > 0) {
+            return;
+        }
+        
         if (!allowContextCaching) {
             final Thread thread = Thread.currentThread();
             if (thread instanceof WorkerThreadImpl) {
@@ -443,10 +447,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 }
             }
 
-            return;
-        }
-        
-        if (ctx.decrementRefCount() > 0) {
             return;
         }
 
