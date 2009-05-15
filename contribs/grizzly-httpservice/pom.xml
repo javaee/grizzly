@@ -130,7 +130,7 @@
         <artifactId>maven-pax-plugin</artifactId>
         <version>1.4</version>
         <configuration>
-          <profiles>log</profiles>
+            <!--<profiles>log</profiles>-->
           <args>file:src/main/etc/pax.args</args>
         </configuration>
       </plugin>
