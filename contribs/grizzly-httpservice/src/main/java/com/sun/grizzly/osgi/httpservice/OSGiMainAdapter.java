@@ -172,6 +172,7 @@ public class OSGiMainAdapter extends GrizzlyAdapter implements OSGiGrizzlyAdapte
 
             OSGiServletAdapter servletAdapter =
                     findOrCreateOSGiServletAdapter(servlet, context, initparams);
+            servletAdapter.setServletPath(alias);
 
             logger.debug("Initializing Servlet been registered");
             servletAdapter.startServlet(); // this might throw ServletException, throw it to offending bundle.

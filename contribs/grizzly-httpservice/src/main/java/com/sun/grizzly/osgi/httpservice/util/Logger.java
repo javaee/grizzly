@@ -56,7 +56,8 @@ public class Logger {
     private void log(final int logLevel, final String msg) {
         LogService log = (LogService) logTracker.getService();
         if (log == null) {
-            System.out.println(msg);
+            if (logLevel < LogService.LOG_WARNING)
+                System.out.println(msg);
         } else {
             log.log(logLevel, msg);
         }

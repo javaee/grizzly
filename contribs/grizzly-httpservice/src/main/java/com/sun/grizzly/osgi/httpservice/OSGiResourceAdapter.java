@@ -95,7 +95,7 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
         String path = requestURI.replaceFirst(alias, prefix);
         try {
             // authentication
-            if (!authenticate(request, response)) {
+            if (!authenticate(request, response, new OSGiServletContext(httpContext, logger))) {
                 logger.debug("OSGiResourceAdapter Request not authenticated (" + requestURI + ").");
                 return;
             }
@@ -129,10 +129,16 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
             final GrizzlyOutputStream os = response.getOutputStream();
 
             byte buff[] = new byte[length];
-            final int read = is.read(buff);
-            os.write(buff, 0, read);
+            int read, total = 0;
+            while ((read = is.read(buff)) != -1) {
+                total += read;
+                os.write(buff, 0, read);
+            }
             os.flush();
             response.finishResponse();
+            if (total != length) {
+                logger.warn("Was supposed to send " + length + ", but sent " + total);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -145,11 +151,13 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
      *
      * @param request  Request to authenticate.
      * @param response Response to populate if authentication not performed but needed.
+     * @param servletContext Context neede for proper HttpServletRequest creation.
      * @return <code>true</code> iff authenticated and can proceed with processing, else <code>false</code>.
      * @throws IOException Propaget exception thrown by {@link HttpContext#handleSecurity}.
      */
-    private boolean authenticate(GrizzlyRequest request, GrizzlyResponse response) throws IOException {
-        return httpContext.handleSecurity(new HttpServletRequestImpl(request), new HttpServletResponseImpl(response));
+    private boolean authenticate(GrizzlyRequest request, GrizzlyResponse response, OSGiServletContext servletContext) throws IOException {
+        HttpServletRequestImpl httpRequest = new OSGiHttpServletRequest(request, servletContext);
+        return httpContext.handleSecurity(httpRequest, new HttpServletResponseImpl(response));
     }
 
     /**
@@ -164,5 +172,13 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
      */
     public ReentrantReadWriteLock.WriteLock getRemovalLock() {
         return lock.writeLock();
+    }
+
+    private class OSGiHttpServletRequest extends HttpServletRequestImpl {
+        public OSGiHttpServletRequest(
+                GrizzlyRequest request, OSGiServletContext context) throws IOException {
+            super(request);
+            setContextImpl(context);
+        }
     }
 }
