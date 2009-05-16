@@ -105,6 +105,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
      * Construct a wrapper for the specified request.
      *
      * @param request The request to be wrapped
+     * @throws IOException if an input/output error occurs
      */
     public HttpServletRequestImpl(GrizzlyRequest request) throws IOException {
         this.request = request;
@@ -785,7 +786,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         pathToRemove.append(getServletPath());
         String s = pathToRemove.toString();
         if (path.startsWith(s)){
-            return path.substring(s.length());
+            String pathInfo = path.substring(s.length());
+            return "".equals(pathInfo) ? null : pathInfo;
         } else {
             throw new IllegalStateException("Request path not in servlet context.");
         }
@@ -1100,7 +1102,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     
      /**
      * Set the underlying {@link ServletContextImpl}
-     * @param Set the underlying {@link ServletContextImpl}
+     * @param contextImpl the underlying {@link ServletContextImpl}
      */
     protected void setContextImpl(ServletContextImpl contextImpl) {
         this.contextImpl = contextImpl;
@@ -1109,7 +1111,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
   
     /**
      * Programmaticaly set the servlet path value. Default is an empty String.
-     * @param servletPath
+     * @param servletPath Servlet path to set.
      */
     protected void setServletPath(String servletPath){
         this.servletPath = servletPath;
