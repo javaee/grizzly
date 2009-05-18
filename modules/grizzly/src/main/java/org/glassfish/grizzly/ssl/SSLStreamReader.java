@@ -146,9 +146,9 @@ public class SSLStreamReader extends StreamReaderDecorator {
         
         LinkedList<Buffer> attachedBuffers = sslAttribute.remove(connection.getAttributes());
         if (attachedBuffers != null) {
-            buffers = attachedBuffers;
-        } else if (buffers == null) {
-            buffers = new LinkedList<Buffer>();
+            dataRecords = attachedBuffers;
+        } else if (dataRecords == null) {
+            dataRecords = new LinkedList<Buffer>();
         }
     }
 
@@ -156,9 +156,9 @@ public class SSLStreamReader extends StreamReaderDecorator {
      * Save state of this {@link SSLStreamReader} into {@link Connection}.
      */
     protected void detach() {
-        if (buffers != null && !buffers.isEmpty()) {
-            sslAttribute.set(getConnection().obtainAttributes(), buffers);
-            buffers = null;
+        if (dataRecords != null && !dataRecords.isEmpty()) {
+            sslAttribute.set(getConnection().obtainAttributes(), dataRecords);
+            dataRecords = null;
         }
     }
 
@@ -191,5 +191,15 @@ public class SSLStreamReader extends StreamReaderDecorator {
                 bufferSize = appBufferSize;
             }
         }
+    }
+
+    @Override
+    protected final Object wrap(Buffer buffer) {
+        return buffer;
+    }
+
+    @Override
+    protected Buffer unwrap(Object data) {
+        return (Buffer) data;
     }
 }

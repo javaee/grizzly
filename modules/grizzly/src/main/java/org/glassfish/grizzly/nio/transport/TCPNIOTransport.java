@@ -75,7 +75,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
@@ -747,12 +746,13 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    public int read(Connection connection, Buffer buffer) throws IOException {
+    public int read(final Connection connection, final Buffer buffer)
+            throws IOException {
         return read(connection, buffer, null);
     }
 
-    public int read(Connection connection, Buffer buffer,
-            ReadResult currentResult) throws IOException {
+    public int read(final Connection connection, Buffer buffer,
+            final ReadResult currentResult) throws IOException {
 
         int read = 0;
 

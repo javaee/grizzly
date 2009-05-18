@@ -125,8 +125,8 @@ public abstract class AbstractNIOAsyncQueueWriter
         boolean isLockedByMe = false;
 
         // create and initialize the write queue record
-        AsyncWriteQueueRecord record = new AsyncWriteQueueRecord();
-        record.set(buffer, future, currentResult, completionHandler,
+        AsyncWriteQueueRecord queueRecord = new AsyncWriteQueueRecord();
+        queueRecord.set(buffer, future, currentResult, completionHandler,
                 interceptor, dstAddress);
 
         // If AsyncQueue is empty - try to write Buffer here
@@ -136,7 +136,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     lock.tryLock()) {
                 isLockedByMe = true;
                 // Strong comparison for null, because we're in locked region
-                if (currentElement.compareAndSet(null, record)) {
+                if (currentElement.compareAndSet(null, queueRecord)) {
                     doWrite(connection, currentResult, completionHandler,
                             (SocketAddress) dstAddress, buffer);
                 } else {
@@ -148,7 +148,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             if (isLockedByMe && isFinished(connection, buffer)) {
                 // If buffer was written directly - set next queue element as current
                 // Notify callback handler
-                onWriteCompleted(connection, record);
+                onWriteCompleted(connection, queueRecord);
                 
                 AsyncWriteQueueRecord nextRecord = queue.poll();
                 if (nextRecord != null) { // if there is something in queue
@@ -168,15 +168,15 @@ public abstract class AbstractNIOAsyncQueueWriter
                 if (cloner != null) {
                     // clone message
                     buffer = cloner.clone(connection, buffer);
-                    record.setBuffer(buffer);
-                    record.setCloned(true);
+                    queueRecord.setBuffer(buffer);
+                    queueRecord.setCloned(true);
                 }
 
                 boolean isRegisterForWriting = false;
 
                 // add new element to the queue, if it's not current
-                if (currentElement.get() != record) {
-                    queue.offer(record); // add to queue
+                if (currentElement.get() != queueRecord) {
+                    queue.offer(queueRecord); // add to queue
                     if (!lock.isLocked()) {
                         isRegisterForWriting = true;
                     }
@@ -193,7 +193,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
             }
         } catch (IOException e) {
-            onWriteFailure(connection, record, e);
+            onWriteFailure(connection, queueRecord, e);
             throw e;
         } finally {
             if (isLockedByMe) {

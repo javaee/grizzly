@@ -112,24 +112,26 @@ public class UDPNIOStreamReader extends AbstractStreamReader {
                 transport.getAsyncQueueIO().getReader().read(connection, null, null,
                         new Interceptor() {
 
-                            public int intercept(int event, Object context, Object result) {
+                            public int intercept(final int event,
+                                    final Object context, final Object result) {
+
                                 if (event == Reader.READ_EVENT) {
-                                    ReadResult readResult = (ReadResult) result;
-                                    Buffer buffer = (Buffer) readResult.getMessage();
-                                    readResult.setMessage(null);
+                                    final ReadResult readResult = (ReadResult) result;
+                                    final Buffer buffer = (Buffer) readResult.getMessage();
 
                                     if (buffer == null) {
                                         return Interceptor.INCOMPLETED;
                                     }
 
                                     buffer.flip();
-                                    appendBuffer(buffer);
+                                    append(readResult);
 
                                     if (future.isDone()) {
                                         return Interceptor.COMPLETED;
                                     }
 
-                                    return Interceptor.INCOMPLETED;
+                                    return Interceptor.INCOMPLETED |
+                                            Interceptor.RESET;
                                 }
 
                                 return Interceptor.DEFAULT;
@@ -152,8 +154,8 @@ public class UDPNIOStreamReader extends AbstractStreamReader {
 
         try {
             while (!future.isDone()) {
-                Buffer buffer = read0();
-                appendBuffer(buffer);
+                Object data = read0();
+                append(data);
             }
         } catch (Exception e) {
             future.failure(e);
@@ -162,13 +164,8 @@ public class UDPNIOStreamReader extends AbstractStreamReader {
         return future;
     }
     
-    protected Buffer read0() throws IOException {
-        final ReadResult<Buffer, SocketAddress> result = readAddressable0();
-        if (result != null) {
-            return result.getMessage();
-        }
-
-        return null;
+    protected ReadResult read0() throws IOException {
+        return readAddressable0();
     }
 
     protected ReadResult<Buffer, SocketAddress> readAddressable0()
@@ -221,5 +218,15 @@ public class UDPNIOStreamReader extends AbstractStreamReader {
 
             return result;
         }
+    }
+
+    @Override
+    protected Object wrap(Buffer buffer) {
+        return new ReadResult(getConnection(), buffer, null, buffer.remaining());
+    }
+
+    @Override
+    protected Buffer unwrap(Object record) {
+        return ((ReadResult<Buffer, SocketAddress>) record).getMessage();
     }
 }

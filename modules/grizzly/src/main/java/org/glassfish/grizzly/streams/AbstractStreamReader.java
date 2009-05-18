@@ -107,9 +107,9 @@ public abstract class AbstractStreamReader implements StreamReader {
     // since we just need to ensure the visibility of the value of current to
     // all threads.
     //
-    protected LinkedList<Buffer> buffers;
+    protected LinkedList dataRecords;
     private int queueSize;
-    private Buffer current;
+    private Object current;
     private boolean closed;
     protected NotifyObject notifyObject;
 
@@ -125,7 +125,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     protected AbstractStreamReader(Connection connection) {
         setConnection(connection);
-        buffers = new LinkedList<Buffer>();
+        dataRecords = new LinkedList();
         queueSize = 0;
         current = null;
         closed = false;
@@ -152,19 +152,25 @@ public abstract class AbstractStreamReader implements StreamReader {
     /**
      * {@inheritDoc}
      */
-    public boolean prependBuffer(Buffer buffer) {
-        if (buffer == null) {
+    public boolean prependBuffer(final Buffer buffer) {
+        return prepend(wrap(buffer));
+    }
+
+    protected boolean prepend(final Object data) {
+        if (data == null) {
             return false;
         }
+
+        final Buffer buffer = unwrap(data);
 
         if (closed) {
             buffer.dispose();
         } else {
             if (buffer.hasRemaining()) {
                 if (current == null) {
-                    current = buffer;
+                    current = data;
                 } else {
-                    buffers.addFirst(buffer);
+                    dataRecords.addFirst(data);
                     queueSize += buffer.remaining();
                 }
             }
@@ -179,18 +185,24 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     public boolean appendBuffer(final Buffer buffer) {
-        if (buffer == null) {
+        return append(wrap(buffer));
+    }
+
+    protected boolean append(final Object data) {
+        if (data == null) {
             return false;
         }
+
+        final Buffer buffer = unwrap(data);
 
         if (closed) {
             buffer.dispose();
         } else {
             if (buffer.hasRemaining()) {
                 if (current == null) {
-                    current = buffer;
+                    current = data;
                 } else {
-                    buffers.addLast(buffer);
+                    dataRecords.addLast(data);
                     queueSize += buffer.remaining();
                 }
             }
@@ -221,15 +233,15 @@ public abstract class AbstractStreamReader implements StreamReader {
         closed = true;
 
         if (current != null) {
-            current.dispose();
+            unwrap(current).dispose();
             current = null;
         }
 
-        if (buffers != null) {
-            for (Buffer bw : buffers) {
-                bw.dispose();
+        if (dataRecords != null) {
+            for (Object record : dataRecords) {
+                unwrap(record).dispose();
             }
-            buffers = null;
+            dataRecords = null;
         }
         queueSize = 0;
 
@@ -253,15 +265,15 @@ public abstract class AbstractStreamReader implements StreamReader {
         if (current == null) {
             return 0;
         } else {
-            return current.remaining();
+            return unwrap(current).remaining();
         }
     }
 
     private boolean checkRemaining(int size) throws IOException {
-        if (current == null || !current.hasRemaining()) {
+        if (current == null || !unwrap(current).hasRemaining()) {
             ensureRead();
         }
-        return current.remaining() >= size;
+        return unwrap(current).remaining() >= size;
     }
 
     // After this call, current must contain at least size bytes.
@@ -278,14 +290,14 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
         // First ensure that there is enough space
 
-        Buffer next = pollBuffer();
+        Object next = poll();
 
         if (next == null) {
             if (readIfEmpty) {
-                Buffer buffer = read0();
-                if (buffer != null) {
-                    appendBuffer(buffer);
-                    next = pollBuffer();
+                Object data = read0();
+                if (data != null) {
+                    append(data);
+                    next = poll();
                 }
 
                 if (next == null) {
@@ -296,23 +308,32 @@ public abstract class AbstractStreamReader implements StreamReader {
             }
         }
 
-        next.position(0);
-
         if (current != null) {
-            current.dispose();
+            unwrap(current).dispose();
         }
         current = next;
 
         if (DEBUG) {
-            displayBuffer("current", current);
+            displayBuffer("current", unwrap(current));
         }
     }
 
     protected Buffer pollBuffer() {
-        if (!buffers.isEmpty()) {
-            Buffer buffer = buffers.removeFirst();
+        if (!dataRecords.isEmpty()) {
+            Object data = dataRecords.removeFirst();
+            final Buffer buffer = unwrap(data);
             queueSize -= buffer.remaining();
             return buffer;
+        }
+
+        return null;
+    }
+
+    protected Object poll() {
+        if (!dataRecords.isEmpty()) {
+            Object data = dataRecords.removeFirst();
+            queueSize -= unwrap(data).remaining();
+            return data;
         }
 
         return null;
@@ -332,7 +353,7 @@ public abstract class AbstractStreamReader implements StreamReader {
         if (!checkRemaining(1)) {
             ensureRead();
         }
-        return current.get() == 1 ? true : false;
+        return unwrap(current).get() == 1 ? true : false;
     }
 
     /**
@@ -342,7 +363,7 @@ public abstract class AbstractStreamReader implements StreamReader {
         if (!checkRemaining(1)) {
             ensureRead();
         }
-        return current.get();
+        return unwrap(current).get();
     }
 
     /**
@@ -350,7 +371,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public char readChar()  throws IOException {
         if (checkRemaining(2)) {
-            return current.getChar();
+            return unwrap(current).getChar();
         }
         return (char) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
@@ -360,7 +381,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public short readShort() throws IOException {
         if (checkRemaining(2)) {
-            return current.getShort();
+            return unwrap(current).getShort();
         }
         return (short) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
@@ -370,7 +391,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public int readInt() throws IOException {
         if (checkRemaining(4)) {
-            return current.getInt();
+            return unwrap(current).getInt();
         }
         return (readShort() & 0xffff) << 16 | readShort() & 0xffff;
     }
@@ -380,7 +401,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public long readLong() throws IOException {
         if (checkRemaining(8)) {
-            return current.getLong();
+            return unwrap(current).getLong();
         }
         return (readInt() & 0xffffffffL) << 32 | readInt() & 0xffffffffL;
     }
@@ -390,7 +411,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     final public float readFloat() throws IOException {
         if (checkRemaining(4)) {
-            return current.getFloat();
+            return unwrap(current).getFloat();
         }
 
 
@@ -402,7 +423,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     final public double readDouble() throws IOException {
         if (checkRemaining(8)) {
-            return current.getDouble();
+            return unwrap(current).getDouble();
         }
         return Double.longBitsToDouble(readLong());
     }
@@ -437,7 +458,7 @@ public abstract class AbstractStreamReader implements StreamReader {
         arraySizeCheck(length);
         while (true) {
             checkRemaining(1);
-            final Buffer typedBuffer = current;
+            final Buffer typedBuffer = unwrap(current);
             int dataSizeToRead = length;
             if (dataSizeToRead > typedBuffer.remaining()) {
                 dataSizeToRead = typedBuffer.remaining();
@@ -460,15 +481,15 @@ public abstract class AbstractStreamReader implements StreamReader {
         buffer.reset();
         arraySizeCheck(buffer.remaining());
         while (true) {
-
             checkRemaining(1);
-            if (buffer.remaining() > current.remaining()) {
-                buffer.put(current);
+            final Buffer typedBuffer = unwrap(current);
+            if (buffer.remaining() > typedBuffer.remaining()) {
+                buffer.put(typedBuffer);
             } else {
-                final int save = current.limit();
-                current.limit(buffer.remaining());
-                final Buffer tail = current.slice();
-                current.limit(save);
+                final int save = typedBuffer.limit();
+                typedBuffer.limit(buffer.remaining());
+                final Buffer tail = typedBuffer.slice();
+                typedBuffer.limit(save);
                 buffer.put(tail);
                 break;
             }
@@ -586,7 +607,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public Buffer readBuffer() throws IOException {
         checkRemaining(1);
-        Buffer retBuffer = current;
+        final Buffer retBuffer = unwrap(current);
         current = null;
         return retBuffer;
     }
@@ -603,16 +624,16 @@ public abstract class AbstractStreamReader implements StreamReader {
             }
         }
 
-        return current;
+        return unwrap(current);
     }
 
     /**
      * {@inheritDoc}
      */
     public void finishBuffer() {
-        Buffer next = pollBuffer();
+        Object next = poll();
         if (next != null) {
-            queueSize -= next.remaining();
+            queueSize -= unwrap(next).remaining();
         }
         
         current = next;
@@ -681,6 +702,10 @@ public abstract class AbstractStreamReader implements StreamReader {
         }
     }
 
-    protected abstract Buffer read0() throws IOException;
+    protected abstract Object read0() throws IOException;
+
+    protected abstract Object wrap(Buffer buffer);
+
+    protected abstract Buffer unwrap(Object data);
 }
 

@@ -47,6 +47,7 @@ public interface Interceptor<R> {
     public static final int DEFAULT = 0;
     public static final int COMPLETED = 1;
     public static final int INCOMPLETED = 2;
+    public static final int RESET = 4;
     
     /**
      * Callback method is called by {@link Readable}, so it is possible to

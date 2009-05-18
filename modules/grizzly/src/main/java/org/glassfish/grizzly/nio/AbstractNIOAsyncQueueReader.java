@@ -89,10 +89,11 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
-    public Future<ReadResult<Buffer, SocketAddress>> read(Connection connection,
-            Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<ReadResult> interceptor)
+    public Future<ReadResult<Buffer, SocketAddress>> read(
+            final Connection connection,
+            final Buffer buffer,
+            final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
+            final Interceptor<ReadResult> interceptor)
             throws IOException {
         
         if (connection == null) {
@@ -104,26 +105,26 @@ public abstract class AbstractNIOAsyncQueueReader
         int finalInterceptorEvent;
 
         // Create future
-        FutureImpl<ReadResult<Buffer, SocketAddress>> future =
+        final FutureImpl<ReadResult<Buffer, SocketAddress>> future =
                 new FutureImpl<ReadResult<Buffer, SocketAddress>>();
-        ReadResult currentResult = new ReadResult(connection);
+        final ReadResult currentResult = new ReadResult(connection);
         currentResult.setMessage(null);
         currentResult.setReadSize(0);
 
         // Get connection async read queue
-        AsyncQueue<AsyncReadQueueRecord> connectionQueue =
+        final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).obtainAsyncReadQueue();
 
-        LinkedTransferQueue<AsyncReadQueueRecord> queue =
+        final LinkedTransferQueue<AsyncReadQueueRecord> queue =
                 connectionQueue.getQueue();
-        AtomicReference<AsyncReadQueueRecord> currentElement =
+        final AtomicReference<AsyncReadQueueRecord> currentElement =
                 connectionQueue.getCurrentElement();
-        ReentrantLock lock = connectionQueue.getQueuedActionLock();
+        final ReentrantLock lock = connectionQueue.getQueuedActionLock();
         boolean isLockedByMe = false;
 
         // create and initialize the read queue record
-        AsyncReadQueueRecord record = new AsyncReadQueueRecord();
-        record.set(buffer, future, currentResult, completionHandler,
+        final AsyncReadQueueRecord queueRecord = new AsyncReadQueueRecord();
+        queueRecord.set(buffer, future, currentResult, completionHandler,
                 interceptor);
 
         // If AsyncQueue is empty - try to read Buffer here
@@ -133,7 +134,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     lock.tryLock()) {
                 isLockedByMe = true;
                 // Strong comparison for null, because we're in locked region
-                if (currentElement.compareAndSet(null, record)) {
+                if (currentElement.compareAndSet(null, queueRecord)) {
                     doRead(connection, currentResult, buffer);
                 } else {
                     isLockedByMe = false;
@@ -141,12 +142,12 @@ public abstract class AbstractNIOAsyncQueueReader
                 }
             }
 
-            int interceptInstructions = intercept(connection,
-                    Reader.READ_EVENT, record,
+            final int interceptInstructions = intercept(connection,
+                    Reader.READ_EVENT, queueRecord,
                     currentResult);
 
-            boolean registerForReadingInstr = interceptor == null ||
-                    (interceptInstructions & AsyncQueueProcessor.NOT_REGISTER_KEY) != 0;
+            final boolean registerForReadingInstr = interceptor == null ||
+                    (interceptInstructions & AsyncQueueProcessor.NOT_REGISTER_KEY) == 0;
 
             if ((interceptInstructions & Interceptor.COMPLETED) != 0 ||
                     (interceptor == null && isFinished(currentResult))) {
@@ -172,20 +173,25 @@ public abstract class AbstractNIOAsyncQueueReader
                 }
 
                 // Notify callback handler
-                onReadCompleted(connection, record);
+                onReadCompleted(connection, queueRecord);
 
                 finalInterceptorEvent = Reader.COMPLETE_EVENT;
             } else { // If there are no bytes available for writing
+                if ((interceptInstructions & Interceptor.RESET) != 0) {
+                    queueRecord.setCurrentResult(new ReadResult(connection));
+                    queueRecord.setBuffer(null);
+                }
+
                 boolean isRegisterForReading = false;
 
                 // add new element to the queue, if it's not current
-                if (currentElement.get() != record) {
-                    queue.offer(record); // add to queue
+                if (currentElement.get() != queueRecord) {
+                    queue.offer(queueRecord); // add to queue
                     if (!lock.isLocked()) {
                         isRegisterForReading = true;
                     }
                 } else {  // if element was written direct (not fully written)
-                    onReadIncompleted(connection, record);
+                    onReadIncompleted(connection, queueRecord);
                     isRegisterForReading = true;
                     if (isLockedByMe) {
                         isLockedByMe = false;
@@ -200,7 +206,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 finalInterceptorEvent = INCOMPLETE_EVENT;
             }
         } catch(IOException e) {
-            onReadFailure(connection, record, e);
+            onReadFailure(connection, queueRecord, e);
             throw e;
         } finally {
             if (isLockedByMe) {
@@ -208,14 +214,14 @@ public abstract class AbstractNIOAsyncQueueReader
             }
         }
 
-        intercept(connection, finalInterceptorEvent, record, null);
+        intercept(connection, finalInterceptorEvent, queueRecord, null);
         return future;
     }
     
     /**
      * {@inheritDoc}
      */
-    public boolean isReady(Connection connection) {
+    public boolean isReady(final Connection connection) {
         AsyncQueue connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
@@ -228,15 +234,15 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
-    public void processAsync(Connection connection) throws IOException {
-        AsyncQueue<AsyncReadQueueRecord> connectionQueue =
+    public void processAsync(final Connection connection) throws IOException {
+        final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).obtainAsyncReadQueue();
 
-        LinkedTransferQueue<AsyncReadQueueRecord> queue =
+        final LinkedTransferQueue<AsyncReadQueueRecord> queue =
                 connectionQueue.getQueue();
-        AtomicReference<AsyncReadQueueRecord> currentElement =
+        final AtomicReference<AsyncReadQueueRecord> currentElement =
                 connectionQueue.getCurrentElement();
-        ReentrantLock lock = connectionQueue.getQueuedActionLock();
+        final ReentrantLock lock = connectionQueue.getQueuedActionLock();
         boolean isLockedByMe = false;
 
         if (currentElement.get() == null) {
@@ -261,18 +267,19 @@ public abstract class AbstractNIOAsyncQueueReader
             while (currentElement.get() != null) {
                 queueRecord = currentElement.get();
 
-                ReadResult currentResult = queueRecord.getCurrentResult();
-                Buffer message = queueRecord.getBuffer();
+                final ReadResult currentResult = queueRecord.getCurrentResult();
+                final Buffer message = queueRecord.getBuffer();
                 doRead(connection, currentResult, message);
 
-                Interceptor<ReadResult> interceptor = queueRecord.getInterceptor();
+                final Interceptor<ReadResult> interceptor =
+                        queueRecord.getInterceptor();
                 // check if message was completely read
-                int interceptInstructions = intercept(connection,
+                final int interceptInstructions = intercept(connection,
                         Reader.READ_EVENT, queueRecord,
                         currentResult);
                 
-                boolean registerForReadingInstr = interceptor == null ||
-                        (interceptInstructions & AsyncQueueProcessor.NOT_REGISTER_KEY) != 0;
+                final boolean registerForReadingInstr = interceptor == null ||
+                        (interceptInstructions & AsyncQueueProcessor.NOT_REGISTER_KEY) == 0;
 
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0 ||
                         (interceptor == null && isFinished(currentResult))) {
@@ -302,7 +309,13 @@ public abstract class AbstractNIOAsyncQueueReader
                         }
                     }
                 } else { // if there is still some data in current message
+                    if ((interceptInstructions & Interceptor.RESET) != 0) {
+                        queueRecord.setCurrentResult(new ReadResult(connection));
+                        queueRecord.setBuffer(null);
+                    }
+
                     onReadIncompleted(connection, queueRecord);
+
                     if (isLockedByMe) {
                         isLockedByMe = false;
                         lock.unlock();
@@ -405,15 +418,14 @@ public abstract class AbstractNIOAsyncQueueReader
      * @param connection the {@link Connection} to read from
      * @param readFuture the asynchronous operation result holder
      * @param message the message to read to
-     * @param readPostProcessor read preprocessor
      * @throws java.io.IOException
      */
-    protected int doRead(Connection connection, ReadResult currentResult,
-            Buffer message)
+    protected int doRead(final Connection connection,
+            final ReadResult currentResult, final Buffer message)
             throws IOException {
         
-        Buffer buffer = (Buffer) message;
-        int readBytes = read0(connection, buffer, currentResult);
+        final Buffer buffer = (Buffer) message;
+        final int readBytes = read0(connection, buffer, currentResult);
         if (readBytes == -1) {
             throw new EOFException();
         }

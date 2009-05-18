@@ -114,8 +114,8 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
 
                             public int intercept(int event, Object context, Object result) {
                                 if (event == Reader.READ_EVENT) {
-                                    ReadResult readResult = (ReadResult) result;
-                                    Buffer buffer = (Buffer) readResult.getMessage();
+                                    final ReadResult readResult = (ReadResult) result;
+                                    final Buffer buffer = (Buffer) readResult.getMessage();
                                     readResult.setMessage(null);
 
                                     if (buffer == null) {
@@ -123,13 +123,14 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                                     }
 
                                     buffer.flip();
-                                    appendBuffer(buffer);
+                                    append(buffer);
 
                                     if (future.isDone()) {
                                         return Interceptor.COMPLETED;
                                     }
 
-                                    return Interceptor.INCOMPLETED;
+                                    return Interceptor.INCOMPLETED |
+                                            Interceptor.RESET;
                                 }
 
                                 return Interceptor.DEFAULT;
@@ -152,8 +153,8 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
 
         try {
             while (!future.isDone()) {
-                Buffer buffer = read0();
-                appendBuffer(buffer);
+                final Buffer buffer = read0();
+                append(buffer);
             }
         } catch (Exception e) {
             future.failure(e);
@@ -209,5 +210,15 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
 
             return buffer;
         }
+    }
+
+    @Override
+    protected final Object wrap(Buffer buffer) {
+        return buffer;
+    }
+
+    @Override
+    protected final Buffer unwrap(Object data) {
+        return (Buffer) data;
     }
 }

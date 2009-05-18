@@ -1009,6 +1009,16 @@ public class ByteBufferStreamsTest extends TestCase {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
 
+            @Override
+            protected Object wrap(Buffer buffer) {
+                return buffer;
+            }
+
+            @Override
+            protected Buffer unwrap(Object data) {
+                return (Buffer) data;
+            }
+
         };
 
         Buffer<ByteBuffer> buffer1 = alloc.allocate(125) ;
