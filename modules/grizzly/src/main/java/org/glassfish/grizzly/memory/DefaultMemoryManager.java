@@ -48,7 +48,7 @@ import org.glassfish.grizzly.threadpool.DefaultWorkerThread;
  * @author Alexey Stashok
  */
 public class DefaultMemoryManager extends ByteBufferViewManager {
-    public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 64;
+    public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
     
     /**
      * Max size of memory pool for one thread.
