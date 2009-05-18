@@ -69,7 +69,7 @@ public class MimeMap implements FileNameMap {
     // you can add using normal web.xml.
     
     public final static Hashtable<String, String> defaultMap =
-        new Hashtable<String, String>(101);
+        new Hashtable<String, String>(103);
     static {
         defaultMap.put("txt", "text/plain");
         defaultMap.put("html","text/html");
@@ -79,6 +79,8 @@ public class MimeMap implements FileNameMap {
         defaultMap.put("jpe", "image/jpeg");
         defaultMap.put("jpeg", "image/jpeg");
 		defaultMap.put("java", "text/plain");
+        defaultMap.put("js", "text/javascript");
+        defaultMap.put("css", "text/css");
         defaultMap.put("body", "text/html");
         defaultMap.put("rtx", "text/richtext");
         defaultMap.put("tsv", "text/tab-separated-values");
