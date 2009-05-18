@@ -47,7 +47,6 @@ import com.sun.grizzly.async.AsyncReadCallbackHandler;
 import com.sun.grizzly.async.AsyncReadCondition;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
 import com.sun.grizzly.async.ByteBufferCloner;
-import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.SSLOutputWriter;
 import com.sun.grizzly.util.SSLUtils;
@@ -61,7 +60,6 @@ import java.nio.channels.NotYetConnectedException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -372,8 +370,6 @@ public class SSLConnectorHandler
             isStandalone = true;
             controller = new Controller();
             controller.setSelectorHandler(new SSLSelectorHandler(true));
-            ExecutorService threadPool = new DefaultThreadPool();
-            controller.setThreadPool(threadPool);
             
             final CountDownLatch latch = new CountDownLatch(1);
             controller.addStateListener(new ControllerStateListenerAdapter() {
