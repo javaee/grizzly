@@ -88,11 +88,7 @@ public class PersistenceContextRef {
 	public void setPersistenceProperty(List<Property> persistenceProperty) {
 		this.persistenceProperty = persistenceProperty;
 	}
-	/**
-		 * 
-		 * @return 
-		 * @author 
-		 */
+	
 		public String toString() {
 			StringBuffer buffer = new StringBuffer();
 			buffer.append("<PersistenceContextRef>").append("\n");
