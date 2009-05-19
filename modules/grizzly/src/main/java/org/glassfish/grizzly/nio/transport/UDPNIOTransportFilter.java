@@ -57,20 +57,20 @@ import org.glassfish.grizzly.filterchain.StopAction;
 public class UDPNIOTransportFilter extends FilterAdapter {
 
     public static final int DEFAULT_BUFFER_SIZE = 8192;
-    private UDPNIOTransport transport;
+    private final UDPNIOTransport transport;
 
-    UDPNIOTransportFilter(UDPNIOTransport transport) {
+    UDPNIOTransportFilter(final UDPNIOTransport transport) {
         this.transport = transport;
     }
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
+    public NextAction handleRead(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+        final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
 
-        UDPNIOStreamReader reader =
+        final UDPNIOStreamReader reader =
                 (UDPNIOStreamReader) connection.getStreamReader();
-        ReadResult<Buffer, SocketAddress> result = reader.readAddressable0();
+        final ReadResult<Buffer, SocketAddress> result = reader.readAddressable0();
         reader.appendBuffer(result.getMessage());
         ctx.setAddress(result.getSrcAddress());
 
@@ -85,15 +85,8 @@ public class UDPNIOTransportFilter extends FilterAdapter {
     }
 
     @Override
-    public NextAction postRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-
-        return nextAction;
-    }
-
-    @Override
-    public NextAction handleWrite(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
+    public NextAction handleWrite(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
         final Object message = ctx.getMessage();
         final Object dstAddress = ctx.getAddress();
         if (message != null) {
@@ -106,16 +99,10 @@ public class UDPNIOTransportFilter extends FilterAdapter {
     }
 
     @Override
-    public NextAction postWrite(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        return nextAction;
-    }
+    public void exceptionOccurred(final FilterChainContext ctx,
+            final Throwable error) {
 
-    @Override
-    public void exceptionOccurred(FilterChainContext ctx,
-            Throwable error) {
-
-        Connection connection = ctx.getConnection();
+        final Connection connection = ctx.getConnection();
         if (connection != null) {
             try {
                 connection.close();

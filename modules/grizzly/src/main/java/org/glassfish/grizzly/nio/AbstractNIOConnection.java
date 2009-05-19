@@ -47,6 +47,7 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
@@ -222,4 +223,31 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
     }
 
     protected abstract void preClose();
+
+    public void enableIOEvent(IOEvent ioEvent) throws IOException {
+        final SelectionKeyHandler selectionKeyHandler =
+                transport.getSelectionKeyHandler();
+        final int interest =
+                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
+
+        if (interest == 0) return;
+
+        final SelectorHandler selectorHandler = transport.getSelectorHandler();
+
+        selectorHandler.registerKey(selectorRunner, selectionKey,
+                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
+    }
+
+    public void disableIOEvent(IOEvent ioEvent) throws IOException {
+        final SelectionKeyHandler selectionKeyHandler =
+                transport.getSelectionKeyHandler();
+        final int interest =
+                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
+
+        if (interest == 0) return;
+
+        final SelectorHandler selectorHandler = transport.getSelectorHandler();
+
+        selectorHandler.unregisterKey(selectorRunner, selectionKey, interest);
+    }
 }

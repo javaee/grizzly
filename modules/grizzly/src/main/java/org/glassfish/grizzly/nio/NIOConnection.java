@@ -38,9 +38,11 @@
 
 package org.glassfish.grizzly.nio;
 
+import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import org.glassfish.grizzly.IOEvent;
 
 /**
  *
@@ -52,4 +54,9 @@ public interface NIOConnection<L> extends Connection<L> {
     public SelectionKey getSelectionKey();
 
     public SelectableChannel getChannel();
+
+    public void enableIOEvent(IOEvent ioEvent) throws IOException;
+
+    public void disableIOEvent(IOEvent ioEvent) throws IOException;
+
 }

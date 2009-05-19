@@ -638,7 +638,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                     executeProcessor(ioEvent, connection, conProcessor,
                             null, null, strategyContext);
                 } else {
-                    disableInterest((NIOConnection) connection, ioEvent);
+                    ((NIOConnection) connection).disableIOEvent(ioEvent);
                 }
             }
         } catch (IOException e) {
@@ -678,7 +678,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
             executeDefaultProcessor(ioEvent, connection, strategyContext);
         } else {
-            disableInterest(connection, ioEvent);
+            connection.disableIOEvent(ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueReader,
                     null, null, strategyContext);
         }
@@ -692,7 +692,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
             executeDefaultProcessor(ioEvent, connection, strategyContext);
         } else {
-            disableInterest(connection, ioEvent);
+            connection.disableIOEvent(ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueWriter,
                     null, null, strategyContext);
         }
@@ -703,7 +703,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             TCPNIOConnection connection, Object strategyContext)
             throws IOException {
         
-        disableInterest(connection, ioEvent);
+        connection.disableIOEvent(ioEvent);
         Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
             executeProcessor(ioEvent, connection, conProcessor, null,
@@ -722,28 +722,6 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         }
 
         return conProcessor;
-    }
-
-    void enableInterest(NIOConnection connection,
-            IOEvent ioEvent) throws IOException {
-        SelectionKey key = connection.getSelectionKey();
-
-        selectorHandler.registerKey(
-                connection.getSelectorRunner(), key,
-                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
-    }
-
-    void disableInterest(final NIOConnection connection, final IOEvent ioEvent)
-            throws IOException {
-        final int interest =
-                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent);
-
-        final SelectionKey key = connection.getSelectionKey();
-
-        if (interest > 0) {
-            getSelectorHandler().unregisterKey(
-                    connection.getSelectorRunner(), key, interest);
-        }
     }
 
     public int read(final Connection connection, final Buffer buffer)
@@ -816,8 +794,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 Context context) throws IOException {
             if (result == null || result.getStatus() == Status.OK) {
                 IOEvent ioEvent = context.getIoEvent();
-                enableInterest((NIOConnection) context.getConnection(),
-                        ioEvent);
+                ((NIOConnection) context.getConnection()).enableIOEvent(ioEvent);
             }
         }
     }

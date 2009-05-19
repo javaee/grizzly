@@ -474,7 +474,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     }
 
     public FilterChain getFilterChain() {
-        FilterChainFactory factory = getFilterChainFactory();
+        final FilterChainFactory factory = getFilterChainFactory();
         if (factory instanceof PatternFilterChainFactory) {
             return ((PatternFilterChainFactory) factory).getFilterChainPattern();
         }
@@ -491,7 +491,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     }
 
     protected NIOConnection obtainNIOConnection(DatagramChannel channel) {
-        UDPNIOConnection connection = new UDPNIOConnection(this, channel);
+        final UDPNIOConnection connection = new UDPNIOConnection(this, channel);
         connection.configureBlocking(isBlocking);
         return connection;
     }
@@ -524,8 +524,8 @@ public class UDPNIOTransport extends AbstractNIOTransport
         this.reuseAddress = reuseAddress;
     }
 
-    public void fireIOEvent(IOEvent ioEvent, Connection connection,
-            Object strategyContext) throws IOException {
+    public void fireIOEvent(final IOEvent ioEvent, final Connection connection,
+            final Object strategyContext) throws IOException {
 
         try {
             // First of all try operations, which could run in standalone mode
@@ -536,13 +536,14 @@ public class UDPNIOTransport extends AbstractNIOTransport
                 processWriteIoEvent(ioEvent, (UDPNIOConnection) connection,
                         strategyContext);
             } else {
-                Processor conProcessor = getConnectionProcessor(connection, ioEvent);
+                final Processor conProcessor = getConnectionProcessor(
+                        connection, ioEvent);
 
                 if (conProcessor != null) {
                     executeProcessor(ioEvent, connection, conProcessor,
                             null, null, strategyContext);
                 } else {
-                    disableInterest((NIOConnection) connection,ioEvent);
+                    ((NIOConnection) connection).disableIOEvent(ioEvent);
                 }
             }
         } catch (IOException e) {
@@ -561,63 +562,65 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
     }
 
-    protected void executeProcessor(IOEvent ioEvent, Connection connection,
-            Processor processor, ProcessorExecutor executor,
-            PostProcessor postProcessor, Object strategyContext)
+    protected void executeProcessor(final IOEvent ioEvent,
+            final Connection connection,
+            final Processor processor, final ProcessorExecutor executor,
+            final PostProcessor postProcessor, final Object strategyContext)
             throws IOException {
 
-        ProcessorRunnable processorRunnable = new ProcessorRunnable(ioEvent,
-                connection, processor, postProcessor);
+        final ProcessorRunnable processorRunnable = new ProcessorRunnable(
+                ioEvent, connection, processor, postProcessor);
 
         strategy.executeProcessor(strategyContext, processorRunnable);
     }
 
-    private void processReadIoEvent(IOEvent ioEvent,
-            UDPNIOConnection connection, Object strategyContext)
+    private void processReadIoEvent(final IOEvent ioEvent,
+            final UDPNIOConnection connection, final Object strategyContext)
             throws IOException {
 
-        UDPNIOAsyncQueueReader asyncQueueReader =
+        final UDPNIOAsyncQueueReader asyncQueueReader =
                 (UDPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
 
         if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
             executeDefaultProcessor(ioEvent, connection, strategyContext);
         } else {
-            disableInterest(connection, ioEvent);
+            connection.disableIOEvent(ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueReader,
                     null, null, strategyContext);
         }
     }
 
-    private void processWriteIoEvent(IOEvent ioEvent,
-            UDPNIOConnection connection, Object strategyContext)
+    private void processWriteIoEvent(final IOEvent ioEvent,
+            final UDPNIOConnection connection, final Object strategyContext)
             throws IOException {
-        AsyncQueueWriter asyncQueueWriter = getAsyncQueueIO().getWriter();
+        final AsyncQueueWriter asyncQueueWriter = getAsyncQueueIO().getWriter();
 
         if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
             executeDefaultProcessor(ioEvent, connection, strategyContext);
         } else {
-            disableInterest(connection, ioEvent);
+            connection.disableIOEvent(ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueWriter,
                     null, null, strategyContext);
         }
     }
 
 
-    private void executeDefaultProcessor(IOEvent ioEvent,
-            UDPNIOConnection connection, Object strategyContext)
+    private void executeDefaultProcessor(final IOEvent ioEvent,
+            final UDPNIOConnection connection, final Object strategyContext)
             throws IOException {
 
-        disableInterest(connection, ioEvent);
-        Processor conProcessor = getConnectionProcessor(connection, ioEvent);
+        connection.disableIOEvent(ioEvent);
+        final Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
             executeProcessor(ioEvent, connection, conProcessor, null,
                     enablingInterestPostProcessor, strategyContext);
         }
     }
 
-    Processor getConnectionProcessor(Connection connection, IOEvent ioEvent) {
+    Processor getConnectionProcessor(final Connection connection,
+            final IOEvent ioEvent) {
         Processor conProcessor = connection.getProcessor();
-        ProcessorSelector conProcessorSelector =
+        final ProcessorSelector conProcessorSelector =
                 connection.getProcessorSelector();
 
         if ((conProcessor == null || !conProcessor.isInterested(ioEvent)) &&
@@ -627,35 +630,14 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
         return conProcessor;
     }
-
-    void enableInterest(NIOConnection connection,
-            IOEvent ioEvent) throws IOException {
-        SelectionKey key = connection.getSelectionKey();
-
-        selectorHandler.registerKey(
-                connection.getSelectorRunner(), key,
-                selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
-    }
-
-    void disableInterest(final NIOConnection connection, final IOEvent ioEvent)
-            throws IOException {
-        final int interest =
-                getSelectionKeyHandler().ioEvent2SelectionKeyInterest(ioEvent);
-
-        final SelectionKey key = connection.getSelectionKey();
-
-        if (interest > 0) {
-            getSelectorHandler().unregisterKey(
-                    connection.getSelectorRunner(), key, interest);
-        }
-    }
     
-    public int read(Connection connection, Buffer buffer) throws IOException {
+    public int read(final Connection connection, final Buffer buffer)
+            throws IOException {
         return read(connection, buffer, null);
     }
 
-    public int read(Connection connection, Buffer buffer,
-            ReadResult currentResult) throws IOException {
+    public int read(final Connection connection, Buffer buffer,
+            final ReadResult currentResult) throws IOException {
 
         int read = 0;
 
@@ -730,12 +712,11 @@ public class UDPNIOTransport extends AbstractNIOTransport
     public class EnableInterestPostProcessor
             implements PostProcessor {
 
-        public void process(ProcessorResult result,
-                Context context) throws IOException {
+        public void process(final ProcessorResult result,
+                final Context context) throws IOException {
             if (result == null || result.getStatus() == Status.OK) {
-                IOEvent ioEvent = context.getIoEvent();
-                enableInterest(
-                        (NIOConnection) context.getConnection(), ioEvent);
+                final IOEvent ioEvent = context.getIoEvent();
+                ((NIOConnection) context.getConnection()).enableIOEvent(ioEvent);
             }
         }
     }
@@ -744,16 +725,17 @@ public class UDPNIOTransport extends AbstractNIOTransport
             extends CompletionHandlerAdapter<RegisterChannelResult> {
 
         @Override
-        public void completed(Connection c, RegisterChannelResult result) {
+        public void completed(final Connection c,
+                final RegisterChannelResult result) {
             try {
-                SelectionKey selectionKey = result.getSelectionKey();
+                final SelectionKey selectionKey = result.getSelectionKey();
 
-                UDPNIOConnection connection =
+                final UDPNIOConnection connection =
                         (UDPNIOConnection) getSelectionKeyHandler().
                         getConnectionForKey(selectionKey);
 
                 if (connection != null) {
-                    SelectorRunner selectorRunner = result.getSelectorRunner();
+                    final SelectorRunner selectorRunner = result.getSelectorRunner();
                     connection.setSelectionKey(selectionKey);
                     connection.setSelectorRunner(selectorRunner);
                 }
