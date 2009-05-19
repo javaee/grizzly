@@ -489,6 +489,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             };
 
             setThreadPool(pool);
+            setCoreThreads(minThreads);
+            setMaxThreads(maxThreads);
+
             setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthBytes()));
 
             List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
