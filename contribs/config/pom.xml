@@ -5,7 +5,7 @@
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-config</artifactId>
     <packaging>hk2-jar</packaging>
-    <version>1.0.8</version>
+    <version>1.0.9</version>
     <name>grizzly-config</name>
     <url>https://grizzly.dev.java.net</url>
     <repositories>
@@ -187,8 +187,8 @@
         </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.55</hk2.version>
-        <hk2.plugin.version>0.3.55</hk2.plugin.version>
-        <grizzly.version>1.9.15</grizzly.version>
+        <hk2.version>0.3.61</hk2.version>
+        <hk2.plugin.version>0.3.61</hk2.plugin.version>
+        <grizzly.version>1.9.15a</grizzly.version>
     </properties>
 </project>
