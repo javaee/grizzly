@@ -144,11 +144,7 @@ public class JspPropertyGroup {
 	public void setErrorOnUndeclaredNamespace(boolean errorOnUndeclaredNamespace) {
 		this.errorOnUndeclaredNamespace = errorOnUndeclaredNamespace;
 	}
-	/**
-		 * 
-		 * @return 
-		 * @author 
-		 */
+	
 		public String toString() {
 			StringBuffer sb = new StringBuffer();
 			sb.append("<JspPropertyGroup>").append("\n");

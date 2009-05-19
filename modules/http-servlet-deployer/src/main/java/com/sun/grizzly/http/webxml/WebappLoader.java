@@ -153,7 +153,7 @@ public class WebappLoader {
 	 * 
 	 * @param schemaVersion
 	 * @param webxml
-	 * @return
+	 * @return WebApp populated from the web.xml file
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
