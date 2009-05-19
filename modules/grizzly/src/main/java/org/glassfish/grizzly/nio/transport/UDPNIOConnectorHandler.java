@@ -73,6 +73,16 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         isReuseAddress = nioTransport.isReuseAddress();
     }
 
+    /**
+     * Creates non-connected UDP {@link Connection}.
+     *
+     * @return non-connected UDP {@link Connection}.
+     * @throws java.io.IOException
+     */
+    public Future<Connection> connect() throws IOException {
+        return connect(null, null);
+    }
+
     @Override
     public Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {

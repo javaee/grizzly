@@ -616,6 +616,10 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     public Buffer getBuffer() {
+        return unwrap(current());
+    }
+
+    protected Object current() {
         if (current == null) {
             try {
                 ensureRead(false);
@@ -624,7 +628,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             }
         }
 
-        return unwrap(current);
+        return current;
     }
 
     /**

@@ -265,6 +265,16 @@ public class UDPNIOTransport extends AbstractNIOTransport
         }
     }
 
+    /**
+     * Creates non-connected UDP {@link Connection}.
+     *
+     * @return non-connected UDP {@link Connection}.
+     * @throws java.io.IOException
+     */
+    public Future<Connection> connect() throws IOException {
+        return connect(null, null);
+    }
+
     public Future<Connection> connect(String host, int port)
             throws IOException {
         return connect(new InetSocketAddress(host, port));

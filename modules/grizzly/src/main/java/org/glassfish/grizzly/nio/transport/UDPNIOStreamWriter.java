@@ -49,16 +49,28 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorWriter;
 import org.glassfish.grizzly.streams.AbstractStreamWriter;
+import org.glassfish.grizzly.streams.AddressableStreamWriter;
 
 /**
  *
  * @author Alexey Stashok
  */
-public class UDPNIOStreamWriter extends AbstractStreamWriter {
+public class UDPNIOStreamWriter extends AbstractStreamWriter
+        implements AddressableStreamWriter<SocketAddress> {
+
+    private SocketAddress peerAddress;
+    
     private int sentBytesCounter;
 
     public UDPNIOStreamWriter(UDPNIOConnection connection) {
         super(connection);
+    }
+
+    @Override
+    public Future<Integer> flush(SocketAddress peerAddress,
+            CompletionHandler<Integer> completionHandler) throws IOException {
+        setPeerAddress(peerAddress);
+        return flush(completionHandler);
     }
 
     @Override
@@ -70,7 +82,9 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
     protected Future<Integer> flush0(Buffer current,
             CompletionHandler<Integer> completionHandler) throws IOException {
         current.flip();
-        final UDPNIOTransport transport = (UDPNIOTransport) connection.getTransport();
+        final UDPNIOConnection connection = (UDPNIOConnection) getConnection();
+        final UDPNIOTransport transport =
+                (UDPNIOTransport) connection.getTransport();
 
         if (isBlocking()) {
             TemporarySelectorWriter writer =
@@ -78,7 +92,7 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
                     transport.getTemporarySelectorIO().getWriter();
 
             Future<WriteResult<Buffer, SocketAddress>> future =
-                    writer.write(connection, null, current,
+                    writer.write(connection, peerAddress, current,
                     new CompletionHandlerAdapter(null, completionHandler),
                     null,
                     getTimeout(TimeUnit.MILLISECONDS),
@@ -95,7 +109,7 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
             FutureImpl<Integer> future = new FutureImpl<Integer>();
 
             transport.getAsyncQueueIO().getWriter().write(
-                    connection, current,
+                    connection, peerAddress, current,
                     new CompletionHandlerAdapter(future, completionHandler));
 
             return future;
@@ -130,7 +144,7 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
 
                     public void close(Integer result) {
                         try {
-                            connection.close();
+                            getConnection().close();
                         } catch (IOException e) {
                         } finally {
                             if (completionHandler != null) {
@@ -151,6 +165,27 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
             }
 
             return new ReadyFutureImpl(ZERO);
+        }
+    }
+
+    @Override
+    public SocketAddress getPeerAddress() {
+        final UDPNIOConnection connection = (UDPNIOConnection) getConnection();
+        if (connection.isConnected()) {
+            return (SocketAddress) connection.getPeerAddress();
+        } else {
+            return peerAddress;
+        }
+    }
+
+    @Override
+    public void setPeerAddress(final SocketAddress peerAddress) {
+        final UDPNIOConnection connection = (UDPNIOConnection) getConnection();
+        if (!connection.isConnected()) {
+            this.peerAddress = peerAddress;
+        } else {
+            throw new IllegalStateException(
+                    "UDP connection is already connected!");
         }
     }
 
@@ -217,12 +252,14 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
         }
 
         public void cancelled(Connection connection) {
+            peerAddress = null;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.cancelled(connection);
             }
         }
 
         public void failed(Connection connection, Throwable throwable) {
+            peerAddress = null;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.failed(connection, throwable);
             }
@@ -230,12 +267,14 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
 
         public void completed(Connection connection, Integer result) {
             sentBytesCounter = 0;
+            peerAddress = null;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.completed(connection, result);
             }
         }
 
         public void updated(Connection connection, Integer result) {
+            peerAddress = null;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.updated(connection, result);
             }

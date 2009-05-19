@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.util.logging.Filter;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.streams.AddressableStreamWriter;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 
@@ -54,14 +55,21 @@ import org.glassfish.grizzly.streams.StreamWriter;
  * @author Alexey Stashok
  */
 public class EchoFilter extends FilterAdapter {
-    private static Logger logger = Grizzly.logger;
+    private static final Logger logger = Grizzly.logger;
     
     @Override
-    public NextAction handleRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        StreamReader reader = ctx.getStreamReader();
-        StreamWriter writer = ctx.getStreamWriter();
+    public NextAction handleRead(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+        final StreamReader reader = ctx.getStreamReader();
+        final StreamWriter writer = ctx.getStreamWriter();
 
+        if (writer instanceof AddressableStreamWriter) {
+            final AddressableStreamWriter addressableWriter =
+                    (AddressableStreamWriter) writer;
+            if (addressableWriter.getPeerAddress() == null) {
+                addressableWriter.setPeerAddress(ctx.getAddress());
+            }
+        }
         writer.writeStream(reader);
         writer.flush();
 

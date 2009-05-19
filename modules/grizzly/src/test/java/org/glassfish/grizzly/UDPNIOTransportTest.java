@@ -40,12 +40,14 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.UDPNIOConnection;
+import org.glassfish.grizzly.nio.transport.UDPNIOStreamReader;
 import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -138,7 +140,7 @@ public class UDPNIOTransportTest extends TestCase {
         }
     }
 
-    public void ttestSimpleEcho() throws Exception {
+    public void testSimpleEcho() throws Exception {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
@@ -173,6 +175,180 @@ public class UDPNIOTransportTest extends TestCase {
             byte[] echoMessage = new byte[originalMessage.length];
             reader.readByteArray(echoMessage);
             assertTrue(Arrays.equals(echoMessage, originalMessage));
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testSeveralPacketsEcho() throws Exception {
+        Connection connection = null;
+        StreamReader reader = null;
+        StreamWriter writer = null;
+        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new EchoFilter());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+            transport.configureBlocking(true);
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = (UDPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.setProcessor(null);
+
+            reader = connection.getStreamReader();
+            writer = connection.getStreamWriter();
+
+            for (int i = 0; i < 100; i++) {
+                byte[] originalMessage = new String("Hello world #" + i).getBytes();
+                writer.writeByteArray(originalMessage);
+                Future<Integer> writeFuture = writer.flush();
+
+                assertTrue("Write timeout", writeFuture.isDone());
+                assertEquals(originalMessage.length, (int) writeFuture.get());
+
+                Future readFuture = reader.notifyAvailable(originalMessage.length);
+                assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
+
+                byte[] echoMessage = new byte[originalMessage.length];
+                reader.readByteArray(echoMessage);
+                assertTrue(Arrays.equals(echoMessage, originalMessage));
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testAsyncReadWriteEcho() throws Exception {
+        Connection connection = null;
+        StreamReader reader = null;
+        StreamWriter writer = null;
+        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new EchoFilter());
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> connectFuture = transport.connect("localhost", PORT);
+            connection = (UDPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.setProcessor(null);
+
+            byte[] originalMessage = "Hello".getBytes();
+            writer = connection.getStreamWriter();
+            writer.writeByteArray(originalMessage);
+            Future<Integer> writeFuture = writer.flush();
+
+            Integer writtenBytes = writeFuture.get(10, TimeUnit.SECONDS);
+            assertEquals(originalMessage.length, (int) writtenBytes);
+
+
+            reader = connection.getStreamReader();
+            Future readFuture = reader.notifyAvailable(originalMessage.length);
+            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
+
+            byte[] echoMessage = new byte[originalMessage.length];
+            reader.readByteArray(echoMessage);
+            assertTrue(Arrays.equals(echoMessage, originalMessage));
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+    public void testSeveralPacketsAsyncReadWriteEcho() throws Exception {
+        int packetsNumber = 20;
+        final int packetSize = 1024;
+
+        Connection connection = null;
+        UDPNIOStreamReader reader = null;
+        StreamWriter writer = null;
+        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new EchoFilter());
+
+        try {
+            transport.setReadBufferSize(4096);
+            transport.setWriteBufferSize(4096);
+
+            transport.bind(PORT);
+
+            transport.start();
+
+            Future<Connection> connectFuture = transport.connect("localhost", PORT);
+            connection = (UDPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.setProcessor(null);
+            reader = (UDPNIOStreamReader) connection.getStreamReader();
+            writer = connection.getStreamWriter();
+
+            final CountDownLatch sendLatch = new CountDownLatch(packetsNumber);
+
+            for (int i = 0; i < packetsNumber; i++) {
+                final byte[] message = new byte[packetSize];
+                Arrays.fill(message, (byte) i);
+
+                writer.writeByteArray(message);
+                writer.flush(new CompletionHandlerAdapter<Integer>() {
+
+                    @Override
+                    public void completed(Connection connection, Integer result) {
+                        assertEquals(message.length, (int) result);
+                        sendLatch.countDown();
+                    }
+
+                    @Override
+                    public void failed(Connection connection, Throwable throwable) {
+                        throwable.printStackTrace();
+                    }
+                });
+            }
+
+            boolean[] packetFlags = new boolean[packetsNumber];
+
+            for (int i = 0; i < packetsNumber; i++) {
+                byte[] message = new byte[packetSize];
+                Future future = reader.notifyAvailable(packetSize);
+                future.get(10, TimeUnit.SECONDS);
+                assertTrue(future.isDone());
+                reader.readByteArray(message);
+
+                byte index = message[0];
+                System.out.println(index + " come");
+                for(int j=0; j<packetSize; j++) {
+                    assertEquals("Message is corrupted!", index, message[j]);
+                }
+
+                assertFalse("Message duplication: " + index, packetFlags[index]);
+                packetFlags[index] = true;
+            }
+
+            for (int i = 0; i < packetsNumber; i++) {
+                assertTrue("Message #" + i + " is missed", packetFlags[i]);
+            }
+
+            assertEquals(0, sendLatch.getCount());
         } finally {
             if (connection != null) {
                 connection.close();

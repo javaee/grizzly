@@ -65,7 +65,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     protected static final Future<Integer> ZERO_READY_FUTURE =
             new ReadyFutureImpl<Integer>(ZERO);
     
-    protected Connection connection;
+    private Connection connection;
 
     private boolean isBlocking;
 

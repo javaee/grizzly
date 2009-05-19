@@ -62,16 +62,22 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
     }
 
     @Override
-    public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
+    public Future<Integer> flush(
+            final CompletionHandler<Integer> completionHandler)
             throws IOException {
         return super.flush(new ResetCounterCompletionHandler(completionHandler));
     }
     
 
-    protected Future<Integer> flush0(Buffer current,
-            CompletionHandler<Integer> completionHandler) throws IOException {
+    protected Future<Integer> flush0(final Buffer current,
+            final CompletionHandler<Integer> completionHandler)
+            throws IOException {
+        
         current.flip();
-        TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
+        final TCPNIOConnection connection = (TCPNIOConnection) getConnection();
+        final TCPNIOTransport transport =
+                (TCPNIOTransport) connection.getTransport();
+        
         if (isBlocking()) {
             TemporarySelectorWriter writer =
                     (TemporarySelectorWriter)
@@ -130,7 +136,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
 
                     public void close(Integer result) {
                         try {
-                            connection.close();
+                            getConnection().close();
                         } catch (IOException e) {
                         } finally {
                             if (completionHandler != null) {

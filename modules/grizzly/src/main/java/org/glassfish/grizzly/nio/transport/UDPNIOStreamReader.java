@@ -53,6 +53,7 @@ import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.impl.ReadyFutureImpl;
 import org.glassfish.grizzly.nio.tmpselectors.TemporarySelectorReader;
 import org.glassfish.grizzly.streams.AbstractStreamReader;
+import org.glassfish.grizzly.streams.AddressableStreamReader;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.util.conditions.Condition;
 
@@ -61,7 +62,9 @@ import org.glassfish.grizzly.util.conditions.Condition;
  *
  * @author oleksiys
  */
-public class UDPNIOStreamReader extends AbstractStreamReader {
+public class UDPNIOStreamReader extends AbstractStreamReader
+        implements AddressableStreamReader<SocketAddress> {
+    
     public UDPNIOStreamReader(UDPNIOConnection connection) {
         super(connection);
     }
@@ -221,12 +224,31 @@ public class UDPNIOStreamReader extends AbstractStreamReader {
     }
 
     @Override
-    protected Object wrap(Buffer buffer) {
+    public SocketAddress getPeerAddress() {
+        final UDPNIOConnection connection = (UDPNIOConnection) getConnection();
+        if (connection.isConnected()) {
+            return connection.getPeerAddress();
+        }
+        
+        final ReadResult current = (ReadResult) current();
+        if (current != null) {
+            return (SocketAddress) current.getSrcAddress();
+        }
+
+        return null;
+    }
+
+    @Override
+    protected Object wrap(final Buffer buffer) {
+        if (buffer == null) return null;
+
         return new ReadResult(getConnection(), buffer, null, buffer.remaining());
     }
 
     @Override
-    protected Buffer unwrap(Object record) {
+    protected Buffer unwrap(final Object record) {
+        if (record == null) return null;
+
         return ((ReadResult<Buffer, SocketAddress>) record).getMessage();
     }
 }

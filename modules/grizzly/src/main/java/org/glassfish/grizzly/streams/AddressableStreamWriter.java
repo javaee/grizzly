@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -36,55 +36,48 @@
  *
  */
 
-package org.glassfish.grizzly.nio.transport;
+package org.glassfish.grizzly.streams;
 
-import org.glassfish.grizzly.Context;
-import org.glassfish.grizzly.WriteResult;
-import org.glassfish.grizzly.asyncqueue.*;
-import org.glassfish.grizzly.nio.AbstractNIOAsyncQueueWriter;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.nio.NIOTransport;
 import java.io.IOException;
-import java.net.SocketAddress;
-import java.nio.channels.SelectionKey;
-import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.nio.NIOConnection;
+import java.util.concurrent.Future;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.nio.transport.UDPNIOStreamWriter;
 
 /**
- * The UDP transport {@link AsyncQueueWriter} implementation, based on
- * the Java NIO
+ * Addressable {@link StreamWriter}, which can send data to different destinations.
+ *
+ * @see UDPNIOStreamWriter
+ * @see AddressableStreamReader
  *
  * @author Alexey Stashok
  */
-public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
+public interface AddressableStreamWriter<A> extends StreamWriter {
+    /**
+     * Get the destination address, where the data will be sent on next flush.
+     *
+     * @return the destination address, where the data will be sent on next flush.
+     */
+    public A getPeerAddress();
 
-    public UDPNIOAsyncQueueWriter(NIOTransport transport) {
-        super(transport);
-    }
+    /**
+     * Set the destination address, where the data will be sent on next flush.
+     *
+     * @param peerAddress the destination address, where the data will be
+     * sent on next flush.
+     */
+    public void setPeerAddress(A peerAddress);
 
-    protected int write0(Connection connection, SocketAddress dstAddress,
-            Buffer buffer,
-            WriteResult<Buffer, SocketAddress> currentResult)
-            throws IOException {
-        return ((UDPNIOTransport) transport).write(connection, dstAddress,
-                buffer, currentResult);
-    }
-
-    protected void onReadyToWrite(Connection connection) throws IOException {
-        NIOConnection nioConnection = (NIOConnection) connection;
-
-        transport.getSelectorHandler().registerKey(
-                nioConnection.getSelectorRunner(),
-                nioConnection.getSelectionKey(), SelectionKey.OP_WRITE);
-    }
-
-    public Context context() {
-        return null;
-    }
-
-    public void beforeProcess(Context context) throws IOException {
-    }
-
-    public void afterProcess(Context context) throws IOException {
-    }
+    /**
+     * Flush data to the specific destination address.
+     * 
+     * @param peerAddress the destination address, where the data will be
+     *                    sent on next flush.
+     * @param completionHandler {@link CompletionHandler}, which will get
+     *                          updated with the flush operation state.
+     * @return {@link Future}, which could be checked to get flush operation state.
+     * @throws java.io.IOException
+     */
+    public Future<Integer> flush(A peerAddress,
+            CompletionHandler<Integer> completionHandler)
+            throws IOException;
 }
