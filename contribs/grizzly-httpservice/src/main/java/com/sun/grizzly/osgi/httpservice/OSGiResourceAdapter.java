@@ -119,16 +119,17 @@ public class OSGiResourceAdapter extends GrizzlyAdapter implements OSGiGrizzlyAd
         if (mime == null) {
             mime = MIME_MAP.getContentTypeFor(path);
         }
-        response.setContentType(mime);
+        if (mime != null) {
+            response.setContentType(mime);
+        }
 
         try {
             final URLConnection urlConnection = resource.openConnection();
             final int length = urlConnection.getContentLength();
-            response.setContentLengthLong(length);
             final InputStream is = urlConnection.getInputStream();
             final GrizzlyOutputStream os = response.getOutputStream();
 
-            byte buff[] = new byte[length];
+            byte buff[] = new byte[1024*8];
             int read, total = 0;
             while ((read = is.read(buff)) != -1) {
                 total += read;
