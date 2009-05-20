@@ -78,23 +78,23 @@ import org.glassfish.grizzly.Codec;
  * </p>
  *
  * @see Filter
- * 
+ *
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */
 public interface FilterChain extends Processor, List<Filter> {
     /**
      * Get the {@link FilterChainFactory}, which 
-     * created this {@link FilterChain}
+     * created this {@link FilterChain}.
      * 
-     * @return {@link FilterChainFactory}
+     * @return {@link FilterChainFactory}.
      */
     public FilterChainFactory getFactory();
 
     /**
-     * Get the <tt>FilterChain</tt> {@link Codec}
+     * Get the {@link FilterChain} {@link Codec}.
      *
-     * @return <tt>FilterChain</tt> {@link Codec}
+     * @return the {@link FilterChain} {@link Codec}.
      */
-    public FilterChainCodec getCodec();
+    public Codec getCodec();
 }

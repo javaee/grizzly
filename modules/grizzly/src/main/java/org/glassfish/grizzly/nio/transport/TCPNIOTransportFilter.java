@@ -88,7 +88,7 @@ public class TCPNIOTransportFilter extends FilterAdapter {
         final Object message = ctx.getMessage();
         if (message != null) {
             final Connection connection = ctx.getConnection();
-            transport.write(connection, (Buffer) message);
+            connection.getStreamWriter().writeBuffer((Buffer) message);
         }
 
         return nextAction;

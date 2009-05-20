@@ -142,7 +142,8 @@ public class UDPNIOTransport extends AbstractNIOTransport
      * Server socket backlog.
      */
     protected TemporarySelectorIO temporarySelectorIO;
-    private Filter defaultTransportFilter;
+    private final Filter streamTransportFilter;
+    private final Filter messageTransportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
     private final EnableInterestPostProcessor enablingInterestPostProcessor;
 
@@ -173,7 +174,8 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
         filterChainFactory = patternFactory;
 
-        defaultTransportFilter = new UDPNIOTransportFilter(this);
+        streamTransportFilter = new UDPNIOStreamTransportFilter(this);
+        messageTransportFilter = new UDPNIOMessageTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<UDPNIOServerConnection>();
     }
 
@@ -486,8 +488,13 @@ public class UDPNIOTransport extends AbstractNIOTransport
                 "FilterChainFactory API: " + factory.getClass().getName());
     }
 
-    public Filter getDefaultTransportFilter() {
-        return defaultTransportFilter;
+    public Filter getStreamTransportFilter() {
+        return streamTransportFilter;
+    }
+
+    @Override
+    public Filter getMessageTransportFilter() {
+        return messageTransportFilter;
     }
 
     protected NIOConnection obtainNIOConnection(DatagramChannel channel) {

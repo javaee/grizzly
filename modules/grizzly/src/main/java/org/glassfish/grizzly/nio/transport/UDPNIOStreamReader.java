@@ -168,12 +168,6 @@ public class UDPNIOStreamReader extends AbstractStreamReader
     }
     
     protected ReadResult read0() throws IOException {
-        return readAddressable0();
-    }
-
-    protected ReadResult<Buffer, SocketAddress> readAddressable0()
-            throws IOException {
-        
         final Connection connection = getConnection();
         final UDPNIOTransport transport =
                 (UDPNIOTransport) connection.getTransport();
@@ -236,6 +230,11 @@ public class UDPNIOStreamReader extends AbstractStreamReader
         }
 
         return null;
+    }
+
+    @Override
+    protected final boolean append(Object data) {
+        return super.append(data);
     }
 
     @Override

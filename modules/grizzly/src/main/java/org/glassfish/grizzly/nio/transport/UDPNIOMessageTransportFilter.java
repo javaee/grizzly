@@ -46,6 +46,7 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Filter;
 import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.ReadResult;
 
 /**
@@ -53,12 +54,12 @@ import org.glassfish.grizzly.ReadResult;
  * 
  * @author Alexey Stashok
  */
-public class UDPNIOTransportFilter extends FilterAdapter {
+public class UDPNIOMessageTransportFilter extends FilterAdapter {
 
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final UDPNIOTransport transport;
 
-    UDPNIOTransportFilter(final UDPNIOTransport transport) {
+    UDPNIOMessageTransportFilter(final UDPNIOTransport transport) {
         this.transport = transport;
     }
 
@@ -67,15 +68,21 @@ public class UDPNIOTransportFilter extends FilterAdapter {
             final NextAction nextAction) throws IOException {
         final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
 
-        final UDPNIOStreamReader reader =
-                (UDPNIOStreamReader) connection.getStreamReader();
-        final ReadResult<Buffer, SocketAddress> result = reader.readAddressable0();
-        reader.appendBuffer(result.getMessage());
-        ctx.setAddress(result.getSrcAddress());
+        final ReadResult<Buffer, SocketAddress> readResult =
+                new ReadResult<Buffer, SocketAddress>(connection);
+        transport.read(connection, null, readResult);
 
-        if (reader.availableDataSize() > 0) {
-            ctx.setStreamReader(connection.getStreamReader());
-            ctx.setStreamWriter(connection.getStreamWriter());
+        if (readResult.getReadSize() > 0) {
+            final Buffer buffer = readResult.getMessage().flip();
+            final SocketAddress address = readResult.getSrcAddress();
+
+            ctx.setMessage(buffer);
+            ctx.setAddress(address);
+
+            if (!connection.isConnected()) {
+                ctx.getProcessorRunnable().setPostProcessor(null);
+                connection.enableIOEvent(IOEvent.READ);
+            }
         } else {
             return ctx.getStopAction();
         }

@@ -603,8 +603,14 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 "FilterChainFactory API: " + factory.getClass().getName());
     }
 
-    public Filter getDefaultTransportFilter() {
+    public Filter getStreamTransportFilter() {
         return defaultTransportFilter;
+    }
+
+    @Override
+    public Filter getMessageTransportFilter() {
+        throw new UnsupportedOperationException("FilterChain 'message' mode is" +
+                " not supported for TCP NIO transport ");
     }
 
     public TemporarySelectorIO getTemporarySelectorIO() {

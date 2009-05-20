@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.filterchain.TransportFilter;
+import org.glassfish.grizzly.filterchain.TransportFilter.Mode;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.UDPNIOConnection;
 import org.glassfish.grizzly.nio.transport.UDPNIOStreamReader;
@@ -284,7 +285,7 @@ public class UDPNIOTransportTest extends TestCase {
         UDPNIOStreamReader reader = null;
         StreamWriter writer = null;
         UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
-        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new TransportFilter(Mode.Message));
         transport.getFilterChain().add(new EchoFilter());
 
         try {

@@ -43,6 +43,7 @@ import org.glassfish.grizzly.ProcessorResult;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.glassfish.grizzly.Codec;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.ProcessorResult.Status;
 import org.glassfish.grizzly.util.LightArrayList;
@@ -160,10 +161,12 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * Logger
      */
     private Logger logger = Grizzly.logger;
+    private final DefaultFilterChainCodec filterChainCodec;
 
     public DefaultFilterChain(FilterChainFactory factory) {
         super(factory);
         filters = new LightArrayList<Filter>();
+        filterChainCodec = new DefaultFilterChainCodec(this);
     }
     
     /**
@@ -342,8 +345,8 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * Get filter chain codec
      * @return filter chain codec
      */
-    public FilterChainCodec getCodec() {
-        return null;
+    public Codec getCodec() {
+        return filterChainCodec;
     }
 
     /**

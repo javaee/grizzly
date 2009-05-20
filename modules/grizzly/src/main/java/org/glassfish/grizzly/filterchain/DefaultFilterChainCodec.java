@@ -39,15 +39,29 @@
 package org.glassfish.grizzly.filterchain;
 
 import org.glassfish.grizzly.Codec;
-import org.glassfish.grizzly.Transformer;
 
 /**
- * {@link Codec}, which has additional API to work with {@link FilterChain}s.
+ * {@link DefaultFilterChain} codec implementation.
+ *
+ * @see Codec
  *
  * @author Alexey Stashok
  */
-public interface FilterChainCodec extends Codec {
-    public Transformer getDecoder(FilterChainContext context);
+public class DefaultFilterChainCodec implements Codec {
+    private final DefaultDecoderTransformer decoder;
+    private final DefaultEncoderTransformer encoder;
     
-    public Transformer getEncoder(FilterChainContext context);
+    public DefaultFilterChainCodec(final DefaultFilterChain filterChain) {
+        decoder = new DefaultDecoderTransformer(filterChain);
+        encoder = new DefaultEncoderTransformer(filterChain);
+    }
+
+    public DefaultDecoderTransformer getDecoder() {
+        return decoder;
+    }
+
+    public DefaultEncoderTransformer getEncoder() {
+        return encoder;
+    }
+
 }

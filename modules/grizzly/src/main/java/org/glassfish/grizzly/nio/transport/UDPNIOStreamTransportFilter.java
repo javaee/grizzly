@@ -36,68 +36,83 @@
  *
  */
 
-package org.glassfish.grizzly.util;
+package org.glassfish.grizzly.nio.transport;
 
+import java.net.SocketAddress;
+import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Filter;
-import java.util.logging.Logger;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.Connection;
-import org.glassfish.grizzly.Grizzly;
-import org.glassfish.grizzly.TransformationResult;
-import org.glassfish.grizzly.Transformer;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
-import org.glassfish.grizzly.streams.AddressableStreamReader;
+import org.glassfish.grizzly.ReadResult;
 import org.glassfish.grizzly.streams.AddressableStreamWriter;
-import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
 
 /**
- * Echo {@link Filter} implementation
+ * The {@link UDPNIOTransport}'s transport {@link Filter} implementation
  * 
  * @author Alexey Stashok
  */
-public class EchoFilter extends FilterAdapter {
-    private static final Logger logger = Grizzly.logger;
-    
+public class UDPNIOStreamTransportFilter extends FilterAdapter {
+
+    public static final int DEFAULT_BUFFER_SIZE = 8192;
+    private final UDPNIOTransport transport;
+
+    UDPNIOStreamTransportFilter(final UDPNIOTransport transport) {
+        this.transport = transport;
+    }
+
     @Override
     public NextAction handleRead(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
-        final Object message = ctx.getMessage();
+        final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
 
-        if (message != null) {
-            final Connection connection = ctx.getConnection();
-            final Transformer encoder = ctx.getFilterChain().getCodec().getEncoder();
-            final TransformationResult<Buffer> result =
-                    encoder.transform(connection, message, null);
-            encoder.release(connection);
-            final Buffer buffer = result.getMessage();
-            final Object address = ctx.getAddress();
-            ((AsyncQueueEnabledTransport) connection.getTransport()).getAsyncQueueIO().getWriter().write(connection, address, buffer, null);
+        final UDPNIOStreamReader reader =
+                (UDPNIOStreamReader) connection.getStreamReader();
+        final ReadResult<Buffer, SocketAddress> result = reader.read0();
+        reader.append(result);
+
+        if (reader.availableDataSize() > 0) {
+            ctx.setStreamReader(connection.getStreamReader());
+            ctx.setStreamWriter(connection.getStreamWriter());
         } else {
-            final StreamReader reader = ctx.getStreamReader();
-            final StreamWriter writer = ctx.getStreamWriter();
+            return ctx.getStopAction();
+        }
 
-            if (writer instanceof AddressableStreamWriter) {
-                final AddressableStreamReader addressableReader =
-                        (AddressableStreamReader) reader;
-                // pull the buffer, if it wasn't
-                addressableReader.getBuffer();
+        return nextAction;
+    }
 
-                final Object peerAddress = addressableReader.getPeerAddress();
-                final AddressableStreamWriter addressableWriter =
-                        (AddressableStreamWriter) writer;
-                if (addressableWriter.getPeerAddress() == null) {
-                    addressableWriter.setPeerAddress(peerAddress);
-                }
+    @Override
+    public NextAction handleWrite(final FilterChainContext ctx,
+            final NextAction nextAction) throws IOException {
+        final Object message = ctx.getMessage();
+        final Object dstAddress = ctx.getAddress();
+        if (message != null) {
+            UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
+            AddressableStreamWriter<SocketAddress> writer =
+                    (AddressableStreamWriter<SocketAddress>) connection.getStreamWriter();
+            if (!connection.isConnected()) {
+                writer.setPeerAddress((SocketAddress) dstAddress);
             }
-            writer.writeStream(reader);
+            
+            writer.writeBuffer((Buffer) message);
             writer.flush();
         }
 
         return nextAction;
+    }
+
+    @Override
+    public void exceptionOccurred(final FilterChainContext ctx,
+            final Throwable error) {
+
+        final Connection connection = ctx.getConnection();
+        if (connection != null) {
+            try {
+                connection.close();
+            } catch (IOException e) {
+            }
+        }
     }
 }
