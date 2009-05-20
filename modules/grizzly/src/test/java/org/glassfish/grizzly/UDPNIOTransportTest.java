@@ -336,6 +336,7 @@ public class UDPNIOTransportTest extends TestCase {
                 reader.readByteArray(message);
 
                 byte index = message[0];
+                System.out.println(index + " come...");
                 for(int j=0; j<packetSize; j++) {
                     assertEquals("Message is corrupted!", index, message[j]);
                 }
