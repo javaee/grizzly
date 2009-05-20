@@ -38,6 +38,8 @@
 
 package org.glassfish.grizzly.filterchain;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -47,14 +49,14 @@ import java.util.List;
  * 
  * @author Alexey Stashok
  */
-public abstract class AbstractNextAction implements NextAction {
+abstract class AbstractNextAction implements NextAction {
 
     protected int type;
     protected List<Filter> filters;
+    private List<Filter> unmodifiableFiltersView;
     protected int nextFilterIdx;
 
     protected AbstractNextAction(int type) {
-        super();
         this.type = type;
     }
 
@@ -69,16 +71,7 @@ public abstract class AbstractNextAction implements NextAction {
      * {@inheritDoc}
      */
     public List<Filter> getFilters() {
-        return filters;
-    }
-
-    /**
-     * Set the {@link Filter} list.
-     * 
-     * @param nextFilters the {@link Filter} list.
-     */
-    public void setFilters(List<Filter> filters) {
-        this.filters = filters;
+        return unmodifiableFiltersView;
     }
 
     /**
@@ -86,6 +79,16 @@ public abstract class AbstractNextAction implements NextAction {
      */
     public int getNextFilterIdx() {
         return nextFilterIdx;
+    }
+
+    /**
+     * Set the {@link Filter} list.
+     * 
+     * @param nextFilters the {@link Filter} list.
+     */
+    void setFilters(List<Filter> filters) {
+        this.filters = filters;
+        this.unmodifiableFiltersView = (filters != null) ? Collections.unmodifiableList(filters) : null;
     }
     
     /**
@@ -95,7 +98,7 @@ public abstract class AbstractNextAction implements NextAction {
      * @param nextFilterIdx index of the {@link Filter} in
      * {@link NextAction#getFilters()} list, which should be executed next.
      */
-    public void setNextFilterIdx(int nextFilterIdx) {
+    void setNextFilterIdx(int nextFilterIdx) {
         this.nextFilterIdx = nextFilterIdx;
     }
 }

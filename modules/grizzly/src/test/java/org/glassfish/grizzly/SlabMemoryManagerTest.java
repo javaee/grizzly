@@ -39,13 +39,8 @@ import junit.framework.TestCase;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.io.IOException;
 
 import junit.framework.Assert;
 
@@ -53,17 +48,6 @@ import org.glassfish.grizzly.memory.MemoryManager;
 import org.glassfish.grizzly.memory.slab.Slab;
 import org.glassfish.grizzly.memory.slab.SlabMemoryManagerFactory;
 
-import org.glassfish.grizzly.filterchain.FilterAdapter;
-import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.FilterChainContext;
-import org.glassfish.grizzly.filterchain.StopAction;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.memory.ByteBufferViewManager;
-import org.glassfish.grizzly.memory.ByteBufferWrapper;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.nio.transport.TCPNIOConnection;
-import org.glassfish.grizzly.streams.StreamWriter;
-import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 
 /**
  * Tests getting and returning of ByteWrappers to their corresponding

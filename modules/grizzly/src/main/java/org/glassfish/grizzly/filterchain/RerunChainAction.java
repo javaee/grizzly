@@ -45,10 +45,10 @@ package org.glassfish.grizzly.filterchain;
  * 
  * @author Alexey Stashok
  */
-public class RerunChainAction extends AbstractNextAction {
-    public static final int TYPE = 3;
+final class RerunChainAction extends AbstractNextAction {
+    static final int TYPE = 3;
 
-    public RerunChainAction() {
+    RerunChainAction() {
         super(TYPE);
     }
 }

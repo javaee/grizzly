@@ -46,7 +46,6 @@ import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.StopAction;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.attributes.AttributeStorage;
 
@@ -159,7 +158,7 @@ public class GIOPParserFilter extends FilterAdapter {
             setAttribute(connection, stateAttr, parseState);
 
             // Stop the filterchain execution until more data available
-            return new StopAction();
+            return ctx.getStopAction();
         } else {
             // Remove intermediate parsing state
             removeAttribute(connection, preparsedMessageAttr);

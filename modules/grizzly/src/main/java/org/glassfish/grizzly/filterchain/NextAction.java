@@ -57,8 +57,8 @@ public interface NextAction {
     public int type();
 
     /**
-     * Get list of {@link Filter}s.
-     * @return list of {@link Filter}s.
+     * Get <b>unmodifiable view</b> of the list of {@link Filter}s.
+     * @return unmodifiable view of the list of {@link Filter}s.
      */
     public List<Filter> getFilters();
 

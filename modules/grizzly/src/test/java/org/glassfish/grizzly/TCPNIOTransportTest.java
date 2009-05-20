@@ -50,7 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import junit.framework.TestCase;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
-import org.glassfish.grizzly.filterchain.StopAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.nio.transport.TCPNIOServerConnection;
@@ -446,7 +445,7 @@ public class TCPNIOTransportTest extends TestCase {
                 try {
                     resultFuture.get(10, TimeUnit.SECONDS);
                 } catch (Exception e) {
-                    return new StopAction();
+                    return ctx.getStopAction();
                 } finally {
                     latch.countDown();
                 }

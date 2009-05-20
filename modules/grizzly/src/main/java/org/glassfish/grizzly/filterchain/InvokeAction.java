@@ -55,18 +55,18 @@ import java.util.List;
  * 
  * @author Alexey Stashok
  */
-public class InvokeAction extends AbstractNextAction {
-    public static final int TYPE = 0;
+final class InvokeAction extends AbstractNextAction {
+    static final int TYPE = 0;
     
-    public InvokeAction() {
+    InvokeAction() {
         this(null);
     }
 
-    public InvokeAction(List<Filter> filters) {
+    InvokeAction(List<Filter> filters) {
         this(filters, 0);
     }
 
-    public InvokeAction(List<Filter> filters, int nextFilterIdx) {
+    InvokeAction(List<Filter> filters, int nextFilterIdx) {
         super(TYPE);
         setFilters(filters);
         setNextFilterIdx(nextFilterIdx);

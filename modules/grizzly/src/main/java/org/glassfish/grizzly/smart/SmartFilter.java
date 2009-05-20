@@ -51,8 +51,6 @@ import org.glassfish.grizzly.filterchain.CodecFilter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.RerunChainAction;
-import org.glassfish.grizzly.filterchain.StopAction;
 
 /**
  *
@@ -106,7 +104,7 @@ public class SmartFilter<K> extends FilterAdapter
                 return nextAction;
 
             case INCOMPLED:
-                return new StopAction();
+                return ctx.getStopAction();
 
             default:
                 decoder.release(connection);
@@ -123,7 +121,7 @@ public class SmartFilter<K> extends FilterAdapter
             Buffer remainder = remainderAttribute.remove(holder);
             if (remainder != null) {
                 ctx.setMessage(remainder);
-                nextAction = new RerunChainAction();
+                nextAction = ctx.getRerunChainAction();
             }
         }
 

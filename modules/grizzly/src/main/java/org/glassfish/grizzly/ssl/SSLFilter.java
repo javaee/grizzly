@@ -49,7 +49,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.StopAction;
 import org.glassfish.grizzly.filterchain.StreamTransformerFilter;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
@@ -134,13 +133,13 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
             Future future = sslHandshaker.handshake(sslStreamReader,
                     sslStreamWriter, sslEngineConfigurator);
             if (!future.isDone()) {
-                return new StopAction();
+                return ctx.getStopAction();
             }
         }
 
 
         if (sslStreamReader.availableDataSize() <= 0) {
-            nextAction = new StopAction();
+            nextAction = ctx.getStopAction();
         }
         return nextAction;
     }

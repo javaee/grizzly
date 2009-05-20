@@ -53,7 +53,6 @@ import junit.framework.TestCase;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.StopAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.memory.ByteBufferWrapper;
 import org.glassfish.grizzly.memory.MemoryManager;
@@ -1113,7 +1112,7 @@ public class ByteBufferStreamsTest extends TestCase {
                     assertTrue(f.isDone());
 
                     if (reader.availableDataSize() < checker.byteSize()) {
-                        return new StopAction();
+                        return ctx.getStopAction();
                     }
                     checker.readAndCheck(reader);
                     checkerQueue.remove();

@@ -219,6 +219,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
             currentFilterIdx = 0;
         }
 
+        // creating invoke action directly to prevent copy of the filter list
         NextAction nextAction = new InvokeAction(chain);
         
         while(currentFilterIdx < chain.size()) {

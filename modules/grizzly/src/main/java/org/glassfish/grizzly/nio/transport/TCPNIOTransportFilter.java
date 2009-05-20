@@ -45,7 +45,6 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Filter;
 import org.glassfish.grizzly.Buffer;
-import org.glassfish.grizzly.filterchain.StopAction;
 
 /**
  * The {@link TCPNIOTransport}'s transport {@link Filter} implementation
@@ -77,7 +76,7 @@ public class TCPNIOTransportFilter extends FilterAdapter {
             ctx.setStreamReader(connection.getStreamReader());
             ctx.setStreamWriter(connection.getStreamWriter());
         } else {
-            return new StopAction();
+            return ctx.getStopAction();
         }
 
         return nextAction;

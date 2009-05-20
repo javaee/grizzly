@@ -52,8 +52,6 @@ import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.StopAction;
-import org.glassfish.grizzly.filterchain.SuspendAction;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.threadpool.DefaultThreadPool;
 
@@ -183,7 +181,7 @@ public class ResourceAllocationFilter extends FilterAdapter {
         StringBuilder sb = new StringBuilder(256);
         
         if (!parse(reader, 0, sb)) {
-            return new StopAction();
+            return ctx.getStopAction();
         }
 
         String token = getContextRoot(sb.toString());
@@ -206,7 +204,7 @@ public class ResourceAllocationFilter extends FilterAdapter {
             }
             if (delayCount > 5) {
                 ctx.getConnection().close();
-                return new StopAction();
+                return ctx.getStopAction();
             }
         }
 
@@ -220,7 +218,7 @@ public class ResourceAllocationFilter extends FilterAdapter {
 
         ctx.setCurrentFilterIdx(ctx.getCurrentFilterIdx() + 1);
         threadPool.execute(ctx.getProcessorRunnable());
-        return new SuspendAction();
+        return ctx.getSuspendAction();
     }
 
 

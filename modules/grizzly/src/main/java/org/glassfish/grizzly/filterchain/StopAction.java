@@ -44,10 +44,10 @@ package org.glassfish.grizzly.filterchain;
  * 
  * @author Alexey Stashok
  */
-public class StopAction extends AbstractNextAction {
-    public static final int TYPE = 1;
+final class StopAction extends AbstractNextAction {
+    static final int TYPE = 1;
 
-    public StopAction() {
+    StopAction() {
         super(TYPE);
     }
 }

@@ -44,8 +44,6 @@ import java.util.logging.Level;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
-import org.glassfish.grizzly.filterchain.StopAction;
-import org.glassfish.grizzly.filterchain.SuspendAction;
 import org.glassfish.grizzly.web.FileCache;
 import org.glassfish.grizzly.web.ProcessorTask;
 import org.glassfish.grizzly.web.TaskEvent;
@@ -88,11 +86,11 @@ public class AsyncWebFilter extends WebFilter<AsyncWebFilterConfig>
             } catch (Throwable ex) {
                 logger.log(Level.INFO, "Processor exception", ex);
                 ctx.getConnection().close();
-                return new StopAction();
+                return ctx.getStopAction();
             }
 
             // Suspend further FilterChain execution on the current thread
-            return new SuspendAction();
+            return ctx.getSuspendAction();
         } else {
             return super.handleRead(ctx, nextAction);
         }

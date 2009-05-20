@@ -38,6 +38,7 @@
 
 package org.glassfish.grizzly.filterchain;
 
+import java.util.ArrayList;
 import java.util.List;
 import org.glassfish.grizzly.Context;
 import org.glassfish.grizzly.ssl.SSLFilter;
@@ -57,7 +58,22 @@ import org.glassfish.grizzly.util.ObjectPool;
  * @author Alexey Stashok
  */
 public class FilterChainContext extends Context {
-
+    /**
+     * Cached {@link NextAction} instance for "Invoke action" implementation
+     */
+    private static final NextAction INVOKE_ACTION = new InvokeAction();
+    /**
+     * Cached {@link NextAction} instance for "Rerun Chain action" implementation
+     */
+    private static final NextAction RERUN_CHAIN_ACTION = new RerunChainAction();
+    /**
+     * Cached {@link NextAction} instance for "Stop action" implementation
+     */
+    private static final NextAction STOP_ACTION = new StopAction();
+    /**
+     * Cached {@link NextAction} instance for "Suspend action" implementation
+     */
+    private static final NextAction SUSPEND_ACTION = new SuspendAction();
     /**
      * Current processing {@link Filter}
      */
@@ -284,6 +300,112 @@ public class FilterChainContext extends Context {
      */
     public void setStreamWriter(StreamWriter streamWriter) {
         this.streamWriter = streamWriter;
+    }
+
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     *
+     * Normally, after receiving this instruction from {@link Filter},
+     * {@link FilterChain} takes {@link Filter} with index:
+     * {@link InvokeAction#getNextFilterIdx()} from {@link InvokeAction#getFilters()}
+     * chain.
+     *
+     * Any {@link Filter} implementation is free to change the {@link Filter}
+     * execution sequence.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     *
+     * @see #getInvokeAction(java.util.List)
+     * @see #getInvokeAction(java.util.List, int) 
+     */
+    public NextAction getInvokeAction() {
+        return INVOKE_ACTION;
+    }
+
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     *
+     * Normally, after receiving this instruction from {@link Filter},
+     * {@link FilterChain} takes {@link Filter} with index:
+     * {@link InvokeAction#getNextFilterIdx()} from {@link InvokeAction#getFilters()}
+     * chain.
+     *
+     * Any {@link Filter} implementation is free to change the {@link Filter}
+     * execution sequence.
+     *
+     * @param filters new list of the filters to be invoked in the chain processing
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     *
+     * @see #getInvokeAction()
+     * @see #getInvokeAction(java.util.List, int)
+     */
+    public NextAction getInvokeAction(List<Filter> filters) {
+        return new InvokeAction(new ArrayList<Filter>(filters));
+    }
+
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     *
+     * Normally, after receiving this instruction from {@link Filter},
+     * {@link FilterChain} takes {@link Filter} with index:
+     * {@link InvokeAction#getNextFilterIdx()} from {@link InvokeAction#getFilters()}
+     * chain.
+     *
+     * Any {@link Filter} implementation is free to change the {@link Filter}
+     * execution sequence.
+     *
+     * @param filters new list of the filters to be invoked in the chain processing
+     * @param nextFilterIdx new index of the {@link Filter} in {@link NextAction#getFilters()}
+     * list, which should be executed next.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     *
+     * @see #getInvokeAction()
+     * @see #getInvokeAction(java.util.List)
+     */
+    public NextAction getInvokeAction(List<Filter> filters, int nextFilterIdx) {
+        return new InvokeAction(new ArrayList<Filter>(filters), nextFilterIdx);
+    }
+
+    /**
+     * Get {@link NextAction} implementation, which is expected only on post processing
+     * phase. This implementation instructs {@link FilterChain} to re-process the
+     * {@link IOEvent} processing again from the beginning.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
+     * to re-process the {@link IOEvent} processing again from the beginning.
+     */
+    public NextAction getRerunChainAction() {
+        return RERUN_CHAIN_ACTION;
+    }
+
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
+     * to stop executing phase and start post executing filters.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
+     * to stop executing phase and start post executing filters.
+     */
+    public NextAction getStopAction() {
+        return STOP_ACTION;
+    }
+
+    /**
+     * Get {@link NextAction}, which instructs {@link FilterChain} to suspend filter
+     * chain execution, both execute and post-execute phases.
+     *
+     * @return {@link NextAction}, which instructs {@link FilterChain} to suspend
+     * filter chain execution, both execute and post-execute phases.
+     */
+    public NextAction getSuspendAction() {
+        return SUSPEND_ACTION;
     }
 
     Filter getDefaultTransportFilter() {

@@ -51,8 +51,6 @@ import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.TransformationResult.Status;
 import org.glassfish.grizzly.filterchain.CodecFilter;
-import org.glassfish.grizzly.filterchain.RerunChainAction;
-import org.glassfish.grizzly.filterchain.StopAction;
 import org.glassfish.grizzly.memory.MemoryManager;
 
 /**
@@ -109,7 +107,7 @@ public class UTFStringFilter extends FilterAdapter implements CodecFilter {
                 remainderAttribute.set(ctx.obtainAttributes(), message);
             }
         } else {
-            nextAction = new StopAction();
+            nextAction = ctx.getStopAction();
         }
 
         return nextAction;
@@ -123,7 +121,7 @@ public class UTFStringFilter extends FilterAdapter implements CodecFilter {
             Buffer remainder = remainderAttribute.remove(holder);
             if (remainder != null) {
                 ctx.setMessage(remainder);
-                nextAction = new RerunChainAction();
+                nextAction = ctx.getRerunChainAction();
             }
         }
 

@@ -47,7 +47,6 @@ import java.io.IOException;
 import java.util.logging.Filter;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.ReadResult;
-import org.glassfish.grizzly.filterchain.StopAction;
 
 /**
  * The {@link UDPNIOTransport}'s transport {@link Filter} implementation
@@ -78,7 +77,7 @@ public class UDPNIOTransportFilter extends FilterAdapter {
             ctx.setStreamReader(connection.getStreamReader());
             ctx.setStreamWriter(connection.getStreamWriter());
         } else {
-            return new StopAction();
+            return ctx.getStopAction();
         }
 
         return nextAction;
