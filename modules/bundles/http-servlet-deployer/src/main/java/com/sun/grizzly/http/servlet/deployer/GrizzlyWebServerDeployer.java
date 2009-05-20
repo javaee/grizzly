@@ -585,27 +585,27 @@ public class GrizzlyWebServerDeployer {
         return aliasList.toArray(array);
     }
 
-    protected void setLocations(String filename) {
+    public void setLocations(String filename) {
         locations = filename;
     }
 
-    protected String getLocations() {
+    public String getLocations() {
         return locations;
     }
 
-    protected void setPort(int port) {
+    public void setPort(int port) {
         this.port = port;
     }
 
-    protected int getPort() {
+    public int getPort() {
         return port;
     }
     
-    protected String getLibraryPath() {
+    public String getLibraryPath() {
 		return libraryPath;
 	}
 
-    protected void setLibraryPath(String path) {
+    public void setLibraryPath(String path) {
 		this.libraryPath = path;
 	}
 
@@ -948,7 +948,7 @@ public class GrizzlyWebServerDeployer {
         return path;
     }
 
-    protected WebApp extractWebxmlInfo(String webxml) throws Exception {
+    public WebApp extractWebxmlInfo(String webxml) throws Exception {
 
         WebappLoader webappLoader = new WebappLoader();
         WebApp webApp = webappLoader.load(webxml);
