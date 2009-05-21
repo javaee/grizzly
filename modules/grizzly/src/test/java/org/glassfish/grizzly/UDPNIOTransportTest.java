@@ -278,8 +278,8 @@ public class UDPNIOTransportTest extends TestCase {
     }
 
     public void testSeveralPacketsAsyncReadWriteEcho() throws Exception {
-        int packetsNumber = 20;
-        final int packetSize = 1024;
+        int packetsNumber = 100;
+        final int packetSize = 128;
 
         Connection connection = null;
         UDPNIOStreamReader reader = null;
