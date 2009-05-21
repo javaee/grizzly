@@ -279,7 +279,7 @@ public class UDPNIOTransportTest extends TestCase {
 
     public void testSeveralPacketsAsyncReadWriteEcho() throws Exception {
         int packetsNumber = 100;
-        final int packetSize = 128;
+        final int packetSize = 32;
 
         Connection connection = null;
         UDPNIOStreamReader reader = null;
@@ -336,7 +336,6 @@ public class UDPNIOTransportTest extends TestCase {
                 reader.readByteArray(message);
 
                 byte index = message[0];
-                System.out.println(index + " come...");
                 for(int j=0; j<packetSize; j++) {
                     assertEquals("Message is corrupted!", index, message[j]);
                 }
