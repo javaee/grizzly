@@ -113,7 +113,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     private transient ArrayList<String> listeners;
     
-    private String servletPath = "";
+    private String servletPath = "/";
     
     
     private String contextPath = "";
