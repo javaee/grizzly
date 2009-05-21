@@ -56,10 +56,12 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
     /**
      * The list of Filters this chain will invoke.
      */
-    protected List<Filter> filters;
+    protected final List<Filter> filters;
 
-    public ListFacadeFilterChain(FilterChainFactory factory) {
+    public ListFacadeFilterChain(final FilterChainFactory factory,
+            final List<Filter> filtersImpl) {
         super(factory);
+        this.filters = filtersImpl;
     }
     
     /**

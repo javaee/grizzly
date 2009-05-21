@@ -164,8 +164,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     private final DefaultFilterChainCodec filterChainCodec;
 
     public DefaultFilterChain(FilterChainFactory factory) {
-        super(factory);
-        filters = new LightArrayList<Filter>();
+        super(factory, new LightArrayList<Filter>());
         filterChainCodec = new DefaultFilterChainCodec(this);
     }
     
@@ -215,16 +214,19 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
         List<Filter> chain = ctx.getFilters();
         int currentFilterIdx = ctx.getCurrentFilterIdx();
 
+        NextAction nextAction;
+
         if (chain == null) {
             ctx.setFilters(filters);
             ctx.setCurrentFilterIdx(0);
             chain = filters;
             currentFilterIdx = 0;
+
+            nextAction = getCachedInvokeAction(ctx);
+        } else {
+            nextAction = new InvokeAction(chain);
         }
 
-        // creating invoke action directly to prevent copy of the filter list
-        NextAction nextAction = new InvokeAction(chain);
-        
         while(currentFilterIdx < chain.size()) {
             ((AbstractNextAction) nextAction).setNextFilterIdx(currentFilterIdx + 1);
 
@@ -347,6 +349,17 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      */
     public Codec getCodec() {
         return filterChainCodec;
+    }
+
+    private NextAction getCachedInvokeAction(FilterChainContext ctx) {
+        InvokeAction cachedInvokeAction = ctx.getCachedInvokeAction();
+        if (cachedInvokeAction == null ||
+                cachedInvokeAction.filters != filters) {
+            cachedInvokeAction = new InvokeAction(filters);
+            ctx.setCachedInvokeAction(cachedInvokeAction);
+        }
+
+        return cachedInvokeAction;
     }
 
     /**

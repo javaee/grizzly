@@ -55,13 +55,13 @@ import org.glassfish.grizzly.Transformer;
 public class SSLCodec implements Codec<Buffer, Buffer> {
     private SSLHandshaker sslHandshaker;
 
-    private SSLContext sslContext;
+    private final SSLContext sslContext;
 
-    private SSLEngineConfigurator serverSSLEngineConfig;
-    private SSLEngineConfigurator clientSSLEngineConfig;
+    private final SSLEngineConfigurator serverSSLEngineConfig;
+    private final SSLEngineConfigurator clientSSLEngineConfig;
     
-    private Transformer<Buffer, Buffer> decoder;
-    private Transformer<Buffer, Buffer> encoder;
+    private final Transformer<Buffer, Buffer> decoder;
+    private final Transformer<Buffer, Buffer> encoder;
 
     public SSLCodec(SSLContextConfigurator config) {
         this(config.createSSLContext());
@@ -99,18 +99,8 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
         return clientSSLEngineConfig;
     }
 
-    public void setClientSSLEngineConfig(
-            SSLEngineConfigurator clientSSLEngineConfig) {
-        this.clientSSLEngineConfig = clientSSLEngineConfig;
-    }
-
     public SSLEngineConfigurator getServerSSLEngineConfig() {
         return serverSSLEngineConfig;
-    }
-
-    public void setServerSSLEngineConfig(
-            SSLEngineConfigurator serverSSLEngineConfig) {
-        this.serverSSLEngineConfig = serverSSLEngineConfig;
     }
 
     public SSLHandshaker getSslHandshaker() {

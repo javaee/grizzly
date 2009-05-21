@@ -74,6 +74,13 @@ public class FilterChainContext extends Context {
      * Cached {@link NextAction} instance for "Suspend action" implementation
      */
     private static final NextAction SUSPEND_ACTION = new SuspendAction();
+
+    /**
+     * Cached InvokeAction, used by {@link DefaultFilterChain}, to avoid
+     * creating it each time.
+     */
+    private InvokeAction cachedInvokeAction;
+
     /**
      * Current processing {@link Filter}
      */
@@ -414,6 +421,14 @@ public class FilterChainContext extends Context {
 
     void setDefaultTransportFilter(final Filter defaultTransportFilter) {
         this.defaultTransportFilter = defaultTransportFilter;
+    }
+
+    final InvokeAction getCachedInvokeAction() {
+        return cachedInvokeAction;
+    }
+
+    final void setCachedInvokeAction(InvokeAction cachedInvokeAction) {
+        this.cachedInvokeAction = cachedInvokeAction;
     }
 
     /**
