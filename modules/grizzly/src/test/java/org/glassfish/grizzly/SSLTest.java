@@ -37,10 +37,17 @@
  */
 package org.glassfish.grizzly;
 
+import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
+import org.glassfish.grizzly.TransformationResult.Status;
+import org.glassfish.grizzly.filterchain.FilterAdapter;
+import org.glassfish.grizzly.filterchain.FilterChain;
+import org.glassfish.grizzly.filterchain.FilterChainContext;
+import org.glassfish.grizzly.filterchain.FilterChainEnabledTransport;
+import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
 import org.glassfish.grizzly.ssl.BlockingSSLHandshaker;
@@ -50,6 +57,8 @@ import org.glassfish.grizzly.ssl.SSLFilter;
 import org.glassfish.grizzly.ssl.SSLHandshaker;
 import org.glassfish.grizzly.ssl.SSLStreamReader;
 import org.glassfish.grizzly.ssl.SSLStreamWriter;
+import org.glassfish.grizzly.streams.StreamReader;
+import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.util.EchoFilter;
 
 /**
@@ -227,6 +236,88 @@ public class SSLTest extends TestCase {
         }
     }
 
+    public void testSSLCodec() throws Exception {
+        Connection connection = null;
+        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
+
+        SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        if (sslContextConfigurator.validateConfiguration(true)) {
+        clientSSLEngineConfigurator =
+                new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+        } else {
+            fail("Failed to validate SSLContextConfiguration.");
+        }
+        final TCPNIOTransport transport =
+                TransportFactory.getInstance().createTCPTransport();
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new SSLFilter(
+                new SSLEngineConfigurator(
+                sslContextConfigurator.createSSLContext(), false, false, false)));
+        transport.getFilterChain().add(new MyEchoFilter());
+
+        SSLStreamReader reader = null;
+        SSLStreamWriter writer = null;
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            transport.configureBlocking(true);
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+
+            connection.setProcessor(null);
+
+            reader = new SSLStreamReader(connection.getStreamReader());
+            writer = new SSLStreamWriter(connection.getStreamWriter());
+
+            SSLHandshaker handshaker = new BlockingSSLHandshaker();
+
+            Future handshakeFuture = handshaker.handshake(reader, writer,
+                    clientSSLEngineConfigurator);
+
+            handshakeFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(handshakeFuture.isDone());
+
+            byte[] sentMessage = "Hello world!".getBytes();
+
+            // aquire read lock to not allow incoming data to be processed by Processor
+            writer.writeByteArray(sentMessage);
+            Future writeFuture = writer.flush();
+
+            writeFuture.get(10, TimeUnit.SECONDS);
+            assertTrue("Write timeout", writeFuture.isDone());
+
+            byte[] receivedMessage = new byte[sentMessage.length];
+
+            Future readFuture = reader.notifyAvailable(receivedMessage.length);
+            readFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(readFuture.isDone());
+
+            reader.readByteArray(receivedMessage);
+
+            String sentString = new String(sentMessage);
+            String receivedString = new String(receivedMessage);
+            assertEquals(sentString, receivedString);
+        }  finally {
+            if (reader != null) {
+                reader.close();
+            }
+
+            if (writer != null) {
+                writer.close();
+            }
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
     private SSLContextConfigurator createSSLContextConfigurator() {
         SSLContextConfigurator sslContextConfigurator =
                 new SSLContextConfigurator();
@@ -247,4 +338,31 @@ public class SSLTest extends TestCase {
 
         return sslContextConfigurator;
     }
+
+    private static final class MyEchoFilter extends FilterAdapter {
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx,
+                    NextAction nextAction) throws IOException {
+                final Connection connection = ctx.getConnection();
+                final Transport transport = connection.getTransport();
+                final StreamReader reader = ctx.getStreamReader();
+                final FilterChain filterChain = ((FilterChainEnabledTransport) transport).getFilterChain();
+                final Transformer encoder = filterChain.getCodec().getEncoder();
+
+                while(reader.availableDataSize() > 0) {
+                    Buffer inBuffer = reader.readBuffer();
+                    TransformationResult result =
+                            encoder.transform(connection, inBuffer, null);
+                    if (result.getStatus() == Status.COMPLETED) {
+                        Buffer outBuffer = (Buffer) result.getMessage();
+                        connection.write(outBuffer);
+                        encoder.release(connection);
+                    }
+                }
+
+                return nextAction;
+            }
+
+        }
 }

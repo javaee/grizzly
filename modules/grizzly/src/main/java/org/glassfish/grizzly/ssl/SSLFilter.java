@@ -46,6 +46,8 @@ import javax.net.ssl.SSLEngine;
 import org.glassfish.grizzly.Buffer;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.Transformer;
+import org.glassfish.grizzly.filterchain.CodecFilter;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
@@ -58,11 +60,14 @@ import org.glassfish.grizzly.streams.StreamWriter;
  * 
  * @author Alexey Stashok
  */
-public class SSLFilter extends FilterAdapter implements StreamTransformerFilter {
+public class SSLFilter extends FilterAdapter
+        implements CodecFilter, StreamTransformerFilter {
     private Logger logger = Grizzly.logger;
     
-    private SSLEngineConfigurator sslEngineConfigurator;
-    private SSLHandshaker sslHandshaker;
+    private final SSLEngineConfigurator sslEngineConfigurator;
+    private final SSLHandshaker sslHandshaker;
+    private final SSLDecoderTransformer decoder;
+    private final SSLEncoderTransformer encoder;
 
     public SSLFilter() {
         this(null);
@@ -97,6 +102,8 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
         }
 
         this.sslHandshaker = sslHandshaker;
+        this.decoder = new SSLDecoderTransformer();
+        this.encoder = new SSLEncoderTransformer();
     }
 
     /**
@@ -211,5 +218,13 @@ public class SSLFilter extends FilterAdapter implements StreamTransformerFilter 
 
         return new SSLSupportImpl(
                 sslEngineConfigurator, sslHandshaker, reader, writer);
+    }
+
+    public Transformer getDecoder() {
+        return decoder;
+    }
+
+    public Transformer getEncoder() {
+        return encoder;
     }
 }
