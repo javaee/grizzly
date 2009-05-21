@@ -235,7 +235,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                         isRootConfigured = true;
                         GrizzlyAdapter a = new GrizzlyAdapter(getRootFolder()){
                             {
-                                setHandleStaticResources(true);
+                                setHandleStaticResources(false);
                             }
 
                             @Override
