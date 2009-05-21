@@ -49,7 +49,6 @@ import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.TransformationResult;
 import org.glassfish.grizzly.Transformer;
-import org.glassfish.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import org.glassfish.grizzly.streams.AddressableStreamReader;
 import org.glassfish.grizzly.streams.AddressableStreamWriter;
 import org.glassfish.grizzly.streams.StreamReader;
@@ -76,7 +75,7 @@ public class EchoFilter extends FilterAdapter {
             encoder.release(connection);
             final Buffer buffer = result.getMessage();
             final Object address = ctx.getAddress();
-            ((AsyncQueueEnabledTransport) connection.getTransport()).getAsyncQueueIO().getWriter().write(connection, address, buffer, null);
+            connection.write(address, buffer);
         } else {
             final StreamReader reader = ctx.getStreamReader();
             final StreamWriter writer = ctx.getStreamWriter();

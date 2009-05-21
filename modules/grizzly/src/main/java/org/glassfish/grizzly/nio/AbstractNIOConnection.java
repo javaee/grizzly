@@ -38,16 +38,22 @@
 
 package org.glassfish.grizzly.nio;
 
+import java.util.concurrent.Future;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
 import org.glassfish.grizzly.Processor;
 import org.glassfish.grizzly.ProcessorSelector;
 import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.attributes.AttributeHolder;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.IOEvent;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.asyncqueue.AsyncQueue;
 import org.glassfish.grizzly.asyncqueue.AsyncReadQueueRecord;
 import org.glassfish.grizzly.asyncqueue.AsyncWriteQueueRecord;
@@ -60,7 +66,7 @@ import org.glassfish.grizzly.streams.StreamWriter;
  * 
  * @author Alexey Stashok
  */
-public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
+public abstract class AbstractNIOConnection implements NIOConnection {
     protected final NIOTransport transport;
 
     protected int readBufferSize;
@@ -75,8 +81,8 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
     
     protected final AttributeHolder attributes;
 
-    protected volatile AsyncQueue<AsyncReadQueueRecord> asyncReadQueue;
-    protected volatile AsyncQueue<AsyncWriteQueueRecord> asyncWriteQueue;
+    protected final AsyncQueue<AsyncReadQueueRecord> asyncReadQueue;
+    protected final AsyncQueue<AsyncWriteQueueRecord> asyncWriteQueue;
     
     protected AtomicBoolean isClosed = new AtomicBoolean(false);
 
@@ -84,6 +90,9 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;
+        asyncReadQueue = new AsyncQueue<AsyncReadQueueRecord>();
+        asyncWriteQueue = new AsyncQueue<AsyncWriteQueueRecord>();
+        
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
 
@@ -163,31 +172,7 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
         return asyncReadQueue;
     }
 
-    public AsyncQueue<AsyncReadQueueRecord> obtainAsyncReadQueue() {
-        if (asyncReadQueue == null) {
-            synchronized(this) {
-                if (asyncReadQueue == null) {
-                    asyncReadQueue = new AsyncQueue<AsyncReadQueueRecord>();
-                }
-            }
-        }
-
-        return asyncReadQueue;
-    }
-
     public AsyncQueue<AsyncWriteQueueRecord> getAsyncWriteQueue() {
-        return asyncWriteQueue;
-    }
-
-    public AsyncQueue<AsyncWriteQueueRecord> obtainAsyncWriteQueue() {
-        if (asyncWriteQueue == null) {
-            synchronized(this) {
-                if (asyncWriteQueue == null) {
-                    asyncWriteQueue = new AsyncQueue<AsyncWriteQueueRecord>();
-                }
-            }
-        }
-
         return asyncWriteQueue;
     }
 
@@ -198,12 +183,47 @@ public abstract class AbstractNIOConnection<A> implements NIOConnection<A> {
     public AttributeHolder obtainAttributes() {
         return attributes;
     }
-    
+
+    @Override
+    public Future<ReadResult<Buffer, SocketAddress>> read() throws IOException {
+        return read(null);
+    }
+
+    @Override
+    public Future<ReadResult<Buffer, SocketAddress>> read(Buffer buffer)
+            throws IOException {
+        return read(buffer, null);
+    }
+
+    @Override
+    public Future<ReadResult<Buffer, SocketAddress>> read(Buffer buffer,
+            CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler)
+            throws IOException {
+        return read(buffer, completionHandler, null);
+    }
+
+    @Override
+    public Future<WriteResult<Buffer, SocketAddress>> write(Buffer buffer)
+            throws IOException {
+        return write(null, buffer);
+    }
+
+    @Override
+    public Future<WriteResult<Buffer, SocketAddress>> write(Buffer buffer,
+            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler)
+            throws IOException {
+        return write((SocketAddress) null, buffer, completionHandler);
+    }
+
+    @Override
+    public Future<WriteResult<Buffer, SocketAddress>> write(
+            SocketAddress dstAddress, Buffer buffer) throws IOException {
+        return write(dstAddress, buffer, null);
+    }    
 
     public boolean isOpen() {
         return channel != null && channel.isOpen() && !isClosed.get();
     }
-
 
     public void close() throws IOException {
         if (!isClosed.getAndSet(true)) {

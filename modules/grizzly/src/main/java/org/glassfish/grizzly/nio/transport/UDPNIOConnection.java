@@ -38,6 +38,10 @@
 
 package org.glassfish.grizzly.nio.transport;
 
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.nio.SelectorRunner;
@@ -51,10 +55,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.Interceptor;
+import org.glassfish.grizzly.Reader;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.AbstractStreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.streams.AbstractStreamWriter;
+import org.glassfish.grizzly.util.conditions.Condition;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -62,7 +69,7 @@ import org.glassfish.grizzly.streams.AbstractStreamWriter;
  *
  * @author Alexey Stashok
  */
-public class UDPNIOConnection extends AbstractNIOConnection<SocketAddress> {
+public class UDPNIOConnection extends AbstractNIOConnection {
     private Logger logger = Grizzly.logger;
 
     private final AbstractStreamReader streamReader;
@@ -182,6 +189,58 @@ public class UDPNIOConnection extends AbstractNIOConnection<SocketAddress> {
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Error setting write buffer size", e);
+        }
+    }
+
+    @Override
+    public Future<ReadResult<Buffer, SocketAddress>> read(final Buffer buffer,
+            final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
+            final Condition<ReadResult<Buffer, SocketAddress>> condition)
+            throws IOException {
+        final UDPNIOTransport udpTransport = (UDPNIOTransport) transport;
+        Interceptor<ReadResult<Buffer, SocketAddress>> interceptor = null;
+
+        if (condition != null) {
+            interceptor = new Interceptor<ReadResult<Buffer, SocketAddress>>() {
+
+                @Override
+                public int intercept(int event, Object context,
+                        ReadResult<Buffer, SocketAddress> result) {
+                    if (event == Reader.READ_EVENT) {
+                        if (condition.check(result)) {
+                            return Interceptor.COMPLETED;
+                        }
+
+                        return Interceptor.INCOMPLETED;
+                    }
+
+                    return Interceptor.DEFAULT;
+                }
+            };
+        }
+
+        if (isBlocking) {
+            return udpTransport.getTemporarySelectorIO().getReader().read(this,
+                    buffer, completionHandler, interceptor);
+        } else {
+            return udpTransport.getAsyncQueueIO().getReader().read(this,
+                    buffer, completionHandler, interceptor);
+        }
+    }
+
+    @Override
+    public Future<WriteResult<Buffer, SocketAddress>> write(
+            SocketAddress dstAddress, Buffer buffer,
+            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler)
+            throws IOException {
+        final UDPNIOTransport udpTransport = (UDPNIOTransport) transport;
+        
+        if (isBlocking) {
+            return udpTransport.getTemporarySelectorIO().getWriter().write(this,
+                    dstAddress, buffer, completionHandler);
+        } else {
+            return udpTransport.getAsyncQueueIO().getWriter().write(this,
+                    dstAddress, buffer, completionHandler);
         }
     }
 }

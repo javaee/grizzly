@@ -49,7 +49,8 @@ import org.glassfish.grizzly.attributes.AttributeStorage;
  * 
  * @author Alexey Stashok
  */
-public interface Connection<L> extends Closeable, AttributeStorage {
+public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
+        AttributeStorage {
     /**
      * Get the {@link Transport}, to which this {@link Connection} belongs to.
      * @return the {@link Transport}, to which this {@link Connection} belongs to.

@@ -79,7 +79,7 @@ public class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
         record.set(buffer, new FutureImpl(),
                 new ReadResult(connection),
                 completionHandler, interceptor);
-        ((TCPNIOConnection) connection).obtainAsyncReadQueue().getQueue().add(record);
+        ((TCPNIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
     }
 
     @Override

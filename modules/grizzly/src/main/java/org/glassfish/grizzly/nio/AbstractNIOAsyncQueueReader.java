@@ -113,7 +113,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
         // Get connection async read queue
         final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
-                ((AbstractNIOConnection) connection).obtainAsyncReadQueue();
+                ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
         final LinkedTransferQueue<AsyncReadQueueRecord> queue =
                 connectionQueue.getQueue();
@@ -236,7 +236,7 @@ public abstract class AbstractNIOAsyncQueueReader
      */
     public void processAsync(final Connection connection) throws IOException {
         final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
-                ((AbstractNIOConnection) connection).obtainAsyncReadQueue();
+                ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
         final LinkedTransferQueue<AsyncReadQueueRecord> queue =
                 connectionQueue.getQueue();

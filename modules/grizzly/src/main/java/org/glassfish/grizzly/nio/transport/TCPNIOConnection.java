@@ -38,6 +38,11 @@
 
 package org.glassfish.grizzly.nio.transport;
 
+import java.util.concurrent.Future;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.CompletionHandler;
+import org.glassfish.grizzly.ReadResult;
+import org.glassfish.grizzly.WriteResult;
 import org.glassfish.grizzly.nio.AbstractNIOConnection;
 import org.glassfish.grizzly.IOEvent;
 import org.glassfish.grizzly.nio.SelectorRunner;
@@ -51,10 +56,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
+import org.glassfish.grizzly.impl.FutureImpl;
 import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.AbstractStreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
-import org.glassfish.grizzly.streams.AbstractStreamWriter;
+import org.glassfish.grizzly.util.conditions.Condition;
 
 /**
  * {@link org.glassfish.grizzly.Connection} implementation
@@ -62,12 +67,12 @@ import org.glassfish.grizzly.streams.AbstractStreamWriter;
  *
  * @author Alexey Stashok
  */
-public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
+public class TCPNIOConnection extends AbstractNIOConnection {
     private Logger logger = Grizzly.logger;
 
-    private final AbstractStreamReader streamReader;
+    private final TCPNIOStreamReader streamReader;
 
-    private final AbstractStreamWriter streamWriter;
+    private final TCPNIOStreamWriter streamWriter;
 
     private SocketAddress localSocketAddress;
     private SocketAddress peerSocketAddress;
@@ -146,6 +151,109 @@ public class TCPNIOConnection extends AbstractNIOConnection<SocketAddress> {
                 peerSocketAddress = null;
             }
         }
+    }
+
+    @Override
+    public Future<ReadResult<Buffer, SocketAddress>> read(final Buffer buffer,
+            final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
+            final Condition<ReadResult<Buffer, SocketAddress>> condition)
+            throws IOException {
+        final FutureImpl<ReadResult<Buffer, SocketAddress>> future =
+                new FutureImpl<ReadResult<Buffer, SocketAddress>>();
+        final ReadResult<Buffer, SocketAddress> readResult =
+                new ReadResult<Buffer, SocketAddress>(TCPNIOConnection.this,
+                buffer, getPeerAddress(), 0);
+        
+        streamReader.notifyCondition(new Condition<StreamReader>() {
+            @Override
+            public boolean check(final StreamReader streamReader) {
+                if (condition == null) {
+                    return streamReader.availableDataSize() > 0;
+                } else {
+                    readResult.setReadSize(streamReader.availableDataSize());
+                    return condition.check(readResult);
+                }
+            }
+        }, new CompletionHandler<Integer>() {
+
+
+            @Override
+            public void cancelled(Connection connection) {
+                completionHandler.cancelled(connection);
+                future.cancel(false);
+            }
+
+            @Override
+            public void failed(Connection connection, Throwable throwable) {
+                completionHandler.failed(connection, throwable);
+                future.failure(throwable);
+            }
+
+            @Override
+            public void completed(Connection connection, Integer result) {
+                readResult.setReadSize(result);
+                if (completionHandler != null) {
+                    completionHandler.completed(connection, readResult);
+                }
+
+                future.setResult(readResult);            }
+
+            @Override
+            public void updated(Connection connection, Integer result) {
+                readResult.setReadSize(result);
+                completionHandler.updated(connection, readResult);
+            }
+
+        });
+
+        return future;
+    }
+
+    @Override
+    public Future<WriteResult<Buffer, SocketAddress>> write(
+            final SocketAddress dstAddress, final Buffer buffer,
+            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler)
+            throws IOException {
+        final FutureImpl<WriteResult<Buffer, SocketAddress>> future =
+                new FutureImpl<WriteResult<Buffer, SocketAddress>>();
+
+        streamWriter.writeBuffer(buffer);
+        streamWriter.flush(new CompletionHandler<Integer>() {
+            private final WriteResult<Buffer, SocketAddress> writeResult =
+                    new WriteResult<Buffer, SocketAddress>(TCPNIOConnection.this,
+                    buffer, getPeerAddress(), 0);
+            
+            @Override
+            public void cancelled(Connection connection) {
+                completionHandler.cancelled(connection);
+                future.cancel(false);
+            }
+
+            @Override
+            public void failed(Connection connection, Throwable throwable) {
+                completionHandler.failed(connection, throwable);
+                future.failure(throwable);
+            }
+
+            @Override
+            public void completed(Connection connection, Integer result) {
+                writeResult.setWrittenSize(result);
+                if (completionHandler != null) {
+                    completionHandler.completed(connection, writeResult);
+                }
+                
+                future.setResult(writeResult);
+            }
+
+            @Override
+            public void updated(Connection connection, Integer result) {
+                writeResult.setWrittenSize(result);
+                completionHandler.updated(connection, writeResult);
+            }
+
+        });
+
+        return future;
     }
 }
     

@@ -39,6 +39,7 @@
 package org.glassfish.grizzly.nio;
 
 import java.io.IOException;
+import java.net.SocketAddress;
 import org.glassfish.grizzly.Connection;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -48,7 +49,7 @@ import org.glassfish.grizzly.IOEvent;
  *
  * @author oleksiys
  */
-public interface NIOConnection<L> extends Connection<L> {
+public interface NIOConnection extends Connection<SocketAddress> {
     public SelectorRunner getSelectorRunner();
 
     public SelectionKey getSelectionKey();
