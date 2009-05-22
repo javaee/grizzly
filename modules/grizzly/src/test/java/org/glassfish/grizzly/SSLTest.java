@@ -58,7 +58,6 @@ import org.glassfish.grizzly.ssl.SSLHandshaker;
 import org.glassfish.grizzly.ssl.SSLStreamReader;
 import org.glassfish.grizzly.ssl.SSLStreamWriter;
 import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.streams.StreamWriter;
 import org.glassfish.grizzly.util.EchoFilter;
 
 /**

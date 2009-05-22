@@ -62,8 +62,8 @@ public class StateHolder<E> {
     
     private volatile E state;
     
-    private ReentrantReadWriteLock readWriteLock;
-    private volatile boolean isLockEnabled;
+    private final ReentrantReadWriteLock readWriteLock;
+    private final boolean isLockEnabled;
     
     private Collection<ConditionListener<E, ?>> conditionListeners;
     
@@ -171,14 +171,6 @@ public class StateHolder<E> {
      */
     public boolean isLockEnabled() {
         return isLockEnabled;
-    }
-    
-    /**
-     * Setss current locking mode
-     * @param isLockEnabled true, if mode will be set to locking, false otherwise
-     */
-    public void setLockEnabled(boolean isLockEnabled) {
-        this.isLockEnabled = isLockEnabled;
     }
     
     /**
