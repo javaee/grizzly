@@ -1,6 +1,6 @@
 var count = 0;
 var app = {
-   url: '/grizzly-jmaki/griztter',
+   url: '/grizzly-twitter/griztter',
    initialize: function() {
       $('login-name').focus();
       //app.listen();
@@ -48,8 +48,6 @@ var app = {
 	 '&message=' + encodeURI(message);
       new Ajax.Request(app.url, {
 	 postBody: query,
-	 requestHeaders: ['Content-Type',
-			  'application/x-www-form-urlencoded; charset=UTF-8'],
 	 onComplete: function() {
 	    $('message').disabled = false;
 	    $('post-button').disabled = false;
