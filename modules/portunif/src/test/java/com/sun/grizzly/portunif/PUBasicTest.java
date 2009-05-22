@@ -45,7 +45,7 @@ import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.filter.EchoFilter;
-import com.sun.grizzly.util.PipelineThreadPool;
+import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.NonBlockingTCPIOClient;
 import com.sun.grizzly.utils.Utils;
@@ -53,7 +53,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutorService;
 import junit.framework.TestCase;
 
 /**
@@ -142,9 +142,15 @@ public class PUBasicTest extends TestCase {
         Controller controller = createController(PORT, puReadFilter);
         final int readThreadsCount = 5;
         controller.setReadThreadsCount(readThreadsCount);
-        controller.setThreadPool(new PipelineThreadPool("",
-                readThreadsCount + 1, 20,
-                Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
+        ExecutorService executorService = controller.getThreadPool();
+        if( executorService instanceof DefaultThreadPool ) {
+            DefaultThreadPool defaultThreadPool = (DefaultThreadPool)executorService;
+            int requiredPoolSize = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
+            if( defaultThreadPool.getCorePoolSize() < requiredPoolSize ) {
+                defaultThreadPool.setMaximumPoolSize( requiredPoolSize );
+                defaultThreadPool.setCorePoolSize( requiredPoolSize );
+            }
+        }
         
         List<NonBlockingTCPIOClient> clients = null;
         

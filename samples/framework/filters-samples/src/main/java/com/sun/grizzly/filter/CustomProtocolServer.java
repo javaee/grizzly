@@ -11,6 +11,7 @@ import java.io.IOException;
 
 import java.nio.channels.SelectionKey;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Out of the box TCP (TLS optional) Server for using CustomProtocol Comunictaion Layer.
@@ -98,9 +99,16 @@ public abstract class CustomProtocolServer implements Server {
     public void start() {
         ReplyMessageFactory replyMessageFactory = new ReplyMessageFactory();
         controller = new Controller();
-        DefaultThreadPool defp = new DefaultThreadPool();
-        defp.setInitialByteBufferSize(Message.MessageMaxLength);
-        controller.setThreadPool(defp);
+        DefaultThreadPool defp;
+        ExecutorService executorService = controller.getThreadPool();
+        if( executorService instanceof DefaultThreadPool ) {
+            defp = (DefaultThreadPool)executorService;
+            defp.setInitialByteBufferSize( Message.MessageMaxLength );
+        } else {
+            defp = new DefaultThreadPool();
+            defp.setInitialByteBufferSize( Message.MessageMaxLength );
+            controller.setThreadPool( defp );
+        }
         TCPSelectorHandler tcpSelectorHandler =
                 (protocol == Controller.Protocol.TLS) ? new SSLSelectorHandler() : new TCPSelectorHandler();
 
