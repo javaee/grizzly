@@ -799,11 +799,11 @@ public class ProcessorTask extends TaskBase implements Processor,
         
             if ( SelectorThread.isEnableNioLogging() ){                               
                 logger.log(Level.INFO, 
-                        "SocketChannel request line" + key.channel() + " is: " 
+                        "SocketChannel request line " + key.channel() + " is: "
                         + request);
                 
                 logger.log(Level.INFO, "SocketChannel headers" 
-                        + key.channel() + " are: "
+                        + key.channel() + " are: \n"
                         + request.getMimeHeaders());
             }                       
         } catch (IOException e) {
