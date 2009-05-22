@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.sun.grizzly</groupId>
+        <artifactId>grizzly-project</artifactId>
+        <version>1.9.16-SNAPSHOT</version>
+        <relativePath>../../pom.xml</relativePath>
+    </parent>
+    <groupId>com.sun.grizzly</groupId>
+    <artifactId>httpclient</artifactId>
+    <version>${grizzly-version}</version>
+    <name>Grizzly HTTP Client</name>
+    <url>https://grizzly.dev.java.net</url>
+    <!-- Devs -->
+    <developers>
+        <developer>
+            <id>neotyk</id>
+            <name>Hubert Iwaniuk</name>
+            <email>neotyk@kungfoo.pl</email>
+            <url>http://codemeself.blogspot.com/</url>
+            <timezone>+1</timezone>
+        </developer>
+    </developers>
+
+    <!-- Dependencies -->
+    <dependencies>
+        <!-- to get ProcessorTask and Request/Response
+        TODO refactor to http-utils -->
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-http</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.5</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>
