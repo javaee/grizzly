@@ -156,8 +156,6 @@ public class SSLConnectionTest extends TestCase {
     
     public void testSeveralPackets() throws IOException {
         final Controller controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
-        controller.setThreadPool(new PipelineThreadPool("", 5, CLIENTS_COUNT * 2,
-                Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
         ControllerUtils.startController(controller);
         try {
             

@@ -48,7 +48,6 @@ import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.util.ByteBufferInputStream;
 import com.sun.grizzly.util.OutputWriter;
-import com.sun.grizzly.util.PipelineThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.BufferedReader;
@@ -63,7 +62,6 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 
 /**
@@ -96,8 +94,6 @@ public class RCMTest extends TestCase implements ControllerStateListener {
         stopLatch = new CountDownLatch(1);
         
         controller = new Controller();
-        controller.setThreadPool(new PipelineThreadPool("", 5, 25,
-                Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
         final ResourceAllocationFilter parser = new ResourceAllocationFilter();
         
         TCPSelectorHandler handler = new TCPSelectorHandler();
