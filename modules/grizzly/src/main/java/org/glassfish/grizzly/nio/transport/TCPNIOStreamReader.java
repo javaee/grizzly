@@ -75,7 +75,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         if (isClosed()) {
             EOFException exception = new EOFException();
             if (completionHandler != null) {
-                completionHandler.failed(null, exception);
+                completionHandler.failed(getConnection(), exception);
             }
 
             return new ReadyFutureImpl<Integer>(exception);
@@ -84,7 +84,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         int availableDataSize = availableDataSize();
         if (condition.check(this)) {
             if (completionHandler != null) {
-                completionHandler.completed(null, availableDataSize);
+                completionHandler.completed(getConnection(), availableDataSize);
             }
 
             return new ReadyFutureImpl<Integer>(availableDataSize);
@@ -165,7 +165,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
     
     @Override
     protected Buffer read0() throws IOException {
-        Connection connection = getConnection();
+        final Connection connection = getConnection();
         
         if (isBlocking()) {
             TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();

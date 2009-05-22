@@ -587,7 +587,7 @@ public abstract class AbstractStreamReader implements StreamReader {
     private void notifySuccess(FutureImpl<Integer> future,
             CompletionHandler<Integer> completionHandler, int size) {
         if (completionHandler != null) {
-            completionHandler.completed(null, size);
+            completionHandler.completed(getConnection(), size);
         }
 
         future.setResult(size);
@@ -596,7 +596,7 @@ public abstract class AbstractStreamReader implements StreamReader {
     private void notifyFailure(FutureImpl<Integer> future,
             CompletionHandler<Integer> completionHandler, Throwable e) {
         if (completionHandler != null) {
-            completionHandler.failed(null, e);
+            completionHandler.failed(getConnection(), e);
         }
 
         future.failure(e);
