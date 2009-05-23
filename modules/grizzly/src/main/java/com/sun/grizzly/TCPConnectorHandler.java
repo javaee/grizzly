@@ -40,11 +40,9 @@ package com.sun.grizzly;
 import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.async.AsyncQueueDataProcessor;
 import com.sun.grizzly.async.AsyncQueueReadUnit;
-import com.sun.grizzly.async.AsyncQueueReadable;
 import com.sun.grizzly.async.AsyncReadCallbackHandler;
 import com.sun.grizzly.async.AsyncReadCondition;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
-import com.sun.grizzly.async.AsyncQueueWritable;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.async.ByteBufferCloner;
 import com.sun.grizzly.util.InputReader;
@@ -96,8 +94,7 @@ import java.util.logging.Level;
  * @author Jeanfrancois Arcand
  */
 public class TCPConnectorHandler extends
-        AbstractConnectorHandler<TCPSelectorHandler, CallbackHandler> implements
-        AsyncQueueWritable, AsyncQueueReadable {
+        AbstractConnectorHandler<TCPSelectorHandler, CallbackHandler> {
     
     /**
      * default TCP channel connection timeout in milliseconds

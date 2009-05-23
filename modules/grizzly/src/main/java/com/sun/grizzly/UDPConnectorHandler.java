@@ -41,9 +41,7 @@ package com.sun.grizzly;
 import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.async.AsyncQueueDataProcessor;
 import com.sun.grizzly.async.AsyncQueueReadUnit;
-import com.sun.grizzly.async.AsyncQueueReadable;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
-import com.sun.grizzly.async.AsyncQueueWritable;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.async.AsyncReadCallbackHandler;
 import com.sun.grizzly.async.AsyncReadCondition;
@@ -73,8 +71,7 @@ import java.util.logging.Level;
  * @author Jeanfrancois Arcand
  */
 public class UDPConnectorHandler
-        extends AbstractConnectorHandler<UDPSelectorHandler, CallbackHandler>
-        implements AsyncQueueWritable, AsyncQueueReadable {
+        extends AbstractConnectorHandler<UDPSelectorHandler, CallbackHandler> {
 
     /**
      * IsConnected Latch related
