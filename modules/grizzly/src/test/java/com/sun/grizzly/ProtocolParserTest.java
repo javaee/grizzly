@@ -44,6 +44,7 @@ import com.sun.grizzly.filter.SSLEchoFilter;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.NonBlockingTCPIOClient;
 import com.sun.grizzly.utils.NonBlockingSSLIOClient;
+import com.sun.grizzly.connectioncache.server.CacheableSelectionKeyHandler;
 
 import java.io.File;
 import java.io.IOException;
@@ -109,6 +110,33 @@ public class ProtocolParserTest extends TestCase {
         }
     }
 
+    public void testSimplePacketUsingServerCache() throws IOException {
+        Controller controller = createController(PORT, new CacheableSelectionKeyHandler( 10, 1 ) );
+        NonBlockingTCPIOClient client = new NonBlockingTCPIOClient("localhost", PORT);
+
+        try {
+            byte[] testData = "Hello".getBytes();
+            ControllerUtils.startController(controller);
+            client.connect();
+            client.send(testData);
+
+            System.out.println("Sleeping 5 seconds");
+            try{
+                Thread.sleep(5 * 1000); //Wait 5 second before sending the bytes
+            } catch (Throwable t){
+
+            }
+            client.send(" Partial".getBytes());
+
+            byte[] response = new byte["Hello Partial".length()];
+            client.receive(response);
+            assertTrue(Arrays.equals("Hello Partial".getBytes(), response));
+        } finally {
+            controller.stop();
+            client.close();
+        }
+    }
+
     public void testSimpleSSLPacket() throws IOException {
         Controller controller = createSSLController(PORT);
         NonBlockingSSLIOClient client = new NonBlockingSSLIOClient("localhost", PORT,sslConfig);
@@ -146,12 +174,18 @@ public class ProtocolParserTest extends TestCase {
             }
         }
     }
-    
+
     private Controller createController(int port) {
+        return createController( port, null );
+    }
+
+    private Controller createController(int port, SelectionKeyHandler selectionKeyHandler ) {
         final ProtocolFilter echoFilter = new EchoFilter();
         final ProtocolFilter parserProtocolFilter = createParserProtocolFilter();
         TCPSelectorHandler selectorHandler = new TCPSelectorHandler();
         selectorHandler.setPort(port);
+        if( selectionKeyHandler != null )
+            selectorHandler.setSelectionKeyHandler( selectionKeyHandler );
         
         final Controller controller = new Controller();
         
