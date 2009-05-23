@@ -42,6 +42,8 @@ import com.sun.grizzly.connectioncache.spi.concurrent.ConcurrentQueue;
 import com.sun.grizzly.connectioncache.spi.transport.ConnectionFinder;
 import com.sun.grizzly.connectioncache.spi.transport.ContactInfo;
 import com.sun.grizzly.connectioncache.spi.transport.OutboundConnectionCache;
+import com.sun.grizzly.ConnectorHandler;
+
 import java.io.Closeable;
 import java.io.IOException ;
 
@@ -488,10 +490,9 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
             dprint( "->reclaimOrClose: " + conn ) ;
         
         try {
-            final boolean isOverflow = numberOfConnections() >
-                    highWaterMark() ;
-            
-            if (isOverflow) {
+            final boolean isOverflow = (numberOfConnections() > highWaterMark());
+            final boolean connectionClosed = isOverflow || !isConnected( conn );
+            if (connectionClosed) {
                 if (debug()) {
                     dprint( ".reclaimOrClose: closing overflow connection "
                             + conn ) ;
@@ -508,11 +509,18 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
                         reclaimableConnections.offer( conn ) ;
             }
             
-            return isOverflow ;
+            return connectionClosed ;
         } finally {
             if (debug())
                 dprint( "<-reclaimOrClose: " + conn ) ;
         }
+    }
+
+    private boolean isConnected( final C conn ) {
+        if( conn instanceof ConnectorHandler )
+            return ( (ConnectorHandler)conn ).isConnected();
+        else
+            return true;
     }
     
     public synchronized void release( final C conn,
@@ -590,7 +598,7 @@ public final class OutboundConnectionCacheBlockingImpl<C extends Closeable>
             }
         }
     }
-    
+
     /** Decrement the number of expected responses.  When a connection is idle
      * and has no expected responses, it can be reclaimed.
      * @param conn  a connection
