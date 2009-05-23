@@ -49,6 +49,13 @@ import com.sun.grizzly.DefaultCallbackHandler;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.NIOContext;
 import com.sun.grizzly.SelectorHandler;
+import com.sun.grizzly.async.AsyncQueueDataProcessor;
+import com.sun.grizzly.async.AsyncQueueReadUnit;
+import com.sun.grizzly.async.AsyncQueueWriteUnit;
+import com.sun.grizzly.async.AsyncReadCallbackHandler;
+import com.sun.grizzly.async.AsyncReadCondition;
+import com.sun.grizzly.async.AsyncWriteCallbackHandler;
+import com.sun.grizzly.async.ByteBufferCloner;
 import com.sun.grizzly.connectioncache.spi.transport.ContactInfo;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -56,6 +63,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.util.concurrent.Future;
 
 /**
  * Extended implementation of the DefaultSelectionKeyHandler with
@@ -212,7 +220,51 @@ public class CacheableConnectorHandler
         key.attach(new CallbackHandlerSelectionKeyAttachment(callbackHandler));
         callbackHandler.onConnect(new IOEvent.DefaultIOEvent<Context>(context));
     }
-    
+
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue( ByteBuffer buffer ) throws IOException {
+        return underlyingConnectorHandler.writeToAsyncQueue( buffer );
+    }
+
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue( ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler ) throws IOException {
+        return underlyingConnectorHandler.writeToAsyncQueue( buffer, callbackHandler );
+    }
+
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue( ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler, AsyncQueueDataProcessor writePreProcessor ) throws IOException {
+        return underlyingConnectorHandler.writeToAsyncQueue( buffer, callbackHandler, writePreProcessor );
+    }
+
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue( ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler, AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner ) throws IOException {
+        return underlyingConnectorHandler.writeToAsyncQueue( buffer, callbackHandler, writePreProcessor, cloner );
+    }
+
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue( SocketAddress dstAddress, ByteBuffer buffer ) throws IOException {
+        return underlyingConnectorHandler.writeToAsyncQueue( dstAddress, buffer );
+    }
+
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue( SocketAddress dstAddress, ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler ) throws IOException {
+        return underlyingConnectorHandler.writeToAsyncQueue( dstAddress, buffer, callbackHandler );
+    }
+
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue( SocketAddress dstAddress, ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler, AsyncQueueDataProcessor writePreProcessor ) throws IOException {
+        return underlyingConnectorHandler.writeToAsyncQueue( dstAddress, buffer, callbackHandler, writePreProcessor );
+    }
+
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue( SocketAddress dstAddress, ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler, AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner ) throws IOException {
+        return underlyingConnectorHandler.writeToAsyncQueue( dstAddress, buffer, callbackHandler, writePreProcessor, cloner );
+    }
+
+    public Future<AsyncQueueReadUnit> readFromAsyncQueue( ByteBuffer buffer, AsyncReadCallbackHandler callbackHandler ) throws IOException {
+        return underlyingConnectorHandler.readFromAsyncQueue( buffer, callbackHandler );
+    }
+
+    public Future<AsyncQueueReadUnit> readFromAsyncQueue( ByteBuffer buffer, AsyncReadCallbackHandler callbackHandler, AsyncReadCondition condition ) throws IOException {
+        return underlyingConnectorHandler.readFromAsyncQueue( buffer, callbackHandler, condition );
+    }
+
+    public Future<AsyncQueueReadUnit> readFromAsyncQueue( ByteBuffer buffer, AsyncReadCallbackHandler callbackHandler, AsyncReadCondition condition, AsyncQueueDataProcessor readPostProcessor ) throws IOException {
+        return underlyingConnectorHandler.readFromAsyncQueue( buffer, callbackHandler, condition, readPostProcessor );
+    }
+
     /**
      * Class is responsible for execution corresponding
      * underlying {@link ConnectorHandler} connect method

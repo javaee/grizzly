@@ -40,8 +40,6 @@ package com.sun.grizzly;
 import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.async.AsyncQueueDataProcessor;
 import com.sun.grizzly.async.AsyncQueueReadUnit;
-import com.sun.grizzly.async.AsyncQueueReadable;
-import com.sun.grizzly.async.AsyncQueueWritable;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.async.AsyncReadCallbackHandler;
 import com.sun.grizzly.async.AsyncReadCondition;
@@ -110,9 +108,8 @@ import javax.net.ssl.SSLException;
  * @author Jeanfrancois Arcand
  */
 public class SSLConnectorHandler
-        extends AbstractConnectorHandler<SSLSelectorHandler, SSLCallbackHandler>
-        implements  AsyncQueueWritable, AsyncQueueReadable {
-    
+        extends AbstractConnectorHandler<SSLSelectorHandler, SSLCallbackHandler> {
+
     /**
      * Default Logger.
      */

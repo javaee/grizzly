@@ -37,6 +37,9 @@
  */
 package com.sun.grizzly;
 
+import com.sun.grizzly.async.AsyncQueueWritable;
+import com.sun.grizzly.async.AsyncQueueReadable;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -57,7 +60,7 @@ import java.nio.channels.SelectionKey;
  * @param P a {@link CallbackHandler}
  * @author Jeanfrancois Arcand
  */
-public interface ConnectorHandler<E extends SelectorHandler, P extends CallbackHandler> extends Handler, Closeable {
+public interface ConnectorHandler<E extends SelectorHandler, P extends CallbackHandler> extends Handler, Closeable, AsyncQueueWritable, AsyncQueueReadable {
     
     
      /**
