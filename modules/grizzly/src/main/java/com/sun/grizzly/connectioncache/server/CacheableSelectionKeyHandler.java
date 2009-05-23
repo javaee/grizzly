@@ -85,6 +85,7 @@ public class CacheableSelectionKeyHandler extends DefaultSelectionKeyHandler {
     
     @Override
     public void postProcess(SelectionKey key) {
+        super.postProcess( key );
         SelectableChannel channel = key.channel();
         inboundConnectionCache.requestProcessed(channel, 1);
         inboundConnectionCache.responseSent(channel);
