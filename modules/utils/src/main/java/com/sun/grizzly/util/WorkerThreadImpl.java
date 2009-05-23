@@ -214,7 +214,7 @@ public class WorkerThreadImpl extends WorkerThread {
         
         // Re-create a new ByteBuffer
         if ((mode & Mode.BYTE_BUFFER) != 0) {
-            createByteBuffer(true);
+            byteBuffer = null;
         }
         
         if ((mode & Mode.SSL_ENGINE) != 0) {
