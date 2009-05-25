@@ -134,7 +134,7 @@ public class ServletContextImpl implements ServletContext {
                         .loadClass(listenerClass).newInstance();
                 eventListeners.add(el);
             } catch (Throwable e) {
-                logger.warning("Unable to load listener: " + el);
+                logger.log(Level.WARNING, "Unable to load listener: " + listenerClass, e);
             } 
         }
         
@@ -150,7 +150,7 @@ public class ServletContextImpl implements ServletContext {
             try {
                 listener.contextInitialized(event);
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,"",t);
+                logger.log(Level.SEVERE,"Unable to initialize listener " + listener,t);
             }
         }
     }
@@ -172,7 +172,7 @@ public class ServletContextImpl implements ServletContext {
             try {
                 listener.contextDestroyed(event);
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,"",t);
+                logger.log(Level.SEVERE,"Unable to destroy listener " + listener,t);
             }
         }
     }
