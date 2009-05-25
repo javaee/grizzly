@@ -48,6 +48,17 @@ import org.glassfish.grizzly.Connection;
  * to the {@link Transport}'s specific transport {@link Filter}. If
  * {@link Transport} doesn't have own implementation - uses common I/O event
  * processing logic.
+ * <tt>TransportFilter</tt> could be set to work in 2 modes: {@link Mode#Stream}
+ * or {@link Mode#Message}. In the {@link Mode#Stream} mode,
+ * <tt>TransportFilter</tt> produces/consumes {@link Connection} data using
+ * {@link FilterChainContext#getStreamReader()}, {@link FilterChainContext#getStreamWriter()}.
+ * In the {@link Mode#Message} mode, <tt>TransportFilter</tt> represents {@link Connection}
+ * data as {@link Buffer}, using {@link FilterChainContext#getMessage(}},
+ * {@link FilterChainContext#setMessage()}.
+ * For specific {@link Transport}, one mode could be more preferable than another.
+ * For example {@link TCPNIOTransport} works just in {@link Mode#Stream} mode,
+ * {@link UDPNIOTransport} prefers {@link Mode#Message} mode, but could also work
+ * in {@link Mode#Stream} mode.
  * 
  * @author Alexey Stashok
  */
@@ -58,14 +69,33 @@ public class TransportFilter extends FilterAdapter {
 
     private final Mode mode;
 
+    /**
+     * Create <tt>TransportFilter</tt>, which will operate in
+     * {@link Mode#Stream} mode.
+     */
     public TransportFilter() {
         this(Mode.Stream);
     }
 
+    /**
+     * Create <tt>TransportFilter</tt>, which will operate in defined mode.
+     * @param mode
+     */
     public TransportFilter(Mode mode) {
         this.mode = mode;
     }
 
+    /**
+     * Get the <tt>TransportFilter</tt> mode.
+     * <tt>TransportFilter</tt> could work in 2 modes: {@link Mode#Stream}
+     * or {@link Mode#Message}. In the {@link Mode#Stream} mode,
+     * <tt>TransportFilter</tt> produces/consumes {@link Connection} data using
+     * {@link FilterChainContext#getStreamReader()}, {@link FilterChainContext#getStreamWriter()}.
+     * In the {@link Mode#Message} mode, <tt>TransportFilter</tt> represents {@link Connection}
+     * data as {@link Buffer}, using {@link FilterChainContext#getMessage(}},
+     * {@link FilterChainContext#setMessage()}.
+     * @return the <tt>TransportFilter</tt> mode.
+     */
     public Mode getMode() {
         return mode;
     }
