@@ -36,16 +36,17 @@
  *
  */
 
-package org.glassfish.grizzly.samples.echo;
+package org.glassfish.grizzly.samples.udpecho;
 
 import java.io.IOException;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.filterchain.TransportFilter.Mode;
+import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 
 /**
- * Class initializes and starts the echo server, based on Grizzly 2.0
+ * Class initializes and starts the UDP echo server, based on Grizzly 2.0
  *
  * @author Alexey Stashok
  */
@@ -56,12 +57,12 @@ public class EchoServer {
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
-        // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        // Create UDP transport
+        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
 
-        // Add TransportFilter, which is responsible
-        // for reading and writing data to the connection
-        transport.getFilterChain().add(new TransportFilter());
+        // Add TransportFilter, which will work in message mode and
+        // will be responsible for reading and writing data to the connection
+        transport.getFilterChain().add(new TransportFilter(Mode.Message));
         transport.getFilterChain().add(new EchoFilter());
 
         try {

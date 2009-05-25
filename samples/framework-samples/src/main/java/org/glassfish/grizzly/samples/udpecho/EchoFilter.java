@@ -36,9 +36,16 @@
  *
  */
 
-package org.glassfish.grizzly.samples.echo;
+package org.glassfish.grizzly.samples.udpecho;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.logging.Logger;
+import org.glassfish.grizzly.Buffer;
+import org.glassfish.grizzly.Connection;
+import org.glassfish.grizzly.TransformationResult;
+import org.glassfish.grizzly.TransformationResult.Status;
+import org.glassfish.grizzly.Transformer;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChain;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
@@ -47,15 +54,16 @@ import org.glassfish.grizzly.filterchain.NextAction;
 /**
  * Implementation of {@link FilterChain} filter, which replies with the request
  * message.
- * In TCP {@link EchoServer} sample, we initialize {@link TransportFilter} to
- * operate in stream mode, which fits better for TCP transport, so
- * <tt>EchoFilter</tt>, unlike in UDP transport example, should operate with
- * context streams, not messages.
- * 
+ * In UDP {@link EchoServer} sample, we initialize {@link TransportFilter} to
+ * operate in message mode, which fits better for UDP transport, so
+ * <tt>EchoFilter</tt>, unlike in TCP transport example, should operate with
+ * context message, not streams.
+ *
  * @author Alexey Stashok
  */
 public class EchoFilter extends FilterAdapter {
-
+    private static final Logger logger = Logger.getLogger(EchoFilter.class.getName());
+    
     /**
      * Handle just read operation, when some message has come and ready to be
      * processed.
@@ -69,8 +77,37 @@ public class EchoFilter extends FilterAdapter {
     @Override
     public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
-        // Redirect Input to Output
-        ctx.getStreamWriter().writeStream(ctx.getStreamReader());
+        // Echo the input message, passing it throw a FilterChain transformer
+
+        // incoming message
+        final Object message = ctx.getMessage();
+        // peer address
+        final Object address = ctx.getAddress();
+        // connection, where response will be sent
+        final Connection connection = ctx.getConnection();
+        // FilterChain
+        final FilterChain filterChain = ctx.getFilterChain();
+
+        // FilterChain encoder, which will pass throw all FilterChain Filters,
+        // so each of them will be able to transform the message, before it
+        // will be sent on a wire
+        final Transformer encoder = filterChain.getCodec().getEncoder();
+
+        // transform the message. Each CodecFilter in FilterChain is able
+        // to take part in message transformation
+        TransformationResult<Buffer> result = encoder.transform(connection,
+                message, null);
+        if (result.getStatus() == Status.COMPLETED) {
+            Buffer echoMessage = result.getMessage();
+            logger.info("Echo '" +
+                    echoMessage.contentAsString(Charset.defaultCharset()) +
+                    "' address: " + address);
+            connection.write(address, echoMessage);
+        } else {
+            throw new IllegalStateException("Can not transform the message");
+        }
+
+        encoder.release(connection);
 
         return nextAction;
     }

@@ -35,7 +35,7 @@
  * holder.
  *
  */
-package org.glassfish.grizzly.samples.echo;
+package org.glassfish.grizzly.samples.udpecho;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -46,7 +46,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.nio.transport.UDPNIOTransport;
 import org.glassfish.grizzly.streams.StreamReader;
 import org.glassfish.grizzly.streams.StreamWriter;
 
@@ -65,9 +65,9 @@ public class EchoClient {
         StreamReader reader = null;
         StreamWriter writer = null;
         
-        // Create the TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().
-                createTCPTransport();
+        // Create the UDP transport
+        UDPNIOTransport transport = TransportFactory.getInstance().
+                createUDPTransport();
 
         try {
             // start the transport
