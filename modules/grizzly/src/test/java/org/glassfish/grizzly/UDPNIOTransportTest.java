@@ -40,7 +40,6 @@ package org.glassfish.grizzly;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
@@ -289,8 +288,8 @@ public class UDPNIOTransportTest extends TestCase {
         transport.getFilterChain().add(new EchoFilter());
 
         try {
-            transport.setReadBufferSize(4096);
-            transport.setWriteBufferSize(4096);
+            transport.setReadBufferSize(2048);
+            transport.setWriteBufferSize(2048);
 
             transport.bind(PORT);
 
@@ -304,51 +303,23 @@ public class UDPNIOTransportTest extends TestCase {
             reader = (UDPNIOStreamReader) connection.getStreamReader();
             writer = connection.getStreamWriter();
 
-            final CountDownLatch sendLatch = new CountDownLatch(packetsNumber);
-
             for (int i = 0; i < packetsNumber; i++) {
                 final byte[] message = new byte[packetSize];
                 Arrays.fill(message, (byte) i);
 
                 writer.writeByteArray(message);
-                writer.flush(new CompletionHandlerAdapter<Integer>() {
+                writer.flush();
 
-                    @Override
-                    public void completed(Connection connection, Integer result) {
-                        assertEquals(message.length, (int) result);
-                        sendLatch.countDown();
-                    }
-
-                    @Override
-                    public void failed(Connection connection, Throwable throwable) {
-                        throwable.printStackTrace();
-                    }
-                });
-            }
-
-            boolean[] packetFlags = new boolean[packetsNumber];
-
-            for (int i = 0; i < packetsNumber; i++) {
-                byte[] message = new byte[packetSize];
+                final byte[] rcvMessage = new byte[packetSize];
                 Future future = reader.notifyAvailable(packetSize);
                 future.get(10, TimeUnit.SECONDS);
                 assertTrue(future.isDone());
-                reader.readByteArray(message);
+                reader.readByteArray(rcvMessage);
 
-                byte index = message[0];
-                for(int j=0; j<packetSize; j++) {
-                    assertEquals("Message is corrupted!", index, message[j]);
-                }
-
-                assertFalse("Message duplication: " + index, packetFlags[index]);
-                packetFlags[index] = true;
+                assertTrue("Message is corrupted!",
+                        Arrays.equals(rcvMessage, message));
+                
             }
-
-            for (int i = 0; i < packetsNumber; i++) {
-                assertTrue("Message #" + i + " is missed", packetFlags[i]);
-            }
-
-            assertEquals(0, sendLatch.getCount());
         } finally {
             if (connection != null) {
                 connection.close();
