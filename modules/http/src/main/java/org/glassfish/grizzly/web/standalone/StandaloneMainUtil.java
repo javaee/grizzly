@@ -43,7 +43,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.logging.Level;
-import org.glassfish.grizzly.Transport;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
@@ -63,12 +62,8 @@ import org.glassfish.grizzly.web.container.util.ExpandJar;
  */
 public abstract class StandaloneMainUtil {
 
-    /**
-     * System property for the {@link WebFilter} value.
-     */
     private static int port = 8080;
-    private long t1 = 0L;
-    private TCPNIOTransport transport;
+     private TCPNIOTransport transport;
 
 
     public StandaloneMainUtil() {
@@ -112,8 +107,7 @@ public abstract class StandaloneMainUtil {
         if (args.length == 0) {
             printHelpAndExit();
         }
-        t1 = System.currentTimeMillis();
-
+ 
         // parse options
         parseOptions(args);
         String appliPath = parseApplicationLocation(args);

@@ -99,6 +99,7 @@ public class AsyncWebFilter extends WebFilter<AsyncWebFilterConfig>
     /**
      * Called when the Asynchronous Request Processing is resuming.
      */
+    @Override
     public void taskEvent(TaskEvent event) {
         if (event.getStatus() == TaskEvent.COMPLETED
                 || event.getStatus() == TaskEvent.ERROR){
