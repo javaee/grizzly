@@ -318,7 +318,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * The handler used by this {@link Task} to manipulate the request.
      */
-    protected Interceptor handler;
+    private Interceptor handler;
     
     
     /**
@@ -756,8 +756,8 @@ public class ProcessorTask extends TaskBase implements Processor,
             }
 
             request.setStartTime(System.currentTimeMillis());
-            if ( handler != null && 
-                    handler.handle(request,Interceptor.REQUEST_LINE_PARSED)
+            if ( getHandler() != null &&
+                    getHandler().handle(request,Interceptor.REQUEST_LINE_PARSED)
                         == Interceptor.BREAK){
                 return true;
             }
@@ -1093,10 +1093,10 @@ public class ProcessorTask extends TaskBase implements Processor,
                 }
             }
         } else if ( actionCode == ActionCode.ACTION_POST_REQUEST ) { 
-            if (response.getStatus() == 200 && handler != null 
+            if (response.getStatus() == 200 && getHandler() != null
                     && compressionLevel == 0){
                 try{
-                    handler.handle(request,Interceptor.RESPONSE_PROCEEDED);
+                    getHandler().handle(request,Interceptor.RESPONSE_PROCEEDED);
                 } catch(IOException ex){
                     logger.log(Level.FINEST,
                             "Handler exception",ex);

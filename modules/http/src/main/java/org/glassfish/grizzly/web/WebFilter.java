@@ -69,28 +69,32 @@ import org.glassfish.grizzly.web.container.util.res.StringManager;
 
 
 /**
- * The SelectorThread class is the entry point when embedding the Grizzly Web
- * Server. All Web Server configuration must be set on this object before invoking
- * the {@link listen()} method. As an example:
+ * The WebFilter is the extry point when writing Web application build on
+ * Grizzly. You can create a WebFilter by simply doing:
  * <pre><code>
-        final SelectorThread selectorThread = new SelectorThread(){
-                public void listen() throws IOException, InstantiationException{
-                    super.listen();
-                    System.out.println("Server started in " + (System.currentTimeMillis() - t1)
-                            + " milliseconds.");
-                }
-        };
-        selectorThread.setAlgorithmClassName(StaticStreamAlgorithm.class.getName());       
-        selectorThread.setPort(port);
-        SelectorThread.setWebAppRootPath(folder);
-        Adapter adapter = new StaticResourcesAdapter(folder);
-        ((StaticResourcesAdapter)adapter).setRootFolder(folder);
-        selectorThread.setAdapter(adapter);
-        selectorThread.setDisplayConfiguration(true);
-        selectorThread.listen(); 
+ *
+ *      Transport transport = TransportFactory.getInstance().createTCPTransport();
+
+        WebFilterConfig webConfig = new WebFilterConfig();
+        webConfig.setAdapter(adapter);
+        webConfig.setDisplayConfiguration(true);
+
+        WebFilter webFilter = new WebFilter("MyHtttpServer", webConfig);
+        webFilter.enableMonitoring();
+
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(webFilter);
+        try {
+            webFilter.initialize();
+            transport.bind(PORT);
+            transport.start();
+        } catch (Exception ex) {
+ *          ...
+ *      }
+ *
+ *
  * </code></pre>
  * 
- * @author Jean-Francois Arcand
  */
 public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
         implements MBeanRegistration {
@@ -463,6 +467,7 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
     }
     
     // ------------------------------- JMX and Monnitoring support --------//
+    @Override
     public ObjectName preRegister(MBeanServer server,
                                   ObjectName name) throws Exception {
         jmxManager.setOname(name);
@@ -472,14 +477,17 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
     }
 
     
+    @Override
     public void postRegister(Boolean registrationDone) {
         // Do nothing
     }
 
+    @Override
     public void preDeregister() throws Exception {
         // Do nothing
     }
 
+    @Override
     public void postDeregister() {
         // Do nothing
     }  
@@ -520,7 +528,7 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
 
 
     /**
-     * Register JMX components supported by this {@link SelectorThread}. This
+     * Register JMX components supported by this {@link WebFilter}. This
      * include {@link FileCache}, {@link RequestInfo}, {@link KeepAliveCountManager}
      * and {@link StatsThreadPool}. The {@link Management#registerComponent}
      * will be invoked during the registration process.
@@ -549,7 +557,7 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
                 jmxManager.registerComponent(config.getFileCache(), fileCacheMbeanName, null);
             } catch (Exception ex) {
                 logger.log(Level.WARNING,
-                            sm.getString("selectorThread.mbeanRegistrationException"),
+                            sm.getString("WebFilter.mbeanRegistrationException"),
                             name);
                 logger.log(Level.WARNING, "", ex);
             }
@@ -557,7 +565,7 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
     }
 
     /**
-     * Unregister JMX components supported by this {@link SelectorThread}. This
+     * Unregister JMX components supported by this {@link WebFilter}. This
      * include {@link FileCache}, {@link RequestInfo}, {@link KeepAliveCountManager}
      * , {@link StatsThreadPool} and {@link ProcessorTask}.
      * The {@link Management#unregisterComponent} will be invoked during the
@@ -580,7 +588,7 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
                 }
             } catch (Exception ex) {
                 logger.log(Level.WARNING,
-                           sm.getString("selectorThread.mbeanDeregistrationException"),
+                           sm.getString("WebFilter.mbeanDeregistrationException"),
                            name);
                 logger.log(Level.WARNING, "", ex);
             }
@@ -640,8 +648,6 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
         return logger;
     }
     
-    // ------------------------------------------------------ Debug ---------//
-    
         
     /**
      * Display the Grizzly configuration parameters.
@@ -652,7 +658,7 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
             Adapter adapter = config.getAdapter();
 
             logger.log(Level.INFO,
-                    "\n Grizzly configuration"
+                    "\n Grizzly WebFilter configuration"
                     + "\n\t name: "
                     + name
                     + "\n\t maxHttpHeaderSize: " 

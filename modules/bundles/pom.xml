@@ -15,6 +15,5 @@
     <url>https://grizzly.dev.java.net</url>
     <modules>
         <module>http</module>
-        <module>http-servlet</module>
     </modules>
 </project>

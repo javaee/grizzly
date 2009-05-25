@@ -222,6 +222,7 @@ public class WebFilterConfig {
         task.setAsyncHttpWriteEnabled(isAsyncHttpWriteEnabled);
         task.setTransactionTimeout(transactionTimeout);
         task.setUseChunking(useChunking);
+        task.setHandler(interceptor);
 
         initializeCompression(task);
 

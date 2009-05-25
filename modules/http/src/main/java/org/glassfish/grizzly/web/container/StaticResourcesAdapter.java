@@ -273,6 +273,7 @@ public class StaticResourcesAdapter implements Adapter {
      * @param res {@link Response}
      * @throws java.lang.Exception
      */
+    @Override
     public void afterService(Request req, Response res) throws Exception {
         if (req.getNote(14) != null){
             req.setNote(14, null);
