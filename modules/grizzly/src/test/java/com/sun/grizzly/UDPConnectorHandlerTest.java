@@ -43,8 +43,9 @@ import com.sun.grizzly.utils.ControllerUtils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -176,6 +177,56 @@ public class UDPConnectorHandlerTest extends TestCase {
         }
     }
 
+    public void testStandaloneBlockingClient() throws IOException {
+        final Controller controller = createController();
+        ControllerUtils.startController(controller);
+        try {
+
+            for(int i=0; i<CLIENTS_COUNT; i++) {
+                //System.out.println("Client#" + i);
+                final UDPConnectorHandler udpConnector = new UDPConnectorHandler();
+                final byte[] testData = new String("Hello. Client#" + i + " Packet#000").getBytes();
+                final byte[] response = new byte[testData.length];
+
+                final ByteBuffer writeBB = ByteBuffer.wrap(testData);
+                final ByteBuffer readBB = ByteBuffer.wrap(response);
+
+                try {
+                    udpConnector.connect(new InetSocketAddress("localhost", PORT));
+                    assertTrue(udpConnector.isConnected());
+                    for(int j=0; j<PACKETS_COUNT; j++) {
+                        writeBB.position(writeBB.limit() - 3);
+                        byte[] packetNum = Integer.toString(j).getBytes();
+                        writeBB.put(packetNum);
+                        writeBB.position(0);
+                        udpConnector.write(writeBB, true);
+                        long nRead = 1;
+                        while(nRead > 0 && readBB.position() < testData.length) {
+                            nRead = udpConnector.read(readBB, true);
+                            readBB.position(readBB.limit());
+                            readBB.limit(readBB.capacity());
+                        }
+                        readBB.flip();
+
+                        String val1 = new String(testData);
+                        String val2 = new String(toArray(readBB));
+                        //System.out.println("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2 + " nRead: " + nRead + " Buffer: " + readBB);
+                        assertEquals(val1, val2);
+                        readBB.clear();
+                    }
+                } finally {
+                    udpConnector.close();
+                }
+            }
+        } finally {
+            try{
+                controller.stop();
+            } catch (Throwable t){
+                t.printStackTrace();
+            }
+        }
+    }
+
     private CallbackHandler createCallbackHandler(final Controller controller,
             final ConnectorHandler udpConnector,
             final CountDownLatch responseArrivedLatch,
@@ -193,6 +244,9 @@ public class UDPConnectorHandlerTest extends TestCase {
             final ByteBuffer readBB) {
 
         return new CallbackHandler<Context>() {
+
+            private int readTry;
+
             public void onConnect(IOEvent<Context> ioEvent) {
                 SelectionKey key = ioEvent.attachment().getSelectionKey();
                 try {
@@ -201,44 +255,44 @@ public class UDPConnectorHandlerTest extends TestCase {
                     ex.printStackTrace();
                     return;
                 }
-
-                controller.registerKey(key, SelectionKey.OP_READ,
-                        Controller.Protocol.UDP);
+                ioEvent.attachment().getSelectorHandler().register(key,
+                        SelectionKey.OP_READ);
             }
 
             public void onRead(IOEvent<Context> ioEvent) {
                 SelectionKey key = ioEvent.attachment().getSelectionKey();
-                DatagramChannel datagramChannel = (DatagramChannel) key.channel();
-
+                SelectorHandler selectorHandler = ioEvent.attachment().getSelectorHandler();
+                ReadableByteChannel channel = (ReadableByteChannel) key.channel();
                 try {
-                    long nRead = udpConnector.read(readBB, false);
-                    if (nRead > 0) {
+                    int nRead = channel.read(readBB);
+                    if (nRead == 0 && readTry++ < 2){
+                        selectorHandler.register(key, SelectionKey.OP_READ);
+                    } else {
                         responseArrivedLatchHolder[0].countDown();
                     }
-                } catch (IOException ex) {
+                } catch (IOException ex){
                     ex.printStackTrace();
-                    controller.cancelKey(key);
+                    selectorHandler.getSelectionKeyHandler().cancel(key);
                 }
             }
 
             public void onWrite(IOEvent<Context> ioEvent) {
                 SelectionKey key = ioEvent.attachment().getSelectionKey();
-                DatagramChannel datagramChannel = (DatagramChannel) key.channel();
-                try {
-                    while (writeBB.hasRemaining()) {
-                        long nWrite = udpConnector.write(writeBB, false);
-
-                        if (nWrite == 0) {
+                SelectorHandler selectorHandler = ioEvent.attachment().getSelectorHandler();
+                WritableByteChannel channel = (WritableByteChannel)key.channel();
+                try{
+                    while(writeBB.hasRemaining()){
+                        int nWrite = channel.write(writeBB);
+                        if (nWrite == 0){
+                            selectorHandler.register(key, SelectionKey.OP_WRITE);
                             return;
                         }
                     }
-
-                    udpConnector.read(readBB, false);
-                } catch (IOException ex) {
+                    udpConnector.read(readBB,false);
+                } catch (IOException ex){
                     ex.printStackTrace();
-                    controller.cancelKey(key);
+                    selectorHandler.getSelectionKeyHandler().cancel(key);
                 }
-
             }
          };
     }

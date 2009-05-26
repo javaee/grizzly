@@ -38,27 +38,16 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.Controller.Protocol;
-import com.sun.grizzly.async.AsyncQueueDataProcessor;
-import com.sun.grizzly.async.AsyncQueueReadUnit;
-import com.sun.grizzly.async.AsyncReadCallbackHandler;
-import com.sun.grizzly.async.AsyncReadCondition;
-import com.sun.grizzly.async.AsyncWriteCallbackHandler;
-import com.sun.grizzly.async.AsyncQueueWriteUnit;
-import com.sun.grizzly.async.ByteBufferCloner;
 import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.OutputWriter;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketException;
-import java.nio.ByteBuffer;
 import java.nio.channels.AlreadyConnectedException;
-import java.nio.channels.NotYetConnectedException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 /**
@@ -95,20 +84,13 @@ import java.util.logging.Level;
  */
 public class TCPConnectorHandler extends
         AbstractConnectorHandler<TCPSelectorHandler, CallbackHandler> {
-    
+
     /**
      * default TCP channel connection timeout in milliseconds
      */
     private static final int DEFAULT_CONNECTION_TIMEOUT = 30 * 1000;
     
-    
-    /**
-     * A blocking {@link InputStream} that use a pool of Selector
-     * to execute a blocking read operation.
-     */
-    private InputReader inputStream;
-    
-    
+
     /**
      * IsConnected Latch related
      */
@@ -333,222 +315,6 @@ public class TCPConnectorHandler extends
                 (TCPSelectorHandler)controller.getSelectorHandler(protocol()));
     }
 
-
-    /**
-     * Read bytes. If blocking is set to <tt>true</tt>, a pool of temporary
-     * {@link Selector} will be used to read bytes.
-     * @param byteBuffer The byteBuffer to store bytes.
-     * @param blocking <tt>true</tt> if a a pool of temporary Selector
-     *        is required to handle a blocking read.
-     * @return number of bytes read
-     * @throws java.io.IOException
-     */
-    public long read(ByteBuffer byteBuffer, boolean blocking) throws IOException {
-        if (!isConnected){
-            throw new NotYetConnectedException();
-        }
-        
-        SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
-        if (blocking){
-            inputStream.setSelectionKey(key);
-            return inputStream.read(byteBuffer);
-        } else {
-            if (callbackHandler == null){
-                throw new IllegalStateException
-                        ("Non blocking read needs a CallbackHandler");
-            }
-            int nRead = -1;
-            
-            try{
-                nRead = ((SocketChannel) underlyingChannel).read(byteBuffer);
-            } catch (IOException ex){
-                nRead = -1;
-                throw ex;
-            } finally {
-                if (nRead == -1){
-                    SelectionKeyHandler skh = selectorHandler.getSelectionKeyHandler();
-                    if (skh instanceof BaseSelectionKeyHandler){                  
-                        ((DefaultSelectionKeyHandler)skh).notifyRemotlyClose(key);                            
-                    } 
-                }
-            }
-            
-            if (nRead == 0){
-                selectorHandler.register(key,SelectionKey.OP_READ);
-            }
-            return nRead;
-        }
-    }
-    
-    
-    /**
-     * Writes bytes. If blocking is set to <tt>true</tt>, a pool of temporary
-     * {@link Selector} will be used to writes bytes.
-     * @param byteBuffer The byteBuffer to write.
-     * @param blocking <tt>true</tt> if a a pool of temporary Selector
-     *        is required to handle a blocking write.
-     * @return number of bytes written
-     * @throws java.io.IOException
-     */
-    public long write(ByteBuffer byteBuffer, boolean blocking) throws IOException {
-        if (!isConnected){
-            throw new NotYetConnectedException();
-        }
-        
-        if (blocking){
-            return OutputWriter.flushChannel(underlyingChannel, byteBuffer);
-        } else {
-            
-            if (callbackHandler == null){
-                throw new IllegalStateException
-                        ("Non blocking write needs a CallbackHandler");
-            }
-            
-            SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
-            int nWrite = 1;
-            int totalWriteBytes = 0;
-            try{
-                while (nWrite > 0 && byteBuffer.hasRemaining()){
-                    nWrite = ((SocketChannel) underlyingChannel).write(byteBuffer);
-                    totalWriteBytes += nWrite;
-                }
-            } catch (IOException ex){
-                nWrite = -1;
-                throw ex;
-            } finally {
-                if (nWrite == -1){
-                    SelectionKeyHandler skh = selectorHandler.getSelectionKeyHandler();
-                    if (skh instanceof BaseSelectionKeyHandler){                  
-                        ((DefaultSelectionKeyHandler)skh).notifyRemotlyClose(key);                            
-                    }                 
-                }
-            } 
-            
-            if (totalWriteBytes == 0 && byteBuffer.hasRemaining()){
-                selectorHandler.register(key,SelectionKey.OP_WRITE);
-            }
-            return totalWriteBytes;
-        }
-    }
-    
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
-            AsyncReadCallbackHandler callbackHandler) throws IOException {
-        return readFromAsyncQueue(buffer, callbackHandler, null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
-            AsyncReadCallbackHandler callbackHandler, 
-            AsyncReadCondition condition) throws IOException {
-        return readFromAsyncQueue(buffer, callbackHandler, condition, null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
-            AsyncReadCallbackHandler callbackHandler, 
-            AsyncReadCondition condition, 
-            AsyncQueueDataProcessor readPostProcessor) throws IOException {
-        return selectorHandler.getAsyncQueueReader().read(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
-                callbackHandler, condition, readPostProcessor);
-    }
-
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer)
-            throws IOException {
-        return writeToAsyncQueue(buffer, null);
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler) throws IOException {
-        return writeToAsyncQueue(buffer, callbackHandler, null);
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler,
-            AsyncQueueDataProcessor writePreProcessor) throws IOException {
-        return writeToAsyncQueue(buffer, callbackHandler, writePreProcessor,
-                null);
-    }
-
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler,
-            AsyncQueueDataProcessor writePreProcessor,
-            ByteBufferCloner cloner) throws IOException {
-        return selectorHandler.getAsyncQueueWriter().write(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
-                callbackHandler, writePreProcessor, cloner);
-    }
-
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
-            SocketAddress dstAddress, ByteBuffer buffer)
-            throws IOException {
-        return writeToAsyncQueue(dstAddress, buffer, null);
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
-            SocketAddress dstAddress, ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler) throws IOException {
-        return writeToAsyncQueue(dstAddress, buffer, callbackHandler, null);
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
-            SocketAddress dstAddress, ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler, 
-            AsyncQueueDataProcessor writePreProcessor) throws IOException {
-        return writeToAsyncQueue(dstAddress, buffer, callbackHandler,
-                writePreProcessor, null);
-    }
-
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
-            SocketAddress dstAddress, ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler, 
-            AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner)
-            throws IOException {
-        return selectorHandler.getAsyncQueueWriter().write(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), dstAddress,
-                buffer, callbackHandler, writePreProcessor, cloner);
-    }
-
     
     /**
      * Close the underlying connection.
@@ -576,7 +342,7 @@ public class TCPConnectorHandler extends
         isConnected = false;
         connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
     }
-    
+
     
     /**
      * Finish handling the OP_CONNECT interest ops.

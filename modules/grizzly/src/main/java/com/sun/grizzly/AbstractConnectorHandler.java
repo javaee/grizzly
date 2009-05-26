@@ -39,7 +39,24 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.Controller.Protocol;
+import com.sun.grizzly.async.AsyncQueueReadUnit;
+import com.sun.grizzly.async.AsyncReadCallbackHandler;
+import com.sun.grizzly.async.AsyncReadCondition;
+import com.sun.grizzly.async.AsyncQueueDataProcessor;
+import com.sun.grizzly.async.AsyncQueueWriteUnit;
+import com.sun.grizzly.async.AsyncWriteCallbackHandler;
+import com.sun.grizzly.async.ByteBufferCloner;
+import com.sun.grizzly.util.InputReader;
+import com.sun.grizzly.util.OutputWriter;
+import java.io.IOException;
+import java.net.SocketAddress;
+import java.nio.channels.NotYetConnectedException;
+import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.WritableByteChannel;
+import java.nio.ByteBuffer;
+import java.util.concurrent.Future;
 
 /**
  * Abstract {@link ConnectorHandler} definition, which preimplements common
@@ -81,6 +98,12 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
      * Is the connection established.
      */
     protected volatile boolean isConnected;
+
+    /**
+     * A blocking {@link java.io.InputStream} that use a pool of Selector
+     * to execute a blocking read operation.
+     */
+    protected InputReader inputStream;
     
     /**
      * Get the <tt>ConnectorHandler</tt> {@link Protocol}.
@@ -140,7 +163,7 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
 
     /**
      * Set the {@link SelectableChannel}.
-     * @param the {@link SelectableChannel} to use.
+     * @param underlyingChannel the {@link SelectableChannel} to use.
      */
     public void setUnderlyingChannel(SelectableChannel underlyingChannel) {
         this.underlyingChannel = underlyingChannel;
@@ -169,5 +192,232 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
      */
     public boolean isConnected(){
         return isConnected && underlyingChannel != null && underlyingChannel.isOpen();
+    }
+
+    /**
+     * Read bytes. If blocking is set to <tt>true</tt>, a pool of temporary
+     * {@link java.nio.channels.Selector} will be used to read bytes.
+     * @param byteBuffer The byteBuffer to store bytes.
+     * @param blocking <tt>true</tt> if a a pool of temporary Selector
+     *        is required to handle a blocking read.
+     * @return number of bytes read
+     * @throws java.io.IOException
+     */
+    public long read( ByteBuffer byteBuffer, boolean blocking) throws IOException {
+        if (!isConnected){
+            throw new NotYetConnectedException();
+        }
+
+        SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
+        int nRead = -1;
+        if (blocking){
+            inputStream.setSelectionKey(key);
+            try{
+                nRead = inputStream.read(byteBuffer);
+            } catch (IOException ex){
+                nRead = -1;
+                throw ex;
+            } finally {
+                if (nRead == -1){
+                    SelectionKeyHandler skh = selectorHandler.getSelectionKeyHandler();
+                    if (skh instanceof BaseSelectionKeyHandler){
+                        ((BaseSelectionKeyHandler)skh).notifyRemotlyClose(key);
+                    }
+                }
+            }
+            return nRead;
+        } else {
+            if (callbackHandler == null){
+                throw new IllegalStateException
+                        ("Non blocking read needs a CallbackHandler");
+            }
+            try{
+                nRead = ((ReadableByteChannel)underlyingChannel).read(byteBuffer);
+            } catch (IOException ex){
+                nRead = -1;
+                throw ex;
+            } finally {
+                if (nRead == -1){
+                    SelectionKeyHandler skh = selectorHandler.getSelectionKeyHandler();
+                    if (skh instanceof BaseSelectionKeyHandler){
+                        ((BaseSelectionKeyHandler)skh).notifyRemotlyClose(key);
+                    }
+                }
+            }
+
+            if (nRead == 0){
+                selectorHandler.register(key,SelectionKey.OP_READ);
+            }
+            return nRead;
+        }
+    }
+
+
+    /**
+     * Writes bytes. If blocking is set to <tt>true</tt>, a pool of temporary
+     * {@link java.nio.channels.Selector} will be used to writes bytes.
+     * @param byteBuffer The byteBuffer to write.
+     * @param blocking <tt>true</tt> if a a pool of temporary Selector
+     *        is required to handle a blocking write.
+     * @return number of bytes written
+     * @throws java.io.IOException
+     */
+    public long write(ByteBuffer byteBuffer, boolean blocking) throws IOException {
+        if (!isConnected){
+            throw new NotYetConnectedException();
+        }
+
+        if (blocking){
+            return OutputWriter.flushChannel(underlyingChannel, byteBuffer);
+        } else {
+            if (callbackHandler == null){
+                throw new IllegalStateException
+                        ("Non blocking write needs a CallbackHandler");
+            }
+            SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
+            int nWrite = 1;
+            int totalWriteBytes = 0;
+            try{
+                while (nWrite > 0 && byteBuffer.hasRemaining()){
+                    nWrite = ((WritableByteChannel)underlyingChannel).write(byteBuffer);
+                    totalWriteBytes += nWrite;
+                }
+            } catch (IOException ex){
+                nWrite = -1;
+                throw ex;
+            } finally {
+                if (nWrite == -1){
+                    SelectionKeyHandler skh = selectorHandler.getSelectionKeyHandler();
+                    if (skh instanceof BaseSelectionKeyHandler){
+                        ((BaseSelectionKeyHandler)skh).notifyRemotlyClose(key);
+                    }
+                }
+            }
+
+            if (totalWriteBytes == 0 && byteBuffer.hasRemaining()){
+                selectorHandler.register(key,SelectionKey.OP_WRITE);
+            }
+            return totalWriteBytes;
+        }
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
+            AsyncReadCallbackHandler callbackHandler) throws IOException {
+        return readFromAsyncQueue(buffer, callbackHandler, null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
+            AsyncReadCallbackHandler callbackHandler,
+            AsyncReadCondition condition) throws IOException {
+        return readFromAsyncQueue(buffer, callbackHandler, condition, null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
+            AsyncReadCallbackHandler callbackHandler,
+            AsyncReadCondition condition,
+            AsyncQueueDataProcessor readPostProcessor) throws IOException {
+        return selectorHandler.getAsyncQueueReader().read(
+                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
+                callbackHandler, condition, readPostProcessor);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer)
+            throws IOException {
+        return writeToAsyncQueue(buffer, null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
+            AsyncWriteCallbackHandler callbackHandler) throws IOException {
+        return writeToAsyncQueue(buffer, callbackHandler, null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
+            AsyncWriteCallbackHandler callbackHandler,
+            AsyncQueueDataProcessor writePreProcessor) throws IOException {
+        return writeToAsyncQueue(buffer, callbackHandler, writePreProcessor,
+                null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
+            AsyncWriteCallbackHandler callbackHandler,
+            AsyncQueueDataProcessor writePreProcessor,
+            ByteBufferCloner cloner) throws IOException {
+        return selectorHandler.getAsyncQueueWriter().write(
+                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
+                callbackHandler, writePreProcessor, cloner);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
+            SocketAddress dstAddress, ByteBuffer buffer)
+            throws IOException {
+        return writeToAsyncQueue(dstAddress, buffer, null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
+            SocketAddress dstAddress, ByteBuffer buffer,
+            AsyncWriteCallbackHandler callbackHandler) throws IOException {
+        return writeToAsyncQueue(dstAddress, buffer, callbackHandler, null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
+            SocketAddress dstAddress, ByteBuffer buffer,
+            AsyncWriteCallbackHandler callbackHandler,
+            AsyncQueueDataProcessor writePreProcessor) throws IOException {
+        return writeToAsyncQueue(dstAddress, buffer, callbackHandler,
+                writePreProcessor, null);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
+            SocketAddress dstAddress, ByteBuffer buffer,
+            AsyncWriteCallbackHandler callbackHandler,
+            AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner)
+            throws IOException {
+        return selectorHandler.getAsyncQueueWriter().write(
+                underlyingChannel.keyFor(selectorHandler.getSelector()), dstAddress,
+                buffer, callbackHandler, writePreProcessor, cloner);
     }
 }

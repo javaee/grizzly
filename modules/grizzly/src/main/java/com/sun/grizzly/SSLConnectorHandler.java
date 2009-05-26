@@ -441,6 +441,7 @@ public class SSLConnectorHandler
      * availability of a decrypted data to process, but use byteBuffer.remaining().
      * @throws java.io.IOException
      */
+    @Override
     public long read(ByteBuffer byteBuffer, boolean blocking)
             throws IOException {
         if (!isConnected) {
@@ -475,6 +476,7 @@ public class SSLConnectorHandler
      * number of bytes from original buffer, which were written.
      * @throws java.io.IOException
      */
+    @Override
     public long write(ByteBuffer byteBuffer, boolean blocking)
             throws IOException {
         if (!isConnected) {
@@ -516,125 +518,50 @@ public class SSLConnectorHandler
     /**
      * {@inheritDoc}
      */
-    public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
-            AsyncReadCallbackHandler callbackHandler) throws IOException {
-        return readFromAsyncQueue(buffer, callbackHandler, null);
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
-            AsyncReadCallbackHandler callbackHandler,
-            AsyncReadCondition condition) throws IOException {
-        return readFromAsyncQueue(buffer, callbackHandler, condition,
-                obtainSSLReadPostProcessor());
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public Future<AsyncQueueReadUnit> readFromAsyncQueue(ByteBuffer buffer,
             AsyncReadCallbackHandler callbackHandler,
             AsyncReadCondition condition,
             AsyncQueueDataProcessor readPostProcessor) throws IOException {
         isAsyncReadQueueMode = true;
-        return selectorHandler.getAsyncQueueReader().read(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
-                callbackHandler, condition, readPostProcessor);
-    }
-    
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer)
-            throws IOException {
-        return writeToAsyncQueue(buffer, null);
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler) throws IOException {
-        return writeToAsyncQueue(buffer, callbackHandler,
-                obtainSSLWritePreProcessor());
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler,
-            AsyncQueueDataProcessor writePreProcessor) throws IOException {
-        return writeToAsyncQueue(buffer, callbackHandler, writePreProcessor,
-                null);
+        return super.readFromAsyncQueue( buffer,
+                                         callbackHandler,
+                                         condition,
+                                         readPostProcessor != null ? readPostProcessor : obtainSSLReadPostProcessor() );
     }
 
     
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<AsyncQueueWriteUnit> writeToAsyncQueue(ByteBuffer buffer,
             AsyncWriteCallbackHandler callbackHandler,
             AsyncQueueDataProcessor writePreProcessor,
             ByteBufferCloner cloner) throws IOException {
         isAsyncWriteQueueMode = true;
-        return selectorHandler.getAsyncQueueWriter().write(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
-                callbackHandler, writePreProcessor, cloner);
-    }
-
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
-            SocketAddress dstAddress, ByteBuffer buffer) throws IOException {
-        return writeToAsyncQueue(dstAddress, buffer,null);
+        return super.writeToAsyncQueue( buffer,
+                                        callbackHandler,
+                                        writePreProcessor != null ? writePreProcessor : obtainSSLWritePreProcessor(),
+                                        cloner );
     }
 
 
     /**
      * {@inheritDoc}
      */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
-            SocketAddress dstAddress, ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler) throws IOException {
-        return writeToAsyncQueue(dstAddress, buffer, callbackHandler,
-                obtainSSLWritePreProcessor());
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
-            SocketAddress dstAddress, ByteBuffer buffer,
-            AsyncWriteCallbackHandler callbackHandler, 
-            AsyncQueueDataProcessor writePreProcessor) throws IOException {
-        return writeToAsyncQueue(dstAddress, buffer, callbackHandler,
-                writePreProcessor);
-    }
-
-    
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public Future<AsyncQueueWriteUnit> writeToAsyncQueue(
             SocketAddress dstAddress, ByteBuffer buffer,
             AsyncWriteCallbackHandler callbackHandler, 
             AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner)
             throws IOException {
         isAsyncWriteQueueMode = true;
-        return selectorHandler.getAsyncQueueWriter().write(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), dstAddress,
-                buffer, callbackHandler, writePreProcessor, cloner);
+        return super.writeToAsyncQueue( dstAddress,
+                                        buffer,
+                                        callbackHandler,
+                                        writePreProcessor != null ? writePreProcessor : obtainSSLWritePreProcessor(),
+                                        cloner );
     }
 
     
