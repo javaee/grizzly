@@ -166,9 +166,6 @@ public class AsyncWebFilter extends WebFilter<AsyncWebFilterConfig>
         return task;
     }
 
-    // ------------------------------------------------------ Debug ---------//
-
-
     /**
      * Display the Grizzly configuration parameters.
      */
