@@ -764,7 +764,18 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         portUnificationFilter.configure(protocolFinders, protocolHandlers, 
                 preProcessors);
     }
-           
+
+    /**
+     * Return thr {@link ProtocolChain} used by this instance.
+     * @return {@link ProtocolChain}
+     */
+    public ProtocolChain getProtocolChain(){
+        if (controller == null) throw new 
+                IllegalStateException("SelectorThread not initialized (initEndpoint not called)");
+
+        return getController().getProtocolChainInstanceHandler().poll();
+    }
+
     
     /**
      * Create a new {@link StatsThreadPool} instance.
