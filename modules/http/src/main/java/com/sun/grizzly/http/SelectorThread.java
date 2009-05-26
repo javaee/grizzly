@@ -1338,6 +1338,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Set the maximum number of Keep-Alive requests that we will honor.
      */
     public void setMaxKeepAliveRequests(int mkar) {
+        if (mkar == -1){
+            mkar = Integer.MAX_VALUE;
+        }
         maxKeepAliveRequests = mkar;
     }
     
@@ -1349,6 +1352,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * @param timeout Keep-alive timeout in number of seconds
      */    
     public void setKeepAliveTimeoutInSeconds(int timeout) {
+        if (timeout == -1){
+            timeout = Integer.MAX_VALUE;
+        }
+
         keepAliveTimeoutInSeconds = timeout;
         if (keyHandler != null) {
             keyHandler.setTimeout(timeout * 1000);
