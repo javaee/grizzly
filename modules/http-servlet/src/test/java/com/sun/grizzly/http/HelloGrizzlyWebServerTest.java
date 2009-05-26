@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.ProtocolChain;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -44,7 +45,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.logging.Logger;
 
-import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletResponse;
 
 import junit.framework.TestCase;
@@ -157,6 +157,25 @@ public class HelloGrizzlyWebServerTest extends TestCase {
         }
        
         return sb;
+    }
+
+    public void testProtocolFilter() throws IOException {
+        System.out.println("testProtocolFilter");
+        try {
+            String[] aliases = new String[] { "*.foo" };
+
+            ServletAdapter adapter = new ServletAdapter();
+            adapter.setServletInstance(new HelloServlet());
+            gws = new GrizzlyWebServer(PORT);
+            gws.addGrizzlyAdapter(adapter, aliases);
+            gws.start();
+
+            ProtocolChain pc = gws.getSelectorThread().getController().getProtocolChainInstanceHandler().poll();
+            System.out.println("ProtcolChain: " + pc);
+            assertNotNull(pc);
+        } finally {
+            stopGrizzlyWebServer();
+        }
     }
 
     private HttpURLConnection getConnection(String path) throws IOException {
