@@ -46,6 +46,7 @@ import java.util.logging.Level;
 import org.glassfish.grizzly.TransportFactory;
 import org.glassfish.grizzly.filterchain.TransportFilter;
 import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
+import org.glassfish.grizzly.strategies.LeaderFollowerStrategy;
 import org.glassfish.grizzly.web.WebFilter;
 import org.glassfish.grizzly.web.WebFilterConfig;
 import org.glassfish.grizzly.web.container.Adapter;
@@ -63,7 +64,7 @@ import org.glassfish.grizzly.web.container.util.ExpandJar;
 public abstract class StandaloneMainUtil {
 
     private static int port = 8080;
-     private TCPNIOTransport transport;
+    private TCPNIOTransport transport;
 
 
     public StandaloneMainUtil() {
@@ -79,6 +80,8 @@ public abstract class StandaloneMainUtil {
         transport = TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(webFilter);
+        transport.setSelectorRunnersCount(Runtime.getRuntime().availableProcessors());
+        transport.setStrategy(new LeaderFollowerStrategy(transport));
         try {
             webFilter.initialize();
             transport.bind(port);
