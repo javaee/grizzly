@@ -509,7 +509,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             pendingIO = new ArrayList();
             int size = tasks.size();
             for (int x=0;x<size;){
-                doExecutePendiongIO(tasks,x,Math.min(x=+pendingIOlimitPerThread, size));
+                doExecutePendiongIO(tasks,x,Math.min(x+=pendingIOlimitPerThread, size));
             }
         }
     }
