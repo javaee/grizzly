@@ -146,7 +146,8 @@ public class SuspendTest extends TestCase {
         st.enableMonitoring();
     }
 
-    public void testSuspendDoubleCancelInvokation() throws Exception {
+    // See https://grizzly.dev.java.net/issues/show_bug.cgi?id=592
+    public void __testSuspendDoubleCancelInvokation() throws Exception {
         System.err.println("Test: testSuspendDoubleCancelInvokation");
         final CountDownLatch latch = new CountDownLatch(1);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
