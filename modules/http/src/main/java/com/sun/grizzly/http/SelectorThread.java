@@ -651,7 +651,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
         controller.setProtocolChainInstanceHandler(instanceHandler);
         controller.setThreadPool(threadPool);
-        controller.setReadThreadsCount(readThreadsCount);
+        if (readThreadsCount > controller.getReadThreadsCount()){
+            controller.setReadThreadsCount(readThreadsCount);
+        } else {
+            readThreadsCount = controller.getReadThreadsCount();
+        }
     }
     
     /**
@@ -1936,6 +1940,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                     + port 
                     + "\n\t Thread Pool: "
                     + threadPool
+                    + "\n\t Read Selector: "
+                    + readThreadsCount
                     + "\n\t ByteBuffer size: " 
                     + requestBufferSize                   
                     + "\n\t maxHttpHeaderSize: " 

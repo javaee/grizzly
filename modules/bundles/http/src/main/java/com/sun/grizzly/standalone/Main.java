@@ -41,7 +41,6 @@ package com.sun.grizzly.standalone;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.tcp.DynamicContentAdapter;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.ClassLoaderUtil;
@@ -89,7 +88,7 @@ public class Main extends StandaloneMainUtil{
     public void printHelpAndExit() {
         System.err.println("Usage: " + Main.class.getCanonicalName() + " [options]");
         System.err.println();
-        System.err.println("    -p, --port=port                  Runs Servlet on the specified port.");
+        System.err.println("    -p, --port=port                  Run the server on the specified port.");
         System.err.println("                                     Default: 8080");
         System.err.println("    -a, --apps=application path      The static resourde folder or jar or war location.");
         System.err.println("                                     Default: .");

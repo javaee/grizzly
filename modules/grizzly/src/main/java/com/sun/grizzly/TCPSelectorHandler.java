@@ -414,9 +414,6 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @throws java.io.IOException
      */
     protected void processPendingOperations(Context ctx) throws IOException {
-        //investigate if its worthwile to swap LTQ references with a local one to completely avoid thread contention between the producers and the consumer
-        //the cost for doing so is cheap, just a reference swap. volatile for contended LTQ and normal reference for the local one.
-
         SelectionKeyOP operation;
         while((operation = opToRegister.poll()) != null) {
             int op = operation.getOp();
