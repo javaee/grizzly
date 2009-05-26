@@ -160,7 +160,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             try{
                 keepAlive = processorTask.process(inputStream,null);
             } catch (Throwable ex){
-                logger.log(Level.INFO,"ProcessorTask exception", ex);
+                logger.log(Level.SEVERE,"ProcessorTask exception", ex);
                 keepAlive = false;
             }
         } else {

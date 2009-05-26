@@ -401,7 +401,7 @@ public class FileCache{
             uri = new String(requestBytes,start,length);
             entry = fileCache.get(uri);
             
-            if ( isMonitoringEnabled) {
+            if (isMonitoringEnabled) {
                 if (entry != null && entry.bb != null 
                         && entry.bb != nullByteBuffer){
                     if ( entry.isInHeap ) 
@@ -428,7 +428,7 @@ public class FileCache{
 
         try{
             FileCacheEntry entry = map(req,start,length);
-            if ( entry != null && entry.bb != nullByteBuffer){
+            if (entry != null && entry.bb != nullByteBuffer){
                 sendCache(socketChannel,entry,keepAlive); 
                 return true;
             }
