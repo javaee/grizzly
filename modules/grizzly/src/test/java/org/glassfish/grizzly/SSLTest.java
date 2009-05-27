@@ -349,7 +349,7 @@ public class SSLTest extends TestCase {
                 final FilterChain filterChain = ((FilterChainEnabledTransport) transport).getFilterChain();
                 final Transformer encoder = filterChain.getCodec().getEncoder();
 
-                while(reader.availableDataSize() > 0) {
+                while(reader.hasAvailableData()) {
                     Buffer inBuffer = reader.readBuffer();
                     TransformationResult result =
                             encoder.transform(connection, inBuffer, null);

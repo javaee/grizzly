@@ -93,8 +93,9 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
     /**
      * {@inheritDoc}
      */
-    public Future<Integer> notifyCondition(Condition<StreamReader> condition,
-            CompletionHandler<Integer> completionHandler) {
+    public Future<Integer> notifyCondition(
+            final Condition<StreamReader> condition,
+            final CompletionHandler<Integer> completionHandler) {
         if (notifyObject != null) {
             throw new IllegalStateException("Only one available listener allowed!");
         }
@@ -108,7 +109,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
             return new ReadyFutureImpl(exception);
         }
 
-        int availableDataSize = availableDataSize();
+        final int availableDataSize = availableDataSize();
         if (condition.check(this)) {
             if (completionHandler != null) {
                 completionHandler.completed(null, availableDataSize);
@@ -116,7 +117,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
 
             return new ReadyFutureImpl(availableDataSize);
         } else {
-            FutureImpl future = new FutureImpl();
+            final FutureImpl future = new FutureImpl();
             notifyObject = new NotifyObject(future, completionHandler, condition);
             underlyingReader.notifyAvailable(1,
                     new FeederCompletionHandler(future, completionHandler));
@@ -146,10 +147,11 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
     }
 
     protected class FeederCompletionHandler implements CompletionHandler {
-        private FutureImpl future;
-        private CompletionHandler completionHandler;
+        private final FutureImpl future;
+        private final CompletionHandler completionHandler;
 
-        public FeederCompletionHandler(FutureImpl future, CompletionHandler completionHandler) {
+        public FeederCompletionHandler(FutureImpl future,
+                CompletionHandler completionHandler) {
             this.future = future;
             this.completionHandler = completionHandler;
         }

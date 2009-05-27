@@ -168,7 +168,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
             @Override
             public boolean check(final StreamReader streamReader) {
                 if (condition == null) {
-                    return streamReader.availableDataSize() > 0;
+                    return streamReader.hasAvailableData();
                 } else {
                     readResult.setReadSize(streamReader.availableDataSize());
                     return condition.check(readResult);

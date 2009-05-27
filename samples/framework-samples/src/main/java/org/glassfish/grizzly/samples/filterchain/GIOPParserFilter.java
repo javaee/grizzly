@@ -182,7 +182,7 @@ public class GIOPParserFilter extends FilterAdapter {
 
         final StreamReader reader = ctx.getStreamReader();
         // Check, if there is some data remaining in the input stream
-        if (reader.availableDataSize() > 0) {
+        if (reader.hasAvailableData()) {
             // if yes - rerun the parser filter to parse next message
             return ctx.getRerunChainAction();
         }

@@ -72,7 +72,7 @@ public class TCPNIOTransportFilter extends FilterAdapter {
         final Buffer buffer = reader.read0();
         reader.appendBuffer(buffer);
 
-        if (reader.availableDataSize() > 0) {
+        if (reader.hasAvailableData()) {
             ctx.setStreamReader(connection.getStreamReader());
             ctx.setStreamWriter(connection.getStreamWriter());
         } else {

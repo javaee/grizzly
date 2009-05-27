@@ -73,7 +73,7 @@ public class UDPNIOStreamTransportFilter extends FilterAdapter {
         final ReadResult<Buffer, SocketAddress> result = reader.read0();
         reader.append(result);
 
-        if (reader.availableDataSize() > 0) {
+        if (reader.hasAvailableData()) {
             ctx.setStreamReader(connection.getStreamReader());
             ctx.setStreamWriter(connection.getStreamWriter());
         } else {

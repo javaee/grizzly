@@ -145,7 +145,7 @@ public class SSLFilter extends FilterAdapter
         }
 
 
-        if (sslStreamReader.availableDataSize() <= 0) {
+        if (!sslStreamReader.hasAvailableData()) {
             nextAction = ctx.getStopAction();
         }
         return nextAction;

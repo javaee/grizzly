@@ -85,7 +85,7 @@ public class UDPNIOStreamReader extends AbstractStreamReader
             return new ReadyFutureImpl<Integer>(exception);
         }
 
-        int availableDataSize = availableDataSize();
+        final int availableDataSize = availableDataSize();
         if (condition.check(this)) {
             if (completionHandler != null) {
                 completionHandler.completed(null, availableDataSize);
