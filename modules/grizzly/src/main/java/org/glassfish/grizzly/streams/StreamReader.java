@@ -150,21 +150,34 @@ public interface StreamReader extends Closeable {
      */
     boolean appendBuffer(Buffer buffer);
 
-    /** Return the number of bytes available for get calls.  An attempt to 
+    /**
+     * Return <tt>true</tt> if <tt>StreamReader</tt> has available data, which
+     * could be read, or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt> if <tt>StreamReader</tt> has available data, which
+     * could be read, or <tt>false</tt> otherwise.
+     */
+    boolean hasAvailableData();
+
+    /**
+     * Return the number of bytes available for get calls.  An attempt to
      * get more data than is present in the stream will either result in 
      * blocking (if isBlocking() returns true) or a BufferUnderflowException.
      */
     int availableDataSize();
 
-    /** Get the next boolean in the stream.  Requires 1 byte.
+    /**
+     * Get the next boolean in the stream.  Requires 1 byte.
      */
     boolean readBoolean() throws IOException;
 
-    /** Get the next byte in the stream.  Requires 1 byte.
+    /**
+     * Get the next byte in the stream.  Requires 1 byte.
      */
     byte readByte() throws IOException;
 
-    /** Get the next character in the stream.  Requires 2 bytes.
+    /**
+     * Get the next character in the stream.  Requires 2 bytes.
      */
     char readChar() throws IOException;
 
@@ -172,41 +185,49 @@ public interface StreamReader extends Closeable {
      */
     short readShort() throws IOException;
 
-    /** Get the next int in the stream.  Requires 4 bytes.
+    /**
+     * Get the next int in the stream.  Requires 4 bytes.
      */
     int readInt() throws IOException;
 
-    /** Get the next long in the stream.  Requires 8 bytes.
+    /**
+     * Get the next long in the stream.  Requires 8 bytes.
      */
     long readLong() throws IOException;
 
-    /** Get the next float in the stream.  Requires 4 bytes.
+    /**
+     * Get the next float in the stream.  Requires 4 bytes.
      */
     float readFloat() throws IOException;
 
-    /** Get the next double in the stream.  Requires 8 bytes.
+    /**
+     * Get the next double in the stream.  Requires 8 bytes.
      */
     double readDouble() throws IOException;
 
-    /** Fill data with booleans (byte 1=true, 0=false) from the stream.
+    /**
+     * Fill data with booleans (byte 1=true, 0=false) from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
     void readBooleanArray(boolean[] data) throws IOException;
 
-    /** Fill data with bytes from the stream.
+    /**
+     * Fill data with bytes from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
     void readByteArray(byte[] data) throws IOException;
 
-    /** Fill data with bytes from the stream.
+    /**
+     * Fill data with bytes from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
     void readByteArray(byte[] data, int offset, int length) throws IOException;
 
-    /** Fill the buffer with data from the stream (that is, copy data
+    /**
+     * Fill the buffer with data from the stream (that is, copy data
      * from the stream to fill buffer from position to limit).
      * This is useful when data must be read
      * from one stream and then added to another stream for
@@ -214,37 +235,43 @@ public interface StreamReader extends Closeable {
      */
     void readBytes(Buffer buffer) throws IOException;
 
-    /** Fill data with characters from the stream.
+    /**
+     * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 2*data.length bytes.
      */
     void readCharArray(char[] data) throws IOException;
 
-    /** Fill data with characters from the stream.
+    /**
+     * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 2*data.length bytes.
      */
     void readShortArray(short[] data) throws IOException;
 
-    /** Fill data with characters from the stream.
+    /**
+     * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 4*data.length bytes.
      */
     void readIntArray(int[] data) throws IOException;
 
-    /** Fill data with characters from the stream.
+    /**
+     * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 8*data.length bytes.
      */
     void readLongArray(long[] data) throws IOException;
 
-    /** Fill data with characters from the stream.
+    /**
+     * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 4*data.length bytes.
      */
     void readFloatArray(float[] data) throws IOException;
 
-    /** Fill data with characters from the stream.
+    /**
+     * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 8*data.length bytes.
      */

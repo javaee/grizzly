@@ -338,7 +338,14 @@ public abstract class AbstractStreamReader implements StreamReader {
 
         return null;
     }
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    public final boolean hasAvailableData() {
+       return availableDataSize() > 0;
+    }
+
     /**
      * {@inheritDoc}
      */

@@ -306,9 +306,9 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
             }
 
             if (nextAction.type() == RerunChainAction.TYPE) {
-                List<Filter> tmpExecutedFilters = chain;
-                List<Filter> tmpNextFilters = ctx.getFilters();
-                int tmpCurrentFilterIdx = ctx.getCurrentFilterIdx();
+                final List<Filter> tmpExecutedFilters = chain;
+                final List<Filter> tmpNextFilters = ctx.getFilters();
+                final int tmpCurrentFilterIdx = ctx.getCurrentFilterIdx();
 
                 ctx.setExecutedFilters(new LightArrayList<Filter>());
                 ctx.setFilters(chain);
