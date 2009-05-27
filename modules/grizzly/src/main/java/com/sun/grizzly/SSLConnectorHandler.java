@@ -146,7 +146,7 @@ public class SSLConnectorHandler
     /**
      * IsConnected Latch related
      */
-    private CountDownLatch isConnectedLatch;
+    private volatile CountDownLatch isConnectedLatch;
     
     /**
      * Are we creating a controller every run.

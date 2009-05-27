@@ -68,7 +68,7 @@ public class UDPConnectorHandler
     /**
      * IsConnected Latch related
      */
-    protected CountDownLatch isConnectedLatch;
+    protected volatile CountDownLatch isConnectedLatch;
     
     
     /**
@@ -180,11 +180,9 @@ public class UDPConnectorHandler
         }
         
         // Wait for the onConnect to be invoked.
-        synchronized(this) {
-            isConnectedLatch = new CountDownLatch(1);
+        isConnectedLatch = new CountDownLatch(1);
 
-            selectorHandler.connect(remoteAddress, localAddress, callbackHandler);
-        }
+        selectorHandler.connect(remoteAddress, localAddress, callbackHandler);
         
         try {
             isConnectedLatch.await(30, TimeUnit.SECONDS);
@@ -351,10 +349,8 @@ public class UDPConnectorHandler
         final DatagramChannel datagramChannel = (DatagramChannel)key.channel();
         underlyingChannel = datagramChannel;
         isConnected = datagramChannel.isConnected();
-        synchronized(this) {
-            if (isConnectedLatch != null) {
-                isConnectedLatch.countDown();
-            }
+        if (isConnectedLatch != null) {
+            isConnectedLatch.countDown();
         }
     }
     
