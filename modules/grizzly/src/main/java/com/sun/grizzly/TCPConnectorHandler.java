@@ -94,7 +94,7 @@ public class TCPConnectorHandler extends
     /**
      * IsConnected Latch related
      */
-    private CountDownLatch isConnectedLatch;
+    private volatile CountDownLatch isConnectedLatch;
     
     
     /**
@@ -233,13 +233,11 @@ public class TCPConnectorHandler extends
             this.callbackHandler = callbackHandler;
         }
         
-        synchronized(this) {
             // Wait for the onConnect to be invoked.
-            isConnectedLatch = new CountDownLatch(1);
+        isConnectedLatch = new CountDownLatch(1);
 
-            selectorHandler.connect(remoteAddress, localAddress,
-                    callbackHandler);
-        }
+        selectorHandler.connect(remoteAddress, localAddress,
+                callbackHandler);
         inputStream = new InputReader();
         
         try {
@@ -366,9 +364,7 @@ public class TCPConnectorHandler extends
         } catch (IOException ex){
             throw ex;
         } finally {
-            synchronized(this) {
-                isConnectedLatch.countDown();
-            }
+            isConnectedLatch.countDown();
         }
     }
     
