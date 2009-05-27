@@ -68,6 +68,8 @@ public class FixedThreadPool extends AbstractExecutorService
      * exits for use by subclasses, does not impact the performance of fixed pool
      */
     protected final AtomicInteger aliveworkerCount = new AtomicInteger();
+
+    protected final AtomicInteger approximateRunningWorkerCount = new AtomicInteger();
     
     protected final BlockingQueue<Runnable> workQueue;
 
@@ -153,7 +155,7 @@ public class FixedThreadPool extends AbstractExecutorService
     }
 
 
-    protected void startWorker(BasicWorker wt){        
+    protected void startWorker(BasicWorker wt){
         wt.t = threadFactory.newThread(wt);
         workers.put(wt, Boolean.TRUE);
         wt.t.start();
@@ -332,7 +334,14 @@ public class FixedThreadPool extends AbstractExecutorService
                     if (r == poison || r == null){
                         return;
                     }
-                    r.run();
+                    try {
+                        approximateRunningWorkerCount.incrementAndGet();
+                        r.run();
+                    } catch( Throwable t ) {
+                        throw t;
+                    } finally {
+                        approximateRunningWorkerCount.decrementAndGet();
+                    }
                 }catch(Throwable throwable){
 
                 }
