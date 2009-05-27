@@ -170,7 +170,7 @@ public class PipelineThreadPool extends FixedThreadPool{
         }
 
         int ac;
-        while((ac=aliveworkerCount.get())<maxPoolSize && queueSize.get()>0 && running){
+        while((ac=aliveworkerCount.get())<maxPoolSize && (queueSize.get()>0 || !hasIdleWorkersApproximately()) && running){
             if (aliveworkerCount.compareAndSet(ac, ac+1)){
                 startWorker(new Worker(task, false));
                 return;
@@ -180,6 +180,13 @@ public class PipelineThreadPool extends FixedThreadPool{
             workQueue.offer(task);
             queueSize.incrementAndGet();
         }
+    }
+
+    private boolean hasIdleWorkersApproximately() {
+        if( aliveworkerCount.get() <= approximateRunningWorkerCount.get() )
+            return false;
+        else
+            return true;
     }
 
 
