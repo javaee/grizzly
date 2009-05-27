@@ -42,12 +42,10 @@ import java.io.IOException;
 import org.glassfish.grizzly.Connection;
 import org.glassfish.grizzly.Grizzly;
 import org.glassfish.grizzly.attributes.Attribute;
-import org.glassfish.grizzly.attributes.AttributeHolder;
 import org.glassfish.grizzly.filterchain.FilterAdapter;
 import org.glassfish.grizzly.filterchain.FilterChainContext;
 import org.glassfish.grizzly.filterchain.NextAction;
 import org.glassfish.grizzly.streams.StreamReader;
-import org.glassfish.grizzly.attributes.AttributeStorage;
 
 /**
  * Example of parser {@link Filter}.
@@ -65,8 +63,8 @@ public class GIOPParserFilter extends FilterAdapter {
     public NextAction handleRead(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
         Connection connection = ctx.getConnection();
-        GIOPMessage message = getAttribute(connection, preparsedMessageAttr);
-        Integer parseState = getAttribute(connection, stateAttr);
+        GIOPMessage message = preparsedMessageAttr.get(connection);
+        Integer parseState = stateAttr.get(connection);
 
         if (message == null) {
             message = new GIOPMessage();
@@ -154,15 +152,15 @@ public class GIOPParserFilter extends FilterAdapter {
 
         if (parseState < 6) {  // Not enough data to parse whole message
             // Save the parsing state
-            setAttribute(connection, preparsedMessageAttr, message);
-            setAttribute(connection, stateAttr, parseState);
+            preparsedMessageAttr.set(connection, message);
+            stateAttr.set(connection, parseState);
 
             // Stop the filterchain execution until more data available
             return ctx.getStopAction();
         } else {
             // Remove intermediate parsing state
-            removeAttribute(connection, preparsedMessageAttr);
-            removeAttribute(connection, stateAttr);
+            preparsedMessageAttr.remove(connection);
+            stateAttr.remove(connection);
 
             // Set the parsed message on context
             ctx.setMessage(message);
@@ -170,26 +168,25 @@ public class GIOPParserFilter extends FilterAdapter {
         }
     }
 
-    private <E> E getAttribute(AttributeStorage storage, Attribute<E> attribute) {
-        AttributeHolder attributes = storage.getAttributes();
-        if (attributes != null) {
-            return attribute.get(attributes);
+    /**
+     * Post read is called to let FilterChain cleanup resources.
+     *
+     * @param ctx {@link FilterChainContext}
+     * @param nextAction default {@link NextAction} next step instruction for the {@link FilterChain}
+     * @return {@link NextAction} next step instruction for the {@link FilterChain}
+     * @throws IOException
+     */
+    @Override
+    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
+            throws IOException {
+
+        final StreamReader reader = ctx.getStreamReader();
+        // Check, if there is some data remaining in the input stream
+        if (reader.availableDataSize() > 0) {
+            // if yes - rerun the parser filter to parse next message
+            return ctx.getRerunChainAction();
         }
 
-        return null;
+        return nextAction;
     }
-
-    private <E> void setAttribute(AttributeStorage storage,
-            Attribute<E> attribute, E value) {
-        attribute.set(storage.obtainAttributes(), value);
-    }
-
-    private void removeAttribute(AttributeStorage storage,
-            Attribute attribute) {
-        AttributeHolder attributes = storage.getAttributes();
-        if (attributes != null) {
-            attribute.remove(attributes);
-        }
-    }
-
 }
