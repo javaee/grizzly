@@ -68,14 +68,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public boolean add(Filter filter) {
-        int size = filters.size();
-
-        if (filters.add(filter)) {
-            recalculateFilterIndexes(size);
-            return true;
-        }
-
-        return false;
+        return filters.add(filter);
     }
         
     /**
@@ -83,47 +76,27 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     public void add(int index, Filter filter){
         filters.add(index, filter);
-        recalculateFilterIndexes(index);
     }
     
     /**
      * {@inheritDoc}
      */
     public boolean addAll(Collection<? extends Filter> c) {
-        int size = filters.size();
-
-        if (filters.addAll(c)) {
-            recalculateFilterIndexes(size);
-            return true;
-        }
-
-        return false;
+        return filters.addAll(c);
     }
 
     /**
      * {@inheritDoc}
      */
     public boolean addAll(int index, Collection<? extends Filter> c) {
-        if (filters.addAll(index, c)) {
-            recalculateFilterIndexes(index);
-            return true;
-        }
-
-        return false;
+        return filters.addAll(index, c);
     }
 
     /**
      * {@inheritDoc}
      */
-    public Filter set(int index,
-            Filter filter) {
-        Filter prevFilter = filters.set(index, filter);
-        
-        if (filter.isIndexable()) {
-            filter.setIndex(index);
-        }
-
-        return prevFilter;
+    public Filter set(final int index, final Filter filter) {
+        return filters.set(index, filter);
     }
     
     /**
@@ -136,15 +109,8 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
     /**
      * {@inheritDoc}
      */
-    public int indexOf(Object object) {
-        Filter filter = (Filter) object;
-        
-        // if Filter is indexable - optimize the index search
-        if (filter.isIndexable()) {
-            return filter.getIndex();
-        }
-        
-        return filters.indexOf(filter);
+    public int indexOf(final Object object) {
+        return filters.indexOf(object);
     }
     
     /**
@@ -186,56 +152,28 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      * {@inheritDoc}
      */
     public boolean retainAll(Collection<?> c) {
-        if (filters.retainAll(c)) {
-            recalculateFilterIndexes(0);
-            return true;
-        }
-
-        return false;
+        return filters.retainAll(c);
     }
 
     /**
      * {@inheritDoc}
      */
     public boolean remove(Object object) {
-        Filter filter = (Filter) object;
-        
-        // if Filter is indexable - optimize the index search
-        if (filter.isIndexable()) {
-            return remove(filter.getIndex()) != null;
-        }
-        
-        if (filters.remove(filter)) {
-            recalculateFilterIndexes(0);
-            return true;
-        }
-
-        return false;
+        return filters.remove((Filter) object);
     }
            
     /**
      * {@inheritDoc}
      */
     public Filter remove(int index) {
-        Filter removingFilter = filters.remove(index);
-        if (removingFilter != null) {
-            recalculateFilterIndexes(index);
-            return removingFilter;
-        }
-
-        return null;
+        return filters.remove(index);
     }
 
     /**
      * {@inheritDoc}
      */
     public boolean removeAll(Collection<?> c) {
-        if (filters.removeAll(c)) {
-            recalculateFilterIndexes(0);
-            return true;
-        }
-
-        return false;
+        return filters.removeAll(c);
     }
 
     /**
@@ -285,14 +223,5 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     public List<Filter> subList(int fromIndex, int toIndex) {
         return filters.subList(fromIndex, toIndex);
-    }
-
-    protected void recalculateFilterIndexes(int startPosition) {
-        for(int i = startPosition; i < filters.size(); i++) {
-            Filter filter = filters.get(i);
-            if (filter.isIndexable()) {
-                filter.setIndex(i);
-            }
-        }
     }
 }

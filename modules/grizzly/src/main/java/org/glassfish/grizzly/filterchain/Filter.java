@@ -249,30 +249,4 @@ public interface Filter {
      * @param error error, which occurred during <tt>FilterChain</tt> execution
      */
     public void exceptionOccurred(FilterChainContext ctx, Throwable error);
-    
-    /**
-     * Defines if this {@link Filter} could be indexed by a {@link FilterChain}
-     * in order to find neighbour {@link Filter}s faster.
-     * Most of the time it's very desired for a {@link Filter}s to be indexable,
-     * but there are cases, when it's not appropriate, for example if single
-     * {@link Filter} instance should be shared among several
-     * {@link FilterChain}s.
-     *
-     * @return true, if this {@link Filter} is indexable, or false otherwise.
-     */
-    public boolean isIndexable();
-    
-    /**
-     * Gets the {@link Filter} index.
-     * 
-     * @return the {@link Filter} index.
-     */
-    public int getIndex();
-    
-    /**
-     * Sets the {@link Filter} index.
-     * 
-     * @param index the {@link Filter} index.
-     */
-    public void setIndex(int index);
 }

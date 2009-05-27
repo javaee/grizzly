@@ -288,8 +288,6 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
             // current Filter to be executed
             Filter currentFilter = chain.get(i);
 
-//            nextFiltersList.remove(i);
-
             // save current filter to the context
             ctx.setCurrentFilter(currentFilter);
             
@@ -312,7 +310,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
 
                 ctx.setExecutedFilters(new LightArrayList<Filter>());
                 ctx.setFilters(chain);
-                ctx.setCurrentFilterIdx(0);
+                ctx.setCurrentFilterIdx(i);
                 try {
                     execute(ctx);
                 } finally {
