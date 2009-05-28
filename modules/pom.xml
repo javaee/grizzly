@@ -16,6 +16,7 @@
     <modules>
         <module>grizzly</module>
         <module>rcm</module>
+        <module>http-util</module>
         <module>http</module>
         <module>http-servlet</module>
         <module>bundles</module>

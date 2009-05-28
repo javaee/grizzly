@@ -83,7 +83,7 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Vector;
 import java.util.logging.Level;
-import com.sun.grizzly.http.WebFilter;
+import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.tcp.OutputBuffer;
 
 /**
@@ -578,13 +578,13 @@ public class GrizzlyResponse<A> {
         try {
             outputBuffer.close();
         } catch(IOException e) {
-            if (WebFilter.logger().isLoggable(Level.FINEST)) {
-                WebFilter.logger().log(Level.FINEST,
+            if (LoggerUtils.getLogger().isLoggable(Level.FINEST)) {
+                LoggerUtils.getLogger().log(Level.FINEST,
                         "ACTION_CLIENT_FLUSH", e);
             }
         } catch(Throwable t) {
-            if (WebFilter.logger().isLoggable(Level.WARNING)) {
-                WebFilter.logger().log(Level.WARNING,
+            if (LoggerUtils.getLogger().isLoggable(Level.WARNING)) {
+                LoggerUtils.getLogger().log(Level.WARNING,
                         "ACTION_CLIENT_FLUSH", t);
             }
         }

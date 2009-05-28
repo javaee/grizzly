@@ -8,10 +8,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
-    <artifactId>grizzly-http</artifactId>
+    <artifactId>grizzly-http-util</artifactId>
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
-    <name>grizzly-http</name>
+    <name>grizzly-http-util</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -40,9 +40,8 @@
                 <configuration>
                     <instructions>
                         <Export-Package>
-                            com.sun.grizzly.http.*,
-                            com.sun.grizzly.arp.*,
-                            com.sun.grizzly.standalone.*
+                            com.sun.grizzly.tcp.*,
+                            com.sun.grizzly.util.*,
                         </Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
@@ -53,12 +52,7 @@
     <dependencies>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-http-util</artifactId>
-            <version>${grizzly-version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-rcm</artifactId>
+            <artifactId>grizzly-framework</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
     </dependencies>
