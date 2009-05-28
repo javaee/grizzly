@@ -129,14 +129,6 @@ public class AIOController extends Controller {
 
     
     /**
-     * @deprecated - no needed with AIO
-     */
-    @Override
-    protected void doSelect(SelectorHandler selectorHandler){
-    }
-
-    
-    /**
      * Register a SelectionKey.
      * @param key <tt>SelectionKey</tt> to register
      * @deprecated - no needed with AIO
@@ -176,7 +168,7 @@ public class AIOController extends Controller {
      * @return {@link AIOContext}
      */   
     @Override
-    public AIOContext pollContext(SelectionKey key){
+    public AIOContext pollContext(){
         AIOContext ctx = contexts.poll();
         ctx.setController(this);
         return ctx;

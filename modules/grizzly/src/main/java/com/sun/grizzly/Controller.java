@@ -377,7 +377,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Get an instance of a {@link NIOContext}
      * @return {@link Context}
      */
-    public NIOContext pollContext() {
+    public Context pollContext() {
         NIOContext ctx = null;
         try{
             if (!allowContextCaching) {

@@ -23,6 +23,7 @@
 package com.sun.grizzly.aio;
 
 import com.sun.grizzly.ConnectorHandler;
+import com.sun.grizzly.ContextTask;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolChainInstanceHandler;
@@ -159,14 +160,16 @@ public class TCPAIOHandler implements AIOHandler {
 
                             try {
                                 ProtocolChain protocolChain = controller.getProtocolChainInstanceHandler().poll();
-                                AIOContext context = (AIOContext) controller.pollContext(null);
+                                AIOContext context = (AIOContext) controller.pollContext();
                                 context.setAIOHandler(TCPAIOHandler.this);
                                 context.setChannel(channel);
                                 context.setProtocolChain(protocolChain);
                                 context.setAttribute("timeout", timeout);
                                 configureChannel(channel);
 
-                                context.execute(AIOContextTask.poll(),false);
+                                ContextTask ct = new AIOContextTask();
+                                ct.setContext(context);
+                                context.execute(ct,false);
 
                                 listener.accept(null, this);
                             } catch (Throwable ex) {

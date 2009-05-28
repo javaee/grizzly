@@ -97,7 +97,7 @@ public class SelectorHandlerRunner implements Runnable {
     
     public void run() {
         if (!isPostponed) {
-            serverContext = controller.pollContext();
+            serverContext = (NIOContext)controller.pollContext();
             serverContext.setSelectorHandler(selectorHandler);
 
             controllerStateHolder = controller.getStateHolder();
@@ -350,14 +350,14 @@ public class SelectorHandlerRunner implements Runnable {
                      * Thread and after that the Thread will be released.
                      */
                     selectorHandler.getThreadPool().execute(postpone());
-                    NIOContext context = controller.pollContext();
+                    NIOContext context = (NIOContext)controller.pollContext();
                     controller.configureContext(key, opType, context,
                             selectorHandler);
                     ((WorkerThreadImpl) Thread.currentThread()).reset();
                     context.execute(context.getProtocolChainContextTask(), false);
                     return false;
                 } else {
-                    NIOContext context = controller.pollContext();
+                    NIOContext context = (NIOContext)controller.pollContext();
                     controller.configureContext(key, opType, context,
                             selectorHandler);
                     context.execute(context.getProtocolChainContextTask());

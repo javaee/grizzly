@@ -37,7 +37,7 @@
  */
 package com.sun.grizzly.aio.http;
 
-import com.sun.grizzly.http.DefaultProcessorTask;
+import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.ActionCode;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -58,7 +58,7 @@ import java.nio.channels.AsynchronousSocketChannel;
  *
  * @author Jean-Francois Arcand
  */
-public class AIOProcessorTask extends DefaultProcessorTask {
+public class AIOProcessorTask extends ProcessorTask {
 
     private AsynchronousSocketChannel channel;
 
