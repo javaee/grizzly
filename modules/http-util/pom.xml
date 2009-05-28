@@ -41,7 +41,7 @@
                     <instructions>
                         <Export-Package>
                             com.sun.grizzly.tcp.*,
-                            com.sun.grizzly.util.*,
+                            com.sun.grizzly.util.*
                         </Export-Package>
                         <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
                     </instructions>
