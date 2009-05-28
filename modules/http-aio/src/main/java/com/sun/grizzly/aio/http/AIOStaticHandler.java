@@ -139,7 +139,7 @@ public class AIOStaticHandler implements Interceptor<Request,AsynchronousSocketC
                 return true;
             }
         }
-        return true;
+        return false;
     }
     
     
