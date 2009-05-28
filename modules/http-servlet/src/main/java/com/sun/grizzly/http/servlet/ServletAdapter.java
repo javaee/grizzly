@@ -59,6 +59,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import javax.servlet.Filter;
 import javax.servlet.Servlet;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
 
 /**
@@ -89,6 +91,7 @@ import javax.servlet.ServletException;
             // The same apply for ServletContext.getXXX.
             sa.setProperty("display-name","myServlet");
             sa.addListener("foo.bar.myHttpSessionListener");
+            sa.addListener(MyOtherHttpSessionListener.class);
             sa.addContextParameter("databaseURI","jdbc://");
             sa.addInitParameter("password","hello"); 
             sa.setServletPath("/MyServletPath");
@@ -566,7 +569,16 @@ public class ServletAdapter extends GrizzlyAdapter {
     public void addServletListener(String listenerName){
         listeners.add(listenerName);
     }
-    
+
+    /**
+     * Add Servlet listeners like {@link javax.servlet.ServletContextAttributeListener},
+     * {@link javax.servlet.ServletContextListener}.
+     *
+     * @param listenerClass
+     */
+    public void addServletListener(Class<? extends ServletContextListener> listenerClass) {
+        listeners.add(listenerClass.getName());
+    }
          
     /**
      * Use reflection to configure Object setter.
