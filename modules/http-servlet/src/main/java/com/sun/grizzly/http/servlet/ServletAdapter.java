@@ -54,12 +54,14 @@ import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletContextAttributeListener;
 import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
 
@@ -114,7 +116,10 @@ public class ServletAdapter extends GrizzlyAdapter {
     protected volatile Servlet servletInstance = null;
     private FilterChainImpl filterChain = new FilterChainImpl();
     
-    private transient ArrayList<String> listeners;
+    private transient List<ServletContextListener> ctxListeners
+            = new ArrayList<ServletContextListener>();
+    private transient List<ServletContextAttributeListener> ctxAttListener
+            = new ArrayList<ServletContextAttributeListener>();
     
     private String servletPath = "/";
     
@@ -229,7 +234,34 @@ public class ServletAdapter extends GrizzlyAdapter {
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters); 
         this.contextParameters = contextParameters;
         this.servletInitParameters = servletInitParameters;
-        this.listeners = listeners;
+        for (String listenerName : listeners) {
+            addServletListener(listenerName);
+        }
+        this.initialize = initialize;
+    }
+
+    /**
+     * Convenience constructor.
+     *
+     * @param publicDirectory The folder where the static resource are located.
+     * @param servletCtx {@link ServletContextImpl} to be used by new instance.
+     * @param contextParameters Context parameters.
+     * @param servletInitParameters servlet initialization parameres.
+     * @param listeners Listeners.
+     * @param initialze false only when the {@link #newServletAdapter()} is invoked.
+     */
+    protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
+            HashMap<String,String> contextParameters, HashMap<String,String> servletInitParameters,
+            List<ServletContextListener> ctxListeners,
+            List<ServletContextAttributeListener> ctxAttributeListener,
+            boolean initialize){
+        super(publicDirectory);
+        this.servletCtx = servletCtx;
+        servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters);
+        this.contextParameters = contextParameters;
+        this.servletInitParameters = servletInitParameters;
+        this.ctxListeners = ctxListeners;
+        this.ctxAttListener = ctxAttributeListener;
         this.initialize = initialize;
     }
     
@@ -412,7 +444,7 @@ public class ServletAdapter extends GrizzlyAdapter {
             servletCtx.setContextPath(contextPath);  
             servletCtx.setBasePath(getRootFolder());               
             configureProperties(servletCtx);
-            servletCtx.initListeners(listeners);
+            servletCtx.initListeners(ctxListeners, ctxAttListener);
         }
         servletConfig.setInitParameters(servletInitParameters);
         configureProperties(servletConfig);
@@ -561,23 +593,74 @@ public class ServletAdapter extends GrizzlyAdapter {
     }
     
     /**
-     * Add Servlet listeners like {@link javax.servlet.ServletContextAttributeListener},
+     * Add Servlet listeners that implement {@link javax.servlet.ServletContextAttributeListener},
      * {@link javax.servlet.ServletContextListener}.
      *
-     * @param listenerName
+     * @param listenerName name of a ServletContextListener or ServletContextAttributeListener
+     *                  class with noarg constructor, which can be called without
+     *                  throwing an exception
      */
     public void addServletListener(String listenerName){
-        listeners.add(listenerName);
+        Class klazz = null;
+        try {
+            klazz = Thread.currentThread().
+                                getContextClassLoader().loadClass(listenerName);
+        } catch (Throwable e) {
+            throw new IllegalArgumentException("Unable to load listener class: " + listenerName, e);
+        }
+
+        if (ServletContextListener.class.isAssignableFrom(klazz)) {
+            addServletContextListener(klazz);
+        } else if (ServletContextAttributeListener.class.isAssignableFrom(klazz)) {
+            addServletContextAttributeListener(klazz);
+        } else {
+            throw new IllegalArgumentException("Unable to load listener class: " + listenerName +
+                    " - class must implement javax.servlet.ServletContextListener or " +
+                    "javax.servlet.ServletContextAttributeListener");
+        }
     }
 
     /**
      * Add Servlet listeners like {@link javax.servlet.ServletContextAttributeListener},
      * {@link javax.servlet.ServletContextListener}.
      *
-     * @param listenerClass
+     * @param listenerClass a ServletContextListener class with noarg constructor
+     *                  which can be called without throwing an exception
      */
-    public void addServletListener(Class<? extends ServletContextListener> listenerClass) {
-        listeners.add(listenerClass.getName());
+    public void addServletContextListener(Class<? extends ServletContextListener> listenerClass) {
+        try {
+            ServletContextListener listener = listenerClass.newInstance();
+            ctxListeners.add(listener);
+        } catch (Throwable e) {
+            throw new IllegalArgumentException("Unable to instantiate listener: " + listenerClass, e);
+        }
+    }
+
+    public void addServletContextAttributeListener(Class<? extends ServletContextAttributeListener> listenerClass) {
+        try {
+            ServletContextAttributeListener listener = listenerClass.newInstance();
+            ctxAttListener.add(listener);
+        } catch (Throwable e) {
+            throw new IllegalArgumentException("Unable to instantiate listener: " + listenerClass, e);
+        }
+    }
+
+    /**
+     * Add {@link javax.servlet.ServletContextListener} listener.
+     *
+     * @param listener
+     */
+    public void addServletContextListener(ServletContextListener listener) {
+        ctxListeners.add(listener);
+    }
+
+    /**
+     * Add {@link javax.servlet.ServletContextAttributeListener} listener.
+     *
+     * @param listener
+     */
+    public void addServletAttributeContextListener(ServletContextAttributeListener listener) {
+        ctxAttListener.add(listener);
     }
          
     /**
@@ -668,7 +751,8 @@ public class ServletAdapter extends GrizzlyAdapter {
      */
     public ServletAdapter newServletAdapter(Servlet servlet){
         ServletAdapter sa = new ServletAdapter(".",servletCtx, contextParameters,
-                new HashMap<String,String>(), listeners, false);
+                new HashMap<String,String>(), ctxListeners, ctxAttListener,
+                false);
         sa.setServletInstance(servlet);
         sa.setServletPath(servletPath);
         return sa;
@@ -679,7 +763,16 @@ public class ServletAdapter extends GrizzlyAdapter {
     }
 
     protected ArrayList<String> getListeners() {
-        return listeners;
+        ArrayList<String> listenerNames = new ArrayList<String>();
+        
+        for (ServletContextListener listener : ctxListeners) {
+            listenerNames.add(listener.getClass().getName());
+        }
+        for (ServletContextAttributeListener listener : ctxAttListener) {
+            listenerNames.add(listener.getClass().getName());
+        }
+        
+        return listenerNames;
     }
 
     protected HashMap<String, String> getContextParameters() {

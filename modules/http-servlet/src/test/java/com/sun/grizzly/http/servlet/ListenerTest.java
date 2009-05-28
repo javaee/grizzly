@@ -49,10 +49,11 @@ public class ListenerTest extends TestCase {
 
     public void testAddListener() {
         ServletAdapter sa = new ServletAdapter();
-        sa.addServletListener(TestListener.class);
+        sa.addServletContextListener(TestListener.class);
         sa.start();
 
-        assertTrue("The added listener should be initialized", sa.getListeners().contains(TestListener.class.getName()));
+        assertTrue("The added listener should be initialized",
+                sa.getListeners().contains(TestListener.class.getName()));
     }
 
 
