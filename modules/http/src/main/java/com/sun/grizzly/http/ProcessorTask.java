@@ -778,24 +778,24 @@ public class ProcessorTask extends TaskBase implements Processor,
                 request.getRequestProcessor().setRequestCompletionTime(0);
             }
 
-            request.setStartTime(System.currentTimeMillis());
-            if ( handler != null && 
-                    handler.handle(request,Interceptor.REQUEST_LINE_PARSED)
-                        == Interceptor.BREAK){
-                keepAlive = (request.protocol().equals(Constants.HTTP_11));
-                return true;
-            }
-            
             if (!disableUploadTimeout && getSelectionKey() != null) {
                 ((InputReader)inputStream).setReadTimeout(uploadTimeout);
             }
-          
+
             WorkerThread workerThread = (WorkerThread)Thread.currentThread();
-            KeepAliveThreadAttachment k = 
+            KeepAliveThreadAttachment k =
                     (KeepAliveThreadAttachment) workerThread.getAttachment();
             k.setIdleTimeoutDelay(transactionTimeout);
 
             inputBuffer.parseHeaders();
+
+            request.setStartTime(System.currentTimeMillis());
+            if ( handler != null && 
+                    handler.handle(request,Interceptor.REQUEST_LINE_PARSED)
+                        == Interceptor.BREAK){
+                keepAlive(request.getMimeHeaders());
+                return true;
+            }
         
             if ( SelectorThread.isEnableNioLogging() ){                               
                 logger.log(Level.INFO, 
@@ -1173,12 +1173,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     // ------------------------------------------------------ Protected Methods
 
-
-    /**
-     * After reading the request headers, we have to setup the request filters.
-     */
-    protected void prepareRequest() {
-
+    void keepAlive(MimeHeaders headers){
         http11 = true;
         http09 = false;
         contentDelimitation = false;
@@ -1206,15 +1201,6 @@ public class ProcessorTask extends TaskBase implements Processor,
             response.setStatus(505);
         }
         
-        MessageBytes methodMB = request.method();
-        if (methodMB.equals(Constants.GET)) {
-            methodMB.setString(Constants.GET);
-        } else if (methodMB.equals(Constants.POST)) {
-            methodMB.setString(Constants.POST);
-        }
-
-        MimeHeaders headers = request.getMimeHeaders();
-
         // Check connection header
         MessageBytes connectionValueMB = headers.getValue("connection");
         if (connectionValueMB != null) {
@@ -1222,12 +1208,28 @@ public class ProcessorTask extends TaskBase implements Processor,
             if (findBytes(connectionValueBC, Constants.CLOSE_BYTES) != -1) {
                 keepAlive = false;
                 connectionHeaderValueSet = false;
-            } else if (findBytes(connectionValueBC, 
+            } else if (findBytes(connectionValueBC,
                                  Constants.KEEPALIVE_BYTES) != -1) {
                 keepAlive = true;
                 connectionHeaderValueSet = true;
             }
         }
+    }
+
+
+    /**
+     * After reading the request headers, we have to setup the request filters.
+     */
+    protected void prepareRequest() {        
+        MessageBytes methodMB = request.method();
+        if (methodMB.equals(Constants.GET)) {
+            methodMB.setString(Constants.GET);
+        } else if (methodMB.equals(Constants.POST)) {
+            methodMB.setString(Constants.POST);
+        }
+        MimeHeaders headers = request.getMimeHeaders();
+
+        keepAlive(headers);
 
         // Check user-agent header
         if ((restrictedUserAgents != null) && ((http11) || (keepAlive))) {

@@ -76,7 +76,6 @@ public class AIOOutputWriter {
         return flushChannel(channel, bb, defaultWriteTimeout);
     }
 
-
     /**
      * Write the {@link ByteBuffer} asynchronously.
      * 
