@@ -36,6 +36,7 @@ import java.nio.channels.AsynchronousChannelGroup;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -96,9 +97,12 @@ public class AIOHandlerRunner implements Runnable{
             maxThreads = corePoolThreads;
         }
 
-        DefaultThreadPool executor
-                = new DefaultThreadPool(corePoolThreads,maxThreads,8192,30,TimeUnit.SECONDS);
-        executor.setByteBufferType(ByteBufferType.DIRECT);
+        DefaultThreadPool threadPool = new DefaultThreadPool();
+        threadPool.setMaximumPoolSize(maxThreads);
+        threadPool.setCorePoolSize(corePoolThreads);
+       
+
+        threadPool.setByteBufferType(ByteBufferType.DIRECT);
         
         ThreadFactory tf = null;
         
@@ -110,10 +114,10 @@ public class AIOHandlerRunner implements Runnable{
                 Controller.logger().warning(t.getMessage());
             }
 
-            executor.setThreadFactory(tf);
+            threadPool.setThreadFactory(tf);
         }
-        aioHandler.setThreadPool(executor);
-        controller.setThreadPool(executor);
+        aioHandler.setThreadPool(threadPool);
+        controller.setThreadPool(threadPool);
         
         try{
             if (useCachedThreadPool){
@@ -125,7 +129,7 @@ public class AIOHandlerRunner implements Runnable{
                 logger.info("Using FixedThreadPool with asynchronous write set to " 
                         + AIOOutputWriter.ASYNC_WRITE);
                 asyncChannelGroup = AsynchronousChannelGroup
-                        .withThreadPool(executor);                
+                        .withThreadPool(threadPool);
             }
         } catch (IOException ex){
             logger.log(Level.SEVERE, "ThreadPoolCreation exception",ex);
