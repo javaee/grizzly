@@ -1,94 +1,132 @@
+
 package com.sun.grizzly.samples.http.embed;
 
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.tcp.CompletionHandler;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 
+import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.http.Cookie;
+
+import java.io.IOException;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+/**
+ * Created by IntelliJ IDEA.
+ * User: rama
+ * Date: 11-mag-2009
+ * Time: 13.33.19
+ * To change this 
+template use File | Settings | File Templates.
+ */
 public class GrizzlyEmbedWebServer {
 
-    public static void main(String arg[]) throws Exception {
-        GrizzlyWebServer ws = new GrizzlyWebServer();
-        ws.getSelectorThread().setDisplayConfiguration(true);
-        ws.addGrizzlyAdapter(new testGW());
-        ws.start();
+    public GrizzlyEmbedWebServer() {
+        GrizzlyWebServer gws = new GrizzlyWebServer();
+        gws.addGrizzlyAdapter(new SuspendTest(), new String[]{"/"});
+        gws.getSelectorThread().setDisplayConfiguration(true);
+        try {
+            gws.start();
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of 
+        }
     }
-}
+    static LinkedBlockingQueue<GrizzlyResponse> queue = new LinkedBlockingQueue<GrizzlyResponse>();
 
-class testGW extends GrizzlyAdapter {
+    static {
 
-    SP t = new SP();
+        new Thread() {
 
-    public void service(final GrizzlyRequest grizzlyRequest, final GrizzlyResponse httpResp) {
-        System.out.println("in");
-        if (!httpResp.isSuspended()) {
-
-            httpResp.suspend(Integer.MAX_VALUE, this, new CompletionHandler<testGW>() {
-
-                public void resumed(testGW attachment) {
+            public void run() {
+                while (true) {
                     try {
-                        System.out.println("!!!!");
-                        attachment.service(grizzlyRequest,httpResp);
+                        GrizzlyResponse s =
+                                queue.poll(1, TimeUnit.HOURS);
+                        Thread.sleep(1000);
+                        s.resume();
                     } catch (Exception e) {
 
                     }
                 }
+            }
+        }.start();
+    }
+    boolean USERESUME = true;
 
-                public void cancelled(testGW attachment) {
-                    throw new Error("Request cancelled?!?");
+    public static void main(String args[]) {
+        new GrizzlyEmbedWebServer();
+    }
+
+    class SuspendTest extends GrizzlyAdapter {
+
+        public void service(final GrizzlyRequest grizzlyRequest, final GrizzlyResponse grizzlyResponse) {
+            //read the cookie!
+            Cookie[] s = grizzlyRequest.getCookies();
+
+            if (s != null) {
+
+                for (Cookie value : s) {
+                    System.out.println("COOKIE " + value.getName() + " -- " + value.getValue());
+                    if (!value.getValue().equals("123")){
+                        System.exit(0);
+                    }
+
                 }
-            });
-            t.add(httpResp);
-            return;
+            }
+            if (!USERESUME) {
+
+                resume(grizzlyResponse, "123");
+            } else {
+
+                if (!grizzlyResponse.isSuspended()) {
+
+                    grizzlyResponse.suspend(100000, this, new CompletionHandler<SuspendTest>() {
+
+                        public void resumed(SuspendTest attachment) {
+                            try {
+
+                                attachment.resume(grizzlyResponse, "123");
+                                attachment.afterService(grizzlyRequest, grizzlyResponse);
+                            } catch (Exception e) {
+
+                            }
+
+                        }
+
+                        public void cancelled(SuspendTest attachment) {
+                            throw new Error("Request cancelled?!?");
+                        }
+                    });
+                    queue.add(grizzlyResponse);
+
+                    return;
+                }
+            }
+
+
         }
-        
-        System.out.println("==========> ");
-        
-        try {
-            String error = "bau";
-            httpResp.setContentLength(error.length());
-            httpResp.setContentType("text/html");
-            httpResp.setStatus(200);
 
-            httpResp.getWriter().print(error);
-        } catch (Exception e) {
+        private void resume(GrizzlyResponse grizzlyResponse, String SID) {
+            System.out.println("RESUMING -->" + SID);
 
+
+            grizzlyResponse.setHeader("Set-Cookie", "SID=" + SID);
+
+            grizzlyResponse.setCharacterEncoding("UTF-8");
+
+            grizzlyResponse.setStatus(200);
+            grizzlyResponse.setContentType("text/xml");
+            try {
+
+                grizzlyResponse.getWriter().print("<bla>hi</bla>");
+            } catch (IOException e) {
+                e.printStackTrace();  //To change 
+
+            }
         }
     }
 }
 
-class SP extends Thread {
-
-    LinkedBlockingQueue<GrizzlyResponse> v = new LinkedBlockingQueue<GrizzlyResponse>();
-
-    public void add(GrizzlyResponse httpResp) {
-        v.add(httpResp);
-    }
-
-    public SP() {
-        this.start();
-    }
-
-    public void run() {
-
-        while (true) {
-            try {
-                GrizzlyResponse e = v.poll(5, TimeUnit.SECONDS);
-                if (e == null) {
-                    continue;
-                }
-                Thread.sleep(10);
-                e.resume();
-            } catch (InterruptedException ex) {
-                Logger.getLogger(SP.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-    }
-} 

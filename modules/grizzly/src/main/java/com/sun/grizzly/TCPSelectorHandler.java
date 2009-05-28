@@ -1274,7 +1274,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             instanceHandler.poll() :
             c.getProtocolChainInstanceHandler().poll();
 
-        final NIOContext context = c.pollContext();
+        final NIOContext context = (NIOContext)c.pollContext();
         c.configureContext(key, opType, context, this);      
         context.setProtocolChain(protocolChain);
         return context;

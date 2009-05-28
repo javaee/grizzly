@@ -45,9 +45,8 @@ import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.aio.TCPAIOHandler;
 import com.sun.grizzly.aio.AIOController;
 import com.sun.grizzly.aio.filter.AIOReadFilter;
-import com.sun.grizzly.http.DefaultProcessorTask;
-import com.sun.grizzly.http.FileCacheFactory;
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.http.FileCacheFactory;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.StatsThreadPool;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
@@ -165,7 +164,7 @@ public class AsyncAcceptorThread extends SelectorThread {
      */
     @Override
     protected ProcessorTask newProcessorTask(boolean initialize){                                                      
-        DefaultProcessorTask task = 
+        ProcessorTask task =
                 new AIOProcessorTask(initialize, bufferResponse);
         return configureProcessorTask(task);       
     }

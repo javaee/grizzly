@@ -47,13 +47,13 @@ import java.util.concurrent.Callable;
  * @author Alexey Stashok
  */
 public abstract class ContextTask implements Callable, Runnable {
-    protected NIOContext context;
+    protected Context context;
 
-    public NIOContext getContext() {
+    public Context getContext() {
         return context;
     }
 
-    public void setContext(NIOContext context) {
+    public void setContext(Context context) {
         this.context = context;
     }
     
@@ -73,7 +73,7 @@ public abstract class ContextTask implements Callable, Runnable {
     }
 
     private NIOContext resetContext() {
-        final NIOContext localContext = context;
+        final NIOContext localContext = (NIOContext)context;
         context = null;
         return localContext;
     }

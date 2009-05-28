@@ -216,6 +216,15 @@
                 </plugins>
             </build>
         </profile>
+        <profile>
+            <id>grizzly-aio</id>
+            <modules>
+                <module>modules/grizzly-aio</module>
+                <module>modules/http-aio</module>
+                <module>modules/bundles/grizzly-aio/</module>
+                <module>modules/bundles/http-aio/</module>
+            </modules>
+        </profile>
     </profiles>
     <modules>
         <module>modules</module>

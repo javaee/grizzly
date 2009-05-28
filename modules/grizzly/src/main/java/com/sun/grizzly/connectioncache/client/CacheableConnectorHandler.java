@@ -216,7 +216,7 @@ public class CacheableConnectorHandler
         
         assert key != null;
             
-        final NIOContext context = parentPool.getController().pollContext();
+        final NIOContext context = (NIOContext)parentPool.getController().pollContext();
         context.setSelectionKey(key);
         context.configureOpType(key);
         context.setSelectorHandler(underlyingConnectorHandler.getSelectorHandler());

@@ -57,22 +57,7 @@ import java.util.concurrent.TimeUnit;
  * @author Jeanfrancois Arcand
  */
 public class AIOContextTask extends ContextTask {
-    private static final TaskPool<AIOContextTask> taskPool =
-            new TaskPool<AIOContextTask>() {
-        @Override
-        public AIOContextTask newInstance() {
-            return new AIOContextTask();
-        }
-    };
-    
-    public static AIOContextTask poll() {
-        return taskPool.poll();
-    }
-    
-    public static void offer(AIOContextTask contextTask) {
-        taskPool.offer(contextTask);
-    }
-    
+
     public Object call() throws Exception {
         final WorkerThread workerThread = ((WorkerThread) Thread.currentThread());
         AIOContext ctx = (AIOContext)context;
@@ -98,13 +83,9 @@ public class AIOContextTask extends ContextTask {
 
         channel.read(bb, (Long)ctx.getAttribute("timeout"), TimeUnit.SECONDS,
                 null, ctx);
-        
+       
         return null;
     }
 
-    @Override
-    public void offer() {
-        offer(this);
-    }
 
 }
