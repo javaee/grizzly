@@ -78,7 +78,7 @@ public class PipelineThreadPool extends FixedThreadPool{
      *
      */
     public PipelineThreadPool() {
-        this("GrizzlyWorker", 8, 64, 30, TimeUnit.SECONDS);
+        this("Grizzly", 8, 64, 30, TimeUnit.SECONDS);
     }
 
     /**
@@ -91,15 +91,16 @@ public class PipelineThreadPool extends FixedThreadPool{
      */
     public PipelineThreadPool(final String name,int corePoolsize,
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit){
-        this(corePoolsize, maxPoolSize, keepAliveTime, timeUnit,new ThreadFactory(){
-            private final AtomicInteger c = new AtomicInteger();
-            public Thread newThread(Runnable r) {
-                Thread t = new WorkerThreadImpl(null,
-                        name + "-" + c.incrementAndGet(), r, 0);
-                t.setDaemon(true);
-                return t;
-            }
-        });
+        this(corePoolsize, maxPoolSize, keepAliveTime, timeUnit,
+                new ThreadFactory() {
+                    private final AtomicInteger c = new AtomicInteger();
+                    public Thread newThread(Runnable r) {
+                        Thread t = new WorkerThreadImpl(null,
+                                name + "-" + c.incrementAndGet(), r, 0);
+                        t.setDaemon(true);
+                        return t;
+                    }
+                });
 
         this.name = name;
     }

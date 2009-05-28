@@ -38,6 +38,7 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.util.DefaultThreadPool;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
@@ -70,7 +71,9 @@ public class StatsThreadPool extends DefaultThreadPool {
 
     public StatsThreadPool(int corePoolSize, int maximumPoolSize,
             int maxTasksCount, long keepAliveTime, TimeUnit unit) {
-        super(corePoolSize, maximumPoolSize, maxTasksCount, keepAliveTime, unit);
+        super("Grizzly", corePoolSize, maximumPoolSize,
+                keepAliveTime, unit, null,
+                new LinkedBlockingQueue<Runnable>(maxTasksCount));
         setThreadFactory(new HttpWorkerThreadFactory());
         setName("http");
     }
