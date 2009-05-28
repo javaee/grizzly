@@ -92,7 +92,10 @@ public class ServletContextImpl implements ServletContext {
     private static final ArrayList empty = new ArrayList();
     
 
-    private final transient ArrayList<EventListener> eventListeners = new ArrayList();
+    private final transient List<ServletContextListener> ctxListeners =
+            new ArrayList<ServletContextListener>();
+    private final transient List<ServletContextAttributeListener> ctxAttListeners =
+            new ArrayList<ServletContextAttributeListener>();
     
     
     /**
@@ -126,31 +129,21 @@ public class ServletContextImpl implements ServletContext {
      * Notify the {@link ServletContextListener} that we are starting.
      */
     protected void initListeners(ArrayList<String> listeners){
-        
-        for(String listenerClass: listeners){
-        EventListener el = null;
-            try {
-                el = (EventListener)Thread.currentThread().getContextClassLoader()
-                        .loadClass(listenerClass).newInstance();
-                eventListeners.add(el);
-            } catch (Throwable e) {
-                logger.log(Level.WARNING, "Unable to load listener: " + listenerClass, e);
-            } 
-        }
-        
-        ServletContextEvent event = null;
-        for (int i = 0; i < eventListeners.size(); i++) {
-            if (!(eventListeners.get(i) instanceof ServletContextListener))
-                continue;
-            ServletContextListener listener =
-                (ServletContextListener) eventListeners.get(i);
-            if (event == null) {
-                event = new ServletContextEvent(this);
-            }
+    }
+
+    protected void initListeners(List<ServletContextListener> ctxListeners,
+            List<ServletContextAttributeListener> ctxAttListener) {
+        this.ctxListeners.addAll(ctxListeners);
+        this.ctxAttListeners.addAll(ctxAttListener);
+
+        ServletContextEvent event = new ServletContextEvent(this);
+        for (ServletContextListener listener : ctxListeners) {
+            
             try {
                 listener.contextInitialized(event);
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,"Unable to initialize listener " + listener,t);
+                logger.log(Level.SEVERE,"Failed to send 'contextInitialized' " +
+                        "notification to listener: " + listener,t);
             }
         }
     }
@@ -160,19 +153,13 @@ public class ServletContextImpl implements ServletContext {
      * Stop {@link ServletContextListener}
      */
     protected void destroyListeners(){
-        ServletContextEvent event = null;
-        for (int i = 0; i < eventListeners.size(); i++) {
-            if (!(eventListeners.get(i) instanceof ServletContextListener))
-                continue;
-            ServletContextListener listener =
-                (ServletContextListener) eventListeners.get(i);
-            if (event == null) {
-                event = new ServletContextEvent(this);
-            }
+        ServletContextEvent event = new ServletContextEvent(this);
+        for (ServletContextListener listener : ctxListeners) {
             try {
                 listener.contextDestroyed(event);
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,"Unable to destroy listener " + listener,t);
+                logger.log(Level.SEVERE,"Failed to send 'contextDestroyed' " +
+                        "notification to listener: " + listener,t);
             }
         }
     }
@@ -495,11 +482,7 @@ public class ServletContextImpl implements ServletContext {
         Object oldValue = attributes.put(name, value) ;
         
         ServletContextAttributeEvent event = null;
-        for (int i = 0; i < eventListeners.size(); i++) {
-            if (!(eventListeners.get(i) instanceof ServletContextAttributeListener))
-                continue;
-            ServletContextAttributeListener listener =
-                (ServletContextAttributeListener) eventListeners.get(i);
+        for (ServletContextAttributeListener listener : ctxAttListeners) {
             try {
                 if (event == null) {
                     if (oldValue!=null)
@@ -535,11 +518,7 @@ public class ServletContextImpl implements ServletContext {
             return;
         
         ServletContextAttributeEvent event = null;
-        for (int i = 0; i < eventListeners.size(); i++) {
-            if (!(eventListeners.get(i) instanceof ServletContextAttributeListener))
-                continue;
-            ServletContextAttributeListener listener =
-                (ServletContextAttributeListener) eventListeners.get(i);
+        for (ServletContextAttributeListener listener : ctxAttListeners) {
             try {
                 if (event == null) {
                     event = new ServletContextAttributeEvent(this,name, value);
@@ -633,6 +612,10 @@ public class ServletContextImpl implements ServletContext {
      * @return return the Servlet Listener.
      */
     protected List<EventListener> getListeners(){
-        return eventListeners;
+        List<EventListener> listeners = new ArrayList<EventListener>();
+        listeners.addAll(ctxListeners);
+        listeners.addAll(ctxAttListeners);
+
+        return listeners;
     }
 }
