@@ -1,132 +1,102 @@
+/*
+ * The contents of this file are subject to the terms
+ * of the Common Development and Distribution License
+ * (the License).  You may not use this file except in
+ * compliance with the License.
+ *
+ * You can obtain a copy of the license at
+ * https://glassfish.dev.java.net/public/CDDLv1.0.html or
+ * glassfish/bootstrap/legal/CDDLv1.0.txt.
+ * See the License for the specific language governing
+ * permissions and limitations under the License.
+ *
+ * When distributing Covered Code, include this CDDL
+ * Header Notice in each file and include the License file
+ * at glassfish/bootstrap/legal/CDDLv1.0.txt.
+ * If applicable, add the following below the CDDL Header,
+ * with the fields enclosed by brackets [] replaced by
+ * you own identifying information:
+ * "Portions Copyrighted [year] [name of copyright owner]"
+ *
+ * Copyright 2007 Sun Microsystems, Inc. All rights reserved.
+ */
 
 package com.sun.grizzly.samples.http.embed;
 
+import com.sun.grizzly.http.Management;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
-import com.sun.grizzly.tcp.CompletionHandler;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.util.http.Cookie;
-
-import java.io.IOException;
-import java.util.concurrent.LinkedBlockingQueue;
-
+import com.sun.grizzly.http.embed.Statistics;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import javax.management.ObjectName;
+import org.apache.commons.modeler.Registry;
 
 /**
- * Created by IntelliJ IDEA.
- * User: rama
- * Date: 11-mag-2009
- * Time: 13.33.19
- * To change this 
-template use File | Settings | File Templates.
+ * Simple demo tha use Apache Commons Modeler for enabling JMX.
+ * see <a href="">this</a> for a complete explanation of what this simple demo
+ * does.
+ * 
+ * @author Jeanfrancois Arcand
  */
 public class GrizzlyEmbedWebServer {
 
-    public GrizzlyEmbedWebServer() {
-        GrizzlyWebServer gws = new GrizzlyWebServer();
-        gws.addGrizzlyAdapter(new SuspendTest(), new String[]{"/"});
-        gws.getSelectorThread().setDisplayConfiguration(true);
-        try {
-            gws.start();
-        } catch (IOException e) {
-            e.printStackTrace();  //To change body of 
+
+    // Simple scheduler that will outpot stats every 5 seconds.
+    private static ScheduledThreadPoolExecutor ste = 
+        new ScheduledThreadPoolExecutor(1);
+
+    public static void main( String args[] ) throws Exception { 
+        String path = args[0];
+        if (args[0] == null || path == null){
+            System.out.println("Invalid static resource path");
+            System.exit(-1);            
         }
-    }
-    static LinkedBlockingQueue<GrizzlyResponse> queue = new LinkedBlockingQueue<GrizzlyResponse>();
 
-    static {
+        GrizzlyWebServer ws = new GrizzlyWebServer(path);    
+/*        ws.enableJMX(new Management() {
 
-        new Thread() {
+            public void registerComponent(Object bean, ObjectName oname, String type) 
+            throws Exception{
+            Registry.getRegistry().registerComponent(bean,oname,type);
+            }
 
+        public void unregisterComponent(ObjectName oname) throws Exception{
+            Registry.getRegistry().
+            unregisterComponent(oname);
+        }  
+        });
+        */
+
+        final Statistics stats = ws.getStatistics();
+        stats.startGatheringStatistics();
+
+        ste.scheduleAtFixedRate(new Runnable() {
             public void run() {
-                while (true) {
-                    try {
-                        GrizzlyResponse s =
-                                queue.poll(1, TimeUnit.HOURS);
-                        Thread.sleep(1000);
-                        s.resume();
-                    } catch (Exception e) {
+                System.out.println("Current connected users: " +
+                    stats.getKeepAliveStatistics().getCountConnections());
+                System.out.println("How many requests since startup:" +
+                    stats.getRequestStatistics().getRequestCount());
+                System.out.println("How many connection we queued because of all" +
+                    "thread were busy: " +
+                    stats.getThreadPoolStatistics().getCountQueued()); 
+                System.out.println("Max Open Connection: "+
+                    stats.getRequestStatistics().getMaxOpenConnections());
 
-                    }
-                }
+                System.out.println("Request Queued (15min avg): "+
+                    stats.getThreadPoolStatistics().getCountQueued15MinuteAverage());
+                System.out.println("Request Queued (total): "+
+                    stats.getThreadPoolStatistics().getCountTotalQueued());
+                System.out.println("Byte Sent: "+ stats.getRequestStatistics().getBytesSent());
+                System.out.println("200 Count: "+ stats.getRequestStatistics().getCount200());
+                System.out.println("404 Count: "+ stats.getRequestStatistics().getCount404()); 
+            
+
+
+                return;
             }
-        }.start();
-    }
-    boolean USERESUME = true;
-
-    public static void main(String args[]) {
-        new GrizzlyEmbedWebServer();
-    }
-
-    class SuspendTest extends GrizzlyAdapter {
-
-        public void service(final GrizzlyRequest grizzlyRequest, final GrizzlyResponse grizzlyResponse) {
-            //read the cookie!
-            Cookie[] s = grizzlyRequest.getCookies();
-
-            if (s != null) {
-
-                for (Cookie value : s) {
-                    System.out.println("COOKIE " + value.getName() + " -- " + value.getValue());
-                    if (!value.getValue().equals("123")){
-                        System.exit(0);
-                    }
-
-                }
-            }
-            if (!USERESUME) {
-
-                resume(grizzlyResponse, "123");
-            } else {
-
-                if (!grizzlyResponse.isSuspended()) {
-
-                    grizzlyResponse.suspend(100000, this, new CompletionHandler<SuspendTest>() {
-
-                        public void resumed(SuspendTest attachment) {
-                            try {
-
-                                attachment.resume(grizzlyResponse, "123");
-                                attachment.afterService(grizzlyRequest, grizzlyResponse);
-                            } catch (Exception e) {
-
-                            }
-
-                        }
-
-                        public void cancelled(SuspendTest attachment) {
-                            throw new Error("Request cancelled?!?");
-                        }
-                    });
-                    queue.add(grizzlyResponse);
-
-                    return;
-                }
-            }
-
-
-        }
-
-        private void resume(GrizzlyResponse grizzlyResponse, String SID) {
-            System.out.println("RESUMING -->" + SID);
-
-
-            grizzlyResponse.setHeader("Set-Cookie", "SID=" + SID);
-
-            grizzlyResponse.setCharacterEncoding("UTF-8");
-
-            grizzlyResponse.setStatus(200);
-            grizzlyResponse.setContentType("text/xml");
-            try {
-
-                grizzlyResponse.getWriter().print("<bla>hi</bla>");
-            } catch (IOException e) {
-                e.printStackTrace();  //To change 
-
-            }
-        }
+        }, 0, 10,TimeUnit.SECONDS);
+        System.out.println("Grizzly WebServer listening on port 8080");
+        ws.start();
     }
 }
-
