@@ -103,7 +103,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
 
     protected TransformationResult<String> parseWithLengthPrefix(
             AttributeStorage storage, Buffer input) {
-        Integer stringSize = getValue(storage, stateAttribute);
+        Integer stringSize = stateAttribute.get(storage);
 
         if (stringSize == null) {
             if (input.remaining() < 2) {
@@ -139,7 +139,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
         
         int termIndex = -1;
 
-        Integer offsetInt = getValue(storage, stateAttribute);
+        Integer offsetInt = stateAttribute.get(storage);
         int offset = 0;
         if (offsetInt != null) {
             offset = offsetInt;
@@ -180,7 +180,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
 
     @Override
     public void release(AttributeStorage storage) {
-        removeValue(storage, stateAttribute);
+        stateAttribute.remove(storage);
         super.release(storage);
     }
 
@@ -194,7 +194,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
 
     protected void saveState(AttributeStorage storage,
             TransformationResult<String> result, Integer state) {
-        setValue(storage, lastResultAttribute, result);
-        setValue(storage, stateAttribute, state);
+        lastResultAttribute.set(storage, result);
+        stateAttribute.set(storage, state);
     }
 }

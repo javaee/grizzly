@@ -81,23 +81,23 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     }
 
     public K getInput(AttributeStorage storage) {
-        return getValue(storage, inputBufferAttribute);
+        return inputBufferAttribute.get(storage);
     }
 
     public void setInput(AttributeStorage storage, K input) {
-        inputBufferAttribute.set(storage.obtainAttributes(), input);
+        inputBufferAttribute.set(storage, input);
     }
 
     public L getOutput(AttributeStorage storage) {
-        return getValue(storage, outputBufferAttribute);
+        return outputBufferAttribute.get(storage);
     }
 
     public void setOutput(AttributeStorage storage, L output) {
-        outputBufferAttribute.set(storage.obtainAttributes(), output);
+        outputBufferAttribute.set(storage, output);
     }
 
     public TransformationResult<L> getLastResult(AttributeStorage storage) {
-        return getValue(storage, lastResultAttribute);
+        return lastResultAttribute.get(storage);
     }
 
     public AttributeHolder getProperties(AttributeStorage storage) {
@@ -108,47 +108,11 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     }
 
     public void release(AttributeStorage storage) {
-        removeValue(storage, inputBufferAttribute);
-        removeValue(storage, outputBufferAttribute);
-        removeValue(storage, lastResultAttribute);
+        inputBufferAttribute.remove(storage);
+        outputBufferAttribute.remove(storage);
+        lastResultAttribute.remove(storage);
     }
 
-    protected static <E> E getValue(AttributeStorage storage,
-            Attribute<E> attribute) {
-        return getValue(storage, attribute, null);
-    }
-
-    protected static <E> E getValue(AttributeStorage storage,
-            Attribute<E> attribute, E defaultValue) {
-
-        AttributeHolder holder = storage.getAttributes();
-        if (holder != null) {
-            E value = attribute.get(holder);
-            if (value != null) {
-                return value;
-            }
-        }
-
-        return defaultValue;
-    }
-
-    protected static <E> void setValue(AttributeStorage storage,
-            Attribute<E> attribute, E value) {
-
-        AttributeHolder holder = storage.obtainAttributes();
-        attribute.set(holder, value);
-    }
-
-    protected static <E> E removeValue(AttributeStorage storage,
-            Attribute<E> attribute) {
-
-        AttributeHolder holder = storage.getAttributes();
-        if (holder != null) {
-            return attribute.remove(holder);
-        }
-
-        return null;
-    }
 
     protected MemoryManager obtainMemoryManager(AttributeStorage storage) {
         if (memoryManager != null) {
@@ -169,5 +133,16 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
 
     public void setMemoryManager(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
+    }
+
+    public static <T> T getValue(final AttributeStorage storage,
+            final Attribute<T> attribute,
+            final T defaultValue) {
+        final T value = attribute.get(storage);
+        if (value != null) {
+            return value;
+        }
+
+        return defaultValue;
     }
 }

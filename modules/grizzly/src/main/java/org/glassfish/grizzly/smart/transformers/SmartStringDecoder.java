@@ -101,7 +101,7 @@ public class SmartStringDecoder extends StringDecoder
     }
 
     public List getMessageProcessingTree(AttributeStorage storage) {
-        return getValue(storage, messageProcessingTreeAttribute);
+        return messageProcessingTreeAttribute.get(storage);
     }
 
     public Object getCurrentMessageProcessingObject(AttributeStorage storage) {

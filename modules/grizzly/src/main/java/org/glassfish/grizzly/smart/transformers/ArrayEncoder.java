@@ -106,7 +106,7 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
 
     @Override
     public void release(AttributeStorage storage) {
-        removeValue(storage, currentElementIdxAttribute);
+        currentElementIdxAttribute.remove(storage);
         super.release(storage);
     }
 
@@ -120,7 +120,7 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
     protected boolean previous(AttributeStorage storage, Object sequence) {
         int currentElementIdx = getValue(storage, currentElementIdxAttribute, -1);
         if (currentElementIdx >= 0) {
-            setValue(storage, currentElementIdxAttribute, --currentElementIdx);
+            currentElementIdxAttribute.set(storage, --currentElementIdx);
             return true;
         }
 
@@ -131,7 +131,7 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
     protected boolean next(AttributeStorage storage, Object sequence) {
         int currentElementIdx = getValue(storage, currentElementIdxAttribute, -1);
         if (currentElementIdx < Array.getLength(sequence)) {
-            setValue(storage, currentElementIdxAttribute, ++currentElementIdx);
+            currentElementIdxAttribute.set(storage, ++currentElementIdx);
             return true;
         }
 
@@ -145,7 +145,7 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
 
     protected void saveState(AttributeStorage storage, int currentElementIdx,
             TransformationResult<Buffer> lastResult) {
-        setValue(storage, currentElementIdxAttribute, currentElementIdx);
+        currentElementIdxAttribute.set(storage, currentElementIdx);
         super.saveState(storage, lastResult);
     }
 }

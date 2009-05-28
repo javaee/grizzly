@@ -98,13 +98,13 @@ public class ArrayDecoder extends SequenceDecoder<Object> {
 
     private void saveState(AttributeStorage storage, Object array,
             int currentElementIdx, TransformationResult<Object> lastResult) {
-        setValue(storage, currentElementIdxAttribute, currentElementIdx);
+        currentElementIdxAttribute.set(storage, currentElementIdx);
         super.saveState(storage, array, lastResult);
     }
 
     @Override
     public void release(AttributeStorage storage) {
-        removeValue(storage, currentElementIdxAttribute);
+        currentElementIdxAttribute.remove(storage);
         super.release(storage);
     }
 
@@ -124,7 +124,7 @@ public class ArrayDecoder extends SequenceDecoder<Object> {
     protected boolean next(AttributeStorage storage, Object sequence) {
         int currentElementIdx = getValue(storage, currentElementIdxAttribute, -1);
         if (currentElementIdx < Array.getLength(sequence)) {
-            setValue(storage, currentElementIdxAttribute, ++currentElementIdx);
+            currentElementIdxAttribute.set(storage, ++currentElementIdx);
             return true;
         }
         

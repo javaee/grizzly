@@ -217,6 +217,6 @@ public abstract class SequenceEncoder<E> extends AbstractSmartMemberEncoder<E> {
      */
     protected void saveState(AttributeStorage storage,
             TransformationResult<Buffer> lastResult) {
-        setValue(storage, lastResultAttribute, lastResult);
+        lastResultAttribute.set(storage, lastResult);
     }
 }

@@ -68,7 +68,7 @@ public abstract class AbstractSmartMemberDecoder<E>
     }
 
     public List getMessageProcessingTree(AttributeStorage storage) {
-        return getValue(storage, messageProcessingTreeAttribute);
+        return messageProcessingTreeAttribute.get(storage);
     }
 
     public Object getCurrentMessageProcessingObject(AttributeStorage storage) {

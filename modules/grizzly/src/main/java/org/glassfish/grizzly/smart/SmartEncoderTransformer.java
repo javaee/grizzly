@@ -117,7 +117,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
 
         int currentElementIndex = 0;
 
-        List processingTree = getValue(storage, messageProcessingTreeAttribute);
+        List processingTree = messageProcessingTreeAttribute.get(storage);
 
         if (processingTree == null) {
             processingTree = new ArrayList();
@@ -126,7 +126,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
                     processingTree);
             currentElementIndex = 0;
         } else {
-            currentElementIndex = getValue(storage, currentTransformerIdxAttribute);
+            currentElementIndex = currentTransformerIdxAttribute.get(storage);
         }
 
         while(currentElementIndex < encodingSequence.size()) {
@@ -300,9 +300,9 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
     private void saveStatus(AttributeStorage storage,
             List messageProcessingTree, int index,
             TransformationResult<Buffer> lastResult) {
-        setValue(storage, currentTransformerIdxAttribute, index);
-        setValue(storage, messageProcessingTreeAttribute, messageProcessingTree);
-        setValue(storage, lastResultAttribute, lastResult);
+        currentTransformerIdxAttribute.set(storage, index);
+        messageProcessingTreeAttribute.set(storage, messageProcessingTree);
+        lastResultAttribute.set(storage, lastResult);
     }
 
     protected Class<? extends Transformer> getTransformer(Class clazz) {

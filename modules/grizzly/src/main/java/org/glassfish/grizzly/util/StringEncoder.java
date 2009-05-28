@@ -128,6 +128,6 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
 
     protected void saveState(AttributeStorage storage,
             TransformationResult<Buffer> result) {
-        setValue(storage, lastResultAttribute, result);
+        lastResultAttribute.set(storage, result);
     }
 }

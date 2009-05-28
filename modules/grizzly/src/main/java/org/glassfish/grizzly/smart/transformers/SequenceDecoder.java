@@ -182,7 +182,7 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
 
     @Override
     public void release(AttributeStorage storage) {
-        removeValue(storage, sequenceAttribute);
+        sequenceAttribute.remove(storage);
         super.release(storage);
     }
 
@@ -218,8 +218,8 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
      */
     protected void saveState(AttributeStorage storage,
             E sequence, TransformationResult<E> lastResult) {
-        setValue(storage, sequenceAttribute, sequence);
-        setValue(storage, lastResultAttribute, lastResult);
+        sequenceAttribute.set(storage, sequence);
+        lastResultAttribute.set(storage, lastResult);
     }
 
     /**
@@ -228,7 +228,7 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
      * @return the processing sequence object
      */
     protected E getSequence(AttributeStorage storage) {
-        return getValue(storage, sequenceAttribute);
+        return sequenceAttribute.get(storage);
     }
 
     protected int checkSize(AttributeStorage storage) {
