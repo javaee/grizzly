@@ -36,7 +36,7 @@
  *
  */
 
-package org.glassfish.grizzly.benchmark;
+package com.sun.grizzly.benchmark;
 
 import com.sun.japex.TestCase;
 import java.io.EOFException;

@@ -36,10 +36,10 @@
  *
  */
 
-package org.glassfish.grizzly.benchmark;
+package com.sun.grizzly.benchmark;
 
-import org.glassfish.grizzly.Strategy;
-import org.glassfish.grizzly.strategies.WorkerThreadStrategy;
+import com.sun.grizzly.Strategy;
+import com.sun.grizzly.strategies.WorkerThreadStrategy;
 
 /**
  *

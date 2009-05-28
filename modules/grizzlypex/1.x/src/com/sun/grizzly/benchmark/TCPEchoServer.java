@@ -46,7 +46,7 @@ import com.sun.grizzly.ProtocolChainInstanceHandler;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.filter.EchoAsyncWriteQueueFilter;
 import com.sun.grizzly.filter.ReadFilter;
-import com.sun.grizzly.util.DefaultThreadPool;
+import com.sun.grizzly.utils.DefaultThreadPool;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;

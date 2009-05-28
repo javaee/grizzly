@@ -37,7 +37,7 @@
  */
 package filter;
 
-import org.glassfish.grizzly.web.servlet.ServletAdapter;
+import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.jersey.api.core.ClasspathResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import java.io.File;
@@ -47,12 +47,12 @@ import java.util.HashMap;
 import java.util.Map;
 import javax.servlet.Filter;
 import javax.ws.rs.core.UriBuilder;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.web.WebFilter;
-import org.glassfish.grizzly.web.container.Adapter;
+import com.sun.grizzly.Transport;
+import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import com.sun.grizzly.http.WebFilter;
+import com.sun.grizzly.tcp.Adapter;
 
 public class Main {
 

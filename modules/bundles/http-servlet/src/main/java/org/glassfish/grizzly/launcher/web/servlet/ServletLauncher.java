@@ -35,19 +35,19 @@
  * holder.
  *
  */
-package org.glassfish.grizzly.launcher.web.servlet;
+package com.sun.grizzly.launcher.web.servlet;
 
 import javax.servlet.Servlet;
-import org.glassfish.grizzly.web.WebFilter;
-import org.glassfish.grizzly.web.WebFilterConfig;
-import org.glassfish.grizzly.web.arp.AsyncWebFilter;
-import org.glassfish.grizzly.web.arp.AsyncWebFilterConfig;
-import org.glassfish.grizzly.web.arp.DefaultAsyncHandler;
-import org.glassfish.grizzly.web.container.Adapter;
-import org.glassfish.grizzly.web.servlet.ServletAdapter;
-import org.glassfish.grizzly.web.container.util.ClassLoaderUtil;
-import org.glassfish.grizzly.web.standalone.StandaloneMainUtil;
-import org.glassfish.grizzly.web.standalone.StaticHandler;
+import com.sun.grizzly.http.WebFilter;
+import com.sun.grizzly.http.WebFilterConfig;
+import com.sun.grizzly.arp.AsyncWebFilter;
+import com.sun.grizzly.arp.AsyncWebFilterConfig;
+import com.sun.grizzly.arp.DefaultAsyncHandler;
+import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.util.ClassLoaderUtil;
+import com.sun.grizzly.standalone.StandaloneMainUtil;
+import com.sun.grizzly.standalone.StaticHandler;
 
 /**
  * Basic startup class used when Grizzly standalone is used

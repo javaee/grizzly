@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
-        <groupId>org.glassfish.grizzly</groupId>
+        <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
         <version>2.0.0-SNAPSHOT</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.glassfish.grizzly</groupId>
+    <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-http-webserver</artifactId>
     <packaging>jar</packaging>
     <version>${grizzly-version}</version>
@@ -23,9 +23,9 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>org.glassfish.grizzly.*;-split-package:=merge-first</Export-Package>
-                        <Embed-Dependency>org.glassfish.grizzly;scope=runtime</Embed-Dependency>
-                        <Main-Class>org.glassfish.grizzly.launcher.web.Main</Main-Class>
+                        <Export-Package>com.sun.grizzly.*;-split-package:=merge-first</Export-Package>
+                        <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
+                        <Main-Class>com.sun.grizzly.launcher.web.Main</Main-Class>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
                 </configuration>
@@ -60,14 +60,14 @@
                             <tasks>
                                 <resolveAll todir="target/javadoc-jars" classifier="javadoc">
                                     <fullGraph />
-                                    <groupId value="org.glassfish.grizzly" />
+                                    <groupId value="com.sun.grizzly" />
                                 </resolveAll>
                                 <zip destfile="target/${pom.artifactId}-${pom.version}-javadoc.jar">
                                     <zipgroupfileset dir="target/javadoc-jars" includes="*.jar" />
                                 </zip>
                                 <resolveAll todir="target/source-jars" classifier="sources">
                                     <fullGraph />
-                                    <groupId value="org.glassfish.grizzly" />
+                                    <groupId value="com.sun.grizzly" />
                                 </resolveAll>
                                 <zip destfile="target/${pom.artifactId}-${pom.version}-sources.jar">
                                     <zipgroupfileset dir="target/source-jars" includes="*.jar" />
@@ -90,7 +90,7 @@
     </profiles>
     <dependencies>
         <dependency>
-            <groupId>org.glassfish.grizzly</groupId>
+            <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
             <version>${grizzly-version}</version>
         </dependency>

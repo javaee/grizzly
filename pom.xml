@@ -1,6 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.glassfish.grizzly</groupId>
+    <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
@@ -164,7 +164,7 @@
                             <mode>development</mode>
                             <url>${pom.url}</url>
                             <implementation-version>${pom.version}</implementation-version>
-                            <package>org.glassfish.grizzly</package>
+                            <package>com.sun.grizzly</package>
                         </manifestEntries>
                     </archive>
                 </configuration>

@@ -36,17 +36,17 @@
  *
  */
 
-package org.glassfish.grizzly.benchmark;
+package com.sun.grizzly.benchmark;
 
 import java.lang.reflect.Constructor;
-import org.glassfish.grizzly.Strategy;
-import org.glassfish.grizzly.Transport;
-import org.glassfish.grizzly.TransportFactory;
-import org.glassfish.grizzly.filterchain.TransportFilter;
-import org.glassfish.grizzly.memory.DefaultMemoryManager;
-import org.glassfish.grizzly.nio.transport.TCPNIOTransport;
-import org.glassfish.grizzly.threadpool.DefaultThreadPool;
-import org.glassfish.grizzly.util.EchoFilter;
+import com.sun.grizzly.Strategy;
+import com.sun.grizzly.Transport;
+import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.memory.DefaultMemoryManager;
+import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import com.sun.grizzly.threadpool.DefaultThreadPool;
+import com.sun.grizzly.utils.EchoFilter;
 
 /**
  *
