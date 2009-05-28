@@ -73,7 +73,7 @@ public class FixedThreadPool extends AbstractExecutorService
     
     protected final BlockingQueue<Runnable> workQueue;
 
-    protected final ThreadFactory threadFactory;
+    protected volatile ThreadFactory threadFactory;
     
     protected final Object statelock = new Object();
 
@@ -148,8 +148,6 @@ public class FixedThreadPool extends AbstractExecutorService
     protected FixedThreadPool(BlockingQueue<Runnable> workQueue,ThreadFactory threadFactory){
         if (workQueue == null)
             throw new IllegalArgumentException("workQueue == null");
-        if (threadFactory == null)
-            throw new IllegalArgumentException("threadFactory == null");
         this.workQueue     = workQueue;
         this.threadFactory = threadFactory;
     }
@@ -304,6 +302,7 @@ public class FixedThreadPool extends AbstractExecutorService
     }
 
     public void setThreadFactory(ThreadFactory threadFactory) {
+        this.threadFactory = threadFactory;
     }
 
     public ThreadFactory getThreadFactory() {
