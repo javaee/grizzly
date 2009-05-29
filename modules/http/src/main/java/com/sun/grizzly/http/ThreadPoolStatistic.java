@@ -199,8 +199,10 @@ public class ThreadPoolStatistic {
         for (Future future: futures){
             future.cancel(true);
         }
-               
+
         stats.clear();
+        // Executor service should also be stoped
+        countAverageExecutor.shutdown();
         started = false;
     }    
     
