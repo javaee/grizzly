@@ -275,6 +275,13 @@ public class Request {
 	this.serverPort=serverPort;
     }
 
+    /**
+     * After #action with ActionCode.ACTION_REQ_HOST_ADDR_ATTRIBUTE is called,
+     * returns remote address of the client that made the request. Otherwise
+     * returns null.
+     *
+     * @return remote address or null
+     */
     public MessageBytes remoteAddr() {
 	return remoteAddrMB;
     }
