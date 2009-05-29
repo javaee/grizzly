@@ -124,13 +124,10 @@ public class ServletContextImpl implements ServletContext {
     
     
     // ----------------------------------------------------------------- //
-    
+
     /**
      * Notify the {@link ServletContextListener} that we are starting.
      */
-    protected void initListeners(ArrayList<String> listeners){
-    }
-
     protected void initListeners(List<ServletContextListener> ctxListeners,
             List<ServletContextAttributeListener> ctxAttListener) {
         this.ctxListeners.addAll(ctxListeners);

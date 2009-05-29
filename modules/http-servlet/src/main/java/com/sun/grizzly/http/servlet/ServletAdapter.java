@@ -94,6 +94,8 @@ import javax.servlet.ServletException;
             sa.setProperty("display-name","myServlet");
             sa.addListener("foo.bar.myHttpSessionListener");
             sa.addListener(MyOtherHttpSessionListener.class);
+            sa.addServletContextListener(new FooServletContextListener());
+            sa.addServletContextAttributeListener(new BarServletCtxAttListener());
             sa.addContextParameter("databaseURI","jdbc://");
             sa.addInitParameter("password","hello"); 
             sa.setServletPath("/MyServletPath");
@@ -621,8 +623,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     }
 
     /**
-     * Add Servlet listeners like {@link javax.servlet.ServletContextAttributeListener},
-     * {@link javax.servlet.ServletContextListener}.
+     * Add a {@link javax.servlet.ServletContextListener} listener.
      *
      * @param listenerClass a ServletContextListener class with noarg constructor
      *                  which can be called without throwing an exception
@@ -636,6 +637,12 @@ public class ServletAdapter extends GrizzlyAdapter {
         }
     }
 
+    /**
+     * Add a {@link javax.servlet.ServletContextAttributeListener} listener.
+     *
+     * @param listenerClass a ServletContextAttributeListener class with noarg constructor
+     *                  which can be called without throwing an exception
+     */
     public void addServletContextAttributeListener(Class<? extends ServletContextAttributeListener> listenerClass) {
         try {
             ServletContextAttributeListener listener = listenerClass.newInstance();
@@ -646,7 +653,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     }
 
     /**
-     * Add {@link javax.servlet.ServletContextListener} listener.
+     * Add a {@link javax.servlet.ServletContextListener} listener.
      *
      * @param listener
      */
@@ -655,11 +662,11 @@ public class ServletAdapter extends GrizzlyAdapter {
     }
 
     /**
-     * Add {@link javax.servlet.ServletContextAttributeListener} listener.
+     * Add a {@link javax.servlet.ServletContextAttributeListener} listener.
      *
      * @param listener
      */
-    public void addServletAttributeContextListener(ServletContextAttributeListener listener) {
+    public void addServletContextAttributeListener(ServletContextAttributeListener listener) {
         ctxAttListener.add(listener);
     }
          
