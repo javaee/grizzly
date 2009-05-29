@@ -1600,6 +1600,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     public void disableMonitoring(){
         disableThreadPoolStats();
+        // If monitoring was enabled before isMonitoringEnabled == true
+        isMonitoringEnabled = false;
         fileCacheFactory.setIsMonitoringEnabled(isMonitoringEnabled);        
     }
 

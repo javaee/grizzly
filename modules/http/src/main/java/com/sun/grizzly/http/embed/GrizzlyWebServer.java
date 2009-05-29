@@ -681,6 +681,8 @@ public class GrizzlyWebServer {
         if (grizzlyListener instanceof SelectorThread){
             ((SelectorThread)grizzlyListener).stopEndpoint();
         }
+        // need to stop gathering (there are threads running for stats collection)
+        statistics.stopGatheringStatistics();
     }
     
     
