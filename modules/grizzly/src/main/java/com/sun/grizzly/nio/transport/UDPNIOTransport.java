@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.CompletionHandlerAdapter;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
@@ -274,7 +275,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
      * @throws java.io.IOException
      */
     public Future<Connection> connect() throws IOException {
-        return connect(null, null);
+        return connect(null, null, null);
     }
 
     public Future<Connection> connect(String host, int port)
@@ -284,14 +285,30 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
     public Future<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
-        return connect(remoteAddress, null);
+        return connect(remoteAddress, (SocketAddress) null);
     }
 
     public Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
+        return connect(remoteAddress, localAddress, null);
+    }
 
+    @Override
+    public Future<Connection> connect(SocketAddress remoteAddress,
+            CompletionHandler<Connection> completionHandler)
+            throws IOException {
+        return connect(remoteAddress, null, completionHandler);
+
+    }
+
+    @Override
+    public Future<Connection> connect(SocketAddress remoteAddress,
+            SocketAddress localAddress,
+            CompletionHandler<Connection> completionHandler)
+            throws IOException {
         UDPNIOConnectorHandler connectorHandler = new UDPNIOConnectorHandler(this);
-        return connectorHandler.connect(remoteAddress, localAddress);
+        return connectorHandler.connect(remoteAddress, localAddress,
+                completionHandler);
     }
 
     @Override

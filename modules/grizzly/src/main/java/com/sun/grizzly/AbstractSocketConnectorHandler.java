@@ -72,11 +72,23 @@ public abstract class AbstractSocketConnectorHandler
     
     public Future<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
-        return connect(remoteAddress, null);
+        return connect(remoteAddress, (SocketAddress) null);
+    }
+
+    public Future<Connection> connect(SocketAddress remoteAddress,
+            CompletionHandler<Connection> completionHandler)
+            throws IOException {
+        return connect(remoteAddress, null, completionHandler);
+    }
+
+    public Future<Connection> connect(SocketAddress remoteAddress,
+            SocketAddress localAddress) throws IOException {
+        return connect(remoteAddress, localAddress, null);
     }
 
     public abstract Future<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress) throws IOException;
+            SocketAddress localAddress,
+            CompletionHandler<Connection> completionHandler) throws IOException;
 
 
     public Processor getProcessor() {

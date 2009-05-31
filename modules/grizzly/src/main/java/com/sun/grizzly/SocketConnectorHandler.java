@@ -78,6 +78,20 @@ public interface SocketConnectorHandler {
             throws IOException;
 
     /**
+     * Creates, initializes and connects socket to the specific
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param completionHandler {@link CompletionHandler}.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
+    public Future<Connection> connect(SocketAddress remoteAddress,
+            CompletionHandler<Connection> completionHandler) throws IOException;
+
+    /**
      * Creates, initializes socket, binds it to the specific local and remote
      * {@link SocketAddress} and returns {@link Connection}, representing socket.
      *
@@ -90,6 +104,22 @@ public interface SocketConnectorHandler {
      */
     public abstract Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException;
+
+    /**
+     * Creates, initializes socket, binds it to the specific local and remote
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param localAddress local address to bind socket to.
+     * @param completionHandler {@link CompletionHandler}.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
+    public abstract Future<Connection> connect(SocketAddress remoteAddress,
+            SocketAddress localAddress,
+            CompletionHandler<Connection> completionHandler) throws IOException;
 
     /**
      * Get the default {@link Processor} to process {@link IOEvent}, occuring

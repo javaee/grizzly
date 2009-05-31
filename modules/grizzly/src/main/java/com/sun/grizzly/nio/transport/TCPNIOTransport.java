@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.nio.transport;
 
+import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.strategies.WorkerThreadStrategy;
 import com.sun.grizzly.asyncqueue.AsyncQueueIO;
 import com.sun.grizzly.nio.RegisterChannelResult;
@@ -434,15 +435,32 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
     public Future<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
-        return connect(remoteAddress, null);
+        return connect(remoteAddress, (SocketAddress) null);
     }
 
     public Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
-
-        TCPNIOConnectorHandler connectorHandler = new TCPNIOConnectorHandler(this);
-        return connectorHandler.connect(remoteAddress, localAddress);
+        return connect(remoteAddress, localAddress, null);
     }
+
+    @Override
+    public Future<Connection> connect(SocketAddress remoteAddress,
+            CompletionHandler<Connection> completionHandler)
+            throws IOException {
+        return connect(remoteAddress, null, completionHandler);
+
+    }
+
+    @Override
+    public Future<Connection> connect(SocketAddress remoteAddress,
+            SocketAddress localAddress,
+            CompletionHandler<Connection> completionHandler)
+            throws IOException {
+        TCPNIOConnectorHandler connectorHandler = new TCPNIOConnectorHandler(this);
+        return connectorHandler.connect(remoteAddress, localAddress,
+                completionHandler);
+    }
+
 
     @Override
     protected void closeConnection(Connection connection) throws IOException {

@@ -60,7 +60,7 @@ import com.sun.grizzly.utils.conditions.Condition;
  * @author Ken Cavanaugh
  * @author Alexey Stashok
  */
-public interface StreamReader extends Closeable {
+public interface StreamReader extends Stream {
 
     /**
      * Returns the {@link StreamReader} mode.

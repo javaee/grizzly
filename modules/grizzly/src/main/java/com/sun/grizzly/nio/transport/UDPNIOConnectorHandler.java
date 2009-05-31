@@ -51,6 +51,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.AbstractSocketConnectorHandler;
+import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
 
@@ -80,30 +81,33 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
      * @throws java.io.IOException
      */
     public Future<Connection> connect() throws IOException {
-        return connect(null, null);
+        return connect(null, null, null);
     }
 
-    @Override
     public Future<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress) throws IOException {
+            SocketAddress localAddress,
+            CompletionHandler<Connection> completionHandler) throws IOException {
         
         if (!transport.isBlocking()) {
-            return connectAsync(remoteAddress, localAddress);
+            return connectAsync(remoteAddress, localAddress, completionHandler);
         } else {
-            return connectSync(remoteAddress, localAddress);
+            return connectSync(remoteAddress, localAddress, completionHandler);
         }
     }
 
     protected Future<Connection> connectSync(SocketAddress remoteAddress,
-            SocketAddress localAddress) throws IOException {
-        Future<Connection> future = connectAsync(remoteAddress, localAddress);
+            SocketAddress localAddress,
+            CompletionHandler<Connection> completionHandler) throws IOException {
+        Future<Connection> future = connectAsync(remoteAddress, localAddress,
+                completionHandler);
         waitNIOFuture(future);
 
         return future;
     }
 
     protected Future<Connection> connectAsync(SocketAddress remoteAddress,
-            SocketAddress localAddress) throws IOException {
+            SocketAddress localAddress,
+            CompletionHandler<Connection> completionHandler) throws IOException {
         DatagramChannel datagramChannel = DatagramChannel.open();
         DatagramSocket socket = datagramChannel.socket();
         socket.setReuseAddress(isReuseAddress);
@@ -140,6 +144,10 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         nioTransport.registerChannelCompletionHandler.completed(null, result);
         
         transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
+        
+        if (completionHandler != null) {
+            completionHandler.completed(newConnection, newConnection);
+        }
         
         return new ReadyFutureImpl(newConnection);
     }

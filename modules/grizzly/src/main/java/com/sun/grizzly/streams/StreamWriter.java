@@ -53,7 +53,7 @@ import com.sun.grizzly.Connection;
  * @author Ken Cavanaugh
  * @author Alexey Stashok
  */
-public interface StreamWriter extends Closeable {
+public interface StreamWriter extends Stream {
 
     /**
      * Returns the {@link StreamReader} mode.
