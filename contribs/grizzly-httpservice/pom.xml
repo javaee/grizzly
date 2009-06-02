@@ -61,6 +61,11 @@
         <artifactId>grizzly-portunif</artifactId>
         <version>${grizzly-version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.sun.grizzly</groupId>
+      <artifactId>grizzly-comet</artifactId>
+      <version>${grizzly-version}</version>
+    </dependency>
 <!-- Prepaartion for integration tests
     <dependency>
       <groupId>org.ops4j.pax.exam</groupId>

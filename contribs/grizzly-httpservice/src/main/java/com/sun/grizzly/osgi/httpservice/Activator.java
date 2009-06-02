@@ -38,7 +38,11 @@
 package com.sun.grizzly.osgi.httpservice;
 
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.osgi.httpservice.util.Logger;
+import com.sun.grizzly.arp.AsyncHandler;
+import com.sun.grizzly.arp.DefaultAsyncHandler;
+import com.sun.grizzly.comet.CometAsyncFilter;
 import org.osgi.framework.BundleActivator;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.ServiceRegistration;
@@ -100,6 +104,11 @@ public class Activator implements BundleActivator {
 
     private void startGrizzly(int port) throws IOException {
         ws = new GrizzlyWebServer(port);
+        SelectorThread st = ws.getSelectorThread();
+        st.setEnableAsyncExecution(true);
+        AsyncHandler asyncHandler = new DefaultAsyncHandler();
+        asyncHandler.addAsyncFilter(new CometAsyncFilter());
+        st.setAsyncHandler(asyncHandler);
         ws.setMaxThreads(5);
         ws.useAsynchronousWrite(true);
         ws.start();
