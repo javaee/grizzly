@@ -682,7 +682,9 @@ public class GrizzlyWebServer {
             ((SelectorThread)grizzlyListener).stopEndpoint();
         }
         // need to stop gathering (there are threads running for stats collection)
-        statistics.stopGatheringStatistics();
+        if (statistics != null) {
+            statistics.stopGatheringStatistics();
+        }
     }
     
     

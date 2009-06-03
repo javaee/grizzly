@@ -68,5 +68,14 @@ public class GrizzlyWebServerStatisticsTest {
         }
     }
 
-
+    @Test(timeout = 10000) public void testStopNoStats() {
+        GrizzlyWebServer ws = new GrizzlyWebServer();
+        try {
+            ws.start();
+        } catch (IOException e) {
+            fail("Unexpected error: " + e.getMessage());
+        } finally {
+            ws.stop();
+        }
+    }
 }
