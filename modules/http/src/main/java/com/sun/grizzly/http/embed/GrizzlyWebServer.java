@@ -593,7 +593,7 @@ public class GrizzlyWebServer {
         adapterChains = new GrizzlyAdapterChain();
         if (adapters.size() == 0){
             adapterChains.setRootFolder(webResourcesPath);
-            adapterChains.setHandleStaticResources(false);
+            adapterChains.setHandleStaticResources(true);
             grizzlyListener.setAdapter(adapterChains);
         } else {          
             for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
