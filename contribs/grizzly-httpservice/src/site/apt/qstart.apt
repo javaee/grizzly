@@ -8,4 +8,8 @@
 
 Grizzly OSGi Http Service Quick Start.
 
-Basic sample how to use it.  
+Configuration parameters.
+
+ Apart from standard OSGi Http Service parameters Grizzly has:
+
+  * com.sun.grizzly.cometSupport - set it to true to enable Comet.
