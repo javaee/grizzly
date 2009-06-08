@@ -18,6 +18,5 @@
         <module>hudson-on-grizzly</module>
         <module>cachetest</module>
         <module>cometd-client</module>
-        <module>grizzly1.0</module>
     </modules>
 </project>
