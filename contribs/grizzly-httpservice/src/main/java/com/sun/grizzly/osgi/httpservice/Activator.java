@@ -133,6 +133,7 @@ public class Activator implements BundleActivator {
     private void startGrizzly(int port, boolean cometEnabled) throws IOException {
         ws = new GrizzlyWebServer(port);
         if (cometEnabled) {
+            logger.info("Enabling Comet.");
             SelectorThread st = ws.getSelectorThread();
             st.setEnableAsyncExecution(true);
             AsyncHandler asyncHandler = new DefaultAsyncHandler();
