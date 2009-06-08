@@ -68,6 +68,7 @@ public class Activator implements BundleActivator {
     private static final String ORG_OSGI_SERVICE_HTTP_PORT = "org.osgi.service.http.port";
     private static final String ORG_OSGI_SERVICE_HTTPS_PORT = "org.osgi.service.http.port.secure";
     private HttpServiceFactory serviceFactory;
+    private static final String COM_SUN_GRIZZLY_COMET_SUPPORT = "com.sun.grizzly.cometSupport";
 
     /**
      * {@inheritDoc}
@@ -78,37 +79,66 @@ public class Activator implements BundleActivator {
         logger = new Logger(logTracker);
         logger.info("Starting Grizzly OSGi HttpService");
 
-        int port = readIntProperty(bundleContext, ORG_OSGI_SERVICE_HTTP_PORT, 80);
+        int port = readProperty(bundleContext, ORG_OSGI_SERVICE_HTTP_PORT, 80);
         if (bundleContext.getProperty(ORG_OSGI_SERVICE_HTTPS_PORT) != null) {
             logger.warn("HTTPS not supported yet.");
         }
-        startGrizzly(port);
+        boolean cometEnabled = readProperty(bundleContext, COM_SUN_GRIZZLY_COMET_SUPPORT, false);
+        startGrizzly(port, cometEnabled);
         serviceFactory = new HttpServiceFactory(ws, logger, bundleContext.getBundle());
         registration = bundleContext.registerService(
                 HttpService.class.getName(), serviceFactory,
                 new Properties());
     }
 
-    private int readIntProperty(BundleContext bundleContext, String propertyName, int defaultPropertyValue) {
-        String portProp = bundleContext.getProperty(propertyName);
-        int port = defaultPropertyValue;
-        if (portProp != null) {
-            try {
-                port = Integer.parseInt(portProp);
-            } catch (NumberFormatException nfe) {
-                logger.warn(new StringBuilder().append("Couldn't parse '").append(propertyName).append("' property, going to use default (").append(port).append("). ").append(nfe.getMessage()).toString());
+    /**
+     * Reads property from {@link BundleContext}.
+     * If property not present or invalid value for type <code>T</code> return <code>defValue</code>.
+     *
+     * @param ctx      Bundle context to query.
+     * @param name     Property name to query for.
+     * @param defValue Default value if property not present or invalid value for type <code>T</code>.
+     * @param <T>      Property type.
+     * @return Property value or default as described above.
+     */
+    private <T> T readProperty(BundleContext ctx, String name, T defValue) {
+        String value = ctx.getProperty(name);
+        if (value != null) {
+            if (defValue instanceof Integer) {
+                try {
+                    //noinspection unchecked,RedundantCast
+                    return (T) (Integer) Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    logger.info(new StringBuilder().append("Couldn't parse '").append(name)
+                            .append("' property, going to use default (").append(defValue).append("). ")
+                            .append(e.getMessage()).toString());
+                }
+            } else if (defValue instanceof Boolean) {
+                //noinspection unchecked,RedundantCast
+                return (T) (Boolean) Boolean.parseBoolean(value);
             }
+            //noinspection unchecked
+            return (T) value;
         }
-        return port;
+        return defValue;
     }
 
-    private void startGrizzly(int port) throws IOException {
+    /**
+     * Starts {@link GrizzlyWebServer}.
+     *
+     * @param port Port to listen on.
+     * @param cometEnabled If comet should be enabled.
+     * @throws IOException Couldn't start {@link GrizzlyWebServer}.
+     */
+    private void startGrizzly(int port, boolean cometEnabled) throws IOException {
         ws = new GrizzlyWebServer(port);
-        SelectorThread st = ws.getSelectorThread();
-        st.setEnableAsyncExecution(true);
-        AsyncHandler asyncHandler = new DefaultAsyncHandler();
-        asyncHandler.addAsyncFilter(new CometAsyncFilter());
-        st.setAsyncHandler(asyncHandler);
+        if (cometEnabled) {
+            SelectorThread st = ws.getSelectorThread();
+            st.setEnableAsyncExecution(true);
+            AsyncHandler asyncHandler = new DefaultAsyncHandler();
+            asyncHandler.addAsyncFilter(new CometAsyncFilter());
+            st.setAsyncHandler(asyncHandler);
+        }
         ws.setMaxThreads(5);
         ws.useAsynchronousWrite(true);
         ws.start();
