@@ -127,8 +127,6 @@ public class DefaultThreadPool extends FixedThreadPool
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit){
         this(name, corePoolsize, maxPoolSize, keepAliveTime, timeUnit,
                 null);
-
-        this.name = name;
     }
 
     /**
@@ -172,6 +170,7 @@ public class DefaultThreadPool extends FixedThreadPool
         this.maxPoolSize   = maxPoolSize;
         this.idleTimeout   = keepAliveTime;
         this.timeUnit      = timeUnit;
+        this.name = name;
 
         if (this.threadFactory == null) {
             this.threadFactory = new DefaultWorkerThreadFactory();
