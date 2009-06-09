@@ -42,6 +42,7 @@ import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.DefaultThreadPool;
+import com.sun.grizzly.util.FixedThreadPool;
 import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.State;
@@ -49,6 +50,7 @@ import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.SupportStateHolder;
 import com.sun.grizzly.util.WorkerThreadFactory;
 import com.sun.grizzly.util.WorkerThreadImpl;
+
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -151,9 +153,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         UDP, TCP, TLS, CUSTOM
     }
     /**
-     * Maximum number of {@link Threads} created by a {@link DefaultThreadPool}
+     * Required number of threads created by a {@link DefaultThreadPool}
      */
-    private int maxThreads = DefaultThreadPool.DEFAULT_MAX_THREAD_COUNT;
+    private int requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT;
     /**
      * A cached list of Context. Context are by default stateless.
      */
@@ -289,11 +291,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         autoConfigureCore();
         if (threadPool == null) {
             threadPool = new DefaultThreadPool();
-        }        
-        if (threadPool instanceof ThreadPoolExecutor){
-            ((ThreadPoolExecutor)threadPool).setMaximumPoolSize(maxThreads);
-            ((ThreadPoolExecutor)threadPool).setCorePoolSize(maxThreads);
-        }       
+        }
+        ensureAppropriatePoolSize( threadPool );
         if (instanceHandler == null) {
             instanceHandler = new DefaultProtocolChainInstanceHandler();
         }
@@ -307,17 +306,35 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         controllers.add(this);
     }
 
+    private void ensureAppropriatePoolSize( ExecutorService threadPool ) {
+        if( threadPool == null )
+            return;
+        if( threadPool instanceof FixedThreadPool ) {
+            FixedThreadPool fixedThreadPool = (FixedThreadPool)threadPool;
+            if( fixedThreadPool.getMaximumPoolSize() < requiredThreadsCount )
+                fixedThreadPool.setMaximumPoolSize( requiredThreadsCount );
+        } else if( threadPool instanceof ThreadPoolExecutor ) {
+            ThreadPoolExecutor jdkThreadPool = (ThreadPoolExecutor)threadPool;
+            if( jdkThreadPool.getCorePoolSize() < requiredThreadsCount ) {
+                if( jdkThreadPool.getMaximumPoolSize() < requiredThreadsCount )
+                    jdkThreadPool.setMaximumPoolSize( requiredThreadsCount );
+                jdkThreadPool.setCorePoolSize( requiredThreadsCount );
+            }
+        }
+    }
+
     /**
      * Auto-configure the number of {@link ReaderThread} based on the core
      * processor.
      */
     private void autoConfigureCore(){
         readThreadsCount = Runtime.getRuntime().availableProcessors();
-        maxThreads = maxThreads * readThreadsCount;
+        if( readThreadsCount > 0 )
+            requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
         if (logger.isLoggable(Level.FINE)){
             logger.fine("Controller auto-configured with 2 ReadController " +
                     "based on underlying cores/processors, with a Thread Pool " +
-                    "of maximum size " + maxThreads);
+                    "of required size " + requiredThreadsCount );
         }
     }
 
@@ -594,6 +611,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Set the {@link ExecutorService} (Thread Pool).
      */
     public void setThreadPool(ExecutorService threadPool) {
+        ensureAppropriatePoolSize( threadPool );
         this.threadPool = threadPool;
     }
 
@@ -609,6 +627,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     public void setReadThreadsCount(int readThreadsCount) {
         this.readThreadsCount = readThreadsCount;
+        if( readThreadsCount > 0 )
+            requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
+        ensureAppropriatePoolSize( threadPool );
     }
 
     /**
@@ -724,6 +745,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
         if (threadPool.isShutdown()) {
             threadPool = new DefaultThreadPool();
+            ensureAppropriatePoolSize( threadPool );
         }
 
         try {
