@@ -342,6 +342,16 @@ public class DefaultThreadPool extends FixedThreadPool
         sb.append(", is-shutdown=").append(isShutdown());
     }
 
+    @Override
+    protected void beforeExecute(Thread t, Runnable r) {
+        ((WorkerThreadImpl) t).createByteBuffer(false);
+    }
+
+    @Override
+    protected void afterExecute(Runnable r, Throwable t) {
+        ((WorkerThreadImpl) Thread.currentThread()).reset();
+    }
+
     private class DefaultWorkerThreadFactory implements ThreadFactory {
         public Thread newThread(Runnable r) {
             Thread thread = new WorkerThreadImpl(DefaultThreadPool.this,
