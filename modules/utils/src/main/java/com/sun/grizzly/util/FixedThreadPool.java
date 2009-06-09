@@ -309,7 +309,46 @@ public class FixedThreadPool extends AbstractExecutorService
         return threadFactory;
     }
 
-    
+    /**
+     * Method invoked prior to executing the given Runnable in the
+     * given thread.  This method is invoked by thread <tt>t</tt> that
+     * will execute task <tt>r</tt>, and may be used to re-initialize
+     * ThreadLocals, or to perform logging.
+     *
+     * <p>This implementation does nothing, but may be customized in
+     * subclasses. Note: To properly nest multiple overridings, subclasses
+     * should generally invoke <tt>super.beforeExecute</tt> at the end of
+     * this method.
+     *
+     * @param t the thread that will run task r.
+     * @param r the task that will be executed.
+     */
+    protected void beforeExecute(Thread t, Runnable r) { }
+
+    /**
+     * Method invoked upon completion of execution of the given Runnable.
+     * This method is invoked by the thread that executed the task. If
+     * non-null, the Throwable is the uncaught <tt>RuntimeException</tt>
+     * or <tt>Error</tt> that caused execution to terminate abruptly.
+     *
+     * <p><b>Note:</b> When actions are enclosed in tasks (such as
+     * {@link java.util.concurrent.FutureTask}) either explicitly or via methods such as
+     * <tt>submit</tt>, these task objects catch and maintain
+     * computational exceptions, and so they do not cause abrupt
+     * termination, and the internal exceptions are <em>not</em>
+     * passed to this method.
+     *
+     * <p>This implementation does nothing, but may be customized in
+     * subclasses. Note: To properly nest multiple overridings, subclasses
+     * should generally invoke <tt>super.afterExecute</tt> at the
+     * beginning of this method.
+     *
+     * @param r the runnable that has completed.
+     * @param t the exception that caused termination, or null if
+     * execution completed normally.
+     */
+    protected void afterExecute(Runnable r, Throwable t) { }
+
     protected class BasicWorker implements Runnable{
         Thread t;
 
@@ -333,10 +372,15 @@ public class FixedThreadPool extends AbstractExecutorService
                     if (r == poison || r == null){
                         return;
                     }
+                    boolean ran = false;
+                    beforeExecute( t, r );
                     try {
                         approximateRunningWorkerCount.incrementAndGet();
                         r.run();
+                        afterExecute( r, null );
                     } catch( Throwable t ) {
+                        if (!ran)
+                            afterExecute( r, t );
                         throw t;
                     } finally {
                         approximateRunningWorkerCount.decrementAndGet();
