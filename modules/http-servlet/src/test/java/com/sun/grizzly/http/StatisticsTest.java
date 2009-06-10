@@ -60,7 +60,8 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18890;
 
-    public void testStatisticsGathering() throws IOException {
+    public void testStatisticsGathering() throws IOException,
+        InterruptedException {
         try {
             startGrizzlyWebServer(PORT);
 
@@ -77,6 +78,7 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
                 readResponse(conn);
                 count += 1024;
                 calls += 1;
+                Thread.sleep(1);
                 assertEquals(calls, requestStatistics.getRequestCount());
                 assertEquals(count, requestStatistics.getBytesSent());
 
