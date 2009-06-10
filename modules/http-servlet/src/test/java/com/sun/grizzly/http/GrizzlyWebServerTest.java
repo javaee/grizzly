@@ -72,10 +72,11 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     public void testAddGrizzlyAdapterAfterStart() throws IOException {
         System.out.println("testAddGrizzlyAdapterAfterStart");
         try {
-            startGrizzlyWebServer(PORT);
+            final int port = PORT + 1;
+            startGrizzlyWebServer(port);
             String alias = "/1";
             addAdapter(alias);
-            HttpURLConnection conn = getConnection(alias, PORT);
+            HttpURLConnection conn = getConnection(alias, port);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
@@ -87,14 +88,15 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     public void testMultipleAddGrizzlyAdapterAfterStart() throws IOException {
         System.out.println("testMultipleAddGrizzlyAdapterAfterStart");
         try {
-            startGrizzlyWebServer(PORT);
+            final int port = PORT + 2;
+            startGrizzlyWebServer(port);
             String[] aliases = new String[]{"/1", "/2", "/3"};
             for (String alias : aliases) {
                 addAdapter(alias);
             }
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias, PORT);
+                HttpURLConnection conn = getConnection(alias, port);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
@@ -107,14 +109,15 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     public void testOverlapingAddGrizzlyAdapterAfterStart() throws IOException {
         System.out.println("testOverlapingAddGrizzlyAdapterAfterStart");
         try {
-            startGrizzlyWebServer(PORT);
+            final int port = PORT + 3;
+            startGrizzlyWebServer(port);
             String[] aliases = new String[]{"/1", "/2", "/2/1", "/1/2/3/4/5"};
             for (String alias : aliases) {
                 addAdapter(alias);
             }
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias, PORT);
+                HttpURLConnection conn = getConnection(alias, port);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 if (alias.startsWith(readResponse(conn))){
@@ -131,7 +134,8 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     public void testAddRemoveMixAfterStart() throws IOException {
         System.out.println("testAddRemoveMixAfterStart");
         try {
-            startGrizzlyWebServer(PORT);
+            final int port = PORT + 4;
+            startGrizzlyWebServer(port);
             String[] aliases = new String[]{"/1", "/2", "/3"};
             ServletAdapter adapter = addAdapter("/0");
             for (String alias : aliases) {
@@ -140,13 +144,13 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
             gws.removeGrizzlyAdapter(adapter);
 
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias, PORT);
+                HttpURLConnection conn = getConnection(alias, port);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
             }
             assertEquals(HttpServletResponse.SC_NOT_FOUND,
-                    getResponseCodeFromAlias(getConnection("/0", PORT)));
+                    getResponseCodeFromAlias(getConnection("/0", port)));
         } finally {
             stopGrizzlyWebServer();
         }
@@ -162,7 +166,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
         System.out.println("testStartContract");
         // lock port
         Socket soc = new Socket();
-        int port = PORT + 1;
+        int port = PORT + 5;
         try {
             soc.bind(new InetSocketAddress(port));
         } catch (IOException e) {
@@ -190,14 +194,15 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
      */
     public void testStartSecureFailDefault() {
         System.out.println("testStartSecureFailDefault");
-        gws = new GrizzlyWebServer(PORT, ".", true);
+        final int port = PORT + 6;
+        gws = new GrizzlyWebServer(port, ".", true);
         try {
             gws.start();
             gws.stop();
             fail("Should not be able to start if default ssl configuration was not created.");
         } catch (IOException e) {
             e.printStackTrace();
-            fail("Could not bind to port: " + PORT+ ". " + e.getMessage());
+            fail("Could not bind to port: " + port + ". " + e.getMessage());
         } catch (RuntimeException e) {
             // expected
         }
@@ -221,7 +226,8 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
         } else {
             fail("Couldn't find keystore");
         }
-        gws = new GrizzlyWebServer(PORT, ".", true);
+        final int port = PORT + 7;
+        gws = new GrizzlyWebServer(port, ".", true);
         gws.setSSLConfig(cfg);
         final String encMsg = "Secured.";
         gws.addGrizzlyAdapter(new GrizzlyAdapter() {
@@ -238,7 +244,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
             gws.start();
         } catch (IOException e) {
             e.printStackTrace();
-            fail("Could not bind to port: " + PORT+ ". " + e.getMessage());
+            fail("Could not bind to port: " + port + ". " + e.getMessage());
         } catch (RuntimeException e) {
             fail("Should be able to start in secure mode.");
         }
@@ -262,7 +268,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
                 }
             });
             HttpURLConnection conn =
-                    (HttpURLConnection) new URL("https", "localhost", PORT, "/sec").openConnection();
+                    (HttpURLConnection) new URL("https", "localhost", port, "/sec").openConnection();
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
             assertEquals(encMsg, readResponse(conn));
         } finally {
@@ -277,7 +283,8 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
      */
     public void testServletFilterDestroy() throws IOException {
 
-        gws = new GrizzlyWebServer(PORT, ".", false);
+        final int port = PORT + 8;
+        gws = new GrizzlyWebServer(port, ".", false);
         final boolean init[] = new boolean[]{false};
         final boolean filter[] = new boolean[]{false};
         final boolean destroy[] = new boolean[]{false};
@@ -316,14 +323,15 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     public void testAddGrizzlyAdapterBeforeAndAfterStart() throws IOException {
         System.out.println("testAddGrizzlyAdapterBeforeAndAfterStart");
         try {
-            gws = new GrizzlyWebServer(PORT);
+            final int port = PORT + 9;
+            gws = new GrizzlyWebServer(port);
             String[] aliases = new String[]{"/1"};
             for (String alias : aliases) {
                 addAdapter(alias);
             }
             gws.start();
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias, PORT);
+                HttpURLConnection conn = getConnection(alias, port);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
@@ -331,7 +339,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
             String alias = "/2";
             addAdapter(alias);
 
-            HttpURLConnection conn = getConnection(alias, PORT);
+            HttpURLConnection conn = getConnection(alias, port);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
@@ -343,14 +351,15 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     public void testMultipleAddGrizzlyAdapterBeforeStartAndOneAfter() throws IOException {
         System.out.println("testAddGrizzlyAdapterBeforeAndAfterStart");
         try {
-            gws = new GrizzlyWebServer(PORT);
+            final int port = PORT + 10;
+            gws = new GrizzlyWebServer(port);
             String[] aliases = new String[]{"/1", "/2", "/3"};
             for (String alias : aliases) {
                 addAdapter(alias);
             }
             gws.start();
             for (String alias : aliases) {
-                HttpURLConnection conn = getConnection(alias, PORT);
+                HttpURLConnection conn = getConnection(alias, port);
                 assertEquals(HttpServletResponse.SC_OK,
                         getResponseCodeFromAlias(conn));
                 assertEquals(alias, readResponse(conn));
@@ -358,7 +367,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
             String alias = "/4";
             addAdapter(alias);
 
-            HttpURLConnection conn = getConnection(alias, PORT);
+            HttpURLConnection conn = getConnection(alias, port);
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             assertEquals(alias, readResponse(conn));
