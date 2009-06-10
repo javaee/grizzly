@@ -77,6 +77,42 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
         }
    }
     
+    
+    public void _testOverlapingMapping2() throws IOException {
+        System.out.println("testOverlapingMapping2");
+        try {
+            startGrizzlyWebServer(PORT);
+            
+            String[] alias = new String[]{"/*.jsp", "/jsp/.xyz"};
+            
+            ServletAdapter s1 = getServletAdapter(alias[0]);
+            s1.setContextPath("/");
+            s1.setServletPath("");
+            s1.setRootFolder(".");
+                
+            gws.addGrizzlyAdapter(s1, new String[]{alias[0]});
+
+            ServletAdapter s2 = getServletAdapter(alias[1]);
+            s2.setContextPath("/jsp");
+            s2.setServletPath("");
+            s2.setRootFolder(".");
+                
+            gws.addGrizzlyAdapter(s2, new String[]{alias[1]});
+            
+            HttpURLConnection conn = null;
+            
+            
+            conn = getConnection("/jsp/index.jsp", PORT);
+            assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
+            assertEquals(alias[0], readResponse(conn));
+            
+           
+        } finally {
+            stopGrizzlyWebServer();
+        }
+   }
+    
+    
     public void testRootMapping() throws IOException {
         System.out.println("testRootMapping");
         try {
@@ -163,6 +199,21 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
             }
         });
         gws.addGrizzlyAdapter(adapter, new String[]{alias});
+        return adapter;
+    }
+    
+    private ServletAdapter getServletAdapter(final String alias) {
+        ServletAdapter adapter = new ServletAdapter(new HttpServlet() {
+
+            @Override
+            protected void doGet(
+                    HttpServletRequest req, HttpServletResponse resp)
+                    throws ServletException, IOException {
+                logger.info("Servlet : " + alias + " received request " + req.getRequestURI());
+                resp.setStatus(HttpServletResponse.SC_OK);
+                resp.getWriter().write(alias);
+            }
+        });
         return adapter;
     }
 
