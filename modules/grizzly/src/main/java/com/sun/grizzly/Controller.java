@@ -311,8 +311,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             return;
         if( threadPool instanceof FixedThreadPool ) {
             FixedThreadPool fixedThreadPool = (FixedThreadPool)threadPool;
-            if( fixedThreadPool.getMaximumPoolSize() < requiredThreadsCount )
-                fixedThreadPool.setMaximumPoolSize( requiredThreadsCount );
+            if( fixedThreadPool.getCorePoolSize() < requiredThreadsCount ) {
+                if( fixedThreadPool.getMaximumPoolSize() < requiredThreadsCount )
+                    fixedThreadPool.setMaximumPoolSize( requiredThreadsCount );
+                fixedThreadPool.setCorePoolSize( requiredThreadsCount );
+            }
         } else if( threadPool instanceof ThreadPoolExecutor ) {
             ThreadPoolExecutor jdkThreadPool = (ThreadPoolExecutor)threadPool;
             if( jdkThreadPool.getCorePoolSize() < requiredThreadsCount ) {
