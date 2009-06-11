@@ -1246,6 +1246,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      * blocking mode.
      */
     public void startEndpoint() throws IOException, InstantiationException {
+        logger.info("Grizzly 1.0.29");
         running = true;
         
         kaTimeout = keepAliveTimeoutInSeconds * 1000;
@@ -2504,7 +2505,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     private void displayConfiguration(){
        if (displayConfiguration){
             logger.log(Level.INFO,
-                    "\n Grizzly configuration for port " 
+                    "\n Grizzly 1.0.29 configuration for port "
                     + port 
                     + "\n\t maxThreads: " 
                     + maxProcessorWorkerThreads 
