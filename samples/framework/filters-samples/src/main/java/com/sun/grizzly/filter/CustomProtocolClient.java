@@ -46,7 +46,6 @@ import com.sun.grizzly.async.AsyncWriteCallbackHandler;
 
 import com.sun.grizzly.util.DefaultThreadPool;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.List;
@@ -210,18 +209,11 @@ public class CustomProtocolClient implements Client {
         controller = new Controller();
         replyInputStreamFactory = new ReplyMessageFactory();
 
-        DefaultThreadPool defp;
-        ExecutorService executorService = controller.getThreadPool();
-        if( executorService instanceof DefaultThreadPool ) {
-            defp = (DefaultThreadPool)executorService;
-            defp.setInitialByteBufferSize( com.sun.grizzly.filter.Message.MessageMaxLength );
-        } else {
-            defp = new DefaultThreadPool();
-            defp.setCorePoolSize( minWorkerThreads );
-            defp.setMaximumPoolSize( maxWorkerThreads );
-            defp.setInitialByteBufferSize( com.sun.grizzly.filter.Message.MessageMaxLength );
-            controller.setThreadPool( defp );
-        }
+        DefaultThreadPool defp = new DefaultThreadPool();
+        defp.setCorePoolSize(minWorkerThreads);
+        defp.setMaximumPoolSize(maxWorkerThreads);
+        defp.setInitialByteBufferSize(com.sun.grizzly.filter.Message.MessageMaxLength);
+        controller.setThreadPool(defp);
 
         selectorHandler = (protocol == Controller.Protocol.TLS) ? new SSLSelectorHandler(true) : new TCPSelectorHandler(true);
         BaseSelectionKeyHandler keyHandler = new BaseSelectionKeyHandler();

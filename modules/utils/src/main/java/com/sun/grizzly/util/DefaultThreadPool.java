@@ -101,7 +101,7 @@ public class DefaultThreadPool extends FixedThreadPool
      */
     protected int priority = Thread.NORM_PRIORITY;
 
-    protected final int corePoolsize;
+    protected volatile int corePoolsize;
     protected final long idleTimeout;
     protected final TimeUnit timeUnit;
 
@@ -266,6 +266,14 @@ public class DefaultThreadPool extends FixedThreadPool
     @Override
     public int getQueueSize() {
         return queueSize.get();
+    }
+
+    @Override
+    public void setCorePoolSize(int corePoolSize) {
+        synchronized(statelock){
+            validateNewPoolsize(corePoolsize, maxPoolSize);
+            this.corePoolsize = corePoolSize;
+        }
     }
 
     @Override
