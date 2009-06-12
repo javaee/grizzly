@@ -123,7 +123,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     private transient List<ServletContextAttributeListener> ctxAttListener
             = new ArrayList<ServletContextAttributeListener>();
     
-    private String servletPath = "/";
+    private String servletPath = "";
     
     
     private String contextPath = "";
@@ -236,8 +236,10 @@ public class ServletAdapter extends GrizzlyAdapter {
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters); 
         this.contextParameters = contextParameters;
         this.servletInitParameters = servletInitParameters;
-        for (String listenerName : listeners) {
-            addServletListener(listenerName);
+        if (listeners.size() > 1){
+            for (String listenerName : listeners) {
+                addServletListener(listenerName);
+            }
         }
         this.initialize = initialize;
     }
@@ -553,6 +555,9 @@ public class ServletAdapter extends GrizzlyAdapter {
      */
     public void setServletPath(String servletPath) {
         this.servletPath = servletPath;
+        if (!servletPath.equals("") && !servletPath.startsWith("/")){
+            servletPath = "/" + servletPath;
+        }
     }
    
     
@@ -603,6 +608,9 @@ public class ServletAdapter extends GrizzlyAdapter {
      *                  throwing an exception
      */
     public void addServletListener(String listenerName){
+
+        if (listenerName == null) return;
+
         Class klazz = null;
         try {
             klazz = Thread.currentThread().

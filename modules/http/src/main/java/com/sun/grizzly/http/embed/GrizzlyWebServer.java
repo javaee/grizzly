@@ -595,11 +595,11 @@ public class GrizzlyWebServer {
             adapterChains.setRootFolder(webResourcesPath);
             adapterChains.setHandleStaticResources(true);
             grizzlyListener.setAdapter(adapterChains);
-        } else {          
+        } else {
             for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
                 // For backward compatibility
-                if (entry.getValue().length == 0){
-                    adapterChains.addGrizzlyAdapter(entry.getKey());
+                if (entry.getValue() == null || entry.getValue().length == 0){
+                    adapterChains.addGrizzlyAdapter(entry.getKey(),new String[]{""});
                 } else {
                     adapterChains.addGrizzlyAdapter(entry.getKey(),entry.getValue());
                 }
