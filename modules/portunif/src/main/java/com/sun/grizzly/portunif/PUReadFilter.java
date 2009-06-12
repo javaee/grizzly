@@ -47,6 +47,7 @@ import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -256,8 +257,13 @@ public class PUReadFilter extends ReadFilter {
                         protocolRequest, false);
             }
         } catch (Throwable ex) {
-            if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING, "PortUnification exception", ex);
+            Level level = Level.WARNING;
+            if (ex instanceof CancelledKeyException){
+                level = Level.FINE;
+            }
+
+            if (logger.isLoggable(level)) {
+                logger.log(level, "PortUnification exception", ex);
             }
             cancelKey(context);
             return false;
