@@ -156,6 +156,30 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
         }
     }
 
+    /**
+     * Covers issue with "No Content" returned by Servlet.
+     * <a href="http://twitter.com/shock01/status/2136930089">http://twitter.com/shock01/status/2136930089</a>
+     * 
+     * @throws java.io.IOException I/O
+     */
+    public void testNoContentServlet() throws IOException {
+        try {
+            newGWS(PORT);
+            ServletAdapter noContent = new ServletAdapter(new HttpServlet() {
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp)
+                        throws ServletException, IOException {
+                    resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
+                }
+            });
+            gws.addGrizzlyAdapter(noContent, new String[]{"/NoContent"});
+            gws.start();
+
+            assertEquals(HttpServletResponse.SC_NO_CONTENT, getConnection("/NoContent", PORT).getResponseCode());
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+
     private ServletAdapter addAdapter(final String alias) {
         ServletAdapter adapter = new ServletAdapter(new HttpServlet() {
 
