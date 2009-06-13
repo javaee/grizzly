@@ -330,6 +330,12 @@ public class ServletContextImpl implements ServletContext {
         path = normalize(path);
         if (path == null)
             return (null);
+  
+        // Help the UrlClassLoader, which is not able to load resources
+        // that contains '//'
+        if (path.length() > 1){
+            path = path.substring(1);
+        }
         
         return Thread.currentThread().getContextClassLoader()
                     .getResourceAsStream(path);
