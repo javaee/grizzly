@@ -1,7 +1,0 @@
-
-<adapters>
-    <adapter context-root="/ChatGrizzlet" class-name="com.sun.grizzly.container.GrizzletAdapter">
-        <property name="grizzletName" value="com.sun.grizzly.grizzlet.ChatGrizzlet"/>
-        <property name="rootFolder" value="../domains/domain1/applications/"/>
-    </adapter>
-</adapters>

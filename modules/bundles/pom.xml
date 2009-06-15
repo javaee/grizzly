@@ -19,8 +19,6 @@
         <module>http-servlet</module>
         <module>comet</module>
         <module>cometd</module>
-        <module>grizzlet</module>
-        <module>messagesbus</module>
         <module>webserver</module>
         <module>http-servlet-deployer</module>
     </modules>

@@ -23,8 +23,6 @@
         <module>comet/cometd-echo</module>
         <module>comet/cometd-javaapiupdate-chat</module>
         <module>comet/twitter</module>
-        <module>grizzlet/chat</module>
-        <module>grizzlet/jmaki</module>
         <module>messagesbus/messagesbus-jmaki</module>
         <module>framework/filters-samples</module>
         <!-- This sample requires JDK6. Comments it out for now
