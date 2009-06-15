@@ -193,7 +193,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     /**
      * The number of read threads
      */
-    protected int readThreadsCount = 0;
+    protected int readThreadsCount = -1;
     /**
      * The array of {@link Controller}s to be used for reading
      */
@@ -258,6 +258,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     private boolean useLeaderFollowerStrategy = true;
 
+    /**
+     * Enable/Disable auto-config.
+     */
+    private boolean autoConfigure = true;
+
     // -------------------------------------------------------------------- //
     /**
      * Controller constructor
@@ -288,11 +293,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * SelectorHandler(s) or ConnectorHandlerPool.
      */
     private void initializeDefaults() {
-        autoConfigureCore();
-        if (threadPool == null) {
-            threadPool = new DefaultThreadPool();
-        }
-        ensureAppropriatePoolSize( threadPool );
         if (instanceHandler == null) {
             instanceHandler = new DefaultProtocolChainInstanceHandler();
         }
@@ -331,13 +331,15 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * processor.
      */
     private void autoConfigureCore(){
-        readThreadsCount = Runtime.getRuntime().availableProcessors();
-        if( readThreadsCount > 0 )
-            requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
-        if (logger.isLoggable(Level.FINE)){
-            logger.fine("Controller auto-configured with 2 ReadController " +
-                    "based on underlying cores/processors, with a Thread Pool " +
-                    "of required size " + requiredThreadsCount );
+        if (autoConfigure && readThreadsCount == -1){
+            readThreadsCount = Runtime.getRuntime().availableProcessors();
+            if( readThreadsCount > 0 )
+                requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
+            if (logger.isLoggable(Level.FINE)){
+                logger.fine("Controller auto-configured with 2 ReadController " +
+                        "based on underlying cores/processors, with a Thread Pool " +
+                        "of required size " + requiredThreadsCount );
+            }
         }
     }
 
@@ -735,22 +737,29 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     /**
-     * Start the Controller. If the thread pool and/or Handler has not been
+     * Start the Controller. If the thread pool and/or H andler has not been
      * defined, the default will be used.
      */
     public void start() throws IOException {
+        if (isStarted()) return;
+        
         stateHolder.getStateLocker().writeLock().lock();
         boolean isUnlocked = false;
         if (kernelExecutor.isShutdown()) {
             // Re-create 
             kernelExecutor = createKernelExecutor();
         }
+        
+        autoConfigureCore();
+        if (threadPool == null) {
+            threadPool = new DefaultThreadPool();
+        }
 
         if (threadPool.isShutdown()) {
             threadPool = new DefaultThreadPool();
-            ensureAppropriatePoolSize( threadPool );
         }
 
+        ensureAppropriatePoolSize( threadPool );
         try {
             if (stateHolder.getState(false) == null ||
                     stateHolder.getState(false) == State.STOPPED) {
@@ -1191,4 +1200,24 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     public void useLeaderFollowerStrategy(boolean useLeaderFollowerStrategy) {
         this.useLeaderFollowerStrategy = useLeaderFollowerStrategy;
     }
+
+
+    /**
+     * Return <tt>true</tt> if the Controller is auto configuring the
+     * number of {@link ReaderController} and its associated thread pool size.
+     * @return the autoConfigure
+     */
+    public boolean isAutoConfigure() {
+        return autoConfigure;
+    }
+
+    /**
+     * Set to true <tt>true</tt> if the Controller is auto configuring the
+     * number of {@link ReaderController} and its associated thread pool size.
+     * @param autoConfigure the autoConfigure to set
+     */
+    public void setAutoConfigure(boolean autoConfigure) {
+        this.autoConfigure = autoConfigure;
+    }
+
 }
