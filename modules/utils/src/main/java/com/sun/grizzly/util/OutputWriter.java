@@ -47,6 +47,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
+import java.util.logging.Level;
 
 /**
  * NIO utility to flush {@link ByteBuffer}
@@ -85,14 +86,12 @@ public class OutputWriter {
     public static long flushChannel(SelectableChannel channel, 
             ByteBuffer bb, long writeTimeout) throws IOException{    
         
-        if (bb == null){
-            throw new IllegalStateException("Invalid Response State. ByteBuffer" 
-                    + " cannot be null.");
-        }
-        
-        if (channel == null){
-            throw new IllegalStateException("Invalid Response State. " +
-                    "SocketChannel cannot be null.");
+        if (bb == null || channel == null){
+            if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
+                LoggerUtils.getLogger().log(Level.FINE,"Invalid Response State " + bb
+                       + "SocketChannel cannot be null." + channel);
+            }
+            return -1;
         }       
         
         SelectionKey key = null;
@@ -182,15 +181,13 @@ public class OutputWriter {
     public static long flushChannel(SocketChannel socketChannel,
             ByteBuffer[] bb, long writeTimeout) throws IOException{
       
-        if (bb == null){
-            throw new IllegalStateException("Invalid Response State. ByteBuffer" 
-                    + " cannot be null.");
+        if (bb == null || socketChannel == null){
+            if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
+                LoggerUtils.getLogger().log(Level.FINE,"Invalid Response State " + bb
+                       + "SocketChannel cannot be null." + socketChannel);
+            }
+            return -1;
         }
-        
-        if (socketChannel == null){
-            throw new IllegalStateException("Invalid Response State. " +
-                    "SocketChannel cannot be null.");
-        }   
         
         SelectionKey key = null;
         Selector writeSelector = null;
