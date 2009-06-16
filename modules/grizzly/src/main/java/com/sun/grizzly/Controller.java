@@ -37,7 +37,6 @@
  */
 package com.sun.grizzly;
 
-import com.sun.corba.se.pept.transport.ReaderThread;
 import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
