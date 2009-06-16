@@ -37,12 +37,14 @@
  */
 package com.sun.grizzly;
 
+import com.sun.corba.se.pept.transport.ReaderThread;
 import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.FixedThreadPool;
+import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.State;
@@ -58,6 +60,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -742,7 +745,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     public void start() throws IOException {
         if (isStarted()) return;
-        
+
+        if (logger.isLoggable(Level.INFO)){
+            logger.info("Starting Grizzly " + Grizzly.getRawVersion());
+        }
+
         stateHolder.getStateLocker().writeLock().lock();
         boolean isUnlocked = false;
         if (kernelExecutor.isShutdown()) {

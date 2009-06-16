@@ -55,6 +55,7 @@ public class Grizzly {
     private static final String dotedVersion;
     private static final int major;
     private static final int minor;
+    private static final String version;
 
     public static void main(String[] args) {
         System.out.println(Grizzly.getDotedVersion());
@@ -68,7 +69,7 @@ public class Grizzly {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        String version = prop.getProperty("grizzly.version");
+        version = prop.getProperty("grizzly.version");
         Matcher matcher = versionPattern.matcher(version);
         if (matcher.matches()) {
             dotedVersion = matcher.group(1);
@@ -79,6 +80,14 @@ public class Grizzly {
             major = -1;
             minor = -1;
         }
+    }
+
+    /**
+     * Return the raw version derived frok the project's pom.xml
+     * @return
+     */
+    public static String getRawVersion(){
+        return version;
     }
 
     /**
