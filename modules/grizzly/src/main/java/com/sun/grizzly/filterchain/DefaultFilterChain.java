@@ -164,7 +164,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     private final DefaultFilterChainCodec filterChainCodec;
 
     public DefaultFilterChain(FilterChainFactory factory) {
-        super(factory, new LightArrayList<Filter>());
+        super(new LightArrayList<Filter>());
         filterChainCodec = new DefaultFilterChainCodec(this);
     }
     

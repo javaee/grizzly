@@ -84,14 +84,6 @@ import com.sun.grizzly.Codec;
  */
 public interface FilterChain extends Processor, List<Filter> {
     /**
-     * Get the {@link FilterChainFactory}, which 
-     * created this {@link FilterChain}.
-     * 
-     * @return {@link FilterChainFactory}.
-     */
-    public FilterChainFactory getFactory();
-
-    /**
      * Get the {@link FilterChain} {@link Codec}.
      *
      * @return the {@link FilterChain} {@link Codec}.

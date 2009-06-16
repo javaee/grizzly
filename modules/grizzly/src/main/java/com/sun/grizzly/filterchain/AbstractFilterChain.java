@@ -58,8 +58,6 @@ import com.sun.grizzly.threadpool.DefaultWorkerThread;
  * @author Alexey Stashok
  */
 public abstract class AbstractFilterChain implements FilterChain {
-    protected FilterChainFactory factory;
-    
     // By default interested in all client connection related events
     protected IOEventMask interestedIoEventsMask = new ArrayIOEventMask(
             IOEventMask.CLIENT_EVENTS_MASK).xor(new ArrayIOEventMask(IOEvent.WRITE));
@@ -105,10 +103,6 @@ public abstract class AbstractFilterChain implements FilterChain {
         }
     };
 
-    public AbstractFilterChain(FilterChainFactory factory) {
-        this.factory = factory;
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -121,13 +115,6 @@ public abstract class AbstractFilterChain implements FilterChain {
      */
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
         interestedIoEventsMask.setInterested(ioEvent, isInterested);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public FilterChainFactory getFactory() {
-        return factory;
     }
 
     /**

@@ -58,9 +58,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     protected final List<Filter> filters;
 
-    public ListFacadeFilterChain(final FilterChainFactory factory,
-            final List<Filter> filtersImpl) {
-        super(factory);
+    public ListFacadeFilterChain(final List<Filter> filtersImpl) {
         this.filters = filtersImpl;
     }
     
