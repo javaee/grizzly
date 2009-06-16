@@ -208,7 +208,7 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             }
 
 
-            long expire = getExpirationStamp(key);
+            long expire = getExpirationStamp(key.attachment());
             if (expire != SelectionKeyAttachment.UNLIMITED_TIMEOUT){
                 if (currentTime - expire >= timeout) {
                     cancel(key);
