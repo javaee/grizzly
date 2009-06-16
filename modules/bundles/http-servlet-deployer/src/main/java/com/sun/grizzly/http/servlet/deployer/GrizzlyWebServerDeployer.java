@@ -319,8 +319,6 @@ public class GrizzlyWebServerDeployer {
         // need to replace "/" and "\\" par File.separator
         // that will fix the case on Windows when user enter c:/... instead of
         // c:\\
-        //path = path.replaceAll("[/\\\\]+", "\\" + File.separator);
-        //path = path.replaceAll("\\\\", "\\" + File.separator);
         
         path = path.replaceAll("[/\\\\]+", "\\" + "/");
         path = path.replaceAll("\\\\", "\\" + "/");
@@ -417,7 +415,7 @@ public class GrizzlyWebServerDeployer {
     		aliasList.add(DEFAULT_CONTEXT);
     		servletAdapterMap.put(sa, aliasList);
     	} else {
-    	
+
 	    	for (ServletMapping servletMapping : webApp.getServletMapping()) {
 	            ServletAdapter sa = new ServletAdapter();
 	    	
@@ -457,7 +455,7 @@ public class GrizzlyWebServerDeployer {
 		        // be sure not the get the extension mapping
 	            // like /blabla/*.jsp
 		        sa.setServletPath(getServletPath(servletUrlPattern));
-		
+		        
 		        // Set the Servlet
 	            setServlet(webApp, sa, servletMapping);
 	            
@@ -475,7 +473,7 @@ public class GrizzlyWebServerDeployer {
         if (logger.isLoggable(Level.INFO)) {
             logger.log(Level.INFO, "Will deploy application path=" + path);
         }
-
+        
         // extract the items from the web.xml
         WebApp webApp = extractWebxmlInfo(path);
 
@@ -485,6 +483,9 @@ public class GrizzlyWebServerDeployer {
 
         // obtain a servletAdapter list
         ConcurrentMap<ServletAdapter, List<String>> servletAdapterList = getServletAdapterList(webApp, context);
+        
+        
+        boolean defaultContextServletPathFound = false;
         
         for (ServletAdapter sa : servletAdapterList.keySet()) {
         	
@@ -532,6 +533,24 @@ public class GrizzlyWebServerDeployer {
 			
             ws.addGrizzlyAdapter(sa, alias);
             
+            if(DEFAULT_CONTEXT.equals(sa.getServletPath())){
+            	defaultContextServletPathFound=true;
+            }
+            
+		}
+        
+        // we need one servlet that will handle "/"
+		if(!defaultContextServletPathFound){
+			logger.log(Level.FINEST, "Adding a ServletAdapter to handle / path");
+			
+			ServletAdapter sa2 = new ServletAdapter();
+    		
+    		sa2.setContextPath(context);
+    		sa2.setServletPath("/");
+    		sa2.setHandleStaticResources(true);
+			sa2.setRootFolder(rootFolder);
+    		
+    		ws.addGrizzlyAdapter(sa2, new String[]{context+DEFAULT_CONTEXT});
 		}
         
         if (logger.isLoggable(Level.INFO)) {
