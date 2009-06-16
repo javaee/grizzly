@@ -56,6 +56,7 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -746,7 +747,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (isStarted()) return;
 
         if (logger.isLoggable(Level.INFO)){
-            logger.info("Starting Grizzly " + Grizzly.getRawVersion());
+            logger.info("Starting Grizzly " + Grizzly.getRawVersion() + " - " + (new Date()));
         }
 
         stateHolder.getStateLocker().writeLock().lock();
