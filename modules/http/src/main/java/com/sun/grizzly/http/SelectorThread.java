@@ -402,7 +402,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * The number of {@link SelectorReadThread}
      */
-    protected int readThreadsCount = 0;
+    protected int readThreadsCount = -1;
 
     
     /**
