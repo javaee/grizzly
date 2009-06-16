@@ -15,15 +15,15 @@
     <name>grizzly-modules</name>
     <url>https://grizzly.dev.java.net</url>
     <modules>
-        <module>grizzly</module>
         <module>utils</module>
+        <module>grizzly</module>
+        <module>portunif</module>
         <module>rcm</module>
         <module>http</module>
         <module>http-servlet</module>
         <module>comet</module>
         <module>cometd</module>
         <module>http-servlet-deployer</module>
-        <module>portunif</module>
         <module>compat</module>
         <module>bundles</module>
     </modules>
