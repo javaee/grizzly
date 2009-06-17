@@ -51,6 +51,7 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import com.sun.grizzly.util.FixedThreadPool;
 
 /**
  * Main class allowing Comet support on top of Grizzly Asynchronous
@@ -158,24 +159,7 @@ public class CometEngine {
         cometContextCache = new LinkedTransferQueue<CometContext>();
         activeContexts    = new ConcurrentHashMap<String,CometContext>(16,0.75f,64);
 
-        /*ExecutorService tpe = new ThreadPoolExecutor(
-                64,
-                64,
-                30L,
-                TimeUnit.SECONDS,
-                //new LinkedTransferQueue(),
-               new LinkedBlockingQueue<Runnable>(),
-                new ThreadFactory() {
-                    private final AtomicInteger counter = new AtomicInteger();
-                    public Thread newThread(Runnable r) {
-                        //return new Thread(r, "CometWorker-"+counter.incrementAndGet());
-                        return new WorkerThreadImpl(null, "CometWorker-"+counter.incrementAndGet(), r, 0);
-                    }
-                }); */
-        
-        //ExecutorService tpe = threadPool = new DefaultExecutorService(4, 8, 30,
-              //  TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), "CometWorker-");
-        ExtendedThreadPool tpe = new com.sun.grizzly.util.FixedThreadPool(8,"CometWorker");
+        ExtendedThreadPool tpe = new FixedThreadPool(Runtime.getRuntime().availableProcessors(),"CometWorker");
         setThreadPool(tpe);
     }
 
