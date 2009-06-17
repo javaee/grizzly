@@ -337,7 +337,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (autoConfigure && readThreadsCount == -1){
             readThreadsCount = Runtime.getRuntime().availableProcessors();
             if( readThreadsCount > 0 )
-                requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
+                recalcRequiredThreadsCount();
             if (logger.isLoggable(Level.FINE)){
                 logger.fine("Controller auto-configured with 2 ReadController " +
                         "based on underlying cores/processors, with a Thread Pool " +
@@ -635,8 +635,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     public void setReadThreadsCount(int readThreadsCount) {
         this.readThreadsCount = readThreadsCount;
-        if( readThreadsCount > 0 )
-            requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
+        if( readThreadsCount > 0 ) recalcRequiredThreadsCount();
         ensureAppropriatePoolSize( threadPool );
     }
 
@@ -1227,4 +1226,10 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         this.autoConfigure = autoConfigure;
     }
 
+    private void recalcRequiredThreadsCount() {
+//        requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
+        final int selectorHandlersCount = selectorHandlers.size();
+        final int clonesNumber = (selectorHandlersCount > 0) ? selectorHandlersCount : 1;
+        requiredThreadsCount = clonesNumber * (readThreadsCount + 1) * 2;
+    }
 }
