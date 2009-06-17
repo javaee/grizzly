@@ -158,7 +158,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     /**
      * Required number of threads created by a {@link DefaultThreadPool}
      */
-    private int requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT;
+    private volatile int requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT;
     /**
      * A cached list of Context. Context are by default stateless.
      */
