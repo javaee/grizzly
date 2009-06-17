@@ -63,8 +63,8 @@ public class WorkerThreadStrategy implements Strategy {
      * CLOSED
      */
     private Executor[] executors;
-    private Executor sameThreadProcessorExecutor;
-    private Executor workerThreadProcessorExecutor;
+    private final Executor sameThreadProcessorExecutor;
+    private final Executor workerThreadProcessorExecutor;
 
     public WorkerThreadStrategy(Transport transport) {
         this(new CurrentThreadExecutor(), new WorkerThreadExecutor(transport));

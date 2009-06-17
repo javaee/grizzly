@@ -55,7 +55,6 @@ import com.sun.grizzly.CompletionHandlerAdapter;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ProcessorSelector;
-import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
 import com.sun.grizzly.nio.SelectionKeyHandler;
@@ -68,9 +67,9 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
 
     private volatile FutureImpl acceptListener;
     
-    private RegisterAcceptedChannelCompletionHandler defaultCompletionHandler;
+    private final RegisterAcceptedChannelCompletionHandler defaultCompletionHandler;
 
-    private AcceptorEventProcessorSelector acceptorSelector;
+    private final AcceptorEventProcessorSelector acceptorSelector;
     
     public TCPNIOServerConnection(TCPNIOTransport transport, 
             ServerSocketChannel serverSocketChannel) {
@@ -132,28 +131,6 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         return future;
     }
 
-    /**
-     * Check, if there are queued accept listeners. If yes - accept the
-     * connection and notify listener, otherwise do nothing.
-     * @return <tt>true</tt>, if connection was accepted,
-     *         <tt>false</tt> otherwise.
-     */
-    protected boolean tryAccept() throws IOException {
-        if (acceptListener == null) return false;
-
-        SocketChannel acceptedChannel = doAccept();
-        if (acceptedChannel == null) {
-            listen();
-            return false;
-        }
-
-        configureAcceptedChannel(acceptedChannel);
-        registerAcceptedChannel(acceptedChannel, acceptListener);
-        acceptListener = null;
-
-        return true;
-    }
-
     private SocketChannel doAccept() throws IOException {
         ServerSocketChannel serverChannel =
                 (ServerSocketChannel) getChannel();
@@ -210,9 +187,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
                 new AcceptorEventProcessor();
 
         public Processor select(IOEvent ioEvent, Connection connection) {
-            if (ioEvent == IOEvent.SERVER_ACCEPT &&
-                    !(transport.getProcessorSelector()
-                    instanceof StandaloneProcessorSelector)) {
+            if (ioEvent == IOEvent.SERVER_ACCEPT) {
                 return acceptorProcessor;
             }
 
@@ -239,7 +214,10 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
             }
 
             configureAcceptedChannel(acceptedChannel);
-            registerAcceptedChannel(acceptedChannel, null);
+            registerAcceptedChannel(acceptedChannel, acceptListener);
+
+            acceptListener = null;
+
             return null;
         }
 
@@ -292,5 +270,3 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         }
     }
 }
-    
-

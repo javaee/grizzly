@@ -155,6 +155,7 @@ public class StandaloneTest extends TestCase {
                         } catch (Throwable e) {
                             logger.log(Level.WARNING,
                                     "Error working with accepted connection", e);
+                            assertTrue("Error working with accepted connection", false);
                         } finally {
                             connection.close();
                         }
@@ -163,6 +164,7 @@ public class StandaloneTest extends TestCase {
                         if (!transport.isStopped()) {
                             logger.log(Level.WARNING,
                                     "Error accepting connection", e);
+                            assertTrue("Error accepting connection", false);
                         }
                     }
                 }

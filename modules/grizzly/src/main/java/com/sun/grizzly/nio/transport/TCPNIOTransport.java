@@ -651,10 +651,10 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 processWriteIoEvent(ioEvent, (TCPNIOConnection) connection,
                         strategyContext);
             } else {
-                if (ioEvent == IOEvent.SERVER_ACCEPT &&
-                        ((TCPNIOServerConnection) connection).tryAccept()) {
-                    return;
-                }
+//                if (ioEvent == IOEvent.SERVER_ACCEPT &&
+//                        ((TCPNIOServerConnection) connection).tryAccept()) {
+//                    return;
+//                }
 
                 Processor conProcessor = getConnectionProcessor(connection, ioEvent);
 
