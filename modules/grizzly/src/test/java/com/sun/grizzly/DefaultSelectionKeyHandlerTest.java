@@ -96,15 +96,12 @@ public class DefaultSelectionKeyHandlerTest extends TestCase {
                                      "keep alive was not active ..." );
             assertTrue( "Got the unexpected result, " +
                         "keep alive was not active ...", false );
-        } catch( EOFException e ) {
+        } catch( IOException ie ) {
             Controller.logger().log( Level.INFO,
                                      "Got the expected result, " +
                                      "keep alive was active ..." );
             assertTrue( "Got the expected result, " +
                         "keep alive was active ...", true );
-        } catch( IOException ie ) {
-            assertTrue( "Client reporting unexpected error: " +
-                        ie.toString(), false );
         }
     }
 
