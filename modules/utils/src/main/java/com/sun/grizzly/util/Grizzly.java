@@ -55,6 +55,7 @@ public class Grizzly {
     private static final String dotedVersion;
     private static final int major;
     private static final int minor;
+    private static final int micro;
     private static final String version;
 
     public static void main(String[] args) {
@@ -75,10 +76,12 @@ public class Grizzly {
             dotedVersion = matcher.group(1);
             major = Integer.parseInt(matcher.group(2));
             minor = Integer.parseInt(matcher.group(3));
+            micro = Integer.parseInt(matcher.group(4));
         } else {
             dotedVersion = "no.version";
             major = -1;
             minor = -1;
+            micro = -1;
         }
     }
 
@@ -116,6 +119,13 @@ public class Grizzly {
      */
     public static int getMinorVersion() {
         return minor;
+    }
+
+    /**
+     * Return the micro version
+     */
+    public static int getMicroVersion(){
+        return micro;
     }
 
     /**

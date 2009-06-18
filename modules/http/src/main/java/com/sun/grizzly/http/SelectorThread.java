@@ -1938,12 +1938,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     private void displayConfiguration(){
        if (displayConfiguration){
             logger.log(Level.INFO,
-                    "\n Grizzly configuration for port " 
-                    + port 
+                    "\n Grizzly running on " + System.getProperty("os.name") + "-" 
+                    + System.getProperty("os.version") + " under JDK version: "
+                    + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
+                    + "\n\t port: " + port
                     + "\n\t Thread Pool: "
                     + threadPool
                     + "\n\t Read Selector: "
-                    + readThreadsCount
+                    + (readThreadsCount == -1? Runtime.getRuntime().availableProcessors() : readThreadsCount)
                     + "\n\t ByteBuffer size: " 
                     + requestBufferSize                   
                     + "\n\t maxHttpHeaderSize: " 

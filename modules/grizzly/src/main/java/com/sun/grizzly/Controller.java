@@ -259,7 +259,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Flag, which indicates if {@link SelectorHandlerRunner} should use
      * Leader/Follower strategy.
      */
-    private boolean useLeaderFollowerStrategy = true;
+    private boolean useLeaderFollowerStrategy = false;
 
     /**
      * Enable/Disable auto-config.
@@ -746,7 +746,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (isStarted()) return;
 
         if (logger.isLoggable(Level.INFO)){
-            logger.info("Starting Grizzly " + Grizzly.getRawVersion() + " - " + (new Date()));
+            logger.info("Starting Grizzly Framework" + Grizzly.getRawVersion() + " - " + (new Date()));
         }
 
         stateHolder.getStateLocker().writeLock().lock();
