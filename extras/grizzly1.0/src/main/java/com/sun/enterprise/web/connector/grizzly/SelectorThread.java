@@ -2505,7 +2505,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     private void displayConfiguration(){
        if (displayConfiguration){
             logger.log(Level.INFO,
-                    "\n Grizzly running on " + System.getProperty("os.name") + "-"
+                    "\n Grizzly 1.0.30 running on " + System.getProperty("os.name") + "-"
                     + System.getProperty("os.version") + " under JDK version: "
                     + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
                     + "\n\t port: " + port
