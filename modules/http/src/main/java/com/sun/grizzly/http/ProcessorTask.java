@@ -646,6 +646,8 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
 
         do{
+            isProcessingCompleted = false;
+
             boolean exitWhile = parseRequest();
             if (handleKeepAliveBlockingThread && maxKeepAliveRequests > 0 && --keepAliveLeft == 0){
                 keepAlive = false;
@@ -654,7 +656,8 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             invokeAdapter();
             postResponse();
-        } while (!error && keepAlive && inputBuffer.available() > 0);
+        } while (!error && keepAlive &&
+                (handleKeepAliveBlockingThread || inputBuffer.available() > 0));
         return error;
     }
 

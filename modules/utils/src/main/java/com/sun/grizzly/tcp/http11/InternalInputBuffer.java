@@ -709,7 +709,7 @@ public class InternalInputBuffer implements InputBuffer {
      * processed. 
      */
     public int available(){
-        return lastValid;
+        return lastValid - pos;
     }
 
     // ---------------------------------------------------- InputBuffer Methods
