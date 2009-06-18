@@ -597,7 +597,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * running of this thread.
      */
     public void registerKey(SelectionKey key){
-        selectorHandler.register(key, SelectionKey.OP_READ);
+        selectorHandler.register(key.channel(), SelectionKey.OP_READ);
     } 
 
    // -------------------------------------------------------------- Init // 
