@@ -2505,36 +2505,29 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     private void displayConfiguration(){
        if (displayConfiguration){
             logger.log(Level.INFO,
-                    "\n Grizzly 1.0.29 configuration for port "
+                    "\n Grizzly running on " + System.getProperty("os.name") + "-"
+                    + System.getProperty("os.version") + " under JDK version: "
+                    + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
+                    + "\n\t port: " + port
                     + port 
                     + "\n\t maxThreads: " 
-                    + maxProcessorWorkerThreads 
-                    + "\n\t minThreads: " 
-                    + minWorkerThreads 
+                    + maxProcessorWorkerThreads  
                     + "\n\t ByteBuffer size: " 
                     + requestBufferSize 
                     + "\n\t useDirectByteBuffer: "
-                    + useDirectByteBuffer                       
-                    + "\n\t useByteBufferView: "                        
-                    + useByteBufferView                   
-                    + "\n\t maxHttpHeaderSize: " 
                     + maxHttpHeaderSize
                     + "\n\t maxKeepAliveRequests: "
                     + maxKeepAliveRequests
                     + "\n\t keepAliveTimeoutInSeconds: "
                     + keepAliveTimeoutInSeconds
                     + "\n\t Static File Cache enabled: "                        
-                    + isFileCacheEnabled                    
-                    + "\n\t Stream Algorithm : "                        
-                    + algorithmClassName        
+                    + isFileCacheEnabled                          
                     + "\n\t Pipeline : "                        
                     + pipelineClassName                    
                     + "\n\t Round Robin Selector Algorithm enabled: "                        
                     + ( multiSelectorsCount > 1 )
                     + "\n\t Round Robin Selector pool size: "
                     + multiSelectorsCount
-                    + "\n\t recycleTasks: "                        
-                    + recycleTasks
                     + "\n\t Asynchronous Request Processing enabled: " 
                     + asyncExecution); 
         }
