@@ -207,7 +207,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
                 }else{
                     selectorThread.cancelKey(processor.getSelectionKey());
                 }
-            }finally{
+            } finally{
                 processor.recycle();
                 selectorThread.returnTask(processor);
             }
