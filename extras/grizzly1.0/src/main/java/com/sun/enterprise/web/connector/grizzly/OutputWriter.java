@@ -42,6 +42,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.logging.Level;
 
 /**
  * NIO utility to flush <code>ByteBuffer</code>
@@ -73,15 +74,13 @@ public class OutputWriter {
     public static long flushChannel(SocketChannel socketChannel, 
             ByteBuffer bb, long writeTimeout) throws IOException{    
         
-        if (bb == null){
-            throw new IllegalStateException("Invalid Response State. ByteBuffer" 
-                    + " cannot be null.");
-        }
-        
-        if (socketChannel == null){
-            throw new IllegalStateException("Invalid Response State. " +
-                    "SocketChannel cannot be null.");
-        }    
+        if (bb == null || socketChannel == null){
+            if (SelectorThread.logger().isLoggable(Level.FINE)){
+                SelectorThread.logger().log(Level.FINE,"Invalid Response State " + bb
+                       + "SocketChannel cannot be null." + socketChannel);
+            }
+            return -1;
+        }  
 
         SelectionKey key = null;
         Selector writeSelector = null;
