@@ -57,7 +57,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     /**
      * The maximum time this object can be associated with an active {@link Thread}
      */
-    private long activeThreadTimeout;
+    private long activeThreadTimeout = UNLIMITED_TIMEOUT;
 
     public static class Mode {
         public static int ATTRIBUTES_ONLY = 0;
