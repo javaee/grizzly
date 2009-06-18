@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly;
 
 import java.io.IOException;
@@ -65,17 +64,16 @@ public class ReadController extends Controller {
      */
     public SelectorHandler getSelectorHandlerClone(SelectorHandler selectorHandler) {
         Iterator<SelectorHandler> it = selectorHandlers.iterator();
-        while(it.hasNext()) {
+        while (it.hasNext()) {
             SelectorHandler cloneSelectorHandler = it.next();
             if (cloneSelectorHandler.getStateHolder() == selectorHandler.getStateHolder()) {
                 return cloneSelectorHandler;
             }
         }
-        
+
         return null;
     }
 
-    
     /**
      * Removes {@link SelectorHandler}'s clone, registered 
      * on this{@link ReadController}
@@ -83,12 +81,12 @@ public class ReadController extends Controller {
      * @param selectorHandler
      */
     public void removeSelectorHandlerClone(SelectorHandler selectorHandler) {
-         SelectorHandler cloneSelectorHandler = getSelectorHandlerClone(selectorHandler);
-         if (cloneSelectorHandler != null) {
-                removeSelectorHandler(cloneSelectorHandler);
+        SelectorHandler cloneSelectorHandler = getSelectorHandlerClone(selectorHandler);
+        if (cloneSelectorHandler != null) {
+            removeSelectorHandler(cloneSelectorHandler);
         }
     }
-    
+
     /**
      * Add a {@link Channel}
      * to be processed by{@link ReadController}'s
@@ -100,7 +98,7 @@ public class ReadController extends Controller {
     public void addChannel(SelectableChannel channel, SelectorHandler selectorHandler) {
         selectorHandler.register(channel, SelectionKey.OP_READ);
     }
-    
+
     /**
      * Start the Controller. If the thread pool and/or Handler has not been
      * defined, the default will be used.

@@ -136,7 +136,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     private int pendingIOlimitPerThread = 100;
 
     /**
-     * True if selector thread should execute the pendingIO events.<br>
+     * True if selector thread should execute the pendingIO events.
      */
     private boolean executePendingIOinSelectorThread;
 
