@@ -112,7 +112,7 @@ public class SSLAsyncQueueWriterTest extends TestCase {
         SSLConfig.DEFAULT_CONFIG = sslConfig;
     }
 
-    public void __testSeveralPackets() throws IOException {
+    public void testSeveralPackets() throws IOException {
         final Controller controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
         ControllerUtils.startController(controller);
         try {
