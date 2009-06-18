@@ -259,7 +259,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Flag, which indicates if {@link SelectorHandlerRunner} should use
      * Leader/Follower strategy.
      */
-    private boolean useLeaderFollowerStrategy = false;
+    private boolean useLeaderFollowerStrategy = true;
 
     /**
      * Enable/Disable auto-config.
