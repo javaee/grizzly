@@ -100,6 +100,7 @@ public class AsyncReadTask extends DefaultReadTask {
      * @return false if the request wasn't fully read by the channel.
      *         so we need to respin the key on the Selector.
      */
+    @Override
     public boolean executeProcessorTask() throws IOException{                  
         boolean registerKey = false;
         
@@ -170,7 +171,7 @@ public class AsyncReadTask extends DefaultReadTask {
      */
     public void terminate(boolean keepAlive){     
         if (keepAlive){
-            detachProcessor();        
+            processorTask.recycle(); 
             registerKey(); 
             returnTask();
         } else {
