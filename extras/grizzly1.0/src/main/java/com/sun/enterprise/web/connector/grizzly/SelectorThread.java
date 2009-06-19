@@ -2509,7 +2509,6 @@ public class SelectorThread extends Thread implements MBeanRegistration{
                     + System.getProperty("os.version") + " under JDK version: "
                     + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
                     + "\n\t port: " + port
-                    + port 
                     + "\n\t maxThreads: " 
                     + maxProcessorWorkerThreads  
                     + "\n\t ByteBuffer size: " 
