@@ -43,6 +43,9 @@ import com.sun.grizzly.util.WorkerThreadImpl;
 
 import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.ThreadAttachment;
+import com.sun.grizzly.util.Interceptor;
+import com.sun.grizzly.standalone.StaticHandler;
+
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -133,5 +136,16 @@ public class HttpWorkerThread extends WorkerThreadImpl {
             threadAttachment.associate();
         }
         return threadAttachment;
+    }
+
+    @Override
+    public void reset() {
+        if( streamAlgorithm != null ) {
+            Interceptor handler = streamAlgorithm.getHandler();
+            if( handler instanceof StaticHandler ) {
+                ((StaticHandler) handler).reset();
+            }
+        }
+        super.reset();
     }
 }
