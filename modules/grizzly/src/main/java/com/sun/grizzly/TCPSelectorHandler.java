@@ -308,6 +308,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             copyHandler.setSelectionKeyHandler(Cloner.clone(selectionKeyHandler));
         }
 
+        copyHandler.instanceHandler = instanceHandler;
         copyHandler.attributes = attributes;
         copyHandler.selectTimeout = selectTimeout;
         copyHandler.serverTimeout = serverTimeout;
