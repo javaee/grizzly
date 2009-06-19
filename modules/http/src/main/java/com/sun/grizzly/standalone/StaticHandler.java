@@ -160,4 +160,9 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
         }
         return -1;
     }
+
+    public void reset() {
+        fileCache = null;
+        socketChannel = null;
+    }
 }
