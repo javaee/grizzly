@@ -35,6 +35,7 @@
                         <Export-Package>
                             com.sun.enterprise.web.connector.grizzly,
                             com.sun.enterprise.web.connector.grizzly.algorithms,
+                            com.sun.enterprise.web.connector.grizzly.handlers,
                             com.sun.enterprise.web.connector.grizzly.async,
                             com.sun.enterprise.web.connector.grizzly.blocking,
                             com.sun.enterprise.web.connector.grizzly.comet,

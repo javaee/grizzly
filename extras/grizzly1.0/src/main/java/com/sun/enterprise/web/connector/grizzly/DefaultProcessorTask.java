@@ -736,7 +736,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
             if ( handler != null && 
                     handler.handle(request,Handler.REQUEST_LINE_PARSED)
                         == Handler.BREAK){
-                keepAlive = keepAlive(request);
+                keepAlive(request.getMimeHeaders());
                 return true;
             }
 
@@ -1134,12 +1134,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
 
     // ------------------------------------------------------ Protected Methods
 
-
-    /**
-     * After reading the request headers, we have to setup the request filters.
-     */
-    protected void prepareRequest() {
-
+    void keepAlive(MimeHeaders headers){
         http11 = true;
         http09 = false;
         contentDelimitation = false;
@@ -1166,15 +1161,36 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
             // Send 505; Unsupported HTTP version
             response.setStatus(505);
         }
-        
+
+        // Check connection header
+        MessageBytes connectionValueMB = headers.getValue("connection");
+        if (connectionValueMB != null) {
+            ByteChunk connectionValueBC = connectionValueMB.getByteChunk();
+            if (findBytes(connectionValueBC, Constants.CLOSE_BYTES) != -1) {
+                keepAlive = false;
+                connectionHeaderValueSet = false;
+            } else if (findBytes(connectionValueBC,
+                                 Constants.KEEPALIVE_BYTES) != -1) {
+                keepAlive = true;
+                connectionHeaderValueSet = true;
+            }
+        }
+    }
+
+    /**
+     * After reading the request headers, we have to setup the request filters.
+     */
+    protected void prepareRequest() {
+
         MessageBytes methodMB = request.method();
         if (methodMB.equals(Constants.GET)) {
             methodMB.setString(Constants.GET);
         } else if (methodMB.equals(Constants.POST)) {
             methodMB.setString(Constants.POST);
         }
-
         MimeHeaders headers = request.getMimeHeaders();
+
+        keepAlive(headers);
 
         // Check connection header
         MessageBytes connectionValueMB = headers.getValue("connection");
@@ -2233,25 +2249,6 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     public boolean getDisableUploadTimeout() {
         return disableUploadTimeout;
     }
-    
-    /**
-     * Get the keep-alive header.
-     */
-    private boolean keepAlive(Request request){
-        MimeHeaders headers = request.getMimeHeaders();
-
-        // Check connection header
-        MessageBytes connectionValueMB = headers.getValue("connection");
-        if (connectionValueMB != null) {
-            ByteChunk connectionValueBC = connectionValueMB.getByteChunk();
-            if (findBytes(connectionValueBC, Constants.CLOSE_BYTES) != -1) {
-                return false;
-            } else if (findBytes(connectionValueBC, 
-                                 Constants.KEEPALIVE_BYTES) != -1) {
-                return true;
-            }
-        }
-        return true;
-    }    
+     
 }
 

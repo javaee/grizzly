@@ -39,6 +39,7 @@ import com.sun.enterprise.web.connector.grizzly.Constants;
 import com.sun.enterprise.web.connector.grizzly.FileCacheFactory;
 import com.sun.enterprise.web.connector.grizzly.Handler;
 import com.sun.enterprise.web.connector.grizzly.FileCache;
+import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
@@ -89,47 +90,12 @@ public class NoParsingHandler implements Handler<Request> {
      * Intercept the request and decide if we cache the static resource. If the
      * static resource is already cached, return it.
      */
-    public int handle(Request request, int handlerCode) throws IOException{
-        if ( socketChannel == null || !FileCacheFactory.isEnabled())
-            return Handler.CONTINUE;
-                
-        // If not initialized, dont' continue
-        if ( fileCache == null && handlerCode != Handler.RESPONSE_PROCEEDED){
-             return Handler.CONTINUE;  
-        }
-        
-        if ( handlerCode == Handler.RESPONSE_PROCEEDED ){
-//            CoyoteRequest cr = 
-//                (CoyoteRequest)request.getNote(CoyoteAdapter.ADAPTER_NOTES);
-//            // We can cache it only if no security constraint and no
-//            // filter have been defined.
-//            if ( cr != null && cr.getWrapper() != null){
-//
-//                String mappedServlet = cr.getWrapper().getName();
-//                
-//                if ( !mappedServlet.equals(FileCache.DEFAULT_SERVLET_NAME) ) 
-//                    return Handler.CONTINUE;
-//                
-//                if ( cr.getContext().findConstraints().length == 0 ){
-//
-//                    if (!fileCache.isEnabled()) return Handler.CONTINUE;  
-//                    
-//                    String docroot;
-//                    if ( cr.getContextPath().equals("") ){
-//                        docroot = cr.getContext().getDocBase();
-//                    } else {
-//                        docroot = SelectorThread.getWebAppRootPath();
-//                    }
-//                    String requestURI = cr.getRequestURI();
-//                    Response response = cr.getCoyoteRequest().getResponse();  
-//                    MimeHeaders headers = response.getMimeHeaders();
-//                    boolean xPoweredBy = (
-//                            (CoyoteConnector)cr.getConnector()).isXpoweredBy();
-//
-//                    fileCache.add(mappedServlet,docroot,requestURI,headers, 
-//                            xPoweredBy);
-//                }
-//            }       
+    public int handle(Request request, int handlerCode) throws IOException{     
+        if (handlerCode == Handler.RESPONSE_PROCEEDED && fileCache.isEnabled()){
+            String docroot = SelectorThread.getWebAppRootPath();
+            String uri = request.requestURI().toString();
+            fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,uri,
+                          request.getResponse().getMimeHeaders(),false);
         } else if ( handlerCode == Handler.HEADERS_PARSED ) {
             ByteChunk bc = request.requestURI().getByteChunk();
             
@@ -159,7 +125,7 @@ public class NoParsingHandler implements Handler<Request> {
                 return true;
             }
         }
-        return true;
+        return false;
     }
     
     
