@@ -274,7 +274,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
     private long lastSpinTimestamp;
     private int emptySpinCounter;
-    
+
     public TCPSelectorHandler(){
         this(Role.CLIENT_SERVER);
     }
@@ -398,14 +398,12 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
                 serverSocketChannel.configureBlocking(false);
                 serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
+
+                serverSocket.setSoTimeout(serverTimeout);
             }
             ctx.getController().notifyReady();
         } catch (SocketException ex){
             throw new BindException(ex.getMessage() + ": " + port + "=" + this);
-        }
-
-        if (role != Role.CLIENT){
-            serverSocket.setSoTimeout(serverTimeout);
         }
     }
 
@@ -532,7 +530,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                         }else{
                             ((Runnable)obj).run();
                         }
-                    }catch(Throwable t){                        
+                    }catch(Throwable t){
                         logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
                     }
                 }
@@ -568,7 +566,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * Register a SelectionKey to this Selector.<br>
      * Storing each interest type in different queues removes the need of wrapper (SelectionKeyOP)
      * while lowering thread contention due to the load is spread out on different queues.
-     * 
+     *
      * @param key
      * @param ops
      */
@@ -596,7 +594,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         opToRegister.offer(new SelectionKeyOP(null,ops,channel));
         wakeUp();
     }
-    
+
     /**
      * Workaround for NIO issue 6524172
      */
@@ -618,23 +616,23 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     protected void connect(SocketAddress remoteAddress, SocketAddress localAddress,
             CallbackHandler callbackHandler) throws IOException {
-
-        SocketChannel socketChannel = SocketChannel.open();
-        socketChannel.socket().setReuseAddress(reuseAddress);
-        if (localAddress != null) {
-            socketChannel.socket().bind(localAddress);
-        }
-
-        socketChannel.configureBlocking(false);
-
+        SelectableChannel selectableChannel = getSelectableChannel( remoteAddress, localAddress );
         SelectionKeyOP.ConnectSelectionKeyOP keyOP = new ConnectSelectionKeyOP();
-
         keyOP.setOp(SelectionKey.OP_CONNECT);
-        keyOP.setChannel(socketChannel);
+        keyOP.setChannel(selectableChannel);
         keyOP.setRemoteAddress(remoteAddress);
         keyOP.setCallbackHandler(callbackHandler);
         opToRegister.offer(keyOP);
         wakeUp();
+    }
+
+    protected SelectableChannel getSelectableChannel( SocketAddress remoteAddress, SocketAddress localAddress ) throws IOException {
+        SocketChannel newSocketChannel = SocketChannel.open();
+        newSocketChannel.socket().setReuseAddress( reuseAddress );
+        if( localAddress != null )
+            newSocketChannel.socket().bind( localAddress );
+        newSocketChannel.configureBlocking( false );
+        return newSocketChannel;
     }
 
     /**
@@ -692,16 +690,20 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         }
 
         try{
-            if (serverSocket != null)
+            if (serverSocket != null) {
                 serverSocket.close();
+                serverSocket = null;
+            }
         } catch (Throwable ex){
             Controller.logger().log(Level.SEVERE,
                     "serverSocket.close",ex);
         }
 
         try{
-            if (serverSocketChannel != null)
+            if (serverSocketChannel != null) {
                 serverSocketChannel.close();
+                serverSocketChannel = null;
+            }
         } catch (Throwable ex){
             Controller.logger().log(Level.SEVERE,
                     "serverSocketChannel.close",ex);
@@ -846,7 +848,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         // Added because of incompatibility with Grizzly 1.6.0
         context.setSelectorHandler(this);
 
-        CallbackHandlerContextTask task = 
+        CallbackHandlerContextTask task =
                 context.getCallbackHandlerContextTask(callbackHandler);
         boolean isRunInSeparateThread = true;
 
@@ -1269,14 +1271,14 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @return {@link Context}
      */
     protected NIOContext pollContext(final Context serverContext,
-            final SelectionKey key, final Context.OpType opType) {      
+            final SelectionKey key, final Context.OpType opType) {
         Controller c = serverContext.getController();
         ProtocolChain protocolChain = instanceHandler != null ?
             instanceHandler.poll() :
             c.getProtocolChainInstanceHandler().poll();
 
         final NIOContext context = (NIOContext)c.pollContext();
-        c.configureContext(key, opType, context, this);      
+        c.configureContext(key, opType, context, this);
         context.setProtocolChain(protocolChain);
         return context;
     }
@@ -1380,7 +1382,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * {@inheritDoc}
      */
     public void resetSpinCounter(){
-        emptySpinCounter  = 0;       
+        emptySpinCounter  = 0;
     }
 
     /**
