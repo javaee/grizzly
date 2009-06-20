@@ -38,11 +38,9 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.SelectionKeyOP.ConnectSelectionKeyOP;
 import com.sun.grizzly.async.UDPAsyncQueueReader;
 import com.sun.grizzly.async.UDPAsyncQueueWriter;
 import com.sun.grizzly.util.Copyable;
-import com.sun.grizzly.util.State;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.DatagramSocket;
@@ -138,9 +136,9 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
                     ConcurrentQueueDelegateCIH(
                     getConnectorInstanceHandlerDelegate());
 
-            datagramChannel = DatagramChannel.open();
             selector = Selector.open();
             if (role != Role.CLIENT){
+                datagramChannel = DatagramChannel.open();
                 datagramSocket = datagramChannel.socket();
                 datagramSocket.setReuseAddress(reuseAddress);
                 if (inet == null)
@@ -159,35 +157,14 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
         }
     }
 
-    
-    /**
-     * Register a CallBackHandler to this Selector.
-     *
-     * @param remoteAddress remote address to connect
-     * @param localAddress local address to bin
-     * @param callbackHandler {@link CallbackHandler}
-     * @throws java.io.IOException
-     */
     @Override
-    protected void connect(SocketAddress remoteAddress, SocketAddress localAddress,
-            CallbackHandler callbackHandler) throws IOException {
-
+    protected SelectableChannel getSelectableChannel( SocketAddress remoteAddress, SocketAddress localAddress ) throws IOException {
         DatagramChannel newDatagramChannel = DatagramChannel.open();
-        newDatagramChannel.socket().setReuseAddress(reuseAddress);
-        if (localAddress != null) {
-            newDatagramChannel.socket().bind(localAddress);
-        }
-
-        newDatagramChannel.configureBlocking(false);
-
-        SelectionKeyOP.ConnectSelectionKeyOP keyOP = new ConnectSelectionKeyOP();
-
-        keyOP.setOp(SelectionKey.OP_CONNECT);
-        keyOP.setChannel(newDatagramChannel);
-        keyOP.setRemoteAddress(remoteAddress);
-        keyOP.setCallbackHandler(callbackHandler);
-        opToRegister.offer(keyOP);
-        selector.wakeup();
+        newDatagramChannel.socket().setReuseAddress( reuseAddress );
+        if( localAddress != null )
+            newDatagramChannel.socket().bind( localAddress );
+        newDatagramChannel.configureBlocking( false );
+        return newDatagramChannel;
     }
 
     /**
@@ -196,19 +173,19 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
     @Override
     protected void onConnectOp(Context ctx, 
             SelectionKeyOP.ConnectSelectionKeyOP selectionKeyOp) throws IOException {
-        DatagramChannel newDatagramChannel = (DatagramChannel) selectionKeyOp.getChannel();
+        DatagramChannel datagramChannel = (DatagramChannel) selectionKeyOp.getChannel();
         SocketAddress remoteAddress = selectionKeyOp.getRemoteAddress();
         CallbackHandler callbackHandler = selectionKeyOp.getCallbackHandler();
 
         CallbackHandlerSelectionKeyAttachment attachment =
                 new CallbackHandlerSelectionKeyAttachment(callbackHandler);
 
-        SelectionKey key = newDatagramChannel.register(selector,
+        SelectionKey key = datagramChannel.register(selector,
                 SelectionKey.OP_READ | SelectionKey.OP_WRITE, attachment);
         attachment.associateKey(key);
 
         try {
-            newDatagramChannel.connect(remoteAddress);
+            datagramChannel.connect(remoteAddress);
         } catch(Exception e) {
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "Exception occured when tried to connect datagram channel", e);
@@ -224,43 +201,25 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
      */
     @Override
     public void shutdown(){
-        // If shutdown was called for this SelectorHandler
-        if (isShutDown.getAndSet(true)) return;
-
-        stateHolder.setState(State.STOPPED);
-        
+        super.shutdown();
         try {
-            if ( datagramSocket != null )
+            if ( datagramSocket != null ) {
                 datagramSocket.close();
+                datagramSocket = null;
+            }
         } catch (Throwable ex){
             Controller.logger().log(Level.SEVERE,
                     "closeSocketException",ex);
         }
 
         try{
-            if ( datagramChannel != null)
+            if ( datagramChannel != null) {
                 datagramChannel.close();
+                datagramChannel = null;
+            }
         } catch (Throwable ex){
             Controller.logger().log(Level.SEVERE,
                     "closeSocketException",ex);
-        }
-
-        try{
-            if ( selector != null)
-                selector.close();
-        } catch (Throwable ex){
-            Controller.logger().log(Level.SEVERE,
-                    "closeSocketException",ex);
-        }
-        
-        if (asyncQueueReader != null) {
-            asyncQueueReader.close();
-            asyncQueueReader = null;
-        }
-
-        if (asyncQueueWriter != null) {
-            asyncQueueWriter.close();
-            asyncQueueWriter = null;
         }
     }
     
