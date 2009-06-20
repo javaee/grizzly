@@ -91,6 +91,7 @@ public class GrizzlyWebServerDeployer {
     
     private GrizzlyWebServer ws = null;
     
+    private String autodeployFolder;
     private String locations;
     private String webxmlPath;
     private String libraryPath;
@@ -117,9 +118,14 @@ public class GrizzlyWebServerDeployer {
 
     }
     
-    private void deployWar(String location) throws Exception {
+    private void deployWar(String location, String context) throws Exception {
         webxmlPath = appendWarContentToClassPath(location);
-        deploy(webxmlPath, getContext(webxmlPath), webxmlPath + WEB_XML_PATH);
+        
+        if(context==null){
+    		context = getContext(webxmlPath);
+    	}
+        
+        deploy(webxmlPath, context, webxmlPath + WEB_XML_PATH);
     }
     
     private void deployServlet(String location) throws Exception{
@@ -163,23 +169,17 @@ public class GrizzlyWebServerDeployer {
                     return true;
                 } else {
 
-                    // we can have 2 options. First, this folder contains a
-                    // WEB-INF
-                    // Second : contains only folder possibly webapps
+                	// check if it's a expanded folder
+                    // and it doesn't need to contains a web.xml
+                    // a php application could be deployed
+                    File file = new File(dir + File.separator + name);
 
-                    // Option1
-                    if (name.equals("WEB-INF")) {
+                    if ((file.exists() && file.isDirectory())) {
                         return true;
                     } else {
-                        // Option2
-                        File file = new File(dir + File.separator + name + File.separator + "WEB-INF");
-
-                        if ((file.exists() && file.isDirectory())) {
-                            return true;
-                        }
+                    	return false;
                     }
 
-                    return false;
                 }
 
             }
@@ -236,12 +236,13 @@ public class GrizzlyWebServerDeployer {
 				deployApplication(location[i]);
 			}
     	}
+    	
     }
     
     private void deployApplication(String location) throws Exception{
     	// #1
         if (location.endsWith(".war")) {
-            deployWar(location);
+            deployWar(location, getForcedContext());
             return;
         }
 
@@ -256,52 +257,57 @@ public class GrizzlyWebServerDeployer {
         //obtain the list of potential war to deploy
         Map<String, File> fileList = getFile(location);
         
-        for (File file : fileList.values()) {
-        	
-            if (file.getName().endsWith(".war")) {
-            	deployWar(file.getPath());
-            } else {
-                /*
-                 * we could have these cases
-                 *
-                 * folder contains multiple expanded war or servlet
-                 * 
-                 * classes/
-				 * jmaki-comet/
-				 * jmaki-comet2.war
-				 * web.xml
-                 * 
-                 * In this case, we have 1 web.xml (servlet), 1 expanded war and 1 war file
-                 * 
-                 * The 3 of them will be loaded. 
-                 */
-
-                // #4 : this folder in a expanded war
-                File webxmlFile = new File(location + File.separator + WEB_XML_PATH);
-
-                if (webxmlFile.exists()) {
-                	deployExpandedWar(location + File.separator);
-                } else {
-
-                    // #2 : this folder contains a servlet
-                    File webxmlFile2 = new File(location + File.separator + "web.xml");
-
-                    if (webxmlFile2.exists()) {
-                        // this one..see #2
-                    	deployServlet(webxmlFile2.getPath());
-                    } else {
-
-                        // this folder contains multiple war or webapps
-                        File webapp = new File(file.getPath() + File.separator + WEB_XML_PATH);
-
-                        if (webapp.exists()) {
-                        	deployExpandedWar(file.getPath() + File.separator);
-                        }
-
-                    }
-                }
-            }
-
+        if(fileList!=null){
+	        for (File file : fileList.values()) {
+	        	
+	            if (file.getName().endsWith(".war")) {
+	            	deployWar(file.getPath(), null);
+	            } else {
+	                /*
+	                 * we could have these cases
+	                 *
+	                 * folder contains multiple expanded war or servlet
+	                 * 
+	                 * classes/
+					 * jmaki-comet/
+					 * jmaki-comet2.war
+					 * web.xml
+	                 * 
+	                 * In this case, we have 1 web.xml (servlet), 1 expanded war and 1 war file
+	                 * 
+	                 * The 3 of them will be loaded. 
+	                 */
+	
+	                // #4 : this folder in a expanded war
+	                File webxmlFile = new File(location + File.separator + WEB_XML_PATH);
+	
+	                if (webxmlFile.exists()) {
+	                	deployExpandedWar(location + File.separator);
+	                } else {
+	
+	                    // #2 : this folder contains a servlet
+	                    File webxmlFile2 = new File(location + File.separator + "web.xml");
+	
+	                    if (webxmlFile2.exists()) {
+	                        // this one..see #2
+	                    	deployServlet(webxmlFile2.getPath());
+	                    } else {
+	
+	                        // this folder contains multiple war or webapps
+	                        File webapp = new File(file.getPath() + File.separator + WEB_XML_PATH);
+	
+	                        if (webapp.exists()) {
+	                        	deployExpandedWar(file.getPath() + File.separator);
+	                        } else {
+	                        	// not a webapp with web.xml, maybe a php application
+	                        	deployCustom(file.getPath() + File.separator);
+	                        }
+	
+	                    }
+	                }
+	            }
+	
+	        }
         }
     }
 
@@ -381,7 +387,7 @@ public class GrizzlyWebServerDeployer {
         		// do we have something like : /a.cdcdcd or /* or /*.abc
         		if(index==0){
         			return "/";
-        		} else {
+        		} else if(index>0){
 	            	//remove the urlpattern
 	            	if(index<path.length()){
 	            		path = path.substring(0,index);
@@ -405,7 +411,7 @@ public class GrizzlyWebServerDeployer {
     	ConcurrentMap<ServletAdapter, List<String>> servletAdapterMap = new ConcurrentHashMap<ServletAdapter, List<String>>();
     	
     	// validate if we have servletMapping
-    	if(webApp.getServletMapping()==null || webApp.getServletMapping().isEmpty()){
+    	if(webApp==null || webApp.getServletMapping()==null || webApp.getServletMapping().isEmpty()){
     		ServletAdapter sa = new ServletAdapter();
     		
     		sa.setContextPath(context);
@@ -467,76 +473,131 @@ public class GrizzlyWebServerDeployer {
         
         return servletAdapterMap;
     }
-
+    
+    /**
+     * 
+     * @param context 
+     * @return the root folder 
+     */
+    private String getRootFolder(String location, String context){
+    	if(location==null || context==null){
+    		return location;
+    	}
+    	
+    	location = location.replaceAll("[/\\\\]+", "\\" + "/");
+    	location = location.replaceAll("\\\\", "\\" + "/");
+    	
+    	int index = location.lastIndexOf(context);
+    	
+    	if(index>-1){
+    		location = location.substring(0,index);
+    	}
+    	
+    	return location;
+    }
+    
+    protected void deployCustom(String location) throws Exception {
+        webxmlPath = appendWarContentToClassPath(location);
+        
+        String context = getContext(webxmlPath);
+        String root = getRootFolder(location, context);
+        
+        deploy(root, context, root + context);
+    }
+    
     public void deploy(String rootFolder, String context, String path) throws Exception {
     	
-        if (logger.isLoggable(Level.INFO)) {
+    	if (logger.isLoggable(Level.INFO)) {
             logger.log(Level.INFO, "Will deploy application path=" + path);
         }
-        
-        // extract the items from the web.xml
-        WebApp webApp = extractWebxmlInfo(path);
-
-        if (webApp == null) {
-            throw new Exception("invalid");
+    	
+    	// deploy default
+        List<WebApp> webAppList = getDefaultSupportWebApp();
+    	
+        if(webAppList==null){
+        	webAppList = new ArrayList<WebApp>();
         }
-
-        // obtain a servletAdapter list
-        ConcurrentMap<ServletAdapter, List<String>> servletAdapterList = getServletAdapterList(webApp, context);
         
+        WebApp webApp = null;
         
+        if(path!=null && path.toLowerCase().endsWith(".xml")){
+			try {
+				webApp = extractWebxmlInfo(path);
+				webAppList.add(webApp);
+			} catch (Exception e) {
+				logger.log(Level.INFO, "Not a valid WebApp, will be ignored : path=" + path);
+			}
+        }
+       
+        
+        boolean blankContextServletPathFound = false;
         boolean defaultContextServletPathFound = false;
         
-        for (ServletAdapter sa : servletAdapterList.keySet()) {
-        	
-            // set Filters for this context if there are some
-            setFilters(webApp, sa);
+        List<String> aliasesUsed = new ArrayList<String>();
+        
+        for (WebApp webApp2 : webAppList) {
+        	// obtain a servletAdapter list
+            ConcurrentMap<ServletAdapter, List<String>> servletAdapterList = getServletAdapterList(webApp2, context);
+            
+            
+            for (ServletAdapter sa : servletAdapterList.keySet()) {
+            	
+                // set Filters for this context if there are some
+                setFilters(webApp2, sa);
 
-            // set Listeners
-            setListeners(webApp, sa);
-            
-            //set root Folder
-            if(rootFolder!=null){
-            	rootFolder = rootFolder.replaceAll("[/\\\\]+", "\\" + "/");
-            	rootFolder = rootFolder.replaceAll("\\\\", "\\" + "/");
-            	sa.setRootFolder(rootFolder);
-            }
-            
-            sa.setHandleStaticResources(true);
-            
-            // create the alias array from the list of urlPattern
-            String alias[] = getAlias(sa, servletAdapterList.get(sa));
-            
-            if(alias==null){
-            	alias = new String[]{DEFAULT_CONTEXT};
-            }
-            
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.log(Level.FINEST, "sa context=" + sa.getContextPath());
-                logger.log(Level.FINEST, "sa servletPath=" + sa.getServletPath());
+                // set Listeners
+                setListeners(webApp2, sa);
                 
-                StringBuffer sb = new StringBuffer();
-                sb.append("[");
-                for (String item : alias) {
-					sb.append(item).append(",");
-				}
-                sb.deleteCharAt(sb.length()-1);
-                sb.append("]");
-                logger.log(Level.FINEST, "sa alias=" + sb.toString());
-                logger.log(Level.FINEST, "sa rootFolder=" + sa.getRootFolder());
-            }
-            
-			SelectorThread.setWebAppRootPath(rootFolder);
-            
-			// keep trace of deployed application
-			deployedApplicationList.add(context);
-			
-            ws.addGrizzlyAdapter(sa, alias);
-            
-            if(DEFAULT_CONTEXT.equals(sa.getServletPath())){
-            	defaultContextServletPathFound=true;
-            }
-            
+                //set root Folder
+                if(rootFolder!=null){
+                	rootFolder = rootFolder.replaceAll("[/\\\\]+", "\\" + "/");
+                	rootFolder = rootFolder.replaceAll("\\\\", "\\" + "/");
+                	sa.setRootFolder(rootFolder);
+                }
+                
+                sa.setHandleStaticResources(false);
+                
+                // create the alias array from the list of urlPattern
+                String alias[] = getAlias(sa, servletAdapterList.get(sa));
+                
+                if(alias==null){
+                	alias = new String[]{DEFAULT_CONTEXT};
+                }
+                
+                if (logger.isLoggable(Level.FINEST)) {
+                    logger.log(Level.FINEST, "sa context=" + sa.getContextPath());
+                    logger.log(Level.FINEST, "sa servletPath=" + sa.getServletPath());
+                    
+                    StringBuffer sb = new StringBuffer();
+                    sb.append("[");
+                    for (String item : alias) {
+    					sb.append(item).append(",");
+    				}
+                    sb.deleteCharAt(sb.length()-1);
+                    sb.append("]");
+                    logger.log(Level.FINEST, "sa alias=" + sb.toString());
+                    logger.log(Level.FINEST, "sa rootFolder=" + sa.getRootFolder());
+                }
+                
+    			// keep trace of deployed application
+    			deployedApplicationList.add(context);
+    			
+    			// keep trace of mapping 
+    			aliasesUsed.addAll(Arrays.asList(alias));
+    			
+                ws.addGrizzlyAdapter(sa, alias);
+                
+                if(DEFAULT_CONTEXT.equals(sa.getServletPath())){
+                	defaultContextServletPathFound=true;
+                }
+                
+                if("".equals(sa.getServletPath())){
+                	blankContextServletPathFound=true;
+                }
+                
+                
+                
+    		}
 		}
         
         // we need one servlet that will handle "/"
@@ -549,14 +610,46 @@ public class GrizzlyWebServerDeployer {
     		sa2.setServletPath("/");
     		sa2.setHandleStaticResources(true);
 			sa2.setRootFolder(rootFolder);
+			
+			if (logger.isLoggable(Level.FINEST)) {
+                logger.log(Level.FINEST, "sa context=" + sa2.getContextPath());
+                logger.log(Level.FINEST, "sa servletPath=" + sa2.getServletPath());
+                
+                logger.log(Level.FINEST, "sa alias=" + context+DEFAULT_CONTEXT);
+                logger.log(Level.FINEST, "sa rootFolder=" + sa2.getRootFolder());
+            }
     		
     		ws.addGrizzlyAdapter(sa2, new String[]{context+DEFAULT_CONTEXT});
 		}
-        
+	
+		// pour les jsp dans le root du context
+		if(!blankContextServletPathFound && !aliasesUsed.contains(context+DEFAULT_CONTEXT)){
+			logger.log(Level.FINEST, "Adding a ServletAdapter to handle root path");
+			
+			ServletAdapter sa2 = new ServletAdapter();
+    		
+    		sa2.setContextPath(context);
+    		sa2.setServletPath("");
+    		sa2.setHandleStaticResources(true);
+			sa2.setRootFolder(rootFolder);
+			
+			if (logger.isLoggable(Level.FINEST)) {
+                logger.log(Level.FINEST, "sa context=" + sa2.getContextPath());
+                logger.log(Level.FINEST, "sa servletPath=" + sa2.getServletPath());
+                
+                logger.log(Level.FINEST, "sa alias=" + context+DEFAULT_CONTEXT);
+                logger.log(Level.FINEST, "sa rootFolder=" + sa2.getRootFolder());
+            }
+    		
+    		ws.addGrizzlyAdapter(sa2, new String[]{context+DEFAULT_CONTEXT});
+    		
+		}
+		
         if (logger.isLoggable(Level.INFO)) {
             logger.log(Level.INFO, "deployed application path=" + path);
         }
         
+		
     }
     
     /**
@@ -577,7 +670,7 @@ public class GrizzlyWebServerDeployer {
         	
         	String mapping = "";
         	
-        	if(!sa.getServletPath().equals(urlPattern)){
+        	if(!sa.getServletPath().equals(urlPattern) && urlPattern.indexOf(sa.getServletPath()) >-1){
         		mapping = urlPattern.substring(urlPattern.indexOf(sa.getServletPath()));
         	}
         	
@@ -589,13 +682,6 @@ public class GrizzlyWebServerDeployer {
 	        }
             
             aliasList.add(aliasTmp);
-            
-            /*
-            // if the urlPattern is "/", we want to map the default "" too
-            if(urlPattern.equals("/")){
-            	aliasList.add("");
-            }
-            */
             
 		}
         
@@ -626,6 +712,14 @@ public class GrizzlyWebServerDeployer {
 
     public void setLibraryPath(String path) {
 		this.libraryPath = path;
+	}
+    
+    public String getAutoDeployFolder() {
+		return autodeployFolder;
+	}
+
+    public void setAutoDeployFolder(String path) {
+		this.autodeployFolder = path;
 	}
 
 	public boolean getCometEnabled() {
@@ -669,6 +763,7 @@ public class GrizzlyWebServerDeployer {
         System.err.println("  --context=[context]         Force the context for a servlet.");
         System.err.println("  --dontstart=[true/false]    Won't start the server.");
         System.err.println("  --libraryPath=[path]        Add a libraries folder to the classpath.");
+        System.err.println("  --autodeploy=[path]         AutoDeploy to each applications");
         System.err.println("  --cometEnabled              Starts the AsyncFilter for Comet");
         System.err.println("  --forceWar                  Force war's deployment over a expanded folder.");
         System.err.println("  --ajpEnabled                Enable mod_jk.");
@@ -709,6 +804,12 @@ public class GrizzlyWebServerDeployer {
         System.err.println("                              File.pathSeparator");
         System.err.println();
         System.err.println("                              Example : --libraryPath=/libs:/common_libs");
+        System.err.println();
+        System.err.println("  --autodeploy=[path]         AutoDeploy to each applications.");
+        System.err.println("                              You could add JSP support.");
+        System.err.println("                              Just add a web.xml that contains Jasper");
+        System.err.println();
+        System.err.println("                              Example : --autodeploy=/autodeploy");
         System.err.println();
         System.err.println("  --cometEnabled=[true/false] Starts the AsyncFilter for Comet.");
         System.err.println("                              You need to active this for comet applications.");
@@ -763,6 +864,9 @@ public class GrizzlyWebServerDeployer {
             } else if (arg.startsWith("--libraryPath=")) {
                 String value = arg.substring("--libraryPath=".length(), arg.length());
                 setLibraryPath(value);
+            } else if (arg.startsWith("--autodeploy=")) {
+                String value = arg.substring("--autodeploy=".length(), arg.length());
+                setAutoDeployFolder(value);
             } else if (arg.startsWith("--cometEnabled=")) {
             	setCometEnabled(Boolean.parseBoolean(arg.substring("--cometEnabled=".length(), arg.length())));
             } else if(arg.startsWith("--forceWar")){
@@ -770,6 +874,7 @@ public class GrizzlyWebServerDeployer {
             } else if(arg.startsWith("--ajpEnabled")){
             	setAjpEnabled(Boolean.parseBoolean(arg.substring("--ajpEnabled=".length(), arg.length())));
             }
+            
             
         }
 
@@ -806,6 +911,10 @@ public class GrizzlyWebServerDeployer {
     }
 
     protected void setListeners(WebApp webApp, ServletAdapter sa) {
+        if(webApp==null || sa==null){
+    		return;
+    	}
+    	
         // Add the Listener
         List<Listener> listeners = webApp.getListener();
 
@@ -817,6 +926,11 @@ public class GrizzlyWebServerDeployer {
     }
 
     protected void setFilters(WebApp webApp, ServletAdapter sa) {
+        
+        if(webApp==null || sa==null){
+    		return;
+    	}
+    	
         // Add the Filters
         List<com.sun.grizzly.http.webxml.schema.Filter> filterList = webApp.getFilter();
 
@@ -882,7 +996,8 @@ public class GrizzlyWebServerDeployer {
 
     /**
      * Make available the content of a War file to the current Thread Context
-     * ClassLoader.
+     * ClassLoader.  This function as to be executed before the start() because
+     * the new classpath won't take effect.
      *
      * @return the exploded war file location.
      *
@@ -893,6 +1008,12 @@ public class GrizzlyWebServerDeployer {
         File file = null;
         URL appRoot = null;
         URL classesURL = null;
+        
+        
+        if(appliPath!=null && appliPath.endsWith(File.pathSeparator)){
+        	appliPath = appliPath + File.pathSeparator;
+        }
+        
         
         // Must be a better way because that sucks!
         String separator = (System.getProperty("os.name").toLowerCase().startsWith("win") ? "/" : "//");
@@ -968,7 +1089,11 @@ public class GrizzlyWebServerDeployer {
     }
 
     public WebApp extractWebxmlInfo(String webxml) throws Exception {
-
+		
+		if(webxml==null){
+    		return null;
+    	}
+    	
         WebappLoader webappLoader = new WebappLoader();
         WebApp webApp = webappLoader.load(webxml);
 
@@ -1043,16 +1168,72 @@ public class GrizzlyWebServerDeployer {
 
     }
     
-    private void setWaitToStart(boolean dontStart){
+    public void setWaitToStart(boolean dontStart){
     	waitToStart = dontStart;
     }
     
-    private String getForcedContext() {
+    public String getForcedContext() {
 		return forcedContext;
 	}
 
-	private void setForcedContext(String forcedContext) {
+    public void setForcedContext(String forcedContext) {
 		this.forcedContext = forcedContext;
+	}
+	
+	public List<WebApp> getDefaultSupportWebApp() throws Exception {
+		
+		if(autodeployFolder==null){
+			return null;
+		}
+		
+		// remove ending slash if any
+	    // we need to check if the location is not "/"
+	    if (autodeployFolder.endsWith("/") && autodeployFolder.length() > 1) {
+	    	autodeployFolder = autodeployFolder.substring(0, autodeployFolder.length() - 1);
+	    }
+	
+	    // we try to look of the file's list
+	
+	    File folder = new File(autodeployFolder);
+	
+	    if (!folder.exists() || !folder.isDirectory()) {
+	        return null;
+	    }
+	
+	    // we only want folders or war files
+	    File files[] = folder.listFiles(new FilenameFilter() {
+	
+	        public boolean accept(File dir, String name) {
+	
+	            if (name.endsWith(".xml")) {
+	                return true;
+	            } else {
+	            	return false;
+	            }
+	
+	        }
+	    });
+	
+	    // do we have something to deploy
+	    if (files == null || files.length == 0) {
+	        return null;
+	    }
+	    
+	    List<WebApp> webappList = new ArrayList<WebApp>(files.length);
+	    
+	    for (File file : files) {
+	    	// extract the items from the web.xml
+	        WebApp webApp = extractWebxmlInfo(file.getPath());
+
+	        if (webApp == null) {
+	            throw new Exception("invalid");
+	        }
+	        
+	        webappList.add(webApp);	 
+	    }
+	    
+	    return webappList;
+	    
 	}
 
 	/**
