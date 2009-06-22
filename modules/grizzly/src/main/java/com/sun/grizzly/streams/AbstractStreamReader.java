@@ -79,8 +79,6 @@ public abstract class AbstractStreamReader implements StreamReader {
 
     protected long timeoutMillis = 30000;
     
-    protected final Object sync = new Object();
-    
     private static void msg(final String msg) {
         logger.info("READERSTREAM:DEBUG:" + msg);
     }
@@ -214,14 +212,12 @@ public abstract class AbstractStreamReader implements StreamReader {
     }
 
     private void notifyCondition() {
-        synchronized(sync) {
-            if (notifyObject != null && notifyObject.condition.check(this)) {
-                final NotifyObject localNotifyAvailObject = notifyObject;
-                notifyObject = null;
-                notifySuccess(localNotifyAvailObject.future,
-                        localNotifyAvailObject.completionHandler,
-                        availableDataSize());
-            }
+        if (notifyObject != null && notifyObject.condition.check(this)) {
+            final NotifyObject localNotifyAvailObject = notifyObject;
+            notifyObject = null;
+            notifySuccess(localNotifyAvailObject.future,
+                    localNotifyAvailObject.completionHandler,
+                    availableDataSize());
         }
     }
 
