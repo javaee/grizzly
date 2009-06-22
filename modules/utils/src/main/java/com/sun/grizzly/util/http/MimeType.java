@@ -49,7 +49,7 @@ import java.util.Properties;
  */
 public class MimeType{
     
-    private static Properties contentTypes = new Properties();
+    private final static Properties contentTypes = new Properties();
 
     static {
         contentTypes.put("abs", "audio/x-mpeg");
@@ -203,6 +203,14 @@ public class MimeType{
     public static String get(String extension){
         return contentTypes.getProperty(extension,"text/plain");
     }
-    
+
+    /**
+     * Return true if the extension is well-know.
+     * @param extension the extension.
+     * @return true if the included, false if not
+     */
+    public static boolean contains(String extension){
+        return (contentTypes.getProperty(extension) == null? false:true);
+    }
 }
   
