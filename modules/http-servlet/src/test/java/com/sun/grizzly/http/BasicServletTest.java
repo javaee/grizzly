@@ -59,6 +59,24 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
     private static Logger logger = Logger.getLogger("grizzly.test");
     private String header = "text/html;charset=utf8";
 
+    public void testServletName() throws IOException {
+        System.out.println("testServletName");
+        try {
+            newGWS(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletAdapter servletAdapter = addAdapter(alias);
+            servletAdapter.setContextPath("/contextPath");
+            servletAdapter.setServletPath("/servletPath");
+            servletAdapter.setProperty("servlet-name", "foobar");
+            gws.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
+            String s = conn.getHeaderField("Servlet-Name");
+            assertEquals(s, "foobar");
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+
     public void testSetHeaderTest() throws IOException {
         System.out.println("testSetHeaderTest");
         try {
@@ -72,7 +90,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
             stopGrizzlyWebServer();
         }
     }
-    
+
     public void testPathInfo() throws IOException {
         System.out.println("testPathInfo");
         try {
@@ -89,7 +107,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
             stopGrizzlyWebServer();
         }
     }
-    
+
     public void testDoubleSlash() throws IOException {
         System.out.println("testDoubleSlash");
         try {
@@ -159,7 +177,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
     /**
      * Covers issue with "No Content" returned by Servlet.
      * <a href="http://twitter.com/shock01/status/2136930089">http://twitter.com/shock01/status/2136930089</a>
-     * 
+     *
      * @throws java.io.IOException I/O
      */
     public void testNoContentServlet() throws IOException {
@@ -190,9 +208,9 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
                 logger.info(alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.setHeader("Content-Type", header);
-                System.out.println("pathInfo -> " + req.getPathInfo());
                 resp.setHeader("Path-Info", req.getPathInfo());
                 resp.setHeader("Request-Was", req.getRequestURI());
+                resp.setHeader("Servlet-Name",getServletName());
                 resp.getWriter().write(alias);
             }
         });
