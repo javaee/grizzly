@@ -1466,7 +1466,11 @@ public class GrizzlyResponse<A> {
                 if (!leadingSlash) {
                     String relativePath = request.getDecodedRequestURI();
                     int pos = relativePath.lastIndexOf('/');
-                    relativePath = relativePath.substring(0, pos);
+                    if (pos != -1){
+                        relativePath = relativePath.substring(0, pos);
+                    } else {
+                        relativePath = "";
+                    }
                     
                     String encodedURI = null;
                     final String frelativePath = relativePath;
