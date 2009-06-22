@@ -746,7 +746,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         if (isStarted()) return;
 
         if (logger.isLoggable(Level.INFO)){
-            logger.info("Starting Grizzly Framework" + Grizzly.getRawVersion() + " - " + (new Date()));
+            logger.info("Starting Grizzly Framework " + Grizzly.getRawVersion() + " - " + (new Date()));
         }
 
         stateHolder.getStateLocker().writeLock().lock();
