@@ -974,11 +974,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             notifyReady();
         }
 
-        if (useLeaderFollowerStrategy) {
-            threadPool.execute(selectorRunner);
-        } else {
-            kernelExecutor.execute(selectorRunner);
-        }
+        kernelExecutor.execute(selectorRunner);
     }
 
     /**
@@ -1159,7 +1155,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * @param r a Runnable
      */
     public void executeUsingKernelExecutor(Runnable r) {
-        kernelExecutor.submit(r);
+        kernelExecutor.execute(r);
     }
 
     /**
