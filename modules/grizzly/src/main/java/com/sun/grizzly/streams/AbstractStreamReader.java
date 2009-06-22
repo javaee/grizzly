@@ -356,7 +356,11 @@ public abstract class AbstractStreamReader implements StreamReader {
         if (!checkRemaining(1)) {
             ensureRead();
         }
-        return unwrap(current).get() == 1 ? true : false;
+        final Buffer currentBuffer = unwrap(current);
+        final boolean result = currentBuffer.get() == 1;
+
+        current = tryReleaseCurrent(current, currentBuffer);
+        return result;
     }
 
     /**
@@ -366,7 +370,11 @@ public abstract class AbstractStreamReader implements StreamReader {
         if (!checkRemaining(1)) {
             ensureRead();
         }
-        return unwrap(current).get();
+        final Buffer currentBuffer = unwrap(current);
+        final byte result = currentBuffer.get();
+        
+        current = tryReleaseCurrent(current, currentBuffer);
+        return result;
     }
 
     /**
@@ -374,7 +382,10 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public char readChar()  throws IOException {
         if (checkRemaining(2)) {
-            return unwrap(current).getChar();
+            final Buffer currentBuffer = unwrap(current);
+            final char result = currentBuffer.getChar();
+            current = tryReleaseCurrent(current, currentBuffer);
+            return result;
         }
         return (char) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
@@ -384,7 +395,10 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public short readShort() throws IOException {
         if (checkRemaining(2)) {
-            return unwrap(current).getShort();
+            final Buffer currentBuffer = unwrap(current);
+            final short result = currentBuffer.getShort();
+            current = tryReleaseCurrent(current, currentBuffer);
+            return result;
         }
         return (short) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
@@ -394,7 +408,10 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public int readInt() throws IOException {
         if (checkRemaining(4)) {
-            return unwrap(current).getInt();
+            final Buffer currentBuffer = unwrap(current);
+            final int result = currentBuffer.getInt();
+            current = tryReleaseCurrent(current, currentBuffer);
+            return result;
         }
         return (readShort() & 0xffff) << 16 | readShort() & 0xffff;
     }
@@ -404,7 +421,10 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public long readLong() throws IOException {
         if (checkRemaining(8)) {
-            return unwrap(current).getLong();
+            final Buffer currentBuffer = unwrap(current);
+            final long result = currentBuffer.getLong();
+            current = tryReleaseCurrent(current, currentBuffer);
+            return result;
         }
         return (readInt() & 0xffffffffL) << 32 | readInt() & 0xffffffffL;
     }
@@ -414,9 +434,11 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     final public float readFloat() throws IOException {
         if (checkRemaining(4)) {
-            return unwrap(current).getFloat();
+            final Buffer currentBuffer = unwrap(current);
+            final float result = currentBuffer.getFloat();
+            current = tryReleaseCurrent(current, currentBuffer);
+            return result;
         }
-
 
         return Float.intBitsToFloat(readInt());
     }
@@ -426,7 +448,10 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     final public double readDouble() throws IOException {
         if (checkRemaining(8)) {
-            return unwrap(current).getDouble();
+            final Buffer currentBuffer = unwrap(current);
+            final double result = currentBuffer.getDouble();
+            current = tryReleaseCurrent(current, currentBuffer);
+            return result;
         }
         return Double.longBitsToDouble(readLong());
     }
@@ -463,11 +488,14 @@ public abstract class AbstractStreamReader implements StreamReader {
             checkRemaining(1);
             final Buffer typedBuffer = unwrap(current);
             int dataSizeToRead = length;
-            if (dataSizeToRead > typedBuffer.remaining()) {
+            if (dataSizeToRead < typedBuffer.remaining()) {
+                typedBuffer.get(data, offset, dataSizeToRead);
+            } else {
                 dataSizeToRead = typedBuffer.remaining();
+                typedBuffer.get(data, offset, dataSizeToRead);
+                current = tryReleaseCurrent(current, typedBuffer);
             }
 
-            typedBuffer.get(data, offset, dataSizeToRead);
             offset += dataSizeToRead;
             length -= dataSizeToRead;
 
@@ -488,6 +516,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             final Buffer typedBuffer = unwrap(current);
             if (buffer.remaining() > typedBuffer.remaining()) {
                 buffer.put(typedBuffer);
+                current = tryReleaseCurrent(current, typedBuffer);
             } else {
                 final int save = typedBuffer.limit();
                 typedBuffer.limit(buffer.remaining());
@@ -692,6 +721,16 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     public void setTimeout(long timeout, TimeUnit timeunit) {
         timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+    }
+
+    private static final Object tryReleaseCurrent(final Object current,
+            final Buffer currentBuffer) {
+        if (currentBuffer != null && !currentBuffer.hasRemaining()) {
+            currentBuffer.dispose();
+            return null;
+        }
+
+        return current;
     }
 
     protected static class NotifyObject {
