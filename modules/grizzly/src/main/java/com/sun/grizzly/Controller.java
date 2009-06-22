@@ -974,7 +974,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             notifyReady();
         }
 
-        kernelExecutor.execute(selectorRunner);
+        if (useLeaderFollowerStrategy) {
+            threadPool.execute(selectorRunner);
+        } else {
+            kernelExecutor.execute(selectorRunner);
+        }
     }
 
     /**
