@@ -108,10 +108,10 @@ public abstract class AbstractStreamReader implements StreamReader {
     // all threads.
     //
     protected LinkedList dataRecords;
-    private int queueSize;
-    private Object current;
-    private boolean closed;
-    protected NotifyObject notifyObject;
+    private volatile int queueSize;
+    private volatile Object current;
+    private volatile boolean closed;
+    protected volatile NotifyObject notifyObject;
 
     public AbstractStreamReader() {
         this(null);
@@ -216,7 +216,7 @@ public abstract class AbstractStreamReader implements StreamReader {
     private void notifyCondition() {
         synchronized(sync) {
             if (notifyObject != null && notifyObject.condition.check(this)) {
-                NotifyObject localNotifyAvailObject = notifyObject;
+                final NotifyObject localNotifyAvailObject = notifyObject;
                 notifyObject = null;
                 notifySuccess(localNotifyAvailObject.future,
                         localNotifyAvailObject.completionHandler,
@@ -305,7 +305,7 @@ public abstract class AbstractStreamReader implements StreamReader {
                     append(data);
                 }
 
-                if (current == null || (current = poll()) == null) {
+                if (current == null && (current = poll()) == null) {
                     throw new BufferUnderflowException();
                 }
             }
