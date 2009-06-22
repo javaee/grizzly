@@ -76,9 +76,9 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
             stopGrizzlyWebServer();
         }
    }
+
     
-    
-    public void _testOverlapingMapping2() throws IOException {
+    public void testOverlapingMapping2() throws IOException {
         System.out.println("testOverlapingMapping2");
         try {
             startGrizzlyWebServer(PORT);
@@ -104,7 +104,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
             
             conn = getConnection("/jsp/index.jsp", PORT);
             assertEquals(HttpServletResponse.SC_OK, getResponseCodeFromAlias(conn));
-            assertEquals(alias[0], readResponse(conn));
+            assertEquals(alias[1], readResponse(conn));
             
            
         } finally {
@@ -127,7 +127,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
             stopGrizzlyWebServer();
         }
     }
-    
+
     public void testWrongMapping() throws IOException {
         System.out.println("testWrongMapping");
         try {
@@ -156,7 +156,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
             stopGrizzlyWebServer();
         }
     }
-    
+
     public void testWildcardMapping() throws IOException {
         System.out.println("testWildcardMapping");
         try {
@@ -171,7 +171,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
             stopGrizzlyWebServer();
         }
     }
-    
+
      public void testWrongMappingRootContext() throws IOException {
         System.out.println("testWrongMappingRootContext");
         try {
