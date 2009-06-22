@@ -54,6 +54,7 @@
 
 package com.sun.grizzly.http.servlet;
 
+import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.http.Enumerator;
 import com.sun.grizzly.util.http.MimeType;
 import java.io.File;
@@ -425,9 +426,8 @@ public class ServletContextImpl implements ServletContext {
     }
 
     
-    //TODO: Make it configurable via System.getProperty();
-    public String getServerInfo() {
-        return "Grizzly";
+   public String getServerInfo() {
+        return "Grizzly/" + Grizzly.getRawVersion();
     }
 
     

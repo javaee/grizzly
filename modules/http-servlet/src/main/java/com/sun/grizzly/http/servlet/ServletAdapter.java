@@ -644,7 +644,7 @@ public class ServletAdapter extends GrizzlyAdapter {
         int pos = name.indexOf("-");
         if (pos > 0){
             String pre = name.substring(0,pos);
-            String post = name.substring(pos+1);
+            String post = name.substring(pos+1, pos+2).toUpperCase() + name.substring(pos+2);
             name = pre + post;
         }
         properties.put(name, value);
