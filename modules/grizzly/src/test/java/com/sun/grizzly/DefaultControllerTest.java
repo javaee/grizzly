@@ -64,7 +64,7 @@ public class DefaultControllerTest extends TestCase {
             ControllerUtils.startController(controller);
             int portLowlevel = ((TCPSelectorHandler) controller.getSelectorHandler(Protocol.TCP)).getPortLowLevel();
             int port = ((TCPSelectorHandler) controller.getSelectorHandler(Protocol.TCP)).getPort();
-            assertTrue(port == 0 && portLowlevel > 0);
+            assertTrue(port > 0 && portLowlevel > 0);
         } finally {
             controller.stop();
         }
