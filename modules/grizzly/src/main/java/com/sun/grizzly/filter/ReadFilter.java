@@ -62,6 +62,7 @@ import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.util.ByteBufferFactory;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.WorkerThreadImpl;
+import java.io.EOFException;
 
 /**
  * Simple {@link ProtocolFilter} implementation which read the available bytes
@@ -76,6 +77,7 @@ import com.sun.grizzly.util.WorkerThreadImpl;
  */
 public class ReadFilter implements ProtocolFilter, ReinvokeAware {
 
+    public final static String DELAYED_CLOSE_NOTIFICATION = "delayedClose";
     public final static String UDP_SOCKETADDRESS = "socketAddress";
 
 
@@ -145,7 +147,7 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
 
 
         boolean invokeNextFilter = true;
-        int count = -1;
+        int count = 0;
         int nRead = 0;
         SocketAddress socketAddress = null;
         Exception exception = null;
@@ -184,33 +186,40 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
             exception = ex;
             log("ReadFilter.execute",ex);
         } finally {
-            SelectionKeyHandler skh = 
-            ctx.getSelectorHandler().getSelectionKeyHandler();
+            final SelectionKeyHandler skh =
+                    ctx.getSelectorHandler().getSelectionKeyHandler();
             if (skh instanceof BaseSelectionKeyHandler){
                 ((WorkerThread)Thread.currentThread())
                             .getAttachment().setAttribute("ConnectionCloseHandler",    
                 ((BaseSelectionKeyHandler)skh).getConnectionCloseHandler());         
             }   
-            
+
             if (exception != null){
                 ctx.setAttribute(Context.THROWABLE,exception);
                 if (protocol != UDP){
                     ctx.setKeyRegistrationState(
                         Context.KeyRegistrationState.CANCEL);
                 }
-                invokeNextFilter = false;
-                if (skh instanceof BaseSelectionKeyHandler){
-                    ((BaseSelectionKeyHandler)skh).notifyRemotlyClose(key);
+
+                if (nRead <= 0) {
+                    invokeNextFilter = false;
+                    if (skh instanceof BaseSelectionKeyHandler) {
+                        ((BaseSelectionKeyHandler) skh).notifyRemotlyClose(key);
+                    }
+                } else {
+                    ctx.setAttribute(DELAYED_CLOSE_NOTIFICATION, Boolean.TRUE);
                 }
             } else if (count == -1 && protocol != UDP){
                 ctx.setKeyRegistrationState(
                         Context.KeyRegistrationState.CANCEL);
-                if (nRead == 0) {
+                if (nRead <= 0) {
                     invokeNextFilter = false;
+                    if (skh instanceof BaseSelectionKeyHandler) {
+                        ((BaseSelectionKeyHandler) skh).notifyRemotlyClose(key);
+                    }
+                } else {
+                    ctx.setAttribute(DELAYED_CLOSE_NOTIFICATION, Boolean.TRUE);
                 }
-                if (skh instanceof BaseSelectionKeyHandler){
-                    ((BaseSelectionKeyHandler)skh).notifyRemotlyClose(key);
-                }                
             } else if (socketAddress == null && protocol == UDP ){
                 ctx.setKeyRegistrationState(Context.KeyRegistrationState.REGISTER);
                 invokeNextFilter = false;
@@ -263,6 +272,17 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
                 ctx.setAttribute(ProtocolFilter.SUCCESSFUL_READ,
                                  Boolean.TRUE);
             } else {
+                Boolean isDelayedNotification =
+                        (Boolean) ctx.removeAttribute(DELAYED_CLOSE_NOTIFICATION);
+                if (isDelayedNotification == Boolean.TRUE) {
+                    final SelectionKeyHandler skh =
+                            ctx.getSelectorHandler().getSelectionKeyHandler();
+                    
+                    if (skh instanceof BaseSelectionKeyHandler) {
+                        ((BaseSelectionKeyHandler) skh).notifyRemotlyClose(key);
+                    }
+                }
+
                 if (state == Context.KeyRegistrationState.CANCEL){
                     selectorHandler.getSelectionKeyHandler().cancel(key);
                 } else if (state == Context.KeyRegistrationState.REGISTER){
