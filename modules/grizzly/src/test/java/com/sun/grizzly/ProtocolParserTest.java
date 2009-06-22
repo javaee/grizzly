@@ -70,19 +70,6 @@ public class ProtocolParserTest extends TestCase {
     public static final int PACKETS_COUNT = 100;
     private SSLConfig sslConfig;
     
-    public void testDefaultPort() throws IOException {
-        Controller controller = createController(0);
-        
-        try {
-            ControllerUtils.startController(controller);
-            int portLowlevel = ((TCPSelectorHandler) controller.getSelectorHandler(Protocol.TCP)).getPortLowLevel();
-            int port = ((TCPSelectorHandler) controller.getSelectorHandler(Protocol.TCP)).getPort();
-            assertTrue(port == 0 && portLowlevel > 0);
-        } finally {
-            controller.stop();
-        }
-    }
-    
     public void testSimplePacket() throws IOException {
         Controller controller = createController(PORT);
         NonBlockingTCPIOClient client = new NonBlockingTCPIOClient("localhost", PORT);
