@@ -288,8 +288,14 @@ public abstract class AbstractStreamReader implements StreamReader {
         if (closed) {
             throw new IllegalStateException("ByteBufferReader is closed");
         }
-        // First ensure that there is enough space
 
+
+        if (current != null) {
+            unwrap(current).dispose();
+            current = null;
+        }
+        
+        // First ensure that there is enough space
         Object next = poll();
 
         if (next == null) {
@@ -297,21 +303,15 @@ public abstract class AbstractStreamReader implements StreamReader {
                 Object data = read0();
                 if (data != null) {
                     append(data);
-                    next = poll();
                 }
 
-                if (next == null) {
+                if (current == null || (current = poll()) == null) {
                     throw new BufferUnderflowException();
                 }
-            } else {
-                return;
             }
+        } else {
+            current = next;
         }
-
-        if (current != null) {
-            unwrap(current).dispose();
-        }
-        current = next;
 
         if (DEBUG) {
             displayBuffer("current", unwrap(current));
