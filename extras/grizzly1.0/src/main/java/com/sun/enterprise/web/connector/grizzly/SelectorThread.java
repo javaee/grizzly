@@ -602,7 +602,22 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      */
     protected ConcurrentLinkedQueue<SelectionKey> bannedKeys =
         new ConcurrentLinkedQueue<SelectionKey>();    
-    
+
+    // Workaround for Issue 555
+    private long lastSpinTimestamp;
+    private int emptySpinCounter;
+    /**
+     * The threshold for detecting selector.select spin on linux,
+     * used for enabling workaround to prevent server from hanging.
+     */
+    private final static int spinRateTreshold = 2000;
+
+    /**
+     * Enable workaround Linux spinning Selector
+     */
+    static final boolean isLinux =
+            System.getProperty("os.name").equalsIgnoreCase("linux") &&
+                !System.getProperty("java.version").startsWith("1.7");
     
     // ---------------------------------------------------- Constructor --//
     
@@ -1330,7 +1345,39 @@ public class SelectorThread extends Thread implements MBeanRegistration{
             } 
         }
     }
-    
+
+    public void resetSpinCounter(){
+        emptySpinCounter  = 0;
+    }
+
+    public int getSpinRate(){
+        if (emptySpinCounter++ == 0){
+            lastSpinTimestamp = System.nanoTime();
+        } else if (emptySpinCounter == 1000) {
+            long deltatime = System.nanoTime() - lastSpinTimestamp;
+            int contspinspersec = (int) (1000 * 1000000000L / deltatime);
+            emptySpinCounter  = 0;
+            return contspinspersec;
+        }
+        return 0;
+    }
+
+    private void workaroundSelectorSpin() throws IOException {
+        Selector newSelector = Selector.open();
+
+        Set<SelectionKey> keys = selector.keys();
+        for (SelectionKey key : keys) {
+            try {
+                key.channel().register(newSelector, key.interestOps(), key.attachment());
+            } catch (Exception e) {
+            }
+        }
+        try {
+            selector.close();
+        } catch (Exception e) {
+        }
+        selector = newSelector;
+    }
     
     /**
      * Execute a <code>Selector.select()</code> operation.
@@ -1354,6 +1401,17 @@ public class SelectorThread extends Thread implements MBeanRegistration{
             if (!running) return;
 
             readyKeys = selector.selectedKeys();
+
+            // JDK issue.
+            if (readyKeys.size() != 0 && isLinux) {
+                resetSpinCounter();
+            } else if (isLinux){
+                long sr = getSpinRate();
+                if (sr > spinRateTreshold) {
+                    workaroundSelectorSpin();
+                }
+            }
+
             iterator = readyKeys.iterator();
             while (iterator.hasNext()) {
                 key = iterator.next();
