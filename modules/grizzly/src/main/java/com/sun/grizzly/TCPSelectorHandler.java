@@ -400,6 +400,9 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
 
                 serverSocket.setSoTimeout(serverTimeout);
+
+                // Ephemeral support
+                port = serverSocket.getLocalPort();
             }
             ctx.getController().notifyReady();
         } catch (SocketException ex){
@@ -1081,6 +1084,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * return port number assigned by OS.
      *
      * @return port number or -1 if {@link SelectorHandler} was not initialized for accepting connections.
+     * @deprecated Use {@link getPort}
      */
     public int getPortLowLevel() {
         if (serverSocket != null) {
