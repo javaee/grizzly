@@ -65,6 +65,14 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
     void setEnabled(String enabled);
 
     /**
+     * If true, a jk listener is enabled
+     */
+    @Attribute(defaultValue = "false")
+    String getJkEnabled();
+
+    void setJkEnabled(String enabled);
+
+    /**
      * Network-listener name, which could be used as reference
      */
     @Attribute(required = true, key = true)
