@@ -1040,14 +1040,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         if (port == 0){
             selectorThreads.put(getPort(), this);
         }
-        controller.executeUsingKernelExecutor(this);
+        new WorkerThreadImpl("SelectorThread-" + port,this).start();
     }
 
     /**
      * Start the endpoint (this)
      */
     public void run(){
-        try{            
+        try{
             running = true;
 
             rampUpProcessorTask();
