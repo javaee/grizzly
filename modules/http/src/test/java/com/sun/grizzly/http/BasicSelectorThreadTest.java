@@ -65,7 +65,7 @@ public class BasicSelectorThreadTest extends TestCase {
     private static Logger logger = Logger.getLogger("grizzly.test");
     private SelectorThread st;
 
-    public void createSelectorThread() {
+    public void createSelectorThread(int port) {
         st = new SelectorThread() {
 
             /**
@@ -110,11 +110,28 @@ public class BasicSelectorThreadTest extends TestCase {
             }
         };
 
-        st.setPort(PORT);
+        st.setPort(port);
         st.setDisplayConfiguration(true);
 
     }
 
+    public void testEphemeralPort() throws Exception {
+        System.out.println("Test: testEphemeralPort");
+        final String testString = "HelloWorld";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(0);
+            st.setAdapter(new HelloWorldAdapter());
+
+            st.listen();
+
+            sendRequest(testData, testString, st.getPort());
+
+
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+    }
 
     public void testHelloWorldGrizzlyAdapter() throws Exception {
         System.out.println("Test: testHelloWorldGrizzlyAdapter");
@@ -122,14 +139,14 @@ public class BasicSelectorThreadTest extends TestCase {
         final String testString = "HelloWorld";
         final byte[] testData = testString.getBytes();
         try {
-            createSelectorThread();
+            createSelectorThread(PORT);
             st.setAdapter(new HelloWorldAdapter());
 
-                st.listen();
-                st.enableMonitoring();
+            st.listen();
+            st.enableMonitoring();
 
 
-            sendRequest(testData, testString);
+            sendRequest(testData, testString, PORT);
 
 
         } finally {
@@ -138,7 +155,7 @@ public class BasicSelectorThreadTest extends TestCase {
         }
     }
 
-    public class HelloWorldAdapter extends GrizzlyAdapter{
+    public class HelloWorldAdapter extends GrizzlyAdapter {
 
         @Override
         public void service(GrizzlyRequest request, GrizzlyResponse response) {
@@ -148,22 +165,20 @@ public class BasicSelectorThreadTest extends TestCase {
                 ex.printStackTrace();
                 fail(ex.getMessage());
             }
-        } 
+        }
     }
 
-
-
-    private String sendRequest(byte[] testData, String testString)
+    private String sendRequest(byte[] testData, String testString, int port)
             throws Exception {
 
-        return sendRequest(testData, testString, true);
+        return sendRequest(testData, testString, true, port);
     }
 
-    private String sendRequest(byte[] testData, String testString, boolean assertTrue)
+    private String sendRequest(byte[] testData, String testString, boolean assertTrue, int port)
             throws Exception {
         byte[] response = new byte[testData.length];
 
-        URL url = new URL("http://localhost:" + PORT);
+        URL url = new URL("http://localhost:" + port);
         HttpURLConnection connection =
                 (HttpURLConnection) url.openConnection();
         connection.setRequestMethod("POST");

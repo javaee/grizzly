@@ -1034,10 +1034,13 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     // --------------------------------------------------------- Thread run --/
     
     /**
-     * Declare this method to save backwards compatibility
+     * Start using the Controller's internal Thread Pool.
      */
     public void start() {
-        new WorkerThreadImpl("SelectorThread-" + port,this).start();
+        if (port == 0){
+            selectorThreads.put(getPort(), this);
+        }
+        controller.executeUsingKernelExecutor(this);
     }
 
     /**
@@ -1084,7 +1087,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         if (SelectorFactory.getMaxSelectors() < maxPoolSize){
             SelectorFactory.setMaxSelectors(maxPoolSize);
         }
-        selectorThreads.put(port, this);
+        if (port != 0){
+            selectorThreads.put(port, this);
+        }
 
         initialized = true;     
         if (adapter instanceof GrizzlyAdapter){
@@ -1256,13 +1261,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * will return 0, but getPortLowLevel() will return port number assigned by OS.
      * 
      * @return port number, or -1 if {@link SelectorThread} was not started
+     * @depreated - uses {@link getPort} instead
      */
     public int getPortLowLevel() {
-        return selectorHandler.getPortLowLevel();
+        return selectorHandler.getPort();
     }
     
     public int getPort() {
-        return port;
+        return getPortLowLevel();
     }
 
     public void setPort(int port ) {
@@ -1941,7 +1947,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                     "\n Grizzly running on " + System.getProperty("os.name") + "-" 
                     + System.getProperty("os.version") + " under JDK version: "
                     + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
-                    + "\n\t port: " + port
+                    + "\n\t port: " + getPort()
                     + "\n\t Thread Pool: "
                     + threadPool
                     + "\n\t Read Selector: "
