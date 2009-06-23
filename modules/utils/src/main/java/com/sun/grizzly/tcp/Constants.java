@@ -72,6 +72,7 @@ public final class Constants {
      */
     public static final String SESSION_COOKIE_NAME = "JSESSIONID";
     
+    public static final String SESSION_COOKIE_PATTERN = "^JSESSIONID(?:SSO)?=.*";
 
     public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
 

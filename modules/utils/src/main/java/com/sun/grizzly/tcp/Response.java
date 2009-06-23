@@ -704,10 +704,10 @@ public class Response<A> {
 
     /**
      * Removes any Set-Cookie response headers whose value contains the
-     * string JSESSIONID
+     * string "JSESSIONID=" or "JSESSIONIDSSO="
      */
     public void removeSessionCookies() {
-        headers.removeHeader("Set-Cookie", Constants.SESSION_COOKIE_NAME);
+        headers.removeHeader("Set-Cookie", Constants.SESSION_COOKIE_PATTERN);
     }
 
     /**

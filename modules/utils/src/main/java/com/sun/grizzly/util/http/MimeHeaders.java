@@ -366,7 +366,7 @@ public class MimeHeaders {
             if (headers[i].getName().equalsIgnoreCase(name)
                     && getValue(i) != null
                     && getValue(i).toString() != null
-                    && getValue(i).toString().indexOf(str) != -1) {
+                    && getValue(i).toString().matches(str) ) {
                 removeHeader(i--);
             }
         }
