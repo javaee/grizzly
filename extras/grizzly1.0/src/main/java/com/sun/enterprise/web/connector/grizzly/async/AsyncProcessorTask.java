@@ -137,9 +137,13 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     /**
      * Reset the object.
      */
+    @Override
     public void recycle(){
         stage = AsyncTask.PRE_EXECUTE;
         processorTask = null;
+        if (asyncExecutor instanceof DefaultAsyncExecutor){
+            ((DefaultAsyncExecutor)asyncExecutor).recycle();
+        }
     }
 
     

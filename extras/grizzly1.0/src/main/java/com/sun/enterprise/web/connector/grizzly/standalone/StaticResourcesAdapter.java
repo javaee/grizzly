@@ -103,7 +103,6 @@ public class StaticResourcesAdapter implements Adapter {
     
     public void service(Request req, final Response res) throws Exception {
         MessageBytes mb = req.requestURI();
-        ByteChunk requestURI = mb.getByteChunk();
         String uri = req.requestURI().toString();
         if (uri.indexOf("..") >= 0) {
             res.setStatus(404);

@@ -43,6 +43,7 @@ import com.sun.enterprise.web.connector.grizzly.ProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 /**
@@ -106,6 +107,13 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * The <code>AsyncHandler</code> associated with this object.
      */
     private AsyncHandler asyncHandler;
+
+    /**
+     * Only one execution of every steps are allowed.
+     */
+    private AtomicBoolean parseHeaderPhase = new AtomicBoolean(false);
+    private AtomicBoolean executeAdapterPhase = new AtomicBoolean(false);
+    private AtomicBoolean commitResponsePhase = new AtomicBoolean(false);
     
     // --------------------------------------------------------------------- //
     
@@ -129,13 +137,16 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * line.
      */
     public boolean preExecute() throws Exception{
-        processorTask = asyncProcessorTask.getProcessorTask(); 
-        if ( processorTask == null ){
-            throw new IllegalStateException("Null ProcessorTask");
+        if (!parseHeaderPhase.getAndSet(true)){
+            processorTask = asyncProcessorTask.getProcessorTask();
+            if ( processorTask == null ){
+                throw new IllegalStateException("Null ProcessorTask");
+            }
+            processorTask.preProcess();
+            processorTask.parseRequest();
+            return true;
         }
-        processorTask.preProcess();
-        processorTask.parseRequest();
-        return true;
+        return false;
     }
     
     
@@ -161,8 +172,11 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * @return true if the execution can continue, false if delayed.
      */
     public boolean execute() throws Exception{
-        processorTask.invokeAdapter();
-        return true;
+        if (!executeAdapterPhase.getAndSet(true)){
+            processorTask.invokeAdapter();
+            return true;
+        }
+        return false;
     }
 
     
@@ -186,12 +200,15 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * flushing the response and then close or keep-alive the connection.
      */
     public boolean postExecute() throws Exception{
-        processorTask.postResponse();
-        processorTask.postProcess();        
-        processorTask.terminateProcess();
-        
-        // De-reference so under stress we don't have a simili leak.
-        processorTask = null;
+        if (!commitResponsePhase.getAndSet(true)){
+            processorTask.postResponse();
+            processorTask.postProcess();
+            processorTask.terminateProcess();
+
+            // De-reference so under stress we don't have a simili leak.
+            processorTask = null;
+            return false;
+        }
         return false;
     }
 
@@ -280,5 +297,14 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      */
     public void setAsyncHandler(AsyncHandler asyncHandler) {
         this.asyncHandler = asyncHandler;
+    }
+
+    /**
+     * Reset
+     */
+    void recycle(){
+        parseHeaderPhase.getAndSet(false);
+        executeAdapterPhase.getAndSet(false);
+        commitResponsePhase.getAndSet(false);
     }
 }
