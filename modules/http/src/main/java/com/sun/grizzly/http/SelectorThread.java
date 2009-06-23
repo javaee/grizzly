@@ -1264,7 +1264,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * @depreated - uses {@link getPort} instead
      */
     public int getPortLowLevel() {
-        return selectorHandler.getPort();
+        if (selectorHandler != null){
+            return selectorHandler.getPort();
+        } else {
+            return port;
+        }
     }
     
     public int getPort() {
