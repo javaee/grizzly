@@ -124,6 +124,9 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     @Override
     public void recycle() {
         stage = AsyncTask.PRE_EXECUTE;
+        if (asyncExecutor instanceof DefaultAsyncExecutor){
+            ((DefaultAsyncExecutor)asyncExecutor).recycle();
+        }
     }
 
     

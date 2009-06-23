@@ -41,6 +41,7 @@ import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Default implementation of the {@link AsyncExecutor}. This class will
@@ -88,6 +89,13 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      */
     private AsyncHandler asyncHandler;
 
+    /**
+     * Only one execution of every steps are allowed.
+     */
+    private AtomicBoolean parseHeaderPhase = new AtomicBoolean(false);
+    private AtomicBoolean executeAdapterPhase = new AtomicBoolean(false);
+    private AtomicBoolean commitResponsePhase = new AtomicBoolean(false);
+
     
     // --------------------------------------------------------------------- //
     
@@ -102,14 +110,17 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * line.
      */
     public boolean preExecute() throws Exception{
-        processorTask.preProcess();
-        
-        // True when there is an error or when the (@link FileCache} is enabled
-        if (processorTask.parseRequest()){
-            finishResponse();
-            return false;
+        if (!parseHeaderPhase.getAndSet(true)){
+            processorTask.preProcess();
+
+            // True when there is an error or when the (@link FileCache} is enabled
+            if (processorTask.parseRequest()){
+                finishResponse();
+                return false;
+            }
+            return true;
         }
-        return true;
+        return false;
     }
     
     
@@ -133,8 +144,11 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * @return true if the execution can continue, false if delayed.
      */
     public boolean execute() throws Exception{
-        processorTask.invokeAdapter();
-        return true;
+        if (!executeAdapterPhase.getAndSet(true)){
+            processorTask.invokeAdapter();
+            return true;
+        }
+        return false;
     }
 
     
@@ -168,9 +182,12 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * Resume the connection by commit the {@link Response} object.
      */
     public boolean postExecute() throws Exception{
-        if (processorTask == null) return false;
-        processorTask.postResponse();
-        finishResponse();
+        if (!commitResponsePhase.getAndSet(true)){
+            if (processorTask == null) return false;
+            processorTask.postResponse();
+            finishResponse();
+            return false;
+        }
         return false;
     }
 
@@ -256,5 +273,14 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
             } 
         }
         return al;
+    }
+
+    /**
+     * Reset
+     */
+    void recycle(){
+        parseHeaderPhase.getAndSet(false);
+        executeAdapterPhase.getAndSet(false);
+        commitResponsePhase.getAndSet(false);
     }
 }
