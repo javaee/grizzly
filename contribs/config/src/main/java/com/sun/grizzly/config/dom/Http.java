@@ -120,9 +120,9 @@ public interface Http extends ConfigBeanProxy, Injectable {
     void setEnableCometSupport(String enable);
 
     @Attribute(defaultValue = "false")
-    String getDnsLookupEnabled();
+    String getEnableDnsLookup();
 
-    void setDnsLookupEnabled(String enable);
+    void setEnableDnsLookup(String enable);
 
     @Attribute(defaultValue = "false")
     String getEnableRcmSupport();
