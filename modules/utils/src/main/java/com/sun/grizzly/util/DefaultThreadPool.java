@@ -41,6 +41,7 @@ package com.sun.grizzly.util;
 import com.sun.grizzly.util.ByteBufferFactory.ByteBufferType;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -205,8 +206,11 @@ public class DefaultThreadPool extends FixedThreadPool
             }
         }
         if (running){
-            workQueue.offer(task);
-            queueSize.incrementAndGet();
+            if (workQueue.offer(task)) {
+                queueSize.incrementAndGet();
+            } else {
+                throw new RejectedExecutionException("The queue is full");
+            }
         }
     }
 
