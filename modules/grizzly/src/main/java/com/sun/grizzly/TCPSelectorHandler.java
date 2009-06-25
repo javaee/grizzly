@@ -138,7 +138,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     /**
      * True if selector thread should execute the pendingIO events.
      */
-    private boolean executePendingIOinSelectorThread;
+    private boolean executePendingIOinSelectorThread = true;
 
 
     /**

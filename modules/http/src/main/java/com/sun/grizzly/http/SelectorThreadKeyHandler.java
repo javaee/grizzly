@@ -123,11 +123,11 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                     if (idleLimit != -1 && currentTime - expire >= idleLimit &&
                         (!(attachment instanceof SelectionKeyAttachment) ||
                         ((SelectionKeyAttachment)attachment).timedOut(key))){
-                            selectorHandler.addPendingKeyCancel(key);
                             //preventing further idle timeout detection for same key
                             //due to we dont directly cancel key anymore we cant rely in key.isvalid detection
                             addExpirationStamp(key,
                                     SelectionKeyAttachment.UNLIMITED_TIMEOUT);
+                            selectorHandler.addPendingKeyCancel(key);
                         }
                 }
             }
