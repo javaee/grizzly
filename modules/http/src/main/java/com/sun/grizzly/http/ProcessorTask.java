@@ -626,26 +626,26 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * Process an HTTP request using a non blocking {@link Socket}
      */      
-    protected boolean doProcess() throws Exception {     
-        if (handleKeepAliveBlockingThread) {
-            int soTimeout = ((InputReader)inputStream).getReadTimeout();
-            DefaultThreadPool st =(DefaultThreadPool) getThreadPool();
-            if ( useKeepAliveAlgorithm ) {
-               float threadRatio =
-                    (float) st.getActiveCount()
-                    / (float) st.getMaximumPoolSize();
-
-                if ((threadRatio > 0.33) && (threadRatio <= 0.66)) {
-                    soTimeout = soTimeout / 2;
-                } else if (threadRatio > 0.66) {
-                    soTimeout = soTimeout / 5;
-                    keepAliveLeft = 1;
-                }
-                ((InputReader)inputStream).setReadTimeout(soTimeout);
-            }
-        }
-
+    protected boolean doProcess() throws Exception {
         do{
+            int soTimeout = ((InputReader)inputStream).getReadTimeout();
+            if (handleKeepAliveBlockingThread) {
+                DefaultThreadPool st =(DefaultThreadPool) getThreadPool();
+                if ( useKeepAliveAlgorithm ) {
+                   float threadRatio =
+                        (float) st.getActiveCount()
+                        / (float) st.getMaximumPoolSize();
+
+                    if ((threadRatio > 0.33) && (threadRatio <= 0.66)) {
+                        soTimeout = soTimeout / 2;
+                    } else if (threadRatio > 0.66) {
+                        soTimeout = soTimeout / 5;
+                        keepAliveLeft = 1;
+                    }
+                }
+            }
+            ((InputReader)inputStream).setReadTimeout(soTimeout);
+
             isProcessingCompleted = false;
 
             boolean exitWhile = parseRequest();
@@ -785,12 +785,12 @@ public class ProcessorTask extends TaskBase implements Processor,
                 ((InputReader)inputStream).setReadTimeout(uploadTimeout);
             }
 
+            inputBuffer.parseHeaders();
+
             WorkerThread workerThread = (WorkerThread)Thread.currentThread();
             KeepAliveThreadAttachment k =
                     (KeepAliveThreadAttachment) workerThread.getAttachment();
             k.setIdleTimeoutDelay(transactionTimeout);
-
-            inputBuffer.parseHeaders();
 
             request.setStartTime(System.currentTimeMillis());
             if ( handler != null && 
