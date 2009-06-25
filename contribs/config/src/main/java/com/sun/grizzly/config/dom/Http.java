@@ -40,7 +40,6 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
-import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
 
 /**
@@ -119,6 +118,11 @@ public interface Http extends ConfigBeanProxy, Injectable {
     String getEnableCometSupport();
 
     void setEnableCometSupport(String enable);
+
+    @Attribute(defaultValue = "false")
+    String getDnsLookupEnabled();
+
+    void setDnsLookupEnabled(String enable);
 
     @Attribute(defaultValue = "false")
     String getEnableRcmSupport();
