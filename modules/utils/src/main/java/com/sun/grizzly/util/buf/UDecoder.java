@@ -73,7 +73,7 @@ public final class UDecoder {
      * Default Logger.
      */
     private final static Logger logger = LoggerUtils.getLogger();
-    protected static final boolean ALLOW_ENCODED_SLASH =
+    public static final boolean ALLOW_ENCODED_SLASH =
             Boolean.valueOf(System.getProperty("com.sun.grizzly.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "false")).booleanValue();
 
     private boolean allowEncodedSlash;
@@ -99,7 +99,7 @@ public final class UDecoder {
      * URLDecode the {@link ByteChunk}
      */
     public void convert(ByteChunk mb, boolean query) throws IOException {
-        convert(mb,query,ALLOW_ENCODED_SLASH);
+        convert(mb,query,allowEncodedSlash);
     }
     
     /** 
@@ -350,11 +350,11 @@ public final class UDecoder {
         return allowEncodedSlash;
     }
 
+    /**
+     * Overide the default value
+     * @param allowEncodedSlash
+     */
     public void setAllowEncodedSlash(boolean allowEncodedSlash) {
-        if (ALLOW_ENCODED_SLASH){
-            throw new IllegalStateException("Cannot change the allowedEncodedSlash. " +
-                    "Remove the -D property");
-        }
         this.allowEncodedSlash = allowEncodedSlash;
     }
 }
