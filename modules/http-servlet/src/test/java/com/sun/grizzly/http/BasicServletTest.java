@@ -46,6 +46,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.logging.Logger;
 
 /**
@@ -103,6 +104,41 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
             HttpURLConnection conn = getConnection("/contextPath/servletPath/pathInfo", PORT);
             String s = conn.getHeaderField("Path-Info");
             assertEquals(s, "/pathInfo");
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+
+    public void testNotAllowEncodedSlash() throws IOException {
+        System.out.println("testNotAllowEncodedSlash");
+        try {
+            newGWS(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletAdapter servletAdapter = addAdapter(alias);
+            servletAdapter.setContextPath("/contextPath");
+            servletAdapter.setServletPath("/servletPath");
+            gws.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
+            String s = conn.getHeaderField("Path-Info");
+            assertNotSame(s, "/pathInfo");
+        } finally {
+            stopGrizzlyWebServer();
+        }
+    }
+
+    public void testAllowEncodedSlash() throws IOException {
+        System.out.println("testAllowEncodedSlash");
+        try {
+            newGWS(PORT);
+            String alias = "/contextPath/servletPath/";
+            ServletAdapter servletAdapter = addAdapter(alias);
+            servletAdapter.setAllowEncodedSlash(true);
+            servletAdapter.setContextPath("/contextPath");
+            servletAdapter.setServletPath("/servletPath");
+            gws.start();
+            HttpURLConnection conn = getConnection("/contextPath/servletPath%5FpathInfo", PORT);
+            String s = conn.getHeaderField("Path-Info");
+            assertNotSame(s, "/pathInfo");
         } finally {
             stopGrizzlyWebServer();
         }
@@ -217,5 +253,4 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
         addAdapter(alias, adapter);
         return adapter;
     }
-
 }

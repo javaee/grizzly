@@ -43,6 +43,7 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.buf.MessageBytes;
+import com.sun.grizzly.util.buf.UDecoder;
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import java.io.IOException;
 import java.util.logging.Level;
@@ -95,7 +96,7 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
     /**
      * Allow request that uses encoded slash. 
      */
-    private boolean allowEncodedSlash = false;
+    private boolean allowEncodedSlash = UDecoder.ALLOW_ENCODED_SLASH;
     
     
     /**
