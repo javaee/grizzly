@@ -1261,7 +1261,6 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      * blocking mode.
      */
     public void startEndpoint() throws IOException, InstantiationException {
-        logger.info("Grizzly 1.0.29");
         running = true;
         
         kaTimeout = keepAliveTimeoutInSeconds * 1000;
