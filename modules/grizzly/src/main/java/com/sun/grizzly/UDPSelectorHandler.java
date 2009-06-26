@@ -140,6 +140,28 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
             if (role != Role.CLIENT){
                 datagramChannel = DatagramChannel.open();
                 datagramSocket = datagramChannel.socket();
+                if( receiveBufferSize > 0 ) {
+                    try {
+                        datagramSocket.setReceiveBufferSize( receiveBufferSize );
+                    } catch( SocketException se ) {
+                        if( logger.isLoggable( Level.FINE ) )
+                            logger.log( Level.FINE, "setReceiveBufferSize exception ", se );
+                    } catch( IllegalArgumentException iae ) {
+                        if( logger.isLoggable( Level.FINE ) )
+                            logger.log( Level.FINE, "setReceiveBufferSize exception ", iae );
+                    }
+                }
+                if( sendBufferSize > 0 ) {
+                    try {
+                        datagramSocket.setSendBufferSize( sendBufferSize );
+                    } catch( SocketException se ) {
+                        if( logger.isLoggable( Level.FINE ) )
+                            logger.log( Level.FINE, "setSendBufferSize exception ", se );
+                    } catch( IllegalArgumentException iae ) {
+                        if( logger.isLoggable( Level.FINE ) )
+                            logger.log( Level.FINE, "setSendBufferSize exception ", iae );
+                    }
+                }
                 datagramSocket.setReuseAddress(reuseAddress);
                 if (inet == null)
                     datagramSocket.bind(new InetSocketAddress(port));
@@ -160,9 +182,32 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
     @Override
     protected SelectableChannel getSelectableChannel( SocketAddress remoteAddress, SocketAddress localAddress ) throws IOException {
         DatagramChannel newDatagramChannel = DatagramChannel.open();
-        newDatagramChannel.socket().setReuseAddress( reuseAddress );
+        DatagramSocket newDatagramSocket = newDatagramChannel.socket();
+        if( receiveBufferSize > 0 ) {
+            try {
+                newDatagramSocket.setReceiveBufferSize( receiveBufferSize );
+            } catch( SocketException se ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setReceiveBufferSize exception ", se );
+            } catch( IllegalArgumentException iae ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setReceiveBufferSize exception ", iae );
+            }
+        }
+        if( sendBufferSize > 0 ) {
+            try {
+                newDatagramSocket.setSendBufferSize( sendBufferSize );
+            } catch( SocketException se ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setSendBufferSize exception ", se );
+            } catch( IllegalArgumentException iae ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setSendBufferSize exception ", iae );
+            }
+        }
+        newDatagramSocket.setReuseAddress( reuseAddress );
         if( localAddress != null )
-            newDatagramChannel.socket().bind( localAddress );
+            newDatagramSocket.bind( localAddress );
         newDatagramChannel.configureBlocking( false );
         return newDatagramChannel;
     }
@@ -222,8 +267,8 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
                     "closeSocketException",ex);
         }
     }
-    
-    
+
+
     /**
      * Handle OP_ACCEPT. Not used for UPD.
      */
@@ -249,8 +294,8 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
     @Override
     public Controller.Protocol protocol(){
         return Controller.Protocol.UDP;
-    }   
-    
+    }
+
     @Override
     public int getPortLowLevel() {
         if (datagramSocket != null) {
