@@ -63,31 +63,6 @@ public interface SelectorHandler extends Handler, Copyable,
         AttributeHolder, SupportStateHolder<State>, PendingIOhandler {
 
     /**
-     * enqueues runnable for later execution in postSelect <br>
-     * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
-     * @param runnable
-     */
-    public void addPendingIO(Runnable runnable);
-
-    /**
-     * enqueues SlectionKey for later cancel and close .<br>
-     * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
-     * @param key
-     */
-    public void addPendingKeyCancel(SelectionKey key);
-
-
-    /**
-     * True if selector thread should execute the pendingIO events.<br>
-     */
-    public void setExecutePendingIOinSelectorThread(boolean executePendingIOinSelectorThread);
-
-    /**
-     * True if selector thread should execute the pendingIO events.<br>
-     */
-    public boolean getExecutePendingIOinSelectorThread();
-
-    /**
      * A token decribing the protocol supported by an implementation of this
      * interface
      * @return SelectorHandler supported protocol

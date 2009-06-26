@@ -138,7 +138,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     /**
      * True if selector thread should execute the pendingIO events.
      */
-    private boolean executePendingIOinSelectorThread = true;
+    private boolean finishIOUsingCurrentThread = true;
 
 
     /**
@@ -334,6 +334,8 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         copyHandler.reuseAddress = reuseAddress;
         copyHandler.connectorInstanceHandler = connectorInstanceHandler;
         copyHandler.stateHolder = stateHolder;
+        copyHandler.finishIOUsingCurrentThread = finishIOUsingCurrentThread;
+        copyHandler.pendingIOlimitPerThread = pendingIOlimitPerThread;
     }
 
 
@@ -520,13 +522,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     public void postSelect(Context ctx) {
         selectionKeyHandler.expire(keys().iterator());
-        executePendingIO();
-    }
 
-    /**
-     * Executes the pending IOs
-     */
-    private void executePendingIO(){
         if (pendingIO.size() > 0 ){
             final List tasks = pendingIO;
             // tests with upto 10K selectionkeys was faster with ArrayList then linkedlist
@@ -534,7 +530,8 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             pendingIO = new ArrayList();
             int size = tasks.size();
             for (int x=0;x<size;){
-                doExecutePendiongIO(tasks,x,Math.min(x+=pendingIOlimitPerThread, size));
+                ctx.getController().executeUsingKernelExecutor(
+                        doExecutePendiongIO(tasks,x,Math.min(x+=pendingIOlimitPerThread, size)));
             }
         }
     }
@@ -545,7 +542,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @param start
      * @param end
      */
-    private void doExecutePendiongIO(final List tasks, final int start, final int end){
+    private Runnable doExecutePendiongIO(final List tasks, final int start, final int end){
         Runnable r = new Runnable(){
             public void run() {
                 for (int i=start;i<end;i++){
@@ -562,14 +559,14 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 }
             }
         };
-        threadPool.execute(r);
+        return r;
     }
 
     /**
      * {@inheritDoc}
      */
     public void addPendingIO(Runnable runnable){
-        if (executePendingIOinSelectorThread){
+        if (finishIOUsingCurrentThread){
             runnable.run();
         }else{
             pendingIO.add(runnable);
@@ -580,7 +577,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * {@inheritDoc}
      */
     public void addPendingKeyCancel(SelectionKey key){
-        if (executePendingIOinSelectorThread){
+        if (finishIOUsingCurrentThread){
             selectionKeyHandler.cancel(key);
         }else{
             pendingIO.add(key);
@@ -1071,20 +1068,6 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         this.pendingIOlimitPerThread = pendingIOlimitPerThread;
     }
 
-    /**
-     * True if selector thread should execute the pendingIO events.<br>
-     */
-    public void setExecutePendingIOinSelectorThread(boolean executePendingIOinSelectorThread) {
-        this.executePendingIOinSelectorThread = executePendingIOinSelectorThread;
-    }
-
-    /**
-     * True if selector thread should execute the pendingIO events.<br>
-     */
-    public boolean getExecutePendingIOinSelectorThread() {
-        return executePendingIOinSelectorThread;
-    }
-
 
     public final Selector getSelector() {
         return selector;
@@ -1501,5 +1484,26 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     public void setReceiveBufferSize( int size ) {
         this.receiveBufferSize = size;
+    }
+    
+    /**
+     * Return <tt>true</tt> by default, meaning the {@link WorkerThread} used to
+     * execute the I/O operation will also complete the I/O operations. Setting to false
+     * delegate the task to the kernel thread pool.
+     *
+     * @return the finishIOUsingCurrentThread
+     */
+    public boolean isFinishIOUsingCurrentThread() {
+        return finishIOUsingCurrentThread;
+    }
+
+    /**
+     * Set to false to use a the kernel thread pool to finish pending I/O operations,
+     * like closing connection.
+     *
+     * @param finishIOUsingCurrentThread the finishIOUsingCurrentThread to set
+     */
+    public void setFinishIOUsingCurrentThread(boolean finishIOUsingCurrentThread) {
+        this.finishIOUsingCurrentThread = finishIOUsingCurrentThread;
     }
 }
