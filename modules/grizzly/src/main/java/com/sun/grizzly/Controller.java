@@ -152,7 +152,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         ConnectorHandlerPool, AttributeHolder, SupportStateHolder<State> {
 
     public enum Protocol {
-
         UDP, TCP, TLS, CUSTOM
     }
     /**
@@ -266,13 +265,22 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     private boolean autoConfigure = true;
 
+   /**
+     * True if calling thread should execute the pendingIO events.
+     */
+    private boolean finishIOUsingCurrentThread = true;
+
+   /**
+     * Max number of pendingIO tasks that will be executed per worker thread.
+     */
+    private int pendingIOlimitPerThread = 100;
+
     // -------------------------------------------------------------------- //
     /**
      * Controller constructor
      */
     public Controller() {
-        useLeaderFollowerStrategy =
-                !Boolean.getBoolean("com.sun.grizzly.disableLeaderFollower");
+        (new ControllerConfig()).configure(this);
 
         contexts = new ConcurrentLinkedQueuePool<NIOContext>() {
 
@@ -680,6 +688,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         copyController.readThreadsCount = readThreadsCount;
         copyController.selectionKeyHandler = selectionKeyHandler;
         copyController.stateHolder = stateHolder;
+        copyController.finishIOUsingCurrentThread = finishIOUsingCurrentThread;
+        copyController.pendingIOlimitPerThread = pendingIOlimitPerThread;
     }
 
     // -------------------------------------------------------- Lifecycle ----//
@@ -776,6 +786,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                     selectorHandlers.add(selectorHandler);
                 }
 
+
                 if (readThreadsCount > 0) {
                     initReadThreads();
                     multiReadThreadSelectorHandler =
@@ -792,6 +803,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 Iterator<SelectorHandler> it = selectorHandlers.iterator();
                 for (; it.hasNext() && selectorHandlerCount-- > 0;) {
                     SelectorHandler selectorHandler = it.next();
+                    if (selectorHandler instanceof TCPSelectorHandler){
+                        ((TCPSelectorHandler)selectorHandler)
+                                .setFinishIOUsingCurrentThread(finishIOUsingCurrentThread);
+                         ((TCPSelectorHandler)selectorHandler)
+                                .setPendingIOlimitPerThread(pendingIOlimitPerThread);
+                    }
                     startSelectorHandlerRunner(selectorHandler);
                 }
             }
@@ -1227,9 +1244,45 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     private void recalcRequiredThreadsCount() {
-//        requiredThreadsCount = DefaultThreadPool.DEFAULT_MIN_THREAD_COUNT * readThreadsCount;
         final int selectorHandlersCount = selectorHandlers.size();
         final int clonesNumber = (selectorHandlersCount > 0) ? selectorHandlersCount : 1;
         requiredThreadsCount = clonesNumber * (readThreadsCount + 1) * 2;
+    }
+
+    /**
+     * Return <tt>true</tt> by default, meaning the {@link WorkerThread} used to
+     * execute the I/O operation will also complete the I/O operations. Setting to false
+     * delegate the task to the kernel thread pool.
+     * 
+     * @return the finishIOUsingCurrentThread
+     */
+    public boolean isFinishIOUsingCurrentThread() {
+        return finishIOUsingCurrentThread;
+    }
+
+    /**
+     * Set to false to use a the kernel thread pool to finish pending I/O operations,
+     * like closing connection.
+     * 
+     * @param finishIOUsingCurrentThread the finishIOUsingCurrentThread to set
+     */
+    public void setFinishIOUsingCurrentThread(boolean finishIOUsingCurrentThread) {
+        this.finishIOUsingCurrentThread = finishIOUsingCurrentThread;
+    }
+
+    /**
+     * Max number of pendingIO tasks that will be executed per worker thread.
+     * @return
+     */
+    public int getPendingIOlimitPerThread() {
+        return pendingIOlimitPerThread;
+    }
+
+    /**
+     * Max number of pendingIO tasks that will be executed per worker thread.
+     * @param pendingIOlimitPerThread
+     */
+    public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
+        this.pendingIOlimitPerThread = pendingIOlimitPerThread;
     }
 }
