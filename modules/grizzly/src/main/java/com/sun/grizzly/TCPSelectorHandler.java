@@ -791,7 +791,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 // Let's try to recover here from too many open file
                 Thread.sleep(1000);
             } catch (InterruptedException ex1) {
-                throw new IOException(ex1);
+                throw new IOException(ex1.getMessage());
             }
             logger.warning(ex.getMessage());
             return acceptWithoutRegistration(key);
