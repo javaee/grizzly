@@ -275,6 +275,18 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     private long lastSpinTimestamp;
     private int emptySpinCounter;
 
+    /**
+     * The size to which to set the send buffer
+     * If this value is not greater than 0, it is not used.
+     */
+    protected int sendBufferSize = -1;
+
+    /**
+     * The size to which to set the receive buffer
+     * If this value is not greater than 0, it is not used.
+     */
+    protected int receiveBufferSize = -1;
+
     public TCPSelectorHandler(){
         this(Role.CLIENT_SERVER);
     }
@@ -389,6 +401,17 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             if (role != Role.CLIENT){
                 serverSocketChannel = ServerSocketChannel.open();
                 serverSocket = serverSocketChannel.socket();
+                if( receiveBufferSize > 0 ) {
+                    try {
+                        serverSocket.setReceiveBufferSize( receiveBufferSize );
+                    } catch( SocketException se ) {
+                        if( logger.isLoggable( Level.FINE ) )
+                            logger.log( Level.FINE, "setReceiveBufferSize exception ", se );
+                    } catch( IllegalArgumentException iae ) {
+                        if( logger.isLoggable( Level.FINE ) )
+                            logger.log( Level.FINE, "setReceiveBufferSize exception ", iae );
+                    }
+                }
                 serverSocket.setReuseAddress(reuseAddress);
                 if ( inet == null){
                     serverSocket.bind(new InetSocketAddress(port),ssBackLog);
@@ -631,9 +654,32 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
     protected SelectableChannel getSelectableChannel( SocketAddress remoteAddress, SocketAddress localAddress ) throws IOException {
         SocketChannel newSocketChannel = SocketChannel.open();
-        newSocketChannel.socket().setReuseAddress( reuseAddress );
+        Socket newSocket = newSocketChannel.socket();
+        if( receiveBufferSize > 0 ) {
+            try {
+                newSocket.setReceiveBufferSize( receiveBufferSize );
+            } catch( SocketException se ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setReceiveBufferSize exception ", se );
+            } catch( IllegalArgumentException iae ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setReceiveBufferSize exception ", iae );
+            }
+        }
+        if( sendBufferSize > 0 ) {
+            try {
+                newSocket.setSendBufferSize( sendBufferSize );
+            } catch( SocketException se ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setSendBufferSize exception ", se );
+            } catch( IllegalArgumentException iae ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setSendBufferSize exception ", iae );
+            }
+        }
+        newSocket.setReuseAddress( reuseAddress );
         if( localAddress != null )
-            newSocketChannel.socket().bind( localAddress );
+            newSocket.bind( localAddress );
         newSocketChannel.configureBlocking( false );
         return newSocketChannel;
     }
@@ -958,6 +1004,30 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             if (logger.isLoggable(Level.FINE)){
                 logger.log(Level.FINE,
                         "setTcpNoDelay exception ",ex);
+            }
+        }
+
+        if( receiveBufferSize > 0 ) {
+            try {
+                socket.setReceiveBufferSize( receiveBufferSize );
+            } catch( SocketException se ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setReceiveBufferSize exception ", se );
+            } catch( IllegalArgumentException iae ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setReceiveBufferSize exception ", iae );
+            }
+        }
+
+        if( sendBufferSize > 0 ) {
+            try {
+                socket.setSendBufferSize( sendBufferSize );
+            } catch( SocketException se ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setSendBufferSize exception ", se );
+            } catch( IllegalArgumentException iae ) {
+                if( logger.isLoggable( Level.FINE ) )
+                    logger.log( Level.FINE, "setSendBufferSize exception ", iae );
             }
         }
 
@@ -1402,5 +1472,23 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             return contspinspersec;
         }
         return 0;
+    }
+
+    /**
+     * Sets the <code>sendBufferSize</code> to the specified value
+     *
+     * @param size the size to which to set the send buffer. This value should be greater than 0.
+     */
+    public void setSendBufferSize( int size ) {
+        this.sendBufferSize = size;
+    }
+
+    /**
+     * Sets the <code>receiveBufferSize</code> to the specified value
+     *
+     * @param size the size to which to set the receive buffer. This value should be greater than 0.
+     */
+    public void setReceiveBufferSize( int size ) {
+        this.receiveBufferSize = size;
     }
 }
