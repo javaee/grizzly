@@ -787,7 +787,18 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * {@inheritDoc}
      */
     public SelectableChannel acceptWithoutRegistration(SelectionKey key) throws IOException {
-        return ((ServerSocketChannel) key.channel()).accept();
+        try{
+            return ((ServerSocketChannel) key.channel()).accept();
+        } catch (IOException ex){
+            try {
+                // Let's try to recover here from too many open file
+                Thread.sleep(1000);
+            } catch (InterruptedException ex1) {
+                throw new IOException(ex1);
+            }
+            logger.warning(ex.getMessage());
+            return acceptWithoutRegistration(key);
+        }
     }
 
     /**
