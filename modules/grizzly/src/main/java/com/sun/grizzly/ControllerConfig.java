@@ -54,6 +54,8 @@ class ControllerConfig{
     public final static String MAX_PENDING_IO_PER_THREAD
             = "com.sun.grizzly.pendingIOlimitPerThread";
 
+    public final static String MAX_ACCEPT_RETRIES
+            = "com.sun.grizzly.maxAcceptRetries";
     /**
      * Configure the {@link Controller}
      */
@@ -64,6 +66,8 @@ class ControllerConfig{
         c.setFinishIOUsingCurrentThread(Boolean.getBoolean(PENDING_IO_STRATEGY));
 
         c.setPendingIOlimitPerThread(Integer.getInteger(MAX_PENDING_IO_PER_THREAD, 100));
+
+        c.setMaxAcceptRetries(Integer.getInteger(MAX_ACCEPT_RETRIES, 5));
     }
 
 

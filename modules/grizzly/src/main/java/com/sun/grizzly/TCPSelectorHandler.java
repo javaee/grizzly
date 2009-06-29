@@ -89,7 +89,8 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaround {
-    private static final int MAX_ACCEPT_RETRIES = Integer.getInteger("Max-Accept-Retries", 5);
+
+    private int maxAcceptRetries = 5;
 
     /**
      * The ConnectorInstanceHandler used to return a new or pooled
@@ -802,7 +803,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 }
                 logger.log(Level.WARNING, "Exception accepting channel", ex);
             }
-        } while (!isAccepted && retryNum++ < MAX_ACCEPT_RETRIES);
+        } while (!isAccepted && retryNum++ < maxAcceptRetries);
 
         throw new IOException("Accept retries exceeded");
     }
@@ -1514,5 +1515,13 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     public void setFinishIOUsingCurrentThread(boolean finishIOUsingCurrentThread) {
         this.finishIOUsingCurrentThread = finishIOUsingCurrentThread;
+    }
+
+    /**
+     * Max number of accept() failures before abording.
+     * @param maxAcceptRetries
+     */
+    public void setMaxAcceptRetries(int maxAcceptRetries){
+        this.maxAcceptRetries = maxAcceptRetries;
     }
 }

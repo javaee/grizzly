@@ -151,6 +151,8 @@ import static com.sun.grizzly.Context.OpType;
 public class Controller implements Runnable, Lifecycle, Copyable,
         ConnectorHandlerPool, AttributeHolder, SupportStateHolder<State> {
 
+    private int maxAcceptRetries = 5;
+
     public enum Protocol {
         UDP, TCP, TLS, CUSTOM
     }
@@ -808,6 +810,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                                 .setFinishIOUsingCurrentThread(finishIOUsingCurrentThread);
                          ((TCPSelectorHandler)selectorHandler)
                                 .setPendingIOlimitPerThread(pendingIOlimitPerThread);
+                         ((TCPSelectorHandler)selectorHandler)
+                                .setMaxAcceptRetries(maxAcceptRetries);
                     }
                     startSelectorHandlerRunner(selectorHandler);
                 }
@@ -1284,5 +1288,14 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
         this.pendingIOlimitPerThread = pendingIOlimitPerThread;
+    }
+
+
+    /**
+     * Max number of accept() failures before abording.
+     * @param maxAcceptRetries
+     */
+    public void setMaxAcceptRetries(int maxAcceptRetries){
+        this.maxAcceptRetries = maxAcceptRetries;
     }
 }
