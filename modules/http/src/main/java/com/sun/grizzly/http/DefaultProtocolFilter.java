@@ -146,13 +146,15 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             
             // Bind the Attachment to the SelectionKey
             ctx.getSelectionKey().attach(k);
-                    
-            int count = k.increaseKeepAliveCount();
-            if (count > selectorThread.getMaxKeepAliveRequests() && ks != null) {
-                ks.incrementCountRefusals();
-                processorTask.setDropConnection(true);
-            } else {
-                processorTask.setDropConnection(false);
+
+            if (selectorThread.getMaxKeepAliveRequests() != -1){
+                int count = k.increaseKeepAliveCount();
+                if (count > selectorThread.getMaxKeepAliveRequests() && ks != null) {
+                    ks.incrementCountRefusals();
+                    processorTask.setDropConnection(true);
+                } else {
+                    processorTask.setDropConnection(false);
+                }
             }
                        
             configureProcessorTask(processorTask, ctx, streamAlgorithm.getHandler());
