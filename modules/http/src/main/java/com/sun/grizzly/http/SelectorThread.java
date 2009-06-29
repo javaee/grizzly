@@ -43,6 +43,7 @@ import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
+import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.arp.AsyncInterceptor;
 import com.sun.grizzly.arp.AsyncProtocolFilter;
@@ -76,9 +77,13 @@ import com.sun.grizzly.util.IntrospectionUtils;
 
 import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.res.StringManager;
 import java.io.File;
+import java.net.DatagramSocket;
+import java.net.ServerSocket;
+import java.nio.ByteBuffer;
 import javax.management.ObjectName;
 import javax.management.MBeanServer;
 import javax.management.MBeanRegistration;
@@ -383,7 +388,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     /**
-     * {@link ConcurrentLinkedQueue} used as an object pool.
+     * {@link LinkedTransferQueue} used as an object pool.
      * If the list becomes empty, new {@link ProcessorTask} will be
      * automatically added to the list.
      */
@@ -1351,11 +1356,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /** 
      * Set the maximum number of Keep-Alive requests that we will honor.
      */
-    public void setMaxKeepAliveRequests(int mkar) {
-        if (mkar == -1){
-            mkar = Integer.MAX_VALUE;
-        }
-        maxKeepAliveRequests = mkar;
+    public void setMaxKeepAliveRequests(int maxKeepAliveRequests) {
+        this.maxKeepAliveRequests = maxKeepAliveRequests;
     }
     
 
@@ -1366,13 +1368,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * @param timeout Keep-alive timeout in number of seconds
      */    
     public void setKeepAliveTimeoutInSeconds(int timeout) {
-        if (timeout == -1){
-            timeout = Integer.MAX_VALUE;
-        }
-
         keepAliveTimeoutInSeconds = timeout;
         if (keyHandler != null) {
-            keyHandler.setTimeout(timeout * 1000);
+            keyHandler.setTimeout(timeout == -1
+                    ? SelectionKeyAttachment.UNLIMITED_TIMEOUT: timeout * 1000);
         }
     }
 
