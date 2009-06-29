@@ -89,7 +89,7 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaround {
-
+    private static final int MAX_ACCEPT_RETRIES = Integer.getInteger("Max-Accept-Retries", 5);
 
     /**
      * The ConnectorInstanceHandler used to return a new or pooled
@@ -784,18 +784,27 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * {@inheritDoc}
      */
     public SelectableChannel acceptWithoutRegistration(SelectionKey key) throws IOException {
-        try{
-            return ((ServerSocketChannel) key.channel()).accept();
-        } catch (IOException ex){
+        boolean isAccepted;
+        int retryNum = 0;
+        do {
             try {
-                // Let's try to recover here from too many open file
-                Thread.sleep(1000);
-            } catch (InterruptedException ex1) {
-                throw new IOException(ex1.getMessage());
+                isAccepted = true;
+                return ((ServerSocketChannel) key.channel()).accept();
+            } catch (IOException ex) {
+                if(!key.isValid()) throw ex;
+                
+                isAccepted = false;
+                try {
+                    // Let's try to recover here from too many open file
+                    Thread.sleep(1000);
+                } catch (InterruptedException ex1) {
+                    throw new IOException(ex1.getMessage());
+                }
+                logger.log(Level.WARNING, "Exception accepting channel", ex);
             }
-            logger.warning(ex.getMessage());
-            return acceptWithoutRegistration(key);
-        }
+        } while (!isAccepted && retryNum++ < MAX_ACCEPT_RETRIES);
+
+        throw new IOException("Accept retries exceeded");
     }
 
     /**
