@@ -62,6 +62,8 @@ import javax.net.ssl.SSLEngineResult.Status;
  * @author Jeanfrancois Arcand
  */
 public class SSLUtils {
+    private final static int MAX_APP_BUFFER_SIZE =
+            Integer.getInteger("SSL_MAX_APP_BUFFER_SIZE", 64 * 1024);
     
     /**
      * The maximum size a ByteBuffer can take.
@@ -622,8 +624,9 @@ public class SSLUtils {
 
         expectedSize = workerThread.getSSLEngine().getSession()
             .getApplicationBufferSize();
-        if ( expectedSize > byteBuffer.capacity() ) {
-            ByteBuffer newBB = ByteBuffer.allocate(expectedSize);
+        if ( expectedSize > byteBuffer.remaining() && byteBuffer.capacity() <= MAX_APP_BUFFER_SIZE) {
+            ByteBuffer newBB = ByteBuffer.allocate(expectedSize * 2 +
+                    byteBuffer.position());
             byteBuffer.flip();
             newBB.put(byteBuffer);
             byteBuffer = newBB;
