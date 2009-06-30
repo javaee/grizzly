@@ -39,6 +39,7 @@ package com.sun.grizzly.filter;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Context.AttributeScope;
+import com.sun.grizzly.Controller;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolChainInstruction;
 import com.sun.grizzly.ProtocolParser;
@@ -51,6 +52,7 @@ import java.nio.channels.SelectionKey;
 
 import com.sun.grizzly.util.ThreadAttachment;
 import com.sun.grizzly.util.ThreadAttachment.Mode;
+import java.util.logging.Level;
 
 /**
  * Simple ProtocolFilter implementation which read the available bytes
@@ -61,6 +63,7 @@ import com.sun.grizzly.util.ThreadAttachment.Mode;
  * @author Jeanfrancois Arcand
  */
 public abstract class ParserProtocolFilter extends ReadFilter {
+    private static final String SSL_READ_RESULT = "PPF-SSL-ReadResult";
 
     /**
      * Should ParserProtocolFilter read the data from channel
@@ -206,7 +209,13 @@ public abstract class ParserProtocolFilter extends ReadFilter {
         if (sslReadFilter == null) {
             return super.execute(context);
         } else {
-            return sslReadFilter.execute(context);
+            final boolean result = sslReadFilter.execute(context);
+            if (result) {
+                // Save "success read" state
+                context.setAttribute(SSL_READ_RESULT, true);
+            }
+
+            return result;
         }
     }
 
@@ -214,6 +223,18 @@ public abstract class ParserProtocolFilter extends ReadFilter {
         if (sslReadFilter == null) {
             return super.postExecute(context);
         } else {
+            Boolean readResult = (Boolean) context.removeAttribute(SSL_READ_RESULT);
+            if (readResult != null && Boolean.TRUE.equals(readResult)) {
+                ByteBuffer secureBuffer = ((WorkerThread) Thread.currentThread()).getInputBB();
+                // if "success read" state is set and securedIn buffer has more bytes
+                if (secureBuffer != null && secureBuffer.position() > 0) {
+                    // Reinvoke the chain
+                    context.setAttribute(ProtocolChain.PROTOCOL_CHAIN_POST_INSTRUCTION,
+                            ProtocolChainInstruction.REINVOKE);
+                    return true;
+                }
+            }
+
             return sslReadFilter.postExecute(context);
         }
     }

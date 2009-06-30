@@ -159,6 +159,10 @@ public class SSLReadFilter implements ProtocolFilter{
             
             if (hasHandshake) {
                 count = doRead(key);
+                
+                if (count == 0) {
+                    result = false;
+                }
             } else if (doHandshake(key, SSLUtils.getReadTimeout())) {
                 hasHandshake = true;
                 // set "no available data" for secured output buffer
@@ -180,7 +184,7 @@ public class SSLReadFilter implements ProtocolFilter{
                         Context.KeyRegistrationState.CANCEL);
                 result = false;
             }
-        }     
+        }
         return result;
     }
 
@@ -280,7 +284,7 @@ public class SSLReadFilter implements ProtocolFilter{
                 workerThread.setOutputBB(outputBB);
                 workerThread.setByteBuffer(byteBuffer);
                 
-                if (count == -1 && byteBuffer.position() != initialBufferPosition) {
+                if (count <= 0 && byteBuffer.position() != initialBufferPosition) {
                     return initialInputBBPosition;
                 }
             }
