@@ -63,7 +63,10 @@ class ControllerConfig{
 
         c.useLeaderFollowerStrategy(!Boolean.getBoolean(LEADER_FOLLOWER));
 
-        c.setFinishIOUsingCurrentThread(Boolean.getBoolean(PENDING_IO_STRATEGY));
+        // Avoid overriding the default with false
+        if (System.getProperty(PENDING_IO_STRATEGY) != null){
+            c.setFinishIOUsingCurrentThread(Boolean.getBoolean(PENDING_IO_STRATEGY));
+        }
 
         c.setPendingIOlimitPerThread(Integer.getInteger(MAX_PENDING_IO_PER_THREAD, 100));
 
