@@ -1049,7 +1049,7 @@ public class GrizzlyWebServerDeployer {
 
                     if (libFolder.exists() && libFolder.isDirectory()) {
                         for (int k = 0; k < libFolder.listFiles().length; k++) {
-                            classpathList.add(new URL("jar:file:" + separator + libFolder.listFiles()[k].toString().replace('\\', '/') + "!/"));
+                            classpathList.add(new URL("jar:file:" + separator + libFolder.listFiles()[k].getCanonicalPath().toString().replace('\\', '/') + "!/"));
                         }
                     }
                 }
