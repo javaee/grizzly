@@ -102,8 +102,9 @@ public class StaticResourcesAdapter implements Adapter {
         
         // Ugly workaround
         // See Issue 327
-        if (System.getProperty("os.name").equalsIgnoreCase("linux") 
-                && !System.getProperty("java.version").startsWith("1.7")) {
+        if( ( System.getProperty( "os.name" ).equalsIgnoreCase( "linux" )
+              && !System.getProperty( "java.version" ).startsWith( "1.7" ) )
+            || System.getProperty( "os.name" ).equalsIgnoreCase( "HP-UX" ) ) {
             useSendFile = false;
         } 
         
