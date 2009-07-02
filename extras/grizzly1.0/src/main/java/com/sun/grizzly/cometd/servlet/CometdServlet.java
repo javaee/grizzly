@@ -39,6 +39,7 @@ package com.sun.grizzly.cometd.servlet;
 
 import com.sun.enterprise.web.connector.grizzly.comet.CometContext;
 import com.sun.enterprise.web.connector.grizzly.comet.CometEngine;
+import com.sun.enterprise.web.connector.grizzly.comet.CometHandler;
 import com.sun.grizzly.cometd.BayeuxCometHandler;
 import com.sun.grizzly.cometd.CometdNotificationHandler;
 import com.sun.grizzly.cometd.CometdRequest;

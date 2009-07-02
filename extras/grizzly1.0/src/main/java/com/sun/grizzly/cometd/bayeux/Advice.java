@@ -151,6 +151,7 @@ public class Advice extends VerbBase{
         this.transport = transport;
     }
         
+    @Override
     public boolean isValid() {
         for (String rc : VALID_RECONNECT) {
             if (rc.equals(reconnect)) {

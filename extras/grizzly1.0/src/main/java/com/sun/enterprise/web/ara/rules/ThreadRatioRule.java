@@ -349,7 +349,6 @@ public class ThreadRatioRule implements Rule<ReadTask> {
      * Set the interval in seconds to wait before executing this rule.
      */
     public void setExecutionTime(int time) {
-        ; 
     }
     
     
@@ -357,6 +356,5 @@ public class ThreadRatioRule implements Rule<ReadTask> {
      * Set the <code>Future</code> associated with this execution of this rule.
      */    
     public void setFuture(java.util.concurrent.Future future) {
-        ;
     }
 }

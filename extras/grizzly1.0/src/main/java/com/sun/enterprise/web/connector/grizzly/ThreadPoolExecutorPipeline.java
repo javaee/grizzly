@@ -160,7 +160,6 @@ public class ThreadPoolExecutorPipeline implements Pipeline,
         if (isStarted){
             return;
         }
-        ; // Do nothing
     }
     
 
@@ -348,6 +347,7 @@ public class ThreadPoolExecutorPipeline implements Pipeline,
     }  
     
     
+    @Override
     public String toString(){
        return "name: " + name + " maxThreads: " + maxThreads 
                 + " minThreads:" + minThreads;        

@@ -37,16 +37,10 @@
 
 package com.sun.enterprise.web.connector.grizzly.standalone;
 
-import com.sun.enterprise.web.connector.grizzly.Constants;
-import com.sun.enterprise.web.connector.grizzly.FileCache;
-import com.sun.enterprise.web.connector.grizzly.FileCacheFactory;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
-import com.sun.enterprise.web.connector.grizzly.SocketChannelOutputBuffer;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.channels.FileChannel;
-import java.nio.channels.SocketChannel;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -55,11 +49,8 @@ import org.apache.coyote.ActionCode;
 import org.apache.coyote.Adapter;
 import org.apache.coyote.Request;
 import org.apache.coyote.Response;
-import org.apache.coyote.http11.InternalOutputBuffer;
-import org.apache.tomcat.util.buf.Ascii;
 import org.apache.tomcat.util.buf.ByteChunk;
 import org.apache.tomcat.util.buf.MessageBytes;
-import org.apache.tomcat.util.http.MimeHeaders;
 
 /**
  * Simple HTTP based Web Server. Part of this class is from Tomcat sandbox code

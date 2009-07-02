@@ -38,8 +38,6 @@
 
 package com.sun.grizzly.cometd.bayeux;
 
-import java.util.ArrayList;
-
 /**
  * Bayeux Handshake implementation. 
  * See http://svn.xantus.org/shortbus/trunk/bayeux/protocol.txt for the technical
@@ -163,6 +161,7 @@ abstract class Handshake extends VerbBase{
         this.authUser = authUser;
     }
 
+    @Override
     public boolean isValid() {
         float ver;
 

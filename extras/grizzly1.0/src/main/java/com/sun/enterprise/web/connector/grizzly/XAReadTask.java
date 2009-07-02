@@ -35,10 +35,8 @@
  */
 package com.sun.enterprise.web.connector.grizzly;
 
-import com.sun.enterprise.web.connector.grizzly.DefaultReadTask;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 
@@ -66,6 +64,7 @@ public class XAReadTask extends DefaultReadTask {
      * the <code>StreamAlgorith</code> stategy determine no more bytes are
      * are needed.
      */
+    @Override
     public void doTask() throws IOException {
         int count = 0;
         Socket socket = null;
@@ -153,6 +152,7 @@ public class XAReadTask extends DefaultReadTask {
      *    we keep-alive the key, but unattach this object from
      *    the SelectionKey so it can be resused.
      */
+    @Override
     protected void manageKeepAlive(boolean keepAlive,int count,
             Exception exception){
         
@@ -202,6 +202,7 @@ public class XAReadTask extends DefaultReadTask {
      * @return false if the request wasn't fully read by the channel.
      *         so we need to respin the key on the Selector.
      */
+    @Override
     public boolean executeProcessorTask() throws IOException{
         boolean registerKey = false;
         
@@ -245,6 +246,7 @@ public class XAReadTask extends DefaultReadTask {
     /**
      * Complete the processing.
      */
+    @Override
     public void terminate(boolean keepAlive){     
         super.terminate(keepAlive);
     }    
@@ -252,6 +254,7 @@ public class XAReadTask extends DefaultReadTask {
     /**
      * Clear the current state and make this object ready for another request.
      */
+    @Override
     public void recycle(){
         byteBuffer = algorithm.postParse(byteBuffer);   
 

@@ -89,6 +89,7 @@ public class SelectorBlockingThread extends SelectorThread
      * initialized the endpoint by creating the <code>ServerSocketChannel</code>
      * and by initializing the server socket.
      */
+    @Override
     public void initEndpoint() throws IOException, InstantiationException {
         SelectorThreadConfig.configure(this);
         
@@ -187,6 +188,7 @@ public class SelectorBlockingThread extends SelectorThread
     }   
 
 
+    @Override
     protected void setSocketOptions(Socket socket){
         super.setSocketOptions(socket);
         if( getKeepAliveTimeoutInSeconds() > 0){
@@ -204,6 +206,7 @@ public class SelectorBlockingThread extends SelectorThread
      * Start the Acceptor Thread and wait for incoming connection, in a non
      * blocking mode.
      */
+    @Override
     public void startEndpoint() throws IOException, InstantiationException {
         setRunning(true);
         
@@ -217,6 +220,7 @@ public class SelectorBlockingThread extends SelectorThread
     /**
      * Stop a blocking server <code>Socket</code>
      */
+    @Override
     public void stopEndpoint() {
         if (!isRunning()) {
             return;
@@ -313,6 +317,7 @@ public class SelectorBlockingThread extends SelectorThread
     /**
      * Start a blocking server <code>Socket</code>
      */
+    @Override
     protected void startListener(){
         Socket socket = null;
         while (isRunning()){
@@ -342,6 +347,7 @@ public class SelectorBlockingThread extends SelectorThread
      * Create <code>ProcessorTask</code> objects and configure it to be ready
      * to proceed request.
      */
+    @Override
     protected DefaultProcessorTask newProcessorTask(boolean initialize){                                                      
         ProcessorBlockingTask task = new ProcessorBlockingTask(initialize);
         configureProcessorTask(task);

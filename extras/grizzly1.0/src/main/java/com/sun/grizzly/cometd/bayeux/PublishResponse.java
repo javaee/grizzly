@@ -75,6 +75,7 @@ public class PublishResponse extends Publish {
         this.error = error;
     }
 
+    @Override
     public boolean isValid() {
         return (channel != null && successful != null);
     }

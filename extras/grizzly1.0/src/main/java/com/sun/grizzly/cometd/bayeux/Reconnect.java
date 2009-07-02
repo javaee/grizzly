@@ -38,8 +38,6 @@
 
 package com.sun.grizzly.cometd.bayeux;
 
-import org.apache.tomcat.util.http.FastHttpDateFormat;
-
 /**
  * Bayeux Reconnect implementation. 
  * See http://svn.xantus.org/shortbus/trunk/bayeux/protocol.txt for the technical
@@ -93,7 +91,7 @@ import org.apache.tomcat.util.http.FastHttpDateFormat;
  * 	]
  * @author Jeanfrancois Arcand
  */
-abstract class Reconnect extends Connect{
+abstract public class Reconnect extends Connect{
 
     public final static String META_RECONNECT ="/meta/reconnect";
 

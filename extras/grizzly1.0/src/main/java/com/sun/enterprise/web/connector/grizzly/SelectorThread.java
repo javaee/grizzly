@@ -92,7 +92,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
                 ? System.getProperty("product.name") : "grizzly";
     
         
-    private Object[] lock = new Object[0];
+    private final Object[] lock = new Object[0];
 
     
     protected int serverTimeout = Constants.DEFAULT_SERVER_SOCKET_TIMEOUT;
@@ -1244,6 +1244,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     /**
      * Start the endpoint (this)
      */
+    @Override
     public void run(){
         try{
             startEndpoint();

@@ -51,7 +51,6 @@
  */
 package com.sun.enterprise.web.connector.grizzly.blocking;
 
-import com.sun.enterprise.web.connector.grizzly.Constants;
 import com.sun.enterprise.web.connector.grizzly.DefaultProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.TaskContext;
@@ -99,6 +98,7 @@ public class ProcessorBlockingTask extends DefaultProcessorTask {
     /**
      * Initialize the stream and the buffer used to parse the request.
      */
+    @Override
     public void initialize(){
         started = true;   
         request = new Request();
@@ -127,6 +127,7 @@ public class ProcessorBlockingTask extends DefaultProcessorTask {
      * Execute the HTTP request by parsing the header/body,
      * and then by delegating the process to the Catalina container.
      */
+    @Override
     public void doTask() throws IOException{
         try {
             process(socket.getInputStream(),socket.getOutputStream());
@@ -143,6 +144,7 @@ public class ProcessorBlockingTask extends DefaultProcessorTask {
      // --------------------------------------------------------- TaskEvent ---// 
         
      
+    @Override
     public void taskEvent(TaskEvent event){
         if ( event.getStatus() == TaskEvent.START) {
             taskContext = (TaskContext)event.attachement();
@@ -169,6 +171,7 @@ public class ProcessorBlockingTask extends DefaultProcessorTask {
      * @return true is an error occured.
      * @throws Exception error during an I/O operation
      */
+    @Override
     public boolean process(InputStream input, OutputStream output)
             throws Exception {
         preProcess(input,output);            
@@ -186,6 +189,7 @@ public class ProcessorBlockingTask extends DefaultProcessorTask {
      * @param input the InputStream to read bytes
      * @param output the OutputStream to write bytes
      */     
+    @Override
     public void preProcess(InputStream input, OutputStream output)
                                                             throws Exception {        
         // Make sure this object has been initialized.
@@ -204,6 +208,7 @@ public class ProcessorBlockingTask extends DefaultProcessorTask {
      * @param input the InputStream to read bytes
      * @param output the OutputStream to write bytes
      */      
+    @Override
     protected boolean doProcess(InputStream input, OutputStream output)
                                                             throws Exception {
         boolean keptAlive = false;    
@@ -221,6 +226,7 @@ public class ProcessorBlockingTask extends DefaultProcessorTask {
      * Notify the <code>TaskListener</code> that the request has been 
      * fully processed.
      */
+    @Override
     public void terminateProcess(){
         taskEvent.setStatus(TaskEvent.COMPLETED);
         try{
@@ -284,6 +290,7 @@ public class ProcessorBlockingTask extends DefaultProcessorTask {
     /**
      * Recyle this object.
      */
+    @Override
     public void recycle(){
         socket = null;
         dropConnection = false;

@@ -123,6 +123,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
     /**
      * Not used.
      */
+    @Override
     public void taskEvent(TaskEvent event) {
     }
     

@@ -62,7 +62,6 @@ import com.sun.grizzly.cometd.bayeux.VerbBase;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;

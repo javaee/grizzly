@@ -36,18 +36,8 @@
 
 package com.sun.enterprise.web.ara.rules;
 
-import com.sun.enterprise.web.ara.IsolationRulesExecutor;
-import com.sun.enterprise.web.connector.grizzly.Pipeline;
-import com.sun.enterprise.web.connector.grizzly.LinkedListPipeline;
-import com.sun.enterprise.web.connector.grizzly.Rule;
-import com.sun.enterprise.web.connector.grizzly.ReadTask;
-import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 
 import java.nio.ByteBuffer;
-import java.util.Collection;
-import java.util.StringTokenizer;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Level;
 
 /**
  * Based on the application context-root, configure the <code>ReadTask</code>
@@ -72,6 +62,7 @@ public class PathRule extends ThreadRatioRule{
     /***
      * Get the context-root from the <code>ByteBuffer</code>
      */
+    @Override
     protected String getContextRoot(){
         // (1) Get the token the Algorithm has processed for us.
         ByteBuffer byteBuffer = readTask.getByteBuffer();

@@ -39,7 +39,6 @@ package com.sun.enterprise.web.connector.grizzly.algorithms;
 import com.sun.enterprise.web.connector.grizzly.Handler;
 import com.sun.enterprise.web.connector.grizzly.handlers.NoParsingHandler;
 import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 
 
 /**
@@ -64,6 +63,7 @@ public class NoParsingAlgorithm extends StreamAlgorithmBase{
      * Do nothing, as the ByteBufferInputStream will take care of reading the 
      * missing bytes.
      */
+    @Override
     public ByteBuffer preParse(ByteBuffer byteBuffer){ 
         return byteBuffer;
     }
@@ -89,6 +89,7 @@ public class NoParsingAlgorithm extends StreamAlgorithmBase{
     /***
      * Recycle this object.
      */
+    @Override
     public void recycle(){
         socketChannel = null;
         if ( handler != null){

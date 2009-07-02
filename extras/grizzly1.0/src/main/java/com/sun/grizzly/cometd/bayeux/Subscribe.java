@@ -83,7 +83,7 @@ package com.sun.grizzly.cometd.bayeux;
  *	]
  * @author Jeanfrancois Arcand
  */
-abstract class Subscribe extends VerbBase{
+abstract public class Subscribe extends VerbBase{
     public static final String META_SUBSCRIBE = "/meta/subscribe";
     
     protected String subscription;

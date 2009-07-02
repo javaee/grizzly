@@ -101,6 +101,7 @@ public class WorkerThreadImpl extends Thread implements WorkerThread{
     /**
      * Execute a <code>Task</code>.
      */
+    @Override
     public void run(){
 
         if ( target != null ){

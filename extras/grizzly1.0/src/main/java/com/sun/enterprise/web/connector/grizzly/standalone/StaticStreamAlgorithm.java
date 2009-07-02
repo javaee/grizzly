@@ -58,6 +58,7 @@ public class StaticStreamAlgorithm extends StreamAlgorithmBase{
      * Do nothing, as the ByteBufferInputStream will take care of reading the 
      * missing bytes.
      */
+    @Override
     public ByteBuffer preParse(ByteBuffer byteBuffer){ 
         return byteBuffer;
     }

@@ -125,6 +125,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer{
     /**
      * Send an acknoledgement without buffering.
      */
+    @Override
     public void sendAck() throws IOException {
         if (!committed)
             flushChannel(ACK.slice());
@@ -134,6 +135,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer{
     /**
      * Callback to write data from the buffer.
      */
+    @Override
     public void realWriteBytes(byte cbuf[], int off, int len)
         throws IOException {
         if (len > 0) {
@@ -233,6 +235,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer{
      */
     private final class NIOOutputStream extends OutputStream{   
         
+        @Override
         public void write(byte[] b, int off, int len) throws IOException{           
             realWriteBytes(b,off,len);
         }

@@ -65,6 +65,7 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer{
      * using <code>SSLOutputBuffer</code>
      * @param bb the ByteBuffer to write.
      */   
+    @Override
     public void flushChannel(ByteBuffer bb) throws IOException{
         SSLOutputWriter.flushChannel(socketChannel, bb);
     }   

@@ -105,7 +105,7 @@ public class OutputWriter {
                         }
                     }
                     
-                    key = socketChannel.register(writeSelector, key.OP_WRITE);
+                    key = socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
                     
                     if (writeSelector.select(writeTimeout) == 0) {
                         if (attempts > 2)
@@ -186,7 +186,7 @@ public class OutputWriter {
                         }
                     }
                     
-                    key = socketChannel.register(writeSelector, key.OP_WRITE);
+                    key = socketChannel.register(writeSelector, SelectionKey.OP_WRITE);
                     
                     if (writeSelector.select(writeTimeout) == 0) {
                         if (attempts > 2)

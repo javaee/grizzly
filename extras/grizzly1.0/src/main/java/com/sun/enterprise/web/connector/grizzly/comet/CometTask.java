@@ -38,6 +38,7 @@ package com.sun.enterprise.web.connector.grizzly.comet;
 
 import com.sun.enterprise.web.connector.grizzly.ByteBufferInputStream;
 import com.sun.enterprise.web.connector.grizzly.DefaultReadTask;
+import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.TaskBase;
 import com.sun.enterprise.web.connector.grizzly.TaskEvent;
 import com.sun.enterprise.web.connector.grizzly.WorkerThread;
@@ -69,13 +70,7 @@ public class CometTask extends TaskBase{
      * The <code>CometContext</code> associated with this instance.
      */
     private CometContext cometContext;
-    
-    
-    /**
-     * The <code>SelectionKey</code>.
-     */
-    private SelectionKey key;     
-    
+        
     
     /**
      * The <code>CometSelector</code> .
@@ -273,11 +268,11 @@ public class CometTask extends TaskBase{
         } catch (IOException ex){
             connectionClosed = true;
             // Bug 6403933 & GlassFish 2013
-            if (selectorThread.logger().isLoggable(Level.FINEST)){
-                selectorThread.logger().log(Level.FINEST,"Comet exception",ex);
+            if (SelectorThread.logger().isLoggable(Level.FINEST)){
+                SelectorThread.logger().log(Level.FINEST,"Comet exception",ex);
             }
         } catch (Throwable t){
-            selectorThread.logger().log(Level.SEVERE,"Comet exception",t);
+            SelectorThread.logger().log(Level.SEVERE,"Comet exception",t);
             connectionClosed = true;
         } finally {   
             // Bug 6403933
@@ -296,6 +291,7 @@ public class CometTask extends TaskBase{
     /**
      * Not used.
      */
+    @Override
     public void taskEvent(TaskEvent event) {
     }
 
@@ -317,29 +313,11 @@ public class CometTask extends TaskBase{
     public void setCometContext(CometContext cometContext) {
         this.cometContext = cometContext;
     }
-
-    
-    /**
-     * Return the <code>SelectionKey</code>
-     * @return SelectionKey <code>SelectionKey</code>
-     */
-    public SelectionKey getSelectionKey() {
-        return key;
-    }
-
-    
-    /**
-     * Set the <code>SelectionKey</code>
-     * @param SelectionKey <code>SelectionKey</code>
-     */    
-    public void setSelectionKey(SelectionKey key) {
-        this.key = key;
-    }
-    
-    
+  
     /**
      * Recycle this object.
      */
+    @Override
     public void recycle(){
         super.recycle();
         key = null;
