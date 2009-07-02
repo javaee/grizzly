@@ -113,6 +113,7 @@ public class HeapMemoryRule extends ThreadRatioRule implements TaskListener{
 
     
     
+    @Override
     public Integer call() throws Exception {
         synchronized(lock){
             if (availableMemory == -1L){
@@ -270,11 +271,13 @@ public class HeapMemoryRule extends ThreadRatioRule implements TaskListener{
      */
     private static class HeapMemoryRulePipeline extends LinkedListPipeline{
                 
+        @Override
         public void initPipeline(){
             workerThreads = new WorkerThreadImpl[1];
             WorkerThreadImpl workerThread = new WorkerThreadImpl(this, 
                     "HeapMemoryRuleThread"){
                 
+                @Override
                 public void run(){
                     while (true) {
                         try{
@@ -308,6 +311,7 @@ public class HeapMemoryRule extends ThreadRatioRule implements TaskListener{
          * Start the <code>Pipeline</code> and all associated 
          * <code>WorkerThread</code>
          */
+        @Override
         public void startPipeline(){
             if (!isStarted) {
                 workerThreads[0].start();
@@ -320,6 +324,7 @@ public class HeapMemoryRule extends ThreadRatioRule implements TaskListener{
          * Stop the <code>Pipeline</code> and all associated
          * <code>WorkerThread</code>
          */
+        @Override
         public void stopPipeline(){
             if (isStarted) {
                 workerThreads[0].terminate();
@@ -331,6 +336,7 @@ public class HeapMemoryRule extends ThreadRatioRule implements TaskListener{
         /**
          * Add an object to this pipeline
          */
+        @Override
         public synchronized void addTask(Task task) {
             addLast(task);
             notify();

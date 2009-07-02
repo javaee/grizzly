@@ -35,7 +35,6 @@
  */
 package com.sun.enterprise.web.connector.grizzly.ssl;
 
-import com.sun.enterprise.web.connector.grizzly.OutputWriter;
 import com.sun.enterprise.web.connector.grizzly.Pipeline;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.Task;
@@ -91,6 +90,7 @@ public class SSLWorkerThread extends WorkerThreadImpl{
     /**
      * Perform a <code>Task</code> processing.
      */
+    @Override
     public void run(){
 
         if ( target != null ){

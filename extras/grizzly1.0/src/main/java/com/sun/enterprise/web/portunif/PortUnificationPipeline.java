@@ -161,6 +161,7 @@ public class PortUnificationPipeline extends SSLPipeline{
      *
      * @param task An implementation of <code>ReadTask</code>
      */
+    @Override
     public void addTask(Task task) {    
 
         // Performance optimization used when a single protocol
@@ -251,6 +252,7 @@ public class PortUnificationPipeline extends SSLPipeline{
      * @return true if the SelectorThread should expire the SelectionKey, false
      *              if not.
      */
+    @Override
     public boolean expireKey(SelectionKey key){
         ProtocolHandler ph = mappedProtocols.get(key);
         if (ph != null){           
@@ -428,6 +430,7 @@ public class PortUnificationPipeline extends SSLPipeline{
         }
         
         
+        @Override
         public int getType(){
             return PU_TASK;
         }
@@ -448,6 +451,7 @@ public class PortUnificationPipeline extends SSLPipeline{
          * When the <code>Task</code> is completed, make sure it is removed from 
          * the cached list.
          */
+        @Override
         public void taskEvent(TaskEvent event) {
         }
     }

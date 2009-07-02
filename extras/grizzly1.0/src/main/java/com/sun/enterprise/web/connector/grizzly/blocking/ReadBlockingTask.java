@@ -93,6 +93,7 @@ public class ReadBlockingTask extends DefaultReadTask{
     /**
      * Dispatch an Http request to a <code>ProcessorTask</code>
      */
+    @Override
     public void doTask() throws IOException {
         Socket socket = processorTask.getSocket();
         SelectorBlockingThread blockingSelector = 
@@ -127,6 +128,7 @@ public class ReadBlockingTask extends DefaultReadTask{
     /**
      * Clear the current state and make this object ready for another request.
      */
+    @Override
     public void recycle(){
         clearTaskListeners();
         taskEvent.setStatus(TaskEvent.START);                    
@@ -136,6 +138,7 @@ public class ReadBlockingTask extends DefaultReadTask{
     /**
      * Gracefully close the blocking socket.
      */
+    @Override
     protected void finishConnection(){
         Socket socket = processorTask.getSocket();
 

@@ -1689,7 +1689,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
 
         if ( selectorThread.getManagement() == null ) return;
         
-        RequestInfo requestInfo = request.getRequestProcessor();
+        requestInfo = request.getRequestProcessor();
         // Add RequestInfo to RequestGroupInfo
         requestInfo.setGlobalProcessor(getRequestGroupInfo());
       
@@ -1719,7 +1719,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
 
         if ( selectorThread.getManagement() == null ) return;
         
-        RequestInfo requestInfo = request.getRequestProcessor();
+        requestInfo = request.getRequestProcessor();
         /*
          * Remove 'requestInfo' from 'requestGroupInfo'.
          * This will also update 'requestGroupInfo' with the current stats

@@ -36,7 +36,6 @@
 package com.sun.enterprise.web.connector.grizzly.ssl;
 
 import com.sun.enterprise.web.connector.grizzly.MultiSelectorThread;
-import com.sun.enterprise.web.connector.grizzly.ReadTask;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.logging.Level;
@@ -99,6 +98,7 @@ public class SSLSelectorReadThread extends SSLSelectorThread
     /**
      * Initialize this <code>SelectorThread</code>
      */
+    @Override
     public void initEndpoint() throws IOException, InstantiationException { 
         setName("SSLSelectorReaderThread-" + getPort());
         initAlgorithm();
@@ -108,6 +108,7 @@ public class SSLSelectorReadThread extends SSLSelectorThread
     /**
      * Start and wait for incoming connection
      */
+    @Override
     public void startEndpoint() throws IOException, InstantiationException {
         setRunning(true);
         while (isRunning()) {
@@ -131,6 +132,7 @@ public class SSLSelectorReadThread extends SSLSelectorThread
      *
      * @return Count of requests 
      */
+    @Override
     public int getCurrentBusyProcessorThreads() {
         return (getProcessorPipeline().getCurrentThreadsBusy());
     }

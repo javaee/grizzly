@@ -81,6 +81,7 @@ public class IsolationPipeline extends LinkedListPipeline
      * Initialize this pipeline by first initializing its parent, and then by
      * creating the caches and the rule executor engine.
      */
+    @Override
     public void initPipeline(){
         // 1. first, init this pipeline.
         super.initPipeline();
@@ -124,6 +125,7 @@ public class IsolationPipeline extends LinkedListPipeline
     /**
      * Execute the wrapped <code>Task</code>
      */
+    @Override
     public void addTask(Task task) {    
         // SSL not yet supported.
         if (task.getType() == Task.READ_TASK){
@@ -198,8 +200,7 @@ public class IsolationPipeline extends LinkedListPipeline
      * Instanciate a class based on a property.
      */
     private Object loadInstance(String property){        
-        Class className = null;                               
-        Pipeline pipeline = null;                               
+        Class className = null;                                 
         try{                              
             className = Class.forName(property);
             return className.newInstance();

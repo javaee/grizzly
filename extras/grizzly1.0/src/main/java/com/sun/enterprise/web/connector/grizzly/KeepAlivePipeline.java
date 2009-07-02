@@ -149,7 +149,6 @@ public class KeepAlivePipeline{
         if (isStarted){
             return;
         }
-        ; // Do nothing
     }
     
 
@@ -290,6 +289,7 @@ public class KeepAlivePipeline{
     }
     
     
+    @Override
     public String toString(){
        return "name: " + name + " maxThreads: " + maxThreads ;        
     }

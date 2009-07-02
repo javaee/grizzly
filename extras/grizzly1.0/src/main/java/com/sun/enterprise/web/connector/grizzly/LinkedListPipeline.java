@@ -241,7 +241,7 @@ public class LinkedListPipeline extends LinkedList<Task> implements Pipeline{
                         thread.interrupt();
                         return true;
                     } catch (Throwable t){
-                        ; // Swallow any exceptions.
+                        SelectorThread.logger().log(Level.FINEST,"",t);
                     }
                 }
             }

@@ -39,7 +39,6 @@ package com.sun.enterprise.web.ara;
 import com.sun.enterprise.web.connector.grizzly.Pipeline;
 import com.sun.enterprise.web.connector.grizzly.ReadTask;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
-import com.sun.enterprise.web.connector.grizzly.SelectorThreadConfig;
 import com.sun.enterprise.web.connector.grizzly.StreamAlgorithm;
 import com.sun.enterprise.web.connector.grizzly.Task;
 import com.sun.enterprise.web.connector.grizzly.TaskEvent;
@@ -52,7 +51,6 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
 import java.util.logging.Level;
 
 /**
@@ -219,7 +217,7 @@ public class IsolatedTask extends TaskWrapper implements TaskListener{
             doTask();
         } catch (IOException ex){
             throw new RuntimeException(ex);
-        };
+        }
     }
     
     // ----------------------------------------------------- Task Listener ----/
@@ -228,6 +226,7 @@ public class IsolatedTask extends TaskWrapper implements TaskListener{
      /**
      * Add the given <code>TaskListener</code> to this <code>Task</code>.
      */
+    @Override
     public void addTaskListener(TaskListener task){
         listeners.add(task);
     }
@@ -237,6 +236,7 @@ public class IsolatedTask extends TaskWrapper implements TaskListener{
      *  Remove the given <code>TaskListener/code> from this
      * <code>Task</code>.
      */
+    @Override
     public void removeTaskListener(TaskListener task){
         listeners.remove(task);
     }
@@ -245,6 +245,7 @@ public class IsolatedTask extends TaskWrapper implements TaskListener{
     /**
      * Clean all the listeners of this <code>Task</code>
      */
+    @Override
     public void clearTaskListeners(){
         listeners.clear();
     }

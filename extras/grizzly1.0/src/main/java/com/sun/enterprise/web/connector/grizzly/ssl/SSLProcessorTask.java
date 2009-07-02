@@ -37,8 +37,6 @@ package com.sun.enterprise.web.connector.grizzly.ssl;
 
 import com.sun.enterprise.web.connector.grizzly.DefaultProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
-import java.io.IOException;
-import java.security.cert.X509Certificate;
 import java.util.logging.Level;
 import org.apache.coyote.ActionCode;
 import org.apache.coyote.Request;
@@ -74,6 +72,7 @@ public class SSLProcessorTask extends DefaultProcessorTask{
     /**
      * Initialize the stream and the buffer used to parse the request.
      */
+    @Override
     public void initialize(){
         started = true;   
         request = new Request();
@@ -99,6 +98,7 @@ public class SSLProcessorTask extends DefaultProcessorTask{
      * @param actionCode Type of the action
      * @param param Action parameter
      */
+    @Override
     public void action(ActionCode actionCode, Object param) {
  
         if (actionCode == ActionCode.ACTION_REQ_SSL_ATTRIBUTE ) {

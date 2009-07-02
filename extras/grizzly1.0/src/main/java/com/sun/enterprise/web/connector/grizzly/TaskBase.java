@@ -240,7 +240,6 @@ public abstract class TaskBase implements Task, TaskListener{
      * Recycle internal state.
      */
     public void recycle(){
-       ;
     }
     
     

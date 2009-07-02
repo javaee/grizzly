@@ -109,13 +109,13 @@ public class SSLReadTask extends DefaultReadTask {
     // -------------------------------------------------------------------- //
     
     public SSLReadTask() {
-        ;//
     }
     
     
     /**
      * Initialize this object.
      */
+    @Override
     public void initialize(StreamAlgorithm algorithm,
                       boolean useDirectByteBuffer, boolean useByteBufferView){
         type = READ_TASK;    
@@ -188,6 +188,7 @@ public class SSLReadTask extends DefaultReadTask {
      * The <code>SSLEngine</code> is attached because it is impossible to 
      * keep-alive an ssl connection without re-using the same SSLEngine.
      */
+    @Override
     public void registerKey(){
         key.attach(sslEngine);
         super.registerKey();
@@ -198,6 +199,7 @@ public class SSLReadTask extends DefaultReadTask {
      * Perform an SSL handshake using an SSLEngine. If the handshake is 
      * successfull, process the connection.
      */
+    @Override
     public void doTask() throws IOException {        
         int count = 0;
         Exception exception = null;
@@ -401,6 +403,7 @@ public class SSLReadTask extends DefaultReadTask {
     /**
      * Configure the <code>SSLProcessorTask</code>.
      */
+    @Override
     protected void configureProcessorTask(){
         super.configureProcessorTask();
         SSLSupport sslSupport = sslImplementation.getSSLSupport(sslEngine);
@@ -412,6 +415,7 @@ public class SSLReadTask extends DefaultReadTask {
     /**
      * Return the <code>ProcessorTask</code> to the pool.
      */
+    @Override
     public void detachProcessor(){
         if ( processorTask != null ){
             ((SSLProcessorTask)processorTask).setSSLSupport(null);
@@ -449,6 +453,7 @@ public class SSLReadTask extends DefaultReadTask {
      * Recycle this object so it can be re-used. Make sure all ByteBuffers
      * are properly recycled.
      */
+    @Override
     public void recycle(){
         if (byteBuffer != null){ 
             try{

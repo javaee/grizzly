@@ -36,7 +36,6 @@
 
 package com.sun.enterprise.web.portunif;
 
-import com.sun.enterprise.web.connector.grizzly.ByteBufferFactory;
 import com.sun.enterprise.web.connector.grizzly.ByteBufferInputStream;
 import com.sun.enterprise.web.portunif.util.ProtocolInfo;
 import com.sun.enterprise.web.portunif.util.Redirector;

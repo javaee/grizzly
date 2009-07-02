@@ -51,16 +51,12 @@
  */
 package com.sun.enterprise.web.connector.grizzly.algorithms;
 
-import com.sun.enterprise.web.connector.grizzly.Constants;
-import com.sun.enterprise.web.connector.grizzly.Handler;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
-import com.sun.enterprise.web.connector.grizzly.handlers.ContentLengthHandler;
 
 import java.nio.ByteBuffer;
 import java.nio.BufferUnderflowException;
 import java.util.logging.Level;
 
-import org.apache.tomcat.util.buf.Ascii;
 
 /**
  * Predict if the NIO channel has been fully read or not. This lagorithm will 
@@ -98,6 +94,7 @@ public final class SeekHeaderAlgorithm extends ContentLengthAlgorithm{
      * @paran byteBuffer the bytes read.
      * @return true if the algorithm determines the end of the stream.
      */
+    @Override
     public boolean parse(ByteBuffer byteBuffer){  
         isFound = false;
 

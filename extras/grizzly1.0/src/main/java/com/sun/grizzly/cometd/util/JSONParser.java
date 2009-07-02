@@ -50,10 +50,10 @@
 // ========================================================================
 
 
-/** JSON Parser and Generator.
+/** JSONParser Parser and Generator.
  *
- * <p>This class provides some static methods to convert POJOs to and from JSON
- * notation.  The mapping from JSON to java is:<pre>
+ * <p>This class provides some static methods to convert POJOs to and from JSONParser
+ * notation.  The mapping from JSONParser to java is:<pre>
  *   object ==> Map
  *   array  ==> Object[]
  *   number ==> Double or Long
@@ -62,7 +62,7 @@
  *   bool   ==> Boolean
  * </pre>
  * </p><p>
- * The java to JSON mapping is:<pre>
+ * The java to JSONParser mapping is:<pre>
  *   String --> string
  *   Number --> number
  *   Map    --> object
@@ -73,9 +73,9 @@
  *   Object --> string (dubious!)
  * </pre>
  * </p><p>
- * The interface {@link JSON.Generator} may be implemented by classes that know how to render themselves as JSON and
- * the {@link #toString(Object)} method will use {@link JSON.Generator#addJSON(StringBuffer)} to generate the JSON.
- * The class {@link JSON.Literal} may be used to hold pre-gnerated JSON object.
+ * The interface {@link JSONParser.Generator} may be implemented by classes that know how to render themselves as JSONParser and
+ * the {@link #toString(Object)} method will use {@link JSONParser.Generator#addJSON(StringBuffer)} to generate the JSONParser.
+ * The class {@link JSONParser.Literal} may be used to hold pre-gnerated JSONParser object.
  * </p>
  * @author gregw
  *
@@ -84,7 +84,6 @@ package com.sun.grizzly.cometd.util;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -114,8 +113,8 @@ public class JSONParser {
     
     
     /**
-     * @param s String containing JSON object or array.
-     * @return A Map, Object array or primitive array parsed from the JSON.
+     * @param s String containing JSONParser object or array.
+     * @return A Map, Object array or primitive array parsed from the JSONParser.
      */
     public static Object parse(String s) {
         return parse(new Source(s));
@@ -123,7 +122,7 @@ public class JSONParser {
 
     
     /**
-     * Append object as JSON to string buffer.
+     * Append object as JSONParser to string buffer.
      * @param buffer
      * @param object
      */
@@ -506,7 +505,7 @@ public class JSONParser {
         private int index;
         
         Source(String s) {
-            // support JSON comment filtered format
+            // support JSONParser comment filtered format
             int firstInd = s.indexOf("/*");
             int lastInd = s.lastIndexOf("*/");
             if (firstInd != -1 && lastInd != -1) {
@@ -545,20 +544,21 @@ public class JSONParser {
     }
     
     /* ------------------------------------------------------------ */
-    /** A Literal JSON generator
-     * A utility instance of {@link JSON.Generator} that holds a pre-generated string on JSON text.
+    /** A Literal JSONParser generator
+     * A utility instance of {@link JSONParser.Generator} that holds a pre-generated string on JSONParser text.
      */
     public static class Literal implements Generator {
         private String _json;
         /* ------------------------------------------------------------ */
-        /** Construct a literal JSON instance for use by {@link JSON#toString(Object)}.
-         * @param json A literal JSON string that will be parsed to check validity.
+        /** Construct a literal JSONParser instance for use by JSONParser#toString(Object).
+         * @param json A literal JSONParser string that will be parsed to check validity.
          */
         public Literal(String json) {
             parse(json);
             _json=json;
         }
         
+        @Override
         public String toString() {
             return _json;
         }

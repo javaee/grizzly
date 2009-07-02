@@ -55,6 +55,7 @@ public class AsyncReadTask extends DefaultReadTask {
 
     // ----------------------------------------------------------------------//
     
+    @Override
     public void initialize(StreamAlgorithm algorithm,
                       boolean useDirectByteBuffer, boolean useByteBufferView){
         super.initialize(algorithm,useDirectByteBuffer,useByteBufferView);
@@ -68,6 +69,7 @@ public class AsyncReadTask extends DefaultReadTask {
      * the <code>StreamAlgorith</code> stategy determine no more bytes are 
      * are needed.
      */
+    @Override
     public void doTask() throws IOException {  
         doTask(byteBuffer);
     }
@@ -76,6 +78,7 @@ public class AsyncReadTask extends DefaultReadTask {
     /**
      * Manage the <code>SelectionKey</code>
      */
+    @Override
     protected void manageKeepAlive(boolean keepAlive,int count, 
             Exception exception){         
 
@@ -139,6 +142,7 @@ public class AsyncReadTask extends DefaultReadTask {
     /**
      * Clear the current state and make this object ready for another request.
      */
+    @Override
     public void recycle(){
         byteBuffer = algorithm.postParse(byteBuffer);   
         byteBuffer.clear(); 
@@ -152,6 +156,7 @@ public class AsyncReadTask extends DefaultReadTask {
     /**
      * Set the underlying <code>ByteBuffer</code> used by this class.
      */    
+    @Override
     public void setByteBuffer(ByteBuffer srcBB){
         if ( srcBB != byteBuffer){
             if (srcBB.capacity() > byteBuffer.capacity()) {
@@ -169,6 +174,7 @@ public class AsyncReadTask extends DefaultReadTask {
     /**
      * Complete the transaction.
      */
+    @Override
     public void terminate(boolean keepAlive){     
         if (keepAlive){
             processorTask.recycle(); 
@@ -183,6 +189,7 @@ public class AsyncReadTask extends DefaultReadTask {
     /**
      * Set appropriate attribute on the <code>ProcessorTask</code>.
      */
+    @Override
     public void configureProcessorTask(){
         super.configureProcessorTask();
         if ( !getTaskListeners().contains(processorTask) ){

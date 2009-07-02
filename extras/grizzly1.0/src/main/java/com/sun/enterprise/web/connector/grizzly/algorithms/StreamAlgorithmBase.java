@@ -36,7 +36,6 @@
 
 package com.sun.enterprise.web.connector.grizzly.algorithms;
 
-import com.sun.enterprise.web.connector.grizzly.Constants;
 import com.sun.enterprise.web.connector.grizzly.Handler;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.StreamAlgorithm;

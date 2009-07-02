@@ -43,7 +43,7 @@ package com.sun.grizzly.cometd.bayeux;
  *
  * @author Shing Wai Chan
  */
-abstract class Publish extends VerbBase {
+abstract public class Publish extends VerbBase {
 
     public Publish() {
         type = Verb.Type.PUBLISH;

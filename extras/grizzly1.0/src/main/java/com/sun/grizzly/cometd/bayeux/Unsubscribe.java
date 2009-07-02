@@ -81,7 +81,7 @@ import org.apache.tomcat.util.http.FastHttpDateFormat;
  * 	
  * @author Jeanfrancois Arcand
  */
-abstract class Unsubscribe extends Subscribe {
+abstract public class Unsubscribe extends Subscribe {
     public static final String META_UNSUBSCRIBE = "/meta/unsubscribe";
     
     public Unsubscribe() {

@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.cometd;
 
+import com.sun.enterprise.web.connector.grizzly.comet.CometHandler;
 import com.sun.grizzly.cometd.bayeux.Verb;
 
 

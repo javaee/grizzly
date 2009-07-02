@@ -37,16 +37,15 @@
  */
 package com.sun.grizzly.cometd;
 
-import com.sun.enterprise.web.connector.grizzly.comet.CometEngine;
 import com.sun.enterprise.web.connector.grizzly.comet.CometEvent;
 import com.sun.enterprise.web.connector.grizzly.comet.CometHandler;
 import com.sun.enterprise.web.connector.grizzly.comet.DefaultNotificationHandler;
+import com.sun.enterprise.web.connector.grizzly.comet.NotificationHandler;
 import com.sun.grizzly.cometd.bayeux.DeliverResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.logging.Level;
 
 /**
  * Customized {@link NotificationHandler} that isolate notification to 

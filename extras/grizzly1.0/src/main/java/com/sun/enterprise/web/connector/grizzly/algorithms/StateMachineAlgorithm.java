@@ -41,7 +41,6 @@ import com.sun.enterprise.web.connector.grizzly.handlers.NoParsingHandler;
 
 import java.nio.ByteBuffer;
 import java.nio.BufferUnderflowException;
-import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 
 /**
@@ -369,6 +368,7 @@ public final class StateMachineAlgorithm extends StreamAlgorithmBase{
     /***
      * Recycle this object.
      */
+    @Override
     public void recycle(){
         super.recycle();
         
@@ -382,6 +382,7 @@ public final class StateMachineAlgorithm extends StreamAlgorithmBase{
     /**
      * Return the full name of the class responsible for handling OP_READ.
      */
+    @Override
     public Class getReadTask(SelectorThread selectorThread){
         return com.sun.enterprise.web.connector.grizzly.XAReadTask.class;
     }

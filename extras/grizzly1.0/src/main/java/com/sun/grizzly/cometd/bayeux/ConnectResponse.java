@@ -85,6 +85,7 @@ public class ConnectResponse extends Connect {
         this.timestamp = timestamp;
     }
    
+    @Override
     public boolean isValid() {
         return hasValidAdvice() && super.isValid();
     }

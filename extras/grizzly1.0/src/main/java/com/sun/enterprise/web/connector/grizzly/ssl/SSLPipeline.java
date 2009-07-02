@@ -47,6 +47,7 @@ public class SSLPipeline extends LinkedListPipeline{
     /**
      * Create new <code>SSLWorkerThread</code>
      */
+    @Override
     protected void increaseWorkerThread(int increment, boolean startThread){        
         SSLWorkerThread workerThread;
         int currentCount = threadCount;

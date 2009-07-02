@@ -64,6 +64,7 @@ public class Ext extends VerbBase{
         this.extensionMap = extensionMap;
     }
 
+    @Override
     public boolean isValid() {
         return true;
     }

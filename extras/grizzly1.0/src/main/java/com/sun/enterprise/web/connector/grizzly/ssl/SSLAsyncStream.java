@@ -66,6 +66,7 @@ public class SSLAsyncStream extends ByteBufferInputStream {
      * Read and decrypt bytes from the underlying SSL connections. All
      * the SSLEngine operations are delegated to class <code>SSLUtils</code>.
      */
+    @Override
     protected int doRead(){   
         byteBuffer.compact();
         

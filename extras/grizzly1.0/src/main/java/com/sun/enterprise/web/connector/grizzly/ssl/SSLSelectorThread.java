@@ -137,6 +137,7 @@ public class SSLSelectorThread extends SelectorThread
      * Initialize <code>SSLSelectorReadThread</code> used to process
      * OP_READ operations.
      */
+    @Override
     protected void initMultiSelectors() throws IOException, 
                                                  InstantiationException {
         for (int i = 0; i < readThreads.length; i++) {
@@ -159,6 +160,7 @@ public class SSLSelectorThread extends SelectorThread
      * Enable all registered interestOps. Due a a NIO bug, all interestOps
      * invokation needs to occurs on the same thread as the selector thread.
      */
+    @Override
     public void enableSelectionKeys(){
         SelectionKey selectionKey;
         int size = getKeysToEnable().size();
@@ -182,6 +184,7 @@ public class SSLSelectorThread extends SelectorThread
     /**
      * Handle OP_READ
      */ 
+    @Override
     protected ReadTask handleRead(SelectionKey key) throws IOException{                   
         // disable OP_READ on key before doing anything else 
         key.interestOps(key.interestOps() & (~SelectionKey.OP_READ));
@@ -198,6 +201,7 @@ public class SSLSelectorThread extends SelectorThread
     /**
      * Cancel keep-alive connections.
      */
+    @Override
     protected void expireIdleKeys() {
         if (keepAliveTimeoutInSeconds <= 0 || !selector.isOpen()) return;
         long current = System.currentTimeMillis();
@@ -252,6 +256,7 @@ public class SSLSelectorThread extends SelectorThread
      * Register a <code>SelectionKey</code> to this <code>Selector</code>
      * running of this thread.
      */
+    @Override
     public void registerKey(SelectionKey key){
         if (key == null) return;
         
@@ -273,6 +278,7 @@ public class SSLSelectorThread extends SelectorThread
      * Create a new <code>Pipeline</code> instance using the 
      * <code>pipelineClassName</code> value.
      */
+    @Override
     protected Pipeline newPipeline(int maxThreads,
                                    int minThreads,
                                    String name, 
@@ -325,6 +331,7 @@ public class SSLSelectorThread extends SelectorThread
      * create a new instance. Make sure the SSLEngine is reused when the 
      * SelectionKey is part of a keep-alive transaction.
      */
+    @Override
     public ReadTask getReadTask(SelectionKey key) throws IOException{
         ReadTask task = super.getReadTask(key);
         
@@ -370,6 +377,7 @@ public class SSLSelectorThread extends SelectorThread
     /**
      * Return a new <code>SSLReadTask</code> instance
      */
+    @Override
     protected DefaultReadTask newReadTask(){
         StreamAlgorithm streamAlgorithm = new NoParsingAlgorithm();    
         streamAlgorithm.setPort(getPort());
@@ -395,6 +403,7 @@ public class SSLSelectorThread extends SelectorThread
      * Create <code>SSLProcessorTask</code> objects and configure it to be ready
      * to proceed request.
      */
+    @Override
     protected ProcessorTask newProcessorTask(boolean initialize){                                                      
         SSLProcessorTask task = null;
         if (!asyncExecution) {
@@ -607,6 +616,7 @@ public class SSLSelectorThread extends SelectorThread
     /**
      * Initialize the fileCacheFactory associated with this instance
      */
+    @Override
     protected void initFileCacheFactory(){
         fileCacheFactory = SSLFileCacheFactory.getFactory(port);
         fileCacheFactory.setIsEnabled(isFileCacheEnabled);
@@ -643,6 +653,7 @@ public class SSLSelectorThread extends SelectorThread
     /**
      * Enable gathering of monitoring datas.
      */
+    @Override
     public void enableMonitoring(){
         isMonitoringEnabled = true;
         enablePipelineStats();      
@@ -658,6 +669,7 @@ public class SSLSelectorThread extends SelectorThread
     /**
      * Disable gathering of monitoring datas. 
      */
+    @Override
     public void disableMonitoring(){
         disablePipelineStats();  
         if (readThreads != null) {

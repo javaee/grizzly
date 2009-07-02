@@ -37,10 +37,7 @@ package com.sun.enterprise.web.connector.grizzly;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Set;
 import java.util.logging.Level;
-import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
@@ -101,6 +98,7 @@ public class SelectorReadThread extends SelectorThread
     /**
      * Initialize this <code>SelectorThread</code>
      */
+    @Override
     public void initEndpoint() throws IOException, InstantiationException { 
         setName("SelectorReaderThread-" + getPort());
         initAlgorithm();
@@ -110,6 +108,7 @@ public class SelectorReadThread extends SelectorThread
     /**
      * Start and wait for incoming connection
      */
+    @Override
     public void startEndpoint() throws IOException, InstantiationException {
         setRunning(true);
         while (isRunning()) {
@@ -130,6 +129,7 @@ public class SelectorReadThread extends SelectorThread
     /**
      * Return a <code>ReadTask</code> configured to use this instance.
      */
+    @Override
     public ReadTask getReadTask(SelectionKey key) throws IOException{
         ReadTask task = super.getReadTask(key);
         task.setSelectorThread(this);
@@ -143,6 +143,7 @@ public class SelectorReadThread extends SelectorThread
      *
      * @return Count of requests 
      */
+    @Override
     public int getCurrentBusyProcessorThreads() {
         return (getProcessorPipeline().getCurrentThreadsBusy());
     }

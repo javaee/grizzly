@@ -136,7 +136,7 @@ package com.sun.grizzly.cometd.bayeux;
  *  
  * @author Jeanfrancois Arcand
  */
-abstract class Connect extends VerbBase{
+abstract public class Connect extends VerbBase{
     
     public final static String HTML_HEADER = 
         "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\"" +

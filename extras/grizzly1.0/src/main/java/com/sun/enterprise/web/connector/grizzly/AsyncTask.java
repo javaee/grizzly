@@ -36,8 +36,6 @@
 
 package com.sun.enterprise.web.connector.grizzly;
 
-import java.io.IOException;
-
 /**
  * A <code>Task</code> that wraps the execution of an asynchronous execution
  * of a <code>ProcessorTask</code>. 

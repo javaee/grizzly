@@ -48,6 +48,7 @@ public class PublishRequest extends Publish {
         super();
     }
 
+    @Override
     public boolean isValid() {
         return (channel != null && data != null);
     }

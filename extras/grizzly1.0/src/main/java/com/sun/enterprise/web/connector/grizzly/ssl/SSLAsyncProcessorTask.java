@@ -35,7 +35,6 @@
  */
 package com.sun.enterprise.web.connector.grizzly.ssl;
 
-import com.sun.enterprise.web.connector.grizzly.DefaultProcessorTask;
 import org.apache.coyote.Request;
 import org.apache.coyote.Response;
 import org.apache.coyote.http11.InternalInputBuffer;
@@ -63,6 +62,7 @@ public class SSLAsyncProcessorTask extends SSLProcessorTask{
     /**
      * Initialize the stream and the buffer used to parse the request.
      */
+    @Override
     public void initialize(){
         started = true;   
         request = new Request();
