@@ -41,6 +41,7 @@ package com.sun.grizzly.portunif;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.SSLConfig;
+import com.sun.grizzly.filter.SSLReadFilter;
 import com.sun.grizzly.util.SSLUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.ThreadAttachment;
@@ -262,6 +263,11 @@ public class TLSPUPreProcessor implements PUPreProcessor {
                 throw new EOFException();
             }
         }
+
+        if (OK) {
+            context.setAttribute(SSLReadFilter.SSL_PREREAD_DATA, Boolean.TRUE);
+        }
+        
         return OK;
     }
 

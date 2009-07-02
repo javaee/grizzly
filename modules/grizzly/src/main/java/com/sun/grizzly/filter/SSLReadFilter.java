@@ -68,6 +68,13 @@ import javax.net.ssl.SSLException;
  */
 public class SSLReadFilter implements ProtocolFilter{
     /**
+     * Attribute is used to instruct SSLReadFilter to continue processing,
+     * if there is some data availabe in decoded ByteBuffer, even, if
+     * SSLReaderFilter wasn't able to read any additional data
+     */
+    public static final String SSL_PREREAD_DATA = "SSLReadFilter.preread";
+    
+    /**
      * The {@link SSLContext} associated with the SSL implementation
      * we are running on.
      */
@@ -160,7 +167,7 @@ public class SSLReadFilter implements ProtocolFilter{
             if (hasHandshake) {
                 count = doRead(key);
                 
-                if (count == 0) {
+                if (count == 0 && ctx.removeAttribute(SSL_PREREAD_DATA) == null) {
                     result = false;
                 }
             } else if (doHandshake(key, SSLUtils.getReadTimeout())) {
