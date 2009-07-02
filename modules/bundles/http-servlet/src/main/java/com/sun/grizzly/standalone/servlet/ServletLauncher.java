@@ -35,16 +35,15 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.standalone.servlet;
-
-
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.standalone.StandaloneMainUtil;
 import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.ClassLoaderUtil;
+import java.util.logging.Level;
 import javax.servlet.Servlet;
 
 /**
@@ -52,20 +51,19 @@ import javax.servlet.Servlet;
  *
  * @author Jeanfrancois Arcand
  */
-public class ServletLauncher extends StandaloneMainUtil{
+public class ServletLauncher extends StandaloneMainUtil {
+
     protected String applicationLoc;
     private String servletClassName;
-    
+
     public ServletLauncher() {
     }
-    
-    
-    public static void main( String args[] ) throws Exception { 
+
+    public static void main(String args[]) throws Exception {
         ServletLauncher sl = new ServletLauncher();
         sl.start(args);
     }
-    
-    
+
     public void printHelpAndExit() {
         System.err.println("Usage: " + ServletLauncher.class.getCanonicalName() + " [options] Servlet_Classname");
         System.err.println();
@@ -76,68 +74,59 @@ public class ServletLauncher extends StandaloneMainUtil{
         System.err.println("    -h, --help                       Show this help message.");
         System.exit(1);
     }
-    
 
     @Override
     public boolean parseOptions(String[] args) {
         // parse options
         for (int i = 0; i < args.length - 1; i++) {
             String arg = args[i];
-            
-            if("-h".equals(arg) || "--help".equals(arg)) {
+
+            if ("-h".equals(arg) || "--help".equals(arg)) {
                 printHelpAndExit();
-            } else if("-a".equals(arg)) {
-                i ++;
+            } else if ("-a".equals(arg)) {
+                i++;
                 applicationLoc = args[i];
-            } else if(arg.startsWith("--application=")) {
+            } else if (arg.startsWith("--application=")) {
                 applicationLoc = arg.substring("--application=".length(), arg.length());
             } else if ("-p".equals(arg)) {
-                i ++;
+                i++;
                 setPort(args[i]);
             } else if (arg.startsWith("--port=")) {
                 String num = arg.substring("--port=".length(), arg.length());
                 setPort(num);
             }
         }
-        
-        if(applicationLoc == null) {
+
+        if (applicationLoc == null) {
             System.err.println("Illegal War|Jar file or folder location.");
             printHelpAndExit();
         }
-        
+
         servletClassName = args[args.length - 1];
-        if(servletClassName == null) {
-            System.err.println("Illegal Servlet name.");
-            printHelpAndExit();
-        } 
         return true;
     }
 
-    
     @Override
     public Adapter configureAdapter(SelectorThread st) {
         ServletAdapter adapter = new ServletAdapter();
         adapter.setRootFolder(SelectorThread.getWebAppRootPath());
         adapter.setHandleStaticResources(true);
-        
-        Servlet servlet = (Servlet)ClassLoaderUtil.load(servletClassName);
-        
-        if (servlet == null){
-            throw new IllegalStateException("Invalid Servlet ClassName");
-        } else {
-            
-            System.out.println("Launching Servlet: " + 
-                    servlet.getClass().getName());
-            
+
+        Servlet servlet = (Servlet) ClassLoaderUtil.load(servletClassName);
+        if (servlet != null) {
+            System.out.println("Launching Servlet: " + servlet.getClass().getName());
             adapter.setServletInstance(servlet);
+        } else {
+            SelectorThread.logger().log(Level.WARNING, "Unable to load Servlet, " +
+                    "Will serve only static resources");
+            return new StaticResourcesAdapter(SelectorThread.getWebAppRootPath());
         }
+
         return adapter;
     }
 
-    
     @Override
     public String parseApplicationLocation(String[] args) {
         return applicationLoc;
     }
-   
 }
