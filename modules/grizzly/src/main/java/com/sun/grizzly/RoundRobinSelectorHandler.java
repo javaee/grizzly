@@ -43,6 +43,8 @@ import com.sun.grizzly.util.Copyable;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.Set;
 
 /**
@@ -60,9 +62,9 @@ import java.util.Set;
 public class RoundRobinSelectorHandler extends TCPSelectorHandler
         implements ComplexSelectorHandler {
     private ReadController[] rrControllers;
-    private int roundRobinCounter;
-    private Set<Protocol> customProtocols;
-    
+    private AtomicInteger roundRobinCounter = new AtomicInteger();
+    private Set<Protocol> customProtocols = new CopyOnWriteArraySet<Protocol>();
+
     public RoundRobinSelectorHandler() {}
     
     public RoundRobinSelectorHandler(ReadController[] rrControllers) {
@@ -82,27 +84,27 @@ public class RoundRobinSelectorHandler extends TCPSelectorHandler
         ReadController auxController = nextController();
         SelectorHandler protocolSelectorHandler = context.getSelectorHandler();
         SelectableChannel channel = protocolSelectorHandler.acceptWithoutRegistration(key);
-        
+
         if (channel != null) {
             protocolSelectorHandler.configureChannel(channel);
-            SelectorHandler relativeSelectorHandler = 
+            SelectorHandler relativeSelectorHandler =
                     auxController.getSelectorHandlerClone(protocolSelectorHandler);
-            
+
             if (relativeSelectorHandler == null) {
                 // Clone was not found - take correspondent protocol SelectorHandler
-                relativeSelectorHandler = 
+                relativeSelectorHandler =
                         auxController.getSelectorHandler(protocolSelectorHandler.protocol());
 
                 if (relativeSelectorHandler == null) {
                     throw new IOException("Can not get correct SelectorHandler");
                 }
             }
-            
+
             auxController.addChannel(channel, relativeSelectorHandler);
         }
         return false;
     }
-    
+
     /**
      * Add custom protocol support
      * @param customProtocol custom {@link Controller.Protocol}
@@ -110,7 +112,7 @@ public class RoundRobinSelectorHandler extends TCPSelectorHandler
     public void addProtocolSupport(Protocol customProtocol) {
         customProtocols.add(customProtocol);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -118,12 +120,31 @@ public class RoundRobinSelectorHandler extends TCPSelectorHandler
         return protocol == Protocol.TCP || protocol == Protocol.TLS ||
                 customProtocols.contains(protocol);
     }
-    
+
     /**
-     * Return next aux. ReadController to process an accepted connection
-     * @return{@link ReadController}
+     * {@inheritDoc}
      */
-    private ReadController nextController() {
-        return rrControllers[((roundRobinCounter++) & 0x7fffffff) % rrControllers.length];
+    public boolean supportsClient( SelectorHandler selectorHandler ) {
+        if( selectorHandler == null )
+            return false;
+        if( selectorHandler instanceof ReusableTCPSelectorHandler ||
+            selectorHandler instanceof ReusableUDPSelectorHandler )
+            return false;
+        Protocol protocol = selectorHandler.protocol();
+        return protocol == Protocol.TCP || protocol == Protocol.TLS ||
+               protocol == Protocol.UDP || customProtocols.contains( protocol );
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public ReadController nextController() {
+        return rrControllers[(roundRobinCounter.incrementAndGet() & 0x7fffffff) % rrControllers.length];
+    }
+
+    @Override
+    public void shutdown() {
+        super.shutdown();
+        customProtocols.clear();
     }
 }

@@ -146,6 +146,87 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
     }
 
     /**
+     * Connect to hostname:port. When an aysnchronous event happens (e.g
+     * OP_READ or OP_WRITE), the {@link Controller} will invoke
+     * the CallBackHandler.
+     * @param remoteAddress remote address to connect
+     * @param callbackHandler the handler invoked by its associated {@link SelectorHandler} when
+     *        a non blocking operation is ready to be handled. When null, all
+     *        read and write operation will be delegated to the default
+     *        {@link ProtocolChain} and its list of {@link ProtocolFilter}
+     *        . When null, this {@link ConnectorHandler} will create an instance of {@link DefaultCallbackHandler}.
+     * @throws java.io.IOException
+     */
+    public void connect(SocketAddress remoteAddress, K callbackHandler) throws IOException {
+        connect(remoteAddress,null,callbackHandler);
+    }
+
+    /**
+     * Connect to hostname:port. Internally an instance of Controller and
+     * its default SelectorHandler will be created everytime this method is
+     * called. This method should be used only and only if no external
+     * Controller has been initialized.
+     * @param remoteAddress remote address to connect
+     * @throws java.io.IOException
+     */
+    public void connect(SocketAddress remoteAddress) throws IOException {
+        connect(remoteAddress,(SocketAddress)null);
+    }
+
+    /**
+     * Connect to hostname:port. When an aysnchronous event happens (e.g
+     * OP_READ or OP_WRITE), the {@link Controller} will invoke
+     * the CallBackHandler.
+     * @param remoteAddress remote address to connect
+     * @param callbackHandler the handler invoked by its associated {@link SelectorHandler} when
+     *        a non blocking operation is ready to be handled. When null, all
+     *        read and write operation will be delegated to the default
+     *        {@link ProtocolChain} and its list of {@link ProtocolFilter}
+     *        . When null, this {@link ConnectorHandler} will create an instance of {@link DefaultCallbackHandler}.
+     * @param selectorHandler an instance of SelectorHandler.
+     * @throws java.io.IOException
+     */
+    public void connect(SocketAddress remoteAddress, K callbackHandler, E selectorHandler) throws IOException {
+        connect(remoteAddress,null,callbackHandler,selectorHandler);
+    }
+
+    /**
+     * Connect to hostname:port. When an aysnchronous event happens (e.g
+     * OP_READ or OP_WRITE), the {@link Controller} will invoke
+     * the CallBackHandler.
+     * @param remoteAddress remote address to connect
+     * @param localAddress local address to bind
+     * @param callbackHandler the handler invoked by its associated {@link SelectorHandler} when
+     *        a non blocking operation is ready to be handled. When null, all
+     *        read and write operation will be delegated to the default
+     *        {@link ProtocolChain} and its list of {@link ProtocolFilter}
+     *        . When null, this {@link ConnectorHandler} will create an instance of {@link DefaultCallbackHandler}.
+     * @throws java.io.IOException
+     */
+    @SuppressWarnings("unchecked")
+    public void connect(SocketAddress remoteAddress, SocketAddress localAddress, K callbackHandler) throws IOException {
+        if( controller == null )
+            throw new IllegalStateException("Controller cannot be null");
+        if( protocol == null )
+            throw new IllegalStateException("Protocol cannot be null");
+        SelectorHandler selectorHandler = controller.getSelectorHandler( protocol );
+        if( controller.getReadThreadsCount() > 0 &&
+            controller.multiReadThreadSelectorHandler.supportsClient( selectorHandler ) ) {
+            if( controller.multiReadThreadSelectorHandler == null )
+                throw new IllegalStateException("ComplexSelectorHandler cannot be null");
+            ReadController auxController = controller.multiReadThreadSelectorHandler.nextController();
+            SelectorHandler relativeSelectorHandler = auxController.getSelectorHandlerClone( selectorHandler );
+            if( relativeSelectorHandler == null ) {
+                relativeSelectorHandler = auxController.getSelectorHandler( selectorHandler.protocol() );
+                if( relativeSelectorHandler == null )
+                    throw new IOException( "Can not get correct SelectorHandler" );
+            }
+            selectorHandler = relativeSelectorHandler;
+        }
+        connect(remoteAddress, localAddress, callbackHandler, (E)selectorHandler);
+    }
+
+    /**
      * Set the associated {@link SelectorHandler}
      * @param selectorHandler the associated {@link SelectorHandler}.
      */
