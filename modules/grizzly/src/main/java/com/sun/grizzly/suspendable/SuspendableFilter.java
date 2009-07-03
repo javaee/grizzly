@@ -433,7 +433,7 @@ public class SuspendableFilter<T> implements ProtocolFilter {
      */
     protected boolean resume(SelectionKey key){ 
         KeyHandler kh = suspendedKeys.remove(key); 
-        if (kh.getSuspendableHandler() == null){
+        if (kh == null || kh.getSuspendableHandler() == null){
             return false;
         } 
         if (logger.isLoggable(Level.FINE)) {
