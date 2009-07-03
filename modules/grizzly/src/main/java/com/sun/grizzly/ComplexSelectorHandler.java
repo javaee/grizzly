@@ -54,5 +54,20 @@ public interface ComplexSelectorHandler extends SelectorHandler {
      * @param protocol Network protocol name
      * @return true if protocol is supported, false otherwise
      */
-    public boolean supportsProtocol(Protocol protocol);    
+    public boolean supportsProtocol(Protocol protocol);
+
+    /**
+     * Checks if given {@link SelectorHandler} is supported on client-side by RoundRobinSelectorHandler
+     *
+     * @param selectorHandler {@link SelectorHandler}
+     * @return true if <code>selectorHandler</code> is supported, false otherwise
+     */
+    public boolean supportsClient(SelectorHandler selectorHandler);
+
+    /**
+     * Return next aux. ReadController to process an accepted connection
+     *
+     * @return next aux. {@link ReadController}
+     */
+    public ReadController nextController();
 }

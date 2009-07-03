@@ -237,61 +237,6 @@ public class SSLConnectorHandler
      * OP_READ or OP_WRITE), the {@link Controller} will invoke
      * the {@link CallbackHandler}.
      * @param remoteAddress remote address to connect
-     * @param callbackHandler the handler invoked by its associated {@link SelectorHandler} when
-     *        a non blocking operation is ready to be handled. When null, all 
-     *        read and write operation will be delegated to the default
-     *        {@link ProtocolChain} and its list of {@link ProtocolFilter} 
-     *        . When null, this {@link ConnectorHandler} will create an instance of {@link DefaultCallbackHandler}.
-     * @throws java.io.IOException
-     */
-    public void connect(SocketAddress remoteAddress, SSLCallbackHandler callbackHandler) throws IOException {
-        connect(remoteAddress, null, callbackHandler);
-    }
-    
-    /**
-     * Connect to hostname:port. When an aysnchronous event happens (e.g
-     * OP_READ or OP_WRITE), the {@link Controller} will invoke
-     * the {@link CallbackHandler}.
-     * @param remoteAddress remote address to connect
-     * @param localAddress local address to bind
-     * @param callbackHandler the handler invoked by its associated {@link SelectorHandler} when
-     *        a non blocking operation is ready to be handled. When null, all 
-     *        read and write operation will be delegated to the default
-     *        {@link ProtocolChain} and its list of {@link ProtocolFilter} 
-     *        . When null, this {@link ConnectorHandler} will create an instance of {@link DefaultCallbackHandler}.
-     * @throws java.io.IOException
-     */
-    public void connect(SocketAddress remoteAddress, SocketAddress localAddress,
-            SSLCallbackHandler callbackHandler) throws IOException {
-        if (controller == null) {
-            throw new IllegalStateException("Controller cannot be null");
-        }
-        
-        connect(remoteAddress, localAddress, callbackHandler,
-                (SSLSelectorHandler) controller.getSelectorHandler(protocol()));
-    }
-    
-    /**
-     * Connect to hostname:port. When an aysnchronous event happens (e.g
-     * OP_READ or OP_WRITE), the {@link Controller} will invoke
-     * the {@link CallbackHandler}.
-     * @param remoteAddress remote address to connect
-     * @param callbackHandler the handler invoked by the Controller when
-     *        an non blocking operation is ready to be handled.
-     * @param selectorHandler an instance of SelectorHandler.
-     * @throws java.io.IOException
-     */
-    public void connect(SocketAddress remoteAddress,
-            SSLCallbackHandler callbackHandler,
-            SSLSelectorHandler selectorHandler) throws IOException {
-        connect(remoteAddress, null, callbackHandler, selectorHandler);
-    }
-    
-    /**
-     * Connect to hostname:port. When an aysnchronous event happens (e.g
-     * OP_READ or OP_WRITE), the {@link Controller} will invoke
-     * the {@link CallbackHandler}.
-     * @param remoteAddress remote address to connect
      * @param localAddress local address to bin
      * @param callbackHandler the handler invoked by its associated {@link SelectorHandler} when
      *        a non blocking operation is ready to be handled. When null, all 
@@ -343,18 +288,6 @@ public class SSLConnectorHandler
      * Controller has been initialized.
      * @param remoteAddress remote address to connect
      * @throws java.io.IOException
-     */
-    public void connect(SocketAddress remoteAddress) throws IOException {
-        connect(remoteAddress, (SocketAddress) null);
-    }
-    
-    /**
-     * Connect to hostname:port. Internally an instance of Controller and
-     * its default SelectorHandler will be created everytime this method is
-     * called. This method should be used only and only if no external
-     * Controller has been initialized.
-     * @param remoteAddress remote address to connect
-     * @throws java.io.IOException
      * @param localAddress local address to bin
      */
     public void connect(SocketAddress remoteAddress, SocketAddress localAddress)
@@ -393,8 +326,7 @@ public class SSLConnectorHandler
             }
         }
         
-        connect(remoteAddress, localAddress, callbackHandler, (SSLSelectorHandler)
-                controller.getSelectorHandler(protocol()));
+        connect(remoteAddress, localAddress, callbackHandler);
     }
     
     /**
