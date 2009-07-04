@@ -549,15 +549,24 @@ public class GrizzlyWebServerDeployer {
                     rootFolder = rootFolder.replaceAll("\\\\", "\\" + "/");
                     sa.setRootFolder(rootFolder);
                 }
-
-                sa.setHandleStaticResources(false);
-
+                
                 // create the alias array from the list of urlPattern
                 String alias[] = getAlias(sa, servletAdapterList.get(sa));
 
                 if (alias == null) {
                     alias = new String[]{DEFAULT_CONTEXT};
                 }
+                
+                // need to be disabled for JSP
+                sa.setHandleStaticResources(false);
+                
+                // enabled it if not / or /*
+                for (String item : alias) {
+                    if(item.endsWith(DEFAULT_CONTEXT) || item.endsWith("/*")){
+                    	sa.setHandleStaticResources(true);
+                    }
+                }
+
 
                 if (logger.isLoggable(Level.FINEST)) {
                     logger.log(Level.FINEST, "sa context=" + sa.getContextPath());
