@@ -64,6 +64,14 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
 
     void setClientAuthEnabled(String value);
 
+    /**
+     * Determines if if the engine will request (want) or require (need) client authentication. Valid values:  want, need, or left blank
+     */
+    @Attribute
+    String getClientAuth();
+
+    void setClientAuth(String value);
+
     @Attribute
     String getCrlFile();
     void setCrlFile(String crlFile);
@@ -75,6 +83,11 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     String getKeyStore();
 
     void setKeyStore(String location);
+
+    @Attribute
+    String getClassname();
+
+    void setClassname(String value);
 
     /**
      * A comma-separated list of the SSL2 ciphers used, with the prefix + to enable or - to disable, for example +rc4.

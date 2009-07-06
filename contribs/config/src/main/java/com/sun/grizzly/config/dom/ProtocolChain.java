@@ -36,27 +36,19 @@
  */
 package com.sun.grizzly.config.dom;
 
-import java.util.List;
-
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
 
+import java.util.List;
+
 /**
  * Defines the type of protocol chain and describes protocol filters, which will participate in request processing
  */
 @Configured
 public interface ProtocolChain extends ConfigBeanProxy, Injectable {
-    /**
-     * Protocol chain name, which could be used as reference
-     */
-    @Attribute
-    String getName();
-
-    void setName(String value);
-
     /**
      * Protocol chain instance handler implementation class
      */

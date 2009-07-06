@@ -38,6 +38,7 @@ import com.sun.grizzly.ssl.SSLAsyncProtocolFilter;
 import com.sun.grizzly.ssl.SSLDefaultProtocolFilter;
 import com.sun.grizzly.ssl.SSLProcessorTask;
 import com.sun.grizzly.ssl.SSLSelectorThreadHandler;
+import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.ServerSocketFactory;
 import org.jvnet.hk2.component.Habitat;
@@ -126,6 +127,26 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                     Boolean.parseBoolean(sslConfig.getTlsEnabled())) {
                 tmpSSLArtifactsList.add("SSLv2Hello");
             }
+
+            String auth = sslConfig.getClientAuth();
+            if (auth != null) {
+                if ("want".equalsIgnoreCase(auth.trim())) {
+                    setWantClientAuth(true);
+                } else if ("need".equalsIgnoreCase(auth.trim())) {
+                    setNeedClientAuth(true);
+                }
+            }
+
+            if (sslConfig.getClassname() != null) {
+                SSLImplementation impl = (SSLImplementation) ClassLoaderUtil.load(sslConfig.getClassname());
+                if (impl != null) {
+                    setSSLImplementation(impl);
+                } else {
+                    logger.log(Level.WARNING, "Unable to load SSLImplementation");
+                    
+                }
+            }
+            
         }
         if (tmpSSLArtifactsList.isEmpty()) {
             logger.log(Level.WARNING, "pewebcontainer.all_ssl_protocols_disabled", http.getName());
