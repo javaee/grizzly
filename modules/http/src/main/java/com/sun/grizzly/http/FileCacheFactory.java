@@ -37,210 +37,181 @@
  */
 package com.sun.grizzly.http;
 
-
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.sun.grizzly.http.FileCache.FileCacheEntry;
+
 /**
  * A factory for creating {@link FileCache} instance.
  *
  * @author Jeanfrancois Arcand
  */
-public class FileCacheFactory{
+public class FileCacheFactory {
 
-    
-     /**
+    /**
      * Timeout before remove the static resource from the cache.
      */
     public int secondsMaxAge = -1;
-    
-    
     /**
      * The maximum entries in the {@link FileCache}
      */
     public int maxCacheEntries = 1024;
-    
- 
     /**
      * The maximum size of a cached resources.
      */
     public long minEntrySize = 2048;
-            
-               
     /**
      * The maximum size of a cached resources.
      */
     public long maxEntrySize = 537600;
-    
-    
     /**
      * The maximum cached bytes
      */
     public long maxLargeFileCacheSize = 10485760;
- 
-    
     /**
      * The maximum cached bytes
      */
     public long maxSmallFileCacheSize = 1048576;
-    
-    
     /**
      * Is the FileCache enabled.
      */
     public static boolean isEnabled = true;
-    
-    
     /**
      * Is the large FileCache enabled.
      */
-    public boolean isLargeFileCacheEnabled = true;    
-    
-    
+    public boolean isLargeFileCacheEnabled = true;
     /**
      * The port used
      */
     public int port = 8080;
-    
-    
     /**
      * Create a factory per port.
      */
-    protected final static ConcurrentHashMap<Integer,FileCacheFactory> cache =
-            new ConcurrentHashMap<Integer,FileCacheFactory>();
-    
-    
+    protected final static ConcurrentHashMap<Integer, FileCacheFactory> cache =
+            new ConcurrentHashMap<Integer, FileCacheFactory>();
     /**
      * The cache manager used by instance of {@link FileCache}
      * created by this factory;
      */
     protected ConcurrentLinkedQueue<FileCacheEntry> cacheManager;
-    
-    
     /**
      * Is monitoring enabled
      */
     protected boolean isMonitoringEnabled = false;
-    
-    
     /**
      * A list of {@link FileCache} instance this Factory is owning.
      */
     protected FileCache fileCache;
-    
-    
     /**
      * The Header ByteBuffer default size.
      */
     private int headerBBSize = 4096;
-
-
     private static Class<? extends FileCache> fileCacheClass = FileCache.class;
 
     // ---------------------------------------------------------------------//
-    
-    
-    protected FileCacheFactory(){        
+    protected FileCacheFactory() {
     }
 
-    
     /**
      * Configure the factory.
      */
-    public static FileCacheFactory newInstance(int currentPort, Class<? extends FileCache> fcc){
-        FileCacheFactory fileCacheFactory= new FileCacheFactory();
+    public static FileCacheFactory newInstance(int currentPort, Class<? extends FileCache> fcc) {
+        FileCacheFactory fileCacheFactory = new FileCacheFactory();
 
         fileCacheFactory.port = currentPort;
         cache.put(currentPort, fileCacheFactory);
 
         ConcurrentLinkedQueue<FileCacheEntry> cacheManager =
-            new  ConcurrentLinkedQueue<FileCacheEntry>();
+                new ConcurrentLinkedQueue<FileCacheEntry>();
         fileCacheFactory.setCacheManager(cacheManager);
         fileCacheFactory.fileCacheClass = fcc;
 
         return fileCacheFactory;
     }
 
-
     /**
      * Return an instance of this Factory.
      */
-    public static FileCacheFactory getFactory(int currentPort){
+    public static FileCacheFactory getFactory(int currentPort) {
         return getFactory(currentPort, fileCacheClass);
     }
 
-    
     /**
      * Return an instance of this Factory.
      */
-    public static FileCacheFactory getFactory(int currentPort,Class<? extends FileCache> fcc ){
-                
+    public static FileCacheFactory getFactory(int currentPort, Class<? extends FileCache> fcc) {
+
         FileCacheFactory fileCacheFactory = cache.get(currentPort);
-        if ( fileCacheFactory == null ){
+        if (fileCacheFactory == null) {
             fileCacheFactory = newInstance(currentPort, fcc);
         }
 
         return fileCacheFactory;
     }
-    
-    
+
     /**
      * Return an instance of a {@link FileCache}
      */
-    public FileCache getFileCache(){
-        if ( fileCache == null){
-            try {
-                fileCache = fileCacheClass.newInstance();
-            } catch (InstantiationException ex) {
-                SelectorThread.logger().severe(ex.getMessage());
-            } catch (IllegalAccessException ex) {
-                SelectorThread.logger().severe(ex.getMessage());
-            }
-            fileCache.setIsEnabled(isEnabled);
-            fileCache.setLargeFileCacheEnabled(isLargeFileCacheEnabled);
-            fileCache.setSecondsMaxAge(secondsMaxAge);
-            fileCache.setMaxCacheEntries(maxCacheEntries);
-            fileCache.setMinEntrySize(minEntrySize);
-            fileCache.setMaxEntrySize(maxEntrySize);
-            fileCache.setMaxLargeCacheSize(maxLargeFileCacheSize);
-            fileCache.setMaxSmallCacheSize(maxSmallFileCacheSize);         
-            fileCache.setCacheManager(cacheManager);
-            FileCache.setIsMonitoringEnabled(isMonitoringEnabled);
-            fileCache.setHeaderBBSize(headerBBSize);
+    public FileCache getFileCache() {
+        if (fileCache == null) {
+            createFileCache();
+            configureFileCache();
         }
-        
+
         return fileCache;
-    } 
-    
-    
-    public void setCacheManager(ConcurrentLinkedQueue<FileCacheEntry> cacheManager){
+    }
+
+    protected FileCache createFileCache() {
+        try {
+            fileCache = fileCacheClass.newInstance();
+        } catch (InstantiationException ex) {
+            SelectorThread.logger().severe(ex.getMessage());
+        } catch (IllegalAccessException ex) {
+            SelectorThread.logger().severe(ex.getMessage());
+        }
+
+        return fileCache;
+    }
+
+    protected void configureFileCache() {
+        fileCache.setIsEnabled(isEnabled);
+        fileCache.setLargeFileCacheEnabled(isLargeFileCacheEnabled);
+        fileCache.setSecondsMaxAge(secondsMaxAge);
+        fileCache.setMaxCacheEntries(maxCacheEntries);
+        fileCache.setMinEntrySize(minEntrySize);
+        fileCache.setMaxEntrySize(maxEntrySize);
+        fileCache.setMaxLargeCacheSize(maxLargeFileCacheSize);
+        fileCache.setMaxSmallCacheSize(maxSmallFileCacheSize);
+        fileCache.setCacheManager(cacheManager);
+        FileCache.setIsMonitoringEnabled(isMonitoringEnabled);
+        fileCache.setHeaderBBSize(headerBBSize);
+    }
+
+    public void setCacheManager(ConcurrentLinkedQueue<FileCacheEntry> cacheManager) {
         this.cacheManager = cacheManager;
     }
-    
-    
+
     /**
      * Return the FileCache
      */
-    public ConcurrentHashMap<String, FileCacheEntry> getCache(){
-        if ( fileCache != null ){
+    public ConcurrentHashMap<String, FileCacheEntry> getCache() {
+        if (fileCache != null) {
             return fileCache.getCache();
         } else {
             return null;
         }
     }
     // ---------------------------------------------------- Monitoring --------//
-    
-    
+
     /** 
      * Returns flag indicating whether file cache has been enabled
      * @return 1 if file cache has been enabled, 0 otherwise
      */
     public int getFlagEnabled() {
-        return (isEnabled == true?1:0);
+        return (isEnabled == true ? 1 : 0);
     }
-    
-    
+
     /** 
      * Return the maximum age of a valid cache entry
      * @return cache entry maximum age
@@ -248,288 +219,283 @@ public class FileCacheFactory{
     public int getSecondsMaxAge() {
         return secondsMaxAge;
     }
-    
-    
+
     /** 
      * Return the number of current cache entries.  
      * @return current cache entries
      */
-    public long getCountEntries() {      
-        if (fileCache == null) return 0L;
-        return fileCache.getCountEntries();          
+    public long getCountEntries() {
+        if (fileCache == null) {
+            return 0L;
+        }
+        return fileCache.getCountEntries();
     }
-    
-    
+
     /** 
      * Return the maximum number of cache entries
      * @return maximum cache entries
      */
     public long getMaxEntries() {
-        if (fileCache == null) return 0L;
+        if (fileCache == null) {
+            return 0L;
+        }
         return maxCacheEntries;
     }
-    
-    
+
     /** 
      * The number of current open cache entries
      * @return open cache entries
      */
-    public long getCountOpenEntries() {     
-        if (fileCache == null) return 0L;
-        return fileCache.getCountOpenEntries();      
+    public long getCountOpenEntries() {
+        if (fileCache == null) {
+            return 0L;
+        }
+        return fileCache.getCountOpenEntries();
     }
-    
-    
+
     /** 
      * Return the maximum number of open cache entries
      * @return maximum open cache entries
      */
     public long getMaxOpenEntries() {
-        if (fileCache == null) return 0L;
+        if (fileCache == null) {
+            return 0L;
+        }
         return fileCache.getMaxOpenEntries();
     }
-    
-    
+
     /** 
      * Return the heap space used for cache
      * @return heap size
      */
     public long getSizeHeapCache() {
-        if (fileCache == null) return 0L;
+        if (fileCache == null) {
+            return 0L;
+        }
         return fileCache.getSizeHeapCache();
     }
-    
-    
+
     /** 
      * Return the maximum heap space used for cache
      * @return maximum heap size
      */
     public long getMaxHeapCacheSize() {
-        if (fileCache == null) return 0L;
+        if (fileCache == null) {
+            return 0L;
+        }
         return fileCache.getMaxHeapCacheSize();
     }
-    
-    
+
     /** 
      * Return the size of Mapped memory used for caching
      * @return Mapped memory size
      */
     public long getSizeMmapCache() {
-        if (fileCache == null) return 0L;
-        return FileCache.getSizeMmapCache();  
+        if (fileCache == null) {
+            return 0L;
+        }
+        return FileCache.getSizeMmapCache();
     }
-    
-    
+
     /** 
      * Return the Maximum Memory Map size to be used for caching
      * @return maximum Memory Map size
      */
     public long getMaxMmapCacheSize() {
-        if (fileCache == null) return 0L;
-        return fileCache.getMaxMmapCacheSize();   
+        if (fileCache == null) {
+            return 0L;
+        }
+        return fileCache.getMaxMmapCacheSize();
     }
-    
-    
+
     /** 
      * Return the Number of cache lookup hits
      * @return cache hits
      */
     public long getCountHits() {
-        if (fileCache == null) return 0L;
-        return fileCache.getCountHits(); 
+        if (fileCache == null) {
+            return 0L;
+        }
+        return fileCache.getCountHits();
     }
-    
-    
+
     /** 
      * Return the Number of cache lookup misses
      * @return cache misses
      */
     public long getCountMisses() {
-        if (fileCache == null) return 0L;
-        return fileCache.getCountMisses();  
+        if (fileCache == null) {
+            return 0L;
+        }
+        return fileCache.getCountMisses();
     }
-    
-    
+
     /** 
      * The Number of hits on cached file info
      * @return hits on cached file info
      */
     public long getCountInfoHits() {
-        if (fileCache == null) return 0L;
+        if (fileCache == null) {
+            return 0L;
+        }
         return fileCache.getCountInfoHits();
     }
-    
-    
+
     /** 
      * Return the number of misses on cached file info
      * @return misses on cache file info
      */
     public long getCountInfoMisses() {
-        if (fileCache == null) return 0L;
-        return fileCache.getCountInfoMisses(); 
+        if (fileCache == null) {
+            return 0L;
+        }
+        return fileCache.getCountInfoMisses();
     }
-    
-    
+
     /** 
      * Return the Number of hits on cached file content
      * @return hits on cache file content
      */
     public long getCountContentHits() {
-        if (fileCache == null) return 0L;
-        return fileCache.getCountContentHits();  
+        if (fileCache == null) {
+            return 0L;
+        }
+        return fileCache.getCountContentHits();
     }
-    
-    
+
     /** 
      * Return the Number of misses on cached file content
      * @return missed on cached file content
      */
     public long getCountContentMisses() {
-        if (fileCache == null) return 0L;
-        return fileCache.getCountContentMisses(); 
+        if (fileCache == null) {
+            return 0L;
+        }
+        return fileCache.getCountContentMisses();
     }
-    
+
     // ---------------------------------------------------- Properties ----- //
-    
-    
     /**
      * Turn monitoring on/off
      */
-    public void setIsMonitoringEnabled(boolean isMonitoringEnabled){
+    public void setIsMonitoringEnabled(boolean isMonitoringEnabled) {
         this.isMonitoringEnabled = isMonitoringEnabled;
         FileCache.setIsMonitoringEnabled(isMonitoringEnabled);
     }
-    
-    
+
     /**
      * The timeout in seconds before remove a {@link FileCacheEntry}
      * from the {@link FileCache}
      */
-    public void setSecondsMaxAge(int sMaxAges){
+    public void setSecondsMaxAge(int sMaxAges) {
         secondsMaxAge = sMaxAges;
     }
-    
-    
+
     /**
      * Set the maximum entries this cache can contains.
      */
-    public void setMaxCacheEntries(int mEntries){
+    public void setMaxCacheEntries(int mEntries) {
         maxCacheEntries = mEntries;
     }
 
-    
     /**
      * Return the maximum entries this cache can contains.
-     */    
-    public int getMaxCacheEntries(){
+     */
+    public int getMaxCacheEntries() {
         return maxCacheEntries;
     }
-    
-    
+
     /**
      * Set the maximum size a {@link FileCacheEntry} can have.
      */
-    public void setMinEntrySize(long mSize){
+    public void setMinEntrySize(long mSize) {
         minEntrySize = mSize;
     }
-    
-    
+
     /**
      * Get the maximum size a {@link FileCacheEntry} can have.
      */
-    public long getMinEntrySize(){
+    public long getMinEntrySize() {
         return minEntrySize;
     }
-     
-    
+
     /**
      * Set the maximum size a {@link FileCacheEntry} can have.
      */
-    public void setMaxEntrySize(long mEntrySize){
+    public void setMaxEntrySize(long mEntrySize) {
         maxEntrySize = mEntrySize;
     }
-    
-    
+
     /**
      * Get the maximum size a {@link FileCacheEntry} can have.
      */
-    public long getMaxEntrySize(){
+    public long getMaxEntrySize() {
         return maxEntrySize;
     }
-    
-    
+
     /**
      * Set the maximum cache size
-     */ 
-    public void setMaxLargeCacheSize(long mCacheSize){
+     */
+    public void setMaxLargeCacheSize(long mCacheSize) {
         maxLargeFileCacheSize = mCacheSize;
     }
 
-    
     /**
      * Get the maximum cache size
-     */ 
-    public long getMaxLargeCacheSize(){
+     */
+    public long getMaxLargeCacheSize() {
         return maxLargeFileCacheSize;
     }
-    
-    
+
     /**
      * Set the maximum cache size
-     */ 
-    public void setMaxSmallCacheSize(long mCacheSize){
+     */
+    public void setMaxSmallCacheSize(long mCacheSize) {
         maxSmallFileCacheSize = mCacheSize;
     }
-    
-    
+
     /**
      * Get the maximum cache size
-     */ 
-    public long getMaxSmallCacheSize(){
+     */
+    public long getMaxSmallCacheSize() {
         return maxSmallFileCacheSize;
-    }    
+    }
 
-    
     /**
      * Is the fileCache enabled.
      */
-    public static boolean isEnabled(){
+    public static boolean isEnabled() {
         return isEnabled;
     }
 
-    
     /**
      * Is the file caching mechanism enabled.
      */
-    public static void setIsEnabled(boolean isE){
+    public static void setIsEnabled(boolean isE) {
         isEnabled = isE;
     }
-   
-    
+
     /**
      * Is the large file cache support enabled.
      */
-    public void setLargeFileCacheEnabled(boolean isLargeEnabled){
+    public void setLargeFileCacheEnabled(boolean isLargeEnabled) {
         this.isLargeFileCacheEnabled = isLargeEnabled;
     }
-   
-    
+
     /**
      * Is the large file cache support enabled.
      */
-    public boolean getLargeFileCacheEnabled(){
+    public boolean getLargeFileCacheEnabled() {
         return isLargeFileCacheEnabled;
-    } 
+    }
 
-    
     /**
      * Retunr the header size buffer.
-     */ 
+     */
     public int getHeaderBBSize() {
         return headerBBSize;
     }
 
-    
     /**
      * Set the size of the header ByteBuffer.
      */

@@ -41,10 +41,6 @@ package com.sun.grizzly.ssl;
 import com.sun.grizzly.http.FileCache;
 import com.sun.grizzly.http.FileCacheFactory;
 import com.sun.grizzly.http.FileCache.FileCacheEntry;
-import com.sun.grizzly.util.SSLOutputWriter;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
@@ -92,36 +88,9 @@ public class SSLFileCacheFactory extends FileCacheFactory{
      * Return an instance of a {@link FileCache}
      */
     @Override
-    public FileCache getFileCache(){
-        if (fileCache == null){
-            fileCache = new FileCache(){
-                
-                @Override
-                protected void sendCache(SocketChannel socketChannel,  
-                        FileCacheEntry entry,
-                    boolean keepAlive) throws IOException{
-
-                    SSLOutputWriter.flushChannel(socketChannel, 
-                            entry.headerBuffer.slice());
-                    ByteBuffer keepAliveBuf = keepAlive ? connectionKaBB.slice():
-                    connectionCloseBB.slice();
-                    SSLOutputWriter.flushChannel(socketChannel, keepAliveBuf);        
-                    SSLOutputWriter.flushChannel(socketChannel, entry.bb.slice());
-                }  
-            };
-            fileCache.setIsEnabled(isEnabled);
-            fileCache.setLargeFileCacheEnabled(isLargeFileCacheEnabled);
-            fileCache.setSecondsMaxAge(secondsMaxAge);
-            fileCache.setMaxCacheEntries(maxCacheEntries);
-            fileCache.setMinEntrySize(minEntrySize);
-            fileCache.setMaxEntrySize(maxEntrySize);
-            fileCache.setMaxLargeCacheSize(maxLargeFileCacheSize);
-            fileCache.setMaxSmallCacheSize(maxSmallFileCacheSize);         
-            fileCache.setCacheManager(cacheManager);
-            FileCache.setIsMonitoringEnabled(isMonitoringEnabled);
-        }
-        
+    protected FileCache createFileCache(){
+        fileCache = new SSLFileCache();
         return fileCache;
     }     
- 
+
 }
