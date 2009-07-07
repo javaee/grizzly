@@ -753,7 +753,6 @@ public class Response<A> {
                 isReallySuspended = (wt.getAttachment().getAttribute(SUSPENDED) != null);
             }
 
-            System.out.println("Resume: " + isReallySuspended);
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
             if (isReallySuspended){
                 ra.resume();
