@@ -624,7 +624,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         configureSelectorHandler(selectorHandler);
         controller.setSelectorHandler(selectorHandler);
         
-        keyHandler = new SelectorThreadKeyHandler(this);
+        keyHandler = createSelectionKeyHandler();
 
         keyHandler.setLogger(logger);
         keyHandler.setTimeout(keepAliveTimeoutInSeconds * 1000);
@@ -668,6 +668,13 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     protected TCPSelectorHandler createSelectorHandler() {
         return new SelectorThreadHandler(this);
+    }
+
+    /**
+     * Create {@link SelectorThreadKeyHandler}
+     */
+    protected SelectorThreadKeyHandler createSelectionKeyHandler() {
+        return new SelectorThreadKeyHandler(this);
     }
     
     /**
