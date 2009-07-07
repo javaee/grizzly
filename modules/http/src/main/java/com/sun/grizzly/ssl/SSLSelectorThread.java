@@ -43,6 +43,7 @@ import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.filter.SSLReadFilter;
+import com.sun.grizzly.http.FileCacheFactory;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.util.net.SSLImplementation;
@@ -313,15 +314,16 @@ public class SSLSelectorThread extends SelectorThread {
     @Override
     protected void initFileCacheFactory(){
         SSLFileCacheFactory.setIsEnabled(isFileCacheEnabled);
-        fileCacheFactory = SSLFileCacheFactory.getFactory(port);
-        fileCacheFactory.setLargeFileCacheEnabled(isLargeFileCacheEnabled);
-        fileCacheFactory.setSecondsMaxAge(secondsMaxAge);
-        fileCacheFactory.setMaxCacheEntries(maxCacheEntries);
-        fileCacheFactory.setMinEntrySize(minEntrySize);
-        fileCacheFactory.setMaxEntrySize(maxEntrySize);
-        fileCacheFactory.setMaxLargeCacheSize(maxLargeFileCacheSize);
-        fileCacheFactory.setMaxSmallCacheSize(maxSmallFileCacheSize);         
-        fileCacheFactory.setIsMonitoringEnabled(isMonitoringEnabled);
+        createFileCacheFactory();
+        configureFileCacheFactory();
     }
 
+    /**
+     * Create SSL aware {@link FileCacheFactory}
+     */
+    @Override
+    protected FileCacheFactory createFileCacheFactory() {
+        fileCacheFactory = SSLFileCacheFactory.getFactory(port);
+        return fileCacheFactory;
+    }
 }

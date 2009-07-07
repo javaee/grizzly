@@ -839,6 +839,16 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     protected void initFileCacheFactory(){        
         if (fileCacheFactory != null) return;
         
+        createFileCacheFactory();
+        configureFileCacheFactory();
+    }
+       
+    protected FileCacheFactory createFileCacheFactory() {
+        fileCacheFactory = FileCacheFactory.getFactory(port);
+        return fileCacheFactory;
+    }
+
+    protected void configureFileCacheFactory() {
         fileCacheFactory = FileCacheFactory.getFactory(port);
         FileCacheFactory.setIsEnabled(isFileCacheEnabled);
         fileCacheFactory.setLargeFileCacheEnabled(isLargeFileCacheEnabled);
@@ -847,11 +857,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         fileCacheFactory.setMinEntrySize(minEntrySize);
         fileCacheFactory.setMaxEntrySize(maxEntrySize);
         fileCacheFactory.setMaxLargeCacheSize(maxLargeFileCacheSize);
-        fileCacheFactory.setMaxSmallCacheSize(maxSmallFileCacheSize);         
+        fileCacheFactory.setMaxSmallCacheSize(maxSmallFileCacheSize);
         fileCacheFactory.setIsMonitoringEnabled(isMonitoringEnabled);
         fileCacheFactory.setHeaderBBSize(requestBufferSize);
     }
-       
     
     /**
      * Injects {@link ThreadPoolStatistic} into every
