@@ -43,6 +43,7 @@ import com.sun.grizzly.Controller;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
+import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
 import com.sun.grizzly.util.StreamAlgorithm;
@@ -174,7 +175,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             keepAlive = true;
         }
         
-        Object ra = workerThread.getAttachment().getAttribute("suspend");
+        Object ra = workerThread.getAttachment().getAttribute(Response.SUSPENDED);
         if (ra != null){
             // Detatch anything associated with the Thread.
             workerThread.setInputStream(new InputReader());

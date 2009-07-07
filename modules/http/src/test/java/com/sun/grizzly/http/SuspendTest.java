@@ -39,6 +39,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
+import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.CompletionHandler;
 import com.sun.grizzly.tcp.Request;
@@ -177,6 +178,25 @@ public class SuspendTest extends TestCase {
         sendRequest(false);
     }
 
+   public void testSuspendResumeSameTransaction() throws Exception {
+        System.err.println("Test: testSuspendResumeSameTransaction");
+        setAdapterAndListen(new TestStaticResourcesAdapter() {
+            @Override
+            public void service(final Request req, final Response res){
+                try{
+                    res.suspend();
+                    res.resume();
+                    res.getChannel().write(ByteBuffer.wrap(testData));
+                    res.finish();
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+        sendRequest();
+    }
+
+
     public void testSuspendResumeNoArgs() throws Exception {
         System.err.println("Test: testSuspendResumeNoArgs");
         setAdapterAndListen(new TestStaticResourcesAdapter() {
@@ -193,7 +213,7 @@ public class SuspendTest extends TestCase {
         });
         sendRequest();
     }
-    
+
     public void testSuspendNoArgs() throws Exception {
         System.err.println("Test: testSuspendNoArgs");
         setAdapterAndListen(new TestStaticResourcesAdapter() {
@@ -201,7 +221,7 @@ public class SuspendTest extends TestCase {
             public void service(final Request req, final Response res) {
                 res.suspend();
                 pe.schedule(new Runnable() {
-                    public void run() {       
+                    public void run() {
                         writeToSuspendedClient(res);
                         res.resume();
                     }
@@ -221,13 +241,13 @@ public class SuspendTest extends TestCase {
                     public void resumed(StaticResourcesAdapter attachment) {
                         writeToSuspendedClient(res);
                     }
-                });                
-                rusumeLater(res);
+                });
+                resumeLater(res);
             }
         });
         sendRequest();
     }
-    
+
     public void testSuspendCancelledCompletionHandler() throws Exception {
         System.err.println("Test: testSuspendCancelledCompletionHandler");
         setAdapterAndListen(new TestStaticResourcesAdapter() {
@@ -271,7 +291,7 @@ public class SuspendTest extends TestCase {
                         }
                     }
                 });
-                rusumeLater(res);
+                resumeLater(res);
             }
         });
         sendRequest(true);
@@ -306,10 +326,10 @@ public class SuspendTest extends TestCase {
                 res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
                     @Override
                     public void resumed(StaticResourcesAdapter attachment) {
-                        System.err.println("resumed");                        
+                        System.err.println("resumed");
                     }
                 });
-                
+
                 pe.schedule(new Runnable() {
                     public void run() {
                         try {
@@ -346,10 +366,10 @@ public class SuspendTest extends TestCase {
                             fail("should no get here");
                         } catch (IllegalStateException ex) {
                             writeToSuspendedClient(res);
-                        } 
+                        }
                     }
-                });                
-               rusumeLater(res);
+                });
+               resumeLater(res);
             }
         });
         sendRequest();
@@ -376,8 +396,8 @@ public class SuspendTest extends TestCase {
                             }
                         }
                     });
-                    
-                    rusumeLater(res);                    
+
+                    resumeLater(res);
                 } catch (Throwable t) {
                     t.printStackTrace();
                     fail(t.getMessage());
@@ -402,7 +422,7 @@ public class SuspendTest extends TestCase {
                                 res.getWriter().write(testString);
                             } catch (Throwable ex) {
                                 ex.printStackTrace();
-                            } 
+                            }
                         }
                     });
                 } catch (Throwable t) {
@@ -420,12 +440,13 @@ public class SuspendTest extends TestCase {
             public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
                 try {
                     final long t1 = System.currentTimeMillis();
-                    res.suspend(5 * 1000, "foo", new TestCompletionHandler<String>() {
+                    res.suspend(10 * 1000, "foo", new TestCompletionHandler<String>() {
                         @Override
                         public void resumed(String attachment) {
                             try {
                                 System.err.println("Resumed TOOK: " + (System.currentTimeMillis() - t1));
                                 res.getWriter().write(testString);
+                                res.finishResponse(); 
                             // res.flushBuffer();
                             } catch (Exception ex) {
                                 ex.printStackTrace();
@@ -439,7 +460,7 @@ public class SuspendTest extends TestCase {
                 new WorkerThreadImpl(new Runnable() {
                     public void run() {
                         try {
-                            Thread.sleep(1000);
+                            Thread.sleep(5000);
                         } catch (InterruptedException ex) {
                             ex.printStackTrace();
                             fail(ex.getMessage());
@@ -479,7 +500,7 @@ public class SuspendTest extends TestCase {
     }
 
     
-    private void rusumeLater(final GrizzlyResponse res){
+    private void resumeLater(final GrizzlyResponse res){
         pe.schedule(new Runnable() {
             public void run() {                
                 if (res.isSuspended()) {
@@ -522,20 +543,12 @@ public class SuspendTest extends TestCase {
                 System.err.println("-> " + line + " --> " + line.startsWith(testString));
                 if (line.startsWith(testString)) {
                     gotCorrectResponse = true;
-                    /*try{
-                        s.close();
-                    } catch (IOException ex){};*/
                     break;
                 }
             }
             if (assertResponse)
                 assertTrue(gotCorrectResponse);
         }finally{
-           /* if (s!=null){
-                try{
-                    s.close();
-                } catch (IOException ex){};
-            }*/
         }
     }
     
@@ -601,7 +614,7 @@ public class SuspendTest extends TestCase {
             }, 2, TimeUnit.SECONDS);
         }
 
-        protected void rusumeLater(final Response res){
+        protected void resumeLater(final Response res){
             pe.schedule(new Runnable() {
                 public void run() {
                     if (res.isSuspended()) {

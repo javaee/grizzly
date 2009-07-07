@@ -58,6 +58,7 @@ import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
+import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
@@ -100,6 +101,8 @@ public class Response<A> {
     // --------------------------------------------------- Suspend/Resume ---- /
     
     private Semaphore lock = new Semaphore(1);
+
+    public final static String SUSPENDED="suspend";
 
     // ----------------------------------------------------- Instance Variables
 
@@ -742,9 +745,23 @@ public class Response<A> {
             if (!isSuspended){
                 throw new IllegalStateException("Not Suspended");
             }
+
+            boolean isReallySuspended = true;
+            if (Thread.currentThread() instanceof WorkerThread){
+                WorkerThread wt = (WorkerThread)Thread.currentThread();
+                // True if the Adapter.service() method have exitted
+                isReallySuspended = (wt.getAttachment().getAttribute(SUSPENDED) != null);
+            }
+
+            System.out.println("Resume: " + isReallySuspended);
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
-            ra.resume();
-            req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
+            if (isReallySuspended){
+                ra.resume();
+                req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
+            } else {
+                ra.invokeCompletionHandler();
+            }
+            
             isSuspended = false;
             ra = null;
             lock.release();
@@ -933,9 +950,12 @@ public class Response<A> {
             return idletimeoutdelay;
         }
 
+        public void invokeCompletionHandler(){
+            completionHandler.resumed(attachment);
+        }
         
         public void resume(){
-            completionHandler.resumed(attachment);
+            invokeCompletionHandler();
             try{
                 response.sendHeaders();
                 response.flush();
