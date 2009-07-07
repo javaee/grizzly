@@ -484,9 +484,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             final int keepAlive = Integer.parseInt(http.getTimeoutSeconds());
             final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
 
-            final DefaultThreadPool pool = new StatsThreadPool(minThreads, maxThreads, maxQueueSize,
-                    keepAlive, TimeUnit.SECONDS) {
-            };
+            final DefaultThreadPool pool = newThreadPool(minThreads, maxThreads,
+                    maxQueueSize, keepAlive, TimeUnit.SECONDS);
 
             setThreadPool(pool);
             setCoreThreads(minThreads);
@@ -512,6 +511,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         } catch (NumberFormatException ex) {
             logger.log(Level.WARNING, " Invalid thread-pool attribute", ex);
         }
+    }
+
+    protected DefaultThreadPool newThreadPool(int minThreads, int maxThreads,
+            int maxQueueSize, long keepAlive, TimeUnit timeunit) {
+        return new StatsThreadPool(minThreads, maxThreads, maxQueueSize,
+                    keepAlive, TimeUnit.SECONDS);
     }
 
     private boolean toBoolean(String value) {
