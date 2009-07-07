@@ -974,6 +974,19 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 copySelectorHandler.setSelector(Selector.open());
             } catch (IOException e) {
                 logger.log(Level.SEVERE, "Error opening selector!", e);
+
+            /**
+             * JDK issue
+             * java.lang.NullPointerException
+                at sun.nio.ch.Util.atBugLevel(Util.java:326)
+                at sun.nio.ch.SelectorImpl.<init>(SelectorImpl.java:40)
+                at sun.nio.ch.EPollSelectorImpl.<init>(EPollSelectorImpl.java:47)
+                at sun.nio.ch.EPollSelectorProvider.openSelector(EPollSelectorProvider.java:18)
+                at java.nio.channels.Selector.open(Selector.java:209)
+             */
+            } catch (NullPointerException ex){
+                logger.log(Level.WARNING, "JDK Issue: Unable to execuet Selector.open().", ex);
+                copySelectorHandler.setSelector(selectorHandler.getSelector());
             }
 
             readController.addSelectorHandler(copySelectorHandler);
