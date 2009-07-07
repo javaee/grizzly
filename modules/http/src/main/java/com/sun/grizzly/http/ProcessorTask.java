@@ -675,7 +675,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         // Do not commit the response;
         if (response.isSuspended()){
             WorkerThread wt = (WorkerThread)Thread.currentThread();
-            wt.getAttachment().setAttribute("suspend",Boolean.TRUE);
+            wt.getAttachment().setAttribute(Response.SUSPENDED,Boolean.TRUE);
             key.attach(response.getResponseAttachment());             
             return;
         }      
