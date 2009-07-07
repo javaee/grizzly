@@ -426,7 +426,7 @@ public class ServletContextImpl implements ServletContext {
     }
 
     
-   public String getServerInfo() {
+    public String getServerInfo() {
         return "Grizzly/" + Grizzly.getRawVersion();
     }
 

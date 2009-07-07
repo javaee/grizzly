@@ -51,17 +51,17 @@ import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.Cookie;
 
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EventListener;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletContextAttributeListener;
 import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
 
@@ -435,7 +435,7 @@ public class ServletAdapter extends GrizzlyAdapter {
         if (initialize) {
             servletCtx.setInitParameter(contextParameters);
             servletCtx.setContextPath(contextPath);  
-            servletCtx.setBasePath(getRootFolder());               
+            servletCtx.setBasePath(getRootFolder() + File.separator + contextPath);
             configureProperties(servletCtx);
             servletCtx.initListeners(listeners);
         }
