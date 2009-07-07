@@ -155,7 +155,7 @@ public class FileCacheFactory {
      */
     public FileCache getFileCache() {
         if (fileCache == null) {
-            createFileCache();
+            fileCache = createFileCache();
             configureFileCache();
         }
 
