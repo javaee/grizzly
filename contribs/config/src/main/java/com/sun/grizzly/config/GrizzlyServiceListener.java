@@ -82,13 +82,18 @@ public class GrizzlyServiceListener {
     private void initializeListener(boolean webProfile, NetworkListener networkListener, Habitat habitat) {
         isEmbeddedHttpSecured = Boolean.parseBoolean(
                 networkListener.findProtocol().getSecurityEnabled());
-        if (isEmbeddedHttpSecured) {
-            embeddedHttp = new GrizzlyEmbeddedHttps(this);
-        } else {
-            embeddedHttp = new GrizzlyEmbeddedHttp(this);
-        }
+        embeddedHttp = createEmbeddedHttp(isEmbeddedHttpSecured);
+
         embeddedHttp.setController(controller);
         embeddedHttp.configure(webProfile, networkListener, habitat);
+    }
+
+    protected GrizzlyEmbeddedHttp createEmbeddedHttp(boolean isSecured) {
+        if (isSecured) {
+            return new GrizzlyEmbeddedHttps(this);
+        } else {
+            return new GrizzlyEmbeddedHttp(this);
+        }
     }
 
     public void start() throws IOException, InstantiationException {
