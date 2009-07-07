@@ -435,7 +435,7 @@ public class ServletAdapter extends GrizzlyAdapter {
         if (initialize) {
             servletCtx.setInitParameter(contextParameters);
             servletCtx.setContextPath(contextPath);  
-            servletCtx.setBasePath(getRootFolder() + File.separator + contextPath);
+            servletCtx.setBasePath(getRootFolder() + File.separatorChar  + contextPath);
             configureProperties(servletCtx);
             servletCtx.initListeners(listeners);
         }
