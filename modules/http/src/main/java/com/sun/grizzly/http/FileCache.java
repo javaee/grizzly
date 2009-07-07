@@ -405,14 +405,14 @@ public class FileCache{
                 if (entry != null && entry.bb != null 
                         && entry.bb != nullByteBuffer){
                     if ( entry.isInHeap ) 
-                        countCacheHits++;
+                        countInfoHit();
                     else
-                        countMappedHits++;
+                        countContentHit();
 
-                    countHits++;
+                    countHit();
                 
                 } else {
-                  countMisses++;
+                  countMiss();
                 }
             }
         }
@@ -652,7 +652,11 @@ public class FileCache{
     }
     
     
-    /** 
+    protected void countHit() {
+        countHits++;
+    }
+
+    /**
      * Return the Number of cache lookup hits
      * @return cache hits
      */
@@ -661,7 +665,11 @@ public class FileCache{
     }
     
     
-    /** 
+    protected void countMiss() {
+        countMisses++;
+    }
+
+    /**
      * Return the Number of cache lookup misses
      * @return cache misses
      */
@@ -670,7 +678,11 @@ public class FileCache{
     }
     
     
-    /** 
+    protected void countInfoHit() {
+        countCacheHits++;
+    }
+
+    /**
      * The Number of hits on cached file info
      * @return hits on cached file info
      */
@@ -679,7 +691,11 @@ public class FileCache{
     }
     
     
-    /** 
+    protected void countInfoMiss() {
+        countCacheMisses++;
+    }
+
+    /**
      * Return the number of misses on cached file info
      * @return misses on cache file info
      */
@@ -688,7 +704,11 @@ public class FileCache{
     }
     
     
-    /** 
+    protected void countContentHit() {
+        countMappedHits++;
+    }
+
+    /**
      * Return the Number of hits on cached file content
      * @return hits on cache file content
      */
@@ -697,7 +717,11 @@ public class FileCache{
     }
     
     
-    /** 
+    protected void countContentMiss() {
+        countMappedMisses++;
+    }
+
+    /**
      * Return the Number of misses on cached file content
      * @return missed on cached file content
      */
