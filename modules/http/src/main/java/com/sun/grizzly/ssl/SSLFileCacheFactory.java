@@ -89,8 +89,7 @@ public class SSLFileCacheFactory extends FileCacheFactory{
      */
     @Override
     protected FileCache createFileCache(){
-        fileCache = new SSLFileCache();
-        return fileCache;
+        return new SSLFileCache();
     }     
 
 }
