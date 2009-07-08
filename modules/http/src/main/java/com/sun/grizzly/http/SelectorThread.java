@@ -273,7 +273,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Keep-alive stats
      */
-    private KeepAliveStats keepAliveStats = null;
+    private final KeepAliveStats keepAliveStats;
 
 
     /**
@@ -571,6 +571,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * will listen to a specific port.
      */
     public SelectorThread(){
+        keepAliveStats = createKeepAliveStats();
     }
     
     // ------------------------------------------------------ Selector hook --/
@@ -839,13 +840,12 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     protected void initFileCacheFactory(){        
         if (fileCacheFactory != null) return;
         
-        createFileCacheFactory();
+        fileCacheFactory = createFileCacheFactory();
         configureFileCacheFactory();
     }
        
     protected FileCacheFactory createFileCacheFactory() {
-        fileCacheFactory = FileCacheFactory.getFactory(port);
-        return fileCacheFactory;
+        return FileCacheFactory.getFactory(port);
     }
 
     protected void configureFileCacheFactory() {
@@ -870,7 +870,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         if (threadPool instanceof StatsThreadPool) {
             threadPoolStat.start();
 
-            keepAliveStats = new KeepAliveStats();
+            keepAliveStats.enable();
             StatsThreadPool statsThreadPool = (StatsThreadPool) threadPool;
             statsThreadPool.setStatistic(threadPoolStat);
             threadPoolStat.setThreadPool(threadPool);
@@ -890,7 +890,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
             threadPoolStat.stop();
 
-            keepAliveStats = null;
+            keepAliveStats.disable();
             StatsThreadPool statsThreadPool = (StatsThreadPool) threadPool;
             statsThreadPool.setStatistic(null);
             threadPoolStat.setThreadPool(null);
@@ -2429,5 +2429,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             asyncInterceptor = new AsyncInterceptor();
         }
         asyncInterceptor.addContextPath(s);
+    }
+
+    protected KeepAliveStats createKeepAliveStats() {
+        return new KeepAliveStats();
     }
 }

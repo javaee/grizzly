@@ -50,21 +50,36 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Jan Luehe
  */
 public class KeepAliveStats {
-
+    private volatile boolean isEnabled;
     private final AtomicInteger countConnections = new AtomicInteger();
     private final AtomicInteger countHits        = new AtomicInteger();
     private final AtomicInteger countFlushes     = new AtomicInteger();
     private final AtomicInteger countRefusals    = new AtomicInteger();
     private final AtomicInteger countTimeouts    = new AtomicInteger();
 
+    public synchronized void enable() {
+        isEnabled = true;
+    }
 
+    public synchronized void disable() {
+        isEnabled = false;
+        countConnections.set(0);
+        countHits.set(0);
+        countFlushes.set(0);
+        countRefusals.set(0);
+        countTimeouts.set(0);
+    }
+
+    public boolean isEnabled() {
+        return isEnabled;
+    }
 
     /** 
      * Gets the number of connections in keep-alive mode.
      * 
      * @return Number of connections in keep-alive mode
      */    
-    public  int getCountConnections() {
+    public int getCountConnections() {
         return countConnections.get();
     }
 

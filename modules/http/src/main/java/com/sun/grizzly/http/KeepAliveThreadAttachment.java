@@ -71,12 +71,12 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
      */
     public int increaseKeepAliveCount(){
         if ( keepAliveCount == 0 ){
-            if (keepAliveStats != null) {
+            if (keepAliveStats != null && keepAliveStats.isEnabled()) {
                 keepAliveStats.incrementCountConnections();
             }
         }
         keepAliveCount++;
-        if (keepAliveStats != null) {
+        if (keepAliveStats != null && keepAliveStats.isEnabled()) {
             keepAliveStats.incrementCountHits();
         } 
         return keepAliveCount;
@@ -86,7 +86,7 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
      * Reset the keep alive value to 0.
      */
     public void resetKeepAliveCount(){
-        if (keepAliveStats != null && keepAliveCount > 0) {
+        if (keepAliveStats != null && keepAliveCount > 0 && keepAliveStats.isEnabled()) {
             keepAliveStats.decrementCountConnections();
         }        
         keepAliveCount = 0;
