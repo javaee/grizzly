@@ -183,14 +183,6 @@ public interface Http extends ConfigBeanProxy, Injectable {
     void setRedirectPort(final String redirectPort);
 
     /**
-     * Size of the buffer for request bodies in bytes
-     */
-    @Attribute(defaultValue = "8192")
-    String getRequestBodyBufferSizeBytes();
-
-    void setRequestBodyBufferSizeBytes(String size);
-
-    /**
      * Time after which the request times out in seconds
      */
     @Attribute(defaultValue = "30")
@@ -204,7 +196,7 @@ public interface Http extends ConfigBeanProxy, Injectable {
     void setRestrictedUserAgents(String agents);
 
     /**
-     * Size of the buffer for request bodies in bytes
+     * Size of the buffer for response bodies in bytes
      */
     @Attribute(defaultValue = "8192")
     String getSendBufferSizeBytes();
