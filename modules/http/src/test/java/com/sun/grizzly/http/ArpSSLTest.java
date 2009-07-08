@@ -204,8 +204,8 @@ public class ArpSSLTest extends TestCase {
         public synchronized void service(Request request, Response response) throws Exception {
             KeepAliveStats kas = st.getKeepAliveStats();
             String s;
-            if (kas == null) {
-                s = "KAS: missing\n";
+            if (!kas.isEnabled()) {
+                s = "KAS: is disabled\n";
             } else {
                 s = "KAS:  conns=" + kas.getCountConnections() + ", flushes=" + kas.getCountFlushes() + ", hits=" + kas.getCountHits() + ", refusals=" + kas.getCountRefusals() + ", timeouts=" + kas.getCountTimeouts() + ", maxConns=" + "\n";
             }
