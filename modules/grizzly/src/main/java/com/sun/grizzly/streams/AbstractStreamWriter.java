@@ -116,8 +116,10 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         if (buffer != null) {
             if (buffer.position() > 0) {
                 future = flush0(buffer, completionHandler);
-                if (!future.isDone() || buffer.capacity() != bufferSize) {
+                if (!future.isDone()) {
                     buffer = newBuffer(bufferSize);
+                } else if (buffer.capacity() != bufferSize) {
+                    buffer = reallocateBuffer(buffer, bufferSize);
                 }
                 
                 initBuffer();
@@ -491,6 +493,10 @@ public abstract class AbstractStreamWriter implements StreamWriter {
 
     protected Buffer newBuffer(int size) {
          return getConnection().getTransport().getMemoryManager().allocate(size);
+    }
+
+    private Buffer reallocateBuffer(Buffer oldBuffer, int size) {
+        return getConnection().getTransport().getMemoryManager().reallocate(oldBuffer, size);
     }
 
     /**
