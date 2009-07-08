@@ -359,60 +359,37 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     private void configureHttpListenerProperty(Http http, Transport transport, Ssl ssl)
             throws NumberFormatException {
-        if (transport.getBufferSizeBytes() != null) {
-            setBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
-        }
+
+        // http settings
         try {
             setAdapter((Adapter) Class.forName(http.getAdapter()).newInstance());
         } catch (Exception e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
         }
-        if (http.getMaxConnections() != null) {
-            setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
-        }
-        if (http.getEnableAuthPassThrough() != null) {
-            setProperty("authPassthroughEnabled", toBoolean(http.getEnableAuthPassThrough()));
-        }
-        if (http.getMaxPostSizeBytes() != null) {
-            setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
-        }
-        if (http.getCompression() != null) {
-            setCompression(http.getCompression());
-        }
-        if (http.getCompressableMimeType() != null) {
-            setCompressableMimeTypes(http.getCompressableMimeType());
-        }
-        if (http.getNoCompressionUserAgents() != null) {
-            setNoCompressionUserAgents(http.getNoCompressionUserAgents());
-        }
-        if (http.getCompressionMinSizeBytes() != null) {
-            setCompressionMinSize(Integer.parseInt(http.getCompressionMinSizeBytes()));
-        }
-        if (http.getRestrictedUserAgents() != null) {
-            setRestrictedUserAgents(http.getRestrictedUserAgents());
-        }
-        if (http.getEnableRcmSupport() != null) {
-            enableRcmSupport(toBoolean(http.getEnableRcmSupport()));
-        }
-        if (http.getConnectionUploadTimeoutMillis() != null) {
-            setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
-        }
-        if (http.getDisableUploadTimeout() != null) {
-            setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
-        }
-        if (http.getChunkingDisabled() != null) {
-            setProperty("chunking-disabled", toBoolean(http.getChunkingDisabled()));
-        }
+
+        setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
+        setProperty("authPassthroughEnabled", toBoolean(http.getEnableAuthPassThrough()));
+        setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
+        setCompression(http.getCompression());
+        setCompressableMimeTypes(http.getCompressableMimeType());
+        setNoCompressionUserAgents(http.getNoCompressionUserAgents());
+        setCompressionMinSize(Integer.parseInt(http.getCompressionMinSizeBytes()));
+        setRestrictedUserAgents(http.getRestrictedUserAgents());
+        enableRcmSupport(toBoolean(http.getEnableRcmSupport()));
+        setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
+        setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
+        setProperty("chunking-disabled", toBoolean(http.getChunkingDisabled()));
+
         configSslOptions(ssl);
         if (http.getUriEncoding() != null) {
             setProperty("uriEncoding", http.getUriEncoding());
         }
-//        if ("jkEnabled".equals(propName)) {
-//            setProperty(propName, propValue);
-//        }
-        if (transport.getTcpNoDelay() != null) {
-            setTcpNoDelay(toBoolean(transport.getTcpNoDelay()));
-        }
+
+        // transport settings
+        setBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
+        setSsBackLog(Integer.parseInt(transport.getMaxConnectionsCount()));
+        setTcpNoDelay(toBoolean(transport.getTcpNoDelay()));
+
         if (http.getTraceEnabled() != null) {
             setProperty("traceEnabled", toBoolean(http.getTraceEnabled()));
         }
