@@ -116,9 +116,10 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         if (buffer != null) {
             if (buffer.position() > 0) {
                 future = flush0(buffer, completionHandler);
-                if (!future.isDone()) {
+                if (!future.isDone() || buffer.capacity() != bufferSize) {
                     buffer = newBuffer(bufferSize);
                 }
+                
                 initBuffer();
             } else {
                 future = ZERO_READY_FUTURE;

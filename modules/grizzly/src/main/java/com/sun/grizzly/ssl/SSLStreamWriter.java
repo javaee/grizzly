@@ -68,7 +68,7 @@ public class SSLStreamWriter extends StreamWriterDecorator {
     @Override
     public void setUnderlyingWriter(StreamWriter underlyingWriter) {
         super.setUnderlyingWriter(underlyingWriter);
-        
+
         try {
             checkBuffers();
         } catch (IOException e) {
@@ -99,12 +99,6 @@ public class SSLStreamWriter extends StreamWriterDecorator {
                 if (underlyingWriter.getBufferSize() < underlyingBufferSize) {
                     underlyingWriter.setBufferSize(underlyingBufferSize);
                 }
-
-                Buffer underlyingBuffer = underlyingWriter.getBuffer();
-                if (underlyingBuffer == null ||
-                        (underlyingBuffer.remaining() < underlyingBufferSize)) {
-                    underlyingWriter.flush();
-                }
             }
 
             int appBufferSize = sslEngine.getSession().getApplicationBufferSize();
@@ -132,6 +126,13 @@ public class SSLStreamWriter extends StreamWriterDecorator {
             ByteBuffer byteBuffer = (ByteBuffer) buffer.underlying();
             do {
                 Buffer underlyingBuffer = underlyingWriter.getBuffer();
+
+                if (underlyingBuffer == null ||
+                        underlyingBuffer.remaining() < sslEngine.getSession().getPacketBufferSize()) {
+                    underlyingWriter.flush();
+                    underlyingBuffer = underlyingWriter.getBuffer();
+                }
+
                 ByteBuffer underlyingByteBuffer = (ByteBuffer) underlyingBuffer.underlying();
                 sslEngine.wrap(byteBuffer, underlyingByteBuffer);
                 lastWriterFuture = underlyingWriter.flush();
