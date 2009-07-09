@@ -368,16 +368,24 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
 
         setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
-        setProperty("authPassthroughEnabled", toBoolean(http.getEnableAuthPassThrough()));
+        if(http.getEnableAuthPassThrough() != null) {
+            setProperty("authPassthroughEnabled", toBoolean(http.getEnableAuthPassThrough()));
+        }
         setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
         setCompression(http.getCompression());
         setCompressableMimeTypes(http.getCompressableMimeType());
-        setNoCompressionUserAgents(http.getNoCompressionUserAgents());
+        if(http.getNoCompressionUserAgents() != null) {
+            setNoCompressionUserAgents(http.getNoCompressionUserAgents());
+        }
         setCompressionMinSize(Integer.parseInt(http.getCompressionMinSizeBytes()));
-        setRestrictedUserAgents(http.getRestrictedUserAgents());
+        if(http.getRestrictedUserAgents() != null) {
+            setRestrictedUserAgents(http.getRestrictedUserAgents());
+        }
         enableRcmSupport(toBoolean(http.getEnableRcmSupport()));
         setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
-        setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
+        if(http.getDisableUploadTimeout() != null) {
+            setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
+        }
         setProperty("chunking-disabled", toBoolean(http.getChunkingDisabled()));
 
         configSslOptions(ssl);
@@ -388,7 +396,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         // transport settings
         setBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
         setSsBackLog(Integer.parseInt(transport.getMaxConnectionsCount()));
-        setTcpNoDelay(toBoolean(transport.getTcpNoDelay()));
+        if(transport.getTcpNoDelay() != null) {
+            setTcpNoDelay(toBoolean(transport.getTcpNoDelay()));
+        }
 
         if (http.getTraceEnabled() != null) {
             setProperty("traceEnabled", toBoolean(http.getTraceEnabled()));
