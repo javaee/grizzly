@@ -77,6 +77,12 @@ import java.util.logging.Logger;
 public class Mapper {
     
     private final static Logger logger = LoggerUtils.getLogger();
+
+    private static final String DEFAULT_SERVLET =
+            System.getProperty("com.sun.grizzly.util.http.mapper.defaultServlet", "default");
+
+    private static final String JSP_SERVLET =
+            System.getProperty("com.sun.grizzly.util.http.mapper.jspServlet", "jsp");
     
     // ----------------------------------------------------- Instance Variables
 
@@ -401,12 +407,22 @@ public class Mapper {
      */
     public void addWrapper(String hostName, String contextPath, String path,
                            Object wrapper) {
-        addWrapper(hostName, contextPath, path, wrapper, false);
+        addWrapper(hostName, contextPath, path, wrapper, false, null);
     }
 
 
+    /**
+     * Add a new Wrapper to an existing Context.
+     *
+     * @param hostName Virtual host name this wrapper belongs to
+     * @param contextPath Context path this wrapper belongs to
+     * @param path Wrapper mapping
+     * @param wrapper Wrapper object
+     * @param servletName servlet name or null if unknown
+     */
     public void addWrapper(String hostName, String contextPath, String path,
-                           Object wrapper, boolean jspWildCard) {
+                           Object wrapper, boolean jspWildCard,
+                           String servletName) {
         Host[] hosts = this.hosts;
         int pos = findIgnoreCase(hosts, hostName);
         if (pos < 0) {
@@ -422,7 +438,7 @@ public class Mapper {
             }
             Context context = contexts[pos2];
             if (context.name.equals(contextPath)) {
-                addWrapper(context, path, wrapper, jspWildCard);
+                addWrapper(context, path, wrapper, jspWildCard, servletName);
             }
         }
     }
@@ -449,6 +465,12 @@ public class Mapper {
     }
 
 
+    protected void addWrapper(Context context, String path, Object wrapper,
+            boolean jspWildCard) {
+        addWrapper(context, path, wrapper, jspWildCard, null);
+    }
+
+
     /**
      * Adds a wrapper to the given context.
      *
@@ -457,14 +479,17 @@ public class Mapper {
      * @param wrapper The Wrapper object
      * @param jspWildCard true if the wrapper corresponds to the JspServlet
      * and the mapping path contains a wildcard; false otherwise
+     * @param servletName then name of servletName or null if unknown
      */
     protected void addWrapper(Context context, String path, Object wrapper,
-                              boolean jspWildCard) {
+                              boolean jspWildCard, String servletName) {
 
         synchronized (context) {
+
             Wrapper newWrapper = new Wrapper();
             newWrapper.object = wrapper;
             newWrapper.jspWildCard = jspWildCard;
+            newWrapper.servletName = servletName;
             if (path.endsWith("/*")) {
                 // Wildcard wrapper
                 newWrapper.name = path.substring(0, path.length() - 2);
@@ -496,22 +521,28 @@ public class Mapper {
                     oldElem.object = wrapper;
                     oldElem.jspWildCard = jspWildCard;
                 }
-            } else if (path.equals("/")) {
-                // Default wrapper
-                newWrapper.name = "";
-                context.defaultWrapper = newWrapper;
             } else {
+                boolean isSlashPath = path.equals("/");
+                if (isSlashPath) {
+                    // Default wrapper
+                    newWrapper.name = "";
+                    context.defaultWrapper = newWrapper;
+                }
+            
                 // Exact wrapper
-                newWrapper.name = path;
-                Wrapper[] oldWrappers = context.exactWrappers;
-                Wrapper[] newWrappers =
-                    new Wrapper[oldWrappers.length + 1];
-                Wrapper oldElem = (Wrapper)insertMap(oldWrappers, newWrappers, newWrapper);
-                if (oldElem == null) {
-                    context.exactWrappers = newWrappers;
-                } else if (allowReplacement){
-                    oldElem.object = wrapper;
-                    oldElem.jspWildCard = jspWildCard;
+                // also for "/" and non default servlet
+                if (!isSlashPath || !DEFAULT_SERVLET.equals(servletName)) {
+                    newWrapper.name = path;
+                    Wrapper[] oldWrappers = context.exactWrappers;
+                    Wrapper[] newWrappers =
+                        new Wrapper[oldWrappers.length + 1];
+                    Wrapper oldElem = (Wrapper)insertMap(oldWrappers, newWrappers, newWrapper);
+                    if (oldElem == null) {
+                        context.exactWrappers = newWrappers;
+                    } else if (allowReplacement){
+                        oldElem.object = wrapper;
+                        oldElem.jspWildCard = jspWildCard;
+                    }
                 }
             }
         }
@@ -970,6 +1001,7 @@ public class Mapper {
             }
  
             if (checkWelcomeFiles) {
+                // Rule 4a -- Static welcome resources
                 for (int i = 0; (i < context.welcomeResources.length)
                          && (mappingData.wrapper == null); i++) {
                     path.setOffset(pathOffset);
@@ -978,20 +1010,9 @@ public class Mapper {
                                 context.welcomeResources[i].length());
                     path.setOffset(servletPath);
 
-                    // Rule 4a -- Welcome resources processing for exact macth
-                    internalMapExactWrapper(exactWrappers, path, mappingData);
-
-                    // Rule 4b -- Welcome resources processing for prefix match
-                    if (mappingData.wrapper == null) {
-                        internalMapWildcardWrapper
-                            (wildcardWrappers, context.nesting, 
-                             path, mappingData);
-                    }
-
-                    // Rule 4c -- Welcome resources processing
-                    //            for physical folder
+                    // Welcome resources processing for physical folder
                     if (mappingData.wrapper == null
-                        && context.resources != null) {
+                        &&context.resources != null) {
                         Object file = null;
                         String pathStr = path.toString();
                         try {
@@ -1000,12 +1021,28 @@ public class Mapper {
                             // Swallow not found, since this is normal
                         }
                         if (file != null && !(file instanceof DirContext) ) {
-                            internalMapExtensionWrapper(extensionWrappers,
-                                                        path, mappingData);
+                            // Rule 4a1 -- exact match
+                            internalMapExactWrapper(exactWrappers, path, mappingData);
+
+                            // Rule 4a2 -- prefix match
+                            if (mappingData.wrapper == null) {
+                                internalMapWildcardWrapper(wildcardWrappers,
+                                        context.nesting, path, mappingData);
+                            }
+
+                            // Rule 4a3 -- extension match
+                            if (mappingData.wrapper == null) {
+                                internalMapExtensionWrapper(extensionWrappers,
+                                        path, mappingData);
+                            }
+
+                            // Rule 4a4 use default
                             if (mappingData.wrapper == null
                                 && context.defaultWrapper != null) {
                                 mappingData.wrapper =
                                     context.defaultWrapper.object;
+                                mappingData.servletName =
+                                    context.defaultWrapper.servletName;
                                 mappingData.requestPath.setChars
                                     (path.getBuffer(), path.getStart(), 
                                      path.getLength());
@@ -1019,6 +1056,40 @@ public class Mapper {
                     } 
                 }
 
+                // Rule 4b -- Non-static welcome resources
+                if (mappingData.wrapper == null) {
+                    for (int i = 0; (i < context.welcomeResources.length)
+                             && (mappingData.wrapper == null); i++) {
+                        path.setOffset(pathOffset);
+                        path.setEnd(pathEnd);
+                        path.append(context.welcomeResources[i], 0,
+                                    context.welcomeResources[i].length());
+                        path.setOffset(servletPath);
+
+                        // Rule 4b1 -- Welcome resources processing for exact match
+                        internalMapExactWrapper(exactWrappers, path, mappingData);
+
+                        // Rule 4b2 -- Welcome resources processing for prefix match
+                        if (mappingData.wrapper == null) {
+                            internalMapWildcardWrapper
+                                (wildcardWrappers, context.nesting, 
+                                 path, mappingData);
+                        }
+
+                        // Rule 4b3 -- Welcome resources processing for extension match
+                        if (mappingData.wrapper == null) {
+                            internalMapExtensionWrapper(
+                                    extensionWrappers, path, mappingData);
+                        }
+
+                        // cannot use jsp as the file does not exist
+                        if (mappingData.wrapper != null && 
+                                JSP_SERVLET.equals(mappingData.servletName)) {
+                            mappingData.wrapper = null;
+                        }
+                    }
+                }
+
                 path.setOffset(servletPath);
                 path.setEnd(pathEnd);
             }                                      
@@ -1029,6 +1100,7 @@ public class Mapper {
         if (mappingData.wrapper == null && !checkJspWelcomeFiles) {
             if (context.defaultWrapper != null) {
                 mappingData.wrapper = context.defaultWrapper.object;
+                mappingData.servletName = context.defaultWrapper.servletName;
                 mappingData.requestPath.setChars
                     (path.getBuffer(), path.getStart(), path.getLength());
                 mappingData.wrapperPath.setChars
@@ -1074,6 +1146,7 @@ public class Mapper {
             mappingData.requestPath.setString(wrappers[pos].name);
             mappingData.wrapperPath.setString(wrappers[pos].name);
             mappingData.wrapper = wrappers[pos].object;
+            mappingData.servletName = wrappers[pos].servletName;
         }
     }
 
@@ -1124,6 +1197,7 @@ public class Mapper {
                 mappingData.requestPath.setChars
                     (path.getBuffer(), path.getOffset(), path.getLength());
                 mappingData.wrapper = wrappers[pos].object;
+                mappingData.servletName = wrappers[pos].servletName;
                 mappingData.jspWildCard = wrappers[pos].jspWildCard;
             }
         }
@@ -1164,6 +1238,7 @@ public class Mapper {
                     mappingData.requestPath.setChars
                         (buf, servletPath, pathEnd - servletPath);
                     mappingData.wrapper = wrappers[pos].object;
+                    mappingData.servletName = wrappers[pos].servletName;
                 }
                 path.setOffset(servletPath);
                 path.setEnd(pathEnd);
@@ -1611,6 +1686,7 @@ public class Mapper {
 
         public String path = null;
         public boolean jspWildCard = false;
+        public String servletName = null;
     }
 
 
