@@ -65,6 +65,7 @@ public class MappingData {
     public Object host = null;
     public Object context = null;
     public Object wrapper = null;
+    public String servletName = null;
     public boolean jspWildCard = false;
     // START GlassFish 1024
     public boolean isDefaultContext = false;
@@ -79,6 +80,7 @@ public class MappingData {
         host = null;
         context = null;
         wrapper = null;
+        servletName = null;
         pathInfo.recycle();
         requestPath.recycle();
         wrapperPath.recycle();
@@ -96,6 +98,7 @@ public class MappingData {
         sb.append("host: " + host);
         sb.append("\ncontext: " + context);
         sb.append("\nwrapper: " + wrapper);
+        sb.append("\nservletName: " + servletName);
         sb.append("\ncontextPath: " + contextPath);
         sb.append("\nrequestPath: " + requestPath);
         sb.append("\nwrapperPath: " + wrapperPath);
