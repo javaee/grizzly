@@ -118,12 +118,14 @@ public abstract class AbstractStreamWriter implements StreamWriter {
                 future = flush0(buffer, completionHandler);
                 if (!future.isDone()) {
                     buffer = newBuffer(bufferSize);
-                } else if (buffer.capacity() != bufferSize) {
-                    buffer = reallocateBuffer(buffer, bufferSize);
+                } else {
+                    checkBufferSize();
                 }
-                
+
                 initBuffer();
             } else {
+                checkBufferSize();
+
                 future = ZERO_READY_FUTURE;
                 if (completionHandler != null) {
                     completionHandler.completed(connection, ZERO);
@@ -135,6 +137,12 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
 
         return future;
+    }
+
+    private void checkBufferSize() {
+        if (buffer.capacity() != bufferSize) {
+            buffer = reallocateBuffer(buffer, bufferSize);
+        }
     }
 
     private void initBuffer() {

@@ -158,7 +158,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
     @Override
     public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
             int newSize) {
-        if (oldBuffer.capacity() <= newSize) return oldBuffer;
+        if (oldBuffer.capacity() >= newSize) return oldBuffer.clear();
         
         if (isDefaultWorkerThread()) {
             final BufferInfo bufferInfo = getThreadBuffer();
