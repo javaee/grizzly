@@ -189,6 +189,6 @@
     <properties>
         <hk2.version>0.3.66</hk2.version>
         <hk2.plugin.version>0.3.66</hk2.plugin.version>
-        <grizzly.version>1.9.15a</grizzly.version>
+        <grizzly.version>1.9.17</grizzly.version>
     </properties>
 </project>
