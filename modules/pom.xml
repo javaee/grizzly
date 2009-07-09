@@ -26,5 +26,6 @@
         <module>http-servlet-deployer</module>
         <module>compat</module>
         <module>bundles</module>
+        <module>config</module>
     </modules>
 </project>
