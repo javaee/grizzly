@@ -275,7 +275,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         configureHttpListenerProperty(http, transport, httpProtocol.getSsl());
         configureKeepAlive(http);
         configureHttpProtocol(http);
-        configureThreadPool(http, pool);
+        configureThreadPool(pool, Integer.parseInt(http.getTimeoutSeconds()));
         configureFileCache(http.getFileCache());
         defaultVirtualServer = http.getDefaultVirtualServer();
         // acceptor-threads
@@ -428,6 +428,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
         setForcedRequestType(http.getForcedResponseType());
         setDefaultResponseType(http.getDefaultResponseType());
+        setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthBytes()));
     }
 
     /**
@@ -459,7 +460,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Configures an HTTP grizzlyListener with the given request-processing config.
      */
-    private void configureThreadPool(Http http, ThreadPool threadPool) {
+    private void configureThreadPool(ThreadPool threadPool, int keepAlive) {
         if (threadPool == null) {
             return;
         }
@@ -468,7 +469,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     : Integer.parseInt(threadPool.getMaxQueueSize());
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
-            final int keepAlive = Integer.parseInt(http.getTimeoutSeconds());
             final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
 
             final DefaultThreadPool pool = newThreadPool(minThreads, maxThreads,
@@ -477,8 +477,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             setThreadPool(pool);
             setCoreThreads(minThreads);
             setMaxThreads(maxThreads);
-
-            setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthBytes()));
 
             List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
             boolean debugMode = false;
