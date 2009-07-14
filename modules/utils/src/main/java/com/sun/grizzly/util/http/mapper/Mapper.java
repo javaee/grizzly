@@ -418,6 +418,21 @@ public class Mapper {
      * @param contextPath Context path this wrapper belongs to
      * @param path Wrapper mapping
      * @param wrapper Wrapper object
+     * @param jspWildCard
+     */
+    public void addWrapper(String hostName, String contextPath, String path,
+                           Object wrapper, boolean jspWildCard) {
+        addWrapper(hostName, contextPath, path, wrapper, jspWildCard, null);
+    }
+
+    /**
+     * Add a new Wrapper to an existing Context.
+     *
+     * @param hostName Virtual host name this wrapper belongs to
+     * @param contextPath Context path this wrapper belongs to
+     * @param path Wrapper mapping
+     * @param wrapper Wrapper object
+     * @param jspWildCard
      * @param servletName servlet name or null if unknown
      */
     public void addWrapper(String hostName, String contextPath, String path,
