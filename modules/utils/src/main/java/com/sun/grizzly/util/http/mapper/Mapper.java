@@ -407,7 +407,7 @@ public class Mapper {
      */
     public void addWrapper(String hostName, String contextPath, String path,
                            Object wrapper) {
-        addWrapper(hostName, contextPath, path, wrapper, false, null);
+        addWrapper(hostName, contextPath, path, wrapper, false);
     }
 
 
