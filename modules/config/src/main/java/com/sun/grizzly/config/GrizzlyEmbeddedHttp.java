@@ -397,6 +397,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         // transport settings
         setBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
         setSsBackLog(Integer.parseInt(transport.getMaxConnectionsCount()));
+        setDisplayConfiguration(toBoolean(transport.getDisplayConfiguration()));
         if(transport.getTcpNoDelay() != null) {
             setTcpNoDelay(toBoolean(transport.getTcpNoDelay()));
         }
