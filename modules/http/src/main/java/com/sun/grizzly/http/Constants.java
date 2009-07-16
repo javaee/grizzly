@@ -73,7 +73,18 @@ public final class Constants {
     public static final int DEFAULT_SERVER_SOCKET_TIMEOUT = 0;
     public static final boolean DEFAULT_TCP_NO_DELAY = true;
 
-    
+    /**
+     * Maximum cached bytes before flushing.
+     */
+    public final static int MAX_BUFFERED_BYTES = 32 * 8192;
+
+
+    /**
+     * Send Buffer Size
+     */
+    public final static int SEND_BUFFER_SIZE = 16 * 8192;
+
+
     /**
      * The default response-type
      */

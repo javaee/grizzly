@@ -41,6 +41,7 @@ package com.sun.grizzly.ssl;
 import com.sun.grizzly.async.AsyncQueueDataProcessor;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
+import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.SocketChannelOutputBuffer;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.ByteBufferFactory;
@@ -144,7 +145,7 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer {
 
     private void checkMaxBufferSize(SSLEngine sslEngine) {
         int packetBufferSize = sslEngine.getSession().getPacketBufferSize();
-        if (packetBufferSize > maxBufferedBytes && maxBufferedBytes == MAX_BUFFERED_BYTES) {
+        if (packetBufferSize > maxBufferedBytes && maxBufferedBytes == Constants.MAX_BUFFERED_BYTES) {
             maxBufferedBytes = packetBufferSize;
         }
 

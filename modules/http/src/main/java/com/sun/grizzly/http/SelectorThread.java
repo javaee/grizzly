@@ -215,6 +215,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     protected int maxPostSize = 2 * 1024 * 1024;
 
+    /**
+     * Size of the ByteBuffer used to store the bytes before flushing.
+     */
+    private int sendBufferSize = Constants.SEND_BUFFER_SIZE;
 
     /**
      * The {@link Selector} used by the connector.
@@ -562,6 +566,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     // AsyncInterceptor implemenation.
     private AsyncInterceptor asyncInterceptor;
+
+
     
     // ---------------------------------------------------- Constructor --//
     
@@ -1973,8 +1979,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                     + (readThreadsCount == -1? Runtime.getRuntime().availableProcessors() : readThreadsCount)
                     + "\n\t ByteBuffer size: " 
                     + requestBufferSize                   
-                    + "\n\t maxHttpHeaderSize: " 
-                    + maxHttpHeaderSize
+                    + "\n\t maxHttpHeaderSize: "
+                    + requestBufferSize
+                    + "\n\t sendBufferSize: "
+                    + sendBufferSize
                     + "\n\t maxKeepAliveRequests: "
                     + maxKeepAliveRequests
                     + "\n\t keepAliveTimeoutInSeconds: "
@@ -2433,5 +2441,19 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     protected KeepAliveStats createKeepAliveStats() {
         return new KeepAliveStats();
+    }
+
+    /**
+     * @return the sendBufferSize
+     */
+    public int getSendBufferSize() {
+        return sendBufferSize;
+    }
+
+    /**
+     * @param sendBufferSize the sendBufferSize to set
+     */
+    public void setSendBufferSize(int sendBufferSize) {
+        this.sendBufferSize = sendBufferSize;
     }
 }

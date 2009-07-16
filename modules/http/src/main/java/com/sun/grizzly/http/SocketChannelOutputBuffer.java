@@ -133,20 +133,12 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      */
     protected final static ByteBuffer ACK = 
             ByteBuffer.wrap("HTTP/1.1 100 Continue\r\n\r\n".getBytes());
-    
-    
-    
-    /**
-     * Maximum cached bytes before flushing.
-     */
-    protected final static int MAX_BUFFERED_BYTES = 32 * 8192;
-    
-    
+        
     /**
      * Default max cached bytes.  
      */
-    protected static int maxBufferedBytes = MAX_BUFFERED_BYTES;
-    
+    protected static int maxBufferedBytes = Constants.MAX_BUFFERED_BYTES;
+
     // Do not allow any more writing.
     protected boolean discardBytes = false;
     
@@ -157,12 +149,16 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * Alternate constructor.
      */
     public SocketChannelOutputBuffer(Response response, 
-            int headerBufferSize, boolean useSocketBuffer) {
-        super(response,headerBufferSize, useSocketBuffer); 
-        
+            int sendBufferSize, boolean useSocketBuffer) {
+        super(response,sendBufferSize, useSocketBuffer);
+
+        if (sendBufferSize > maxBufferedBytes){
+            maxBufferedBytes = sendBufferSize;
+        }
+
         if (!useSocketBuffer){
             outputStream = new NIOOutputStream();
-            outputByteBuffer = createByteBuffer(headerBufferSize * 16);
+            outputByteBuffer = createByteBuffer(sendBufferSize);
         }
     }
 

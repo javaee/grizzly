@@ -357,6 +357,9 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     
     private Semaphore asyncSemaphore = new Semaphore(1);
+
+
+    private int sendBufferSize = Constants.SEND_BUFFER_SIZE;
     
 // ----------------------------------------------- Compression Support ---//
 
@@ -496,7 +499,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         inputBuffer = new InternalInputBuffer(request,requestBufferSize); 
         
         outputBuffer = new SocketChannelOutputBuffer(response, 
-                                                     maxHttpHeaderSize,
+                                                     sendBufferSize,
                                                      bufferResponse);           
         
 
@@ -2370,6 +2373,20 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public boolean getForceKeepAlive(){
         return (keepAlive == connectionHeaderValueSet == true);
+    }
+
+    /**
+     * @return the sendBufferSize
+     */
+    public int getSendBufferSize() {
+        return sendBufferSize;
+    }
+
+    /**
+     * @param sendBufferSize the sendBufferSize to set
+     */
+    public void setSendBufferSize(int sendBufferSize) {
+        this.sendBufferSize = sendBufferSize;
     }
 }
 
