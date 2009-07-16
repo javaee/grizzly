@@ -374,6 +374,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
         setCompression(http.getCompression());
         setCompressableMimeTypes(http.getCompressableMimeType());
+        setSendBufferSize(Integer.parseInt(http.getSendBufferSizeBytes()));
         if(http.getNoCompressionUserAgents() != null) {
             setNoCompressionUserAgents(http.getNoCompressionUserAgents());
         }
