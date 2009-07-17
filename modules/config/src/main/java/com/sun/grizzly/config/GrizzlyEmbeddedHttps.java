@@ -393,14 +393,18 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
 
         serverSF.setAttribute("keystoreType", ssl.getKeyStoreType());
-        serverSF.setAttribute("keystorePass", ssl.getKeyStorePassword());
+        final String keyPwd = ssl.getKeyStorePassword();
+        serverSF.setAttribute("truststorePass",
+            keyPwd == null ? System.getProperty("javax.net.ssl.keyStorePassword") : keyPwd);
         final String keyStore = ssl.getKeyStore();
         serverSF.setAttribute("keystore",
             keyStore == null ? System.getProperty("javax.net.ssl.keyStore") : keyStore);
 
         // trust store settings
         serverSF.setAttribute("truststoreType", ssl.getKeyStoreType());
-        serverSF.setAttribute("truststorePass", ssl.getTrustStorePassword());
+        final String trustPwd = ssl.getTrustStorePassword();
+        serverSF.setAttribute("truststorePass",
+            trustPwd == null ? System.getProperty("javax.net.ssl.trustStorePassword") : trustPwd);
         final String trustStore = ssl.getTrustStore();
         serverSF.setAttribute("truststore",
             trustStore == null ? System.getProperty("javax.net.ssl.trustStore") : trustStore);
