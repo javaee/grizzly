@@ -77,6 +77,22 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     void setCrlFile(String crlFile);
 
     /**
+     * type of the keystore file
+     */
+    @Attribute(defaultValue = "JKS")
+    String getKeyStoreType();
+
+    void setKeyStoreType(String type);
+
+    /**
+     * password of the keystore file
+     */
+    @Attribute(defaultValue = "changeit")
+    String getKeyStorePassword();
+
+    void setKeyStorePassword(String password);
+
+    /**
      * Location of the keystore file
      */
     @Attribute
@@ -160,4 +176,20 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     String getTrustStore();
 
     void setTrustStore(String location);
+
+    /**
+     * type of the truststore file
+     */
+    @Attribute(defaultValue = "JKS")
+    String getTrustStoreType();
+
+    void setTrustStoreType(String type);
+
+    /**
+     * password of the truststore file
+     */
+    @Attribute(defaultValue = "changeit")
+    String getTrustStorePassword();
+
+    void setTrustStorePassword(String password);
 }

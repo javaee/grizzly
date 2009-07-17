@@ -84,10 +84,6 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      * True when requesting authentication.
      */
     private boolean wantClientAuth = false;
-    /**
-     * Cert nick name
-     */
-    private String certNickname = null;
 
     public GrizzlyEmbeddedHttps(GrizzlyServiceListener grizzlyServiceListener) {
         super(grizzlyServiceListener);
@@ -97,38 +93,53 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     @Override
     public void configure(boolean isWebProfile, NetworkListener networkListener, Habitat habitat) {
         super.configure(isWebProfile, networkListener, habitat);
-        configureSSL(networkListener.findProtocol());
+        configureSSL(networkListener.findProtocol().getSsl());
     }
 
     /**
      * Configures the SSL properties on the given PECoyoteConnector from the SSL config of the given HTTP listener.
      *
-     * @param http HTTP listener whose SSL config to use
+     * @param ssl
      */
-    private boolean configureSSL(final Protocol http) {
-        final Ssl sslConfig = http.getSsl();
+    private boolean configureSSL(final Ssl ssl) {
         final List<String> tmpSSLArtifactsList = new LinkedList<String>();
-        if (sslConfig != null) {
+        if (ssl != null) {
+            if (ssl.getCrlFile() != null) {
+                setProperty("crlFile", ssl.getCrlFile());
+            }
+            if (ssl.getTrustAlgorithm() != null) {
+                setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
+            }
+            if (ssl.getTrustMaxCertLengthBytes() != null) {
+                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthBytes());
+            }
             // client-auth
-            if (Boolean.parseBoolean(sslConfig.getClientAuthEnabled())) {
+            if (Boolean.parseBoolean(ssl.getClientAuthEnabled())) {
                 setNeedClientAuth(true);
             }
             // ssl protocol variants
-            if (Boolean.parseBoolean(sslConfig.getSsl2Enabled())) {
+            if (Boolean.parseBoolean(ssl.getSsl2Enabled())) {
                 tmpSSLArtifactsList.add("SSLv2");
             }
-            if (Boolean.parseBoolean(sslConfig.getSsl3Enabled())) {
+            if (Boolean.parseBoolean(ssl.getSsl3Enabled())) {
                 tmpSSLArtifactsList.add("SSLv3");
             }
-            if (Boolean.parseBoolean(sslConfig.getTlsEnabled())) {
+            if (Boolean.parseBoolean(ssl.getTlsEnabled())) {
                 tmpSSLArtifactsList.add("TLSv1");
             }
-            if (Boolean.parseBoolean(sslConfig.getSsl3Enabled()) ||
-                    Boolean.parseBoolean(sslConfig.getTlsEnabled())) {
+            if (Boolean.parseBoolean(ssl.getSsl3Enabled()) ||
+                Boolean.parseBoolean(ssl.getTlsEnabled())) {
                 tmpSSLArtifactsList.add("SSLv2Hello");
             }
-
-            String auth = sslConfig.getClientAuth();
+            if (tmpSSLArtifactsList.isEmpty()) {
+                logger.log(Level.WARNING, "pewebcontainer.all_ssl_protocols_disabled",
+                    ((Protocol) ssl.getParent()).getName());
+            } else {
+                final String[] protocols = new String[tmpSSLArtifactsList.size()];
+                tmpSSLArtifactsList.toArray(protocols);
+                setEnabledProtocols(protocols);
+            }
+            String auth = ssl.getClientAuth();
             if (auth != null) {
                 if ("want".equalsIgnoreCase(auth.trim())) {
                     setWantClientAuth(true);
@@ -136,34 +147,18 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                     setNeedClientAuth(true);
                 }
             }
-
-            if (sslConfig.getClassname() != null) {
-                SSLImplementation impl = (SSLImplementation) ClassLoaderUtil.load(sslConfig.getClassname());
+            if (ssl.getClassname() != null) {
+                SSLImplementation impl = (SSLImplementation) ClassLoaderUtil.load(ssl.getClassname());
                 if (impl != null) {
                     setSSLImplementation(impl);
                 } else {
                     logger.log(Level.WARNING, "Unable to load SSLImplementation");
-                    
+
                 }
             }
-            
-        }
-        if (tmpSSLArtifactsList.isEmpty()) {
-            logger.log(Level.WARNING, "pewebcontainer.all_ssl_protocols_disabled", http.getName());
-        } else {
-            final String[] protocols = new String[tmpSSLArtifactsList.size()];
-            tmpSSLArtifactsList.toArray(protocols);
-            setEnabledProtocols(protocols);
-        }
-        tmpSSLArtifactsList.clear();
-        if (sslConfig != null) {
-            // cert-nickname
-            final String certName = sslConfig.getCertNickname();
-            if (certName != null && certName.length() > 0) {
-                setCertNickname(certName);
-            }
+            tmpSSLArtifactsList.clear();
             // ssl3-tls-ciphers
-            final String ssl3Ciphers = sslConfig.getSsl3TlsCiphers();
+            final String ssl3Ciphers = ssl.getSsl3TlsCiphers();
             if (ssl3Ciphers != null && ssl3Ciphers.length() > 0) {
                 final String[] ssl3CiphersArray = ssl3Ciphers.split(",");
                 for (final String cipher : ssl3CiphersArray) {
@@ -171,26 +166,27 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                 }
             }
             // ssl2-tls-ciphers
-            final String ssl2Ciphers = sslConfig.getSsl2Ciphers();
+            final String ssl2Ciphers = ssl.getSsl2Ciphers();
             if (ssl2Ciphers != null && ssl2Ciphers.length() > 0) {
                 final String[] ssl2CiphersArray = ssl2Ciphers.split(",");
                 for (final String cipher : ssl2CiphersArray) {
                     tmpSSLArtifactsList.add(cipher.trim());
                 }
             }
-        }
-        if (tmpSSLArtifactsList.isEmpty()) {
-            logger.log(Level.WARNING, "pewebcontainer.all_ssl_ciphers_disabled", http.getName());
-        } else {
-            final String[] enabledCiphers = new String[tmpSSLArtifactsList.size()];
-            tmpSSLArtifactsList.toArray(enabledCiphers);
-            setEnabledCipherSuites(enabledCiphers);
-        }
-        try {
-            initializeSSL();
-            return true;
-        } catch (Exception e) {
-            logger.log(Level.WARNING, "SSL support could not be configured!", e);
+            if (tmpSSLArtifactsList.isEmpty()) {
+                logger.log(Level.WARNING, "pewebcontainer.all_ssl_ciphers_disabled",
+                    ((Protocol) ssl.getParent()).getName());
+            } else {
+                final String[] enabledCiphers = new String[tmpSSLArtifactsList.size()];
+                tmpSSLArtifactsList.toArray(enabledCiphers);
+                setEnabledCipherSuites(enabledCiphers);
+            }
+            try {
+                initializeSSL(ssl);
+                return true;
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "SSL support could not be configured!", e);
+            }
         }
         return false;
     }
@@ -205,7 +201,6 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         preProcessors.add(new TLSPUPreProcessor(sslContext));
         return preProcessors;
     }
-
 
     /**
      * {@inheritDoc}
@@ -264,9 +259,9 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      */
     @Override
     protected ProcessorTask newProcessorTask(final boolean initialize) {
-        SSLProcessorTask t =  (asyncExecution
-                ? new SSLAsyncProcessorTask(initialize, getBufferResponse())
-                : new SSLProcessorTask(initialize, getBufferResponse()));
+        SSLProcessorTask t = (asyncExecution
+            ? new SSLAsyncProcessorTask(initialize, getBufferResponse())
+            : new SSLProcessorTask(initialize, getBufferResponse()));
         configureProcessorTask(t);
         return t;
     }
@@ -389,29 +384,34 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     /**
      * Initializes SSL
      *
+     * @param ssl
+     *
      * @throws Exception
      */
-    public void initializeSSL() throws Exception {
+    public void initializeSSL(final Ssl ssl) throws Exception {
         final SSLImplementation sslHelper = SSLImplementation.getInstance();
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
-        serverSF.setAttribute("keystoreType", "JKS");
-        serverSF.setAttribute("keystore", System.getProperty("javax.net.ssl.keyStore"));
-        serverSF.setAttribute("truststoreType", "JKS");
-        serverSF.setAttribute("truststore", System.getProperty("javax.net.ssl.trustStore"));
-        if (certNickname != null) {
-            serverSF.setAttribute("keyAlias", certNickname);
-        }
+
+        serverSF.setAttribute("keystoreType", ssl.getKeyStoreType());
+        serverSF.setAttribute("keystorePass", ssl.getKeyStorePassword());
+        final String keyStore = ssl.getKeyStore();
+        serverSF.setAttribute("keystore",
+            keyStore == null ? System.getProperty("javax.net.ssl.keyStore") : keyStore);
+
+        // trust store settings
+        serverSF.setAttribute("truststoreType", ssl.getKeyStoreType());
+        serverSF.setAttribute("truststorePass", ssl.getTrustStorePassword());
+        final String trustStore = ssl.getTrustStore();
+        serverSF.setAttribute("truststore",
+            trustStore == null ? System.getProperty("javax.net.ssl.trustStore") : trustStore);
+
+        // cert nick name
+        serverSF.setAttribute("keyAlias", ssl.getCertNickname());
+
         serverSF.init();
         sslImplementation = sslHelper;
         sslContext = serverSF.getSSLContext();
         setHttpSecured(true);
     }
 
-    public String getCertNickname() {
-        return certNickname;
-    }
-
-    public void setCertNickname(final String certNickname) {
-        this.certNickname = certNickname;
-    }
 }
