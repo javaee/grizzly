@@ -391,31 +391,25 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     public void initializeSSL(final Ssl ssl) throws Exception {
         final SSLImplementation sslHelper = SSLImplementation.getInstance();
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
-
-        serverSF.setAttribute("keystoreType", ssl.getKeyStoreType());
-        final String keyPwd = ssl.getKeyStorePassword();
-        serverSF.setAttribute("truststorePass",
-            keyPwd == null ? System.getProperty("javax.net.ssl.keyStorePassword") : keyPwd);
-        final String keyStore = ssl.getKeyStore();
-        serverSF.setAttribute("keystore",
-            keyStore == null ? System.getProperty("javax.net.ssl.keyStore") : keyStore);
-
+        // key store settings
+        setAttribute(serverSF, "keystore", ssl.getKeyStore(), "javax.net.ssl.keyStore");
+        setAttribute(serverSF, "keystoreType", ssl.getKeyStoreType(), "javax.net.ssl.keyStoreType");
+        setAttribute(serverSF, "keystorePass", ssl.getKeyStorePassword(), "javax.net.ssl.keyStorePassword");
         // trust store settings
-        serverSF.setAttribute("truststoreType", ssl.getKeyStoreType());
-        final String trustPwd = ssl.getTrustStorePassword();
-        serverSF.setAttribute("truststorePass",
-            trustPwd == null ? System.getProperty("javax.net.ssl.trustStorePassword") : trustPwd);
-        final String trustStore = ssl.getTrustStore();
-        serverSF.setAttribute("truststore",
-            trustStore == null ? System.getProperty("javax.net.ssl.trustStore") : trustStore);
-
+        setAttribute(serverSF, "truststore", ssl.getTrustStore(), "javax.net.ssl.trustStore");
+        setAttribute(serverSF, "truststoreType", ssl.getTrustStoreType(), "javax.net.ssl.trustStoreType");
+        setAttribute(serverSF, "truststorePass", ssl.getTrustStorePassword(), "javax.net.ssl.trustStorePassword");
         // cert nick name
         serverSF.setAttribute("keyAlias", ssl.getCertNickname());
-
         serverSF.init();
         sslImplementation = sslHelper;
         sslContext = serverSF.getSSLContext();
         setHttpSecured(true);
+    }
+
+    private void setAttribute(final ServerSocketFactory serverSF, final String name, final String value,
+        final String property) {
+        serverSF.setAttribute(name, value == null ? System.getProperty(property) : value);
     }
 
 }
