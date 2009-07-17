@@ -389,7 +389,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
         setProperty("chunking-disabled", toBoolean(http.getChunkingDisabled()));
 
-        configSslOptions(ssl);
         if (http.getUriEncoding() != null) {
             setProperty("uriEncoding", http.getUriEncoding());
         }
@@ -404,20 +403,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
         if (http.getTraceEnabled() != null) {
             setProperty("traceEnabled", toBoolean(http.getTraceEnabled()));
-        }
-    }
-
-    private void configSslOptions(Ssl ssl) {
-        if (ssl != null) {
-            if (ssl.getCrlFile() != null) {
-                setProperty("crlFile", ssl.getCrlFile());
-            }
-            if (ssl.getTrustAlgorithm() != null) {
-                setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
-            }
-            if (ssl.getTrustMaxCertLengthBytes() != null) {
-                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthBytes());
-            }
         }
     }
 
@@ -502,8 +487,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     protected DefaultThreadPool newThreadPool(int minThreads, int maxThreads,
             int maxQueueSize, long keepAlive, TimeUnit timeunit) {
-        return new StatsThreadPool(minThreads, maxThreads, maxQueueSize,
-                    keepAlive, TimeUnit.SECONDS);
+        return new StatsThreadPool(minThreads, maxThreads, maxQueueSize, keepAlive, timeunit);
     }
 
     private boolean toBoolean(String value) {
