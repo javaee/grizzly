@@ -236,6 +236,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
      */
     protected void configureInputBuffer(InputReader inputStream, Context context, 
             HttpWorkerThread workerThread) {
+        inputStream.recycle();
         inputStream.setSelectionKey(context.getSelectionKey());
         inputStream.setByteBuffer(workerThread.getByteBuffer());
         inputStream.setSecure(isSecure());
