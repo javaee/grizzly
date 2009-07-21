@@ -407,7 +407,11 @@ public class SelectorHandlerRunner implements Runnable {
                 logger.log(Level.WARNING, "Selector was unexpectedly closed.", e);
                 controller.notifyException(e);
                 try {
-                    switchToNewSelector(selectorHandler);
+                    if (Controller.isLinux && selectorHandler instanceof LinuxSpinningWorkaround) {
+                        ((LinuxSpinningWorkaround) selectorHandler).workaroundSelectorSpin();
+                    } else {
+                        switchToNewSelector(selectorHandler);
+                    }
                 } catch (Exception ee) {
                     logger.log(Level.SEVERE, "Can not workaround Selector close.", ee);
                 }
