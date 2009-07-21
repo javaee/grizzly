@@ -200,16 +200,22 @@ public class HttpServletResponseImpl implements HttpServletResponse {
     public ServletOutputStream getOutputStream()
         throws IOException {
 
-        //        if (isFinished())
-        //            throw new IllegalStateException
-        //                (/*sm.getString("HttpServletResponseImpl.finished")*/);
+        if (outputStream == null){
+            outputStream = new ServletOutputStreamImpl(response.createOutputStream());
+        }
 
         if (isFinished())
             response.setSuspended(true);
+        
         return outputStream;
 
     }
 
+    void recycle(){
+        if(System.getSecurityManager() != null){
+            outputStream = null;
+        }
+    }
     
     /**
      * {@inheritDoc}
