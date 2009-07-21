@@ -35,8 +35,9 @@
  * holder.
  *
  */
-
 package com.sun.grizzly;
+
+import java.io.IOException;
 
 /**
  * Workaround for Linux spinning {@link Selector}.
@@ -55,4 +56,9 @@ public interface LinuxSpinningWorkaround {
      * @return
      */
     public int getSpinRate();
+
+    /**
+     * Execute workaround for selector spin issue
+     */
+    public void workaroundSelectorSpin() throws IOException;
 }

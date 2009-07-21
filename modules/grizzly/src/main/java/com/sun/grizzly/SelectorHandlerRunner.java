@@ -198,7 +198,7 @@ public class SelectorHandlerRunner implements Runnable {
             } else if (isSpinWorkaround) {
                 long sr = ((LinuxSpinningWorkaround) selectorHandler).getSpinRate();
                 if (sr > spinRateTreshold) {
-                    workaroundSelectorSpin(selectorHandler);
+                    ((LinuxSpinningWorkaround) selectorHandler).workaroundSelectorSpin();
                 }
             }
 
@@ -407,7 +407,7 @@ public class SelectorHandlerRunner implements Runnable {
                 logger.log(Level.WARNING, "Selector was unexpectedly closed.", e);
                 controller.notifyException(e);
                 try {
-                    workaroundSelectorSpin(selectorHandler);
+                    switchToNewSelector(selectorHandler);
                 } catch (Exception ee) {
                     logger.log(Level.SEVERE, "Can not workaround Selector close.", ee);
                 }
@@ -494,8 +494,7 @@ public class SelectorHandlerRunner implements Runnable {
         }
     }
 
-
-    private static void workaroundSelectorSpin(SelectorHandler selectorHandler)
+    protected static void switchToNewSelector(SelectorHandler selectorHandler)
             throws IOException {
         Selector oldSelector = selectorHandler.getSelector();
         Selector newSelector = Selector.open();

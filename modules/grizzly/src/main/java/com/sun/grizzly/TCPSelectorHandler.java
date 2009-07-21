@@ -70,6 +70,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -275,6 +276,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
     private long lastSpinTimestamp;
     private int emptySpinCounter;
+    private WeakHashMap<Selector, Long> spinnedSelectorsHistory;
 
     /**
      * The size to which to set the send buffer
@@ -312,6 +314,9 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     public TCPSelectorHandler(Role role) {
         this.role = role;
         logger = Controller.logger();
+        if (Controller.isLinux) {
+            spinnedSelectorsHistory = new WeakHashMap<Selector, Long>();
+        }
     }
 
     public void copyTo(Copyable copy) {
@@ -457,16 +462,34 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
         SelectionKey key;
         while((key=readWriteOpToRegister.poll()) != null){
+            if (Controller.isLinux) {
+                key = checkIfSpinnedKey(key);
+            }
             selectionKeyHandler.register(key, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
         }
 
         while((key=writeOpToRegister.poll()) != null){
+            if (Controller.isLinux) {
+                key = checkIfSpinnedKey(key);
+            }
             selectionKeyHandler.register(key, SelectionKey.OP_WRITE);
         }
 
         while((key=readOpToRegister.poll()) != null){
+            if (Controller.isLinux) {
+                key = checkIfSpinnedKey(key);
+            }
             selectionKeyHandler.register(key, SelectionKey.OP_READ);
         }
+    }
+
+    private SelectionKey checkIfSpinnedKey(final SelectionKey key) {
+        if (!key.isValid() && key.channel().isOpen() &&
+                spinnedSelectorsHistory.containsKey(key.selector())) {
+            return key.channel().keyFor(selector);
+        }
+
+        return key;
     }
 
 
@@ -1476,6 +1499,14 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             return contspinspersec;
         }
         return 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void workaroundSelectorSpin() throws IOException {
+        spinnedSelectorsHistory.put(selector, System.currentTimeMillis());
+        SelectorHandlerRunner.switchToNewSelector(this);
     }
 
     /**
