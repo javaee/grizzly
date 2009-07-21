@@ -262,14 +262,18 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     public ServletInputStream getInputStream() throws IOException {
 
         if (inputStream == null) {
-            throw new IllegalStateException(
-                            sm.getString("requestFacade.nullRequest"));
+            inputStream = new ServletInputStreamImpl(request.createInputStream());
         }
 
         return inputStream;
     }
 
 
+    void recycle(){
+        if(System.getSecurityManager() != null){
+            inputStream = null;
+        }
+    }
     
     /**
      * {@inheritDoc}

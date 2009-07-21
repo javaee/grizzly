@@ -341,7 +341,6 @@ public class ServletAdapter extends GrizzlyAdapter {
             
             httpRequest.setContextImpl(servletCtx);     
             httpRequest.setServletPath(servletPath);
- 
             httpRequest.initSession();
             
             //TODO: Make this configurable.
@@ -450,7 +449,17 @@ public class ServletAdapter extends GrizzlyAdapter {
     @Override
     public void afterService(GrizzlyRequest request, GrizzlyResponse response) 
             throws Exception {
-        filterChain.recycle();
+        try{
+            HttpServletRequestImpl httpRequest = (HttpServletRequestImpl)
+                request.getRequest().getNote(REQUEST_RESPONSE_NOTES);
+            HttpServletResponseImpl httpResponse = (HttpServletResponseImpl)
+                response.getResponse().getNote(REQUEST_RESPONSE_NOTES);
+
+            httpRequest.recycle();
+            httpResponse.recycle();
+        } finally {
+            filterChain.recycle();
+        }
     }
     
     
