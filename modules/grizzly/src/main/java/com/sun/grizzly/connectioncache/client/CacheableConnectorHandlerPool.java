@@ -35,9 +35,7 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.connectioncache.client;
-
 
 import com.sun.grizzly.ConnectorHandler;
 import com.sun.grizzly.ConnectorHandlerPool;
@@ -55,27 +53,38 @@ import com.sun.grizzly.connectioncache.spi.transport.OutboundConnectionCache;
  *
  * @author Alexey Stashok
  */
-public class CacheableConnectorHandlerPool implements 
+public class CacheableConnectorHandlerPool implements
         ConnectorHandlerPool<CacheableConnectorHandler> {
-    
+
     private Controller controller;
     private ConnectorHandlerPool protocolConnectorHandlerPool;
     private ConnectorInstanceHandler<CacheableConnectorHandler> connectorInstanceHandler;
     private OutboundConnectionCache<ConnectorHandler> outboundConnectionCache;
     private ConnectionFinder<ConnectorHandler> connectionFinder;
-    
+
     public CacheableConnectorHandlerPool(Controller controller, int highWaterMark,
             int numberToReclaim, int maxParallel) {
-            this(controller, highWaterMark, numberToReclaim, maxParallel, null);
+        this(controller, highWaterMark, numberToReclaim, maxParallel, null);
     }
-    
+
     public CacheableConnectorHandlerPool(Controller controller, int highWaterMark,
             int numberToReclaim, int maxParallel, ConnectionFinder<ConnectorHandler> connectionFinder) {
+        this(controller, highWaterMark, numberToReclaim, maxParallel, connectionFinder, null);
+    }
+
+    public CacheableConnectorHandlerPool(Controller controller, int highWaterMark,
+            int numberToReclaim, int maxParallel, ConnectionFinder<ConnectorHandler> connectionFinder,
+            OutboundConnectionFactory<ConnectorHandler> factory) {
         this.controller = controller;
-        this.outboundConnectionCache = 
-                ConnectionCacheFactory.<ConnectorHandler>makeBlockingOutboundConnectionCache(
-                "Grizzly outbound connection cache", highWaterMark, 
-                numberToReclaim, maxParallel, Controller.logger());
+        if (factory == null) {
+            this.outboundConnectionCache =
+                    ConnectionCacheFactory.<ConnectorHandler>makeBlockingOutboundConnectionCache(
+                    "Grizzly outbound connection cache", highWaterMark,
+                    numberToReclaim, maxParallel, Controller.logger());
+        } else {
+            this.outboundConnectionCache = factory.makeBlockingOutboundConnectionCache(
+                    highWaterMark, numberToReclaim, maxParallel, Controller.logger());
+        }
         this.connectionFinder = connectionFinder;
         protocolConnectorHandlerPool = new DefaultConnectorHandlerPool(controller);
         connectorInstanceHandler = new CacheableConnectorInstanceHandler();
@@ -86,11 +95,11 @@ public class CacheableConnectorHandlerPool implements
         connectorHandler.protocol(protocol);
         return connectorHandler;
     }
-    
+
     public void releaseConnectorHandler(CacheableConnectorHandler connectorHandler) {
         connectorInstanceHandler.release(connectorHandler);
     }
-    
+
     OutboundConnectionCache<ConnectorHandler> getOutboundConnectionCache() {
         return outboundConnectionCache;
     }
@@ -102,18 +111,18 @@ public class CacheableConnectorHandlerPool implements
     Controller getController() {
         return controller;
     }
-    
+
     ConnectorHandlerPool getProtocolConnectorHandlerPool() {
         return protocolConnectorHandlerPool;
     }
-            
+
     /**
      * Default <code>ConnectorInstanceHandler</code> which use a
      * <code>ConcurrentQueue</code> to pool {@link ConnectorHandler}
      */
     private class CacheableConnectorInstanceHandler extends
             ConnectorInstanceHandler.ConcurrentQueueConnectorInstanceHandler<CacheableConnectorHandler> {
-        
+
         public CacheableConnectorHandler newInstance() {
             return new CacheableConnectorHandler(CacheableConnectorHandlerPool.this);
         }
