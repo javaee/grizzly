@@ -224,8 +224,6 @@ public class UDPConnectorHandler
             throw new NotYetConnectedException();
         }
         
-        SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
-        
         if (callbackHandler == null){
             throw new IllegalStateException
                     ("Non blocking read needs a CallbackHandler");
@@ -244,7 +242,7 @@ public class UDPConnectorHandler
         if (underlyingChannel != null){
             if (selectorHandler != null){
                 SelectionKey key =
-                        underlyingChannel.keyFor(selectorHandler.getSelector());
+                        selectorHandler.keyFor(underlyingChannel);
                 
                 if (key == null) return;
                 

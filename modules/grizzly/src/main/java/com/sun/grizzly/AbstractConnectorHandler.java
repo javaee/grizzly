@@ -289,7 +289,7 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
             throw new NotYetConnectedException();
         }
 
-        SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
+        SelectionKey key = selectorHandler.keyFor(underlyingChannel);
         int nRead = -1;
         if (blocking){
             inputStream.setSelectionKey(key);
@@ -355,7 +355,7 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
                 throw new IllegalStateException
                         ("Non blocking write needs a CallbackHandler");
             }
-            SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
+            SelectionKey key = selectorHandler.keyFor(underlyingChannel);
             int nWrite = 1;
             int totalWriteBytes = 0;
             try{
@@ -410,7 +410,7 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
             AsyncReadCondition condition,
             AsyncQueueDataProcessor readPostProcessor) throws IOException {
         return selectorHandler.getAsyncQueueReader().read(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
+                selectorHandler.keyFor(underlyingChannel), buffer,
                 callbackHandler, condition, readPostProcessor);
     }
 
@@ -452,7 +452,7 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
             AsyncQueueDataProcessor writePreProcessor,
             ByteBufferCloner cloner) throws IOException {
         return selectorHandler.getAsyncQueueWriter().write(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), buffer,
+                selectorHandler.keyFor(underlyingChannel), buffer,
                 callbackHandler, writePreProcessor, cloner);
     }
 
@@ -498,7 +498,7 @@ public abstract class AbstractConnectorHandler<E extends SelectorHandler,
             AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner)
             throws IOException {
         return selectorHandler.getAsyncQueueWriter().write(
-                underlyingChannel.keyFor(selectorHandler.getSelector()), dstAddress,
+                selectorHandler.keyFor(underlyingChannel), dstAddress,
                 buffer, callbackHandler, writePreProcessor, cloner);
     }
 }
