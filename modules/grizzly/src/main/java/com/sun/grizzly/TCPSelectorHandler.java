@@ -1493,13 +1493,10 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         emptySpinCounter  = 0;
     }
 
-    private int counter = 0;
     /**
      * {@inheritDoc}
      */
     public int getSpinRate(){
-        if (counter++ % 7 == 0) return 100000;
-        
         if (emptySpinCounter++ == 0){
             lastSpinTimestamp = System.nanoTime();
         } else if (emptySpinCounter == 1000) {
