@@ -62,7 +62,6 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.util.concurrent.Future;
 
 /**
@@ -206,13 +205,14 @@ public class CacheableConnectorHandler
     }
     
     private void notifyCallbackHandlerPseudoConnect() throws ClosedChannelException {
-        Selector protocolSelector = underlyingConnectorHandler.getSelectorHandler().getSelector();
-        SelectionKey key = underlyingConnectorHandler.getUnderlyingChannel().keyFor(protocolSelector);
-        if (key == null) {
-            // Register channel on selector
-            key = underlyingConnectorHandler.getUnderlyingChannel().
-                    register(protocolSelector, SelectionKey.OP_CONNECT);
-        }
+        final SelectorHandler underlyingSelectorHandler =
+                underlyingConnectorHandler.getSelectorHandler();
+        SelectionKey key = underlyingSelectorHandler.keyFor(underlyingConnectorHandler.getUnderlyingChannel());
+//        if (key == null) {
+//            // Register channel on selector
+//            key = underlyingConnectorHandler.getUnderlyingChannel().
+//                    register(protocolSelector, SelectionKey.OP_CONNECT);
+//        }
         
         assert key != null;
             

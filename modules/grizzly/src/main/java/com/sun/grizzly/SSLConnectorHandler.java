@@ -529,7 +529,7 @@ public class SSLConnectorHandler
             
             if (selectorHandler != null) {
                 SelectionKey key =
-                        underlyingChannel.keyFor(selectorHandler.getSelector());
+                        selectorHandler.keyFor(underlyingChannel);
                 
                 if (key == null) {
                     return;
@@ -975,7 +975,7 @@ public class SSLConnectorHandler
      * @return {@link SelectionKey}
      */
     private SelectionKey getSelectionKey() {
-        return underlyingChannel.keyFor(selectorHandler.getSelector());
+        return selectorHandler.keyFor(underlyingChannel);
     }
     
     /**
@@ -1012,7 +1012,7 @@ public class SSLConnectorHandler
         }
         
         if (securedOutputBuffer.hasRemaining()) {
-            SelectionKey key = underlyingChannel.keyFor(selectorHandler.getSelector());
+            SelectionKey key = selectorHandler.keyFor(underlyingChannel);
             selectorHandler.register(key, SelectionKey.OP_WRITE);
             
             return false;

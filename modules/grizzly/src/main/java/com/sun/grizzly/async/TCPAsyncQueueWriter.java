@@ -98,8 +98,8 @@ public class TCPAsyncQueueWriter extends AbstractAsyncQueueWriter {
              if (lastWriteBytes == -1){
                 SelectionKeyHandler skh = selectorHandler.getSelectionKeyHandler();
                 if (skh instanceof BaseSelectionKeyHandler){                  
-                    ((BaseSelectionKeyHandler)skh).notifyRemotlyClose( ((SelectableChannel)channel)
-                                .keyFor(selectorHandler.getSelector()));                            
+                    ((BaseSelectionKeyHandler)skh).notifyRemotlyClose(
+                            selectorHandler.keyFor((SelectableChannel)channel));
                 }                 
             }           
         }
