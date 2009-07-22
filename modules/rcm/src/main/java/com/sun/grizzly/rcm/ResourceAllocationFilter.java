@@ -92,10 +92,11 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
     protected final static String RULE_TOKENS =
             "com.sun.grizzly.rcm.policyMetric";
     
-    private final static String DELAY_VALUE = "com.sun.grizzly.rcm.delay";
+    private final static String DELAY_VALUE = "com.sun.grizzly.rcm.delay"; // milli-seconds
     
     protected final static String QUERY_STRING="?";
     protected final static String PATH_STRING="/";
+    protected final static String ASTERISK_STRING="*";
     
     
     public final static String BYTEBUFFER_INPUTSTREAM = "bbInputStream";
@@ -139,7 +140,7 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
     /**
      * The time this thread will sleep when a rule is delayed.
      */
-    private static long delayValue = 5 * 1000;
+    private static long delayValue = 5 * 1000; // milli-seconds
     
     
     /**
@@ -163,9 +164,21 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
                     while (privElement.hasMoreElements()){
                         tokens = privElement.nextToken();
                         int index = tokens.indexOf("|");
+                        String tokenKey = tokens.substring(0, index);
+                        // Remove last slash
+                        boolean slash = tokenKey.endsWith(PATH_STRING);
+                        if (slash){
+                            tokenKey = tokenKey.substring(0,tokenKey.length() -1);
+                        }
+                        // Remove last asterisk. i.g. "/examples/*"
+                        boolean asterisk = tokenKey.endsWith(PATH_STRING + ASTERISK_STRING);
+                        if( asterisk )
+                            tokenKey = tokenKey.substring(0,tokenKey.length() -2);
+                        // such as "/" or "/*"
+                        if(tokenKey.length() == 0)
+                            tokenKey = ASTERISK_STRING; // default key
                         tokenValue = Double.valueOf(tokens.substring(index+1));
-                        privilegedTokens.put
-                                (tokens.substring(0, index),tokenValue);
+                        privilegedTokens.put(tokenKey,tokenValue);
                         countRatio += tokenValue;
                     }
                 }
@@ -187,9 +200,21 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
                 allocationPolicy = RESERVE;
             }
         }
+
+        String delayValueString = System.getProperty( DELAY_VALUE );
+        if( delayValueString != null ) {
+            long delayValueLong = -1;
+            try {
+                delayValueLong = Long.parseLong( delayValueString );
+            } catch( NumberFormatException e ) {
+                Controller.logger().info( "Invalid delay value:" + delayValueString );
+            }
+            if( delayValueLong > 0 )
+                delayValue = delayValueLong;
+        }
     }
-    
-    
+
+
     public ResourceAllocationFilter() {
     }
     
@@ -235,7 +260,7 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
         
         String token = getContextRoot(byteBuffer);
         int delayCount = 0;
-        while (leftRatio == 0 && privilegedTokens.get(token) == null) {
+        while (leftRatio == 0 && getAppropriateThreadRatio(token) == null) {
             if ( allocationPolicy.equals(RESERVE) ){
                 delay(ctx);
                 delayCount++;
@@ -258,7 +283,7 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
         }
         
         // Lazy instanciation
-        ExecutorService threadPool = threadPools.get(token);
+        ExecutorService threadPool = getAppropriateThreadPool(token);
         if (threadPool == null){
             threadPool = filterRequest(token, ctx.getThreadPool());
             threadPools.put(token,threadPool);
@@ -285,8 +310,8 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
         ctx.setKeyRegistrationState(Context.KeyRegistrationState.NONE);
         try{
             NIOContext copyContext = (NIOContext) Cloner.clone(ctx);
-            copyContext.execute(copyContext.getProtocolChainContextTask());
             copyContext.setThreadPool(threadPool);
+            copyContext.execute(copyContext.getProtocolChainContextTask());
         } catch (Throwable t){
             ctx.setAttribute(Context.THROWABLE,t);
             ctx.setKeyRegistrationState(
@@ -324,15 +349,18 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
             // Set the number of dispatcher thread to 1.
             threadPool.setCorePoolSize(1);
 
-            Double threadRatio = privilegedTokens.get(token);
+            Double threadRatio = getAppropriateThreadRatio(token);
             boolean defaultThreadPool = false;
             if (threadRatio == null) {
-                es = threadPools.get("*");
+                es = threadPools.get(ASTERISK_STRING);
                 if (es != null){
                     return es;
                 }
-                
-                threadRatio = (leftRatio == 0 ? 0.5 : leftRatio);
+                // before setting the thread ratio to be leftRatio, checks the "*" ratio
+                threadRatio = getAppropriateThreadRatio(ASTERISK_STRING);
+                if(threadRatio == null) {
+                    threadRatio = (leftRatio == 0 ? 0.5 : leftRatio);
+                }
                 defaultThreadPool = true;
             }
 
@@ -341,7 +369,7 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
 
             es = newThreadPool(privilegedCount, p);
             if (defaultThreadPool){
-                threadPools.put("*", es);
+                threadPools.put(ASTERISK_STRING, es);
             }
         }
 
@@ -393,7 +421,7 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
         byteBuffer.get(chars);
         
         String token = new String(chars);
-        
+
         // Remove query string.
         int index = token.indexOf(QUERY_STRING);
         if ( index != -1){
@@ -466,7 +494,7 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
                                 case 0: // Search for first ' '
                                     if (c == 0x20){
                                         state = 1;
-                                        start = byteBuffer.position() + 1;
+                                        start = byteBuffer.position();
                                     }
                                     break;
                                 case 1: // Search for next ' '
@@ -507,5 +535,52 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
             };
         }
         return protocolParser;
-    }    
+    }
+
+    /**
+     * Returns an appropriate thread pool with corresponding to a given token
+     *
+     * ex) Assuming that <code>threadPools</code> have 3 key entries as (1)"/examples", (2)"/examples/index.html"and (3)"/foo/bar",
+     *     if a given param is "/examples/index.jsp", returns (1).
+     *     if a given param is "/examples/index.html", returns (2).
+     *     if a given param is "/foo/bar", returns (3).
+     *     if a given param is "/foo/bar/index.html", returns (3).
+     *     if a given param is "/foo/bar2", returns <code>null</code>.
+     *  
+     * @param token a request uri. i.g. /examples/index.html or /examples
+     * @return if found, the appropriate thread pool is returned. if not found, <code>null</code> is returned.
+     */
+    private static ExecutorService getAppropriateThreadPool( String token ) {
+        if( token == null || token.length() == 0 )
+            return null;
+        ExecutorService threadPool = null;
+        threadPool = threadPools.get( token );
+        if( threadPool == null ) {
+            int index = token.lastIndexOf( PATH_STRING );
+            if( index > 0 )
+                return getAppropriateThreadPool( token.substring( 0, index ) );
+        }
+        return threadPool;
+    }
+
+    /**
+     * Returns an appropriate thread ratio with corresponding to a given token
+     *
+     * ex) similar to {@link #getAppropriateThreadPool(String)}
+     *
+     * @param token a request uri. i.g. /examples/index.html or /examples
+     * @return if found, the appropriate thread ratio is returned. if not found, <code>null</code> is returned.
+     */
+    private static Double getAppropriateThreadRatio( String token ) {
+        if( token == null || token.length() == 0 )
+            return null;
+        Double threadRatio = null;
+        threadRatio = privilegedTokens.get( token );
+        if( threadRatio == null ) {
+            int index = token.lastIndexOf( PATH_STRING );
+            if( index > 0 )
+                return getAppropriateThreadRatio( token.substring( 0, index ) );
+        }
+        return threadRatio;
+    }
 }
