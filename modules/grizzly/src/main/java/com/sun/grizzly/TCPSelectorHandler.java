@@ -276,7 +276,8 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
     private long lastSpinTimestamp;
     private int emptySpinCounter;
-    private WeakHashMap<Selector, Long> spinnedSelectorsHistory;
+    private final WeakHashMap<Selector, Long> spinnedSelectorsHistory;
+    private final Object spinSync;
 
     /**
      * The size to which to set the send buffer
@@ -316,6 +317,10 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         logger = Controller.logger();
         if (Controller.isLinux) {
             spinnedSelectorsHistory = new WeakHashMap<Selector, Long>();
+            spinSync = new Object();
+        } else {
+            spinnedSelectorsHistory = null;
+            spinSync = null;
         }
     }
 
@@ -486,7 +491,9 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     private SelectionKey checkIfSpinnedKey(final SelectionKey key) {
         if (!key.isValid() && key.channel().isOpen() &&
                 spinnedSelectorsHistory.containsKey(key.selector())) {
-            return key.channel().keyFor(selector);
+            final SelectionKey newKey = key.channel().keyFor(selector);
+            newKey.attach(key.attachment());
+            return newKey;
         }
 
         return key;
@@ -1486,10 +1493,13 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         emptySpinCounter  = 0;
     }
 
+    private int counter = 0;
     /**
      * {@inheritDoc}
      */
     public int getSpinRate(){
+        if (counter++ % 7 == 0) return 100000;
+        
         if (emptySpinCounter++ == 0){
             lastSpinTimestamp = System.nanoTime();
         } else if (emptySpinCounter == 1000) {
@@ -1505,8 +1515,24 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * {@inheritDoc}
      */
     public void workaroundSelectorSpin() throws IOException {
-        spinnedSelectorsHistory.put(selector, System.currentTimeMillis());
-        SelectorHandlerRunner.switchToNewSelector(this);
+        synchronized(spinSync) {
+            spinnedSelectorsHistory.put(selector, System.currentTimeMillis());
+            SelectorHandlerRunner.switchToNewSelector(this);
+        }
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    public SelectionKey keyFor(SelectableChannel channel) {
+        if (Controller.isLinux) {
+            synchronized(spinSync) {
+                return channel.keyFor(selector);
+            }
+        } else {
+            return channel.keyFor(selector);
+        }
     }
 
     /**

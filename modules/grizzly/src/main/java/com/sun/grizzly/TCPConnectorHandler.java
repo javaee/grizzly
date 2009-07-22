@@ -242,8 +242,7 @@ public class TCPConnectorHandler extends
     public void close() throws IOException{
         if (underlyingChannel != null){
             if (selectorHandler != null){
-                SelectionKey key =
-                        underlyingChannel.keyFor(selectorHandler.getSelector());
+                SelectionKey key = selectorHandler.keyFor(underlyingChannel);
                 
                 if (key == null) return;
                 

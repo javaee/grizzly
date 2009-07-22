@@ -83,6 +83,16 @@ public interface SelectorHandler extends Handler, Copyable,
      */
     public void setSelector(Selector selector);
 
+    /**
+     * Returns {@link SelectionKey}, which represents binding between 
+     * the {@link SelectableChannel} and this <tt>SelectorHandler</tt>
+     * 
+     * @param channel {@link SelectableChannel}
+     * @return {@link SelectionKey}, which represents binding between
+     * the {@link SelectableChannel} and this <tt>SelectorHandler</tt>
+     */
+    public SelectionKey keyFor(SelectableChannel channel);
+
     
     /**
      * The SelectionKey that has been registered.
