@@ -508,7 +508,7 @@ public class SelectorHandlerRunner implements Runnable {
             try {
                 key.channel().register(newSelector, key.interestOps(), key.attachment());
             } catch (Exception e) {
-                logger.log(Level.WARNING, "Error switching channel to a new selector", e);
+                logger.log(Level.FINE, "Error switching channel to a new selector", e);
             }
         }
 
