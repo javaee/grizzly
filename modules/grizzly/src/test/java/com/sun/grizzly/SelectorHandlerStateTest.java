@@ -128,7 +128,7 @@ public class SelectorHandlerStateTest extends TestCase {
                 exception = e;
             }
             
-            assertNotNull(exception);
+            assertNotNull("Exception didn't occur. Response: " + new String(response), exception);
             
             selectorHandler.resume();
             sleep(2000);
