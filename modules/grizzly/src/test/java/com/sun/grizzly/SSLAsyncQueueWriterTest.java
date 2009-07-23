@@ -113,6 +113,7 @@ public class SSLAsyncQueueWriterTest extends TestCase {
     }
 
     public void testSeveralPackets() throws IOException {
+        Controller.logger().log(Level.INFO, "Starting SSLAsyncQueueWriterTest.testSeveralPackets() test...");
         final Controller controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
         ControllerUtils.startController(controller);
         try {
@@ -222,6 +223,7 @@ public class SSLAsyncQueueWriterTest extends TestCase {
             } catch (Throwable t){
                 t.printStackTrace();
             }
+            Controller.logger().log(Level.INFO, "Finished SSLAsyncQueueWriterTest.testSeveralPackets() test");
         }
     }
 
