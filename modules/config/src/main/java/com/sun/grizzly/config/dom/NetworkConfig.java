@@ -75,7 +75,19 @@ public interface NetworkConfig extends ConfigBeanProxy, Injectable {
     @DuckTyped
     NetworkListener getNetworkListener(String name);
 
+    @DuckTyped
+    Protocol findProtocol(String name);
+
     class Duck {
+        public static Protocol findProtocol(NetworkConfig config, String name) {
+            for (final Protocol protocol : config.getProtocols().getProtocol()) {
+                if (protocol.getName().equals(name)) {
+                    return protocol;
+                }
+            }
+            return null;
+        }
+
         public static NetworkListener getNetworkListener(NetworkConfig config, String name) {
             if (name != null) {
                 for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
