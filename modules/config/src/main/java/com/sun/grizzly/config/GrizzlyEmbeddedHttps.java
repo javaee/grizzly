@@ -23,6 +23,7 @@
 package com.sun.grizzly.config;
 
 import com.sun.grizzly.ProtocolChain;
+import com.sun.grizzly.ProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.TCPSelectorHandler;
@@ -31,8 +32,6 @@ import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.Ssl;
 import com.sun.grizzly.filter.SSLReadFilter;
 import com.sun.grizzly.http.ProcessorTask;
-import com.sun.grizzly.portunif.PUPreProcessor;
-import com.sun.grizzly.portunif.TLSPUPreProcessor;
 import com.sun.grizzly.ssl.SSLAsyncProcessorTask;
 import com.sun.grizzly.ssl.SSLAsyncProtocolFilter;
 import com.sun.grizzly.ssl.SSLDefaultProtocolFilter;
@@ -44,7 +43,6 @@ import com.sun.grizzly.util.net.ServerSocketFactory;
 import org.jvnet.hk2.component.Habitat;
 
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
@@ -91,9 +89,14 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     // ---------------------------------------------------------------------/.
 
     @Override
-    public void configure(boolean isWebProfile, NetworkListener networkListener, Habitat habitat) {
-        super.configure(isWebProfile, networkListener, habitat);
-        configureSSL(networkListener.findProtocol().getSsl());
+    protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol, Habitat habitat,
+            boolean mayEnableComet) {
+        if (protocol.getHttp() != null && toBoolean(protocol.getSecurityEnabled())) {
+            configureSSL(protocol.getSsl());
+        }
+
+        return super.configureProtocol(networkListener, protocol, habitat,
+                mayEnableComet);
     }
 
     /**
@@ -113,6 +116,8 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
             if (ssl.getTrustMaxCertLengthBytes() != null) {
                 setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthBytes());
             }
+            configSslOptions(ssl);
+            
             // client-auth
             if (Boolean.parseBoolean(ssl.getClientAuthEnabled())) {
                 setNeedClientAuth(true);
@@ -188,18 +193,35 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                 logger.log(Level.WARNING, "SSL support could not be configured!", e);
             }
         }
+        if (tmpSSLArtifactsList.isEmpty()) {
+            logger.log(Level.WARNING, "pewebcontainer.all_ssl_ciphers_disabled");
+        } else {
+            final String[] enabledCiphers = new String[tmpSSLArtifactsList.size()];
+            tmpSSLArtifactsList.toArray(enabledCiphers);
+            setEnabledCipherSuites(enabledCiphers);
+        }
+        try {
+            initializeSSL(ssl);
+            return true;
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "SSL support could not be configured!", e);
+        }
         return false;
     }
 
-    WebProtocolHandler.Mode getWebProtocolHandlerMode() {
-        return WebProtocolHandler.Mode.HTTPS;
-    }
 
-    @Override
-    List<PUPreProcessor> getPuPreProcessors() {
-        final List<PUPreProcessor> preProcessors = super.getPuPreProcessors();
-        preProcessors.add(new TLSPUPreProcessor(sslContext));
-        return preProcessors;
+    private void configSslOptions(Ssl ssl) {
+        if (ssl != null) {
+            if (ssl.getCrlFile() != null) {
+                setProperty("crlFile", ssl.getCrlFile());
+            }
+            if (ssl.getTrustAlgorithm() != null) {
+                setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
+            }
+            if (ssl.getTrustMaxCertLengthBytes() != null) {
+                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthBytes());
+            }
+        }
     }
 
     /**
@@ -232,8 +254,10 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         if (portUnificationFilter != null) {
             portUnificationFilter.setContinuousExecution(false);
             protocolChain.addFilter(portUnificationFilter);
+        } else {
+            protocolChain.addFilter(createReadFilter());
         }
-        protocolChain.addFilter(createReadFilter());
+        
         protocolChain.addFilter(createHttpParserFilter());
     }
 
@@ -388,19 +412,19 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      *
      * @throws Exception
      */
-    public void initializeSSL(final Ssl ssl) throws Exception {
+    protected void initializeSSL(Ssl sslConfig) throws Exception {
         final SSLImplementation sslHelper = SSLImplementation.getInstance();
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
         // key store settings
-        setAttribute(serverSF, "keystore", ssl.getKeyStore(), "javax.net.ssl.keyStore");
-        setAttribute(serverSF, "keystoreType", ssl.getKeyStoreType(), "javax.net.ssl.keyStoreType");
-        setAttribute(serverSF, "keystorePass", ssl.getKeyStorePassword(), "javax.net.ssl.keyStorePassword");
+        setAttribute(serverSF, "keystore", sslConfig.getKeyStore(), "javax.net.ssl.keyStore");
+        setAttribute(serverSF, "keystoreType", sslConfig.getKeyStoreType(), "javax.net.ssl.keyStoreType");
+        setAttribute(serverSF, "keystorePass", sslConfig.getKeyStorePassword(), "javax.net.ssl.keyStorePassword");
         // trust store settings
-        setAttribute(serverSF, "truststore", ssl.getTrustStore(), "javax.net.ssl.trustStore");
-        setAttribute(serverSF, "truststoreType", ssl.getTrustStoreType(), "javax.net.ssl.trustStoreType");
-        setAttribute(serverSF, "truststorePass", ssl.getTrustStorePassword(), "javax.net.ssl.trustStorePassword");
+        setAttribute(serverSF, "truststore", sslConfig.getTrustStore(), "javax.net.ssl.trustStore");
+        setAttribute(serverSF, "truststoreType", sslConfig.getTrustStoreType(), "javax.net.ssl.trustStoreType");
+        setAttribute(serverSF, "truststorePass", sslConfig.getTrustStorePassword(), "javax.net.ssl.trustStorePassword");
         // cert nick name
-        serverSF.setAttribute("keyAlias", ssl.getCertNickname());
+        serverSF.setAttribute("keyAlias", sslConfig.getCertNickname());
         serverSF.init();
         sslImplementation = sslHelper;
         sslContext = serverSF.getSSLContext();
@@ -411,5 +435,4 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         final String property) {
         serverSF.setAttribute(name, value == null ? System.getProperty(property) : value);
     }
-
 }

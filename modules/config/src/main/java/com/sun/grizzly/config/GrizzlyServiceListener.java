@@ -66,7 +66,7 @@ public class GrizzlyServiceListener {
     */
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
-    public void configure(NetworkListener networkListener, boolean isWebProfile, Habitat habitat) {
+    public void configure(NetworkListener networkListener, Habitat habitat) {
         if (System.getProperty("product.name") == null) {
             System.setProperty("product.name", "GlassFish/v3");
         }
@@ -74,18 +74,18 @@ public class GrizzlyServiceListener {
         //grizzlyListener.setController(controller);
         // TODO: This is not the right way to do.
 
-        initializeListener(isWebProfile, networkListener, habitat);
+        initializeListener(networkListener, habitat);
         setName(networkListener.getName());
         GrizzlyEmbeddedHttp.setLogger(logger);
     }
 
-    private void initializeListener(boolean webProfile, NetworkListener networkListener, Habitat habitat) {
+    private void initializeListener(NetworkListener networkListener, Habitat habitat) {
         isEmbeddedHttpSecured = Boolean.parseBoolean(
                 networkListener.findProtocol().getSecurityEnabled());
         embeddedHttp = createEmbeddedHttp(isEmbeddedHttpSecured);
 
         embeddedHttp.setController(controller);
-        embeddedHttp.configure(webProfile, networkListener, habitat);
+        embeddedHttp.configure(networkListener, habitat);
     }
 
     protected GrizzlyEmbeddedHttp createEmbeddedHttp(boolean isSecured) {

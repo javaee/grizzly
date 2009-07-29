@@ -24,8 +24,9 @@ import java.util.List;
 @Test
 public class GrizzlyConfigTest {
     public void processConfig() throws IOException, InstantiationException {
+        GrizzlyConfig grizzlyConfig = null;
         try {
-            final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+            grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
@@ -38,6 +39,10 @@ public class GrizzlyConfigTest {
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdownNetwork();
+            }
         }
     }
 

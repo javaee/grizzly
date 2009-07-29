@@ -25,17 +25,10 @@ package com.sun.grizzly.config;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 import com.sun.grizzly.Context;
-import com.sun.grizzly.ProtocolFilter;
-import com.sun.grizzly.http.DefaultProtocolFilter;
+import com.sun.grizzly.portunif.DefaultFilterChainProtocolHandler;
 import com.sun.grizzly.portunif.PUProtocolRequest;
-import com.sun.grizzly.portunif.ProtocolHandler;
-import com.sun.grizzly.standalone.StaticStreamAlgorithm;
-import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.WorkerThread;
 
 /**
@@ -50,8 +43,7 @@ import com.sun.grizzly.util.WorkerThread;
  *
  * @author Jeanfrancois Arcand
  */
-public class WebProtocolHandler extends AbstractHttpHandler
-    implements ProtocolHandler {
+public class WebProtocolHandler extends DefaultFilterChainProtocolHandler {
     public enum Mode {
         HTTP, HTTPS, HTTP_HTTPS, SIP, SIP_TLS
     }
@@ -66,12 +58,11 @@ public class WebProtocolHandler extends AbstractHttpHandler
     private Mode mode;
     // --------------------------------------------------------------------//
 
-    public WebProtocolHandler(final GrizzlyEmbeddedHttp grizzlyEmbeddedHttp) {
-        this(Mode.HTTP, grizzlyEmbeddedHttp);
+    public WebProtocolHandler() {
+        this(Mode.HTTP);
     }
 
-    public WebProtocolHandler(final Mode mode, final GrizzlyEmbeddedHttp grizzlyEmbeddedHttp) {
-        super(grizzlyEmbeddedHttp);
+    public WebProtocolHandler(final Mode mode) {
         this.mode = mode;
     }
     // --------------------------------------------------------------------//
@@ -82,14 +73,12 @@ public class WebProtocolHandler extends AbstractHttpHandler
      *
      * @return true if the ProtocolFilter was properly set.
      */
+    @Override
     public boolean handle(final Context context, final PUProtocolRequest protocolRequest)
         throws IOException {
-        initDefaultHttpArtifactsIfRequired();
-        final ByteBuffer byteBuffer = protocolRequest.getByteBuffer();
-        final boolean mappedOk = initializeHttpRequestProcessing(context, byteBuffer);
-        // Grizzly will invoke take care of invoking the Container.
-        protocolRequest.setExecuteFilterChain(mappedOk);
-        return mappedOk;
+        protocolRequest.setMapSelectionKey(true);
+        protocolRequest.setExecuteFilterChain(true);
+        return true;
     }
     // -------------------------------------------------------------------- //
 
@@ -98,6 +87,7 @@ public class WebProtocolHandler extends AbstractHttpHandler
      *
      * @return an array of supported protocols.
      */
+    @Override
     public String[] getProtocols() {
         return protocols[mode.ordinal()];
     }
@@ -107,22 +97,9 @@ public class WebProtocolHandler extends AbstractHttpHandler
      *
      * @return true if the SelectorThread should expire the SelectionKey, false if not.
      */
+    @Override
     public boolean expireKey(final SelectionKey key) {
         return true;
-    }
-
-    private synchronized void initDefaultHttpArtifactsIfRequired() {
-        if (getDefaultProtocolFilters() == null) {
-            getGrizzlyEmbeddedHttp().initAlgorithm();
-            final List<ProtocolFilter> tmpProtocolFilters = new ArrayList<ProtocolFilter>(4);
-            tmpProtocolFilters.addAll(getGrizzlyEmbeddedHttp().getDefaultHttpProtocolFilters());
-            final StaticResourcesAdapter adapter = new StaticResourcesAdapter();
-            adapter.setRootFolder(GrizzlyEmbeddedHttp.getWebAppRootPath());
-            setFallbackContextRootInfo(new ContextRootInfo(adapter, null,
-                Collections.<ProtocolFilter>singletonList(new DefaultProtocolFilter(
-                    StaticStreamAlgorithm.class, getGrizzlyEmbeddedHttp().getPort()))));
-            setDefaultProtocolFilters(tmpProtocolFilters);
-        }
     }
 
     /**
@@ -130,6 +107,7 @@ public class WebProtocolHandler extends AbstractHttpHandler
      *
      * @return <code>ByteBuffer</code>
      */
+    @Override
     public ByteBuffer getByteBuffer() {
         final WorkerThread workerThread = (WorkerThread) Thread.currentThread();
         if (workerThread.getSSLEngine() != null) {

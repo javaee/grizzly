@@ -125,12 +125,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
         public static Protocol findProtocol(NetworkListener listener) {
             String name = listener.getProtocol();
             final NetworkConfig networkConfig = listener.getParent().getParent(NetworkConfig.class);
-            for (final Protocol protocol : networkConfig.getProtocols().getProtocol()) {
-                if (protocol.getName().equals(name)) {
-                    return protocol;
-                }
-            }
-            return null;
+            return networkConfig.findProtocol(name);
         }
 
         public static ThreadPool findThreadPool(NetworkListener listener) {

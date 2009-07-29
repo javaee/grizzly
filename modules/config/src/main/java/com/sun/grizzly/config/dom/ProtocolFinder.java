@@ -41,6 +41,7 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 
 /**
  * Describes a protocol finder/recognizer, which is able to recognize whether incoming request
@@ -72,4 +73,15 @@ public interface ProtocolFinder extends ConfigBeanProxy, Injectable {
     String getClassname();
 
     void setClassname(String value);
+
+    @DuckTyped
+    Protocol findProtocol();
+
+    class Duck {
+        public static Protocol findProtocol(ProtocolFinder finder) {
+            String name = finder.getProtocol();
+            final NetworkConfig networkConfig = finder.getParent().getParent().getParent().getParent(NetworkConfig.class);
+            return networkConfig.findProtocol(name);
+        }
+    }
 }

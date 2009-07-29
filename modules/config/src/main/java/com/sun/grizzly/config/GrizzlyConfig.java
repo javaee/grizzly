@@ -59,7 +59,7 @@ public class GrizzlyConfig {
 
     private final NetworkConfig config;
     private Habitat habitat;
-    private List<GrizzlyServiceListener> listeners = new ArrayList<GrizzlyServiceListener>();
+    private final List<GrizzlyServiceListener> listeners = new ArrayList<GrizzlyServiceListener>();
 
     public GrizzlyConfig(String file) {
         habitat = Utils.getHabitat(file);
@@ -74,10 +74,10 @@ public class GrizzlyConfig {
         return listeners;
     }
 
-    public void setupNetwork() throws IOException, InstantiationException {
+    public synchronized void setupNetwork() throws IOException, InstantiationException {
         for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
             final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(new Controller());
-            grizzlyListener.configure(listener, true, habitat);
+            grizzlyListener.configure(listener, habitat);
 
             listeners.add(grizzlyListener);
             final Thread thread = new WorkerThreadImpl(new ListenerRunnable(grizzlyListener));
@@ -90,6 +90,17 @@ public class GrizzlyConfig {
             logger.warning(e.getMessage());
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    public synchronized void shutdownNetwork() {
+        for(GrizzlyServiceListener listener : listeners) {
+            try {
+                listener.stop();
+            } catch (Exception e) {
+            }
+        }
+
+        listeners.clear();
     }
 
     private static class ListenerRunnable implements Runnable {
