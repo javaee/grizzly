@@ -39,35 +39,49 @@
 package com.sun.grizzly.portunif;
 
 import com.sun.grizzly.Context;
+import com.sun.grizzly.Controller;
+import com.sun.grizzly.ProtocolChain;
+import com.sun.grizzly.ProtocolChainInstanceHandler;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.util.logging.Level;
 
 /**
- * ProtocolHandler, which passes PU request processing to a
- * <code>Filter</code> chain.
+ * ProtocolHandler, which passes PU request processing to a custom
+ * {@link FilterChain}.
  * 
  * @author Alexey Stashok
  */
-public class FilterChainProtocolHandler implements ProtocolHandler {
-    private static final String[] EMPTY_PROTOCOL_SET = new String[0];
-    public String[] getProtocols() {
-        return EMPTY_PROTOCOL_SET;
+public abstract class CustomFilterChainProtocolHandler implements ProtocolHandler {
+
+    private final ProtocolChainInstanceHandler pcih;
+
+    public CustomFilterChainProtocolHandler(ProtocolChainInstanceHandler pcih) {
+        this.pcih = pcih;
     }
 
+    public ProtocolChainInstanceHandler getProtocolChainInstanceHandler() {
+        return pcih;
+    }
+    
     public boolean handle(Context context, PUProtocolRequest protocolRequest) 
             throws IOException {
-        protocolRequest.setExecuteFilterChain(true);
-        return true;
+        ProtocolChain protocolChain = pcih.poll();
+        try {
+            try {
+                protocolChain.execute(context);
+            } catch (Exception e) {
+                Controller.logger().log(Level.WARNING,
+                        "Error executing custom filter chain", e);
+            }
+        } finally {
+            pcih.offer(protocolChain);
+        }
+        
+        return false;
     }
 
     public boolean expireKey(SelectionKey key) {
         return true;
     }
-
-    public ByteBuffer getByteBuffer() {
-        // Use Thread associated byte buffer
-        return null;
-    }
-
 }

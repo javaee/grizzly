@@ -38,19 +38,36 @@
 
 package com.sun.grizzly.portunif;
 
-import com.sun.grizzly.util.WorkerThread;
+import com.sun.grizzly.Context;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
 
 /**
- * Subclass of <code>ProtocolHandler</code>, which passes PU request processing to a
- * <code>Filter</code> chain. This <code>ProtocolHandler</code> implementation 
- * is targeted to be used with SSL derived protocols like HTTPS...
+ * ProtocolHandler, which passes PU request processing to a default
+ * {@link FilterChain}, starting from {@link Filter} next to {@link PUReadFilter}.
  * 
  * @author Alexey Stashok
  */
-public class SSLFilterChainProtocolHandler extends DefaultFilterChainProtocolHandler {
-    @Override
-    public ByteBuffer getByteBuffer() {
-        return ((WorkerThread) Thread.currentThread()).getInputBB();
+public class DefaultFilterChainProtocolHandler implements ProtocolHandler {
+    private static final String[] EMPTY_PROTOCOL_SET = new String[0];
+    public String[] getProtocols() {
+        return EMPTY_PROTOCOL_SET;
     }
+
+    public boolean handle(Context context, PUProtocolRequest protocolRequest) 
+            throws IOException {
+        protocolRequest.setExecuteFilterChain(true);
+        return true;
+    }
+
+    public boolean expireKey(SelectionKey key) {
+        return true;
+    }
+
+    public ByteBuffer getByteBuffer() {
+        // Use Thread associated byte buffer
+        return null;
+    }
+
 }

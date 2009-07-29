@@ -89,7 +89,7 @@ public class PUReadFilter extends ReadFilter {
     private static final int MAX_FIND_TRIES = 2;
 
     private static final ProtocolHandler filterChainProtocolHandler =
-            new FilterChainProtocolHandler();
+            new DefaultFilterChainProtocolHandler();
 
     private static final ProtocolHandler sslFilterChainProtocolHandler =
             new SSLFilterChainProtocolHandler();
@@ -202,9 +202,10 @@ public class PUReadFilter extends ReadFilter {
                         protocolHandler = protocolHandlers.get(protocolName);
 
                         if (protocolHandler != null) {
-                            return processProtocolHandler(protocolHandler,
+                            final boolean result = processProtocolHandler(protocolHandler,
                                     context, protocolRequest,
                                     protocolRequest.isMapSelectionKey());
+                            return result;
                         } else {
                             // Protocol will be processed by next Filters in chain
                             if (protocolRequest.isMapSelectionKey()) {

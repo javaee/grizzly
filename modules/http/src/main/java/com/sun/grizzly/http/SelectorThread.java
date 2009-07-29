@@ -637,31 +637,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         keyHandler.setTimeout(keepAliveTimeoutInSeconds * 1000);
         selectorHandler.setSelectionKeyHandler(keyHandler);
 
-        final HttpProtocolChain protocolChain = new HttpProtocolChain();
-        protocolChain.enableRCM(rcmSupport);
-        
-        configureFilters(protocolChain);
-                
-        DefaultProtocolChainInstanceHandler instanceHandler 
-                = new DefaultProtocolChainInstanceHandler(){        
-            /**
-             * Always return instance of ProtocolChain.
-             */
-            @Override
-            public ProtocolChain poll(){
-                return protocolChain;
-            }
+        configureProtocolChain();
 
-            /**
-             * Pool an instance of ProtocolChain.
-             */
-            @Override
-            public boolean offer(ProtocolChain instance){
-                return true;
-            }
-        };
-
-        controller.setProtocolChainInstanceHandler(instanceHandler);
         controller.setThreadPool(threadPool);
         if (readThreadsCount > controller.getReadThreadsCount()){
             controller.setReadThreadsCount(readThreadsCount);
@@ -683,7 +660,38 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     protected SelectorThreadKeyHandler createSelectionKeyHandler() {
         return new SelectorThreadKeyHandler(this);
     }
-    
+
+    /**
+     * Configure <tt>SelectorThread</tt> {@link ProtocolChain}
+     */
+    protected void configureProtocolChain() {
+        final HttpProtocolChain protocolChain = new HttpProtocolChain();
+        protocolChain.enableRCM(rcmSupport);
+
+        configureFilters(protocolChain);
+
+        DefaultProtocolChainInstanceHandler instanceHandler
+                = new DefaultProtocolChainInstanceHandler(){
+            /**
+             * Always return instance of ProtocolChain.
+             */
+            @Override
+            public ProtocolChain poll(){
+                return protocolChain;
+            }
+
+            /**
+             * Pool an instance of ProtocolChain.
+             */
+            @Override
+            public boolean offer(ProtocolChain instance){
+                return true;
+            }
+        };
+
+        controller.setProtocolChainInstanceHandler(instanceHandler);
+    }
+
     /**
      * Configure {@link TCPSelectorHandler}
      */
@@ -755,8 +763,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             ReadFilter readFilter = new ReadFilter();
             protocolChain.addFilter(readFilter);
         }
-                
-        protocolChain.addFilter(createHttpParserFilter());
+
+        final ProtocolFilter filter = createHttpParserFilter();
+        protocolChain.addFilter(filter);
     }
     
     /**
