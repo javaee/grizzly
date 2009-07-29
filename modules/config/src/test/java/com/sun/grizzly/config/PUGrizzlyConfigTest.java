@@ -39,7 +39,7 @@ public class PUGrizzlyConfigTest {
             Assert.assertEquals(httpContent, "<html><body>You've found the server on port 38082</body></html>");
 
             final String xProtocolContent = getXProtocolContent("localhost", 38082);
-            Assert.assertEquals("X-Protocol-Response", xProtocolContent);
+            Assert.assertEquals(xProtocolContent, "X-Protocol-Response");
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
