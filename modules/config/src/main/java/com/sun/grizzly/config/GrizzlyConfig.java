@@ -75,6 +75,8 @@ public class GrizzlyConfig {
     }
 
     public void setupNetwork() throws IOException, InstantiationException {
+        validateConfig(config);
+
         synchronized(listeners) {
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
                 final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(new Controller());
@@ -104,6 +106,12 @@ public class GrizzlyConfig {
             }
 
             listeners.clear();
+        }
+    }
+
+    private static void validateConfig(NetworkConfig config) {
+        for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
+            listener.findHttpProtocol();
         }
     }
 

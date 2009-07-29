@@ -49,6 +49,46 @@ public class PUGrizzlyConfigTest {
         }
     }
 
+    public void wrongPuConfigDoubleHttp() throws IOException, InstantiationException {
+        GrizzlyConfig grizzlyConfig = null;
+
+        boolean isIllegalState = false;
+        
+        try {
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-pu-double-http.xml");
+            grizzlyConfig.setupNetwork();
+        } catch (IllegalStateException e) {
+            isIllegalState = true;
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdownNetwork();
+            }
+        }
+
+        Assert.assertTrue(isIllegalState,
+                "Loop in protocol definition should throw IllegalStateException");
+    }
+
+    public void wrongPuConfigLoop() throws IOException, InstantiationException {
+        GrizzlyConfig grizzlyConfig = null;
+
+        boolean isIllegalState = false;
+        
+        try {
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-pu-loop.xml");
+            grizzlyConfig.setupNetwork();
+        } catch (IllegalStateException e) {
+            isIllegalState = true;
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdownNetwork();
+            }
+        }
+
+        Assert.assertTrue(isIllegalState,
+                "Double http definition should throw IllegalStateException");
+    }
+        
     private String getContent(URLConnection connection) throws IOException {
         final InputStream inputStream = connection.getInputStream();
         InputStreamReader reader = new InputStreamReader(inputStream);
