@@ -34,7 +34,6 @@ public class PUGrizzlyConfigTest {
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
                 setRootFolder(listener, count++);
             }
-            System.out.println("Get content");
             final String httpContent = getContent(new URL("http://localhost:38082").openConnection());
             Assert.assertEquals(httpContent, "<html><body>You've found the server on port 38082</body></html>");
 
@@ -73,7 +72,6 @@ public class PUGrizzlyConfigTest {
         writer.write("<html><body>You've found the server on port " + http.getPort() + "</body></html>");
         writer.flush();
         writer.close();
-        System.out.println("name: " + name);
         adapter.setRootFolder(name);
     }
 
