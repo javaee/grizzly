@@ -44,7 +44,6 @@ public class XProtocolFinder implements ProtocolFinder {
         int limit = buffer.limit();
         try {
             buffer.flip();
-            System.out.println("Buffer: " + new String(buffer.array(), buffer.arrayOffset(), buffer.remaining()));
             if (buffer.remaining() >= signature.length) {
                 for(int i=0; i<signature.length; i++) {
                     if (buffer.get(i) != signature[i]) {
