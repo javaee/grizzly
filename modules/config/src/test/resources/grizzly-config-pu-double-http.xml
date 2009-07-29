@@ -1,0 +1,35 @@
+<network-config>
+    <transports>
+        <transport name="tcp"/>
+    </transports>
+    <protocols>
+        <protocol name="pu-protocol">
+            <port-unification>
+                <protocol-finder name="http-finder" classname="com.sun.grizzly.http.portunif.HttpProtocolFinder" protocol="http"/>
+                <protocol-finder name="X-protocol-finder" classname="com.sun.grizzly.config.XProtocolFinder" protocol="X-protocol"/>
+                <protocol-finder name="http-finder-2" classname="com.sun.grizzly.http.portunif.HttpProtocolFinder" protocol="http-2"/>
+            </port-unification>
+        </protocol>
+
+        <protocol name="http">
+            <http enable-comet-support="true"/>
+        </protocol>
+
+        <protocol name="http-2">
+            <http enable-comet-support="false"/>
+        </protocol>
+
+        <protocol name="X-protocol">
+            <protocol-chain-instance-handler>
+                <protocol-chain>
+                    <protocol-filter name="x-filter" classname="com.sun.grizzly.config.XProtocolFilter"/>
+                </protocol-chain>
+            </protocol-chain-instance-handler>
+        </protocol>
+
+    </protocols>
+    <network-listeners>
+        <thread-pool name="defaultThreadPool"/>
+        <network-listener name="http-listener" port="38082" transport="tcp" protocol="pu-protocol" thread-pool="defaultThreadPool"/>
+    </network-listeners>
+</network-config>

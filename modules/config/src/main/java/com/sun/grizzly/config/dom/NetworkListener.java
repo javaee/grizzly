@@ -36,6 +36,9 @@
  */
 package com.sun.grizzly.config.dom;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBean;
@@ -91,6 +94,9 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
     @DuckTyped
     Protocol findProtocol();
 
+    @DuckTyped
+    Protocol findHttpProtocol();
+
     /**
      * Reference to a protocol
      */
@@ -124,8 +130,59 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable {
     class Duck {
         public static Protocol findProtocol(NetworkListener listener) {
             String name = listener.getProtocol();
-            final NetworkConfig networkConfig = listener.getParent().getParent(NetworkConfig.class);
+            final NetworkConfig networkConfig = listener.getParent().getParent(
+                    NetworkConfig.class);
             return networkConfig.findProtocol(name);
+        }
+
+        public static Protocol findHttpProtocol(NetworkListener listener) {
+            final NetworkConfig networkConfig = listener.getParent().getParent(
+                    NetworkConfig.class);
+            Protocol protocol = listener.findProtocol();
+
+            return findHttpProtocol(new HashSet<String>(), networkConfig, protocol);
+        }
+
+        private static Protocol findHttpProtocol(Set<String> tray,
+                NetworkConfig config, Protocol protocol) {
+            final String protocolName = protocol.getName();
+            if (tray.contains(protocolName)) {
+                throw new IllegalStateException("Loop found in Protocol definition. Protocol name: " + protocol.getName());
+            }
+
+            if (protocol.getHttp() != null) {
+                return protocol;
+            } else if (protocol.getPortUnification() != null) {
+                final List<ProtocolFinder> finders = protocol.getPortUnification().getProtocolFinder();
+                tray.add(protocolName);
+
+                try {
+                    Protocol foundHttpProtocol = null;
+                    for (ProtocolFinder finder : finders) {
+                        final String subProtocolName = finder.getProtocol();
+                        final Protocol subProtocol = config.findProtocol(subProtocolName);
+                        if (subProtocol != null) {
+                            final Protocol httpProtocol =
+                                    findHttpProtocol(tray, config, subProtocol);
+                            if (httpProtocol != null) {
+                                if (foundHttpProtocol == null) {
+                                    foundHttpProtocol = httpProtocol;
+                                } else {
+                                    throw new IllegalStateException(
+                                            "Port unification allows only one " +
+                                            "\"<http>\" definition");
+                                }
+                            }
+                        }
+                    }
+
+                    return foundHttpProtocol;
+                } finally {
+                    tray.remove(protocolName);
+                }
+            }
+
+            return null;
         }
 
         public static ThreadPool findThreadPool(NetworkListener listener) {
