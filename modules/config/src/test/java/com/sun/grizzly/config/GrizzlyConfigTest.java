@@ -86,12 +86,17 @@ public class GrizzlyConfigTest {
     }
 
     public void timeoutDisabled() throws IOException, InstantiationException {
+        GrizzlyConfig grizzlyConfig = null;
         try {
-            final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-timeout-disabled.xml");
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-timeout-disabled.xml");
             grizzlyConfig.setupNetwork();
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdownNetwork();
+            }
         }
     }
 
