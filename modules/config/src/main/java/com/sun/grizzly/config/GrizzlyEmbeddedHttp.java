@@ -574,10 +574,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
             final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
 
-            final DefaultThreadPool pool = newThreadPool(minThreads, maxThreads,
-                    maxQueueSize, keepAlive, TimeUnit.SECONDS);
-
-            setThreadPool(pool);
+            setThreadPool(newThreadPool(minThreads, maxThreads, maxQueueSize,
+                keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
             setCoreThreads(minThreads);
             setMaxThreads(maxThreads);
 

@@ -85,6 +85,16 @@ public class GrizzlyConfigTest {
         }
     }
 
+    public void timeoutDisabled() throws IOException, InstantiationException {
+        try {
+            final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-timeout-disabled.xml");
+            grizzlyConfig.setupNetwork();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage());
+        }
+    }
+
     private String getContent(URLConnection connection) throws IOException {
         final InputStream inputStream = connection.getInputStream();
         InputStreamReader reader = new InputStreamReader(inputStream);
