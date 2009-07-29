@@ -74,33 +74,37 @@ public class GrizzlyConfig {
         return listeners;
     }
 
-    public synchronized void setupNetwork() throws IOException, InstantiationException {
-        for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
-            final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(new Controller());
-            grizzlyListener.configure(listener, habitat);
+    public void setupNetwork() throws IOException, InstantiationException {
+        synchronized(listeners) {
+            for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
+                final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(new Controller());
+                grizzlyListener.configure(listener, habitat);
 
-            listeners.add(grizzlyListener);
-            final Thread thread = new WorkerThreadImpl(new ListenerRunnable(grizzlyListener));
-            thread.setDaemon(true);
-            thread.start();
-        }
-        try {
-            Thread.sleep(1000); // wait for the system to finish setting up the listener
-        } catch (InterruptedException e) {
-            logger.warning(e.getMessage());
-            throw new RuntimeException(e.getMessage());
+                listeners.add(grizzlyListener);
+                final Thread thread = new WorkerThreadImpl(new ListenerRunnable(grizzlyListener));
+                thread.setDaemon(true);
+                thread.start();
+            }
+            try {
+                Thread.sleep(1000); // wait for the system to finish setting up the listener
+            } catch (InterruptedException e) {
+                logger.warning(e.getMessage());
+                throw new RuntimeException(e.getMessage());
+            }
         }
     }
 
-    public synchronized void shutdownNetwork() {
-        for(GrizzlyServiceListener listener : listeners) {
-            try {
-                listener.stop();
-            } catch (Exception e) {
+    public void shutdownNetwork() {
+        synchronized(listeners) {
+            for (GrizzlyServiceListener listener : listeners) {
+                try {
+                    listener.stop();
+                } catch (Exception e) {
+                }
             }
-        }
 
-        listeners.clear();
+            listeners.clear();
+        }
     }
 
     private static class ListenerRunnable implements Runnable {
