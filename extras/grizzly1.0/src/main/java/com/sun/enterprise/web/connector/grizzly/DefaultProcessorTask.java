@@ -1451,7 +1451,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
             }
         
             String contentLanguage = response.getContentLanguage();
-            if (contentLanguage != null) {
+            if (contentLanguage != null && !"".equals(contentLanguage)) {
                 headers.setValue("Content-Language")
                     .setString(contentLanguage);
             }
