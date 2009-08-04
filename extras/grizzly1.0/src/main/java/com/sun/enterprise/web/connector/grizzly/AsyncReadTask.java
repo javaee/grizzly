@@ -70,7 +70,7 @@ public class AsyncReadTask extends DefaultReadTask {
      * are needed.
      */
     @Override
-    public void doTask() throws IOException {  
+    public void doTask() throws IOException {
         doTask(byteBuffer);
     }
     
@@ -177,14 +177,14 @@ public class AsyncReadTask extends DefaultReadTask {
     @Override
     public void terminate(boolean keepAlive){     
         if (keepAlive){
-            processorTask.recycle(); 
+            processorTask.recycle();
             registerKey(); 
             returnTask();
         } else {
-            super.terminate(keepAlive);    
+            // Do not return AsyncReadTask to queue
+            finishConnection();
         }
     }
-    
     
     /**
      * Set appropriate attribute on the <code>ProcessorTask</code>.
@@ -193,8 +193,11 @@ public class AsyncReadTask extends DefaultReadTask {
     public void configureProcessorTask(){
         super.configureProcessorTask();
         if ( !getTaskListeners().contains(processorTask) ){
-            processorTask.addTaskListener(this);
             addTaskListener((TaskListener)processorTask);
+        }
+
+        if (!processorTask.getTaskListeners().contains(this)) {
+            processorTask.addTaskListener(this);
         }
     } 
 }

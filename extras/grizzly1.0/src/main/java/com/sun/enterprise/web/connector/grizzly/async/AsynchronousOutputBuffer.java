@@ -83,7 +83,8 @@ public class AsynchronousOutputBuffer extends SocketChannelOutputBuffer{
             // Swallow that exception as it just means the Response
             // object has been recycled and another asynchronous
             // operations was still occuring.
-            if (!ex.getMessage().startsWith("Illegal")){
+            final String message = ex.getMessage();
+            if (message == null || !message.startsWith("Illegal")){
                 throw ex;
             } else {
                 if (SelectorThread.logger().isLoggable(Level.FINEST)){
