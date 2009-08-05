@@ -83,7 +83,7 @@ import javax.net.ssl.SSLServerSocketFactory;
 
 /**
  * SSL server socket factory. It _requires_ a valid RSA key and
- * JSSE. 
+ * JSSE.
  *
  * @author Harish Prabandham
  * @author Costin Manolache
@@ -111,7 +111,7 @@ public abstract class JSSESocketFactory
 
     public JSSESocketFactory () {
     }
-    
+
 
     public ServerSocket createSocket (int port)
         throws IOException
@@ -121,7 +121,7 @@ public abstract class JSSESocketFactory
         initServerSocket(socket);
         return socket;
     }
-    
+
     public ServerSocket createSocket (int port, int backlog)
         throws IOException
     {
@@ -130,18 +130,18 @@ public abstract class JSSESocketFactory
         initServerSocket(socket);
         return socket;
     }
-    
+
     public ServerSocket createSocket (int port, int backlog,
                                       InetAddress ifAddress)
         throws IOException
-    {   
+    {
         if (!initialized) init();
         ServerSocket socket = sslProxy.createServerSocket(port, backlog,
                                                           ifAddress);
         initServerSocket(socket);
         return socket;
     }
-    
+
     public Socket acceptSocket(ServerSocket socket)
         throws IOException
     {
@@ -221,7 +221,7 @@ public abstract class JSSESocketFactory
                         }
                     }
                 }
-            }           
+            }
 
             if (vec != null) {
                 enabledCiphers = new String[vec.size()];
@@ -231,7 +231,7 @@ public abstract class JSSESocketFactory
 
         return enabledCiphers;
     }
-     
+
     /*
      * Gets the SSL server's keystore password.
      */
@@ -267,6 +267,20 @@ public abstract class JSSESocketFactory
     }
 
     /*
+     * Gets the SSL server's truststore password.
+     */
+    protected String getTruststorePassword() {
+        String truststorePassword = (String)attributes.get("truststorePass");
+        if (truststorePassword == null) {
+            truststorePassword = System.getProperty("javax.net.ssl.trustStorePassword");
+            if (truststorePassword == null) {
+                truststorePassword = getKeystorePassword();
+            }
+        }
+        return truststorePassword;
+    }
+
+    /*
      * Gets the SSL server's truststore.
      */
     protected KeyStore getTrustStore() throws IOException {
@@ -282,11 +296,7 @@ public abstract class JSSESocketFactory
             logger.fine("Truststore type= " + truststoreType);
         }
 
-        String truststorePassword = System.getProperty(
-                                    "javax.net.ssl.trustStorePassword");
-        if (truststorePassword == null) {
-            truststorePassword = getKeystorePassword();
-        }
+        String truststorePassword = getTruststorePassword();
 
         if (truststore != null && truststorePassword != null) {
             ts = getStore(truststoreType, truststore, truststorePassword);
@@ -319,13 +329,13 @@ public abstract class JSSESocketFactory
         } catch (FileNotFoundException fnfe) {
             logger.log(Level.SEVERE,
                     sm.getString("jsse.keystore_load_failed", type, path,
-                    fnfe.getMessage()), fnfe); 
+                    fnfe.getMessage()), fnfe);
             throw fnfe;
         } catch (IOException ioe) {
             logger.log(Level.SEVERE,
                     sm.getString("jsse.keystore_load_failed", type, path,
-                    ioe.getMessage()), ioe); 
-            throw ioe;      
+                    ioe.getMessage()), ioe);
+            throw ioe;
         } catch(Exception ex) {
             String msg = sm.getString("jsse.keystore_load_failed", type, path,
                     ex.getMessage());
@@ -374,7 +384,7 @@ public abstract class JSSESocketFactory
      * @param socket the SSLServerSocket.
      * @param protocols the protocols to use.
      */
-    abstract protected void setEnabledProtocols(SSLServerSocket socket, 
+    abstract protected void setEnabledProtocols(SSLServerSocket socket,
                                             String [] protocols);
 
     /**
@@ -390,7 +400,7 @@ public abstract class JSSESocketFactory
         }
 
         String requestedProtocols = (String) attributes.get("protocols");
-        setEnabledProtocols(socket, getEnabledProtocols(socket, 
+        setEnabledProtocols(socket, getEnabledProtocols(socket,
                                                          requestedProtocols));
 
         // we don't know if client auth is needed -
