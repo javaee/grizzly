@@ -167,6 +167,13 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    public boolean isClosed() {
+        return isClosed;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
     public void close() throws IOException {
         close(null);
     }

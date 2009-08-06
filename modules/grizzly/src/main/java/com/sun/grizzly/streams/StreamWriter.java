@@ -54,7 +54,15 @@ import com.sun.grizzly.Connection;
  * @author Alexey Stashok
  */
 public interface StreamWriter extends Stream {
-
+    /**
+     * Returns <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
+     * or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
+     * or <tt>false</tt> otherwise.
+     */
+    boolean isClosed();
+    
     /**
      * Returns the {@link StreamReader} mode.
      * <tt>true</tt>, if {@link StreamReader} is operating in blocking mode, or
