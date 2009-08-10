@@ -412,19 +412,19 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      *
      * @throws Exception
      */
-    protected void initializeSSL(Ssl sslConfig) throws Exception {
+    public void initializeSSL(final Ssl ssl) throws Exception {
         final SSLImplementation sslHelper = SSLImplementation.getInstance();
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
         // key store settings
-        setAttribute(serverSF, "keystore", sslConfig.getKeyStore(), "javax.net.ssl.keyStore");
-        setAttribute(serverSF, "keystoreType", sslConfig.getKeyStoreType(), "javax.net.ssl.keyStoreType");
-        setAttribute(serverSF, "keystorePass", sslConfig.getKeyStorePassword(), "javax.net.ssl.keyStorePassword");
+        setAttribute(serverSF, "keystore", ssl.getKeyStore(), "javax.net.ssl.keyStore", null);
+        setAttribute(serverSF, "keystoreType", ssl.getKeyStoreType(), "javax.net.ssl.keyStoreType", "JKS");
+        setAttribute(serverSF, "keystorePass", ssl.getKeyStorePassword(), "javax.net.ssl.keyStorePassword", "changeit");
         // trust store settings
-        setAttribute(serverSF, "truststore", sslConfig.getTrustStore(), "javax.net.ssl.trustStore");
-        setAttribute(serverSF, "truststoreType", sslConfig.getTrustStoreType(), "javax.net.ssl.trustStoreType");
-        setAttribute(serverSF, "truststorePass", sslConfig.getTrustStorePassword(), "javax.net.ssl.trustStorePassword");
+        setAttribute(serverSF, "truststore", ssl.getTrustStore(), "javax.net.ssl.trustStore", null);
+        setAttribute(serverSF, "truststoreType", ssl.getTrustStoreType(), "javax.net.ssl.trustStoreType", "JKS");
+        setAttribute(serverSF, "truststorePass", ssl.getTrustStorePassword(), "javax.net.ssl.trustStorePassword", "changeit");
         // cert nick name
-        serverSF.setAttribute("keyAlias", sslConfig.getCertNickname());
+        serverSF.setAttribute("keyAlias", ssl.getCertNickname());
         serverSF.init();
         sslImplementation = sslHelper;
         sslContext = serverSF.getSSLContext();
@@ -432,7 +432,9 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     }
 
     private void setAttribute(final ServerSocketFactory serverSF, final String name, final String value,
-        final String property) {
-        serverSF.setAttribute(name, value == null ? System.getProperty(property) : value);
+        final String property, final String defaultValue) {
+        serverSF.setAttribute(name, value == null ?
+            System.getProperty(property, defaultValue) :
+            value);
     }
 }
