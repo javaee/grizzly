@@ -1,6 +1,6 @@
 -exportcontents: \
                         com.sun.grizzly.config; \
-                        com.sun.grizzly.config.dom; version=${grizzly.version}
+                        com.sun.grizzly.config.dom; version=${grizzly-version}
 
 Import-Package: \
                         javax.net.ssl; \
