@@ -79,7 +79,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     /**
      * type of the keystore file
      */
-    @Attribute(defaultValue = "JKS")
+    @Attribute
     String getKeyStoreType();
 
     void setKeyStoreType(String type);
@@ -87,7 +87,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     /**
      * password of the keystore file
      */
-    @Attribute(defaultValue = "changeit")
+    @Attribute
     String getKeyStorePassword();
 
     void setKeyStorePassword(String password);
@@ -180,7 +180,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     /**
      * type of the truststore file
      */
-    @Attribute(defaultValue = "JKS")
+    @Attribute
     String getTrustStoreType();
 
     void setTrustStoreType(String type);
@@ -188,7 +188,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     /**
      * password of the truststore file
      */
-    @Attribute(defaultValue = "changeit")
+    @Attribute
     String getTrustStorePassword();
 
     void setTrustStorePassword(String password);
