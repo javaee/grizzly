@@ -125,7 +125,7 @@ public class FileCacheFactory {
         ConcurrentLinkedQueue<FileCacheEntry> cacheManager =
                 new ConcurrentLinkedQueue<FileCacheEntry>();
         fileCacheFactory.setCacheManager(cacheManager);
-        fileCacheFactory.fileCacheClass = fcc;
+        FileCacheFactory.fileCacheClass = fcc;
 
         return fileCacheFactory;
     }
@@ -184,7 +184,7 @@ public class FileCacheFactory {
         fileCache.setMaxLargeCacheSize(maxLargeFileCacheSize);
         fileCache.setMaxSmallCacheSize(maxSmallFileCacheSize);
         fileCache.setCacheManager(cacheManager);
-        FileCache.setIsMonitoringEnabled(isMonitoringEnabled);
+        fileCache.setIsMonitoringEnabled(isMonitoringEnabled);
         fileCache.setHeaderBBSize(headerBBSize);
     }
 
@@ -294,7 +294,7 @@ public class FileCacheFactory {
         if (fileCache == null) {
             return 0L;
         }
-        return FileCache.getSizeMmapCache();
+        return fileCache.getSizeMmapCache();
     }
 
     /** 
@@ -380,7 +380,9 @@ public class FileCacheFactory {
      */
     public void setIsMonitoringEnabled(boolean isMonitoringEnabled) {
         this.isMonitoringEnabled = isMonitoringEnabled;
-        FileCache.setIsMonitoringEnabled(isMonitoringEnabled);
+        if (fileCache != null) {
+            fileCache.setIsMonitoringEnabled(isMonitoringEnabled);
+        }
     }
 
     /**

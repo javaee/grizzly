@@ -39,7 +39,6 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
-import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.CompletionHandler;
 import com.sun.grizzly.tcp.Request;

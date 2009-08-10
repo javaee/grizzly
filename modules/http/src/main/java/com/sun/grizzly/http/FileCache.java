@@ -166,13 +166,13 @@ public class FileCache{
     /**
      * The current cache size in bytes
      */
-    private static long mappedMemorySize = 0;
+    private long mappedMemorySize = 0;
     
     
     /**
      * The current cache size in bytes
      */
-    private static long heapSize = 0;  
+    private long heapSize = 0;  
     
             
     /**
@@ -190,7 +190,7 @@ public class FileCache{
     /**
      * Is monitoring enabled.
      */
-    private static boolean isMonitoringEnabled = false;
+    private boolean isMonitoringEnabled = false;
     
     
     /**
@@ -302,8 +302,8 @@ public class FileCache{
 
                 configHeaders(entry);
 
+                incOpenCacheEntries();
                 if ( isMonitoringEnabled ) {
-                    openCacheEntries++;   
 
                     if ( openCacheEntries > maxOpenCacheEntries){
                         maxOpenCacheEntries = openCacheEntries;
@@ -351,16 +351,16 @@ public class FileCache{
             }
 
             if ( size > minEntrySize )
-                mappedMemorySize+= size;
+                addMappedMemorySize(size);
             else
-                heapSize+= size;
+                addHeapSize(size);
  
             // Cache full
             if ( mappedMemorySize > maxLargeFileCacheSize ) {
-                mappedMemorySize-= size;
+                subMappedMemorySize(size);
                 return null;
             } else  if ( heapSize > maxSmallFileCacheSize ) {
-                heapSize-= size;
+                subHeapSize(size);
                 return null;
             }        
             
@@ -401,22 +401,30 @@ public class FileCache{
             uri = new String(requestBytes,start,length);
             entry = fileCache.get(uri);
             
-            if (isMonitoringEnabled) {
-                if (entry != null && entry.bb != null 
-                        && entry.bb != nullByteBuffer){
-                    if ( entry.isInHeap ) 
-                        countInfoHit();
-                    else
-                        countContentHit();
-
-                    countHit();
-                
-                } else {
-                  countMiss();
-                }
-            }
+            recalcCacheStatsIfMonitoring(entry);
         }
         return entry;
+    }
+
+    protected void recalcCacheStatsIfMonitoring(final FileCacheEntry entry) {
+        if (isMonitoringEnabled) {
+            recalcCacheStats(entry);
+        }
+    }
+
+    protected final void recalcCacheStats(final FileCacheEntry entry) {
+        if (entry != null && entry.bb != null && entry.bb != nullByteBuffer) {
+            if (entry.isInHeap) {
+                countInfoHit();
+            } else {
+                countContentHit();
+            }
+
+            countHit();
+
+        } else {
+            countMiss();
+        }
     }
       
     
@@ -540,13 +548,13 @@ public class FileCache{
                 } 
 
                 if ( !isInHeap )
-                    mappedMemorySize -= bb.limit();
+                    subMappedMemorySize(bb.limit());
                 else
-                    heapSize -= bb.limit();
+                    subHeapSize(bb.limit());
 
                 bb = null;
                 headerBuffer = null;
-                openCacheEntries--;
+                decOpenCacheEntries();
             }
             
             if ( future != null ) {
@@ -596,7 +604,15 @@ public class FileCache{
     public long getMaxEntries() {
         return maxCacheEntries;
     }
-    
+
+
+    protected void incOpenCacheEntries() {
+        openCacheEntries++;
+    }
+
+    protected void decOpenCacheEntries() {
+        openCacheEntries--;
+    }
     
     /** 
      * The number of current open cache entries
@@ -615,7 +631,15 @@ public class FileCache{
        return maxOpenCacheEntries;        
     }
     
-    
+
+    protected void addHeapSize(long size) {
+        heapSize += size;
+    }
+
+    protected void subHeapSize(long size) {
+        heapSize -= size;
+    }
+
     /** 
      * Return the heap space used for cache
      * @return heap size
@@ -633,12 +657,20 @@ public class FileCache{
         return maxHeapCacheSize;
     }
     
+
+    protected void addMappedMemorySize(long size) {
+        mappedMemorySize += size;
+    }
+
+    protected void subMappedMemorySize(long size) {
+        mappedMemorySize -= size;
+    }
     
     /** 
      * Return the size of Mapped memory used for caching
      * @return Mapped memory size
      */
-    public static long getSizeMmapCache() {
+    public long getSizeMmapCache() {
         return mappedMemorySize;
     }
     
@@ -735,7 +767,7 @@ public class FileCache{
     /**
      * Turn monitoring on/off
      */
-    public static void setIsMonitoringEnabled(boolean isMe){
+    public void setIsMonitoringEnabled(boolean isMe){
         isMonitoringEnabled = isMe;
     }
     

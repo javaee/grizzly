@@ -53,10 +53,11 @@ import java.io.IOException;
  */
 @RunWith(BlockJUnit4ClassRunner.class)
 public class GrizzlyWebServerStatisticsTest {
+    public static final int PORT = 18893;
 
     /** Test case for <a href="https://grizzly.dev.java.net/issues/show_bug.cgi?id=636">#636</a>. */
     @Test(timeout = 10000) public void testStopStats() {
-        GrizzlyWebServer ws = new GrizzlyWebServer();
+        GrizzlyWebServer ws = new GrizzlyWebServer(PORT);
         try {
             ws.start();
             ws.getStatistics().startGatheringStatistics();
@@ -69,7 +70,7 @@ public class GrizzlyWebServerStatisticsTest {
     }
 
     @Test(timeout = 10000) public void testStopNoStats() {
-        GrizzlyWebServer ws = new GrizzlyWebServer();
+        GrizzlyWebServer ws = new GrizzlyWebServer(PORT);
         try {
             ws.start();
         } catch (IOException e) {
