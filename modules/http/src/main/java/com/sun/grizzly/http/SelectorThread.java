@@ -277,7 +277,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Keep-alive stats
      */
-    private final KeepAliveStats keepAliveStats;
+    private KeepAliveStats keepAliveStats;
 
 
     /**
@@ -577,7 +577,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * will listen to a specific port.
      */
     public SelectorThread(){
-        keepAliveStats = createKeepAliveStats();
     }
     
     // ------------------------------------------------------ Selector hook --/
@@ -1669,6 +1668,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Initialize the {@link ThreadPoolStat} instance.
      */
     protected void initMonitoringLevel() {
+        keepAliveStats = createKeepAliveStats();
+
         if (threadPoolStat != null) return;
         threadPoolStat = new ThreadPoolStatistic(port);
         int maxQueuedTasks = -1;

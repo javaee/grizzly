@@ -94,13 +94,17 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
 
     @Override
     public void release(SelectionKey selectionKey) {
-        super.release(selectionKey);
         resetKeepAliveCount();
+        super.release(selectionKey);
     }
 
 
     @Override
     public boolean timedOut(SelectionKey selectionKey) {
+        if (keepAliveStats != null && keepAliveCount > 0 && keepAliveStats.isEnabled()) {
+            keepAliveStats.incrementCountTimeouts();
+        }
+
         Thread t = activeThread();
         if (t != null) {
             if (logger.isLoggable(Level.WARNING)) {
