@@ -115,9 +115,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
             }
             if (ssl.getTrustMaxCertLengthBytes() != null) {
                 setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthBytes());
-            }
-            configSslOptions(ssl);
-            
+            }            
             // client-auth
             if (Boolean.parseBoolean(ssl.getClientAuthEnabled())) {
                 setNeedClientAuth(true);
@@ -186,20 +184,8 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
                 tmpSSLArtifactsList.toArray(enabledCiphers);
                 setEnabledCipherSuites(enabledCiphers);
             }
-            try {
-                initializeSSL(ssl);
-                return true;
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "SSL support could not be configured!", e);
-            }
         }
-        if (tmpSSLArtifactsList.isEmpty()) {
-            logger.log(Level.WARNING, "pewebcontainer.all_ssl_ciphers_disabled");
-        } else {
-            final String[] enabledCiphers = new String[tmpSSLArtifactsList.size()];
-            tmpSSLArtifactsList.toArray(enabledCiphers);
-            setEnabledCipherSuites(enabledCiphers);
-        }
+        
         try {
             initializeSSL(ssl);
             return true;
@@ -208,21 +194,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         }
         return false;
     }
-
-
-    private void configSslOptions(Ssl ssl) {
-        if (ssl != null) {
-            if (ssl.getCrlFile() != null) {
-                setProperty("crlFile", ssl.getCrlFile());
-            }
-            if (ssl.getTrustAlgorithm() != null) {
-                setProperty("trustAlgorithm", ssl.getTrustAlgorithm());
-            }
-            if (ssl.getTrustMaxCertLengthBytes() != null) {
-                setProperty("trustMaxCertLength", ssl.getTrustMaxCertLengthBytes());
-            }
-        }
-    }
+    
 
     /**
      * {@inheritDoc}
@@ -416,15 +388,15 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         final SSLImplementation sslHelper = SSLImplementation.getInstance();
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
         // key store settings
-        setAttribute(serverSF, "keystore", ssl.getKeyStore(), "javax.net.ssl.keyStore", null);
-        setAttribute(serverSF, "keystoreType", ssl.getKeyStoreType(), "javax.net.ssl.keyStoreType", "JKS");
-        setAttribute(serverSF, "keystorePass", ssl.getKeyStorePassword(), "javax.net.ssl.keyStorePassword", "changeit");
+        setAttribute(serverSF, "keystore", ssl != null ? ssl.getKeyStore() : null, "javax.net.ssl.keyStore", null);
+        setAttribute(serverSF, "keystoreType", ssl != null ? ssl.getKeyStoreType() : null, "javax.net.ssl.keyStoreType", "JKS");
+        setAttribute(serverSF, "keystorePass", ssl != null ? ssl.getKeyStorePassword() : null, "javax.net.ssl.keyStorePassword", "changeit");
         // trust store settings
-        setAttribute(serverSF, "truststore", ssl.getTrustStore(), "javax.net.ssl.trustStore", null);
-        setAttribute(serverSF, "truststoreType", ssl.getTrustStoreType(), "javax.net.ssl.trustStoreType", "JKS");
-        setAttribute(serverSF, "truststorePass", ssl.getTrustStorePassword(), "javax.net.ssl.trustStorePassword", "changeit");
+        setAttribute(serverSF, "truststore", ssl != null ? ssl.getTrustStore() : null, "javax.net.ssl.trustStore", null);
+        setAttribute(serverSF, "truststoreType", ssl != null ? ssl.getTrustStoreType() : null, "javax.net.ssl.trustStoreType", "JKS");
+        setAttribute(serverSF, "truststorePass", ssl != null ? ssl.getTrustStorePassword() : null, "javax.net.ssl.trustStorePassword", "changeit");
         // cert nick name
-        serverSF.setAttribute("keyAlias", ssl.getCertNickname());
+        serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
         serverSF.init();
         sslImplementation = sslHelper;
         sslContext = serverSF.getSSLContext();
