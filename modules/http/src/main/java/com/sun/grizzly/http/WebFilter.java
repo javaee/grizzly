@@ -226,6 +226,7 @@ public class WebFilter<T extends WebFilterConfig> extends FilterAdapter
 
         boolean isSuspend = processorTask.getRequest().getResponse().isSuspended();
         if (isSuspend) {
+            ctx.suspend();
             return ctx.getSuspendAction();
         }
 

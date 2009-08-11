@@ -79,11 +79,6 @@ public class ProcessorRunnable implements Runnable {
      */
     private PostProcessor postProcessor;
 
-    /**
-     * Is task in suspended state.
-     * It means that task was terminated but not completed.
-     */
-    private boolean isSuspended;
 
     public ProcessorRunnable(Context context) {
         this.context = context;
@@ -95,18 +90,6 @@ public class ProcessorRunnable implements Runnable {
         this.connection = connection;
         this.processor = processor;
         this.postProcessor = postProcessor;
-    }
-
-    /**
-     * Returns <tt>true</tt> is task was suspended
-     * (terminated, but not completed), so it's possible to resume task
-     * processing. <tt>Fasle</tt> will be returned otherwise.
-     * 
-     * @return <tt>true</tt> is task was suspended, or <tt>fasle</tt> will
-     * be returned otherwise.
-     */
-    public boolean isSuspended() {
-        return isSuspended;
     }
 
     /**
@@ -224,19 +207,18 @@ public class ProcessorRunnable implements Runnable {
         ProcessorResult result = null;
 
         try {
-            if (!isSuspended) {
+            if (context.state() == Context.State.RUNNING) {
                 processor.beforeProcess(context);
             }
 
             do {
+                context.resume();
                 result = processor.process(context);
             } while (result != null &&
                     result.getStatus() == Status.RERUN);
             
             if (result == null || result.getStatus() != Status.TERMINATE) {
                 postProcess(context, result);
-            } else {
-                isSuspended = true;
             }
         } catch (IOException e) {
             result = new ProcessorResult(Status.ERROR, e);

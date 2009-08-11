@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -36,86 +36,55 @@
  *
  */
 
-package com.sun.grizzly.attributes;
+package com.sun.grizzly.samples.tunnel;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
- * {@link AttributeHolder} implementation, which doesn't support indexed access
- * to {@link Attribute}s.
+ * Simple tunneling server
  *
- * @see AttributeHolder
- * @see IndexedAttributeHolder
- * 
  * @author Alexey Stashok
  */
-public class NamedAttributeHolder implements AttributeHolder {
-    
-    protected final Map<String, Object> attributesMap;
-    protected final DefaultAttributeBuilder attributeBuilder;
+public class TunnelServer {
+    private static final Logger logger = Logger.getLogger(TunnelServer.class.getName());
 
-    public NamedAttributeHolder(AttributeBuilder attributeBuilder) {
-        this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
-        attributesMap = new HashMap<String, Object>();
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Object getAttribute(String name) {
-        return attributesMap.get(name);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    public void setAttribute(String name, Object value) {
-        Attribute attribute = attributeBuilder.getAttributeByName(name);
-        if (attribute == null) {
-            attribute = attributeBuilder.createAttribute(name);
+    public static final String HOST = "localhost";
+    public static final int PORT = 7777;
+
+    public static final String REDIRECT_HOST = "download.java.net";
+    public static final int REDIRECT_PORT = 80;
+
+    public static void main(String[] args) throws IOException {
+        // Create TCP transport
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+
+        // Add TransportFilter, which is responsible
+        // for reading and writing data to the connection
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new TunnelFilter(transport,
+                REDIRECT_HOST, REDIRECT_PORT));
+
+        try {
+            // binding transport to start listen on certain host and port
+            transport.bind(HOST, PORT);
+
+            // start the transport
+            transport.start();
+
+            logger.info("Press any key to stop the server...");
+            System.in.read();
+        } finally {
+            logger.info("Stopping transport...");
+            // stop the transport
+            transport.stop();
+
+            // release TransportManager resources like ThreadPool
+            TransportFactory.getInstance().close();
+            logger.info("Stopped transport...");
         }
-
-        attributesMap.put(name, value);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    public Object removeAttribute(String name) {
-        return attributesMap.remove(name);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public Set<String> getAttributeNames() {
-        return attributesMap.keySet();
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public void clear() {
-        attributesMap.clear();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public AttributeBuilder getAttributeBuilder() {
-        return attributeBuilder;
-    }
-
-    /**
-     * Always returns null, as <tt>NamedAttributeHolder</tt> doesn't support
-     * indexing.
-     * 
-     * @return <tt>null</tt>
-     */
-    public IndexedAttributeAccessor getIndexedAttributeAccessor() {
-        return null;
     }
 }

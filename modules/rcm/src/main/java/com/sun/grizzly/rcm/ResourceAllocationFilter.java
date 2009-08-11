@@ -217,6 +217,7 @@ public class ResourceAllocationFilter extends FilterAdapter {
         }
 
         ctx.setCurrentFilterIdx(ctx.getCurrentFilterIdx() + 1);
+        ctx.suspend();
         threadPool.execute(ctx.getProcessorRunnable());
         return ctx.getSuspendAction();
     }

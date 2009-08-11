@@ -81,9 +81,11 @@ public class AsyncWebFilter extends WebFilter<AsyncWebFilterConfig>
             configureProcessorTask(processor, ctx);
 
             try {
+                ctx.suspend();
                 config.getAsyncHandler().handle(
                         processor);
             } catch (Throwable ex) {
+                ctx.resume();
                 logger.log(Level.INFO, "Processor exception", ex);
                 ctx.getConnection().close();
                 return ctx.getStopAction();

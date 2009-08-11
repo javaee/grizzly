@@ -49,6 +49,10 @@ import com.sun.grizzly.utils.PoolableObject;
  * @author Alexey Stashok
  */
 public class Context implements PoolableObject {
+    public enum State {
+        RUNNING, SUSPEND;
+    };
+    
     /**
      * Processing Connection
      */
@@ -81,6 +85,11 @@ public class Context implements PoolableObject {
     
     private final ObjectPool<Context> parentPool;
 
+    /**
+     * Context task state
+     */
+    private volatile State state;
+
     public Context() {
         this(null);
     }
@@ -89,6 +98,28 @@ public class Context implements PoolableObject {
         this.parentPool = parentPool;
     }
     
+    /**
+     * Get the current processing task state.
+     * @return the current processing task state.
+     */
+    public State state() {
+        return state;
+    }
+
+    /**
+     * Suspend processing of the current task
+     */
+    public void suspend() {
+        this.state = State.SUSPEND;
+    }
+
+    /**
+     * Resume processing of the current task
+     */
+    public void resume() {
+        this.state = State.RUNNING;
+    }
+
     /**
      * Get the processing {@link IOEvent}.
      *
@@ -256,6 +287,7 @@ public class Context implements PoolableObject {
             attributes.clear();
         }
         
+        state = State.RUNNING;
         processor = null;
         postProcessor = null;
         connection = null;

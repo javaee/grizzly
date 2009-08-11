@@ -54,10 +54,10 @@ import com.sun.grizzly.utils.LightArrayList;
  */
 public class IndexedAttributeHolder implements AttributeHolder {
     
-    protected LightArrayList<Object> attributeValues;
-    protected DefaultAttributeBuilder attributeBuilder;
+    protected final LightArrayList<Object> attributeValues;
+    protected final DefaultAttributeBuilder attributeBuilder;
     
-    protected IndexedAttributeAccessor indexedAttributeAccessor;
+    protected final IndexedAttributeAccessor indexedAttributeAccessor;
 
     public IndexedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
