@@ -46,6 +46,7 @@ import org.jvnet.hk2.config.DomDocument;
 
 import javax.xml.stream.XMLInputFactory;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Enumeration;
@@ -60,8 +61,6 @@ public class Utils {
     private final static String inhabitantPath = "META-INF/inhabitants";
 
     public static Habitat getHabitat(final String fileURL) {
-        final Habitat habitat = getNewHabitat();
-        final ConfigParser parser = new ConfigParser(habitat);
         URL url = Utils.class.getClassLoader().getResource(fileURL);
         if (url == null) {
             try {
@@ -70,21 +69,34 @@ public class Utils {
                 throw new GrizzlyConfigException(e.getMessage());
             }
         }
+        Habitat habitat = null;
         if (url != null) {
             try {
-                XMLInputFactory xif = XMLInputFactory.class.getClassLoader() == null
-                        ? XMLInputFactory.newInstance()
-                        : XMLInputFactory.newInstance(XMLInputFactory.class.getName(),
-                        XMLInputFactory.class.getClassLoader());
-                final DomDocument document = parser.parse(xif.createXMLStreamReader(url.openStream()));
-
-                habitat.addComponent("document", document);
-            } catch (Exception e) {
+                habitat = getHabitat(url.openStream());
+            } catch (IOException e) {
                 e.printStackTrace();
-                throw new GrizzlyConfigException(e.getMessage(), e);
+                throw new RuntimeException(e.getMessage());
             }
         }
         return habitat;
+    }
+
+    public static Habitat getHabitat(final InputStream inputStream) {
+        try {
+            final Habitat habitat = getNewHabitat();
+            final ConfigParser parser = new ConfigParser(habitat);
+            XMLInputFactory xif = XMLInputFactory.class.getClassLoader() == null
+                    ? XMLInputFactory.newInstance()
+                    : XMLInputFactory.newInstance(XMLInputFactory.class.getName(),
+                    XMLInputFactory.class.getClassLoader());
+            final DomDocument document = parser.parse(xif.createXMLStreamReader(inputStream));
+
+            habitat.addComponent("document", document);
+            return habitat;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new GrizzlyConfigException(e.getMessage(), e);
+        }
     }
 
     public static Habitat getNewHabitat() {
