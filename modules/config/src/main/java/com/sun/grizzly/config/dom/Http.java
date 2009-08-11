@@ -227,7 +227,7 @@ public interface Http extends ConfigBeanProxy, Injectable {
 
     void setTraceEnabled(String enabled);
 
-    @Attribute
+    @Attribute(defaultValue = "UTF-8")
     String getUriEncoding();
 
     void setUriEncoding(String encoding);

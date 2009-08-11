@@ -512,10 +512,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
         }
         setProperty("chunking-disabled", toBoolean(http.getChunkingDisabled()));
-
-        if (http.getUriEncoding() != null) {
-            setProperty("uriEncoding", http.getUriEncoding());
-        }
+        setProperty("uriEncoding", http.getUriEncoding());
 
         if (http.getTraceEnabled() != null) {
             setProperty("traceEnabled", toBoolean(http.getTraceEnabled()));

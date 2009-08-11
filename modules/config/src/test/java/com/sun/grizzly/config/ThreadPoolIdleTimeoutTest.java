@@ -33,15 +33,8 @@ public class ThreadPoolIdleTimeoutTest extends GrizzlyServletTestBase {
     protected Servlet getServlet() {
         return new HttpServlet() {
             @Override
-            protected void service(final HttpServletRequest request, final HttpServletResponse response)
-                throws ServletException, IOException {
-/*
-                super.service(req, resp);
-            }
-
             public void doGet(HttpServletRequest request, HttpServletResponse response)
                 throws ServletException, IOException {
-*/
                 try {
                     Thread.sleep(10000);
                     response.getWriter().println("Here's your content.");
@@ -61,6 +54,7 @@ public class ThreadPoolIdleTimeoutTest extends GrizzlyServletTestBase {
 
     private void goGet() {
         try {
+            System.out.println("getting url");
             URL url = new URL("http://" + host + ":" + port + contextPath + servletPath);
             System.out.println("getting content: " + (new Date()));
             url.getContent();
