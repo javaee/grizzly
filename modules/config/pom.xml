@@ -169,6 +169,12 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-http-servlet</artifactId>
+            <version>${grizzly-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>hk2</artifactId>
             <version>${hk2.version}</version>
@@ -193,7 +199,7 @@
         </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.66</hk2.version>
-        <hk2.plugin.version>0.3.66</hk2.plugin.version>
+        <hk2.version>0.3.82</hk2.version>
+        <hk2.plugin.version>0.3.82</hk2.plugin.version>
     </properties>
 </project>

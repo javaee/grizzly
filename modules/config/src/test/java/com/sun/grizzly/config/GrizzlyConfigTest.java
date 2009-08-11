@@ -41,47 +41,64 @@ public class GrizzlyConfigTest {
             throw new RuntimeException(e.getMessage());
         } finally {
             if (grizzlyConfig != null) {
-                grizzlyConfig.shutdownNetwork();
+                grizzlyConfig.shutdown();
             }
         }
     }
 
     public void references() {
-        final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
-        final List<NetworkListener> list = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener();
-        final NetworkListener listener = list.get(0);
-        boolean found = false;
-        for (NetworkListener ref : listener.findProtocol().findNetworkListeners()) {
-            found |= ref.getName().equals(listener.getName());
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+            final List<NetworkListener> list = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener();
+            final NetworkListener listener = list.get(0);
+            boolean found = false;
+            for (NetworkListener ref : listener.findProtocol().findNetworkListeners()) {
+                found |= ref.getName().equals(listener.getName());
+            }
+            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Protocol");
+            found = false;
+            for (NetworkListener ref : listener.findTransport().findNetworkListeners()) {
+                found |= ref.getName().equals(listener.getName());
+            }
+            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Transport");
+            found = false;
+            for (NetworkListener ref : listener.findThreadPool().findNetworkListeners()) {
+                found |= ref.getName().equals(listener.getName());
+            }
+            Assert.assertTrue(found, "Should find the NetworkListener in the list of references from ThreadPool");
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
-        Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Protocol");
-
-        found = false;
-        for (NetworkListener ref : listener.findTransport().findNetworkListeners()) {
-            found |= ref.getName().equals(listener.getName());
-        }
-        Assert.assertTrue(found, "Should find the NetworkListener in the list of references from Transport");
-
-        found = false;
-        for (NetworkListener ref : listener.findThreadPool().findNetworkListeners()) {
-            found |= ref.getName().equals(listener.getName());
-        }
-        Assert.assertTrue(found, "Should find the NetworkListener in the list of references from ThreadPool");
     }
 
     public void defaults() {
-        final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
-        final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
-        Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
+        GrizzlyConfig grizzlyConfig = null;
+        try {
+            grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+            final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
+            Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
+        }
     }
 
     public void badConfig() throws IOException, InstantiationException {
+        GrizzlyConfig grizzlyConfig = null;
         try {
-            final GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
+            grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
             grizzlyConfig.setupNetwork();
         } catch (Exception e) {
             e.printStackTrace();
             throw new RuntimeException(e.getMessage());
+        } finally {
+            if (grizzlyConfig != null) {
+                grizzlyConfig.shutdown();
+            }
         }
     }
 
@@ -95,7 +112,7 @@ public class GrizzlyConfigTest {
             throw new RuntimeException(e.getMessage());
         } finally {
             if (grizzlyConfig != null) {
-                grizzlyConfig.shutdownNetwork();
+                grizzlyConfig.shutdown();
             }
         }
     }

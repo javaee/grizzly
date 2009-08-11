@@ -4,12 +4,11 @@
     </transports>
     <protocols>
         <protocol name="http">
-            <http enable-comet-support="true" timeout-seconds="-1"/>
+            <http timeout-seconds="-1"/>
         </protocol>
     </protocols>
     <network-listeners>
         <thread-pool name="defaultThreadPool"/>
-        <network-listener name="http-listener" port="38082" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
-        <network-listener name="https-listener" port="38083" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
+        <network-listener name="http-listener" port="38084" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
     </network-listeners>
 </network-config>

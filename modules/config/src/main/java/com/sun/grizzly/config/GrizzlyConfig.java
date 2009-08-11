@@ -115,6 +115,12 @@ public class GrizzlyConfig {
         }
     }
 
+    public void shutdown() {
+        for (GrizzlyServiceListener listener : listeners) {
+            listener.stop();
+        }
+    }
+    
     private static class ListenerRunnable implements Runnable {
         private final GrizzlyServiceListener grizzlyListener;
 
