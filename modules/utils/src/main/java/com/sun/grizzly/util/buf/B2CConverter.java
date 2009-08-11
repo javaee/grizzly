@@ -73,9 +73,17 @@ public class B2CConverter {
     /**
      * Default Logger.
      */
-    private final static Logger logger = LoggerUtils.getLogger();
-    private String encoding;
+    private static final boolean IS_OLD_IO_MODE = Boolean.getBoolean(B2CConverter.class.getName() + ".blockingMode");
+
+    private static final Logger logger = LoggerUtils.getLogger();
+    private static final int MAX_NUMBER_OF_BYTES_PER_CHARACTER = 16;
+
+    private Charset charset;
     private CharsetDecoder decoder;
+    private final ByteBuffer remainder = ByteBuffer.allocate(MAX_NUMBER_OF_BYTES_PER_CHARACTER);
+
+    // Support old blocking converter
+    private B2CConverterBlocking blockingConverter;
 
     protected B2CConverter() {
         init("US_ASCII");
@@ -88,16 +96,27 @@ public class B2CConverter {
     }
 
     protected void init(String encoding) {
-        decoder = Charset.forName(encoding).newDecoder().
-                onMalformedInput(CodingErrorAction.REPLACE).
-                onUnmappableCharacter(CodingErrorAction.REPLACE);
-        this.encoding = encoding;
+        if (IS_OLD_IO_MODE) {
+            try {
+                blockingConverter = new B2CConverterBlocking(encoding);
+            } catch (IOException e) {
+                throw new IllegalStateException("Can not initialize blocking converter");
+            }
+        } else {
+            charset = Charset.forName(encoding);
+            decoder = charset.newDecoder().
+                    onMalformedInput(CodingErrorAction.REPLACE).
+                    onUnmappableCharacter(CodingErrorAction.REPLACE);
+        }
     }
 
     /** Reset the internal state, empty the buffers.
      *  The encoding remain in effect, the internal buffers remain allocated.
      */
     public void recycle() {
+        if (IS_OLD_IO_MODE) {
+            blockingConverter.recycle();
+        }
     }
 
     /** Convert a buffer of bytes into a chars
@@ -110,25 +129,53 @@ public class B2CConverter {
 
     public void convert(ByteChunk bb, CharChunk cb, int limit)
             throws IOException {
+        if (IS_OLD_IO_MODE) {
+            blockingConverter.convert(bb, cb, limit);
+            return;
+        }
+
         try {
+            final int bbAvailable = bb.getEnd() - bb.getStart();
+            if (limit > bbAvailable) {
+                limit = bbAvailable;
+            }
+
             byte[] barr = bb.getBuffer();
             int boff = bb.getOffset();
-            int len = bb.getLength();
-            ByteBuffer tmp_bb = ByteBuffer.wrap(barr, boff, len - boff);
+            ByteBuffer tmp_bb = ByteBuffer.wrap(barr, boff, limit);
+
             char[] carr = cb.getBuffer();
             int coff = cb.getEnd();
+            final int remain = carr.length - coff;
+            final int cbLimit = cb.getLimit();
+            if (remain < limit && (cbLimit < 0 || cbLimit > carr.length)) {
+                cb.makeSpace(limit);
+                carr = cb.getBuffer();
+                coff = cb.getEnd();
+            }
+
             CharBuffer tmp_cb = CharBuffer.wrap(carr, coff, carr.length - coff);
-            CoderResult cr = decoder.decode(tmp_bb, tmp_cb, true);
+
+            if (remainder.position() > 0) {
+                flushRemainder(tmp_bb, tmp_cb);
+            }
+
+            CoderResult cr = decoder.decode(tmp_bb, tmp_cb, false);
             cb.setEnd(tmp_cb.position());
+
             while (cr == CoderResult.OVERFLOW) {
                 cb.flushBuffer();
                 coff = cb.getEnd();
                 carr = cb.getBuffer();
                 tmp_cb = CharBuffer.wrap(carr, coff, carr.length - coff);
-                cr = decoder.decode(tmp_bb, tmp_cb, true);
+                cr = decoder.decode(tmp_bb, tmp_cb, false);
                 cb.setEnd(tmp_cb.position());
             }
-            decoder.reset();
+            bb.setOffset(tmp_bb.position());
+            if (tmp_bb.hasRemaining()) {
+                remainder.put(tmp_bb);
+            }
+
             if (cr != CoderResult.UNDERFLOW) {
                 throw new IOException("Encoding error");
             }
@@ -136,6 +183,7 @@ public class B2CConverter {
             if (debug > 0) {
                 log("B2CConverter " + ex.toString());
             }
+            decoder.reset();
             throw ex;
         }
     }
@@ -145,6 +193,10 @@ public class B2CConverter {
      * Character conversion of a US-ASCII MessageBytes.
      */
     public static void convertASCII(MessageBytes mb) {
+        if (IS_OLD_IO_MODE) {
+            B2CConverterBlocking.convertASCII(mb);
+            return;
+        }
 
         // This is of course only meaningful for bytes
         if (mb.getType() != MessageBytes.T_BYTES) {
@@ -168,14 +220,42 @@ public class B2CConverter {
     }
     // END CR 6309511
 
-    public void reset()
-            throws IOException {
+    public void reset() throws IOException {
+        if (IS_OLD_IO_MODE) {
+            blockingConverter.reset();
+            return;
+        }
+
+        if (decoder != null) {
+            decoder.reset();
+            remainder.clear();
+        }
     }
+
     private final int debug = 0;
 
     void log(String s) {
         if (logger.isLoggable(Level.FINEST)) {
             logger.log(Level.FINEST, "B2CConverter: " + s);
+        }
+    }
+
+    private void flushRemainder(ByteBuffer tmp_bb, CharBuffer tmp_cb) {
+        while(remainder.position() > 0 && tmp_bb.hasRemaining()) {
+            remainder.put(tmp_bb.get());
+            remainder.flip();
+            CoderResult cr = decoder.decode(remainder, tmp_cb, false);
+            if (cr == CoderResult.OVERFLOW) {
+                // Shouldn't happen, because we allocated required output buffer before
+                throw new IllegalStateException("CharChunk is not big enough");
+            }
+
+            if (!remainder.hasRemaining()) {
+                remainder.clear();
+                break;
+            }
+
+            remainder.compact();
         }
     }
 }
