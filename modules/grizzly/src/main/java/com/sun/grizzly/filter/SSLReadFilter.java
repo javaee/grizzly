@@ -293,6 +293,8 @@ public class SSLReadFilter implements ProtocolFilter{
                 
                 if (count <= 0 && byteBuffer.position() != initialBufferPosition) {
                     return initialInputBBPosition;
+                } else if (byteBuffer.position() == 0 && sslEngine.isInboundDone()) {
+                    return -1;
                 }
             }
             return count;
