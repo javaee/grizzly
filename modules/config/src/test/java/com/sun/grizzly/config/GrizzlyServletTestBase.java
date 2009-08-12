@@ -3,9 +3,6 @@ package com.sun.grizzly.config;
 import javax.servlet.Servlet;
 
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import org.testng.annotations.AfterTest;
-import org.testng.annotations.BeforeTest;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.AfterMethod;
 import org.jvnet.hk2.config.Dom;
@@ -17,12 +14,11 @@ public abstract class GrizzlyServletTestBase {
     public void setupServlet() {
         try {
             shutdownContainer();
-            System.out.println(getClass().getName() + ".setupServlet");
             grizzlyConfig = new GrizzlyConfig(getConfigFile());
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
-                addServlet(listener, count++);
+                addServlet(listener);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -41,14 +37,12 @@ public abstract class GrizzlyServletTestBase {
         }
     }
     
-    private void addServlet(final GrizzlyServiceListener listener, final int i) {
+    private void addServlet(final GrizzlyServiceListener listener) {
         ServletAdapter sa = new ServletAdapter();
         sa.setServletInstance(getServlet());
         sa.setContextPath(getContextPath());
         sa.setServletPath(getServletPath());
-
-        final GrizzlyEmbeddedHttp http = listener.getEmbeddedHttp();
-        http.setAdapter(sa);
+        listener.getEmbeddedHttp().setAdapter(sa);
     }
 
     protected String getContextPath() {
@@ -56,7 +50,7 @@ public abstract class GrizzlyServletTestBase {
     }
 
     protected String getServletPath() {
-        return Dom.convertName(getClass().getName());
+        return "/" + Dom.convertName(getClass().getSimpleName());
     }
 
     protected abstract Servlet getServlet();

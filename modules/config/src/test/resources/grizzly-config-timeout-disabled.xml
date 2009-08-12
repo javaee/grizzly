@@ -8,7 +8,9 @@
         </protocol>
     </protocols>
     <network-listeners>
-        <thread-pool name="defaultThreadPool"/>
-        <network-listener name="http-listener" port="38084" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
+        <thread-pool name="noTimeoutThreadPool" idle-thread-timeout-seconds="-1"/>
+        <thread-pool name="defaultThreadPool" idle-thread-timeout-seconds="5"/>
+        <network-listener name="http-listener" port="38084" transport="tcp" protocol="http" thread-pool="noTimeoutThreadPool"/>
+        <network-listener name="http-listener-2" port="38085" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
     </network-listeners>
 </network-config>

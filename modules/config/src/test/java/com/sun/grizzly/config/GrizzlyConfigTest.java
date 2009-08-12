@@ -93,7 +93,7 @@ public class GrizzlyConfigTest {
             grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
             grizzlyConfig.setupNetwork();
         } catch (Exception e) {
-            e.printStackTrace();
+//            e.printStackTrace();
             throw new RuntimeException(e.getMessage());
         } finally {
             if (grizzlyConfig != null) {
