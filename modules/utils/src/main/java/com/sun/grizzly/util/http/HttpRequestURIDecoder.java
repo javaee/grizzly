@@ -112,7 +112,8 @@ public class HttpRequestURIDecoder {
         CharChunk cc = uri.getCharChunk();
         cc.allocate(bc.getLength(), -1);
 
-        if (encoding != null) {
+        if (encoding != null && !encoding.isEmpty() &&
+                !"ISO-8859-1".equalsIgnoreCase(encoding)) {
             try {
                 if (b2cConverter == null) {
                     b2cConverter = new B2CConverter(encoding);
