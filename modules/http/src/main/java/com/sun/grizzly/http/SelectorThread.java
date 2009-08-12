@@ -2164,14 +2164,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                 }
             }) instanceof HttpWorkerThread)){
                 logger.severe("Invalid ThreadFactory. Your ThreadFactory must" +
-                        " return instance of " + com.sun.grizzly.http.HttpWorkerThread.class.getName());
+                        " return instance of " + HttpWorkerThread.class.getName());
                 throw new RuntimeException("Invalid ThreadFactory. Threads must be instance of "
-                        + com.sun.grizzly.http.HttpWorkerThread.class.getName());
+                        + HttpWorkerThread.class.getName());
             }    
         } else {
             logger.warning("Cannot guess which ThreadFactory the ExecutorService is using. " +
                     "Some ClassCastException might be throw if the ThreadFactory isn't creating " +
-                    " instance of " + com.sun.grizzly.http.HttpWorkerThread.class.getName());
+                    " instance of " + HttpWorkerThread.class.getName());
         }
         this.threadPool = threadPool;
     }

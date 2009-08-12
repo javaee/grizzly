@@ -584,7 +584,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     break;
                 }
             }
-            if (!debugMode) {
+            if (!debugMode && timeout > 0) {
                 // Idle Threads cannot be alive more than 15 minutes by default
                 setTransactionTimeout(timeout * 1000);
             } else {
@@ -605,7 +605,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         return threadPoolTimeoutSeconds;
     }
 
-    protected static final boolean toBoolean(String value) {
+    protected static boolean toBoolean(String value) {
         final String v = null != value ? value.trim() : value;
         return "true".equals(v) || "yes".equals(v) || "on".equals(v) || "1".equals(v);
     }
