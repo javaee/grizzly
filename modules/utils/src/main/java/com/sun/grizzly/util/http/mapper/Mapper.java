@@ -296,8 +296,26 @@ public class Mapper {
      * @param resources Static resources of the context
      */
     public void addContext
-        (String hostName, String path, Object context,
-         String[] welcomeResources, javax.naming.Context resources) {
+            (String hostName, String path, Object context,
+            String[] welcomeResources, javax.naming.Context resources) {
+        addContext(hostName, path, context, welcomeResources, resources, null);
+    }
+
+
+    /**
+     * Add a new Context to an existing Host.
+     *
+     * @param hostName Virtual host name this context belongs to
+     * @param path Context path
+     * @param context Context object
+     * @param welcomeResources Welcome files defined for this context
+     * @param resources Static resources of the context
+     * @param alternateDocBases the alternate docbases of the context
+     */
+    public void addContext
+            (String hostName, String path, Object context,
+            String[] welcomeResources, javax.naming.Context resources,
+            List<AlternateDocBase> alternateDocBases) {
 
         Host[] hosts = this.hosts;
         int pos = findIgnoreCase(hosts, hostName);
@@ -324,6 +342,7 @@ public class Mapper {
                 newContext.object = context;
                 newContext.welcomeResources = welcomeResources;
                 newContext.resources = resources;
+                newContext.alternateDocBases = alternateDocBases;
                 Context oldElem = (Context) insertMap(contexts, newContexts, newContext);
                 if (oldElem == null) {
                     host.contextList.contexts = newContexts;
@@ -1026,15 +1045,39 @@ public class Mapper {
                     path.setOffset(servletPath);
 
                     // Welcome resources processing for physical folder
-                    if (mappingData.wrapper == null
-                        &&context.resources != null) {
+                    if (mappingData.wrapper == null &&
+                            context.resources != null) {
                         Object file = null;
                         String pathStr = path.toString();
-                        try {
-                            file = context.resources.lookup(pathStr);
-                        } catch(NamingException nex) {
-                            // Swallow not found, since this is normal
+
+                        if (context.alternateDocBases == null
+                                || context.alternateDocBases.isEmpty()) {
+                            try {
+                                file = context.resources.lookup(pathStr);
+                            } catch(NamingException nex) {
+                                // Swallow not found, since this is normal
+                            }
+                        } else {
+                            AlternateDocBase match = 
+                                AlternateDocBase.findMatch(pathStr,
+                                    context.alternateDocBases);
+                            if (match != null) {
+                                try {
+                                    file = match.getResources().lookup(pathStr);
+                                } catch(NamingException nex) {
+                                    // Swallow not found, since this is normal
+                                }
+                            } else {
+                                // None of the url patterns for alternate
+                                // docbases matched
+                                try {
+                                    file = context.resources.lookup(pathStr);
+                                } catch(NamingException nex) {
+                                    // Swallow not found, since this is normal
+                                }
+                            }
                         }
+
                         if (file != null && !(file instanceof DirContext) ) {
                             // Rule 4a1 -- exact match
                             internalMapExactWrapper(exactWrappers, path, mappingData);
@@ -1126,11 +1169,35 @@ public class Mapper {
             if (context.resources != null && buf[pathEnd -1 ] != '/') {
                 Object file = null;
                 String pathStr = path.toString();
-                try {
-                    file = context.resources.lookup(pathStr);
-                } catch(NamingException nex) {
-                    // Swallow, since someone else handles the 404
-                }
+
+                if (context.alternateDocBases == null
+                        || context.alternateDocBases.isEmpty()) {
+                    try {
+                        file = context.resources.lookup(pathStr);
+                    } catch(NamingException nex) {
+                        // Swallow, since someone else handles the 404
+                    }
+                } else {
+                    AlternateDocBase match = 
+                        AlternateDocBase.findMatch(pathStr,
+                            context.alternateDocBases);
+                    if (match != null) {
+                        try {
+                            file = match.getResources().lookup(pathStr);
+                        } catch(NamingException nex) {
+                            // Swallow, since someone else handles the 404
+                        }
+                    } else {
+                        // None of the url patterns for alternate
+                        // docbases matched
+                        try {
+                            file = context.resources.lookup(pathStr);
+                        } catch(NamingException nex) {
+                            // Swallow, since someone else handles the 404
+                        }
+                    }
+                }                
+
                 if (file != null && file instanceof DirContext) {
                     // Note: this mutates the path: do not do any processing 
                     // after this (since we set the redirectPath, there 
@@ -1684,6 +1751,7 @@ public class Mapper {
         public String path = null;
         public String[] welcomeResources = new String[0];
         public javax.naming.Context resources = null;
+        public List<AlternateDocBase> alternateDocBases = null;
         public Wrapper defaultWrapper = null;
         public Wrapper[] exactWrappers = new Wrapper[0];
         public Wrapper[] wildcardWrappers = new Wrapper[0];
