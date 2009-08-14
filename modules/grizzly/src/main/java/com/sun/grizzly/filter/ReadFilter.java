@@ -190,8 +190,8 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
                     ctx.getSelectorHandler().getSelectionKeyHandler();
             if (skh instanceof BaseSelectionKeyHandler){
                 ((WorkerThread)Thread.currentThread())
-                            .getAttachment().setAttribute("ConnectionCloseHandler",    
-                ((BaseSelectionKeyHandler)skh).getConnectionCloseHandler());         
+                            .getAttachment().setAttribute("ConnectionCloseHandlerNotifier",
+                (BaseSelectionKeyHandler) skh);
             }   
 
             if (exception != null){

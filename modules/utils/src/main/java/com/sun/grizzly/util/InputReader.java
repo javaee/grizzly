@@ -271,11 +271,11 @@ public class InputReader extends InputStream {
         } finally {
             if (nRead == -1){
                 if (Thread.currentThread() instanceof WorkerThread){
-                    ConnectionCloseHandler cch = (ConnectionCloseHandler)
+                    ConnectionCloseHandlerNotifier notifier = (ConnectionCloseHandlerNotifier)
                             ((WorkerThread)Thread.currentThread())
-                                .getAttachment().getAttribute("ConnectionCloseHandler");
-                    if (cch != null){
-                        cch.remotlyClosed(key);
+                                .getAttachment().getAttribute("ConnectionCloseHandlerNotifier");
+                    if (notifier != null){
+                        notifier.notifyRemotlyClose(key);
                     }                  
                 }
             }
