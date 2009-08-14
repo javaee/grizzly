@@ -76,10 +76,8 @@ import java.lang.management.ManagementFactory;
 public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     private final AtomicBoolean algorithmInitialized = new AtomicBoolean(false);
-    private volatile Collection<ProtocolFilter> defaultHttpFilters;
     private boolean isHttpSecured = false;
     private UDPSelectorHandler udpSelectorHandler;
-    private static final Object LOCK_OBJECT = new Object();
     public static String DEFAULT_ALGORITHM_CLASS_NAME = DEFAULT_ALGORITHM;
     /**
      * The resource bundle containing the message strings for logger.
@@ -328,8 +326,10 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                             configureProtocol(networkListener, subProtocol,
                             habitat, mayEnableComet);
 
-                    finders.add(protocolFinder);
-                    final String[] protocols = new String[] {subProtocol.getName()};
+                    final String protocolName = subProtocol.getName();
+                    
+                    finders.add(new ConfigProtocolFinderWrapper(protocolName, protocolFinder));
+                    final String[] protocols = new String[] {protocolName};
                     if (protocolChain != null) {
                         handlers.add(new CustomFilterChainProtocolHandler(protocolChain) {
 
