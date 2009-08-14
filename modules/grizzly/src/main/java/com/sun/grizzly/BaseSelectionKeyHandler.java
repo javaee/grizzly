@@ -39,6 +39,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.util.ConnectionCloseHandler;
+import com.sun.grizzly.util.ConnectionCloseHandlerNotifier;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.SelectionKeyActionAttachment;
 import com.sun.grizzly.util.SelectionKeyAttachment;
@@ -49,7 +50,9 @@ import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -64,24 +67,12 @@ import java.util.logging.Logger;
  * 
  * @author Charlie Hunt
  */
-public class BaseSelectionKeyHandler implements SelectionKeyHandler {
+public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionCloseHandlerNotifier {
 
     protected Logger logger = Controller.logger();
 
-    private ConnectionCloseHandler cch = new ConnectionCloseHandler() {
-
-        public void locallyClosed(SelectionKey key) {
-            if (logger.isLoggable(Level.FINE)){
-                logger.fine(key + " is being locally cancelled");
-            }
-        }
-
-        public void remotlyClosed(SelectionKey key) {
-            if (logger.isLoggable(Level.FINE)){
-                logger.fine(key + " is being remotly cancelled (connection closed)");
-            }
-        }
-    };
+    private Collection<ConnectionCloseHandler> cchSet =
+            new CopyOnWriteArraySet<ConnectionCloseHandler>();
     
     /**
      * Associated {@link SelectorHandler}
@@ -233,14 +224,14 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler {
      * its release method is called.
      */
     protected void doAfterKeyCancel(SelectionKey key){
-        try{
+        try {
             if (selectorHandler != null) {
                 selectorHandler.closeChannel(key.channel());
             } else {
                 closeChannel(key.channel());
             }
-        }finally{
-            cch.locallyClosed(key);
+        } finally {
+            notifyLocallyClose(key);
             Object attachment = key.attach(null);
             if (attachment instanceof SelectionKeyAttachment) {
                 ((SelectionKeyAttachment) attachment).release(key);
@@ -255,11 +246,25 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler {
      * 
      * @param key a {@link Selectionkey}
      */
-    public void notifyRemotlyClose(SelectionKey key){
-        cch.remotlyClosed(key);
+    public void notifyRemotlyClose(SelectionKey key) {
+        for (ConnectionCloseHandler handler : cchSet) {
+            handler.remotlyClosed(key);
+        }
     }
     
+    /**
+     * Notify a {@link ConnectionCloseHandler} that a remote connection
+     * has been closed.
+     *
+     * @param key a {@link Selectionkey}
+     */
+    public void notifyLocallyClose(SelectionKey key) {
+        for (ConnectionCloseHandler handler : cchSet) {
+            handler.locallyClosed(key);
+        }
+    }
 
+    
     /**
      * {@inheritDoc}
      */
@@ -306,19 +311,19 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler {
     }
 
     /**
-     * Return the {@link ConnectionClosedHandler}.
-     * @return the {@link ConnectionClosedHandler}
-     */
-    public ConnectionCloseHandler getConnectionCloseHandler() {
-        return cch;
-    }
-
-    /**
-     * Set the the {@link ConnectionClosedHandler}
+     * Adds the the {@link ConnectionClosedHandler} to a set.
      * @param cch {@link ConnectionClosedHandler}
      */
     public void setConnectionCloseHandler(ConnectionCloseHandler cch) {
-        this.cch = cch;
+        cchSet.add(cch);
+    }
+
+    /**
+     * Removes the the {@link ConnectionClosedHandler} from a set.
+     * @param cch {@link ConnectionClosedHandler}
+     */
+    public void removeConnectionCloseHandler(ConnectionCloseHandler cch) {
+        cchSet.remove(cch);
     }
 
     /**
@@ -327,7 +332,7 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler {
     public void copyTo(Copyable copy) {
         BaseSelectionKeyHandler copyHandler = (BaseSelectionKeyHandler) copy;
         copyHandler.selectorHandler = selectorHandler;
-        copyHandler.cch = cch;
+        copyHandler.cchSet = cchSet;
     }
     
     public Logger getLogger() {

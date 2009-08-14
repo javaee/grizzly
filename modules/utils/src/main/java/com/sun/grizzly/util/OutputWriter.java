@@ -143,14 +143,7 @@ public class OutputWriter {
             }
             
             if (len == -1){
-                if (Thread.currentThread() instanceof WorkerThread){
-                    ConnectionCloseHandler cch = (ConnectionCloseHandler)
-                            ((WorkerThread)Thread.currentThread())
-                                .getAttachment().getAttribute("ConnectionCloseHandler");
-                    if (cch != null){
-                        cch.remotlyClosed(key);
-                    }                  
-                }            
+                notifyRemotelyClosed(key);
             }
         }
         return nWrite;
@@ -242,14 +235,7 @@ public class OutputWriter {
             }
             
             if (len == -1){
-                if (Thread.currentThread() instanceof WorkerThread){
-                    ConnectionCloseHandler cch = (ConnectionCloseHandler)
-                            ((WorkerThread)Thread.currentThread())
-                                .getAttachment().getAttribute("ConnectionCloseHandler");
-                    if (cch != null){
-                        cch.remotlyClosed(key);
-                    }                  
-                }            
+                notifyRemotelyClosed(key);
             }          
         }
         return nWrite;
@@ -355,5 +341,15 @@ public class OutputWriter {
     
     public static void setDefaultWriteTimeout(int aDefaultWriteTimeout) {
         defaultWriteTimeout = aDefaultWriteTimeout;
+    }
+
+    private static void notifyRemotelyClosed(SelectionKey key) {
+        if (Thread.currentThread() instanceof WorkerThread) {
+            ConnectionCloseHandlerNotifier notifier =
+                    (ConnectionCloseHandlerNotifier) ((WorkerThread) Thread.currentThread()).getAttachment().getAttribute("ConnectionCloseHandlerNotifier");
+            if (notifier != null) {
+                notifier.notifyRemotlyClose(key);
+            }
+        }
     }
 }
