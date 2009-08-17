@@ -78,7 +78,7 @@ public abstract class CustomFilterChainProtocolHandler implements ProtocolHandle
             pcih.offer(protocolChain);
         }
         
-        return false;
+        return context.getKeyRegistrationState() != Context.KeyRegistrationState.CANCEL;
     }
 
     public boolean expireKey(SelectionKey key) {
