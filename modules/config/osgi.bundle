@@ -9,6 +9,7 @@ Import-Package: \
                         org.jvnet.hk2.component; \
                         com.sun.grizzly; \
                         com.sun.grizzly.filter; \
+                        com.sun.grizzly.portunif; \
                         com.sun.grizzly.arp; \
                         com.sun.grizzly.comet; \
                         com.sun.grizzly.http; \
