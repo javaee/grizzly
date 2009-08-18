@@ -296,7 +296,7 @@ public class SelectorRunner implements Runnable {
             } catch (CancelledKeyException e) {
                 keyEventProcessState = 0;
                 keyReadyOps = 0;
-                notifyConnectionException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Severity.CONNECTION, Level.WARNING, Level.FINE);
+                notifyConnectionException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Severity.CONNECTION, Level.FINE, Level.FINE);
             }
         }
         return true;
