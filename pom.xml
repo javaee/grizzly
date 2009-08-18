@@ -308,7 +308,7 @@
     </dependencies>
     <properties>
         <grizzly-version>1.9.18-SNAPSHOT</grizzly-version>
-        <grizzly-released-version>1.9.16</grizzly-released-version>
+        <grizzly-released-version>1.9.17</grizzly-released-version>
         <grizzly-next-version>2.0.0</grizzly-next-version>
         <junit-version>3.8.1</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
