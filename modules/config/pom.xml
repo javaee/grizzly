@@ -168,13 +168,13 @@
             <version>${grizzly-version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
+<!--        <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
             <version>${grizzly-version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
+-->        <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>hk2</artifactId>
             <version>${hk2.version}</version>
