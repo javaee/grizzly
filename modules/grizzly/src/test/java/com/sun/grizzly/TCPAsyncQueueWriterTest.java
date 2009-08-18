@@ -98,6 +98,7 @@ public class TCPAsyncQueueWriterTest extends TestCase {
                         responseArrivedLatchHolder, writeBB, readBB);
                 
                 try {
+                    final AtomicInteger sent = new AtomicInteger();
                     tcpConnector.connect(new InetSocketAddress("localhost", PORT),
                             callbackHandler);
                     
@@ -116,6 +117,7 @@ public class TCPAsyncQueueWriterTest extends TestCase {
                             callables[x] = new Callable() {
                                 public Object call() throws Exception {
                                     ByteBuffer bb = writeBB.duplicate();
+                                    sent.incrementAndGet();
                                     tcpConnector.writeToAsyncQueue(bb);
                                     return null;
                                 }
@@ -156,6 +158,9 @@ public class TCPAsyncQueueWriterTest extends TestCase {
                             SelectionKey clientKey = tcpConnector.getUnderlyingChannel().keyFor(selector);
                             mySet.remove(clientKey);
                             Controller.logger().log(Level.INFO, "CLIENT QUEUE HAS ELEMENTS? : " + tcpConnector.getSelectorHandler().getAsyncQueueWriter().isReady(clientKey));
+                            Controller.logger().log(Level.INFO, "CLIENT PROCESSED? : " + tcpConnector.getSelectorHandler().getAsyncQueueWriter().getAsyncQueue(clientKey).processedDataSize);
+                            Controller.logger().log(Level.INFO, "TOTAL ELEMENTS SENT: " + sent);
+                            Controller.logger().log(Level.INFO, "TOTAL ELEMENTS: " + tcpConnector.getSelectorHandler().getAsyncQueueWriter().getAsyncQueue(clientKey).totalElementsCount);
                             for(SelectionKey key : mySet) {
                                 Controller.logger().log(Level.INFO, "KEY " + key + " QUEUE HAS ELEMENTS? : " + tcpConnector.getSelectorHandler().getAsyncQueueWriter().isReady(key));
                             }
