@@ -155,7 +155,7 @@ public interface Transport extends ConfigBeanProxy, Injectable {
 
     void setWriteTimeoutMillis(String value);
 
-    @Attribute
+    @Attribute(defaultValue="true")
     String getTcpNoDelay();
 
     void setTcpNoDelay(String noDelay);
