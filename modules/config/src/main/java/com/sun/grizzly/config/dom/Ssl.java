@@ -192,4 +192,12 @@ public interface Ssl extends ConfigBeanProxy, Injectable {
     String getTrustStorePassword();
 
     void setTrustStorePassword(String password);
+
+    /**
+     * Does SSL configuration allow implementation to initialize it lazily way
+     */
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    String getAllowLazyInit();
+
+    void setAllowLazyInit(String value);
 }
