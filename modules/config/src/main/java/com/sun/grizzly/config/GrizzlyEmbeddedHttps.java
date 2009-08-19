@@ -22,8 +22,10 @@
  */
 package com.sun.grizzly.config;
 
+import com.sun.grizzly.Context;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolChainInstanceHandler;
+import com.sun.grizzly.ProtocolChainInstruction;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.TCPSelectorHandler;
@@ -40,6 +42,7 @@ import com.sun.grizzly.ssl.SSLSelectorThreadHandler;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.ServerSocketFactory;
+import java.io.IOException;
 import org.jvnet.hk2.component.Habitat;
 
 import javax.net.ssl.SSLContext;
@@ -83,16 +86,26 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      */
     private boolean wantClientAuth = false;
 
+    private ProtocolFilter lazyInitializationFilter;
+
     public GrizzlyEmbeddedHttps(GrizzlyServiceListener grizzlyServiceListener) {
         super(grizzlyServiceListener);
     }
     // ---------------------------------------------------------------------/.
 
     @Override
-    protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol, Habitat habitat,
+    protected ProtocolChainInstanceHandler configureProtocol(
+            NetworkListener networkListener, Protocol protocol, Habitat habitat,
             boolean mayEnableComet) {
         if (protocol.getHttp() != null && toBoolean(protocol.getSecurityEnabled())) {
-            configureSSL(protocol.getSsl());
+            final Ssl ssl = protocol.getSsl();
+
+            if (ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit())) {
+                logger.log(Level.INFO, "Perform lazy SSL initialization for the listener '" + networkListener.getName() + "'");
+                lazyInitializationFilter = new LazySSLInitializationFilter(protocol.getSsl());
+            } else {
+                configureSSL(protocol.getSsl());
+            }
         }
 
         return super.configureProtocol(networkListener, protocol, habitat,
@@ -223,16 +236,24 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
      */
     @Override
     protected void configureFilters(final ProtocolChain protocolChain) {
+        if (lazyInitializationFilter != null) {
+            protocolChain.addFilter(lazyInitializationFilter);
+        } else {
+            doConfigureFilters(protocolChain);
+        }
+    }
+
+    private void doConfigureFilters(final ProtocolChain protocolChain) {
         if (portUnificationFilter != null) {
             portUnificationFilter.setContinuousExecution(false);
             protocolChain.addFilter(portUnificationFilter);
         } else {
             protocolChain.addFilter(createReadFilter());
         }
-        
+
         protocolChain.addFilter(createHttpParserFilter());
     }
-
+    
     /**
      * Create and configure <code>SSLReadFilter</code>
      *
@@ -408,5 +429,33 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
         serverSF.setAttribute(name, value == null ?
             System.getProperty(property, defaultValue) :
             value);
+    }
+
+    /**
+     * Lazy SSL initialization filter
+     */
+    public class LazySSLInitializationFilter implements ProtocolFilter {
+        private final Ssl ssl;
+        
+        public LazySSLInitializationFilter(Ssl ssl) {
+            this.ssl = ssl;
+        }
+
+        public boolean execute(Context ctx) throws IOException {
+            final ProtocolChain chain = ctx.getProtocolChain();
+            configureSSL(ssl);
+            doConfigureFilters(chain);
+            
+            return true;
+        }
+
+        public boolean postExecute(Context ctx) throws IOException {
+            final ProtocolChain chain = ctx.getProtocolChain();
+            chain.removeFilter(this);
+
+            ctx.setAttribute(ProtocolChain.PROTOCOL_CHAIN_POST_INSTRUCTION,
+                    ProtocolChainInstruction.REINVOKE);
+            return true;
+        }
     }
 }
