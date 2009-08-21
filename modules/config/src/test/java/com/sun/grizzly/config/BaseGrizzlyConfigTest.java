@@ -34,6 +34,7 @@ public class BaseGrizzlyConfigTest {
                 }
             }
         } catch (IOException e) {
+            e.printStackTrace();
             Assert.fail(e.getMessage(), e);
         }
         
