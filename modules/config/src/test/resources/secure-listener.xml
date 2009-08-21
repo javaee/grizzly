@@ -6,7 +6,7 @@
         <protocol name="https" security-enabled="true">
             <http/>
             <ssl key-store-type="PKCS12" trust-store-type="JKS" key-store="src/test/resources/s1as.p12"
-                 ssl3-enabled="false" cert-nickname="1"/>
+                 trust-store="src/test/resources/cacerts.jks" ssl3-enabled="false" cert-nickname="1"/>
         </protocol>
     </protocols>
     <network-listeners>
