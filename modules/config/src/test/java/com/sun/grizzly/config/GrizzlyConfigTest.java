@@ -1,19 +1,13 @@
 package com.sun.grizzly.config;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.List;
+
 import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.ThreadPool;
-import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.List;
 
 /**
  * Created Jan 5, 2009
@@ -22,7 +16,7 @@ import java.util.List;
  */
 @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
 @Test
-public class GrizzlyConfigTest {
+public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     public void processConfig() throws IOException, InstantiationException {
         GrizzlyConfig grizzlyConfig = null;
         try {
@@ -115,31 +109,5 @@ public class GrizzlyConfigTest {
                 grizzlyConfig.shutdown();
             }
         }
-    }
-
-    private String getContent(URLConnection connection) throws IOException {
-        final InputStream inputStream = connection.getInputStream();
-        InputStreamReader reader = new InputStreamReader(inputStream);
-        StringBuilder builder = new StringBuilder();
-        char[] buffer = new char[1024];
-        int read;
-        while(( read = reader.read(buffer)) != -1) {
-            builder.append(buffer, 0, read);
-        }
-
-        return builder.toString();
-    }
-
-    private void setRootFolder(GrizzlyServiceListener listener, int count) throws IOException {
-        final GrizzlyEmbeddedHttp http = listener.getEmbeddedHttp();
-        final StaticResourcesAdapter adapter = (StaticResourcesAdapter) http.getAdapter();
-        final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/grizzly-config-root" + count;
-        File dir = new File(name);
-        dir.mkdirs();
-        final FileWriter writer = new FileWriter(new File(dir, "index.html"));
-        writer.write("<html><body>You've found the server on port " + http.getPort() + "</body></html>");
-        writer.flush();
-        writer.close();
-        adapter.setRootFolder(name);
     }
 }

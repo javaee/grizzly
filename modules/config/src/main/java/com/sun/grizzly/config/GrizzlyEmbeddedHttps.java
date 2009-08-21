@@ -46,6 +46,7 @@ import java.io.IOException;
 import org.jvnet.hk2.component.Habitat;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
