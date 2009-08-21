@@ -160,13 +160,11 @@
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
             <version>${grizzly-version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-utils</artifactId>
             <version>${grizzly-version}</version>
-            <scope>provided</scope>
         </dependency>
 <!--        <dependency>
             <groupId>com.sun.grizzly</groupId>
@@ -191,15 +189,9 @@
             <artifactId>osgi-adapter</artifactId>
             <version>${hk2.version}</version>
         </dependency>
-        <dependency>
-            <groupId>stax</groupId>
-            <artifactId>stax</artifactId>
-            <version>1.2.0</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.82</hk2.version>
-        <hk2.plugin.version>0.3.82</hk2.plugin.version>
+        <hk2.version>0.3.83</hk2.version>
+        <hk2.plugin.version>0.3.83</hk2.plugin.version>
     </properties>
 </project>
