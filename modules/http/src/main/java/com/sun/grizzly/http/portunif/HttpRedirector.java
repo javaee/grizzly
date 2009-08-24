@@ -48,9 +48,11 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLEngine;
 
 /**
  * Utility class used to redirect an HTTP(s) request to another protocol and
@@ -141,19 +143,36 @@ public class HttpRedirector {
     public static final void redirectSSL(Context context, 
             PUProtocolRequest protocolRequest, boolean redirectToSecure) 
             throws IOException {
+        redirectSSL(context, protocolRequest.getSSLEngine(),
+                protocolRequest.getByteBuffer(),
+                protocolRequest.getSecuredOutputByteBuffer(), redirectToSecure);
+
+    }
+
+
+    /**
+     * Redirect a secure request (https) to http or https.
+     * @param context {@link Context} of the occured 
+     * {@link SelectionKey} event
+     * @param protocolRequest PortUnification protocol request information
+     * @param redirectToSecure if true - request will be redirected to 
+     * HTTPS protocol, otherwise HTTP
+     */
+    public static final void redirectSSL(Context context, SSLEngine sslEngine,
+            ByteBuffer byteBuffer, ByteBuffer outputBB, boolean redirectToSecure)
+            throws IOException {
         
-        String host = parseHost(protocolRequest.getByteBuffer());
+        String host = parseHost(byteBuffer);
         if (host == null){
             host = ipAddress + ":" + 
-                    ((SocketChannel) protocolRequest.getChannel()).
+                    ((SocketChannel) context.getSelectionKey().channel()).
                     socket().getLocalPort();
         }
         
-        redirectSSL(context, protocolRequest, redirectToSecure 
+        redirectSSL(context, sslEngine, outputBB, redirectToSecure
                 ? new String("Location: https://" + host)
                 : new String("Location: http://" + host));
     }
-
 
     /**
      * Redirect a secure request (https) to http or https.
@@ -163,19 +182,20 @@ public class HttpRedirector {
      * @param httpHeaders HTTP headers, which will be sent with response
      */
     private static final void redirectSSL(Context context, 
-            PUProtocolRequest protocolRequest, 
+            SSLEngine sslEngine, ByteBuffer outputBB,
             String httpHeaders) throws IOException {
 
-        SSLOutputWriter.flushChannel(protocolRequest.getChannel(),
+        final SelectableChannel channel = context.getSelectionKey().channel();
+        SSLOutputWriter.flushChannel(channel,
                 SC_FOUND.slice(),
-                protocolRequest.getSecuredOutputByteBuffer(),
-                protocolRequest.getSSLEngine());
-        SSLOutputWriter.flushChannel(protocolRequest.getChannel(),
+                outputBB,
+                sslEngine);
+        SSLOutputWriter.flushChannel(channel,
                 ByteBuffer.wrap((httpHeaders + 
-                context.getAttribute(HttpProtocolFinder.HTTP_REQUEST_URL) + 
+                new String((byte[]) context.getAttribute(HttpProtocolFinder.HTTP_REQUEST_URL)) +
                 headers).getBytes()),
-                protocolRequest.getSecuredOutputByteBuffer(),
-                protocolRequest.getSSLEngine());
+                outputBB,
+                sslEngine);
     }
    
     
@@ -206,14 +226,27 @@ public class HttpRedirector {
     public static final void redirect(Context context, 
             PUProtocolRequest protocolRequest, boolean redirectToSecure) 
             throws IOException {
-        
-        String host = parseHost(protocolRequest.getByteBuffer());
+        redirect(context, protocolRequest.getByteBuffer(), redirectToSecure);
+    }
+
+    /**
+     * Redirect a un-secure request (http) to http or https.
+     * @param context {@link Context} of the occured
+     * {@link SelectionKey} event
+     * @param protocolRequest PortUnification protocol request information
+     * @param redirectToSecure if true - request will be redirected to
+     * HTTPS protocol, otherwise HTTP
+     */
+    public static final void redirect(Context context, ByteBuffer byteBuffer,
+            boolean redirectToSecure) throws IOException {
+
+        String host = parseHost(byteBuffer);
         if (host == null){
-            host = ipAddress + ":" + 
-                    ((SocketChannel) protocolRequest.getChannel()).
+            host = ipAddress + ":" +
+                    ((SocketChannel) context.getSelectionKey().channel()).
                     socket().getLocalPort();
         }
-        redirect(context, protocolRequest, redirectToSecure 
+        redirect(context, redirectToSecure
                     ? new String("Location: https://" + host)
                     : new String("Location: http://" + host));
     }
@@ -225,15 +258,16 @@ public class HttpRedirector {
      * @param protocolRequest PortUnification protocol request information
      * @param httpHeaders HTTP headers, which will be sent with response
      */
-    private static final void redirect(Context context, 
-            PUProtocolRequest protocolRequest, String httpHeaders)
+    private static final void redirect(Context context, String httpHeaders)
             throws IOException{
 
-        OutputWriter.flushChannel(protocolRequest.getChannel(),
+        final SelectableChannel channel = context.getSelectionKey().channel();
+        
+        OutputWriter.flushChannel(channel,
                 SC_FOUND.slice());
-        OutputWriter.flushChannel(protocolRequest.getChannel(),
+        OutputWriter.flushChannel(channel,
                 ByteBuffer.wrap((httpHeaders + 
-                context.getAttribute(HttpProtocolFinder.HTTP_REQUEST_URL) +
+                new String((byte[]) context.getAttribute(HttpProtocolFinder.HTTP_REQUEST_URL)) +
                 headers).getBytes()));
     }
  
