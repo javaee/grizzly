@@ -63,6 +63,7 @@ import org.apache.coyote.*;
 import java.io.*;
 import java.net.*;
 import java.util.*;
+import org.apache.catalina.util.ServerInfo;
 import org.apache.tomcat.util.res.StringManager;
 import org.apache.tomcat.util.threads.ThreadPool;
 import org.apache.tomcat.util.threads.ThreadWithAttributes;
@@ -208,8 +209,7 @@ public class Http11Protocol implements ProtocolHandler, MBeanRegistration
             throw ex;
         }
         log.info(sm.getString("http11protocol.init", "" + ep.getPort(),
-                System.getProperty("product.name")));
-
+                 ServerInfo.getServerInfo()));
     }
     
     ObjectName tpOname;
@@ -241,7 +241,7 @@ public class Http11Protocol implements ProtocolHandler, MBeanRegistration
             throw ex;
         }
         log.info(sm.getString("http11protocol.start", "" + ep.getPort(),
-                System.getProperty("product.name")));
+                 ServerInfo.getServerInfo()));
     }
 
     public void destroy() throws Exception {

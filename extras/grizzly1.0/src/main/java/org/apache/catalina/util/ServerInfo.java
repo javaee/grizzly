@@ -57,10 +57,8 @@
 
 package org.apache.catalina.util;
 
-
 import java.io.InputStream;
 import java.util.Properties;
-
 
 /**
  * Simple utility module to make it easy to plug in the server identifier
@@ -80,6 +78,13 @@ public class ServerInfo {
      * The server information String with which we identify ourselves.
      */
     private static String serverInfo = null;
+
+    /**
+     * The public server information string that is exposed in
+     * container-generated error pages and as the value of the "Server"
+     * HTTP response header
+     */
+    private static String publicServerInfo = null;
 
     static {
 
@@ -115,10 +120,15 @@ public class ServerInfo {
      * Return the server identification for this version of Tomcat.
      */
     public static String getServerInfo() {
-
-        return (serverInfo);
-
+        return serverInfo;
     }
 
+    public static void setPublicServerInfo(String info) {
+        publicServerInfo = info;
+    }
+
+    public static String getPublicServerInfo() {
+        return publicServerInfo;
+    }
 
 }

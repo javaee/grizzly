@@ -338,8 +338,7 @@ public class Http11Processor implements Processor, ActionHook {
 
     private boolean useKeepAliveAlgorithm = true;
     // END OF SJSAS PE 8.1 5036984
-    
-    
+        
     // START OF SJSAS PE 8.1 6172948
     /**
      * The input request buffer size.
@@ -1407,7 +1406,10 @@ public class Http11Processor implements Processor, ActionHook {
         //response.addHeader("Server", ServerInfo.getServerInfo());
         // END SJSAS 5022949
         // START SJSAS 6415934
-        response.addHeader("Server", System.getProperty("product.name"));
+        String serverHeader = ServerInfo.getPublicServerInfo();
+        if (serverHeader != null && !"".equals(serverHeader)) {
+            response.addHeader("Server", serverHeader);
+        }
         // END SJSAS 6415934
 
         // Add transfer encoding header
