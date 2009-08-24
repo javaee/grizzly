@@ -81,7 +81,7 @@ public class GrizzlyServiceListener {
 
     private void initializeListener(NetworkListener networkListener, Habitat habitat) {
         isEmbeddedHttpSecured = Boolean.parseBoolean(
-                networkListener.findProtocol().getSecurityEnabled());
+                networkListener.findHttpProtocol().getSecurityEnabled());
         embeddedHttp = createEmbeddedHttp(isEmbeddedHttpSecured);
 
         embeddedHttp.setController(controller);
