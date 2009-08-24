@@ -305,7 +305,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             defaultVirtualServer = http.getDefaultVirtualServer();
             // acceptor-threads
 
-            if (mayEnableComet && toBoolean(http.getEnableCometSupport())) {
+            if (mayEnableComet && toBoolean(http.getCometSupportEnabled())) {
                 configureComet(habitat);
             }
 
@@ -499,9 +499,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
 
         setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
-        if (http.getEnableAuthPassThrough() != null) {
-            setProperty("authPassthroughEnabled", toBoolean(http.getEnableAuthPassThrough()));
-        }
+        setProperty("authPassthroughEnabled", toBoolean(http.getAuthPassThroughEnabled()));
         setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
         setCompression(http.getCompression());
         setCompressableMimeTypes(http.getCompressableMimeType());
@@ -513,12 +511,10 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (http.getRestrictedUserAgents() != null) {
             setRestrictedUserAgents(http.getRestrictedUserAgents());
         }
-        enableRcmSupport(toBoolean(http.getEnableRcmSupport()));
+        enableRcmSupport(toBoolean(http.getRcmSupportEnabled()));
         setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
-        if (http.getDisableUploadTimeout() != null) {
-            setDisableUploadTimeout(toBoolean(http.getDisableUploadTimeout()));
-        }
-        setProperty("chunking-disabled", toBoolean(http.getChunkingDisabled()));
+        setDisableUploadTimeout(toBoolean(http.getUploadTimeoutEnabled()));
+        setProperty("chunking-enabled", toBoolean(http.getChunkingEnabled()));
         setProperty("uriEncoding", http.getUriEncoding());
 
         if (http.getTraceEnabled() != null) {

@@ -142,7 +142,7 @@ public interface Transport extends ConfigBeanProxy, Injectable {
     /**
      * The time, in milliseconds, a NIO Selector will block waiting for events (users requests).
      */
-    @Attribute
+    @Attribute(defaultValue = "1000")
     String getSelectorPollTimeoutMillis();
 
     void setSelectorPollTimeoutMillis(String timeout);
