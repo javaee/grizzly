@@ -57,7 +57,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -65,6 +64,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.lang.management.ManagementFactory;
+import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
  * Implementation of Grizzly embedded HTTP listener
@@ -89,7 +89,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     private int threadPoolTimeoutSeconds = 0;
 
     // Port unification settings
-    protected String puFilterClassname;
+    protected PUReadFilter puFilter;
     protected final List<ProtocolFinder> finders = new ArrayList<ProtocolFinder>();
     protected final List<ProtocolHandler> handlers = new ArrayList<ProtocolHandler>();
     protected final List<PUPreProcessor> preprocessors = new ArrayList<PUPreProcessor>();
@@ -314,12 +314,25 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             // Port unification
 
             PortUnification pu = protocol.getPortUnification();
-            puFilterClassname = pu.getClassname();
+            final String puFilterClassname = pu.getClassname();
+            if (puFilterClassname != null) {
+                try {
+                    puFilter = (PUReadFilter) newInstance(puFilterClassname);
+                    configureElement(puFilter, pu);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING,
+                            "Can not initialize port unification filter: " +
+                            puFilterClassname + " default filter will be used instead", e);
+                }
+            }
+
             List<com.sun.grizzly.config.dom.ProtocolFinder> findersConfig = pu.getProtocolFinder();
             for (com.sun.grizzly.config.dom.ProtocolFinder finderConfig : findersConfig) {
                 String finderClassname = finderConfig.getClassname();
                 try {
                     ProtocolFinder protocolFinder = (ProtocolFinder) newInstance(finderClassname);
+                    configureElement(protocolFinder, finderConfig);
+                    
                     Protocol subProtocol = finderConfig.findProtocol();
                     
                     ProtocolChainInstanceHandler protocolChain =
@@ -370,6 +383,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             if (protocolChainClassname != null) {
                 try {
                     protocolChain = (ProtocolChain) newInstance(protocolChainClassname);
+                    configureElement(protocolChain, protocolChainConfig);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize protocol chain: " +
                             protocolChainClassname + ". Default one will be used", e);
@@ -384,6 +398,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                 String filterClassname = protocolFilterConfig.getClassname();
                 try {
                     ProtocolFilter filter = (ProtocolFilter) newInstance(filterClassname);
+                    configureElement(filter, protocolFilterConfig);
                     protocolChain.addFilter(filter);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize protocol filter: " +
@@ -435,16 +450,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     public void configurePortUnification(List<ProtocolFinder> protocolFinders,
             List<ProtocolHandler> protocolHandlers,
             List<PUPreProcessor> preProcessors) {
-        if (puFilterClassname != null) {
-            try {
-                PUReadFilter puReadFilter = (PUReadFilter) newInstance(puFilterClassname);
-                puReadFilter.configure(protocolFinders, protocolHandlers, preProcessors);
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "Can not initialize port unification filter: "
-                        + puFilterClassname + " default filter will be used instead", e);
-                super.configurePortUnification(protocolFinders, protocolHandlers,
-                        preProcessors);
-            }
+        if (puFilter != null) {
+            puFilter.configure(protocolFinders, protocolHandlers, preProcessors);
         } else {
             super.configurePortUnification(protocolFinders, protocolHandlers,
                     preProcessors);
@@ -633,5 +640,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
 
         return clazz;
+    }
+
+    private static void configureElement(Object instance,
+            ConfigBeanProxy configuration) {
+        if (instance instanceof ConfigAwareElement) {
+            ((ConfigAwareElement) instance).configure(configuration);
+        }
     }
 }
