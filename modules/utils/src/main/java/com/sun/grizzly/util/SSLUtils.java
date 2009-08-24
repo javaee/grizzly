@@ -260,9 +260,13 @@ public class SSLUtils {
             }
         }
 
-        inputBB.flip();        
-        SSLEngineResult result = sslEngine.unwrap(inputBB, byteBuffer);
-        inputBB.compact();
+        inputBB.flip();
+        SSLEngineResult result;
+        try {
+            result = sslEngine.unwrap(inputBB, byteBuffer);
+        } finally {
+            inputBB.compact();
+        }
         
         // Logging block
         if (LoggerUtils.getLogger().isLoggable(Level.FINE)) {
