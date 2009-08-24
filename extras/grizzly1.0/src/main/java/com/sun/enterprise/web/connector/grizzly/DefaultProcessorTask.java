@@ -709,21 +709,22 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                 adapter.fireAdapterEvent(Adapter.REQUEST_PROCESSING_STARTED, 
                         request.getRequestProcessor());
             }
-            
-            int soTimeout = ((ByteBufferInputStream)input).getReadTimeout();
-           
-            if (useKeepAliveAlgorithm) {
-                float threadRatio =
-                        (float) getPipeline().getCurrentThreadsBusy()
-                        / (float) getPipeline().getMaxThreads();
 
-                if ((threadRatio > 0.33) && (threadRatio <= 0.66)) {
-                    soTimeout = soTimeout / 2;
-                } else if (threadRatio > 0.66) {
-                    soTimeout = soTimeout / 5;
-                    keepAliveLeft = 1;
+            if (!isBlockingStream(input)) {
+                int soTimeout = ((ByteBufferInputStream) input).getReadTimeout();
+
+                if (useKeepAliveAlgorithm) {
+                    float threadRatio =
+                            (float) getPipeline().getCurrentThreadsBusy() / (float) getPipeline().getMaxThreads();
+
+                    if ((threadRatio > 0.33) && (threadRatio <= 0.66)) {
+                        soTimeout = soTimeout / 2;
+                    } else if (threadRatio > 0.66) {
+                        soTimeout = soTimeout / 5;
+                        keepAliveLeft = 1;
+                    }
+                    ((ByteBufferInputStream) input).setReadTimeout(soTimeout);
                 }
-                ((ByteBufferInputStream)input).setReadTimeout(soTimeout);
             }
             
             
@@ -740,7 +741,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                 return true;
             }
 
-            if (!disableUploadTimeout && getSelectionKey() != null) {
+            if (!isBlockingStream(input) && !disableUploadTimeout && getSelectionKey() != null) {
                 ((ByteBufferInputStream)input).setReadTimeout(uploadTimeout);
             }
             
@@ -2249,6 +2250,9 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     public boolean getDisableUploadTimeout() {
         return disableUploadTimeout;
     }
-     
+
+    public static final boolean isBlockingStream(InputStream inputStream) {
+        return !(inputStream instanceof ByteBufferInputStream);
+    }
 }
 
