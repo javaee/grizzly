@@ -55,9 +55,9 @@ public interface Http extends ConfigBeanProxy, Injectable {
     void setAdapter(String adapter);
 
     @Attribute(defaultValue = "true")
-    String getChunkingDisabled();
+    String getChunkingEnabled();
 
-    void setChunkingDisabled(String disabled);
+    void setChunkingEnabled(String enabled);
 
     @Attribute(defaultValue = "false")
     String getCompression();
@@ -96,18 +96,18 @@ public interface Http extends ConfigBeanProxy, Injectable {
 
     void setDefaultVirtualServer(final String defaultVirtualServer);
 
-    @Attribute
-    String getDisableUploadTimeout();
+    @Attribute(defaultValue = "false")
+    String getUploadTimeoutEnabled();
 
-    void setDisableUploadTimeout(String disable);
+    void setUploadTimeoutEnabled(String disable);
 
     /**
      * Enable pass through of authentication from any front-end server
      */
-    @Attribute
-    String getEnableAuthPassThrough();
+    @Attribute(defaultValue = "false")
+    String getAuthPassThroughEnabled();
 
-    void setEnableAuthPassThrough(String bool);
+    void setAuthPassThroughEnabled(String bool);
 
     /**
      * Enable comet support for this http instance.  The default for this is false until enabling comet support but not
@@ -115,19 +115,19 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * feature is.
      */
     @Attribute(defaultValue = "false")
-    String getEnableCometSupport();
+    String getCometSupportEnabled();
 
-    void setEnableCometSupport(String enable);
-
-    @Attribute(defaultValue = "false")
-    String getEnableDnsLookup();
-
-    void setEnableDnsLookup(String enable);
+    void setCometSupportEnabled(String enable);
 
     @Attribute(defaultValue = "false")
-    String getEnableRcmSupport();
+    String getDnsLookupEnabled();
 
-    void setEnableRcmSupport(String enable);
+    void setDnsLookupEnabled(String enable);
+
+    @Attribute(defaultValue = "false")
+    String getRcmSupportEnabled();
+
+    void setRcmSupportEnabled(String enable);
 
     /**
      * Gets the value of the fileCache property.
@@ -222,7 +222,7 @@ public interface Http extends ConfigBeanProxy, Injectable {
 
     void setTimeoutSeconds(String timeout);
 
-    @Attribute
+    @Attribute(defaultValue = "true")
     String getTraceEnabled();
 
     void setTraceEnabled(String enabled);
