@@ -90,13 +90,15 @@ public class NoParsingHandler implements Handler<Request> {
      * Intercept the request and decide if we cache the static resource. If the
      * static resource is already cached, return it.
      */
-    public int handle(Request request, int handlerCode) throws IOException{     
+    public int handle(Request request, int handlerCode) throws IOException{
+        if (fileCache == null) return Handler.CONTINUE;
+        
         if (handlerCode == Handler.RESPONSE_PROCEEDED && fileCache.isEnabled()){
             String docroot = SelectorThread.getWebAppRootPath();
             String uri = request.requestURI().toString();
             fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,uri,
                           request.getResponse().getMimeHeaders(),false);
-        } else if ( handlerCode == Handler.HEADERS_PARSED ) {
+        } else if ( handlerCode == Handler.HEADERS_PARSED) {
             ByteChunk bc = request.requestURI().getByteChunk();
             
             if ( fileCache.sendCache(bc.getBytes(),bc.getStart(), 
