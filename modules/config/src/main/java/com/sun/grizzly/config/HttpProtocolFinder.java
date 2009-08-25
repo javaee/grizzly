@@ -152,7 +152,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
                     logger.log(Level.FINE, "handshake failed", ex);
                 }
                 // DO nothing, as the client closed the connection
-                } catch (Exception ex) {
+            } catch (Exception ex) {
                 // An exception means the handshake failed.
                 if (isloglevelfine) {
                     logger.log(Level.FINE, "handshake failed", ex);
