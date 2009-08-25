@@ -35,6 +35,7 @@
  */
 package com.sun.enterprise.web.connector.grizzly;
 
+import com.sun.enterprise.web.connector.grizzly.async.AsyncProcessorTask;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
@@ -181,8 +182,24 @@ public class AsyncReadTask extends DefaultReadTask {
             registerKey(); 
             returnTask();
         } else {
-            // Do not return AsyncReadTask to queue
-            finishConnection();
+            // Workaround issue CR 6790295, 6832869
+            if (processorTask != null) {
+                ProcessorTask recycleProcessorTask = processorTask;
+                if (recycleProcessorTask instanceof AsyncProcessorTask) {
+                    recycleProcessorTask = ((AsyncProcessorTask) recycleProcessorTask).getProcessorTask();
+                }
+
+                try {
+                    if (recycleProcessorTask != null) {
+                        recycleProcessorTask.postProcess();
+                    }
+                } catch (Exception e) {
+                    SelectorThread.logger().log(Level.WARNING,
+                            "postProcess DefaultProcessorTask:", e);
+                }
+            }
+
+            super.terminate(keepAlive);
         }
     }
     
