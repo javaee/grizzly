@@ -223,6 +223,7 @@ public class TLSPUPreProcessor implements PUPreProcessor {
                     logger.log(Level.FINE, "handshake failed", ex);
                 }
                 
+                inputBB.flip();
                 byteBuffer.put(inputBB);
             }
         } else { // Handshake was completed on prev step
