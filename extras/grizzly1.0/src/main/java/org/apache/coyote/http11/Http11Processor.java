@@ -338,7 +338,7 @@ public class Http11Processor implements Processor, ActionHook {
 
     private boolean useKeepAliveAlgorithm = true;
     // END OF SJSAS PE 8.1 5036984
-        
+
     // START OF SJSAS PE 8.1 6172948
     /**
      * The input request buffer size.
