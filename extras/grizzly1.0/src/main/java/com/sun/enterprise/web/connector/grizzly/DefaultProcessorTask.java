@@ -59,6 +59,7 @@ import java.io.OutputStream;
 
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.channels.SocketChannel;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
@@ -710,21 +711,19 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                         request.getRequestProcessor());
             }
 
-            if (!isBlockingStream(input)) {
-                int soTimeout = ((ByteBufferInputStream) input).getReadTimeout();
+            int soTimeout = getSoTimeout(input);
 
-                if (useKeepAliveAlgorithm) {
-                    float threadRatio =
-                            (float) getPipeline().getCurrentThreadsBusy() / (float) getPipeline().getMaxThreads();
+            if (useKeepAliveAlgorithm) {
+                float threadRatio =
+                        (float) getPipeline().getCurrentThreadsBusy() / (float) getPipeline().getMaxThreads();
 
-                    if ((threadRatio > 0.33) && (threadRatio <= 0.66)) {
-                        soTimeout = soTimeout / 2;
-                    } else if (threadRatio > 0.66) {
-                        soTimeout = soTimeout / 5;
-                        keepAliveLeft = 1;
-                    }
-                    ((ByteBufferInputStream) input).setReadTimeout(soTimeout);
+                if ((threadRatio > 0.33) && (threadRatio <= 0.66)) {
+                    soTimeout = soTimeout / 2;
+                } else if (threadRatio > 0.66) {
+                    soTimeout = soTimeout / 5;
+                    keepAliveLeft = 1;
                 }
+                setSoTimeout(input, soTimeout);
             }
             
             
@@ -741,8 +740,8 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                 return true;
             }
 
-            if (!isBlockingStream(input) && !disableUploadTimeout && getSelectionKey() != null) {
-                ((ByteBufferInputStream)input).setReadTimeout(uploadTimeout);
+            if (!disableUploadTimeout && (getSelectionKey() != null) || isBlockingStream(input)) {
+                setSoTimeout(input, uploadTimeout);
             }
             
             if (maxKeepAliveRequests > 0 && --keepAliveLeft == 0) {
@@ -2251,7 +2250,23 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
         return disableUploadTimeout;
     }
 
-    public static final boolean isBlockingStream(InputStream inputStream) {
+    private int getSoTimeout(InputStream input) throws SocketException {
+        if (isBlockingStream(input)) {
+            return socket.getSoTimeout();
+        } else {
+            return ((ByteBufferInputStream) input).getReadTimeout();
+        }
+    }
+
+    private void setSoTimeout(InputStream input, int soTimeout) throws SocketException {
+        if (isBlockingStream(input)) {
+            socket.setSoTimeout(soTimeout);
+        } else {
+            ((ByteBufferInputStream) input).setReadTimeout(soTimeout);
+        }
+    }
+
+    private static final boolean isBlockingStream(InputStream inputStream) {
         return !(inputStream instanceof ByteBufferInputStream);
     }
 }
