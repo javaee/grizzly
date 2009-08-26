@@ -55,6 +55,14 @@ import com.sun.grizzly.comet.CometHandler;
 import java.util.logging.Logger;
 
 public class AjaxCometServlet extends HttpServlet {
+    private static final String BEGIN_SCRIPT_TAG = "<script type='text/javascript'>\n";
+    private static final String END_SCRIPT_TAG = "</script>\n";
+    private static final Logger logger = Logger.getLogger("grizzly");
+    private static final long serialVersionUID = -2919167206889576860L;
+    private String contextPath;
+    private final static String JUNK = "<!-- Comet is a programming technique that enables web " +
+            "servers to send data to the client without having any need " +
+            "for the client to request it. -->\n";
 
     public class ChatListnerHandler implements CometHandler<PrintWriter> {
 
@@ -98,16 +106,6 @@ public class AjaxCometServlet extends HttpServlet {
         }
     }
 
-    private static final String BEGIN_SCRIPT_TAG = "<script type='text/javascript'>\n";
-
-    private static final String END_SCRIPT_TAG = "</script>\n";
-
-    private static final Logger logger = Logger.getLogger("grizzly");
-
-    private static final long serialVersionUID = -2919167206889576860L;
-
-    private String contextPath;
-
     @Override
     public void init(ServletConfig config) throws ServletException {
         contextPath = config.getServletContext().getContextPath() + "/chat";
@@ -121,10 +119,13 @@ public class AjaxCometServlet extends HttpServlet {
         res.setContentType("text/html");
         res.setHeader("Cache-Control", "private");
         res.setHeader("Pragma", "no-cache");
-        
+
         PrintWriter writer = res.getWriter();
-        // for IE
-        writer.println("<!-- Comet is a programming technique that enables web servers to send data to the client without having any need for the client to request it. -->\n");
+        // For IE, Safari and Chrome, we must output some junk to enable
+        // streaming
+        for (int i = 0; i < 10; i++) {
+            res.getWriter().write(JUNK);
+        }
         writer.flush();
 
         ChatListnerHandler handler = new ChatListnerHandler();
@@ -148,7 +149,7 @@ public class AjaxCometServlet extends HttpServlet {
         CometContext context = CometEngine.getEngine().register(contextPath);
 
         logger.info("req.getParameter(\"action\") => {}" + action);
- 
+
         if ("login".equals(action)) {
             context.notify(BEGIN_SCRIPT_TAG + toJsonp("System Message", name + " has joined.") + END_SCRIPT_TAG);
 
@@ -169,41 +170,41 @@ public class AjaxCometServlet extends HttpServlet {
         for (int i = 0; i < orig.length(); i++) {
             char c = orig.charAt(i);
             switch (c) {
-            case '\b':
-                buffer.append("\\b");
-                break;
-            case '\f':
-                buffer.append("\\f");
-                break;
-            case '\n':
-                buffer.append("<br />");
-                break;
-            case '\r':
-                // ignore
-                break;
-            case '\t':
-                buffer.append("\\t");
-                break;
-            case '\'':
-                buffer.append("\\'");
-                break;
-            case '\"':
-                buffer.append("\\\"");
-                break;
-            case '\\':
-                buffer.append("\\\\");
-                break;
-            case '<':
-                buffer.append("&lt;");
-                break;
-            case '>':
-                buffer.append("&gt;");
-                break;
-            case '&':
-                buffer.append("&amp;");
-                break;
-            default:
-                buffer.append(c);
+                case '\b':
+                    buffer.append("\\b");
+                    break;
+                case '\f':
+                    buffer.append("\\f");
+                    break;
+                case '\n':
+                    buffer.append("<br />");
+                    break;
+                case '\r':
+                    // ignore
+                    break;
+                case '\t':
+                    buffer.append("\\t");
+                    break;
+                case '\'':
+                    buffer.append("\\'");
+                    break;
+                case '\"':
+                    buffer.append("\\\"");
+                    break;
+                case '\\':
+                    buffer.append("\\\\");
+                    break;
+                case '<':
+                    buffer.append("&lt;");
+                    break;
+                case '>':
+                    buffer.append("&gt;");
+                    break;
+                case '&':
+                    buffer.append("&amp;");
+                    break;
+                default:
+                    buffer.append(c);
             }
         }
 

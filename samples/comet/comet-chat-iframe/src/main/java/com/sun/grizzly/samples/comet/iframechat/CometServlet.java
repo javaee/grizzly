@@ -49,148 +49,138 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-
 /**
  * Simple CometChat.
  *
  * @author Jeanfrancois Arcand
  */
-public class CometServlet extends HttpServlet{
-    
+public class CometServlet extends HttpServlet {
+    private final static String JUNK = "<!-- Comet is a programming technique that enables web " +
+            "servers to send data to the client without having any need " +
+            "for the client to request it. -->\n";
     private String contextPath;
-    
     static int firstServlet = -1;
-     
+
     public CometServlet() {
     }
 
-    public void init(ServletConfig config) throws ServletException { 
+    public void init(ServletConfig config) throws ServletException {
         super.init(config);
         contextPath = config.getServletContext().getContextPath() + "/chat";
         CometEngine cometEngine = CometEngine.getEngine();
-        CometContext context = cometEngine.register(contextPath);    
+        CometContext context = cometEngine.register(contextPath);
         context.setExpirationDelay(5 * 60 * 1000);
     }
-   
-    
-    public void doGet(HttpServletRequest request, HttpServletResponse response) 
-                                        throws ServletException, IOException {
-        doPost(request,response);
-    }   
-    
-    
-    public void doPost(HttpServletRequest request, HttpServletResponse response) 
-                                        throws ServletException, IOException {
-        
-            String action = request.getParameter("action");
-            CometEngine cometEngine = CometEngine.getEngine();
-            CometContext cometContext = cometEngine.getCometContext(contextPath);
 
-            if (action != null) {              
-                if ("login".equals(action)) {
-                    String username = request.getParameter("username");
-                    request.getSession(true).setAttribute("username", username);                    
-                             
-                    if (firstServlet != -1){
-                         cometContext.notify("User " + username 
-                          + " from " + request.getRemoteAddr()
-                          + " is joinning the chat.<br/>",CometEvent.NOTIFY,
-                                 firstServlet); 
-                    }
-                    
-                    response.sendRedirect("chat.html");
-                    return;
-                } else if ("post".equals(action)){
-                    String username = (String) request.getSession(true)
-                        .getAttribute("username");
-                    String message = request.getParameter("message");
-                    cometContext.notify("[ " + username + " ]  " 
-                            + message + "<br/>");
-                    response.sendRedirect("post.html");   
-                    return;
-                } else if ("openchat".equals(action)) {
-                    response.setContentType("text/html");
-                    String username = (String) request.getSession(true)
-                        .getAttribute("username");
-                    response.getWriter().println("<h2>Welcome " 
-                            + username + " </h2>");
-                    
-                    CometRequestHandler handler = new CometRequestHandler();
-                    handler.clientIP = request.getRemoteAddr();
-                    handler.attach(response.getWriter());
-                    cometContext.addCometHandler(handler);
-                    return;
-                } else if ("openchat_admin".equals(action)) {
-                    response.setContentType("text/html");
-                    CometRequestHandler handler = new CometRequestHandler();
-                    handler.attach(response.getWriter());
-                    if (firstServlet == -1){
-                        handler.clientIP = request.getRemoteAddr();
-                        firstServlet = cometContext.addCometHandler(handler);
-                        response.getWriter().println("<h2>Master Chat Window</h2>");
-                    } else {
-                        response.getWriter()
-                            .println("<h2>Moderator already logged</h2>");
-                    }
-                    return;
+    public void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        doPost(request, response);
+    }
+
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        String action = request.getParameter("action");
+        CometEngine cometEngine = CometEngine.getEngine();
+        CometContext cometContext = cometEngine.getCometContext(contextPath);
+
+        if (action != null) {
+            if ("login".equals(action)) {
+                String username = request.getParameter("username");
+                request.getSession(true).setAttribute("username", username);
+
+                if (firstServlet != -1) {
+                    cometContext.notify("User " + username + " from " + request.getRemoteAddr() + " is joinning the chat.<br/>", CometEvent.NOTIFY,
+                            firstServlet);
                 }
-                
-            } 
+
+                response.sendRedirect("chat.html");
+                return;
+            } else if ("post".equals(action)) {
+                String username = (String) request.getSession(true).getAttribute("username");
+                String message = request.getParameter("message");
+                cometContext.notify("[ " + username + " ]  " + message + "<br/>");
+                response.sendRedirect("post.html");
+                return;
+            } else if ("openchat".equals(action)) {
+                // For IE, Safari and Chrome, we must output some junk to enable
+                // streaming
+                for (int i = 0; i < 10; i++) {
+                    response.getWriter().write(JUNK);
+                }
+                response.getWriter().flush();
+                response.setContentType("text/html");
+                String username = (String) request.getSession(true).getAttribute("username");
+                response.getWriter().println("<h2>Welcome " + username + " </h2>");
+
+                CometRequestHandler handler = new CometRequestHandler();
+                handler.clientIP = request.getRemoteAddr();
+                handler.attach(response.getWriter());
+                cometContext.addCometHandler(handler);
+                return;
+            } else if ("openchat_admin".equals(action)) {
+                response.setContentType("text/html");
+                CometRequestHandler handler = new CometRequestHandler();
+                handler.attach(response.getWriter());
+                if (firstServlet == -1) {
+                    handler.clientIP = request.getRemoteAddr();
+                    firstServlet = cometContext.addCometHandler(handler);
+                    response.getWriter().println("<h2>Master Chat Window</h2>");
+                } else {
+                    response.getWriter().println("<h2>Moderator already logged</h2>");
+                }
+                return;
+            }
+
+        }
     }
 
     // --------------------------------------------------------- Async Hook ---/
+    public class CometRequestHandler implements CometHandler<PrintWriter> {
 
-    public class CometRequestHandler implements CometHandler<PrintWriter>{
-        
         private PrintWriter printWriter;
-        
         public String clientIP;
-        
-        public void attach(PrintWriter printWriter){
+
+        public void attach(PrintWriter printWriter) {
             this.printWriter = printWriter;
         }
-                
-                
-        public void onEvent(CometEvent event) throws IOException{   
-            try{
-                
-                if (firstServlet != -1 && this.hashCode() != firstServlet){
-                     event.getCometContext().notify("User " + clientIP
-                      + " is getting a new message.<br/>",CometEvent.NOTIFY,
-                             firstServlet); 
-                }      
-                if ( event.getType() != CometEvent.READ ){
+
+        public void onEvent(CometEvent event) throws IOException {
+            try {
+
+                if (firstServlet != -1 && this.hashCode() != firstServlet) {
+                    event.getCometContext().notify("User " + clientIP + " is getting a new message.<br/>", CometEvent.NOTIFY,
+                            firstServlet);
+                }
+                if (event.getType() != CometEvent.READ) {
                     printWriter.println(event.attachment());
                     printWriter.flush();
                 }
-            } catch (Throwable t){
-               t.printStackTrace(); 
-            }  
+            } catch (Throwable t) {
+                t.printStackTrace();
+            }
         }
 
-        
-        public void onInitialize(CometEvent event) throws IOException{  
+        public void onInitialize(CometEvent event) throws IOException {
             printWriter.println("<!doctype html public \"-//w3c//dtd html 4.0 transitional//en\">");
             printWriter.println("<html><head><title>Chat</title></head><body bgcolor=\"#FFFFFF\">");
             printWriter.flush();
         }
 
-
-        public void onTerminate(CometEvent event) throws IOException{
+        public void onTerminate(CometEvent event) throws IOException {
             onInterrupt(event);
         }
 
+        public void onInterrupt(CometEvent event) throws IOException {
 
-        public void onInterrupt(CometEvent event) throws IOException{
-            
             if (this.hashCode() == firstServlet) {
                 firstServlet = -1;
             }
-            
+
             printWriter.println("Chat closed<br/>");
             printWriter.println("</body></html>");
             printWriter.flush();
             printWriter.close();
-        }        
+        }
     }
 }
