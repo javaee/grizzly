@@ -60,7 +60,9 @@ import javax.servlet.http.HttpServletResponse;
  * @author Greg Murray
  */
 public class CometServlet extends HttpServlet{
-    
+    private final static String JUNK = "<!-- Comet is a programming technique that enables web " +
+            "servers to send data to the client without having any need " +
+            "for the client to request it. -->\n";
     private static final long DEFAULT_EXPIRATION_DELAY = 60 * 6 * 1000;
     
     /**
@@ -128,6 +130,12 @@ public class CometServlet extends HttpServlet{
                 return;
             } else if ("start".equals(action)) {
                 response.setContentType("text/html");
+                // For IE, Safari and Chrome, we must output some junk to enable
+                // streaming
+                for (int i = 0; i < 10; i++) {
+                    response.getWriter().write(JUNK);
+                }
+                response.getWriter().flush();
                 String callback = request.getParameter("callback");
                 if (callback== null) {callback = "alert";}
                 

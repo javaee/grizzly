@@ -76,30 +76,25 @@ public class TwitterServlet extends HttpServlet {
 
     // How long a suspended connection can be idle. -1 means no timeour
     private static final long DEFAULT_EXPIRATION_DELAY = -1;
-
     // {@link ServletContext}
     private ServletContext servletContext;
-    
     // Simple transaction counter
     private int counter;
-    
     // Begin Script
     private static final String BEGIN_SCRIPT_TAG = "<script type='text/javascript'>\n";
-    
     //End script
     private static final String END_SCRIPT_TAG = "</script>\n";
-    
     // Grizzly Logger
     private static final Logger logger = LoggerUtils.getLogger();
-    
     // Unique id
     private static final long serialVersionUID = -2919167206889576860L;
-    
     // Before suspending message
     private String startingMessage = "<html><head><title>Griztter</title></head><body bgcolor=\"#FFFFFF\">";
-    
     // When terminate or interrupted event happens.
     private String endingMessage = "Griztter closed<br/>\n</body></html>";
+    private final static String JUNK = "<!-- Comet is a programming technique that enables web " +
+            "servers to send data to the client without having any need " +
+            "for the client to request it. -->\n";
 
     public TwitterServlet() {
     }
@@ -156,8 +151,8 @@ public class TwitterServlet extends HttpServlet {
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
 
-        String action = request.getParameter("action");       
-                        
+        String action = request.getParameter("action");
+
         String sessionId = request.getSession().getId();
         HttpSession session = request.getSession();
         CometContext twitterContext = (CometContext) session.getAttribute(sessionId);
@@ -171,127 +166,127 @@ public class TwitterServlet extends HttpServlet {
                 response.setHeader("Pragma", "no-cache");
 
                 response.setCharacterEncoding("UTF-8");
-                               
-                String name = request.getParameter("name"); 
-                
+
+                String name = request.getParameter("name");
+
                 if (name == null) {
                     logger.severe("Name cannot be null");
                     return;
                 }
-                
+
                 session.setAttribute("name", name);
-                
-                CometHandler ch = (CometHandler)session.getAttribute("handler");
-                twitterContext.notify(BEGIN_SCRIPT_TAG
-                        + toJsonp("Welcome back", name) 
-                        + END_SCRIPT_TAG, CometEvent.NOTIFY, ch);
-                
+
+                CometHandler ch = (CometHandler) session.getAttribute("handler");
+                twitterContext.notify(BEGIN_SCRIPT_TAG + toJsonp("Welcome back", name) + END_SCRIPT_TAG, CometEvent.NOTIFY, ch);
+
                 // Store the CometContext associated with this user so
                 // we can retrieve it for supporing follower.
-                servletContext.setAttribute(name, twitterContext);               
+                servletContext.setAttribute(name, twitterContext);
             } else if ("post".equals(action)) {
                 String message = request.getParameter("message");
                 String callback = request.getParameter("callback");
-                
+
                 if (message == null) {
                     logger.severe("Message cannot be null");
                     return;
                 }
-                
+
                 if (callback == null) {
                     callback = "alert";
                 }
 
-                if (twitterContext != null){
+                if (twitterContext != null) {
                     // Notify other registered CometHandler.
-                    twitterContext.notify("<script id='comet_" + counter++ + "'>" 
+                    twitterContext.notify("<script id='comet_" + counter++ + "'>"
                             + "window.parent." + callback + "(" + message + ");</script>");
                 }
                 response.getWriter().println("ok");
                 return;
             } else if ("start".equals(action)) {
-                String message = "{ message : 'Welcome'}";              
+                String message = "{ message : 'Welcome'}";
                 response.setContentType("text/html");
+                // For IE, Safari and Chrome, we must output some junk to enable
+                // streaming
+                for (int i = 0; i < 10; i++) {
+                    response.getWriter().write(JUNK);
+                }
+
                 String callback = request.getParameter("callback");
                 if (callback == null) {
                     callback = "alert";
                 }
-                            
-                response.getWriter().println("<script id='comet_" + counter++ + "'>" 
+
+                response.getWriter().println("<script id='comet_" + counter++ + "'>"
                         + "window.parent." + callback + "(" + message + ");</script>");
 
                 // Create a CometContext based on this session id.
-                twitterContext = 
+                twitterContext =
                         createCometContext(sessionId);
-                
+
                 // Create and register a CometHandler.
-                ReflectorCometHandler handler = new ReflectorCometHandler
-                        (true,startingMessage,endingMessage);
-                
+                ReflectorCometHandler handler = new ReflectorCometHandler(true, startingMessage, endingMessage);
+
                 handler.attach(response.getWriter());
                 twitterContext.addCometHandler(handler);
-                
+
                 // Keep a reference to us so we can be updated directly.
                 twitterContext.addAttribute("twitterHandler", handler);
-                
+
                 session.setAttribute("handler", handler);
                 session.setAttribute(sessionId, twitterContext);
                 return;
             } else if ("following".equals(action)) {
                 response.setContentType("text/html");
+
                 String message = request.getParameter("message");
-                String name = (String)session.getAttribute("name");
-                
+                String name = (String) session.getAttribute("name");
+
                 if (message == null) {
                     logger.severe("Message cannot be null");
                     return;
-                }      
-                
+                }
+
                 if (name == null) {
                     logger.severe("Name cannot be null");
                     return;
                 }
-                
+
                 // Retrive the user CometContext.
-                CometContext followerContext 
-                        = (CometContext) servletContext.getAttribute(message);
-    
-                                
-                CometHandler ch = (CometHandler)session.getAttribute("handler");
-                if (followerContext == null){
-                  twitterContext.notify(BEGIN_SCRIPT_TAG
-                        + toJsonp("Invalid Twitter user ", message) 
-                        + END_SCRIPT_TAG, CometEvent.NOTIFY, ch);
-                  return;
+                CometContext followerContext = (CometContext) servletContext.getAttribute(message);
+
+
+                CometHandler ch = (CometHandler) session.getAttribute("handler");
+                if (followerContext == null) {
+                    twitterContext.notify(BEGIN_SCRIPT_TAG +
+                            toJsonp("Invalid Twitter user ", message) + END_SCRIPT_TAG, CometEvent.NOTIFY, ch);
+                    return;
                 }
 
                 followerContext.addCometHandler(ch, true);
-                
-                twitterContext.notify(BEGIN_SCRIPT_TAG
-                        + toJsonp("You are now following ", message) 
-                        + END_SCRIPT_TAG, CometEvent.NOTIFY, ch);
-                
-                CometHandler twitterHandler = 
-                        (CometHandler)followerContext.getAttribute("twitterHandler");
-                followerContext.notify(BEGIN_SCRIPT_TAG
-                        + toJsonp(name, " is now following " + message)
-                        + END_SCRIPT_TAG, CometEvent.NOTIFY, twitterHandler);               
+
+                twitterContext.notify(BEGIN_SCRIPT_TAG +
+                        toJsonp("You are now following ", message) + END_SCRIPT_TAG, CometEvent.NOTIFY, ch);
+
+                CometHandler twitterHandler =
+                        (CometHandler) followerContext.getAttribute("twitterHandler");
+                followerContext.notify(BEGIN_SCRIPT_TAG +
+                        toJsonp(name, " is now following " + message) + END_SCRIPT_TAG, CometEvent.NOTIFY, twitterHandler);
                 return;
             }
         }
     }
-    
+
     /**
      * Create a {@link CometContext}
      * @param id - The topic assocated with the {@link CometContext}
      * @return {@link CometContext}
      */
-    private CometContext createCometContext(String id){
+    private CometContext createCometContext(String id) {
         CometEngine cometEngine = CometEngine.getEngine();
         CometContext ctx = cometEngine.register(id);
         ctx.setExpirationDelay(-1);
         return ctx;
-    }    
+    }
 
     /**
      * Escape any maliscious characters.
@@ -352,10 +347,7 @@ public class TwitterServlet extends HttpServlet {
      * @return the JSON representation.
      */
     private String toJsonp(String name, String message) {
-        return "window.parent.app.update({ name: \"" 
-                + escape(name) + "\", message: \"" + escape(message) + "\" });\n";
+        return "window.parent.app.update({ name: \"" + escape(name)
+                + "\", message: \"" + escape(message) + "\" });\n";
     }
-
-    // --------------------------------------------------------- Async Hook ---/
-   
 }
