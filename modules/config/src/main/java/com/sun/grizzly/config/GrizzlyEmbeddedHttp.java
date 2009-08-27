@@ -27,7 +27,6 @@ import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolFilter;
-import com.sun.grizzly.UDPSelectorHandler;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.config.dom.FileCache;
@@ -77,7 +76,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     private final AtomicBoolean algorithmInitialized = new AtomicBoolean(false);
     private boolean isHttpSecured = false;
-    private UDPSelectorHandler udpSelectorHandler;
     public static String DEFAULT_ALGORITHM_CLASS_NAME = DEFAULT_ALGORITHM;
     /**
      * The resource bundle containing the message strings for logger.
@@ -129,10 +127,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         // Re-start problem when set to true as of 04/18.
         //selectorHandler.setReuseAddress(false);
         controller.setReadThreadsCount(readThreadsCount);
-        // Suport UDP only when port unification is enabled.
-        if (portUnificationFilter != null) {
-            controller.addSelectorHandler(createUDPSelectorHandler());
-        }
         Runtime.getRuntime().addShutdownHook(new Thread() {
 
             @Override
@@ -154,12 +148,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             try {
                 if (selectorHandler != null && selectorHandler.getSelector() != null) {
                     selectorHandler.getSelector().close();
-                }
-            } catch (IOException ex) {
-            }
-            try {
-                if (udpSelectorHandler != null && udpSelectorHandler.getSelector() != null) {
-                    udpSelectorHandler.getSelector().close();
                 }
             } catch (IOException ex) {
             }
@@ -213,26 +201,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         return readFilter;
     }
 
-    /**
-     * Create <code>TCPSelectorHandler</code>
-     */
-    protected UDPSelectorHandler createUDPSelectorHandler() {
-        if (udpSelectorHandler == null) {
-            udpSelectorHandler = new UDPSelectorHandler();
-            udpSelectorHandler.setPort(port);
-            udpSelectorHandler.setThreadPool(threadPool);
-        }
-        return udpSelectorHandler;
-    }
 
-    /**
-     * Configure <code>TCPSelectorHandler</code>
-     */
-    protected void configureSelectorHandler(UDPSelectorHandler selectorHandler) {
-        selectorHandler.setPort(port);
-        selectorHandler.setReuseAddress(getReuseAddress());
-        selectorHandler.setThreadPool(threadPool);
-    }
     // ---------------------------------------------- Public get/set ----- //
 
     public boolean isHttpSecured() {
