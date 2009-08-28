@@ -23,9 +23,7 @@
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
-                        <Export-Package>com.sun.enterprise.web.connector.grizzly.comet.*,com.sun.grizzly.*;-split-package:=merge-first,javax.servlet.*;-split-package:=merge-first</Export-Package>
-                        <Embed-Dependency>com.sun.grizzly;scope=runtime</Embed-Dependency>
-                        <Main-Class>com.sun.grizzly.http.servlet.deployer.GrizzlyWebServerDeployer</Main-Class>
+                        <Export-Package>com.sun.grizzly.http.servlet.deployer.*,com.sun.grizzly.http.webxml.*</Export-Package>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
                 </configuration>
