@@ -958,7 +958,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                 ExtendedThreadPool extThreadPool = (ExtendedThreadPool) threadPool;
                 extThreadPool.setCorePoolSize(coreThreads);
                 extThreadPool.setMaximumPoolSize(maxThreads);
-                extThreadPool.setName("http");
             }
         }
         

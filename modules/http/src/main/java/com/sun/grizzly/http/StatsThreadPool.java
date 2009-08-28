@@ -71,11 +71,16 @@ public class StatsThreadPool extends DefaultThreadPool {
 
     public StatsThreadPool(int corePoolSize, int maximumPoolSize,
             int maxTasksCount, long keepAliveTime, TimeUnit unit) {
-        super("Grizzly", corePoolSize, maximumPoolSize,
+        this("Grizzly", corePoolSize, maximumPoolSize, maxTasksCount,
+                keepAliveTime, unit);
+    }
+
+    public StatsThreadPool(String name, int corePoolSize, int maximumPoolSize,
+            int maxTasksCount, long keepAliveTime, TimeUnit unit) {
+        super(name, corePoolSize, maximumPoolSize,
                 keepAliveTime, unit, null,
                 new LinkedBlockingQueue<Runnable>(maxTasksCount));
         setThreadFactory(new HttpWorkerThreadFactory());
-        setName("http");
     }
 
     /**
@@ -116,9 +121,9 @@ public class StatsThreadPool extends DefaultThreadPool {
      * Create new {@link HttpWorkerThread}.
      */
     protected class HttpWorkerThreadFactory implements ThreadFactory {
-        public Thread newThread(Runnable r) {            
+        public Thread newThread(Runnable r) {
             Thread thread = new HttpWorkerThread(StatsThreadPool.this,
-                    name + port + "-WorkerThread(" +
+                    name + "-" + port + "-WorkerThread(" +
                     workerThreadCounter.getAndIncrement() + ")", r,
                     initialByteBufferSize);
             thread.setUncaughtExceptionHandler(StatsThreadPool.this);
