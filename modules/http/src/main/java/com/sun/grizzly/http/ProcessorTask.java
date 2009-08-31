@@ -1220,6 +1220,38 @@ public class ProcessorTask extends TaskBase implements Processor,
                 connectionHeaderValueSet = true;
             }
         }
+
+        // Check user-agent header
+        if ((restrictedUserAgents != null) && ((http11) || (keepAlive))) {
+            MessageBytes userAgentValueMB =
+                request.getMimeHeaders().getValue("user-agent");
+            if (userAgentValueMB != null) {
+                // Check in the restricted list, and adjust the http11
+                // and keepAlive flags accordingly
+                String userAgentValue = userAgentValueMB.toString();
+                for (int i = 0; i < restrictedUserAgents.length; i++) {
+                    if (restrictedUserAgents[i].equals(userAgentValue)) {
+                        http11 = false;
+                        keepAlive = false;
+                    }
+                }
+            }
+        }
+
+        if (keepAlive) {
+            final WorkerThread workerThread = (WorkerThread) Thread.currentThread();
+            final KeepAliveThreadAttachment k =
+                    (KeepAliveThreadAttachment) workerThread.getAttachment();
+            final KeepAliveStats ks = selectorThread.getKeepAliveStats();
+
+            final int count = k.increaseKeepAliveCount();
+
+            // If count == 1 - then it means we just recognized keep-alive connection
+            if (count == 1 && selectorThread.getMaxKeepAliveRequests() <= count && ks.isEnabled()) {
+                ks.incrementCountRefusals();
+                setDropConnection(true);
+            }
+        }
     }
 
 
@@ -1236,23 +1268,6 @@ public class ProcessorTask extends TaskBase implements Processor,
         MimeHeaders headers = request.getMimeHeaders();
 
         keepAlive(headers);
-
-        // Check user-agent header
-        if ((restrictedUserAgents != null) && ((http11) || (keepAlive))) {
-            MessageBytes userAgentValueMB =  
-                request.getMimeHeaders().getValue("user-agent");
-            if (userAgentValueMB != null) {
-                // Check in the restricted list, and adjust the http11 
-                // and keepAlive flags accordingly
-                String userAgentValue = userAgentValueMB.toString();
-                for (int i = 0; i < restrictedUserAgents.length; i++) {
-                    if (restrictedUserAgents[i].equals(userAgentValue)) {
-                        http11 = false;
-                        keepAlive = false;
-                    }
-                }
-            }
-        }
 
         // Check for a full URI (including protocol://host:port/)
         ByteChunk uriBC = request.requestURI().getByteChunk();

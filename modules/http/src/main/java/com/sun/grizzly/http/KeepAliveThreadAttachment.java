@@ -51,11 +51,13 @@ import java.util.logging.Logger;
 public class KeepAliveThreadAttachment extends ThreadAttachment{
     protected final static Logger logger = SelectorThread.logger();
 
-    private int keepAliveCount;    
+    private int keepAliveCount;
      /**
      * The stats object used to gather statistics.
      */
     private KeepAliveStats keepAliveStats;
+
+    private boolean isTimedOut;
     
     
     /**
@@ -67,7 +69,7 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
     }
         
     /**
-     * Increase the keep=alibe keepAliveCount by one. 
+     * Increase the keep alive count by one.
      */
     public int increaseKeepAliveCount(){
         if ( keepAliveCount == 0 ){
@@ -88,10 +90,20 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
     public void resetKeepAliveCount(){
         if (keepAliveStats != null && keepAliveCount > 0 && keepAliveStats.isEnabled()) {
             keepAliveStats.decrementCountConnections();
-        }        
+
+            if (!isTimedOut) {
+                keepAliveStats.incrementCountFlushes();
+            } else {
+                isTimedOut = false;
+            }
+        }
         keepAliveCount = 0;
     }
 
+    public int getKeepAliveCount() {
+        return keepAliveCount;
+    }
+    
     @Override
     public void release(SelectionKey selectionKey) {
         resetKeepAliveCount();
@@ -102,6 +114,7 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
     @Override
     public boolean timedOut(SelectionKey selectionKey) {
         if (keepAliveStats != null && keepAliveCount > 0 && keepAliveStats.isEnabled()) {
+            isTimedOut = true;
             keepAliveStats.incrementCountTimeouts();
         }
 
