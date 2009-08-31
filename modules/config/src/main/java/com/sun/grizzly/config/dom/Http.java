@@ -83,9 +83,11 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * Setting the default response-type. Specified as a semi-colon delimited string consisting of content-type,
      * encoding, language, charset
      */
+    @Deprecated
     @Attribute(defaultValue = "text/plain; charset=iso-8859-1")
     String getDefaultResponseType();
 
+    @Deprecated
     void setDefaultResponseType(final String defaultResponseType);
 
     /**
@@ -141,9 +143,11 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * The response type to be forced if the content served cannot be matched by any of the MIME mappings for
      * extensions. Specified as a semi-colon delimited string consisting of content-type, encoding, language, charset
      */
+    @Deprecated
     @Attribute(defaultValue = "text/plain; charset=iso-8859-1")
     String getForcedResponseType();
 
+    @Deprecated
     void setForcedResponseType(final String forcedResponseType);
 
     /**
@@ -209,7 +213,7 @@ public interface Http extends ConfigBeanProxy, Injectable {
      * name should be the alias name if your server uses an alias. If you append a colon and port number, that port will
      * be used in URLs the server sends to the client.
      */
-    @Attribute(required = true)
+    @Attribute
     String getServerName();
 
     void setServerName(final String serverName);
