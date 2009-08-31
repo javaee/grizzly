@@ -675,7 +675,7 @@ public class GrizzlyWebServerDeployer {
             String mapping = "";
 
             if (!sa.getServletPath().equals(urlPattern) && urlPattern.indexOf(sa.getServletPath()) > -1) {
-                mapping = urlPattern.substring(urlPattern.indexOf(sa.getServletPath()));
+                mapping = urlPattern.substring(urlPattern.indexOf(sa.getServletPath()) + sa.getServletPath().length());
             }
 
             // the alias is the context + servletPath + mapping
