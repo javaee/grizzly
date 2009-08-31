@@ -172,6 +172,8 @@ public class ServletAdapter extends GrizzlyAdapter {
      * Initialize the {@link ServletContext}
      */
     protected boolean initialize = true;
+
+    protected ClassLoader classLoader;
     
 
     public ServletAdapter() {
@@ -274,11 +276,26 @@ public class ServletAdapter extends GrizzlyAdapter {
                 initWebDir();
                 configureClassLoader(webDir.getCanonicalPath());
             }
-            configureServletEnv();
-            fullUrlPath = contextPath + servletPath;
-            setResourcesContextPath(fullUrlPath);
-            if (loadOnStartup){
-                loadServlet();
+            if( classLoader != null ) {
+                ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();
+                Thread.currentThread().setContextClassLoader( classLoader );
+                try {
+                    configureServletEnv();
+                    fullUrlPath = contextPath + servletPath;
+                    setResourcesContextPath( fullUrlPath );
+                    if( loadOnStartup ) {
+                        loadServlet();
+                    }
+                } finally {
+                    Thread.currentThread().setContextClassLoader( prevClassLoader );
+                }
+            } else {
+                configureServletEnv();
+                fullUrlPath = contextPath + servletPath;
+                setResourcesContextPath( fullUrlPath );
+                if( loadOnStartup ) {
+                    loadServlet();
+                }
             }
         } catch (Throwable t){
             logger.log(Level.SEVERE,"start",t);
@@ -294,8 +311,8 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @throws java.io.IOException I/O error.
      */
     protected void configureClassLoader(String applicationPath) throws IOException{
-        Thread.currentThread().setContextClassLoader(
-                ClassLoaderUtil.createURLClassLoader(applicationPath));
+        if( classLoader == null )
+            classLoader = ClassLoaderUtil.createURLClassLoader(applicationPath);
     }
     
     
@@ -304,6 +321,20 @@ public class ServletAdapter extends GrizzlyAdapter {
      */ 
     @Override
     public void service(GrizzlyRequest request, GrizzlyResponse response) {
+        if( classLoader != null ) {
+            ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader( classLoader );
+            try {
+                doService( request, response );
+            } finally {
+                Thread.currentThread().setContextClassLoader( prevClassLoader );
+            }
+        } else {
+            doService( request, response );
+        }
+    }
+
+    public void doService(GrizzlyRequest request, GrizzlyResponse response) {
         try {
             Request req = request.getRequest();
             Response res = response.getResponse();            
@@ -679,9 +710,21 @@ public class ServletAdapter extends GrizzlyAdapter {
      */
     @Override
     public void destroy(){
-        super.destroy();
-        servletCtx.destroyListeners();
-        filterChain.destroy();
+        if( classLoader != null ) {
+            ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();
+            Thread.currentThread().setContextClassLoader( classLoader );
+            try {
+                super.destroy();
+                servletCtx.destroyListeners();
+                filterChain.destroy();
+            } finally {
+                Thread.currentThread().setContextClassLoader( prevClassLoader );
+            }
+        } else {
+            super.destroy();
+            servletCtx.destroyListeners();
+            filterChain.destroy();
+        }
     }
      
     
@@ -697,6 +740,8 @@ public class ServletAdapter extends GrizzlyAdapter {
         ServletAdapter sa = new ServletAdapter(".",servletCtx, contextParameters,
                 new HashMap<String,String>(), listeners,
                 false);
+        if( classLoader != null )
+            sa.setClassLoader( classLoader );
         sa.setServletInstance(servlet);
         sa.setServletPath(servletPath);
         return sa;
@@ -712,5 +757,13 @@ public class ServletAdapter extends GrizzlyAdapter {
 
     protected HashMap<String, String> getContextParameters() {
         return contextParameters;
+    }
+
+    public ClassLoader getClassLoader() {
+        return classLoader;
+    }
+
+    public void setClassLoader( ClassLoader classLoader ) {
+        this.classLoader = classLoader;
     }
 }
