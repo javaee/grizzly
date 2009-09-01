@@ -41,6 +41,8 @@ import com.sun.grizzly.util.DefaultThreadPool;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 /**
  * Internal FIFO used by the Worker Threads to pass information
@@ -121,14 +123,21 @@ public class StatsThreadPool extends DefaultThreadPool {
      * Create new {@link HttpWorkerThread}.
      */
     protected class HttpWorkerThreadFactory implements ThreadFactory {
-        public Thread newThread(Runnable r) {
-            Thread thread = new HttpWorkerThread(StatsThreadPool.this,
-                    name + "-" + port + "-WorkerThread(" +
-                    workerThreadCounter.getAndIncrement() + ")", r,
-                    initialByteBufferSize);
-            thread.setUncaughtExceptionHandler(StatsThreadPool.this);
-            thread.setPriority(priority);
-            return thread;
+        public Thread newThread(final Runnable r) {
+            return AccessController.doPrivileged(
+                    new PrivilegedAction<Thread>() {
+                        public Thread run() {
+                            Thread thread = new HttpWorkerThread( StatsThreadPool.this,
+                                                                  name + "-" + port + "-WorkerThread(" +
+                                                                  workerThreadCounter.getAndIncrement() + ")", r,
+                                                                  initialByteBufferSize );
+                            thread.setUncaughtExceptionHandler( StatsThreadPool.this );
+                            thread.setPriority( priority );
+                            thread.setContextClassLoader( HttpWorkerThreadFactory.class.getClassLoader() );
+                            return thread;
+                        }
+                    }
+            );
         }
     }
 
