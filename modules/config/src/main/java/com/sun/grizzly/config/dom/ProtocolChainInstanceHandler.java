@@ -42,12 +42,13 @@ import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
  * Defines protocol chain instantiation and releasing logic
  */
 @Configured
-public interface ProtocolChainInstanceHandler extends ConfigBeanProxy, Injectable {
+public interface ProtocolChainInstanceHandler extends ConfigBeanProxy, Injectable, PropertyBag {
 
     /**
      * Protocol chain instance handler implementation class

@@ -43,6 +43,7 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 import java.util.List;
 import java.util.Collection;
@@ -52,7 +53,7 @@ import java.util.ArrayList;
  * Defines one single high-level protocol like: http, https, iiop, etc.
  */
 @Configured
-public interface Protocol extends ConfigBeanProxy, Injectable {
+public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Defines any HTTP settings for this Protocol
      */

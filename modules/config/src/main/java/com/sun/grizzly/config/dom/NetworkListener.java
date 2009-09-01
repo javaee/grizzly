@@ -45,12 +45,13 @@ import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
  * Binds protocol to a specific endpoint to listen on
  */
 @Configured
-public interface NetworkListener extends ConfigBeanProxy, Injectable {
+public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * IP address to listen on
      */

@@ -40,6 +40,7 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 import java.util.List;
 
@@ -47,7 +48,7 @@ import java.util.List;
  * Contains set of network-listener, which bind protocol to a specific endpoint to listen on
  */
 @Configured
-public interface NetworkListeners extends ConfigBeanProxy, Injectable {
+public interface NetworkListeners extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Defines public thread-pool(s), which could be referenced within network-listener element(s)
      */

@@ -41,6 +41,7 @@ import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 import java.util.List;
 
@@ -48,7 +49,7 @@ import java.util.List;
  * Defines the type of protocol chain and describes protocol filters, which will participate in request processing
  */
 @Configured
-public interface ProtocolChain extends ConfigBeanProxy, Injectable {
+public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Protocol chain instance handler implementation class
      */

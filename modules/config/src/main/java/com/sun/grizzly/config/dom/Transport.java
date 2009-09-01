@@ -42,6 +42,7 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.ConfigBean;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 import java.util.List;
 import java.util.Collection;
@@ -51,7 +52,7 @@ import java.util.ArrayList;
  * Defines one specific transport and its properties
  */
 @Configured
-public interface Transport extends ConfigBeanProxy, Injectable {
+public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The number of acceptor threads listening for the transport's events
      */

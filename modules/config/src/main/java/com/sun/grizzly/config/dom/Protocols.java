@@ -40,6 +40,7 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Element;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 import java.util.List;
 
@@ -47,7 +48,7 @@ import java.util.List;
  * Contains the description of higher level protocols like: http, https, iiop, etc.
  */
 @Configured
-public interface Protocols extends ConfigBeanProxy, Injectable {
+public interface Protocols extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * List of Protocol implementations
      */
