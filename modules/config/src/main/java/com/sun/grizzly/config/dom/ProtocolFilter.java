@@ -41,12 +41,13 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
  * Defines single protocol filter in a sequence
  */
 @Configured
-public interface ProtocolFilter extends ConfigBeanProxy, Injectable {
+public interface ProtocolFilter extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Protocol filter name, which could be used as reference
      */

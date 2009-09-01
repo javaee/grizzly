@@ -42,6 +42,7 @@ import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
  * Describes a protocol finder/recognizer, which is able to recognize whether incoming request
@@ -49,7 +50,7 @@ import org.jvnet.hk2.config.DuckTyped;
  * specific protocol.
  */
 @Configured
-public interface ProtocolFinder extends ConfigBeanProxy, Injectable {
+public interface ProtocolFinder extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Finder name, which could be used as reference
      */

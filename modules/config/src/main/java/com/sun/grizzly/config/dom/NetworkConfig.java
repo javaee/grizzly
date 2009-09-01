@@ -41,12 +41,13 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
+import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
  * Contains complete Grizzly configuration.
  */
 @Configured
-public interface NetworkConfig extends ConfigBeanProxy, Injectable {
+public interface NetworkConfig extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Describes low level transports configuration.  Like tcp, udp, ssl
      * transports configuration

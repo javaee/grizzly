@@ -172,9 +172,15 @@
             <version>${grizzly-version}</version>
             <scope>test</scope>
         </dependency>
--->        <dependency>
+-->
+        <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>hk2</artifactId>
+            <version>${hk2.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.enterprise</groupId>
+            <artifactId>config-types</artifactId>
             <version>${hk2.version}</version>
         </dependency>
         <dependency>
@@ -197,7 +203,7 @@
         </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.83</hk2.version>
-        <hk2.plugin.version>0.3.83</hk2.plugin.version>
+        <hk2.version>0.3.88</hk2.version>
+        <hk2.plugin.version>0.3.88</hk2.plugin.version>
     </properties>
 </project>
