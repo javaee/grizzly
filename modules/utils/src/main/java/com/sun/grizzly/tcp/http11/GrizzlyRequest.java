@@ -2284,35 +2284,35 @@ public class GrizzlyRequest{
      */
     protected void parseSessionId() {
 
-        CharChunk uriCC = request.decodedURI().getCharChunk();
-        int semicolon = uriCC.indexOf(match, 0, match.length(), 0);
+        ByteChunk uriBC = request.requestURI().getByteChunk();
+        int semicolon = uriBC.indexOf(match, 0, match.length(), 0);
 
         if (semicolon > 0) {
 
             // Parse session ID, and extract it from the decoded request URI
-            int start = uriCC.getStart();
-            int end = uriCC.getEnd();
+            int start = uriBC.getStart();
+            int end = uriBC.getEnd();
 
             int sessionIdStart = start + semicolon + match.length();
-            int semicolon2 = uriCC.indexOf(';', sessionIdStart);
+            int semicolon2 = uriBC.indexOf(';', sessionIdStart);
             String sessionId = null;
             if (semicolon2 >= 0) {
-                sessionId = new String(uriCC.getBuffer(), sessionIdStart, 
+                sessionId = new String(uriBC.getBuffer(), sessionIdStart,
                                        semicolon2 - semicolon - match.length());
             } else {
-                sessionId = new String(uriCC.getBuffer(), sessionIdStart, 
+                sessionId = new String(uriBC.getBuffer(), sessionIdStart,
                                        end - sessionIdStart);
             }
             int jrouteIndex = sessionId.lastIndexOf(':');
             if (jrouteIndex > 0) {
                 setRequestedSessionId(sessionId.substring(0, jrouteIndex));
                 if (jrouteIndex < (sessionId.length()-1)) {
-		    setJrouteId(sessionId.substring(jrouteIndex+1));
+                    setJrouteId(sessionId.substring(jrouteIndex+1));
                 }
-	    } else {
+            } else {
                 setRequestedSessionId(sessionId);
             }
- 
+
             setRequestedSessionURL(true);
 
             if (!request.requestURI().getByteChunk().isNull()) {
@@ -2331,7 +2331,8 @@ public class GrizzlyRequest{
 
         int start, end, sessionIdStart, semicolon, semicolon2;
 
-        ByteChunk uriBC = request.requestURI().getByteChunk();
+        MessageBytes requestURI = request.requestURI();
+        ByteChunk uriBC = requestURI.getByteChunk();
         start = uriBC.getStart();
         end = uriBC.getEnd();
         semicolon = uriBC.indexOf(match, 0, match.length(), 0);
@@ -2340,12 +2341,13 @@ public class GrizzlyRequest{
             sessionIdStart = start + semicolon;
             semicolon2 = uriBC.indexOf
                 (';', semicolon + match.length());
-            uriBC.setEnd(start + semicolon);
             byte[] buf = uriBC.getBuffer();
             if (semicolon2 >= 0) {
-                System.arraycopy(buf, start + semicolon2, buf, start + semicolon, end - start - semicolon2);
-                uriBC.setBytes(buf, start, semicolon 
+                System.arraycopy(buf, start + semicolon2, buf, sessionIdStart, end - start - semicolon2);
+                requestURI.setBytes(buf, start, semicolon
                                + (end - start - semicolon2));
+            } else {
+                requestURI.setBytes(buf, start, semicolon);
             }
         }
     }
