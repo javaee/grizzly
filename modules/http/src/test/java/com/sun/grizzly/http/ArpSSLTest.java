@@ -165,7 +165,7 @@ public class ArpSSLTest extends TestCase {
         
         st.setBufferSize(32768);
         st.setMaxKeepAliveRequests(8196);
-        SSLSelectorThread.setWebAppRootPath("/dev/null");
+        st.setWebAppRootPath("/dev/null");
         st.setSSLConfig(sslConfig);
         try {
             st.setSSLImplementation(new JSSEImplementation());
