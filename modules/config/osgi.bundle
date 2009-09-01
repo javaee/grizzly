@@ -6,6 +6,7 @@ Import-Package: \
                         javax.net.ssl; \
                         com.sun.enterprise.v3.services.impl; \
                         org.jvnet.hk2.config; \
+                        org.jvnet.hk2.config.types; \
                         org.jvnet.hk2.component; \
                         com.sun.grizzly; \
                         com.sun.grizzly.filter; \
