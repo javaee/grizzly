@@ -108,13 +108,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     @Override
     protected void initAlgorithm() {
         if (!algorithmInitialized.getAndSet(true)) {
-            try {
-                algorithmClass = Class.forName(DEFAULT_ALGORITHM_CLASS_NAME);
-                defaultAlgorithmInstalled = true;
-            } catch (ClassNotFoundException e) {
-                logger.severe(e.getMessage());
-                super.initAlgorithm();
-            }
+            algorithmClass = ContainerStaticStreamAlgorithm.class;
+            defaultAlgorithmInstalled = true;
         }
     }
 
