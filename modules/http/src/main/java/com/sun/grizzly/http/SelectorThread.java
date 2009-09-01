@@ -358,7 +358,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * The root folder where application are deployed
      */
-    protected static String rootFolder = "";
+    protected String rootFolder = "";
     
     
     /**
@@ -1956,7 +1956,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Set the document root folder
      */
-    public static void setWebAppRootPath(String rf){
+    public void setWebAppRootPath(String rf){
         rootFolder = rf;
     }
     
@@ -1964,7 +1964,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Return the folder's root where application are deployed.
      */
-    public static String getWebAppRootPath(){
+    public String getWebAppRootPath(){
         return rootFolder;
     }
     
