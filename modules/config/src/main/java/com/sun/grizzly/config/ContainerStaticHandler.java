@@ -73,6 +73,8 @@ public class ContainerStaticHandler extends StaticHandler {
                     throw ioex;
                 }
             }
+        } else {
+            super.handle(req, handlerCode);
         }
         return Interceptor.CONTINUE;   
     }
