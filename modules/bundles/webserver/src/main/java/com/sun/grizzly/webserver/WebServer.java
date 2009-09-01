@@ -144,7 +144,7 @@ public class WebServer extends StandaloneMainUtil {
                     " from http://host:port/" + urlName);
             sa.setContextPath("/" + urlName);
             sa.setHandleStaticResources(true);
-            sa.setRootFolder(SelectorThread.getWebAppRootPath());
+            sa.setRootFolder(st.getWebAppRootPath());
 
             if (servlet == null) {
                 throw new IllegalStateException("Invalid Servlet ClassName");

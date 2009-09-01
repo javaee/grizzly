@@ -124,7 +124,7 @@ public abstract class StandaloneMainUtil {
         }
         st.setAlgorithmClassName(StaticStreamAlgorithm.class.getName());
         st.setPort(port);
-        SelectorThread.setWebAppRootPath(appliPath);
+        st.setWebAppRootPath(appliPath);
 
         st.setAdapter(configureAdapter(st));
         return st;

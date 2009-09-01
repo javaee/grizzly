@@ -97,7 +97,8 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
         if (fileCache == null) return Interceptor.CONTINUE;
         
         if (handlerCode == Interceptor.RESPONSE_PROCEEDED && fileCache.isEnabled()){
-            String docroot = SelectorThread.getWebAppRootPath();
+            String docroot = SelectorThread
+                    .getSelector(req.getLocalPort()).getWebAppRootPath();
             String uri = req.requestURI().toString();                
             fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,uri,
                           req.getResponse().getMimeHeaders(),false);        

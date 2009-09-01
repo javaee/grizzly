@@ -83,7 +83,6 @@ public class HttpRequestURIDecoder {
             throw new IOException("Invalid URI character encoding");
         }
 
-
         if (encoding == null) {
             encoding = "utf-8";
         }

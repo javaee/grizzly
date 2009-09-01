@@ -140,7 +140,7 @@ public class Cometd extends StandaloneMainUtil {
     public Adapter configureAdapter(SelectorThread st) {                 
         GrizzlyAdapterChain adapter = new GrizzlyAdapterChain();
         adapter.setHandleStaticResources(true);
-        adapter.setRootFolder(SelectorThread.getWebAppRootPath());
+        adapter.setRootFolder(st.getWebAppRootPath());
         adapter.setHandleStaticResources(true);
         
         if (servletClassName != null){

@@ -109,7 +109,7 @@ public class ServletLauncher extends StandaloneMainUtil {
     @Override
     public Adapter configureAdapter(SelectorThread st) {
         ServletAdapter adapter = new ServletAdapter();
-        adapter.setRootFolder(SelectorThread.getWebAppRootPath());
+        adapter.setRootFolder(st.getWebAppRootPath());
         adapter.setHandleStaticResources(true);
 
         Servlet servlet = (Servlet) ClassLoaderUtil.load(servletClassName);
@@ -119,7 +119,7 @@ public class ServletLauncher extends StandaloneMainUtil {
         } else {
             SelectorThread.logger().log(Level.WARNING, "Unable to load Servlet, " +
                     "Will serve only static resources");
-            return new StaticResourcesAdapter(SelectorThread.getWebAppRootPath());
+            return new StaticResourcesAdapter(st.getWebAppRootPath());
         }
 
         return adapter;

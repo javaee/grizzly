@@ -69,7 +69,7 @@ public class Hudson extends ServletLauncher{
     @Override
     public Adapter configureAdapter(SelectorThread st) {
         ServletAdapter adapter = new ServletAdapter();
-        adapter.setRootFolder(SelectorThread.getWebAppRootPath());
+        adapter.setRootFolder(st.getWebAppRootPath());
         adapter.setHandleStaticResources(true);
         
         adapter.setContextPath("/hudson");
