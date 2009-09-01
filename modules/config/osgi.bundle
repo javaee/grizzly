@@ -15,6 +15,7 @@ Import-Package: \
                         com.sun.grizzly.http; \
                         com.sun.grizzly.http.algorithms; \
                         com.sun.grizzly.http.portunif; \
+                        com.sun.grizzly.standalone; \
                         com.sun.grizzly.ssl; \
                         com.sun.grizzly.tcp; \
                         com.sun.grizzly.util.*;
