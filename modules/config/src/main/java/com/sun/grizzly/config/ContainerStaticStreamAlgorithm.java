@@ -25,6 +25,7 @@ package com.sun.grizzly.config;
 
 import com.sun.grizzly.standalone.StaticStreamAlgorithm;
 
+
 /**
  * Extends Grizzly StaticStreamAlgorithm. Use a different handler, ContainerStaticHandler.
  *

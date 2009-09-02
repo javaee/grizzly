@@ -30,6 +30,20 @@ import com.sun.grizzly.standalone.StaticHandler;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.Interceptor;
 import com.sun.grizzly.util.http.mapper.MappingData;
+import com.sun.grizzly.http.Constants;
+import com.sun.grizzly.http.FileCacheFactory;
+import com.sun.grizzly.util.Interceptor;
+import com.sun.grizzly.http.FileCache;
+import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.tcp.ActionCode;
+import java.io.IOException;
+import java.nio.channels.SocketChannel;
+
+import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.util.buf.Ascii;
+import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.buf.MessageBytes;
+import com.sun.grizzly.util.http.MimeHeaders;
 
 /**
  * Extends Grizzly StaticHandler.
@@ -57,7 +71,7 @@ public class ContainerStaticHandler extends StaticHandler {
         if (mappingData != null) {
             if (mappingData.wrapper != null &&
                     mappingData.wrapper.getClass().getName().equals(
-                           "org.apache.catalina.core.StandardWrapper")) {
+                           "org.apache.catalina.core.StandardWrapper") && fileCache.isEnabled()) {
 
                 try {
                     Object wrapper = mappingData.wrapper;
@@ -66,6 +80,8 @@ public class ContainerStaticHandler extends StaticHandler {
 
                     if ("org.apache.catalina.servlets.DefaultServlet".equals(servletClass)) {
                         return super.handle(req, handlerCode);
+                    } else {
+                        return Interceptor.CONTINUE; 
                     }
                 } catch(Exception ex) {
                     IOException ioex = new IOException();
@@ -73,8 +89,23 @@ public class ContainerStaticHandler extends StaticHandler {
                     throw ioex;
                 }
             }
-        } else {
-            super.handle(req, handlerCode);
+        }
+
+        //Force caching for nucleus installation.
+        if (handlerCode == Interceptor.RESPONSE_PROCEEDED){
+            req.action(ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE, req);
+            String docroot = SelectorThread
+                    .getSelector(req.getLocalPort()).getWebAppRootPath();
+            String uri = req.requestURI().toString();
+            fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,uri,
+                          req.getResponse().getMimeHeaders(),false);
+        } else if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
+            ByteChunk requestURI = req.requestURI().getByteChunk();
+            if (fileCache.sendCache(requestURI.getBytes(), requestURI.getStart(),
+                                requestURI.getLength(), socketChannel,
+                                keepAlive(req))){
+                return Interceptor.BREAK;
+            }
         }
         return Interceptor.CONTINUE;   
     }
@@ -84,7 +115,7 @@ public class ContainerStaticHandler extends StaticHandler {
 
         if (getServletClassMethod == null) {
             Class clazz = wrapper.getClass();
-            getServletClassMethod = clazz.getMethod("getServletClass");
+            getServletClassMethod = clazz.getMethod("getServletClassName");
         }
 
         return getServletClassMethod;
