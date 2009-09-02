@@ -313,7 +313,6 @@ public class SSLSelectorThread extends SelectorThread {
      */
     @Override
     protected void initFileCacheFactory(){
-        SSLFileCacheFactory.setIsEnabled(isFileCacheEnabled);
         fileCacheFactory = createFileCacheFactory();
         configureFileCacheFactory();
     }

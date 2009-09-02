@@ -864,7 +864,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     protected void configureFileCacheFactory() {
         fileCacheFactory = FileCacheFactory.getFactory(port);
-        FileCacheFactory.setIsEnabled(isFileCacheEnabled);
+        fileCacheFactory.setIsEnabled(isFileCacheEnabled);
         fileCacheFactory.setLargeFileCacheEnabled(isLargeFileCacheEnabled);
         fileCacheFactory.setSecondsMaxAge(secondsMaxAge);
         fileCacheFactory.setMaxCacheEntries(maxCacheEntries);
