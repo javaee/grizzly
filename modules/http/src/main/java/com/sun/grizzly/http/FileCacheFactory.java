@@ -76,7 +76,7 @@ public class FileCacheFactory {
     /**
      * Is the FileCache enabled.
      */
-    public static boolean isEnabled = true;
+    public boolean isEnabled = true;
     /**
      * Is the large FileCache enabled.
      */
@@ -466,14 +466,14 @@ public class FileCacheFactory {
     /**
      * Is the fileCache enabled.
      */
-    public static boolean isEnabled() {
+    public boolean isEnabled() {
         return isEnabled;
     }
 
     /**
      * Is the file caching mechanism enabled.
      */
-    public static void setIsEnabled(boolean isE) {
+    public void setIsEnabled(boolean isE) {
         isEnabled = isE;
     }
 
