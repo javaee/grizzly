@@ -33,7 +33,6 @@ import com.sun.grizzly.tcp.ActionCode;
 import java.io.IOException;
 
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.File;
 
@@ -41,6 +40,7 @@ import java.io.File;
  * Extends Grizzly StaticHandler.
  *
  * @author Shing Wai Chan
+ * @author Jeanfrancois Arcand
  */
 public class ContainerStaticHandler extends StaticHandler {
 
@@ -92,7 +92,7 @@ public class ContainerStaticHandler extends StaticHandler {
                     ioex.initCause(ex);
                     throw ioex;
                 }
-            } else if (cri != null && cri.getAdapter() instanceof StaticResourcesAdapter) {
+            } else if (cri != null && cri.getAdapter() instanceof FileCacheAware) {
                 //Force caching for nucleus installation.
 
                 req.action(ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE, req);
