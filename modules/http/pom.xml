@@ -24,7 +24,6 @@
                     <instructions>
                         <Export-Package>
                             com.sun.grizzly.http.*,
-                            com.sun.grizzly.http.portunif.*,
                             com.sun.grizzly.ssl.*,
                             com.sun.grizzly.arp.*,
                             com.sun.grizzly.standalone.*
