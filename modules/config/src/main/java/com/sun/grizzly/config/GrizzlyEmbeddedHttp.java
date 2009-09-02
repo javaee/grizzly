@@ -229,7 +229,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final boolean mayEnableComet = !"admin-listener".equalsIgnoreCase(networkListener.getName());
         configureProtocol(networkListener, protocol, habitat, mayEnableComet);
         
-        configureThreadPool(pool, getThreadPoolTimeoutSeconds());
+        configureThreadPool(networkListener, pool, getThreadPoolTimeoutSeconds());
     }
 
     protected void configureTransport(Transport transport) {
@@ -527,7 +527,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Configures an HTTP grizzlyListener with the given request-processing config.
      */
-    private void configureThreadPool(ThreadPool threadPool, int keepAlive) {
+    private void configureThreadPool(NetworkListener networkListener,
+            ThreadPool threadPool, int keepAlive) {
         if (threadPool == null) {
             return;
         }
@@ -537,7 +538,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
             final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
-            final String name = threadPool.getName();
+            final String name = networkListener.getName();
 
             setThreadPool(newThreadPool(name, minThreads, maxThreads, maxQueueSize,
                 keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
