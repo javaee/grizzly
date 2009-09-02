@@ -20,7 +20,6 @@
  * 
  * Copyright 2006 Sun Microsystems, Inc. All rights reserved.
  */
-
 package com.sun.grizzly.config;
 
 import java.io.IOException;
@@ -40,6 +39,7 @@ import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.buf.Ascii;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
@@ -51,6 +51,7 @@ import com.sun.grizzly.util.http.MimeHeaders;
  * @author Shing Wai Chan
  */
 public class ContainerStaticHandler extends StaticHandler {
+
     private static Method getServletClassMethod = null;
     protected final static int MAPPING_DATA = 12;
 
@@ -66,48 +67,55 @@ public class ContainerStaticHandler extends StaticHandler {
         if (fileCache == null) {
             return Interceptor.CONTINUE;
         }
-        
-        MappingData mappingData = (MappingData)req.getNote(MAPPING_DATA);
-        if (mappingData != null) {
-            if (mappingData.wrapper != null &&
-                    mappingData.wrapper.getClass().getName().equals(
-                           "org.apache.catalina.core.StandardWrapper") && fileCache.isEnabled()) {
 
+        MappingData mappingData = (MappingData) req.getNote(MAPPING_DATA);
+        if (mappingData != null) {
+            boolean isWebContainer = mappingData.wrapper != null &&
+                    mappingData.wrapper.getClass().getName().equals(
+                    "org.apache.catalina.core.StandardWrapper");
+
+            ContextRootInfo cri = null;
+            if (mappingData.context != null && mappingData.context instanceof ContextRootInfo){
+                cri = (ContextRootInfo)mappingData.context;
+            }
+            
+            if (isWebContainer && fileCache.isEnabled()) {
                 try {
                     Object wrapper = mappingData.wrapper;
                     String servletClass =
-                            (String)(getServletClassMethod(wrapper).invoke(wrapper));
+                            (String) (getServletClassMethod(wrapper).invoke(wrapper));
 
                     if ("org.apache.catalina.servlets.DefaultServlet".equals(servletClass)) {
                         return super.handle(req, handlerCode);
                     } else {
-                        return Interceptor.CONTINUE; 
+                        return Interceptor.CONTINUE;
                     }
-                } catch(Exception ex) {
+                } catch (Exception ex) {
                     IOException ioex = new IOException();
                     ioex.initCause(ex);
                     throw ioex;
                 }
+            } else if (cri != null && cri.getAdapter() instanceof StaticResourcesAdapter){
+                //Force caching for nucleus installation.
+                if (handlerCode == Interceptor.RESPONSE_PROCEEDED) {
+                    req.action(ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE, req);
+                    String docroot = SelectorThread.getSelector(req.getLocalPort()).getWebAppRootPath();
+                    String uri = req.requestURI().toString();
+                    fileCache.add(FileCache.DEFAULT_SERVLET_NAME, docroot, uri,
+                            req.getResponse().getMimeHeaders(), false);
+                }
             }
         }
 
-        //Force caching for nucleus installation.
-        if (handlerCode == Interceptor.RESPONSE_PROCEEDED){
-            req.action(ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE, req);
-            String docroot = SelectorThread
-                    .getSelector(req.getLocalPort()).getWebAppRootPath();
-            String uri = req.requestURI().toString();
-            fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,uri,
-                          req.getResponse().getMimeHeaders(),false);
-        } else if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
+        if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
             ByteChunk requestURI = req.requestURI().getByteChunk();
             if (fileCache.sendCache(requestURI.getBytes(), requestURI.getStart(),
-                                requestURI.getLength(), socketChannel,
-                                keepAlive(req))){
+                    requestURI.getLength(), socketChannel,
+                    keepAlive(req))) {
                 return Interceptor.BREAK;
             }
         }
-        return Interceptor.CONTINUE;   
+        return Interceptor.CONTINUE;
     }
 
     private static synchronized Method getServletClassMethod(Object wrapper)
