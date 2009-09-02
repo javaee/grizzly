@@ -63,7 +63,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     /**
      * If false, a configured listener, is disabled
      */
-    @Attribute(defaultValue = "true")
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getEnabled();
 
     void setEnabled(String enabled);
@@ -71,7 +71,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     /**
      * If true, a jk listener is enabled
      */
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getJkEnabled();
 
     void setJkEnabled(String enabled);
@@ -87,7 +87,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     /**
      * Port to listen on
      */
-    @Attribute(required = true)
+    @Attribute(required = true, dataType = Integer.class)
     String getPort();
 
     void setPort(String value);

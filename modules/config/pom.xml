@@ -180,5 +180,6 @@
     <properties>
         <hk2.version>0.3.88</hk2.version>
         <hk2.plugin.version>0.3.88</hk2.plugin.version>
+        <webbeans.version>1.0.0.PREVIEW3</webbeans.version>
     </properties>
 </project>

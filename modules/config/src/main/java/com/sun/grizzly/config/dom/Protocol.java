@@ -92,7 +92,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
      *  initialize security settings. False means that protocol is not
      *  secured and ssl element, if present, will be ignored.
      */
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getSecurityEnabled();
 
     void setSecurityEnabled(String value);

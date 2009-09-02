@@ -55,12 +55,12 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setAdapter(String adapter);
 
-    @Attribute(defaultValue = "true")
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getChunkingEnabled();
 
     void setChunkingEnabled(String enabled);
 
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getCompression();
 
     void getCompression(String compression);
@@ -70,12 +70,12 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setCompressableMimeType(String type);
 
-    @Attribute(defaultValue = "2048")
+    @Attribute(defaultValue = "2048", dataType = Integer.class)
     String getCompressionMinSizeBytes();
 
     void setCompressionMinSizeBytes(String size);
 
-    @Attribute(defaultValue = "300000")
+    @Attribute(defaultValue = "300000", dataType = Integer.class)
     String getConnectionUploadTimeoutMillis();
 
     void setConnectionUploadTimeoutMillis(String timeout);
@@ -99,7 +99,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setDefaultVirtualServer(final String defaultVirtualServer);
 
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getUploadTimeoutEnabled();
 
     void setUploadTimeoutEnabled(String disable);
@@ -107,7 +107,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Enable pass through of authentication from any front-end server
      */
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getAuthPassThroughEnabled();
 
     void setAuthPassThroughEnabled(String bool);
@@ -117,17 +117,17 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * using it can be verified as harmless.  Currently it is unclear what the performance impact of enabling this
      * feature is.
      */
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getCometSupportEnabled();
 
     void setCometSupportEnabled(String enable);
 
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getDnsLookupEnabled();
 
     void setDnsLookupEnabled(String enable);
 
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getRcmSupportEnabled();
 
     void setRcmSupportEnabled(String enable);
@@ -154,7 +154,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The size of the buffer used by the request processing threads for reading the request data
      */
-    @Attribute(defaultValue = "8192")
+    @Attribute(defaultValue = "8192", dataType = Integer.class)
     String getHeaderBufferLengthBytes();
 
     void setHeaderBufferLengthBytes(String length);
@@ -162,17 +162,17 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Max number of connection in the Keep Alive mode
      */
-    @Attribute(defaultValue = "256")
+    @Attribute(defaultValue = "256", dataType = Integer.class)
     String getMaxConnections();
 
     void setMaxConnections(String max);
 
-    @Attribute(defaultValue = "2097152")
+    @Attribute(defaultValue = "2097152", dataType = Long.class)
     String getMaxPostSizeBytes();
 
     void setMaxPostSizeBytes(String max);
 
-    @Attribute
+    @Attribute(dataType = Integer.class)
     String getNoCompressionUserAgents();
 
     void setNoCompressionUserAgents(String agents);
@@ -182,7 +182,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * security-constraint requires SSL transport catalina will automatically redirect the request to the port number
      * specified here
      */
-    @Attribute
+    @Attribute(dataType=Integer.class)
     String getRedirectPort();
 
     void setRedirectPort(final String redirectPort);
@@ -190,7 +190,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Time after which the request times out in seconds
      */
-    @Attribute(defaultValue = "30")
+    @Attribute(defaultValue = "30", dataType = Integer.class)
     String getRequestTimeoutSeconds();
 
     void setRequestTimeoutSeconds(String timeout);
@@ -203,7 +203,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Size of the buffer for response bodies in bytes
      */
-    @Attribute(defaultValue = "8192")
+    @Attribute(defaultValue = "8192", dataType = Integer.class)
     String getSendBufferSizeBytes();
 
     void setSendBufferSizeBytes(String size);
@@ -222,12 +222,12 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Keep Alive timeout, max time a connection can be deemed as idle and kept in the keep-alive state
      */
-    @Attribute(defaultValue = "30")
+    @Attribute(defaultValue = "30", dataType = Integer.class)
     String getTimeoutSeconds();
 
     void setTimeoutSeconds(String timeout);
 
-    @Attribute(defaultValue = "true")
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getTraceEnabled();
 
     void setTraceEnabled(String enabled);
@@ -237,13 +237,13 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setUriEncoding(String encoding);
 
-    void setVersion(final String version);
-
     /**
      * The version of the HTTP protocol used by the HTTP Service
      */
     @Attribute(defaultValue = "HTTP/1.1")
     String getVersion();
+
+    void setVersion(final String version);
 
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to
@@ -252,7 +252,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * aid in gathering statistical data about the use of Servlet and JSP technology. If true, these headers will be
      * added.
      */
-    @Attribute(defaultValue = "true")
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getXpoweredBy();
 
     void setXpoweredBy(final String xpoweredBy);

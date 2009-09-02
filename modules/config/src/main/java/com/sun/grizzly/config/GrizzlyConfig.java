@@ -70,6 +70,10 @@ public class GrizzlyConfig {
         return config;
     }
 
+    public Habitat getHabitat() {
+        return habitat;
+    }
+
     public List<GrizzlyServiceListener> getListeners() {
         return listeners;
     }
