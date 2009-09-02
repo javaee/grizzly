@@ -22,28 +22,20 @@
  */
 package com.sun.grizzly.config;
 
-import java.io.IOException;
 import java.lang.reflect.Method;
 
 import com.sun.grizzly.standalone.StaticHandler;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.Interceptor;
 import com.sun.grizzly.util.http.mapper.MappingData;
-import com.sun.grizzly.http.Constants;
-import com.sun.grizzly.http.FileCacheFactory;
 import com.sun.grizzly.util.Interceptor;
 import com.sun.grizzly.http.FileCache;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.ActionCode;
 import java.io.IOException;
-import java.nio.channels.SocketChannel;
 
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
-import com.sun.grizzly.util.buf.Ascii;
 import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.MimeHeaders;
+import java.io.File;
 
 /**
  * Extends Grizzly StaticHandler.
@@ -69,16 +61,16 @@ public class ContainerStaticHandler extends StaticHandler {
         }
 
         MappingData mappingData = (MappingData) req.getNote(MAPPING_DATA);
-        if (mappingData != null) {
+        if (handlerCode == Interceptor.RESPONSE_PROCEEDED && mappingData != null) {
             boolean isWebContainer = mappingData.wrapper != null &&
                     mappingData.wrapper.getClass().getName().equals(
                     "org.apache.catalina.core.StandardWrapper");
 
             ContextRootInfo cri = null;
-            if (mappingData.context != null && mappingData.context instanceof ContextRootInfo){
-                cri = (ContextRootInfo)mappingData.context;
+            if (mappingData.context != null && mappingData.context instanceof ContextRootInfo) {
+                cri = (ContextRootInfo) mappingData.context;
             }
-            
+
             if (isWebContainer && fileCache.isEnabled()) {
                 try {
                     Object wrapper = mappingData.wrapper;
@@ -86,7 +78,12 @@ public class ContainerStaticHandler extends StaticHandler {
                             (String) (getServletClassMethod(wrapper).invoke(wrapper));
 
                     if ("org.apache.catalina.servlets.DefaultServlet".equals(servletClass)) {
-                        return super.handle(req, handlerCode);
+                        String docroot = System.getProperty("com.sun.aas.instanceRoot")
+                                + File.separatorChar + "applications";
+                        String uri = req.requestURI().toString();
+
+                        fileCache.add(FileCache.DEFAULT_SERVLET_NAME, docroot, uri,
+                                req.getResponse().getMimeHeaders(), false);
                     } else {
                         return Interceptor.CONTINUE;
                     }
@@ -95,15 +92,14 @@ public class ContainerStaticHandler extends StaticHandler {
                     ioex.initCause(ex);
                     throw ioex;
                 }
-            } else if (cri != null && cri.getAdapter() instanceof StaticResourcesAdapter){
+            } else if (cri != null && cri.getAdapter() instanceof StaticResourcesAdapter) {
                 //Force caching for nucleus installation.
-                if (handlerCode == Interceptor.RESPONSE_PROCEEDED) {
-                    req.action(ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE, req);
-                    String docroot = SelectorThread.getSelector(req.getLocalPort()).getWebAppRootPath();
-                    String uri = req.requestURI().toString();
-                    fileCache.add(FileCache.DEFAULT_SERVLET_NAME, docroot, uri,
-                            req.getResponse().getMimeHeaders(), false);
-                }
+
+                req.action(ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE, req);
+                String docroot = SelectorThread.getSelector(req.getLocalPort()).getWebAppRootPath();
+                String uri = req.requestURI().toString();
+                fileCache.add(FileCache.DEFAULT_SERVLET_NAME, docroot, uri,
+                        req.getResponse().getMimeHeaders(), false);
             }
         }
 
