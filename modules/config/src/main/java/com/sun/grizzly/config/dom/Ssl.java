@@ -68,7 +68,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Determines if if the engine will request (want) or require (need) client authentication. Valid values:  want, need, or left blank
      */
-    @Attribute
+    @Attribute(dataType = Boolean.class)
     String getClientAuth();
 
     void setClientAuth(String value);
@@ -168,7 +168,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     
     void setTrustAlgorithm(String algorithm);
 
-    @Attribute
+    @Attribute(dataType = Integer.class)
     String getTrustMaxCertLengthBytes();
 
     void setTrustMaxCertLengthBytes(String maxLength);

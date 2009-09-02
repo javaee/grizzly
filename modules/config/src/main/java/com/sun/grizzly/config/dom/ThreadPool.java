@@ -37,17 +37,19 @@
 
 package com.sun.grizzly.config.dom;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
+import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.types.PropertyBag;
-
-import java.util.List;
-import java.util.Collection;
-import java.util.ArrayList;
 
 @Configured
 public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
@@ -63,7 +65,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Idle threads are removed from pool, after this time (in seconds)
      */
-    @Attribute(defaultValue = "900")
+    @Attribute(defaultValue = "900", dataType = Integer.class)
     String getIdleThreadTimeoutSeconds();
 
     void setIdleThreadTimeoutSeconds(String value);
@@ -71,7 +73,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The maxim number of tasks, which could be queued on the thread pool.  -1 disables any maximum checks.
      */
-    @Attribute(defaultValue = "-1")
+    @Attribute(defaultValue = "-1", dataType = Integer.class)
     String getMaxQueueSize();
 
     void setMaxQueueSize(String value);
@@ -81,7 +83,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      requests in this queue. This is the upper bound on the no. of
      threads that exist in the threadpool.
      */
-    @Attribute(defaultValue = "5")
+    @Attribute(defaultValue = "5", dataType = Integer.class)
     String getMaxThreadPoolSize();
 
     void setMaxThreadPoolSize(String value);
@@ -91,7 +93,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      requests in this queue. These are created up front when this
      threadpool is instantiated
      */
-    @Attribute(defaultValue = "2")
+    @Attribute(defaultValue = "2", dataType = Integer.class)
     String getMinThreadPoolSize();
 
     void setMinThreadPoolSize(String value);

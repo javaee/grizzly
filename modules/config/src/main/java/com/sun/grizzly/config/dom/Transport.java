@@ -56,12 +56,12 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The number of acceptor threads listening for the transport's events
      */
-    @Attribute(defaultValue = "-1")
+    @Attribute(defaultValue = "-1", dataType = Integer.class)
     String getAcceptorThreads();
 
     void setAcceptorThreads(String value);
 
-    @Attribute(defaultValue = "8192")
+    @Attribute(defaultValue = "8192", dataType = Integer.class)
     String getBufferSizeBytes();
 
     void setBufferSizeBytes(String size);
@@ -86,7 +86,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
      * Flush Grizzly's internal configuration to the server logs (like number of threads created, how many polled
      * objects, etc.)
      */
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getDisplayConfiguration();
 
     void setDisplayConfiguration(String bool);
@@ -95,7 +95,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
      * Dump the requests/response information in server.log. Useful for debugging purpose, but significantly reduce
      * performance as the request/response bytes are translated to String.
      */
-    @Attribute(defaultValue = "false")
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getEnableSnoop();
 
     void setEnableSnoop(String bool);
@@ -103,7 +103,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Timeout, after which idle key will be cancelled and channel closed
      */
-    @Attribute(defaultValue = "30")
+    @Attribute(defaultValue = "30", dataType = Integer.class)
     String getIdleKeyTimeoutSeconds();
 
     void setIdleKeyTimeoutSeconds(String value);
@@ -111,7 +111,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The max number of connections the transport should handle at the same time
      */
-    @Attribute(defaultValue = "4096")
+    @Attribute(defaultValue = "4096", dataType = Integer.class)
     String getMaxConnectionsCount();
 
     void setMaxConnectionsCount(String value);
@@ -127,7 +127,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Read operation timeout in ms
      */
-    @Attribute(defaultValue = "30000")
+    @Attribute(defaultValue = "30000", dataType = Integer.class)
     String getReadTimeoutMillis();
 
     void setReadTimeoutMillis(String value);
@@ -143,7 +143,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The time, in milliseconds, a NIO Selector will block waiting for events (users requests).
      */
-    @Attribute(defaultValue = "1000")
+    @Attribute(defaultValue = "1000", dataType = Integer.class)
     String getSelectorPollTimeoutMillis();
 
     void setSelectorPollTimeoutMillis(String timeout);
@@ -151,12 +151,12 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Write operation timeout in ms
      */
-    @Attribute(defaultValue = "30000")
+    @Attribute(defaultValue = "30000", dataType = Integer.class)
     String getWriteTimeoutMillis();
 
     void setWriteTimeoutMillis(String value);
 
-    @Attribute(defaultValue="true")
+    @Attribute(defaultValue="true", dataType = Boolean.class)
     String getTcpNoDelay();
 
     void setTcpNoDelay(String noDelay);

@@ -52,7 +52,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Enables the caching of file content
      */
-    @Attribute(defaultValue = "true")
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getEnabled();
 
     void setEnabled(final String enabled);
@@ -60,7 +60,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * How old files can get before aging out of cache in seconds
      */
-    @Attribute(defaultValue = "30")
+    @Attribute(defaultValue = "30", dataType = Integer.class)
     String getMaxAgeSeconds();
 
     void setMaxAgeSeconds(final String maxAge);
@@ -68,7 +68,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Maximum cache size on the disk
      */
-    @Attribute(defaultValue = "10485760")
+    @Attribute(defaultValue = "10485760", dataType = Long.class)
     String getMaxCacheSizeBytes();
 
     void setMaxCacheSizeBytes(final String maxCacheSize);
@@ -76,7 +76,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Maximum number of files in the file cache.
      */
-    @Attribute(defaultValue = "1024")
+    @Attribute(defaultValue = "1024", dataType = Integer.class)
     String getMaxFilesCount();
 
     void setMaxFilesCount(final String maxFilesCount);
