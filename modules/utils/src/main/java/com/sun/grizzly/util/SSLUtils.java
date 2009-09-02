@@ -105,14 +105,14 @@ public class SSLUtils {
         // bytes, the byteBuffer will be empty event if some encrypted bytes
         // are available. 
         while (byteBuffer.position() == initialPosition){
-            int currentRead;
             if (isFirstTime && inputBB.position() > 0) {
-                currentRead = inputBB.position();
-                isFirstTime = false;
+                r.bytesRead = inputBB.position();
+                r.isClosed = false;
             } else {
-                r = SSLUtils.doRead(channel, inputBB,
-                        sslEngine, readTimeout);
+                r = SSLUtils.doRead(channel, inputBB, sslEngine, readTimeout);
             }
+            
+            isFirstTime = false;
             
             if (r.bytesRead > 0) {
                 try{
