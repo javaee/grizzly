@@ -56,7 +56,7 @@ public class ContainerStaticHandler extends StaticHandler {
      */
     @Override
     public int handle(Request req, int handlerCode) throws IOException {
-        if (fileCache == null) {
+        if (fileCache == null || !fileCache.isEnabled()) {
             return Interceptor.CONTINUE;
         }
 
