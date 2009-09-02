@@ -62,7 +62,7 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
     /**
      * The {@link SocketChannel} used to send a static resources.
      */
-    private SocketChannel socketChannel;
+    protected SocketChannel socketChannel;
  
     
     /**
@@ -119,7 +119,7 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
     /**
      * Get the keep-alive header.
      */
-    private boolean keepAlive(Request request){
+    protected boolean keepAlive(Request request){
         MimeHeaders headers = request.getMimeHeaders();
 
         // Check connection header

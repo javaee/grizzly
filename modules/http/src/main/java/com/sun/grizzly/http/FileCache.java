@@ -341,12 +341,7 @@ public class FileCache{
              
             long size = fileChannel.size();
             
-            if ( !isLargeFileCacheEnabled ) {
-                // Large file support are not enabled
-                if ( size > minEntrySize ) {
-                    return null;
-                }
-            } else if ( size > maxEntrySize){
+            if ( size > maxEntrySize){
                 return null;
             }
 
