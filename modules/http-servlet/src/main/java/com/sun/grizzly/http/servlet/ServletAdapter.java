@@ -486,8 +486,10 @@ public class ServletAdapter extends GrizzlyAdapter {
             HttpServletResponseImpl httpResponse = (HttpServletResponseImpl)
                 response.getResponse().getNote(REQUEST_RESPONSE_NOTES);
 
-            httpRequest.recycle();
-            httpResponse.recycle();
+            if (httpRequest != null){
+                httpRequest.recycle();
+                httpResponse.recycle();
+            }
         } finally {
             filterChain.recycle();
         }
