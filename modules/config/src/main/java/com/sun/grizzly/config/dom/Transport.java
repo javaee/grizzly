@@ -36,17 +36,17 @@
  */
 package com.sun.grizzly.config.dom;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
+import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.types.PropertyBag;
-
-import java.util.List;
-import java.util.Collection;
-import java.util.ArrayList;
 
 /**
  * Defines one specific transport and its properties
