@@ -68,7 +68,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Maximum cache size on the disk
      */
-    @Attribute(defaultValue = "10485760", dataType = Long.class)
+    @Attribute(defaultValue = "10485760", dataType = Integer.class)
     String getMaxCacheSizeBytes();
 
     void setMaxCacheSizeBytes(final String maxCacheSize);
