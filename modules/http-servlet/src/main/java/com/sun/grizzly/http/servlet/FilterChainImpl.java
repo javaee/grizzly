@@ -252,6 +252,10 @@ public final class FilterChainImpl implements FilterChain {
             if (filter != null)
                 filter.recycle();
         }
+        if (servlet != null) {
+            servlet.destroy();
+            servlet = null;
+        }
         filters = null;
     }
 }
