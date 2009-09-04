@@ -54,7 +54,6 @@ import java.net.BindException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.CancelledKeyException;
@@ -183,12 +182,15 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     protected InetAddress inet;
 
+    /**
+     * Port to witch <code>serverSocket</code> is bound.
+     */
+     int port = -1;
 
     /**
-     * The default TCP port.
+     * The default port range.
      */
-    protected int port = 18888;
-
+    protected PortRange portRange = new PortRange(18888);
 
     /**
      * The ServerSocket instance.
@@ -336,7 +338,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         copyHandler.selectTimeout = selectTimeout;
         copyHandler.serverTimeout = serverTimeout;
         copyHandler.inet = inet;
-        copyHandler.port = port;
+        copyHandler.portRange = portRange;
         copyHandler.ssBackLog = ssBackLog;
         copyHandler.tcpNoDelay = tcpNoDelay;
         copyHandler.linger = linger;
@@ -427,9 +429,9 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 }
                 serverSocket.setReuseAddress(reuseAddress);
                 if ( inet == null){
-                    serverSocket.bind(new InetSocketAddress(port),ssBackLog);
+                    portRange.bind(serverSocket,ssBackLog );
                 } else {
-                    serverSocket.bind(new InetSocketAddress(inet,port),ssBackLog);
+                    portRange.bind(serverSocket,inet, ssBackLog );
                 }
 
                 serverSocketChannel.configureBlocking(false);
@@ -1204,6 +1206,15 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
     public void setPort(int port) {
         this.port = port;
+        this.portRange = new PortRange(port);
+    }
+
+    public PortRange getPortRange() {
+        return portRange;
+    }
+
+    public void setPortRange(PortRange portRange) {
+        this.portRange = portRange;
     }
 
     public int getSsBackLog() {

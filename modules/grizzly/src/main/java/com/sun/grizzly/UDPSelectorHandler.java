@@ -44,7 +44,6 @@ import com.sun.grizzly.util.Copyable;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.DatagramSocket;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.SocketException;
 import java.nio.channels.DatagramChannel;
@@ -163,10 +162,11 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
                     }
                 }
                 datagramSocket.setReuseAddress(reuseAddress);
-                if (inet == null)
-                    datagramSocket.bind(new InetSocketAddress(port));
-                else
-                    datagramSocket.bind(new InetSocketAddress(inet,port));
+                if (inet == null) {
+                    portRange.bind(datagramSocket);
+                } else {
+                    portRange.bind(datagramSocket, inet);
+                }
 
                 datagramChannel.configureBlocking(false);
                 datagramChannel.register( selector, SelectionKey.OP_READ );
