@@ -124,9 +124,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     
     
     private String contextPath = "";
-    
-    
-    private String fullUrlPath = "/";
+   
     
     // Instanciate the Servlet when the start method is invoked.
     private boolean loadOnStartup = false;
@@ -281,8 +279,7 @@ public class ServletAdapter extends GrizzlyAdapter {
                 Thread.currentThread().setContextClassLoader( classLoader );
                 try {
                     configureServletEnv();
-                    fullUrlPath = contextPath + servletPath;
-                    setResourcesContextPath( fullUrlPath );
+                    setResourcesContextPath( contextPath );
                     if( loadOnStartup ) {
                         loadServlet();
                     }
@@ -291,8 +288,7 @@ public class ServletAdapter extends GrizzlyAdapter {
                 }
             } else {
                 configureServletEnv();
-                fullUrlPath = contextPath + servletPath;
-                setResourcesContextPath( fullUrlPath );
+                setResourcesContextPath( contextPath );
                 if( loadOnStartup ) {
                     loadServlet();
                 }
@@ -341,7 +337,7 @@ public class ServletAdapter extends GrizzlyAdapter {
             String uri = request.getRequestURI();
 
             // The request is not for us.
-            if (!uri.startsWith(fullUrlPath)){
+            if (!uri.startsWith(contextPath)){
                 customizeErrorPage(response,"Resource Not Found", 404);
                 return;
             }
@@ -450,15 +446,14 @@ public class ServletAdapter extends GrizzlyAdapter {
      */
     protected void configureServletEnv() throws ServletException{
         MessageBytes c = MessageBytes.newInstance();
-        fullUrlPath = contextPath + servletPath;
-        if (!fullUrlPath.equals("")){
-            char[] ch = fullUrlPath.toCharArray();
+        if (!contextPath.equals("")){
+            char[] ch = contextPath.toCharArray();
             c.setChars(ch, 0, ch.length);
             HttpRequestURIDecoder.normalize(c);
-            fullUrlPath = c.getCharChunk().toString();
+            contextPath = c.getCharChunk().toString();
         }
         
-        if (fullUrlPath.equals("/")){
+        if (contextPath.equals("/")){
             contextPath = "";
         }
 
@@ -486,8 +481,10 @@ public class ServletAdapter extends GrizzlyAdapter {
             HttpServletResponseImpl httpResponse = (HttpServletResponseImpl)
                 response.getResponse().getNote(REQUEST_RESPONSE_NOTES);
 
-            httpRequest.recycle();
-            httpResponse.recycle();
+            if (httpRequest != null){
+                httpRequest.recycle();
+                httpResponse.recycle();
+            }
         } finally {
             filterChain.recycle();
         }
