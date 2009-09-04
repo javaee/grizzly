@@ -510,8 +510,12 @@ public class InternalOutputBuffer
 
         // Write message
         String message = response.getMessage();
-        if (message == null) {
-            write(getMessage(status));
+        if (!Constants.CUSTOM_REASONPRASE || message == null) {
+            message = getMessage(status);
+            if (message == null) {
+                message = "";
+            }
+            write(message);
         } else {
             write(message, true);
         }
