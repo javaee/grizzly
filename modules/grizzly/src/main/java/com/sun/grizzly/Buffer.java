@@ -56,7 +56,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws IllegalArgumentException if header.limit() - header.position()
      * is greater than headerSize.
      */
-     public K prepend(final K header);
+     public Buffer<K> prepend(final Buffer header);
 
     /**
      * Trim the buffer by reducing capacity to position, if possible.

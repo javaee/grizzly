@@ -75,7 +75,7 @@ public abstract class AbstractStreamReader implements StreamReader {
     private boolean isBlocking;
 
     private Connection connection;
-    protected int bufferSize = 8192;
+    protected int bufferSize;
 
     protected long timeoutMillis = 30000;
     

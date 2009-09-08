@@ -74,9 +74,9 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         visible = underlyingByteBuffer;
     }
     
-    public ByteBuffer prepend(final ByteBuffer header) {
+    public ByteBufferWrapper prepend(final Buffer header) {
         checkDispose();
-        return visible;
+        return this;
     }
 
     public void trim() {
