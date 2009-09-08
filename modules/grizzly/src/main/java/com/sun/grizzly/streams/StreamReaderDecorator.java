@@ -93,6 +93,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<Integer> notifyCondition(
             final Condition<StreamReader> condition,
             final CompletionHandler<Integer> completionHandler) {
@@ -157,6 +158,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
         }
 
 
+        @Override
         public void cancelled(Connection connection) {
             if (completionHandler != null) {
                 completionHandler.cancelled(connection);
@@ -164,6 +166,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
             future.cancel(true);
         }
 
+        @Override
         public void failed(Connection connection, Throwable throwable) {
             if (completionHandler != null) {
                 completionHandler.failed(connection, throwable);
@@ -171,6 +174,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
             future.failure(throwable);
         }
 
+        @Override
         public void completed(Connection connection, Object result) {
             Buffer buffer = underlyingReader.getBuffer();
             if (appendBuffer(buffer)) {
@@ -182,6 +186,7 @@ public abstract class StreamReaderDecorator extends AbstractStreamReader {
             }
         }
 
+        @Override
         public void updated(Connection connection, Object result) {
         }
 

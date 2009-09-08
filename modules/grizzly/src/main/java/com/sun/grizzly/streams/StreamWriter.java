@@ -35,8 +35,6 @@
  */
 package com.sun.grizzly.streams;
 
-import java.io.Closeable;
-
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;

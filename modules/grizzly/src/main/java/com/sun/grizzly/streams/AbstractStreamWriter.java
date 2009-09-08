@@ -93,6 +93,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isBlocking() {
         return isBlocking;
     }
@@ -100,6 +101,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
@@ -152,6 +154,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * Cause the overflow handler to be called even if buffer is not full.
      */
+    @Override
     public Future<Integer> flush() throws IOException {
         return flush(null);
     }
@@ -159,6 +162,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * Cause the overflow handler to be called even if buffer is not full.
      */
+    @Override
     public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
             throws IOException {
         return overflow(completionHandler);
@@ -167,6 +171,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isClosed() {
         return isClosed;
     }
@@ -174,6 +179,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void close() throws IOException {
         close(null);
     }
@@ -181,6 +187,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<Integer> close(CompletionHandler<Integer> completionHandler)
             throws IOException {
         try {
@@ -211,6 +218,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeBuffer(Buffer b) throws IOException {
         writeBuffer(b, null);
     }
@@ -230,6 +238,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeStream(StreamReader streamReader) throws IOException {
         AbstractStreamReader readerImpl = (AbstractStreamReader) streamReader;
         Buffer readerBuffer;
@@ -243,6 +252,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeBoolean(final boolean data) throws IOException {
         ensure(1);
         final byte value = data ? (byte) 1 : (byte) 0;
@@ -252,6 +262,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeByte(final byte data) throws IOException {
         ensure(1);
         buffer.put(data);
@@ -260,6 +271,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeChar(final char data) throws IOException {
         ensure(2);
         buffer.putChar(data);
@@ -268,11 +280,13 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeShort(final short data) throws IOException {
         ensure(2);
         buffer.putShort(data);
     }
 
+    @Override
     public void writeInt(final int data) throws IOException {
         ensure(4);
         buffer.putInt(data);
@@ -281,6 +295,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeLong(final long data) throws IOException {
         ensure(8);
         buffer.putLong(data);
@@ -289,6 +304,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeFloat(final float data) throws IOException {
         ensure(4);
         buffer.putFloat(data);
@@ -297,6 +313,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeDouble(final double data) throws IOException {
         ensure(8);
         buffer.putDouble(data);
@@ -305,6 +322,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeBooleanArray(final boolean[] data) throws IOException {
         ensure(1);
         int ctr = 0;
@@ -328,6 +346,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeByteArray(final byte[] data) throws IOException {
         writeByteArray(data, 0, data.length);
     }
@@ -335,6 +354,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeByteArray(byte[] data, int offset, int length) throws IOException {
         ensure(1);
         int ctr = 0;
@@ -356,6 +376,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeCharArray(final char[] data) throws IOException {
         ensure(2);
         int ctr = 0;
@@ -377,6 +398,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeShortArray(final short[] data) throws IOException {
         ensure(2);
         int ctr = 0;
@@ -399,6 +421,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeIntArray(final int[] data) throws IOException {
         ensure(4);
         int ctr = 0;
@@ -420,6 +443,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeLongArray(final long[] data) throws IOException {
         ensure(8);
         int ctr = 0;
@@ -441,6 +465,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeFloatArray(final float[] data) throws IOException {
         ensure(4);
         int ctr = 0;
@@ -464,6 +489,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void writeDoubleArray(final double[] data) throws IOException {
         ensure(8);
         int ctr = 0;
@@ -486,6 +512,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Connection getConnection() {
         return connection;
     }
@@ -502,6 +529,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Buffer getBuffer() {
         return buffer;
     }
@@ -517,6 +545,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getBufferSize() {
         return bufferSize;
     }
@@ -524,6 +553,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setBufferSize(int size) {
         this.bufferSize = size;
     }
@@ -531,6 +561,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public long getTimeout(TimeUnit timeunit) {
         return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
     }
@@ -538,6 +569,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setTimeout(long timeout, TimeUnit timeunit) {
         timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
     }
@@ -557,18 +589,22 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             this.buffer = buffer;
         }
         
+        @Override
         public void cancelled(Connection connection) {
             disposeBuffer();
         }
 
+        @Override
         public void failed(Connection connection, Throwable throwable) {
             disposeBuffer();
         }
 
+        @Override
         public void completed(Connection connection, Object result) {
             disposeBuffer();
         }
 
+        @Override
         public void updated(Connection connection, Object result) {
         }
 
