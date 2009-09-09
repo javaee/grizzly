@@ -325,7 +325,9 @@ public class Mapper {
             pos = findIgnoreCase(hosts, hostName);
         }
         if (pos < 0) {
-            logger.severe("No host found: " + hostName);
+            logger.fine("No host found: " + hostName
+                    + " for Mapper listening on port: " + port);
+            return;
         }
         Host host = hosts[pos];
         if (host.name.equalsIgnoreCase(hostName)) {
