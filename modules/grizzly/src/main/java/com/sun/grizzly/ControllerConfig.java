@@ -45,23 +45,63 @@ package com.sun.grizzly;
  */
 class ControllerConfig{
 
+    /**
+     * Disable the leader/follower strategy used when accepting new requests.
+     * @deprecated - Use USE_LEADER_FOLLOWER
+     */
     public final static String LEADER_FOLLOWER
             = "com.sun.grizzly.disableLeaderFollower";
 
+    /**
+     * Enable/Disable the leader/follower strategy when accepting requests.
+     * Default is false.
+     */
+    public final static String USE_LEADER_FOLLOWER
+            = "com.sun.grizzly.useLeaderFollower";
+
+    /**
+     * Auto Configure the number of {@link ReadController} based on the OS
+     * code. Auto Configure the number of threads based on the core as well.
+     * Default is false.
+     */
+    public final static String AUTO_CONFIGURE
+            = "com.sun.grizzly.autoConfigure";
+
+    /**
+     * Use the current thread ot finish an I/O operations (closing a connection)
+     * or queue the task to be executed by an {@link ExecutorService}
+     */
     public final static String PENDING_IO_STRATEGY 
             = "com.sun.grizzly.finishIOUsingCurrentThread";
 
+    /**
+     * How many pending I/O a Thread can handles before rejecting some.
+     */
     public final static String MAX_PENDING_IO_PER_THREAD
             = "com.sun.grizzly.pendingIOlimitPerThread";
 
+    /**
+     * Define the maximum  number of failed accept() operations before rejecting
+     * a connection.
+     * Default is 5.
+     */
     public final static String MAX_ACCEPT_RETRIES
             = "com.sun.grizzly.maxAcceptRetries";
+
+    /**
+     * Display the internal configuration of a {@link Controller}.
+     * Default is false.
+     */
+    public final static String DISPLAY_CONFIGURATION
+            = "com.sun.grizzly.displayConfiguration";
+
     /**
      * Configure the {@link Controller}
      */
     void configure(Controller c){
 
-        c.useLeaderFollowerStrategy(!Boolean.getBoolean(LEADER_FOLLOWER));
+        c.setAutoConfigure(Boolean.getBoolean(AUTO_CONFIGURE));
+        c.useLeaderFollowerStrategy(Boolean.getBoolean(USE_LEADER_FOLLOWER));
 
         // Avoid overriding the default with false
         if (System.getProperty(PENDING_IO_STRATEGY) != null){
@@ -71,6 +111,8 @@ class ControllerConfig{
         c.setPendingIOlimitPerThread(Integer.getInteger(MAX_PENDING_IO_PER_THREAD, 100));
 
         c.setMaxAcceptRetries(Integer.getInteger(MAX_ACCEPT_RETRIES, 5));
+
+        c.setDisplayConfiguration(Boolean.getBoolean(AUTO_CONFIGURE));
     }
 
 

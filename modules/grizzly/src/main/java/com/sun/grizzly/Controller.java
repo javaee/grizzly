@@ -146,12 +146,18 @@ import static com.sun.grizzly.Context.OpType;
  *           }
  *       });
  * </code></pre></p>
+ *
+ * The Controller can be configure at runtime using System properties. For more
+ * information, take a look at {@link ControllerConfig} class.
+ *
  * @author Jeanfrancois Arcand
  */
 public class Controller implements Runnable, Lifecycle, Copyable,
         ConnectorHandlerPool, AttributeHolder, SupportStateHolder<State> {
 
     private int maxAcceptRetries = 5;
+
+    private boolean displayConfiguration = false;
 
     public enum Protocol {
         UDP, TCP, TLS, CUSTOM
@@ -260,12 +266,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Flag, which indicates if {@link SelectorHandlerRunner} should use
      * Leader/Follower strategy.
      */
-    private boolean useLeaderFollowerStrategy = true;
+    private boolean useLeaderFollowerStrategy = false;
 
     /**
      * Enable/Disable auto-config.
      */
-    private boolean autoConfigure = true;
+    private boolean autoConfigure = false;
 
    /**
      * True if calling thread should execute the pendingIO events.
@@ -824,6 +830,10 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
         waitUntilSeletorHandlersStop();
 
+        if (displayConfiguration){
+            displayConfiguration();
+        }
+
         if (readThreadsCount > 0) {
             multiReadThreadSelectorHandler.shutdown();
             multiReadThreadSelectorHandler = null;
@@ -1311,4 +1321,42 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     public void setMaxAcceptRetries(int maxAcceptRetries){
         this.maxAcceptRetries = maxAcceptRetries;
     }
+
+    /**
+     * Display the internal configuration of this instance.
+     * @param aBoolean
+     */
+    public void setDisplayConfiguration(boolean displayConfiguration) {
+        this.displayConfiguration = displayConfiguration;
+    }
+
+    private void displayConfiguration(){
+       if (displayConfiguration){
+            logger.log(Level.INFO,
+                    "\n Grizzly running on " + System.getProperty("os.name") + "-"
+                    + System.getProperty("os.version") + " under JDK version: "
+                    + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
+                    + "\n\t Thread Pool: "
+                    + threadPool
+                    + "\n\t Read Selector: "
+                    + readThreadsCount
+                    + "\n\t auto-configure: "
+                    + autoConfigure
+                    + "\n\t Using Leader/follower strategy: "
+                    + useLeaderFollowerStrategy
+                    + "\n\t Number of SelectorHandler: "
+                    + selectorHandlers.size()
+                    + "\n\t SelectionKeyHandler: "
+                    + selectionKeyHandler
+                    + "\n\t Context Caching: "
+                    + isAllowContextCaching()
+                    + "\n\t Maximum Accept Retry: "
+                    + maxAcceptRetries
+                    + "\n\t Handler Read/Write I/O Concurrently "
+                    + handleReadWriteConcurrently
+                    + "\n\t ProtocolChainHandler: "
+                    + getProtocolChainInstanceHandler());
+        }
+    }
+
 }
