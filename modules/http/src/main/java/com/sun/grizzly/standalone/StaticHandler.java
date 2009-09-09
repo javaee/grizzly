@@ -43,7 +43,6 @@ import com.sun.grizzly.http.FileCacheFactory;
 import com.sun.grizzly.util.Interceptor;
 import com.sun.grizzly.http.FileCache;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.tcp.ActionCode;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
@@ -104,7 +103,7 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
             fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,uri,
                           req.getResponse().getMimeHeaders(),false);        
         } else if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
-            ByteChunk requestURI = req.requestURI().getByteChunk(); 
+            ByteChunk requestURI = req.requestURI().getByteChunk();
             if (fileCache.sendCache(requestURI.getBytes(), requestURI.getStart(),
                                 requestURI.getLength(), socketChannel,
                                 keepAlive(req))){
