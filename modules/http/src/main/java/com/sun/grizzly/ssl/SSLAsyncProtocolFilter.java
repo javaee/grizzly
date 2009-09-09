@@ -44,7 +44,7 @@ import com.sun.grizzly.http.HttpWorkerThread;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.ByteBufferFactory;
 import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.Interceptor;
+import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.SSLSupport;
@@ -75,9 +75,9 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
      */
     @Override
     protected void configureProcessorTask(ProcessorTask processorTask,
-            Context context, Interceptor handler, InputStream inputStream) {
+            Context context, StreamAlgorithm streamAlgorithm, InputStream inputStream) {
         super.configureProcessorTask(processorTask, context,
-                handler, inputStream);
+                streamAlgorithm, inputStream);
         WorkerThread workerThread = (WorkerThread) Thread.currentThread();
         
         SSLSupport sslSupport = sslImplementation.

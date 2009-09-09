@@ -131,7 +131,8 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
                 }
             }
             streamAlgorithm.setPort(port);
-            workerThread.setStreamAlgorithm(streamAlgorithm);
+        } else {
+            workerThread.setStreamAlgorithm(null);
         }
         
                 
@@ -161,8 +162,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
 
         if (streamAlgorithm.parse(byteBuffer)){
             ProcessorTask processor = selectorThread.getProcessorTask();
-            configureProcessorTask(processor, ctx, 
-                    streamAlgorithm.getHandler(), inputStream);            
+            configureProcessorTask(processor, ctx, streamAlgorithm, inputStream);
             try{
                 selectorThread.getAsyncHandler().handle(processor);
             } catch (Throwable ex){
@@ -218,7 +218,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
      * Configure {@link SSLProcessorTask}.
      */
     protected void configureProcessorTask(ProcessorTask processorTask,
-            Context context, Interceptor handler, InputStream inputStream) {
+            Context context, StreamAlgorithm streamAlgorithm, InputStream inputStream) {
         SelectionKey key = context.getSelectionKey();
 
         processorTask.setSelectionKey(key);
@@ -226,7 +226,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
         processorTask.setSocket(((SocketChannel) key.channel()).socket());
         processorTask.setTaskListener(this);
         processorTask.setInputStream(inputStream);
-        processorTask.setHandler(handler);      
+        processorTask.setStreamAlgorithm(streamAlgorithm);
     }    
 
     /**

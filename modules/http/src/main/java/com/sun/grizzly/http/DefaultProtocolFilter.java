@@ -45,7 +45,6 @@ import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.Interceptor;
 import com.sun.grizzly.util.StreamAlgorithm;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -120,8 +119,10 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                 }
             }
             streamAlgorithm.setPort(port);
-            workerThread.setStreamAlgorithm(streamAlgorithm);
+        } else {
+            workerThread.setStreamAlgorithm(null);
         }
+
         SelectionKey key = ctx.getSelectionKey();
         configureInputBuffer(inputStream, ctx, workerThread);
         SocketChannel socketChannel =
@@ -159,7 +160,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                 }
             }
                        
-            configureProcessorTask(processorTask, ctx, streamAlgorithm.getHandler());
+            configureProcessorTask(processorTask, ctx, streamAlgorithm);
             
             try{
                 keepAlive = processorTask.process(inputStream,null);
@@ -187,6 +188,8 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                     Context.KeyRegistrationState.REGISTER);
             return true;
         }
+
+        streamAlgorithm.postParse(byteBuffer);
         
         if (processorTask != null){
             processorTask.recycle();
@@ -200,7 +203,6 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                     Context.KeyRegistrationState.CANCEL);
         }
         
-        streamAlgorithm.postParse(byteBuffer);
         byteBuffer.clear();
         if (selectorThread.isRcmSupported()){
             ctx.removeAttribute(ResourceAllocationFilter.BYTEBUFFER_INPUTSTREAM);
@@ -219,16 +221,16 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     /**
      * Configure {@link ProcessorTask}.
      */
-    protected void configureProcessorTask(ProcessorTask processorTask, 
-            Context context, Interceptor handler) {
+    protected void configureProcessorTask(ProcessorTask processorTask,
+            Context context, StreamAlgorithm streamAlgorithm) {
         SelectionKey key = context.getSelectionKey();
         
         processorTask.setSelectorHandler(context.getSelectorHandler());
         processorTask.setSelectionKey(key);
         processorTask.setSocket(((SocketChannel) key.channel()).socket());
-        
-        if (processorTask.getHandler() == null){
-            processorTask.setHandler(handler);
+
+        if (processorTask.getStreamAlgorithm() == null){
+            processorTask.setStreamAlgorithm(streamAlgorithm);
         }
     }
 

@@ -87,6 +87,7 @@ import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
 
+import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.Ascii;
 import com.sun.grizzly.util.buf.ByteChunk;
@@ -320,9 +321,9 @@ public class ProcessorTask extends TaskBase implements Processor,
   
      
     /**
-     * The handler used by this {@link Task} to manipulate the request.
+     * The {@link StreamAlgorithm} used by this {@link Task} to manipulate the request.
      */
-    protected Interceptor handler;
+    protected StreamAlgorithm streamAlgorithm;
     
     
     /**
@@ -796,6 +797,8 @@ public class ProcessorTask extends TaskBase implements Processor,
             k.setIdleTimeoutDelay(transactionTimeout);
 
             request.setStartTime(System.currentTimeMillis());
+            final Interceptor handler = getHandler();
+            
             if ( handler != null && 
                     handler.handle(request,Interceptor.REQUEST_LINE_PARSED)
                         == Interceptor.BREAK){
@@ -1106,14 +1109,16 @@ public class ProcessorTask extends TaskBase implements Processor,
                 }
             }
         } else if ( actionCode == ActionCode.ACTION_POST_REQUEST ) { 
-            if (response.getStatus() == 200 && handler != null 
+            final Interceptor handler = getHandler();
+
+            if (response.getStatus() == 200 && handler != null
                     && compressionLevel == 0){
                 try{
                     handler.handle(request,Interceptor.RESPONSE_PROCEEDED);
                 } catch(IOException ex){
                     logger.log(Level.FINEST,"Handler exception",ex);
                 }
-            }   
+            }
         } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) { 
             key.attach(null);
         } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
@@ -1848,20 +1853,27 @@ public class ProcessorTask extends TaskBase implements Processor,
 
      
     /**
-     * Set the {@link Interceptor} used by this class.
+     * Set the {@link StreamAlgorithm} used by this class.
      */
-    public void setHandler(Interceptor handler){
-        this.handler = handler;
-    } 
-    
-    
+    public void setStreamAlgorithm(StreamAlgorithm streamAlgorithm){
+        this.streamAlgorithm = streamAlgorithm;
+    }
+
+
     /**
-     * Return the {@link Interceptor} used by this instance.
+     * Return the {@link StreamAlgorithm} used by this instance.
      */
-    public Interceptor getHandler(){
-        return handler;
+    public StreamAlgorithm getStreamAlgorithm(){
+        return streamAlgorithm;
+    }
+
+    private Interceptor getHandler() {
+        if (streamAlgorithm != null) {
+            return streamAlgorithm.getHandler();
+        }
+
+        return null;
     }     
-    
     
     /**
      * Set the default response type used. Specified as a semi-colon
@@ -1948,6 +1960,17 @@ public class ProcessorTask extends TaskBase implements Processor,
     @Override
     public void recycle(){
         setTaskListener(null);
+        if (streamAlgorithm != null) {
+            streamAlgorithm.recycle();
+            final Thread currentThread = Thread.currentThread();
+            if (currentThread instanceof HttpWorkerThread &&
+                    ((HttpWorkerThread) currentThread).getStreamAlgorithm() == null) {
+                ((HttpWorkerThread) currentThread).setStreamAlgorithm(streamAlgorithm);
+            }
+
+            streamAlgorithm = null;
+        }
+
         socket = null;
         dropConnection = false;
         reRegisterSelectionKey = true;

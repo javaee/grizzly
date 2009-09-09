@@ -43,7 +43,6 @@ import com.sun.grizzly.http.FileCacheFactory;
 import com.sun.grizzly.util.Interceptor;
 import com.sun.grizzly.http.FileCache;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.tcp.ActionCode;
 import java.io.IOException;
 import java.nio.channels.SocketChannel;
 
