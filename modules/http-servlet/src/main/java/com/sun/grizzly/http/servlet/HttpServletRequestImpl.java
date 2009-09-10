@@ -94,7 +94,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
     private ServletContextImpl contextImpl;        
         
-    private String servletPath = "/";
+    private String servletPath = "";
     
     private Logger logger = LoggerUtils.getLogger();
 
