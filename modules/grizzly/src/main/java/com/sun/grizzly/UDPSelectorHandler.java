@@ -41,6 +41,7 @@ package com.sun.grizzly;
 import com.sun.grizzly.async.UDPAsyncQueueReader;
 import com.sun.grizzly.async.UDPAsyncQueueWriter;
 import com.sun.grizzly.util.Copyable;
+import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.DatagramSocket;
@@ -50,7 +51,6 @@ import java.net.SocketException;
 import java.nio.channels.DatagramChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
 import java.util.concurrent.Callable;
 import java.util.logging.Level;
 
@@ -136,7 +136,7 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
                     ConcurrentQueueDelegateCIH(
                     getConnectorInstanceHandlerDelegate());
 
-            selector = Selector.open();
+            selector = Utils.openSelector();
             if (role != Role.CLIENT){
                 datagramChannel = DatagramChannel.open();
                 datagramSocket = datagramChannel.socket();
