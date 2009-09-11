@@ -73,6 +73,23 @@ public class Utils {
 	}
     }
 
+    public static Selector openSelector() throws IOException {
+        try {
+            return Selector.open();
+        } catch (NullPointerException e) {
+            // This is a JDK issue http://bugs.sun.com/view_bug.do?bug_id=6427854
+            // Try 5 times and abort
+            for (int i = 0; i < 5; i++) {
+                try {
+                    return Selector.open();
+                } catch (NullPointerException e2) {
+                }
+            }
+
+            String msg = e.getMessage();
+            throw new IOException("Can not open Selector" + (msg == null ? "" : msg));
+        }
+    }
     
     /**
      * Method reads data from {@link SelectableChannel} to 

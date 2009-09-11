@@ -39,6 +39,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.Context.OpType;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
@@ -501,7 +502,7 @@ public class SelectorHandlerRunner implements Runnable {
     protected static void switchToNewSelector(SelectorHandler selectorHandler)
             throws IOException {
         Selector oldSelector = selectorHandler.getSelector();
-        Selector newSelector = Selector.open();
+        Selector newSelector = Utils.openSelector();
 
         Set<SelectionKey> keys = oldSelector.keys();
         for (SelectionKey key : keys) {

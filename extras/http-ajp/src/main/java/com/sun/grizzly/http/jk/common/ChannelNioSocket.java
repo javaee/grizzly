@@ -96,6 +96,7 @@ import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.Utils;
 import java.util.logging.Level;
 
 /** 
@@ -461,7 +462,7 @@ public class ChannelNioSocket extends JkHandler
 
         LoggerUtils.getLogger().info("JK: ajp13 listening on " + getAddress() + ":" + port);
 
-        selector = Selector.open();
+        selector = Utils.openSelector();
         ssc.register(selector, SelectionKey.OP_ACCEPT);
         // If this is not the base port and we are the 'main' channleSocket and
         // SHM didn't already set the localId - we'll set the instance id

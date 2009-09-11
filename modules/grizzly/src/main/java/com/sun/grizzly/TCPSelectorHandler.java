@@ -43,6 +43,7 @@ import com.sun.grizzly.async.AsyncQueueReader;
 import com.sun.grizzly.async.AsyncQueueWriter;
 import com.sun.grizzly.async.TCPAsyncQueueWriter;
 import com.sun.grizzly.async.TCPAsyncQueueReader;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.LinkedTransferQueue;
@@ -411,7 +412,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                     getConnectorInstanceHandlerDelegate());
 
             // Create the socket listener
-            selector = Selector.open();
+            selector = Utils.openSelector();
 
             if (role != Role.CLIENT){
                 serverSocketChannel = ServerSocketChannel.open();

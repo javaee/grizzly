@@ -84,7 +84,7 @@ public class SelectorFactory{
             int toadd = (initialized?size-maxSelectors:size);
             if (toadd>0){
                 while(toadd-->0){
-                    selectors.add(createSelector());
+                    selectors.add(Utils.openSelector());
                 }
             }else{
                 reduce(-toadd);
@@ -183,16 +183,7 @@ public class SelectorFactory{
      * @throws java.io.IOException
      */
     public final static void reimburseSelector() throws IOException {
-        returnSelector(createSelector());
-    }
-
-    /**
-     * Creeate Selector
-     * @return Selector
-     * @throws java.io.IOException
-     */
-    protected static Selector createSelector() throws IOException {
-        return Selector.open();
+        returnSelector(Utils.openSelector());
     }
 
     /**

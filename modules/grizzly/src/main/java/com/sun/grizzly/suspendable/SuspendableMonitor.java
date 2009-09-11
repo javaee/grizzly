@@ -49,6 +49,7 @@ import java.util.logging.Logger;
 
 import com.sun.grizzly.suspendable.SuspendableFilter.KeyHandler;
 import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
@@ -81,7 +82,7 @@ public class SuspendableMonitor implements Runnable {
      */
     public SuspendableMonitor() {
         try {
-            selector = Selector.open();
+            selector = Utils.openSelector();
         } catch (IOException ex) {
             // Most probably a fd leak.
             logger.log(Level.SEVERE, "SuspendableMonitor.open()", ex);
