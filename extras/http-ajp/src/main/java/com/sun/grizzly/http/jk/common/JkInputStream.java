@@ -298,16 +298,13 @@ public class JkInputStream implements InputBuffer, OutputBuffer {
         outputMsg.appendInt(res.getStatus());
 
         String message = null;
-        if (com.sun.grizzly.tcp.http11.Constants.CUSTOM_REASONPRASE) {
+      //  if (com.sun.grizzly.tcp.Constants.USE_CUSTOM_STATUS_MSG_IN_HEADER) {
             message = res.getMessage();
-            if (message != null) {
-                message = message.replace('\n', ' ').replace('\r', ' ');
-            }
-        } else {
-            message = HttpMessages.getMessage(res.getStatus());
-        }
+    //    }
         if (message == null) {
-            message = "";
+            message = HttpMessages.getMessage(res.getStatus());
+        } else {
+            message = message.replace('\n', ' ').replace('\r', ' ');
         }
         tempMB.setString(message);
         c2b.convert(tempMB);

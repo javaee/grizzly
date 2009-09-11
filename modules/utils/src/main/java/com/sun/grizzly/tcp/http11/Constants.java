@@ -343,9 +343,4 @@ public final class Constants {
     // START SJSAS 6346226
     public final static String JROUTE_COOKIE = "JROUTE";
     // END SJSAS 6346226
-
-    public static final String REASONPHRASERESPONSE = 
-        "com.sun.grizzly.reasonphrase.custom-message";
-    public static final boolean CUSTOM_REASONPRASE = 
-        Boolean.getBoolean(REASONPHRASERESPONSE);
 }
