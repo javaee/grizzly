@@ -51,7 +51,7 @@ import java.util.regex.Pattern;
  */
 public class Grizzly {
 
-    private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(?:-(.+))?");
+    private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(.+)?");
     private static final String dotedVersion;
     private static final int major;
     private static final int minor;
