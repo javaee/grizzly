@@ -1985,7 +1985,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                     + "\n\t Thread Pool: "
                     + threadPool
                     + "\n\t Read Selector: "
-                    + (readThreadsCount == -1? Runtime.getRuntime().availableProcessors() : readThreadsCount)
+                    + readThreadsCount
                     + "\n\t ByteBuffer size: " 
                     + requestBufferSize                   
                     + "\n\t maxHttpHeaderSize: "
