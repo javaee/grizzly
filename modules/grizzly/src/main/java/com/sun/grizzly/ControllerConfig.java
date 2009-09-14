@@ -112,7 +112,7 @@ class ControllerConfig{
 
         c.setMaxAcceptRetries(Integer.getInteger(MAX_ACCEPT_RETRIES, 5));
 
-        c.setDisplayConfiguration(Boolean.getBoolean(AUTO_CONFIGURE));
+        c.setDisplayConfiguration(Boolean.getBoolean(DISPLAY_CONFIGURATION));
     }
 
 
