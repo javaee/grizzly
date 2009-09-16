@@ -126,7 +126,7 @@ public class WebappLoader {
 	 * @return the WebApp loaded
 	 * @throws Exception any exceptions will be thrown here if there is a problem parsing the file
 	 */
-	public WebApp load(String webxml) throws Exception {
+	public static WebApp load(String webxml) throws Exception {
 		
 		// load the xml file to get it's schema version
 		WebXmlHelper helper = new WebXmlHelper();
@@ -143,10 +143,8 @@ public class WebappLoader {
 		if(logger.isLoggable(Level.FINEST)){
 			logger.log(Level.FINEST, "Version found=" + schemaVersion);
 		}
-		
-		WebApp webapp = extractWebXmlInfo(schemaVersion, webxml);
-		
-		return webapp;
+
+            return extractWebXmlInfo(schemaVersion, webxml);
 	}
 	
 	/**
@@ -157,14 +155,12 @@ public class WebappLoader {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	protected WebApp extractWebXmlInfo(String schemaVersion, String webxml) throws Exception {
-		
-		Class clazz = Class.forName(webAppMap.get(schemaVersion));
-		IJAXBWebXmlParser parser = (IJAXBWebXmlParser)clazz.newInstance();
-		
-		WebApp webapp = parser.parse(webxml);
-		
-		return webapp;
+	protected static WebApp extractWebXmlInfo(String schemaVersion, String webxml) throws Exception {
+
+            IJAXBWebXmlParser parser = (IJAXBWebXmlParser)
+                ((Class) Class.forName(webAppMap.get(schemaVersion))).newInstance();
+
+            return parser.parse(webxml);
         
 	}
 

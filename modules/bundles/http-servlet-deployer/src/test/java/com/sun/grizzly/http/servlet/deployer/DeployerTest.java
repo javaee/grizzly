@@ -4,8 +4,8 @@ import junit.framework.TestCase;
 
 public class DeployerTest extends TestCase {
 	
-	protected GrizzlyWebServerDeployer deployer = null;
-	
+	private GrizzlyWebServerDeployer deployer = null;
+
 	protected void setUp() throws Exception {
 		deployer = new GrizzlyWebServerDeployer();
 	}
@@ -13,55 +13,55 @@ public class DeployerTest extends TestCase {
 	/**
 	 * Extract the servlet path from a URL
 	 * 
-	 * @throws Exception
+	 * @throws Exception Duh!
 	 */
 	public void testGetServletPath() throws Exception {
 		
 		// no context and no servlet
-		assertEquals("/", deployer.getServletPath(""));
+		assertEquals("/", WebAppAdapter.getServletPath(""));
 		
 		// no context and root servlet
-		assertEquals("/", deployer.getServletPath("/"));
+		assertEquals("/", WebAppAdapter.getServletPath("/"));
 		
 		// no context and root servlet with wildcard mapping
-		assertEquals("/", deployer.getServletPath("/*"));
+		assertEquals("/", WebAppAdapter.getServletPath("/*"));
 		
 		// with context
-		assertEquals("/servlet1", deployer.getServletPath("/servlet1/"));
+		assertEquals("/servlet1", WebAppAdapter.getServletPath("/servlet1/"));
 		
 		// with context and urlPattern
-		assertEquals("/servlet1", deployer.getServletPath("/servlet1/*.jsp"));
+		assertEquals("/servlet1", WebAppAdapter.getServletPath("/servlet1/*.jsp"));
 		
 		// with context and urlPattern
-		assertEquals("/servlet1", deployer.getServletPath("/servlet1/a.jsp"));
+		assertEquals("/servlet1", WebAppAdapter.getServletPath("/servlet1/a.jsp"));
 		
 		// with context and urlPattern
-		assertEquals("/servlet1", deployer.getServletPath("/servlet1/.jsp"));
+		assertEquals("/servlet1", WebAppAdapter.getServletPath("/servlet1/.jsp"));
 		
 		// with context and urlPattern
-		assertEquals("/servlet1", deployer.getServletPath("/servlet1/*"));
+		assertEquals("/servlet1", WebAppAdapter.getServletPath("/servlet1/*"));
 		
 		//with context and multiple paths
-		assertEquals("/servlet1/subpath", deployer.getServletPath("/servlet1/subpath/"));
+		assertEquals("/servlet1/subpath", WebAppAdapter.getServletPath("/servlet1/subpath/"));
 		
 		//with context and multiple paths
-		assertEquals("/servlet1/subpath", deployer.getServletPath("/servlet1/subpath"));
+		assertEquals("/servlet1/subpath", WebAppAdapter.getServletPath("/servlet1/subpath"));
 		
 		//with context and multiple paths and wildcard
-		assertEquals("/servlet1/subpath", deployer.getServletPath("/servlet1/subpath/*"));
+		assertEquals("/servlet1/subpath", WebAppAdapter.getServletPath("/servlet1/subpath/*"));
 		
 		//with context and multiple paths and wildcard
-		assertEquals("/servlet1/subpath/*/abc", deployer.getServletPath("/servlet1/subpath/*/abc"));
+		assertEquals("/servlet1/subpath/*/abc", WebAppAdapter.getServletPath("/servlet1/subpath/*/abc"));
 		
 		//with context and multiple paths and wildcard
-		assertEquals("/servlet1/subpath/*/abc", deployer.getServletPath("/servlet1/subpath/*/abc/1.zxy"));
+		assertEquals("/servlet1/subpath/*/abc", WebAppAdapter.getServletPath("/servlet1/subpath/*/abc/1.zxy"));
 		
 	}
 	
 	/**
 	 * Extract the servlet path from a URL
 	 * 
-	 * @throws Exception
+	 * @throws Exception Duh!
 	 */
 	public void testGetContextPath() throws Exception {
 		// no context 

@@ -36,6 +36,7 @@
 package com.sun.grizzly.http.webxml.schema;
 
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  * This class represent a web.xml.  
@@ -66,38 +67,38 @@ import java.util.List;
  */
 public class WebApp {
 
-	public List<Icon> icon;
-	public List<String> displayName;
-	public List<String> description;
+	public List<Icon> icon = new ArrayList<Icon>(0);
+	public List<String> displayName = new ArrayList<String>(0);
+	public List<String> description = new ArrayList<String>(0);
 	public boolean distributable;
-	public List<ContextParam> contextParam;
-	public List<Filter> filter;
-	public List<FilterMapping> filterMapping;
-	public List<Listener> listener;
-	public List<Servlet> servlet;
-	public List<ServletMapping> servletMapping;
-	public List<SessionConfig> sessionConfig;
-	public List<MimeMapping> mimeMapping;
-	public List<WelcomeFileList> welcomeFileList;
-	public List<ErrorPage> errorPage;
-	public List<Taglib> taglib;
-	public List<ResourceEnvRef> resourceEnvRef;
-	public List<ResourceRef> resourceRef;
-	public List<SecurityConstraint> securityConstraint;
-	public List<LoginConfig> loginConfig;
-	public List<SecurityRole> securityRole;
-	public List<EnvEntry> envEntry;
-	public List<EjbRef> ejbRef;
-	public List<EjbLocalRef> ejbLocalRef;
-	public List<JspConfig> jspConfig;
-	public List<ServiceRef> serviceRef;
-	public List<MessageDestination> messageDestination;
-	public List<MessageDestinationRef> messageDestinationRef;
-	public List<PersistenceContextRef> persistenceContextRef;
-	public List<PersistenceUnitRef> persistenceUnitRef;
-	public List<LifecycleCallback> postConstruct;
-	public List<LifecycleCallback> preDestroy;
-	public List<LocaleEncodingMappingList> localeEncodingMappingList;
+	public List<ContextParam> contextParam = new ArrayList<ContextParam>(0);
+	public List<Filter> filter = new ArrayList<Filter>(0);
+	public List<FilterMapping> filterMapping = new ArrayList<FilterMapping>(0);
+	public List<Listener> listener = new ArrayList<Listener>(0);
+	public List<Servlet> servlet = new ArrayList<Servlet>(0);
+	public List<ServletMapping> servletMapping = new ArrayList<ServletMapping>(0);
+	public List<SessionConfig> sessionConfig = new ArrayList<SessionConfig>(0);
+	public List<MimeMapping> mimeMapping = new ArrayList<MimeMapping>(0);
+	public List<WelcomeFileList> welcomeFileList = new ArrayList<WelcomeFileList>(0);
+	public List<ErrorPage> errorPage = new ArrayList<ErrorPage>(0);
+	public List<Taglib> taglib = new ArrayList<Taglib>(0);
+	public List<ResourceEnvRef> resourceEnvRef = new ArrayList<ResourceEnvRef>(0);
+	public List<ResourceRef> resourceRef = new ArrayList<ResourceRef>(0);
+	public List<SecurityConstraint> securityConstraint = new ArrayList<SecurityConstraint>(0);
+	public List<LoginConfig> loginConfig = new ArrayList<LoginConfig>(0);
+	public List<SecurityRole> securityRole = new ArrayList<SecurityRole>(0);
+	public List<EnvEntry> envEntry = new ArrayList<EnvEntry>(0);
+	public List<EjbRef> ejbRef = new ArrayList<EjbRef>(0);
+	public List<EjbLocalRef> ejbLocalRef = new ArrayList<EjbLocalRef>(0);
+	public List<JspConfig> jspConfig = new ArrayList<JspConfig>(0);
+	public List<ServiceRef> serviceRef = new ArrayList<ServiceRef>(0);
+	public List<MessageDestination> messageDestination = new ArrayList<MessageDestination>(0);
+	public List<MessageDestinationRef> messageDestinationRef = new ArrayList<MessageDestinationRef>(0);
+	public List<PersistenceContextRef> persistenceContextRef = new ArrayList<PersistenceContextRef>(0);
+	public List<PersistenceUnitRef> persistenceUnitRef = new ArrayList<PersistenceUnitRef>(0);
+	public List<LifecycleCallback> postConstruct = new ArrayList<LifecycleCallback>(0);
+	public List<LifecycleCallback> preDestroy = new ArrayList<LifecycleCallback>(0);
+	public List<LocaleEncodingMappingList> localeEncodingMappingList = new ArrayList<LocaleEncodingMappingList>(0);
 
 	/**
 	 * <icon>
@@ -110,7 +111,9 @@ public class WebApp {
 	}
 
 	public void setIcon(List<Icon> icon) {
-		this.icon = icon;
+        if (icon != null) {
+		    this.icon = icon;
+        }
 	}
 	
 	/**
@@ -121,7 +124,9 @@ public class WebApp {
 	}
 
 	public void setDisplayName(List<String> displayName) {
-		this.displayName = displayName;
+        if (displayName != null) {
+		    this.displayName = displayName;
+        }
 	}
 
 	/**
@@ -132,7 +137,9 @@ public class WebApp {
 	}
 
 	public void setDescription(List<String> description) {
-		this.description = description;
+        if (description != null) {
+            this.description = description;
+        }
 	}
 	
 	/**
@@ -158,7 +165,9 @@ public class WebApp {
 	}
 
 	public void setServlet(List<Servlet> servlet) {
-		this.servlet = servlet;
+        if (servlet != null) {
+            this.servlet = servlet;
+        }
 	}
 
 	/**
@@ -176,7 +185,9 @@ public class WebApp {
 	}
 
 	public void setFilter(List<Filter> filter) {
-		this.filter = filter;
+        if (filter != null) {
+    		this.filter = filter;
+        }
 	}
 	
 	/**
@@ -191,7 +202,9 @@ public class WebApp {
 	}
 
 	public void setContextParam(List<ContextParam> contextParam) {
-		this.contextParam = contextParam;
+        if (contextParam != null) {
+    		this.contextParam = contextParam;
+        }
 	}
 	
 	/**
@@ -214,7 +227,9 @@ public class WebApp {
 	}
 
 	public void setEjbLocalRef(List<EjbLocalRef> ejbLocalRef) {
-		this.ejbLocalRef = ejbLocalRef;
+        if (ejbLocalRef != null) {
+    		this.ejbLocalRef = ejbLocalRef;
+        }
 	}
 
 	/**
@@ -237,7 +252,9 @@ public class WebApp {
 	}
 
 	public void setEjbRef(List<EjbRef> ejbRef) {
-		this.ejbRef = ejbRef;
+        if (ejbRef != null) {
+    		this.ejbRef = ejbRef;
+        }
 	}
 	
 	/**
@@ -258,7 +275,9 @@ public class WebApp {
 	}
 
 	public void setEnvEntry(List<EnvEntry> envEntry) {
-		this.envEntry = envEntry;
+        if (envEntry != null) {
+    		this.envEntry = envEntry;
+        }
 	}
 	
 	/**
@@ -273,7 +292,9 @@ public class WebApp {
 	}
 
 	public void setErrorPage(List<ErrorPage> errorPage) {
-		this.errorPage = errorPage;
+        if (errorPage != null) {
+    		this.errorPage = errorPage;
+        }
 	}
 	
 	/**
@@ -293,7 +314,9 @@ public class WebApp {
 	}
 
 	public void setFilterMapping(List<FilterMapping> filterMapping) {
-		this.filterMapping = filterMapping;
+        if (filterMapping != null) {
+    		this.filterMapping = filterMapping;
+        }
 	}
 
 	/**
@@ -312,7 +335,9 @@ public class WebApp {
 	}
 
 	public void setListener(List<Listener> listener) {
-		this.listener = listener;
+        if (listener != null) {
+    		this.listener = listener;
+        }
 	}
 	
 	/**
@@ -330,7 +355,9 @@ public class WebApp {
 	}
 
 	public void setLoginConfig(List<LoginConfig> loginConfig) {
-		this.loginConfig = loginConfig;
+        if (loginConfig != null) {
+    		this.loginConfig = loginConfig;
+        }
 	}
 	
 	/**
@@ -344,7 +371,9 @@ public class WebApp {
 	}
 
 	public void setMimeMapping(List<MimeMapping> mimeMapping) {
-		this.mimeMapping = mimeMapping;
+        if (mimeMapping != null) {
+    		this.mimeMapping = mimeMapping;
+        }
 	}
 	
 	/**
@@ -364,7 +393,9 @@ public class WebApp {
 	}
 
 	public void setResourceEnvRef(List<ResourceEnvRef> resourceEnvRef) {
-		this.resourceEnvRef = resourceEnvRef;
+        if (resourceEnvRef != null) {
+    		this.resourceEnvRef = resourceEnvRef;
+        }
 	}
 	
 	/**
@@ -387,7 +418,9 @@ public class WebApp {
 	}
 
 	public void setSecurityConstraint(List<SecurityConstraint> securityConstraint) {
-		this.securityConstraint = securityConstraint;
+        if (securityConstraint != null) {
+    		this.securityConstraint = securityConstraint;
+        }
 	}
 	
 	/**
@@ -401,7 +434,9 @@ public class WebApp {
 	}
 
 	public void setServletMapping(List<ServletMapping> servletMapping) {
-		this.servletMapping = servletMapping;
+        if (servletMapping != null) {
+    		this.servletMapping = servletMapping;
+        }
 	}
 	
 	/**
@@ -423,7 +458,9 @@ public class WebApp {
 	}
 
 	public void setSessionConfig(List<SessionConfig> sessionConfig) {
-		this.sessionConfig = sessionConfig;
+        if (sessionConfig != null) {
+    		this.sessionConfig = sessionConfig;
+        }
 	}
 	
 	/**
@@ -437,7 +474,9 @@ public class WebApp {
 	}
 
 	public void setTaglib(List<Taglib> taglib) {
-		this.taglib = taglib;
+        if (taglib != null) {
+    		this.taglib = taglib;
+        }
 	}
 	
 	/**
@@ -451,7 +490,9 @@ public class WebApp {
 	}
 
 	public void setSecurityRole(List<SecurityRole> securityRole) {
-		this.securityRole = securityRole;
+        if (securityRole != null) {
+    		this.securityRole = securityRole;
+        }
 	}
 
 	/**
@@ -473,7 +514,9 @@ public class WebApp {
 	}
 
 	public void setResourceRef(List<ResourceRef> resourceRef) {
-		this.resourceRef = resourceRef;
+        if (resourceRef != null) {
+    		this.resourceRef = resourceRef;
+        }
 	}
 	
 	/**
@@ -487,7 +530,9 @@ public class WebApp {
 	}
 
 	public void setWelcomeFileList(List<WelcomeFileList> welcomeFileList) {
-		this.welcomeFileList = welcomeFileList;
+        if (welcomeFileList != null) {
+    		this.welcomeFileList = welcomeFileList;
+        }
 	}
 	
 	/**
@@ -523,7 +568,9 @@ public class WebApp {
 	}
 
 	public void setJspConfig(List<JspConfig> jspConfig) {
-		this.jspConfig = jspConfig;
+        if (jspConfig != null) {
+    		this.jspConfig = jspConfig;
+        }
 	}
 
 	/**
@@ -600,7 +647,9 @@ public class WebApp {
 	}
 
 	public void setServiceRef(List<ServiceRef> serviceRef) {
-		this.serviceRef = serviceRef;
+        if (serviceRef != null) {
+    		this.serviceRef = serviceRef;
+        }
 	}
 	
 	/**
@@ -620,7 +669,9 @@ public class WebApp {
 	}
 
 	public void setMessageDestination(List<MessageDestination> messageDestination) {
-		this.messageDestination = messageDestination;
+        if (messageDestination != null) {
+    		this.messageDestination = messageDestination;
+        }
 	}
 
 	/**
@@ -642,7 +693,9 @@ public class WebApp {
 	}
 
 	public void setMessageDestinationRef(List<MessageDestinationRef> messageDestinationRef) {
-		this.messageDestinationRef = messageDestinationRef;
+        if (messageDestinationRef != null) {
+    		this.messageDestinationRef = messageDestinationRef;
+        }
 	}
 	
 	/**
@@ -667,7 +720,9 @@ public class WebApp {
 	}
 
 	public void setPersistenceContextRef(List<PersistenceContextRef> persistenceContextRef) {
-		this.persistenceContextRef = persistenceContextRef;
+        if (persistenceContextRef != null) {
+    		this.persistenceContextRef = persistenceContextRef;
+        }
 	}
 
 	/**
@@ -687,7 +742,9 @@ public class WebApp {
 	}
 
 	public void setPersistenceUnitRef(List<PersistenceUnitRef> persistenceUnitRef) {
-		this.persistenceUnitRef = persistenceUnitRef;
+        if (persistenceUnitRef != null) {
+    		this.persistenceUnitRef = persistenceUnitRef;
+        }
 	}
 	
 	/**
@@ -701,7 +758,9 @@ public class WebApp {
 	}
 	
 	public void setPostConstruct(List<LifecycleCallback> postConstruct) {
-		this.postConstruct = postConstruct;
+        if (postConstruct != null) {
+    		this.postConstruct = postConstruct;
+        }
 	}
 	
 	/**
@@ -715,7 +774,9 @@ public class WebApp {
 	}
 
 	public void setPreDestroy(List<LifecycleCallback> preDestroy) {
-		this.preDestroy = preDestroy;
+        if (preDestroy != null) {
+    		this.preDestroy = preDestroy;
+        }
 	}
 
 	/**
@@ -731,7 +792,9 @@ public class WebApp {
 	}
 
 	public void setLocaleEncodingMappingList(List<LocaleEncodingMappingList> localeEncodingMappingList) {
-		this.localeEncodingMappingList = localeEncodingMappingList;
+        if (localeEncodingMappingList != null) {
+    		this.localeEncodingMappingList = localeEncodingMappingList;
+        }
 	}
 
 	public String toString() {
@@ -994,4 +1057,38 @@ public class WebApp {
 		return buffer.toString();
 	}
 
+    public WebApp mergeWith(WebApp with) {
+        this.contextParam.addAll(with.contextParam);
+        this.description.addAll(with.description);
+        this.displayName.addAll(with.displayName);
+        this.ejbLocalRef.addAll(with.ejbLocalRef);
+        this.ejbRef.addAll(with.ejbRef);
+        this.envEntry.addAll(with.envEntry);
+        this.errorPage.addAll(with.errorPage);
+        this.filter.addAll(with.filter);
+        this.filterMapping.addAll(with.filterMapping);
+        this.icon.addAll(with.icon);
+        this.jspConfig.addAll(with.jspConfig);
+        this.listener.addAll(with.listener);
+        this.localeEncodingMappingList.addAll(with.localeEncodingMappingList);
+        this.loginConfig.addAll(with.loginConfig);
+        this.messageDestination.addAll(with.messageDestination);
+        this.messageDestinationRef.addAll(with.messageDestinationRef);
+        this.mimeMapping.addAll(with.mimeMapping);
+        this.persistenceContextRef.addAll(with.persistenceContextRef);
+        this.persistenceUnitRef.addAll(with.persistenceUnitRef);
+        this.postConstruct.addAll(with.postConstruct);
+        this.preDestroy.addAll(with.preDestroy);
+        this.resourceEnvRef.addAll(with.resourceEnvRef);
+        this.resourceRef.addAll(with.resourceRef);
+        this.securityConstraint.addAll(with.securityConstraint);
+        this.securityRole.addAll(with.securityRole);
+        this.serviceRef.addAll(with.serviceRef);
+        this.servlet.addAll(with.servlet);
+        this.servletMapping.addAll(with.servletMapping);
+        this.sessionConfig.addAll(with.sessionConfig);
+        this.taglib.addAll(with.taglib);
+        this.welcomeFileList.addAll(with.welcomeFileList);
+        return this;
+    }
 }

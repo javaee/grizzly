@@ -40,7 +40,6 @@ package com.sun.grizzly.util;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.logging.Level;
@@ -56,31 +55,27 @@ public class ClassLoaderUtil {
      * Create a class loader that can load classes from the specified
      * file directory. The file directory must contains .jar ot .zip
      *
-     * @param file a directory
-     * @param ClassLoader the parent classloader, or null if none.
+     * @param libDir a directory
+     * @param cl the parent classloader, or null if none.
      * @return A Classloader that can load classes from a directory that
      *         contains jar and zip files.
+     * @throws java.io.IOException I/O fail
+     * @deprecated removal candidate, never used
      */
-    public final static ClassLoader createClassloader(File libDir, ClassLoader cl)
+    public static ClassLoader createClassloader(File libDir, ClassLoader cl)
             throws IOException{
         URLClassLoader urlClassloader = null;
         if (libDir.exists()){
             if (libDir.isDirectory()){
                 String[] jars = libDir.list(new FilenameFilter() {
                     public boolean accept(File dir, String name) {
-                        if (name.endsWith(".jar") || name.endsWith(".zip")){
-                            return true;
-                        } else {
-                            return false;
-                        }
-                        
+                        return name.endsWith(".jar") || name.endsWith(".zip");
                     }
                 });
                 URL[] urls = new URL[jars.length];
                 for (int i=0; i < jars.length; i++){
                     String path = new File(libDir.getName() 
-                        + File.separator + jars[i]).getCanonicalFile().toURL()
-                            .toString();
+                        + File.separator + jars[i]).getCanonicalFile().toURI().toURL().toString();
                     urls[i] = new URL(path);
                 }
                 urlClassloader = new URLClassLoader(urls,cl);
@@ -90,17 +85,18 @@ public class ClassLoaderUtil {
     }
     
     /**
-     * Construct a {@link URLClassloader} based on a canonial file location.
-     * @param dirPath a canonial path location
+     * Construct a {@link URLClassLoader} based on a canonical file location.
+     * @param dirPath a canonical path location
      * @return a {@link URLClassLoader}
+     * @throws java.io.IOException I/O
+     * @throws java.net.MalformedURLException Invalid URL
      */
-    public static URLClassLoader createURLClassLoader(String dirPath) throws MalformedURLException
-            , IOException{
+    public static URLClassLoader createURLClassLoader(String dirPath) throws IOException{
         
         String path;
-        File file = null;
-        URL appRoot = null;
-        URL classesURL = null;
+        File file;
+        URL appRoot;
+        URL classesURL;
         
         if (!dirPath.endsWith(File.separator)){
             dirPath += File.separator;
@@ -120,10 +116,10 @@ public class ClassLoaderUtil {
             appRoot = new URL("file://" + path);
         }
 
-	String absolutePath =  new File(path).getAbsolutePath();
-        URL[] urls = null;        
+        String absolutePath =  new File(path).getAbsolutePath();
+        URL[] urls;
         File libFiles = new File(absolutePath + File.separator + "WEB-INF"+ File.separator + "lib");
-        int arraySize = (appRoot == null ? 1:2);
+        int arraySize = 2;
 
         //Must be a better way because that sucks!
         String separator = (System.getProperty("os.name")
@@ -140,9 +136,7 @@ public class ClassLoaderUtil {
          
         urls[urls.length -1] = classesURL;
         urls[urls.length -2] = appRoot;
-        URLClassLoader urlClassloader = new URLClassLoader(urls,
-                Thread.currentThread().getContextClassLoader());
-        return urlClassloader;
+        return new URLClassLoader(urls, Thread.currentThread().getContextClassLoader());
     }
         
     /**
@@ -155,13 +149,13 @@ public class ClassLoaderUtil {
     }
  
     /**
-     * Load a class using the provided {@link Classloader}
+     * Load a class using the provided {@link ClassLoader}
      * @param clazzName The name of the class you want to load.
      * @param classLoader A classloader to use for loading a class.
      * @return an instance of clazzname 
      */
     public static Object load(String clazzName, ClassLoader classLoader) {
-        Class className = null;
+        Class className;
         try {
             className = Class.forName(clazzName, true, classLoader);
             return className.newInstance();
