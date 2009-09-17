@@ -438,7 +438,7 @@ public class GrizzlyWebServerDeployer {
      * @throws java.io.IOException
      */
     public static Map.Entry<String, URLClassLoader> explodeAndCreateWebAppClassLoader(
-            String appliPath, URLClassLoader serverLibLoader) throws IOException {
+            String appliPath, final URLClassLoader serverLibLoader) throws IOException {
 
         if (appliPath != null && appliPath.endsWith(File.pathSeparator)) {
             appliPath += File.pathSeparator;
@@ -447,7 +447,7 @@ public class GrizzlyWebServerDeployer {
         // Must be a better way because that sucks!
         String separator = (System.getProperty("os.name").toLowerCase().startsWith("win") ? ROOT : "//");
 
-        List<URL> classpathList = new ArrayList<URL>();
+        final List<URL> classpathList = new ArrayList<URL>();
 
         String path = null;
         URL appRoot = null;
@@ -491,8 +491,21 @@ public class GrizzlyWebServerDeployer {
         }
 
         // Linking with serverLibCL
-        return new AbstractMap.SimpleImmutableEntry<String, URLClassLoader>(
-                path, new URLClassLoader(classpathList.toArray(new URL[classpathList.size()]), serverLibLoader));
+        final String finalPath = path;
+        return new AbstractMap.Entry<String, URLClassLoader>() {
+            public String getKey() {
+                return finalPath;
+            }
+
+            public URLClassLoader getValue() {
+                return new URLClassLoader(
+                    classpathList.toArray(new URL[classpathList.size()]), serverLibLoader);
+            }
+
+            public URLClassLoader setValue(final URLClassLoader value) {
+                throw new UnsupportedOperationException("This is read-only Entry");
+            }
+        };
     }
 
     private static WebApp extractWebXmlInfo(String webxml) throws Exception {
