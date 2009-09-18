@@ -37,9 +37,12 @@
 
 package com.sun.grizzly.config.dom;
 
+import java.beans.PropertyVetoException;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
@@ -83,10 +86,12 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      requests in this queue. This is the upper bound on the no. of
      threads that exist in the threadpool.
      */
-    @Attribute(defaultValue = "5", dataType = Integer.class)
+    @Attribute(defaultValue = "5")
+    @Min(value=-1)
+    @Max(value=Integer.MAX_VALUE)
     String getMaxThreadPoolSize();
 
-    void setMaxThreadPoolSize(String value);
+    void setMaxThreadPoolSize(String value)  throws PropertyVetoException;
 
     /**
      * Minimum number of threads in the threadpool servicing
@@ -105,6 +110,15 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     String getName();
 
     void setName(String value);
+
+    /**
+     * This is an id for the work-queue e.g. "thread-pool-1", "thread-pool-2" etc
+     */
+    @Attribute
+    @Deprecated
+    String getThreadPoolId();
+
+    void setThreadPoolId(String value);
 
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
