@@ -106,6 +106,12 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setName(String value);
 
+	 @Attribute
+    @Deprecated
+    String getThreadPoolId();
+
+    void setThreadPoolId(String value);
+
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
 
