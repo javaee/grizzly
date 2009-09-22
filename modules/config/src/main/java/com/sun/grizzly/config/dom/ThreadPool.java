@@ -77,6 +77,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      * The maxim number of tasks, which could be queued on the thread pool.  -1 disables any maximum checks.
      */
     @Attribute(defaultValue = "4096", dataType = Integer.class)
+    @Min(value = -1)
     String getMaxQueueSize();
 
     void setMaxQueueSize(String value);
@@ -88,7 +89,6 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      */
     @Attribute(defaultValue = "5")
     @Min(value=-1)
-    @Max(value=Integer.MAX_VALUE)
     String getMaxThreadPoolSize();
 
     void setMaxThreadPoolSize(String value)  throws PropertyVetoException;
