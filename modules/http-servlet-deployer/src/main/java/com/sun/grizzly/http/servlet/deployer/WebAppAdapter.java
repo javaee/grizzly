@@ -109,6 +109,9 @@ public class WebAppAdapter extends ServletAdapter {
             ServletAdapter sa = adapterAliases.getKey();
             sa.setClassLoader(webAppCL);
 
+            // set context params
+            setContextParams(webApp, sa);
+
             // set Filters for this context if there are some
             setFilters(webApp, sa);
 
@@ -394,6 +397,21 @@ public class WebAppAdapter extends ServletAdapter {
         if (listeners != null) {
             for (Listener element : listeners) {
                 sa.addServletListener(element.getListenerClass());
+            }
+        }
+    }
+
+    protected static void setContextParams(WebApp webApp, ServletAdapter sa) {
+        if(webApp == null || sa == null) {
+            return;
+        }
+
+        // Add the context param
+        List<ContextParam> contextParmas = webApp.getContextParam();
+
+        if(contextParmas != null) {
+            for(ContextParam element : contextParmas) {
+                sa.addContextParameter(element.getParamName(), element.getParamValue());
             }
         }
     }
