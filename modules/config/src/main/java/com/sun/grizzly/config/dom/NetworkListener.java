@@ -39,6 +39,9 @@ package com.sun.grizzly.config.dom;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.validation.constraints.Min;
+import javax.validation.Constraint;
+
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBean;
@@ -56,6 +59,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
      * IP address to listen on
      */
     @Attribute(defaultValue = "0.0.0.0")
+    @NetworkAddress
     String getAddress();
 
     void setAddress(String value);

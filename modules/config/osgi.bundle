@@ -19,4 +19,5 @@ Import-Package: \
                         com.sun.grizzly.standalone; \
                         com.sun.grizzly.ssl; \
                         com.sun.grizzly.tcp; \
-                        com.sun.grizzly.util.*;
+                        com.sun.grizzly.util.*; \
+                        *
