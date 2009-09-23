@@ -136,7 +136,7 @@ public class SelectorThreadConfig{
         "com.sun.grizzly.http.bufferResponse"; 
     
     private final static String OOBInline = 
-        "com.sun.enterprise.web.connector.grizzly.OOBInline"; 
+        "com.sun.grizzly.OOBInline"; 
     
     private final static String MAX_BUFFERED_BYTES =
         "com.sun.grizzly.maxBufferedBytes";
