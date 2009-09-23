@@ -94,7 +94,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The id attribute of the default virtual server for this particular connection group.
      */
-    @Attribute
+    @Attribute(required = true)
     String getDefaultVirtualServer();
 
     void setDefaultVirtualServer(final String defaultVirtualServer);
