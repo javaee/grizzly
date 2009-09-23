@@ -70,6 +70,7 @@ import com.sun.grizzly.tcp.ActionHook;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.Processor;
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
@@ -84,6 +85,7 @@ import com.sun.grizzly.tcp.http11.filters.VoidInputFilter;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.BufferedInputFilter;
 import com.sun.grizzly.util.DefaultThreadPool;
+import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
 
@@ -94,10 +96,12 @@ import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.HexUtils;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.FastHttpDateFormat;
+import com.sun.grizzly.util.http.HtmlHelper;
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.util.net.SSLSupport;
 
 import com.sun.grizzly.util.res.StringManager;
+import java.nio.ByteBuffer;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -656,6 +660,28 @@ public class ProcessorTask extends TaskBase implements Processor,
             if (handleKeepAliveBlockingThread && maxKeepAliveRequests > 0 && --keepAliveLeft == 0){
                 keepAlive = false;
             }
+
+            String serverName = "Grizzly/" + Grizzly.getRawVersion();
+            if (System.getProperty("product.name") != null){
+                serverName = System.getProperty("product.name");
+            }
+
+            if (response.getStatus() == 400){
+                ByteBuffer bb = HtmlHelper.getErrorPage("Bad Request","HTTP/1.1 400 Bad Request\r\n",
+                        serverName);
+                response.setContentLength(bb.limit());
+                response.setContentType("text/html");
+                response.flushHeaders();
+                if (response.getChannel() != null) {
+                    response.getChannel().write(bb);
+                } else {
+                    byte b[] = new byte[bb.limit()];
+                    bb.get(b);
+                    ByteChunk chunk = new ByteChunk();
+                    chunk.setBytes(b, 0, b.length);
+                    response.doWrite(chunk);
+                }
+            }
             if ( exitWhile ) return exitWhile;
 
             invokeAdapter();
@@ -829,6 +855,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             // 400 - Bad Request
             response.setStatus(400);
             error = true;
+            return error;
         }
 
         // Setting up filters, and parse some request headers
@@ -1108,17 +1135,17 @@ public class ProcessorTask extends TaskBase implements Processor,
                         sm.getString("processorTask.exceptionSSLcert"),e);
                 }
             }
-        } else if ( actionCode == ActionCode.ACTION_POST_REQUEST ) { 
+        } else if ( actionCode == ActionCode.ACTION_POST_REQUEST ) {
             final Interceptor handler = getHandler();
-
-            if (response.getStatus() == 200 && handler != null
+            
+            if (response.getStatus() == 200 && handler != null 
                     && compressionLevel == 0){
                 try{
                     handler.handle(request,Interceptor.RESPONSE_PROCEEDED);
                 } catch(IOException ex){
                     logger.log(Level.FINEST,"Handler exception",ex);
                 }
-            }
+            }   
         } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) { 
             key.attach(null);
         } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
@@ -1857,23 +1884,23 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public void setStreamAlgorithm(StreamAlgorithm streamAlgorithm){
         this.streamAlgorithm = streamAlgorithm;
-    }
-
-
+    } 
+    
+    
     /**
      * Return the {@link StreamAlgorithm} used by this instance.
      */
     public StreamAlgorithm getStreamAlgorithm(){
         return streamAlgorithm;
-    }
-
+    }     
+    
     private Interceptor getHandler() {
         if (streamAlgorithm != null) {
             return streamAlgorithm.getHandler();
         }
 
         return null;
-    }     
+    }
     
     /**
      * Set the default response type used. Specified as a semi-colon
@@ -1967,10 +1994,10 @@ public class ProcessorTask extends TaskBase implements Processor,
                     ((HttpWorkerThread) currentThread).getStreamAlgorithm() == null) {
                 ((HttpWorkerThread) currentThread).setStreamAlgorithm(streamAlgorithm);
             }
-
+            
             streamAlgorithm = null;
         }
-
+        
         socket = null;
         dropConnection = false;
         reRegisterSelectionKey = true;
