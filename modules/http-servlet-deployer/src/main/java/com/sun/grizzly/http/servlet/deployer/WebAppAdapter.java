@@ -37,9 +37,9 @@ package com.sun.grizzly.http.servlet.deployer;
 
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.http.webxml.schema.*;
-import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.ClassLoaderUtil;
 
 import javax.servlet.Servlet;
@@ -57,29 +57,28 @@ import java.util.logging.Logger;
  * @since Aug 25, 2009
  */
 public class WebAppAdapter extends ServletAdapter {
+
     private static Logger logger = Logger.getLogger("WebAppAdapter");
     private static final String EMPTY_SERVLET_PATH = "";
 
     private static final String ROOT = "/";
 
+    private Map<GrizzlyAdapter, Set<String>> toRegister = new HashMap<GrizzlyAdapter, Set<String>>();
     private WebApp webApp;
     private ClassLoader webAppCL;
-    private GrizzlyWebServer gws;
     private String root;
     private String context;
 
     /**
      * Default constructor, takes care of setting up adapter.
      *
-     * @param gws        Grizzly Web Server to register {@link ServletAdapter}s.
      * @param root       Root folder, for serving static resources
      * @param context    Context to be deployed to.
      * @param webApp     Web application to be run by this adapter.
      * @param webAppCL   Web application class loader.
      * @param webdefault Default web application.
      */
-    public WebAppAdapter(GrizzlyWebServer gws, String root, String context, final WebApp webApp, URLClassLoader webAppCL, WebApp webdefault) {
-        this.gws = gws;
+    public WebAppAdapter(String root, String context, final WebApp webApp, URLClassLoader webAppCL, WebApp webdefault) {
         this.root = root;
         this.context = context;
         if (webdefault != null) {
@@ -139,9 +138,10 @@ public class WebAppAdapter extends ServletAdapter {
             }
 
             // keep trace of mapping
-            aliasesUsed.addAll(Arrays.asList(alias));
+            List<String> stringList = Arrays.asList(alias);
+            aliasesUsed.addAll(stringList);
 
-            gws.addGrizzlyAdapter(sa, alias);
+            toRegister.put(sa, new HashSet<String>(stringList));
 
             if (ROOT.equals(sa.getServletPath())) {
                 defaultContextServletPathFound = true;
@@ -176,7 +176,7 @@ public class WebAppAdapter extends ServletAdapter {
 
         logServletAdapterConfiguration(context, sa);
 
-        gws.addGrizzlyAdapter(sa, new String[]{context + ROOT});
+        toRegister.put(sa, Collections.singleton(context + ROOT));
     }
 
     private static void logServletAdapterConfiguration(final String ctx, final ServletAdapter sa) {
@@ -468,5 +468,9 @@ public class WebAppAdapter extends ServletAdapter {
         logger.log(Level.FINEST, "sa servletPath=" + sa.getServletPath());
         logger.log(Level.FINEST, "sa alias=" + alias);
         logger.log(Level.FINEST, "sa rootFolder=" + sa.getRootFolder());
+    }
+
+    public Map<GrizzlyAdapter, Set<String>> getToRegister() {
+        return toRegister;
     }
 }

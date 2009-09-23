@@ -24,11 +24,12 @@
 package com.sun.grizzly.http.embed;
 
 import com.sun.grizzly.SSLConfig;
-import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.arp.AsyncHandler;
+import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.Management;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.http.deployer.*;
 import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
@@ -38,14 +39,16 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
+
+import javax.management.ObjectInstance;
+import javax.management.ObjectName;
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.management.ObjectInstance;
-import javax.management.ObjectName;
 
 
 /**
@@ -716,7 +719,7 @@ public class GrizzlyWebServer {
 
     /**
      * Enable support for protocol like HTTP or AJP (Apache Java Protocol like mod_jk)
-     * @param p the {@link GrizzlyWebServer#PROTOCOL}
+     * @param p the {@link PROTOCOL}
      */
     public void enableProtocol(PROTOCOL p){
         isStarted = false;
@@ -740,5 +743,50 @@ public class GrizzlyWebServer {
         } else {
             return adapterChains;
         }
+    }
+
+    /**
+     * Deploy given deployable using provided deployer.
+     *
+     * @param toDeploy      Deplyable to deploy.
+     * @param deployer      to be used for deployment.
+     * @param configuration Deployment configuration.
+     * @return Deployment identification.
+     *
+     * @throws DeployException Deployment failed.
+     */
+    public <T extends Deployable, V extends DeploymentConfiguration>
+    DeploymentID deploy(T toDeploy, Deployer<T, V> deployer, V configuration)
+        throws DeployException {
+        return deployer.deploy(this, toDeploy, configuration);
+    }
+
+    /**
+     * Deploy from given uri using provided deployer.
+     *
+     * @param fromURI       uri to deploy from.
+     * @param deployer      to be used for deployment.
+     * @param configuration Deployment configuration.
+     * @return Deployment identification.
+     *
+     * @throws DeployException Deployment failed.
+     */
+    public <T extends Deployable, V extends DeploymentConfiguration>
+    DeploymentID deploy(URI fromURI, FromURIDeployer<T, V> deployer, V configuration)
+        throws DeployException {
+        return deployer.deploy(this, fromURI, configuration);
+    }
+
+    /**
+     * Undeploy deploymentId using provided deployer.
+     *
+     * @param deploymentId Deployment identification to be undeployed.
+     * @param deployer     to be used for undeploing.
+     * @param <T>          Type of object to be deployed.
+     * @param <V>          Deployment configuration type.
+     */
+    public <T extends Deployable, V extends DeploymentConfiguration>
+    void undeploy(DeploymentID deploymentId, Deployer<T, V> deployer) {
+        deployer.undeploy(this, deploymentId);
     }
 }

@@ -39,6 +39,7 @@ import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.http.deployer.*;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.embed.GrizzlyWebServer.PROTOCOL;
 import com.sun.grizzly.http.servlet.deployer.comparator.WarFileComparator;
@@ -47,6 +48,7 @@ import com.sun.grizzly.http.servlet.deployer.conf.DeployerConfiguration;
 import com.sun.grizzly.http.webxml.WebappLoader;
 import com.sun.grizzly.http.webxml.schema.*;
 import com.sun.grizzly.util.ExpandJar;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -82,6 +84,7 @@ public class GrizzlyWebServerDeployer {
     private GrizzlyWebServer ws = null;
 
     private String webxmlPath;
+    private WebAppDeployer deployer = new WebAppDeployer();
 
     /**
      * @param args Command line parameters.
@@ -101,8 +104,7 @@ public class GrizzlyWebServerDeployer {
     public void launch(DeployerConfiguration conf) {
         try {
             ws = new GrizzlyWebServer(conf.port);
-            URLClassLoader serverLibLoader = createServerLibClassLoader(conf.libraryPath);
-            configureApplications(conf, serverLibLoader);
+            configureApplications(conf);
             configureServer(conf);
             // don't start the server is true: useful for unittest
             if (!conf.waitToStart) {
@@ -113,19 +115,20 @@ public class GrizzlyWebServerDeployer {
         }
     }
 
-    private void configureApplications(DeployerConfiguration conf, URLClassLoader serverLibLoader) throws Exception {
+    private void configureApplications(DeployerConfiguration conf) throws Exception {
         String locations = conf.locations;
         if (locations != null) {
             if (logger.isLoggable(Level.FINEST)) {
                 logger.log(Level.FINEST, "Application(s) Found = " + locations);
             }
-            deployApplications(conf, serverLibLoader);
+            deployApplications(conf);
         }
     }
 
-    public void deployApplications(final DeployerConfiguration conf, URLClassLoader serverLibLoader) throws Exception {
+    public void deployApplications(final DeployerConfiguration conf) throws Exception {
+        URLClassLoader serverLibLoader = createServerLibClassLoader(conf.libraryPath);
+        final WebApp webDefault = getDefaultSupportWebApp(conf.webdefault);
         if (conf.locations != null && conf.locations.length() > 0) {
-            final WebApp webDefault = getDefaultSupportWebApp(conf.webdefault);
             for (String loc : conf.locations.split(File.pathSeparator)) {
                 deployApplication(conf, loc, serverLibLoader, webDefault);
             }
@@ -217,14 +220,18 @@ public class GrizzlyWebServerDeployer {
     public void deployWar(
             String location, String context, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws Exception {
 
+
+        // This should just return location, CL should be created while deploying
         final Map.Entry<String, URLClassLoader> loaderEntry =
                 explodeAndCreateWebAppClassLoader(location, serverLibLoader);
-        webxmlPath = loaderEntry.getKey();
+        ExtendedWebApp webApp = new ExtendedWebApp(loaderEntry.getKey(), loaderEntry.getValue());
+        webxmlPath = webApp.getLocation();
         String ctx = context;
         if (ctx == null) {
             ctx = getContext(webxmlPath);
         }
-        deploy(webxmlPath, ctx, webxmlPath + WEB_XML_PATH, loaderEntry.getValue(), defaultWebApp);
+        deployer.deploy(ws, webApp, new WebAppDeploymentConfiguration(serverLibLoader, defaultWebApp, ctx));
+//        deploy(webxmlPath, ctx, webxmlPath + WEB_XML_PATH, loaderEntry.getValue(), defaultWebApp);
     }
 
     private URLClassLoader createServerLibClassLoader(String libraryPath) throws IOException {
@@ -416,9 +423,9 @@ public class GrizzlyWebServerDeployer {
                 webApp = new WebApp(); // empty web app - we might be dealing here with PHP
             }
             try {
-                final WebAppAdapter webAppAdapter =
-                        new WebAppAdapter(ws, root, context, webApp, webAppCL, superApp);
-                ws.addGrizzlyAdapter(webAppAdapter, new String[]{context});
+                for (Map.Entry<GrizzlyAdapter, Set<String>> grizzlyAdapterSetEntry : new WebAppAdapter(root, context, webApp, webAppCL, superApp).getToRegister().entrySet()) {
+                    ws.addGrizzlyAdapter(grizzlyAdapterSetEntry.getKey(), grizzlyAdapterSetEntry.getValue().toArray(new String[grizzlyAdapterSetEntry.getValue().size()]));
+                }
             } catch (Exception e) {
                 logger.log(Level.INFO, "Not a valid WebApp, will be ignored : path=" + path);
                 logger.log(Level.INFO, "Error follows.", e);
@@ -628,6 +635,75 @@ public class GrizzlyWebServerDeployer {
                 }
             }
             return result;
+        }
+    }
+
+    public static class WebAppDeploymentConfiguration implements DeploymentConfiguration {
+        private URLClassLoader serverLibLoader;
+        private WebApp webDefault;
+        private String ctx;
+
+        public WebAppDeploymentConfiguration(URLClassLoader serverLibLoader, WebApp webDefault, String ctx) {
+            this.serverLibLoader = serverLibLoader;
+            this.webDefault = webDefault;
+            this.ctx = ctx;
+        }
+
+        public URLClassLoader getServerLibLoader() {
+            return serverLibLoader;
+        }
+
+        public WebApp getWebDefault() {
+            return webDefault;
+        }
+
+        public String getCtx() {
+            return ctx;
+        }
+    }
+
+    private class ExtendedWebApp implements Deployable {
+        private String location;
+        private URLClassLoader webAppCL;
+
+        public ExtendedWebApp(String location, URLClassLoader webAppCL) {
+            this.location = location;
+            this.webAppCL = webAppCL;
+        }
+
+        public String getLocation() {
+            return location;
+        }
+
+        public URLClassLoader getWebAppCL() {
+            return webAppCL;
+        }
+    }
+
+    public static class WebAppDeployer extends Deployer<ExtendedWebApp, WebAppDeploymentConfiguration> {
+        protected Map<GrizzlyAdapter, Set<String>> convert(ExtendedWebApp toDeploy, WebAppDeploymentConfiguration configuration) throws DeployException {
+
+            String root = toDeploy.getLocation();
+            if (root != null) {
+                root = fixPath(root);
+            }
+
+            String path = root + WEB_XML_PATH;
+            if (logger.isLoggable(Level.INFO)) {
+                logger.log(Level.INFO, "Will deploy application path=" + path);
+            }
+
+            WebApp webApp;
+            try {
+                webApp = extractWebXmlInfo(path);
+            } catch (Exception e) {
+                throw new DeployException("Error extracting web.xml.", e);
+            }
+            try {
+                return new WebAppAdapter(root, configuration.getCtx(), webApp, toDeploy.getWebAppCL(), configuration.getWebDefault()).getToRegister();
+            } catch (Exception e) {
+                throw new DeployException("Not a valid WebApp, will be ignored : path=" + path, e);
+            }
         }
     }
 }
