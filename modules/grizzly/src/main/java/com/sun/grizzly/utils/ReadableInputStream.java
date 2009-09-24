@@ -82,6 +82,7 @@ public class ReadableInputStream extends InputStream {
         this.timeout = TimeUnit.MILLISECONDS.convert(timeout, unit);
     }
 
+    @Override
     public int read() throws IOException {
         if (!buffer.hasRemaining()) {
             doBlockingRead();

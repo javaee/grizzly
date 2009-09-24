@@ -104,6 +104,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
         return messageClass;
     }
 
+    @Override
     public TransformationResult<E> transform(AttributeStorage storage,
             Buffer input, E output) throws TransformationException {
         int currentElementIndex = 0;
@@ -218,6 +219,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
         return predefinedTransformers;
     }
 
+    @Override
     public Transformer createTransformer(Class fieldType,
             Class<? extends Transformer> prefTransformerClass) {
 

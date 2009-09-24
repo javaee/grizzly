@@ -62,105 +62,109 @@ import java.util.logging.Logger;
  */
 public class LoggingFormatter extends Formatter {
 
-	private static Logger log = Logger.getLogger(LoggingFormatter.class.getName());
-
-	// took that from the JDK java.util.logging.SimpleFormatter
-
-	// Line separator string.  This is the value of the line.separator
+    private static Logger log = Logger.getLogger(LoggingFormatter.class.getName());
+    // took that from the JDK java.util.logging.SimpleFormatter
+    // Line separator string.  This is the value of the line.separator
     // property at the moment that the SimpleFormatter was created.
-	private static String lineSeparator = "\n";
+    private static String lineSeparator = "\n";
 
-	static {
-		try {
-			String separator = System.getProperty("line.separator");
+    static {
+        try {
+            String separator = System.getProperty("line.separator");
 
-			if(separator!=null && separator.trim().length()>0){
-				lineSeparator = separator;
-			}
-		} catch(SecurityException se){
-			// ignore the exception
-		}
+            if (separator != null && separator.trim().length() > 0) {
+                lineSeparator = separator;
+            }
+        } catch (SecurityException se) {
+            // ignore the exception
+        }
 
-	}
+    }
 
-	public LoggingFormatter() {
-		super();
-	}
+    public LoggingFormatter() {
+        super();
+    }
 
-	/**
-	 * Format the record to include the Thread that logged this record.
-	 * the format should be
-	 * [WorkerThreadImpl-1, Grizzly] 2008-10-08 18:49:59 [INFO] com.sun.grizzly.Controller:doSelect message
-	 *
-	 * @param record The record to be logged into the logger.
-	 *
-	 * @return the record formated to be more human readable
-	 */
-	public String format(LogRecord record) {
+    /**
+     * Format the record to include the Thread that logged this record.
+     * the format should be
+     * [WorkerThreadImpl-1, Grizzly] 2008-10-08 18:49:59 [INFO] com.sun.grizzly.Controller:doSelect message
+     *
+     * @param record The record to be logged into the logger.
+     *
+     * @return the record formated to be more human readable
+     */
+    @Override
+    public String format(LogRecord record) {
 
-		// Create a StringBuffer to contain the formatted record
-		StringBuffer sb = new StringBuffer(128);
+        // Create a StringBuffer to contain the formatted record
+        StringBuffer sb = new StringBuffer(128);
 
-		sb.append("[").append(Thread.currentThread().getName()).append("] ");
+        sb.append("[").append(Thread.currentThread().getName()).append("] ");
 
-		// Get the date from the LogRecord and add it to the buffer
-		Date date = new Date(record.getMillis());
-		sb.append(date.toString()).append(' ');
+        // Get the date from the LogRecord and add it to the buffer
+        Date date = new Date(record.getMillis());
+        sb.append(date.toString()).append(' ');
 
-		// Get the level name and add it to the buffer
-		sb.append("[").append(record.getLevel().getLocalizedName()).append("] ");
+        // Get the level name and add it to the buffer
+        sb.append("[").append(record.getLevel().getLocalizedName()).append("] ");
 
-		// Get Class name
-		if (record.getSourceClassName() != null) {
-		    sb.append(record.getSourceClassName());
-		} else {
-		    sb.append(record.getLoggerName());
-		}
-		// Get method name
-		if (record.getSourceMethodName() != null) {
-		    sb.append(' ');
-		    sb.append(record.getSourceMethodName());
-		}
-		sb.append(':').append(lineSeparator);
+        // Get Class name
+        if (record.getSourceClassName() != null) {
+            sb.append(record.getSourceClassName());
+        } else {
+            sb.append(record.getLoggerName());
+        }
+        // Get method name
+        if (record.getSourceMethodName() != null) {
+            sb.append(' ');
+            sb.append(record.getSourceMethodName());
+        }
+        sb.append(':').append(lineSeparator);
 
-		// Get the formatted message (includes localization
-		// and substitution of parameters) and add it to the buffer
-		sb.append(formatMessage(record)).append(lineSeparator);
+        // Get the formatted message (includes localization
+        // and substitution of parameters) and add it to the buffer
+        sb.append(formatMessage(record)).append(lineSeparator);
 
-		//we log the stackTrace if it's a exception
-		if (record.getThrown() != null) {
-		    try {
-		        StringWriter sw = new StringWriter();
-		        PrintWriter pw = new PrintWriter(sw);
-		        record.getThrown().printStackTrace(pw);
-		        pw.close();
-			sb.append(sw.toString());
-		    } catch (Exception ex) {
-		    }
-		}
-		sb.append(lineSeparator);
+        //we log the stackTrace if it's a exception
+        if (record.getThrown() != null) {
+            try {
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                record.getThrown().printStackTrace(pw);
+                pw.close();
+                sb.append(sw.toString());
+            } catch (Exception ex) {
+            }
+        }
+        sb.append(lineSeparator);
 
-		return sb.toString();
-	}
+        return sb.toString();
+    }
 
-	/**
-	 * Example to test the com.sun.grizzly.utils.LoggingFormatter
-	 * You need to include this parameter in the command line
-	 * -Djava.util.logging.config.file=myfile
-	 * @param args main parameters
-	 */
-	public static void main(String[] args) {
+    /**
+     * Example to test the com.sun.grizzly.utils.LoggingFormatter
+     * You need to include this parameter in the command line
+     * -Djava.util.logging.config.file=myfile
+     * @param args main parameters
+     */
+    public static void main(String[] args) {
 
-		log.info("Info Event");
+        log.info("Info Event");
 
-		log.severe("Severe Event");
+        log.severe("Severe Event");
 
-		// show the thread info in the logger.
-		Thread t = new Thread(new Runnable(){public void run(){log.info("Info Event in Thread");}}, "Thread into main");
-		t.start();
+        // show the thread info in the logger.
+        Thread t = new Thread(new Runnable() {
 
-		log.log(Level.SEVERE, "exception", new Exception());
+            @Override
+            public void run() {
+                log.info("Info Event in Thread");
+            }
+        }, "Thread into main");
 
+        t.start();
 
-	}
+        log.log(Level.SEVERE, "exception", new Exception());
+    }
 }

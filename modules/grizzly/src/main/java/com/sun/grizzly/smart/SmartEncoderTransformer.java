@@ -100,6 +100,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
         return messageClass;
     }
 
+    @Override
     public TransformationResult<Buffer> transform(AttributeStorage storage,
             E input, Buffer output) throws TransformationException {
 
@@ -212,6 +213,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
         return predefinedTransformers;
     }
 
+    @Override
     public Transformer createTransformer(Class fieldType,
             Class<? extends Transformer> prefTransformerClass) {
 

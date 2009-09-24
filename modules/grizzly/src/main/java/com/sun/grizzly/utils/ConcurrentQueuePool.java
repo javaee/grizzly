@@ -49,6 +49,7 @@ public abstract class ConcurrentQueuePool<E extends PoolableObject> implements O
 
     public abstract E newInstance();
 
+    @Override
     public E poll() {        
         E object = pool.poll();
         if (object == null) {
@@ -58,11 +59,13 @@ public abstract class ConcurrentQueuePool<E extends PoolableObject> implements O
         return object;
     }
 
+    @Override
     public void offer(E object) {
         object.release();
         pool.offer(object);
     }
 
+    @Override
     public void clear() {        
         pool.clear();
     }

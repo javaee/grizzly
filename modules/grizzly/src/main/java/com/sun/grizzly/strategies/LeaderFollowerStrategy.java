@@ -73,6 +73,7 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
    /**
     * {@inheritDoc}
     */
+    @Override
     public Boolean prepare(Connection connection, IOEvent ioEvent) {
         return true;
     }
@@ -80,6 +81,7 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
    /**
     * {@inheritDoc}
     */
+    @Override
     public void executeProcessor(Boolean strategyContext,
             ProcessorRunnable processorRunnable) throws IOException {
 
@@ -99,6 +101,7 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
    /**
     * {@inheritDoc}
     */
+    @Override
     public boolean isTerminateThread(Boolean strategyContext) {
         return strategyContext;
     }

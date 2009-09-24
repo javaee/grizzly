@@ -57,26 +57,32 @@ public class ProcessorWrapper<E extends Context> implements Processor<E> {
         this.internalProcessor = internalProcessor;
     }
 
+    @Override
     public E context() {
         return internalProcessor.context();
     }
 
+    @Override
     public void beforeProcess(E context) throws IOException {
         internalProcessor.beforeProcess(context);
     }
 
+    @Override
     public ProcessorResult process(E context) throws IOException {
         return internalProcessor.process(context);
     }
 
+    @Override
     public void afterProcess(E context) throws IOException {
         internalProcessor.afterProcess(context);
     }
 
+    @Override
     public boolean isInterested(IOEvent ioEvent) {
         return internalProcessor.isInterested(ioEvent);
     }
 
+    @Override
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
         internalProcessor.setInterested(ioEvent, isInterested);
     }

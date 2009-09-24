@@ -72,6 +72,7 @@ public class DefaultConditionListener<E> extends ConditionListener<E, Object> {
         }
     }
     
+    @Override
     protected void notifyListener() {
         notifyListenerObject(notificationObject);
     }

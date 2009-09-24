@@ -59,22 +59,27 @@ public interface IOEventMask {
     
     public static final IOEventMask ALL_EVENTS_MASK =
             new ImmutableIOEventMask() {
+        @Override
         public boolean isInterested(IOEvent ioEvent) {
             return true;
         }
 
+        @Override
         public IOEventMask or(IOEventMask mask) {
             return new ArrayIOEventMask(true);
         }
 
+        @Override
         public IOEventMask and(IOEventMask mask) {
             return new ArrayIOEventMask(mask);
         }
 
+        @Override
         public IOEventMask xor(IOEventMask mask) {
             return mask.inv();
         }
 
+        @Override
         public IOEventMask inv() {
             return new ArrayIOEventMask();
         }

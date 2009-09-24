@@ -87,6 +87,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
                 "StringDecoder.StringSize");
     }
 
+    @Override
     public TransformationResult<String> transform(AttributeStorage storage,
             Buffer input, String output) throws TransformationException {
 

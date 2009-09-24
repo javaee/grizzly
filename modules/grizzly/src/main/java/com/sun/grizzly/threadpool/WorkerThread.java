@@ -57,7 +57,10 @@ public interface WorkerThread extends Runnable, AttributeStorage {
     public String getName();
     public Thread getThread();
 
+    @Override
     public AttributeHolder getAttributes();
+
+    @Override
     public AttributeHolder obtainAttributes();
 
     public long getTransactionTimeout(TimeUnit timeunit);

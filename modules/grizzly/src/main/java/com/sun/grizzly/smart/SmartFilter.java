@@ -142,10 +142,12 @@ public class SmartFilter<K> extends FilterAdapter
         return nextAction;
     }
 
+    @Override
     public Transformer<Buffer, K> getDecoder() {
         return smartCodec.getDecoder();
     }
 
+    @Override
     public Transformer<K, Buffer> getEncoder() {
         return smartCodec.getEncoder();
     }

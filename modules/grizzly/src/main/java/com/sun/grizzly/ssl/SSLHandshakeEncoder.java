@@ -48,7 +48,6 @@ import javax.net.ssl.SSLException;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.TransformationResult.Status;
@@ -66,11 +65,13 @@ public class SSLHandshakeEncoder implements Transformer<Buffer, Buffer> {
     private Logger logger = Grizzly.logger;
     private TransformationResult<Buffer> lastResult;
 
+    @Override
     public TransformationResult transform(AttributeStorage state)
             throws TransformationException {
         return transform(state, getInput(state), getOutput(state));
     }
 
+    @Override
     public TransformationResult transform(AttributeStorage state,
             Buffer input, Buffer output) throws TransformationException {
 
@@ -121,6 +122,7 @@ public class SSLHandshakeEncoder implements Transformer<Buffer, Buffer> {
         return lastResult;
     }
 
+    @Override
     public Buffer getInput(AttributeStorage state) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         Buffer buffer = accessor.obtainAppBuffer(state);
@@ -128,25 +130,30 @@ public class SSLHandshakeEncoder implements Transformer<Buffer, Buffer> {
         return buffer;
     }
 
+    @Override
     public void setInput(AttributeStorage state, Buffer input) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         accessor.setAppBuffer(state, input);
     }
 
+    @Override
     public Buffer getOutput(AttributeStorage state) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         return accessor.obtainSecuredOutBuffer(state);
     }
 
+    @Override
     public void setOutput(AttributeStorage state, Buffer output) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         accessor.setSecuredOutBuffer(state, output);
     }
 
+    @Override
     public TransformationResult<Buffer> getLastResult(AttributeStorage state) {
         return lastResult;
     }
 
+    @Override
     public AttributeHolder getProperties(AttributeStorage state) {
         return state.getAttributes();
     }
@@ -158,6 +165,7 @@ public class SSLHandshakeEncoder implements Transformer<Buffer, Buffer> {
      * 
      * @param state
      */
+    @Override
     public void hibernate(AttributeStorage state) {
         // Check if last result message is associated with the WorkerThread
         if (lastResult != null) {
@@ -179,6 +187,7 @@ public class SSLHandshakeEncoder implements Transformer<Buffer, Buffer> {
         }
     }
 
+    @Override
     public void release(AttributeStorage state) {
         Buffer output = getOutput(state);
         output.clear();

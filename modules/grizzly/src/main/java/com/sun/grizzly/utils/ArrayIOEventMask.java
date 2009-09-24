@@ -85,16 +85,19 @@ public class ArrayIOEventMask implements IOEventMask {
         }
     }
 
+    @Override
     public boolean isInterested(IOEvent ioEvent) {
         int position = ioEvent.ordinal();
         return arrayMask[position];
     }
 
+    @Override
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
         int position = ioEvent.ordinal();
         arrayMask[position] = isInterested;
     }
 
+    @Override
     public IOEventMask or(IOEventMask mask) {
         IOEventMask newIOEventMask = new ArrayIOEventMask();
         IOEvent[] ioEvents = IOEvent.values();
@@ -106,6 +109,7 @@ public class ArrayIOEventMask implements IOEventMask {
         return newIOEventMask;
     }
 
+    @Override
     public IOEventMask and(IOEventMask mask) {
         IOEventMask newIOEventMask = new ArrayIOEventMask();
         IOEvent[] ioEvents = IOEvent.values();
@@ -117,6 +121,7 @@ public class ArrayIOEventMask implements IOEventMask {
         return newIOEventMask;
     }
 
+    @Override
     public IOEventMask xor(IOEventMask mask) {
         IOEventMask newIOEventMask = new ArrayIOEventMask();
         IOEvent[] ioEvents = IOEvent.values();
@@ -128,6 +133,7 @@ public class ArrayIOEventMask implements IOEventMask {
         return newIOEventMask;
     }
 
+    @Override
     public IOEventMask inv() {
         return xor(IOEventMask.ALL_EVENTS_MASK);
     }

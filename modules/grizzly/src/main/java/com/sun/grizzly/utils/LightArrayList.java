@@ -71,6 +71,7 @@ public class LightArrayList<E> implements List<E> {
         }
     }
 
+    @Override
     public int size() {
         return size;
     }
@@ -84,20 +85,24 @@ public class LightArrayList<E> implements List<E> {
         this.size = size;
     }
 
+    @Override
     public boolean isEmpty() {
         return size == 0;
     }
 
+    @Override
     public boolean contains(Object o) {
     	return indexOf(o) >= 0;
     }
 
+    @Override
     public Object[] toArray() {
         Object[] result = new Object[size];
         System.arraycopy(array, offset, result, 0, size);
         return result;
     }
 
+    @Override
     public <T> T[] toArray(T[] a) {
         if (a.length < size) {
             a = (T[]) java.lang.reflect.Array.newInstance(
@@ -110,16 +115,19 @@ public class LightArrayList<E> implements List<E> {
         return a;
     }
 
+    @Override
     public boolean add(E e) {
         ensureCapacity(size + 1);
         array[offset + size++] = e;
         return true;
     }
 
+    @Override
     public void add(int index, E element) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    @Override
     public boolean addAll(Collection<? extends E> c) {
         Object[] a = c.toArray();
         int numNew = a.length;
@@ -129,6 +137,7 @@ public class LightArrayList<E> implements List<E> {
         return numNew != 0;
     }
 
+    @Override
     public boolean addAll(int index, Collection<? extends E> c) {
         Object[] a = c.toArray();
         int numNew = a.length;
@@ -145,6 +154,7 @@ public class LightArrayList<E> implements List<E> {
         return numNew != 0;
     }
 
+    @Override
     public E remove(int index) {
         E oldValue = (E) array[offset + index];
         if (index == offset) {
@@ -164,6 +174,7 @@ public class LightArrayList<E> implements List<E> {
         return oldValue;
     }
 
+    @Override
     public boolean remove(Object o) {
         if (o == null) {
             for (int index = 0; index < size; index++) {
@@ -183,6 +194,7 @@ public class LightArrayList<E> implements List<E> {
         return false;
     }
 
+    @Override
     public boolean removeAll(Collection<?> c) {
         boolean modified = false;
         Iterator<?> e = iterator();
@@ -195,6 +207,7 @@ public class LightArrayList<E> implements List<E> {
         return modified;
     }
 
+    @Override
     public boolean containsAll(Collection<?> c) {
         Iterator<?> e = c.iterator();
         while (e.hasNext()) {
@@ -206,6 +219,7 @@ public class LightArrayList<E> implements List<E> {
         return true;
     }
 
+    @Override
     public boolean retainAll(Collection<?> c) {
         boolean modified = false;
         Iterator<E> e = iterator();
@@ -218,15 +232,18 @@ public class LightArrayList<E> implements List<E> {
         return modified;
     }
 
+    @Override
     public void clear() {
         offset = 0;
         size = 0;
     }
 
+    @Override
     public E get(int index) {
         return (E) array[index + offset];
     }
 
+    @Override
     public E set(int index, E element) {
         int i = index + offset;
         E oldValue = (E) array[i];
@@ -235,6 +252,7 @@ public class LightArrayList<E> implements List<E> {
         return oldValue;
     }
 
+    @Override
     public int indexOf(Object o) {
         if (o == null) {
             for (int i = 0; i < size; i++) {
@@ -252,6 +270,7 @@ public class LightArrayList<E> implements List<E> {
         return -1;
     }
 
+    @Override
     public int lastIndexOf(Object o) {
         if (o == null) {
             for (int i = size - 1; i >= 0; i--) {
@@ -270,64 +289,79 @@ public class LightArrayList<E> implements List<E> {
     }
 
 
+    @Override
     public Iterator<E> iterator() {
         return new Iterator<E>() {
             private int index = -1;
 
+            @Override
             public boolean hasNext() {
                 return (index + 1) < size;
             }
 
+            @Override
             public E next() {
                 return get(++index);
             }
 
+            @Override
             public void remove() {
                 LightArrayList.this.remove(index);
             }
         };
     }
 
+    @Override
     public ListIterator<E> listIterator() {
         return listIterator(-1);
     }
 
+    @Override
     public ListIterator<E> listIterator(final int i) {
         return new ListIterator<E>() {
             private int index = i;
 
+            @Override
             public boolean hasNext() {
                 return index + 1 < size;
             }
 
+            @Override
             public E next() {
                 return get(++index);
             }
 
+            @Override
             public boolean hasPrevious() {
                 return index - 1 >= 0;
             }
 
+            @Override
             public E previous() {
                 return get(--index);
             }
 
+            @Override
             public int nextIndex() {
                 return index + 1;
             }
 
+            @Override
             public int previousIndex() {
                 return index - 1;
             }
 
+            @Override
             public void remove() {
                 LightArrayList.this.remove(index);
             }
 
+            @Override
             public void set(E e) {
                 LightArrayList.this.set(index, e);
             }
 
+            @Override
             public void add(E e) {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
@@ -335,6 +369,7 @@ public class LightArrayList<E> implements List<E> {
         };
     }
 
+    @Override
     public List<E> subList(int fromIndex, int toIndex) {
         return new LightArrayList(this, fromIndex, toIndex);
     }

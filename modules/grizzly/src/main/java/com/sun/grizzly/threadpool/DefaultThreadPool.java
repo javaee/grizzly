@@ -104,14 +104,17 @@ public class DefaultThreadPool extends ThreadPoolExecutor
         throw new UnsupportedOperationException("Value could not be changed!");
     }
     
+    @Override
     public String getName() {
         return name;
     }
 
+    @Override
     public void setName(String name) {
         this.name = name;
     }
 
+    @Override
     public int getQueueSize() {
         return getQueue().size();
     }
@@ -124,14 +127,17 @@ public class DefaultThreadPool extends ThreadPoolExecutor
         shutdownNow();
     }
 
+    @Override
     public AttributeBuilder getAttributeBuilder() {
         return attributeBuilder;
     }
 
+    @Override
     public void setAttributeBuilder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = attributeBuilder;
     }
 
+    @Override
     public void uncaughtException(Thread thread, Throwable throwable) {
         Grizzly.logger.log(Level.WARNING,
                 "Uncaught thread exception. Thread: " + thread, throwable);
@@ -154,6 +160,7 @@ public class DefaultThreadPool extends ThreadPoolExecutor
             this.threadPool = threadPool;
         }
 
+        @Override
         public Thread newThread(Runnable r) {
             Thread thread = new DefaultWorkerThread(
                     threadPool.getAttributeBuilder(),

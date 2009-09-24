@@ -241,6 +241,7 @@ public class IdleTimeoutFilter extends FilterAdapter {
 
     public class TimeoutChecker implements Runnable {
 
+        @Override
         public void run() {
             long currentTimeMillis = System.currentTimeMillis();
             long nextTimeout = timeoutMillis;

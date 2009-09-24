@@ -72,11 +72,13 @@ public class SSLEncoderTransformer implements Transformer<Buffer, Buffer> {
     
     private Logger logger = Grizzly.logger;
     
+    @Override
     public TransformationResult<Buffer> transform(AttributeStorage state)
             throws TransformationException {
         return transform(state, getInput(state), getOutput(state));
     }
 
+    @Override
     public TransformationResult<Buffer> transform(AttributeStorage state,
             Buffer originalMessage, Buffer targetMessage)
             throws TransformationException {
@@ -170,34 +172,41 @@ public class SSLEncoderTransformer implements Transformer<Buffer, Buffer> {
         return transformationResult;
     }
 
+    @Override
     public Buffer getInput(AttributeStorage state) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         return accessor.obtainAppBuffer(state);
     }
 
+    @Override
     public void setInput(AttributeStorage state, Buffer input) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         accessor.setAppBuffer(state, input);
     }
 
+    @Override
     public Buffer getOutput(AttributeStorage state) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         return accessor.obtainSecuredOutBuffer(state);
     }
 
+    @Override
     public void setOutput(AttributeStorage state, Buffer outputTarget) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         accessor.setSecuredOutBuffer(state, outputTarget);
     }
 
+    @Override
     public TransformationResult<Buffer> getLastResult(AttributeStorage state) {
         return lastResultAttr.get(state);
     }
 
+    @Override
     public AttributeHolder getProperties(AttributeStorage state) {
         return state.getAttributes();
     }
 
+    @Override
     public void hibernate(AttributeStorage state) {
         TransformationResult<Buffer> lastResult = getLastResult(state);
         if (lastResult != null) {
@@ -211,6 +220,7 @@ public class SSLEncoderTransformer implements Transformer<Buffer, Buffer> {
         }
     }
 
+    @Override
     public void release(AttributeStorage state) {
         AttributeHolder holder = state.getAttributes();
         if (holder != null) {

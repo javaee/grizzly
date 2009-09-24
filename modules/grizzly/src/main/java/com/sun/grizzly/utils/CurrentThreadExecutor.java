@@ -47,10 +47,12 @@ import java.util.concurrent.Executor;
  * @author Alexey Stashok
  */
 public class CurrentThreadExecutor implements ProcessorExecutor {
+    @Override
     public void execute(Runnable command) {
         command.run();
     }
 
+    @Override
     public boolean isCurrentThreadExecutor() {
         return true;
     }

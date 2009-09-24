@@ -64,6 +64,7 @@ public class MinBufferSizeCondition implements Condition<ReadResult<Buffer, ?>> 
         this.minSize = minSize;
     }
 
+    @Override
     public boolean check(ReadResult<Buffer, ?> currentResult) {
         Buffer message = currentResult.getMessage();
 

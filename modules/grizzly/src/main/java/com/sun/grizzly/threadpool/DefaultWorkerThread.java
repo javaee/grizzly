@@ -70,14 +70,17 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         attributes = createAttributeHolder();
     }
 
+    @Override
     public Thread getThread() {
         return this;
     }
 
+    @Override
     public AttributeHolder getAttributes() {
         return attributes;
     }
 
+    @Override
     public AttributeHolder obtainAttributes() {
         return attributes;
     }
@@ -98,10 +101,12 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         this.cachedContext = cachedContext;
     }
 
+    @Override
     public long getTransactionTimeout(TimeUnit timeunit) {
         return timeunit.convert(transactionTimeoutMillis, TimeUnit.MILLISECONDS);
     }
 
+    @Override
     public void setTransactionTimeout(long timeout, TimeUnit timeunit) {
         this.transactionTimeoutMillis =
                 TimeUnit.MILLISECONDS.convert(timeout, timeunit);

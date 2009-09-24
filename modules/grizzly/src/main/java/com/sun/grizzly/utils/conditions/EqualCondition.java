@@ -50,6 +50,7 @@ public class EqualCondition<E> extends PatternCondition<E> {
         super(pattern);
     }
     
+    @Override
     public boolean check(E state) {
         return pattern.equals(state);
     }

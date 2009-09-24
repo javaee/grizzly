@@ -84,6 +84,7 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Transformer<Buffer, Buffer> getDecoder() {
         return decoder;
     }
@@ -91,6 +92,7 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Transformer<Buffer, Buffer> getEncoder() {
         return encoder;
     }

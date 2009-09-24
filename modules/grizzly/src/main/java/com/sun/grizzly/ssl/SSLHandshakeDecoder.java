@@ -46,9 +46,7 @@ import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import javax.net.ssl.SSLException;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.TransformationResult.Status;
@@ -68,11 +66,13 @@ public class SSLHandshakeDecoder implements Transformer<Buffer, Buffer> {
     private Buffer input;
     private Buffer output;
     
+    @Override
     public TransformationResult transform(AttributeStorage state)
             throws TransformationException {
         return transform(state, getInput(state), getOutput(state));
     }
 
+    @Override
     public TransformationResult transform(AttributeStorage state,
             Buffer input, Buffer output) throws TransformationException {
 
@@ -118,6 +118,7 @@ public class SSLHandshakeDecoder implements Transformer<Buffer, Buffer> {
         return lastResult;
     }
 
+    @Override
     public Buffer getInput(AttributeStorage state) {
         if (input == null) {
             SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
@@ -127,10 +128,12 @@ public class SSLHandshakeDecoder implements Transformer<Buffer, Buffer> {
         return input;
     }
 
+    @Override
     public void setInput(AttributeStorage state, Buffer input) {
         this.input = input;
     }
 
+    @Override
     public Buffer getOutput(AttributeStorage state) {
         if (output == null) {
             SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
@@ -140,21 +143,26 @@ public class SSLHandshakeDecoder implements Transformer<Buffer, Buffer> {
         return output;
     }
 
+    @Override
     public void setOutput(AttributeStorage state, Buffer output) {
         this.output = output;
     }
 
+    @Override
     public TransformationResult<Buffer> getLastResult(AttributeStorage state) {
         return lastResult;
     }
 
+    @Override
     public AttributeHolder getProperties(AttributeStorage state) {
         return state.getAttributes();
     }
 
+    @Override
     public void hibernate(AttributeStorage state) {
     }
 
+    @Override
     public void release(AttributeStorage state) {
         lastResult = null;
         input = null;

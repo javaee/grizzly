@@ -63,14 +63,17 @@ public abstract class AbstractSmartMemberDecoder<E>
                 SmartDecoderTransformer.MESSAGE_PROCESSING_TREE_ATTR_NAME);
     }
 
+    @Override
     public void initialize(SmartTransformer parentTransformer,
             Field field) {
     }
 
+    @Override
     public List getMessageProcessingTree(AttributeStorage storage) {
         return messageProcessingTreeAttribute.get(storage);
     }
 
+    @Override
     public Object getCurrentMessageProcessingObject(AttributeStorage storage) {
         List messageProcessingTree = getMessageProcessingTree(storage);
         return messageProcessingTree.get(messageProcessingTree.size() - 1);

@@ -93,6 +93,7 @@ public class SSLSupportImpl implements SSLSupport {
     }
 
 
+    @Override
     public String getCipherSuite() throws IOException {
         // Look up the current SSLSession
                 /* SJSAS 6439313
@@ -104,6 +105,7 @@ public class SSLSupportImpl implements SSLSupport {
         return session.getCipherSuite();
     }
 
+    @Override
     public Object[] getPeerCertificateChain() throws IOException {
         return getPeerCertificateChain(false);
     }
@@ -146,6 +148,7 @@ public class SSLSupportImpl implements SSLSupport {
         return x509Certs;
     }
 
+    @Override
     public Object[] getPeerCertificateChain(boolean force)
             throws IOException {
         // Look up the current SSLSession
@@ -182,6 +185,7 @@ public class SSLSupportImpl implements SSLSupport {
     /**
      * Copied from <code>org.apache.catalina.valves.CertificateValve</code>
      */
+    @Override
     public Integer getKeySize()
             throws IOException {
         // Look up the current SSLSession
@@ -209,6 +213,7 @@ public class SSLSupportImpl implements SSLSupport {
         return keySize;
     }
 
+    @Override
     public String getSessionId() throws IOException {
         // Look up the current SSLSession
                 /* SJSAS 6439313

@@ -91,6 +91,7 @@ public class SimpleDynamicStrategy implements Strategy<DynamicStrategyContext> {
    /**
     * {@inheritDoc}
     */
+    @Override
     public DynamicStrategyContext prepare(final Connection connection,
             final IOEvent ioEvent) {
         return new DynamicStrategyContext(
@@ -100,6 +101,7 @@ public class SimpleDynamicStrategy implements Strategy<DynamicStrategyContext> {
    /**
     * {@inheritDoc}
     */
+    @Override
     public void executeProcessor(final DynamicStrategyContext strategyContext,
             final ProcessorRunnable processorRunnable) throws IOException {
         final int lastSelectedKeysCount;
@@ -128,6 +130,7 @@ public class SimpleDynamicStrategy implements Strategy<DynamicStrategyContext> {
    /**
     * {@inheritDoc}
     */
+    @Override
     public boolean isTerminateThread(DynamicStrategyContext strategyContext) {
         return strategyContext.isTerminateThread;
     }

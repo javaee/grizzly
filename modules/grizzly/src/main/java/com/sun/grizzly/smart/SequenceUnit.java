@@ -60,6 +60,7 @@ public interface SequenceUnit {
             this.field = field;
         }
 
+        @Override
         public Type getType() {
             return Type.TRANSFORM;
         }
@@ -74,6 +75,7 @@ public interface SequenceUnit {
             this.field = field;
         }
 
+        @Override
         public Type getType() {
             return Type.INSTANTIATE;
         }
@@ -88,12 +90,14 @@ public interface SequenceUnit {
             this.field = field;
         }
 
+        @Override
         public Type getType() {
             return Type.STEPIN;
         }
     }
 
     public static class StepOutUnit implements SequenceUnit {
+        @Override
         public Type getType() {
             return Type.STEPOUT;
         }

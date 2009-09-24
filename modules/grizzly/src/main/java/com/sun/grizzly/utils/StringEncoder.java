@@ -75,6 +75,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
         this.stringTerminator = stringTerminator;
     }
 
+    @Override
     public TransformationResult<Buffer> transform(AttributeStorage storage,
             String input, Buffer output) throws TransformationException {
 

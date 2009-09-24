@@ -147,6 +147,7 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
         setComponentDecoder(componentTransformer);
     }
 
+    @Override
     public TransformationResult<E> transform(AttributeStorage storage,
             Buffer input, E output) throws TransformationException {
         if (input == null) {

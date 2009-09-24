@@ -62,6 +62,7 @@ public class BlockingSSLHandshaker implements SSLHandshaker {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<SSLEngine> handshake(
             SSLStreamReader reader,
             SSLStreamWriter writer,

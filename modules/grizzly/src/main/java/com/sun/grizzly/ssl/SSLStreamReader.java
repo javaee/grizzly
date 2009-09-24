@@ -165,6 +165,7 @@ public class SSLStreamReader extends StreamReaderDecorator {
     Future handshakeUnwrap(CompletionHandler completionHandler) throws IOException {
         return notifyCondition(new Condition<StreamReader>() {
 
+            @Override
             public boolean check(StreamReader state) {
                 return getSSLEngine().getHandshakeStatus() !=
                         SSLEngineResult.HandshakeStatus.NEED_UNWRAP;

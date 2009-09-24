@@ -49,28 +49,34 @@ public abstract class ImmutableIOEventMask implements IOEventMask {
     public static ImmutableIOEventMask getImmutable(
             final IOEventMask mutableMask) {
         return new ImmutableIOEventMask() {
+            @Override
             public boolean isInterested(IOEvent ioEvent) {
                 return mutableMask.isInterested(ioEvent);
             }
 
+            @Override
             public IOEventMask or(IOEventMask mask) {
                 return mutableMask.or(mask);
             }
 
+            @Override
             public IOEventMask and(IOEventMask mask) {
                 return mutableMask.and(mask);
             }
 
+            @Override
             public IOEventMask xor(IOEventMask mask) {
                 return mutableMask.xor(mask);
             }
 
+            @Override
             public IOEventMask inv() {
                 return mutableMask.inv();
             }
         };
     }
 
+    @Override
     public final void setInterested(IOEvent ioEvent, boolean isInterested) {
         throw new UnsupportedOperationException("This mask is immutable");
     }

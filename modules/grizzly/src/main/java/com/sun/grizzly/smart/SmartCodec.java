@@ -64,10 +64,12 @@ public class SmartCodec<K> implements Codec<Buffer, K> {
         this.encoder = encoder;
     }
 
+    @Override
     public Transformer<Buffer, K> getDecoder() {
         return decoder;
     }
 
+    @Override
     public Transformer<K, Buffer> getEncoder() {
         return encoder;
     }

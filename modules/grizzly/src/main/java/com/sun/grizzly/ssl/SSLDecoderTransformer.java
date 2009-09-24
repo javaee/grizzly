@@ -70,11 +70,13 @@ public class SSLDecoderTransformer implements Transformer<Buffer, Buffer> {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             "SSLDecoderTransformer.lastResult");
 
+    @Override
     public TransformationResult<Buffer> transform(AttributeStorage state)
             throws TransformationException {
         return transform(state, getInput(state), getOutput(state));
     }
 
+    @Override
     public TransformationResult<Buffer> transform(AttributeStorage state,
             Buffer originalMessage, Buffer targetMessage)
             throws TransformationException {
@@ -182,26 +184,31 @@ public class SSLDecoderTransformer implements Transformer<Buffer, Buffer> {
         return transformationResult;
     }
 
+    @Override
     public Buffer getInput(AttributeStorage state) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         return accessor.obtainSecuredInBuffer(state);
     }
 
+    @Override
     public void setInput(AttributeStorage state, Buffer input) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         accessor.setSecuredInBuffer(state, input);
     }
 
+    @Override
     public Buffer getOutput(AttributeStorage state) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         return accessor.obtainAppBuffer(state);
     }
 
+    @Override
     public void setOutput(AttributeStorage state, Buffer output) {
         SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
         accessor.setAppBuffer(state, output);
     }
 
+    @Override
     public TransformationResult<Buffer> getLastResult(AttributeStorage state) {
         AttributeHolder holder = state.getAttributes();
         if (holder != null) {
@@ -211,13 +218,16 @@ public class SSLDecoderTransformer implements Transformer<Buffer, Buffer> {
         return null;
     }
 
+    @Override
     public AttributeHolder getProperties(AttributeStorage state) {
         return state.getAttributes();
     }
 
+    @Override
     public void hibernate(AttributeStorage state) {
     }
 
+    @Override
     public void release(AttributeStorage state) {
         AttributeHolder holder = state.getAttributes();
         if (holder != null) {

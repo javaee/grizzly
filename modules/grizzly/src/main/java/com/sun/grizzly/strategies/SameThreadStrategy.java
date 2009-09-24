@@ -61,6 +61,7 @@ public class SameThreadStrategy implements Strategy {
    /**
     * {@inheritDoc}
     */
+    @Override
     public Object prepare(Connection connection, IOEvent ioEvent) {
         return null;
     }
@@ -68,6 +69,7 @@ public class SameThreadStrategy implements Strategy {
    /**
     * {@inheritDoc}
     */
+    @Override
     public void executeProcessor(Object strategyContext,
             ProcessorRunnable processorRunnable) throws IOException {
 
@@ -77,6 +79,7 @@ public class SameThreadStrategy implements Strategy {
    /**
     * {@inheritDoc}
     */
+    @Override
     public boolean isTerminateThread(Object strategyContext) {
         return false;
     }

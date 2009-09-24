@@ -141,6 +141,7 @@ public abstract class SequenceEncoder<E> extends AbstractSmartMemberEncoder<E> {
         setComponentEncoder(componentTransformer);
     }
 
+    @Override
     public TransformationResult<Buffer> transform(AttributeStorage storage,
             E input, Buffer output) throws TransformationException {
         if (input == null) {
