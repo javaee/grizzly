@@ -308,6 +308,8 @@ public interface StreamReader extends Stream {
      */
     void finishBuffer();
 
+    Buffer asReadOnlyBufferWindow();
+
     /**
      * Get the {@link Connection} this <tt>StreamReader</tt> belongs to.
      * 

@@ -106,6 +106,7 @@ public class ReadyFutureImpl<R> implements Future<R> {
      * 
      * @return cancel state, which was set during construction.
      */
+    @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         return isCancelled;
     }
@@ -113,6 +114,7 @@ public class ReadyFutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isCancelled() {
         return isCancelled;
     }
@@ -120,6 +122,7 @@ public class ReadyFutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isDone() {
         return true;
     }
@@ -127,6 +130,7 @@ public class ReadyFutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public R get() throws InterruptedException, ExecutionException {
         if (isCancelled) {
             throw new CancellationException();
@@ -140,6 +144,7 @@ public class ReadyFutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public R get(long timeout, TimeUnit unit) throws
             InterruptedException, ExecutionException, TimeoutException {
         if (isCancelled) {

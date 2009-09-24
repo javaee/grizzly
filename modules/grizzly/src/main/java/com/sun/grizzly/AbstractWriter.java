@@ -52,6 +52,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer) throws IOException {
         return write(connection, null, buffer);
@@ -60,6 +61,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
@@ -70,6 +72,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler,
@@ -80,6 +83,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer) throws IOException {
         return write(connection, dstAddress, buffer, null);
@@ -88,6 +92,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)

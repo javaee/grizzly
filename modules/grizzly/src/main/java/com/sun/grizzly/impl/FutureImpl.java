@@ -97,6 +97,7 @@ public class FutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         synchronized(sync) {
             isCancelled = true;
@@ -108,6 +109,7 @@ public class FutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isCancelled() {
         synchronized(sync) {
             return isCancelled;
@@ -117,6 +119,7 @@ public class FutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isDone() {
         synchronized(sync) {
             return isDone;
@@ -126,6 +129,7 @@ public class FutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public R get() throws InterruptedException, ExecutionException {
         synchronized (sync) {
             for (;;) {
@@ -147,6 +151,7 @@ public class FutureImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public R get(long timeout, TimeUnit unit) throws
             InterruptedException, ExecutionException, TimeoutException {
         long startTime = System.currentTimeMillis();

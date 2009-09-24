@@ -62,18 +62,22 @@ public class DefaultSelectorHandler implements SelectorHandler {
     public DefaultSelectorHandler() {
     }
 
+    @Override
     public long getSelectTimeout() {
         return selectTimeout;
     }
 
+    @Override
     public void setSelectTimeout(long selectTimeout) {
         this.selectTimeout = selectTimeout;
     }    
 
+    @Override
     public void preSelect(SelectorRunner selectorRunner) throws IOException {
         processPendingOperations(selectorRunner);
     }
 
+    @Override
     public Set<SelectionKey> select(SelectorRunner selectorRunner)
             throws IOException {
         Selector selector = selectorRunner.getSelector();
@@ -82,9 +86,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
         return selector.selectedKeys();
     }
 
+    @Override
     public void postSelect(SelectorRunner selectorRunner) throws IOException {
     }
 
+    @Override
     public void registerKey(SelectorRunner selectorRunner, SelectionKey key,
             int interest) throws IOException {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
@@ -98,6 +104,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
+    @Override
     public void unregisterKey(SelectorRunner selectorRunner, SelectionKey key,
             int interest) throws IOException {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
@@ -111,6 +118,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
+    @Override
     public void registerChannel(SelectorRunner selectorRunner,
             SelectableChannel channel, int interest, Object attachment)
             throws IOException {
@@ -125,6 +133,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
+    @Override
     public Future<RegisterChannelResult> registerChannelAsync(
             SelectorRunner selectorRunner, SelectableChannel channel,
             int interest, Object attachment,

@@ -205,10 +205,12 @@ public class SSLFilter extends FilterAdapter
         return nextAction;
     }
 
+    @Override
     public StreamReader getStreamReader(StreamReader parentStreamReader) {
         return new SSLStreamReader(parentStreamReader);
     }
 
+    @Override
     public StreamWriter getStreamWriter(StreamWriter parentStreamWriter) {
         return new SSLStreamWriter(parentStreamWriter);
     }
@@ -220,10 +222,12 @@ public class SSLFilter extends FilterAdapter
                 sslEngineConfigurator, sslHandshaker, reader, writer);
     }
 
+    @Override
     public Transformer getDecoder() {
         return decoder;
     }
 
+    @Override
     public Transformer getEncoder() {
         return encoder;
     }

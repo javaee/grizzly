@@ -109,6 +109,7 @@ public class FutureLockImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean cancel(boolean mayInterruptIfRunning) {
         try {
             lock.lock();
@@ -123,6 +124,7 @@ public class FutureLockImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isCancelled() {
         try {
             lock.lock();
@@ -135,6 +137,7 @@ public class FutureLockImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isDone() {
         try {
             lock.lock();
@@ -147,6 +150,7 @@ public class FutureLockImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public R get() throws InterruptedException, ExecutionException {
         latch.await();
         
@@ -167,6 +171,7 @@ public class FutureLockImpl<R> implements Future<R> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public R get(long timeout, TimeUnit unit) throws
             InterruptedException, ExecutionException, TimeoutException {
         boolean isTimeOut = latch.await(timeout, unit);

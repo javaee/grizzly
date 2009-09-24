@@ -69,6 +69,7 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public synchronized <T> Attribute<T> createAttribute(String name) {
         return createAttribute(name, (T) null);
     }
@@ -76,6 +77,7 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public synchronized <T> Attribute<T> createAttribute(String name, 
             T defaultValue) {
         Attribute<T> attribute = name2Attribute.get(name);
@@ -92,6 +94,7 @@ public class DefaultAttributeBuilder implements AttributeBuilder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public synchronized <T> Attribute<T> createAttribute(String name, 
             NullaryFunction<T> initializer) {
         Attribute<T> attribute = name2Attribute.get(name);

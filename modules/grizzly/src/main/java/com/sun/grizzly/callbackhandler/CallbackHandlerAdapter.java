@@ -52,30 +52,35 @@ public class CallbackHandlerAdapter extends AbstractCallbackHandler {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void onAccept(Context context) throws IOException {
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public void onConnect(Context context) throws IOException {
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public void onRead(Context context) throws IOException {
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public void onWrite(Context context) throws IOException {
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public void onClose(Context context) throws IOException {
     }
 }

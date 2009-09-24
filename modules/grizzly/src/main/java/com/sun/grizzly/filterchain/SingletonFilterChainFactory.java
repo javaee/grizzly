@@ -59,6 +59,7 @@ public class SingletonFilterChainFactory implements PatternFilterChainFactory {
      * 
      * @return singleton chain instance (always the same).
      */
+    @Override
     public FilterChain create() {
         return chain;
     }
@@ -66,6 +67,7 @@ public class SingletonFilterChainFactory implements PatternFilterChainFactory {
     /**
      * Do nothing
      */
+    @Override
     public void release(FilterChain chain) {
     }
 
@@ -74,6 +76,7 @@ public class SingletonFilterChainFactory implements PatternFilterChainFactory {
      * 
      * @return {@link FilterChain} pattern, which is chain instance.
      */
+    @Override
     public FilterChain getFilterChainPattern() {
         return chain;
     }
@@ -83,6 +86,7 @@ public class SingletonFilterChainFactory implements PatternFilterChainFactory {
      *
      * @param chain {@link FilterChain} pattern, which is chain instance.
      */
+    @Override
     public void setFilterChainPattern(FilterChain chain) {
         this.chain = chain;
     }

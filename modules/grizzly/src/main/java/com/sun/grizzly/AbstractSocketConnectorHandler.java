@@ -65,44 +65,53 @@ public abstract class AbstractSocketConnectorHandler
         defaultProcessorSelector = transport.getProcessorSelector();
     }
     
+    @Override
     public Future<Connection> connect(String host, int port)
             throws IOException {
         return connect(new InetSocketAddress(host, port));
     }
     
+    @Override
     public Future<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
         return connect(remoteAddress, (SocketAddress) null);
     }
 
+    @Override
     public Future<Connection> connect(SocketAddress remoteAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
         return connect(remoteAddress, null, completionHandler);
     }
 
+    @Override
     public Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
         return connect(remoteAddress, localAddress, null);
     }
 
+    @Override
     public abstract Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException;
 
 
+    @Override
     public Processor getProcessor() {
         return defaultProcessor;
     }
 
+    @Override
     public void setProcessor(Processor defaultProcessor) {
         this.defaultProcessor = defaultProcessor;
     }
 
+    @Override
     public ProcessorSelector getProcessorSelector() {
         return defaultProcessorSelector;
     }
 
+    @Override
     public void setProcessorSelector(ProcessorSelector defaultProcessorSelector) {
         this.defaultProcessorSelector = defaultProcessorSelector;
     }

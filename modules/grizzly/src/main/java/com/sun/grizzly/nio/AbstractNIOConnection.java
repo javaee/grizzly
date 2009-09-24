@@ -96,34 +96,42 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
 
+    @Override
     public void configureBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
 
+    @Override
     public boolean isBlocking() {
         return isBlocking;
     }
 
+    @Override
     public Transport getTransport() {
         return transport;
     }
 
+    @Override
     public int getReadBufferSize() {
         return readBufferSize;
     }
 
+    @Override
     public void setReadBufferSize(int readBufferSize) {
         this.readBufferSize = readBufferSize;
     }
 
+    @Override
     public int getWriteBufferSize() {
         return writeBufferSize;
     }
 
+    @Override
     public void setWriteBufferSize(int writeBufferSize) {
         this.writeBufferSize = writeBufferSize;
     }
 
+    @Override
     public SelectorRunner getSelectorRunner() {
         return selectorRunner;
     }
@@ -132,6 +140,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         this.selectorRunner = selectorRunner;
     }
 
+    @Override
     public SelectableChannel getChannel() {
         return channel;
     }
@@ -140,6 +149,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         this.channel = channel;
     }
 
+    @Override
     public SelectionKey getSelectionKey() {
         return selectionKey;
     }
@@ -149,19 +159,23 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         setChannel(selectionKey.channel());
     }
 
+    @Override
     public Processor getProcessor() {
         return processor;
     }
 
+    @Override
     public void setProcessor(
             Processor preferableProcessor) {
         this.processor = preferableProcessor;
     }
 
+    @Override
     public ProcessorSelector getProcessorSelector() {
         return processorSelector;
     }
 
+    @Override
     public void setProcessorSelector(
             ProcessorSelector preferableProcessorSelector) {
         this.processorSelector =
@@ -176,10 +190,12 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         return asyncWriteQueue;
     }
 
+    @Override
     public AttributeHolder getAttributes() {
         return attributes;
     }
 
+    @Override
     public AttributeHolder obtainAttributes() {
         return attributes;
     }
@@ -221,10 +237,12 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         return write(dstAddress, buffer, null);
     }    
 
+    @Override
     public boolean isOpen() {
         return channel != null && channel.isOpen() && !isClosed.get();
     }
 
+    @Override
     public void close() throws IOException {
         if (!isClosed.getAndSet(true)) {
             preClose();
@@ -244,6 +262,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
 
     protected abstract void preClose();
 
+    @Override
     public void enableIOEvent(IOEvent ioEvent) throws IOException {
         final SelectionKeyHandler selectionKeyHandler =
                 transport.getSelectionKeyHandler();
@@ -258,6 +277,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
                 selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent));
     }
 
+    @Override
     public void disableIOEvent(IOEvent ioEvent) throws IOException {
         final SelectionKeyHandler selectionKeyHandler =
                 transport.getSelectionKeyHandler();

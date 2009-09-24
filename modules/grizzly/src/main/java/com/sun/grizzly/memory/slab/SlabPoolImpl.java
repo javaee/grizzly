@@ -86,6 +86,7 @@ public final class SlabPoolImpl implements SlabMemoryManagerFactory.SlabPool {
         }
     }
 
+    @Override
     public synchronized void close() {
         checkClosed();
         _emptySlabs = null;
@@ -94,31 +95,37 @@ public final class SlabPoolImpl implements SlabMemoryManagerFactory.SlabPool {
         _closed = true;
     }
 
+    @Override
     public synchronized int maxAllocationSize() {
         checkClosed();
         return _maxAllocationSize;
     }
 
+    @Override
     public synchronized long minSize() {
         checkClosed();
         return _minSize;
     }
 
+    @Override
     public synchronized long maxSize() {
         checkClosed();
         return _maxSize;
     }
 
+    @Override
     public synchronized int numFreeSlabs() {
         checkClosed();
         return _emptySlabs.size();
     }
 
+    @Override
     public synchronized int numPartialSlabs() {
         checkClosed();
         return _partialSlabs.size();
     }
 
+    @Override
     public synchronized int numFullSlabs() {
         checkClosed();
         return _fullSlabs.size();
@@ -156,6 +163,7 @@ public final class SlabPoolImpl implements SlabMemoryManagerFactory.SlabPool {
 
     // total free space is total free space in empty slabs (which are completely
     // available) and partial slabs (which are only partly available).
+    @Override
     public synchronized long freeSpace() {
         checkClosed();
         return computeAvailableSize(_emptySlabs) + computeAvailableSize(_partialSlabs);
@@ -164,16 +172,19 @@ public final class SlabPoolImpl implements SlabMemoryManagerFactory.SlabPool {
     // unavailable space is the space that has been disposed, but since this is
     // in partial and full Slabs, the unavailable space is not available to 
     // a client of the SlabPool.
+    @Override
     public synchronized long unavailableSpace() {
         checkClosed();
         return computeDisposedSize(_partialSlabs) + computeDisposedSize(_fullSlabs);
     }
 
+    @Override
     public synchronized long allocatedSpace() {
         checkClosed();
         return computeAllocatedSize(_partialSlabs) + computeAllocatedSize(_fullSlabs);
     }
 
+    @Override
     public synchronized boolean bufferType() {
         checkClosed();
         return _bufferType;

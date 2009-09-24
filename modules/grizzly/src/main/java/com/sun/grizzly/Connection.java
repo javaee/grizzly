@@ -160,6 +160,7 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * @throws java.io.IOException, if I/O error was detected
      * during {@link Connection} closing.
      */
+    @Override
     public void close() throws IOException;
 
     /**

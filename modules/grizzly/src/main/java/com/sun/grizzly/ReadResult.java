@@ -77,6 +77,7 @@ public class ReadResult<K, L> implements Result {
      * 
      * @return the {@link Connection} data were read from.
      */
+    @Override
     public Connection getConnection() {
         return connection;
     }

@@ -49,7 +49,10 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.utils.CompositeBuffer;
+import com.sun.grizzly.utils.LightArrayList;
 import com.sun.grizzly.utils.conditions.Condition;
+import java.util.List;
 
 /**
  * Each method reads data from the current ByteBuffer.  If not enough data
@@ -681,6 +684,25 @@ public abstract class AbstractStreamReader implements StreamReader {
     @Override
     public Buffer getBuffer() {
         return unwrap(current());
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Buffer asReadOnlyBufferWindow() {
+        List<Buffer> buffers = new LightArrayList();
+
+        if (current != null) {
+            buffers.add(unwrap(current));
+            if (dataRecords != null) {
+                for (Object record : dataRecords) {
+                    buffers.add(unwrap(record));
+                }
+            }
+        }
+
+        return new CompositeBuffer(buffers, true);
     }
 
     protected Object current() {

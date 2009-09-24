@@ -67,6 +67,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException} 
      */
+    @Override
     public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -85,6 +86,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
+    @Override
     public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -105,6 +107,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
+    @Override
     public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -123,6 +126,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
+    @Override
     public NextAction postWrite(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -143,6 +147,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException} 
      */
+    @Override
     public NextAction handleConnect(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -161,6 +166,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
+    @Override
     public NextAction postConnect(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -181,6 +187,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException} 
      */
+    @Override
     public NextAction handleAccept(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -199,6 +206,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
+    @Override
     public NextAction postAccept(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -219,6 +227,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException} 
      */
+    @Override
     public NextAction handleClose(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -237,6 +246,7 @@ public class FilterAdapter implements Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
+    @Override
     public NextAction postClose(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
@@ -248,6 +258,7 @@ public class FilterAdapter implements Filter {
      * @param ctx event processing {@link FilterChainContext}
      * @param error error, which occurred during <tt>FilterChain</tt> execution
      */
+    @Override
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
     }
 

@@ -59,6 +59,7 @@ public class DefaultProcessorSelector implements ProcessorSelector {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Processor select(IOEvent ioEvent, Connection connection) {
 
         Processor eventProcessor = connection.getProcessor();

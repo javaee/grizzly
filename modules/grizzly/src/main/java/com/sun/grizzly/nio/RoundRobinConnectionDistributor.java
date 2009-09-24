@@ -61,6 +61,7 @@ public class RoundRobinConnectionDistributor
         counter = new AtomicInteger();
     }
 
+    @Override
     public void registerChannel(SelectableChannel channel, int interestOps,
             Object attachment) throws IOException {
         SelectorRunner runner = getSelectorRunner(interestOps);
@@ -69,6 +70,7 @@ public class RoundRobinConnectionDistributor
                 channel, interestOps, attachment);
     }
 
+    @Override
     public Future<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment,
             CompletionHandler completionHandler) 

@@ -57,6 +57,7 @@ public class StandaloneProcessorSelector implements ProcessorSelector {
      * Always return null, which means no {@link Processor} was found to process
      * {@link IOEvent}.
      */
+    @Override
     public Processor select(IOEvent ioEvent, Connection connection) {
         return null;
     }

@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.filterchain;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -63,6 +62,7 @@ abstract class AbstractNextAction implements NextAction {
     /**
      * {@inheritDoc}
      */
+    @Override
     public int type() {
         return type;
     }
@@ -70,6 +70,7 @@ abstract class AbstractNextAction implements NextAction {
     /**
      * {@inheritDoc}
      */
+    @Override
     public List<Filter> getFilters() {
         return unmodifiableFiltersView;
     }
@@ -77,6 +78,7 @@ abstract class AbstractNextAction implements NextAction {
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getNextFilterIdx() {
         return nextFilterIdx;
     }

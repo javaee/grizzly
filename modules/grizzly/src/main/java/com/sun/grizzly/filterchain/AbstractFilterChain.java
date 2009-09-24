@@ -106,6 +106,7 @@ public abstract class AbstractFilterChain implements FilterChain {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isInterested(IOEvent ioEvent) {
         return interestedIoEventsMask.isInterested(ioEvent);
     }
@@ -113,6 +114,7 @@ public abstract class AbstractFilterChain implements FilterChain {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
         interestedIoEventsMask.setInterested(ioEvent, isInterested);
     }
@@ -120,6 +122,7 @@ public abstract class AbstractFilterChain implements FilterChain {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void beforeProcess(Context context) throws IOException {
     }
 
@@ -130,6 +133,7 @@ public abstract class AbstractFilterChain implements FilterChain {
      * @return {@link ProcessorResult}
      * @throws java.io.IOException
      */
+    @Override
     public ProcessorResult process(Context context)
             throws IOException {
         return execute((FilterChainContext) context);
@@ -138,12 +142,14 @@ public abstract class AbstractFilterChain implements FilterChain {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void afterProcess(Context context) throws IOException {
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public FilterChainContext context() {
         return filterChainContextPool.poll();
     }

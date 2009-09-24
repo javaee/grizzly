@@ -69,6 +69,7 @@ public abstract class AbstractCallbackHandler extends AbstractProcessor
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isInterested(IOEvent ioEvent) {
         return interestedIoEventsMask.isInterested(ioEvent);
     }
@@ -76,6 +77,7 @@ public abstract class AbstractCallbackHandler extends AbstractProcessor
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
         interestedIoEventsMask.setInterested(ioEvent, isInterested);
     }
@@ -84,6 +86,7 @@ public abstract class AbstractCallbackHandler extends AbstractProcessor
      * Delegate {@link IOEvent} processing to appropriate
      * {@link CallbackHandler} method.
      */
+    @Override
     public ProcessorResult process(Context context)
             throws IOException {
         switch (context.getIoEvent()) {

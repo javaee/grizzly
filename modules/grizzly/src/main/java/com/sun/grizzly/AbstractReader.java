@@ -51,6 +51,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<ReadResult<Buffer, L>> read(Connection connection)
             throws IOException {
         return read(connection, null);
@@ -59,6 +60,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<ReadResult<Buffer, L>> read(Connection connection,
             Buffer buffer) throws IOException {
         return read(connection, buffer, null);
@@ -67,6 +69,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<ReadResult<Buffer, L>> read(Connection connection, Buffer buffer,
             CompletionHandler<ReadResult<Buffer, L>> completionHandler)
             throws IOException {

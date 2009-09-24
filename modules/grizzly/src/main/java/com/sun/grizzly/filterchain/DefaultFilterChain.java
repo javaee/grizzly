@@ -72,30 +72,35 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     private static final FilterExecutor[] filterExecutors = {
         null, null,
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.handleAccept(context, nextAction);
             }
         },
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.handleConnect(context, nextAction);
             }
         },
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.handleRead(context, nextAction);
             }
         },
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.handleWrite(context, nextAction);
             }
         },
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.handleClose(context, nextAction);
@@ -117,30 +122,35 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     private static final FilterExecutor[] filterPostExecutors = {
         null, null,
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.postAccept(context, nextAction);
             }
         },
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.postConnect(context, nextAction);
             }
         },
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.postRead(context, nextAction);
             }
         },
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.postWrite(context, nextAction);
             }
         },
         new FilterExecutor() {
+        @Override
             public NextAction execute(Filter filter, FilterChainContext context,
                     NextAction nextAction) throws IOException {
                 return filter.postClose(context, nextAction);
@@ -173,6 +183,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * @param ctx {@link FilterChainContext} processing context
      * @throws java.lang.Exception 
      */
+    @Override
     public ProcessorResult execute(FilterChainContext ctx) {
         try {
             int ioEventIndex = ctx.getIoEvent().ordinal();
@@ -345,6 +356,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
      * Get filter chain codec
      * @return filter chain codec
      */
+    @Override
     public Codec getCodec() {
         return filterChainCodec;
     }

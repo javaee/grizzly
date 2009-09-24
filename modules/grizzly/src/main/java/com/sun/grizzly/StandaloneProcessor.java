@@ -58,6 +58,7 @@ public class StandaloneProcessor extends AbstractProcessor {
      * {@link StandaloneProcessor#isInterested(IOEvent)} returns false for any
      * {@link IOEvent}.
      */
+    @Override
     public ProcessorResult process(Context context) throws IOException {
         throw new IllegalStateException("NullProcessor should never be executed");
     }
@@ -65,6 +66,7 @@ public class StandaloneProcessor extends AbstractProcessor {
     /**
      * {@link StandaloneProcessor} is not interested in any {@link IOEvent}.
      */
+    @Override
     public boolean isInterested(IOEvent ioEvent) {
         return false;
     }
@@ -72,6 +74,7 @@ public class StandaloneProcessor extends AbstractProcessor {
     /**
      * Method does nothing.
      */
+    @Override
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
     }
 }

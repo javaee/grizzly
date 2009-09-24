@@ -65,6 +65,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
         super(connection);
     }
 
+    @Override
     public Future<Integer> notifyCondition(Condition<StreamReader> condition,
             CompletionHandler<Integer> completionHandler) {
 
@@ -111,6 +112,7 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
             transport.getAsyncQueueIO().getReader().read(connection, null, null,
                     new Interceptor() {
 
+                        @Override
                         public int intercept(int event, Object context, Object result) {
                             if (event == Reader.READ_EVENT) {
                                 final ReadResult readResult = (ReadResult) result;

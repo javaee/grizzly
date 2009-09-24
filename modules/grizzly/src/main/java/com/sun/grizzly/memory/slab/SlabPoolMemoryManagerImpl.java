@@ -50,6 +50,7 @@ public class SlabPoolMemoryManagerImpl extends SlabMemoryManagerBase {
         this.pool = SlabPoolImpl.class.cast(pool);
     }
 
+    @Override
     public int maxAllocationSize() {
         return pool.maxAllocationSize();
     }

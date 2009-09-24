@@ -55,25 +55,30 @@ public abstract class AbstractNIOConnectionDistributor
         this.transport = transport;
     }
 
+    @Override
     public void registerChannel(SelectableChannel channel) throws IOException {
         registerChannel(channel, 0);
     }
 
+    @Override
     public void registerChannel(SelectableChannel channel, int interestOps) 
             throws IOException {
         registerChannel(channel, interestOps, null);
     }
     
+    @Override
     public Future<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel) throws IOException {
         return registerChannelAsync(channel, 0);
     }
 
+    @Override
     public Future<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps) throws IOException {
         return registerChannelAsync(channel, interestOps, null);
     }
 
+    @Override
     public Future<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment)
             throws IOException {

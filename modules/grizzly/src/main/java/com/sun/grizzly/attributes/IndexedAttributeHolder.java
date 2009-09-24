@@ -68,6 +68,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Object getAttribute(String name) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
@@ -80,6 +81,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setAttribute(String name, Object value) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute == null) {
@@ -92,6 +94,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Object removeAttribute(String name) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
@@ -111,6 +114,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Set<String> getAttributeNames() {
         Set<String> result = new HashSet<String>();
 
@@ -128,6 +132,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void clear() {
         attributeValues.clear();
     }
@@ -135,6 +140,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public AttributeBuilder getAttributeBuilder() {
         return attributeBuilder;
     }
@@ -146,6 +152,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
      * @return {@link IndexedAttributeAccessor} for accessing {@link Attribute}s
      * by index.
      */
+    @Override
     public IndexedAttributeAccessor getIndexedAttributeAccessor() {
         return indexedAttributeAccessor;
     }
@@ -157,6 +164,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
         /**
          * {@inheritDoc}
          */
+        @Override
         public Object getAttribute(int index) {
             if (index >= attributeValues.size()) {
                 return null;
@@ -168,6 +176,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
         /**
          * {@inheritDoc}
          */
+        @Override
         public void setAttribute(int index, Object value) {
             int attrCount = attributeValues.size();
             if (attrCount <= index) {

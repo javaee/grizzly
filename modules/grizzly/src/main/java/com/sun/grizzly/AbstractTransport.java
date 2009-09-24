@@ -127,6 +127,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public String getName() {
         return name;
     }
@@ -134,6 +135,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setName(String name) {
         this.name = name;
     }
@@ -141,6 +143,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isBlocking() {
         return isBlocking;
     }
@@ -148,6 +151,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void configureBlocking(boolean isBlocking) {
         this.isBlocking = isBlocking;
     }
@@ -155,6 +159,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public StateHolder<State> getState() {
         return state;
     }
@@ -162,6 +167,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getReadBufferSize() {
         return readBufferSize;
     }
@@ -169,6 +175,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setReadBufferSize(int readBufferSize) {
         this.readBufferSize = readBufferSize;
     }
@@ -176,6 +183,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getWriteBufferSize() {
         return writeBufferSize;
     }
@@ -183,6 +191,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setWriteBufferSize(int writeBufferSize) {
         this.writeBufferSize = writeBufferSize;
     }
@@ -190,6 +199,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isStopped() {
         State currentState = state.getState();
         return currentState == State.STOP || currentState == State.STOPPING;
@@ -198,6 +208,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Processor getProcessor() {
         return processor;
     }
@@ -205,6 +216,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setProcessor(Processor processor) {
         this.processor = processor;
     }
@@ -212,6 +224,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public ProcessorSelector getProcessorSelector() {
         return processorSelector;
     }
@@ -219,6 +232,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setProcessorSelector(ProcessorSelector selector) {
         processorSelector = selector;
     }
@@ -226,6 +240,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Strategy getStrategy() {
         return strategy;
     }
@@ -233,6 +248,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setStrategy(Strategy strategy) {
         this.strategy = strategy;
     }
@@ -240,6 +256,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public MemoryManager getMemoryManager() {
         return memoryManager;
     }
@@ -247,6 +264,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setMemoryManager(MemoryManager memoryManager) {
         this.memoryManager = memoryManager;
     }
@@ -254,6 +272,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public ExecutorService getWorkerThreadPool() {
         return workerThreadPool;
     }
@@ -261,6 +280,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setWorkerThreadPool(ExecutorService workerThreadPool) {
         this.workerThreadPool = workerThreadPool;
     }
@@ -268,6 +288,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public ExecutorService getInternalThreadPool() {
         return internalThreadPool;
     }
@@ -275,6 +296,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setInternalThreadPool(ExecutorService internalThreadPool) {
         this.internalThreadPool = internalThreadPool;
     }
@@ -282,6 +304,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public AttributeBuilder getAttributeBuilder() {
         return attributeBuilder;
     }
@@ -289,6 +312,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setAttributeBuilder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = attributeBuilder;
     }
@@ -296,6 +320,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void addExceptionHandler(ExceptionHandler handler) {
         exceptionHandlers.add(handler);
     }
@@ -303,6 +328,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void removeExceptionHandler(ExceptionHandler handler) {
         exceptionHandlers.remove(handler);
     }
@@ -310,6 +336,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void notifyException(Severity severity, Throwable throwable) {
         if (exceptionHandlers == null || exceptionHandlers.isEmpty()) return;
         for(ExceptionHandler exceptionHandler : exceptionHandlers) {
@@ -320,6 +347,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void fireIOEvent(IOEvent ioEvent, Connection connection) throws IOException {
         fireIOEvent(ioEvent, connection, null);
     }    
@@ -337,6 +365,7 @@ public abstract class AbstractTransport implements Transport {
      * 
      * @throws java.io.IOException
      */
+    @Override
     public abstract void start() throws IOException;
     
     /**
@@ -344,6 +373,7 @@ public abstract class AbstractTransport implements Transport {
      * 
      * @throws java.io.IOException
      */
+    @Override
     public abstract void stop() throws IOException;
     
     /**
@@ -351,6 +381,7 @@ public abstract class AbstractTransport implements Transport {
      * 
      * @throws java.io.IOException
      */
+    @Override
     public abstract void pause() throws IOException;
     
     /**
@@ -358,5 +389,6 @@ public abstract class AbstractTransport implements Transport {
      * 
      * @throws java.io.IOException
      */
+    @Override
     public abstract void resume() throws IOException;
 }

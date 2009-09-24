@@ -89,6 +89,7 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<ReadResult<Buffer, SocketAddress>> read(
             final Connection connection,
             final Buffer buffer,
@@ -221,6 +222,7 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isReady(final Connection connection) {
         AsyncQueue connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
@@ -234,6 +236,7 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
+    @Override
     public void processAsync(final Connection connection) throws IOException {
         final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
@@ -350,6 +353,7 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
+    @Override
     public void onClose(Connection connection) {
         AbstractNIOConnection nioConnection = (AbstractNIOConnection) connection;
         AsyncQueue<AsyncReadQueueRecord> readQueue =
@@ -387,6 +391,7 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isInterested(IOEvent ioEvent) {
         return ioEvent == IOEvent.READ;
     }
@@ -394,6 +399,7 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
+    @Override
     public ProcessorResult process(Context context)
             throws IOException {
         processAsync(context.getConnection());
@@ -403,12 +409,14 @@ public abstract class AbstractNIOAsyncQueueReader
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public void close() {
     }
 

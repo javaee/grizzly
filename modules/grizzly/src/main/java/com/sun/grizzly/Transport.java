@@ -343,6 +343,7 @@ public interface Transport extends ExceptionHandler {
      * @param severity the error severity.
      * @param throwable the error description.
      */
+    @Override
     public void notifyException(Severity severity, Throwable throwable);
     
     /**

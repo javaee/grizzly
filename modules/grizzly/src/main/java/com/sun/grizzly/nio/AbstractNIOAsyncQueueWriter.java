@@ -81,6 +81,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<WriteResult<Buffer, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress,
             Buffer buffer,
@@ -93,6 +94,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<WriteResult<Buffer, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress,
             Buffer buffer,
@@ -207,6 +209,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isReady(Connection connection) {
         AsyncQueue connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
@@ -220,6 +223,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public void processAsync(Connection connection) throws IOException {
         AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
@@ -304,6 +308,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public void onClose(Connection connection) {
         AbstractNIOConnection nioConnection =
                 (AbstractNIOConnection) connection;
@@ -342,6 +347,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public boolean isInterested(IOEvent ioEvent) {
         return ioEvent == IOEvent.WRITE;
     }
@@ -349,6 +355,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public ProcessorResult process(Context context)
             throws IOException {
         processAsync(context.getConnection());
@@ -358,12 +365,14 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
     }
 
     /**
      * {@inheritDoc}
      */
+    @Override
     public void close() {
     }
 

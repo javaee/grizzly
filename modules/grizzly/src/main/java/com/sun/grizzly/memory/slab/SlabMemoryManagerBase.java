@@ -174,10 +174,12 @@ public abstract class SlabMemoryManagerBase extends ByteBufferManager {
 
         }
 
+        @Override
         public Slab getSlab() {
             return threadLocalSlab.getSlab();
         }
 
+        @Override
         public Slab obtainSlab() {
             Slab slab =threadLocalSlab.getSlab();
             if(slab==null) {
@@ -187,6 +189,7 @@ public abstract class SlabMemoryManagerBase extends ByteBufferManager {
             return slab;
         }
 
+        @Override
         public void associate(Slab slab) {
              threadLocalSlab.set(slab);
         }
@@ -202,11 +205,13 @@ public abstract class SlabMemoryManagerBase extends ByteBufferManager {
             this.manager = manager;
         }
 
+        @Override
         public Slab getSlab() {
             WorkerThread thread = (WorkerThread) Thread.currentThread();
             return threadAssociatedSlab.get(thread);
         }
 
+        @Override
         public Slab obtainSlab() {
             WorkerThread thread = (WorkerThread) Thread.currentThread();
 
@@ -218,6 +223,7 @@ public abstract class SlabMemoryManagerBase extends ByteBufferManager {
             return currentSlab;
         }
 
+        @Override
         public void associate(Slab slab) {
             WorkerThread thread = (WorkerThread) Thread.currentThread();
             AttributeHolder workerThreadAttributes = thread.obtainAttributes();

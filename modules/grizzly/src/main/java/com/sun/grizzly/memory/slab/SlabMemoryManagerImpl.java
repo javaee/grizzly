@@ -56,6 +56,7 @@ public class SlabMemoryManagerImpl extends SlabMemoryManagerBase {
         this._bufferType = bufferType;
     }
 
+    @Override
     public int maxAllocationSize() {
 
         return _maxAllocationSize;

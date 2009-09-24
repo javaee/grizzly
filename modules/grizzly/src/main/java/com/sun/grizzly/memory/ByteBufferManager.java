@@ -85,6 +85,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     /**
      * {@inheritDoc}
      */
+    @Override
     public ByteBufferWrapper allocate(final int size) {
         return wrap(allocate0(size));
     }
@@ -92,6 +93,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     /**
      * {@inheritDoc}
      */
+    @Override
     public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
             int newSize) {
         ByteBufferWrapper newBuffer = allocate(newSize);
@@ -103,6 +105,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     /**
      * Lets JVM Garbage collector to release buffer.
      */
+    @Override
     public void release(ByteBufferWrapper buffer) {
     }
 
@@ -131,6 +134,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     /**
      * {@inheritDoc}
      */
+    @Override
     public ByteBufferWrapper wrap(byte[] data) {
         return wrap(data, 0, data.length);
     }
@@ -138,6 +142,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     /**
      * {@inheritDoc}
      */
+    @Override
     public ByteBufferWrapper wrap(byte[] data, int offset, int length) {
         return wrap(ByteBuffer.wrap(data, offset, length));
     }
@@ -145,6 +150,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     /**
      * {@inheritDoc}
      */
+    @Override
     public ByteBufferWrapper wrap(String s) {
         return wrap(s, Charset.defaultCharset());
     }
@@ -152,6 +158,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     /**
      * {@inheritDoc}
      */
+    @Override
     public ByteBufferWrapper wrap(String s, Charset charset) {
         try {
             byte[] byteRepresentation = s.getBytes(charset.name());
@@ -164,6 +171,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     /**
      * {@inheritDoc}
      */
+    @Override
     public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
         return new ByteBufferWrapper(this, byteBuffer);
     }

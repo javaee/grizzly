@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.nio;
 
-import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport;
 
 
@@ -62,8 +61,4 @@ public interface NIOTransport extends Transport {
     public NIOChannelDistributor getNioChannelDistributor();
 
     public void setNioChannelDistributor(NIOChannelDistributor nioChannelDistributor);
-
-    public Strategy getStrategy();
-    
-    public void setStrategy(Strategy strategy);
 }

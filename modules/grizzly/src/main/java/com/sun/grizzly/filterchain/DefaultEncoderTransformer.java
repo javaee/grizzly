@@ -87,12 +87,14 @@ public class DefaultEncoderTransformer implements Transformer {
         contextAttribute.set(state, context);
     }
     
+    @Override
     public TransformationResult transform(AttributeStorage state)
             throws TransformationException {
         return transform(state, getInput(state), getOutput(state));
     }
 
 
+    @Override
     public TransformationResult transform(AttributeStorage state,
             Object originalMessage, Object outputMessage)
             throws TransformationException {
@@ -122,22 +124,27 @@ public class DefaultEncoderTransformer implements Transformer {
         return result;
     }
 
+    @Override
     public Object getInput(AttributeStorage state) {
         return inputAttribute.get(state);
     }
 
+    @Override
     public void setInput(AttributeStorage state, Object input) {
         inputAttribute.set(state, input);
     }
 
+    @Override
     public Object getOutput(AttributeStorage state) {
         return outputAttribute.get(state);
     }
 
+    @Override
     public void setOutput(AttributeStorage state, Object outputTarget) {
         outputAttribute.set(state, outputTarget);
     }
 
+    @Override
     public TransformationResult getLastResult(AttributeStorage state) {
         return lastResultAttribute.get(state);
     }
@@ -147,13 +154,16 @@ public class DefaultEncoderTransformer implements Transformer {
         lastResultAttribute.set(state, lastResult);
     }
 
+    @Override
     public AttributeHolder getProperties(AttributeStorage state) {
         return state.getAttributes();
     }
 
+    @Override
     public void hibernate(AttributeStorage state) {
     }
 
+    @Override
     public void release(AttributeStorage state) {
         releaseFilterTransformers(state);
         contextAttribute.remove(state);

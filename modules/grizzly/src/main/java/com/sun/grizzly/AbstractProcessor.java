@@ -54,13 +54,16 @@ public abstract class AbstractProcessor<E extends Context>
      * 
      * @return <tt>null</tt>
      */
+    @Override
     public E context() {
         return null;
     }
 
+    @Override
     public void beforeProcess(E context) throws IOException {
     }
 
+    @Override
     public void afterProcess(E context) throws IOException {
     }
 }

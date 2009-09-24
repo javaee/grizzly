@@ -62,72 +62,78 @@ public abstract class AbstractNIOTransport extends AbstractTransport
         super(name);
     }
 
+    @Override
     public SelectionKeyHandler getSelectionKeyHandler() {
         return selectionKeyHandler;
     }
 
+    @Override
     public void setSelectionKeyHandler(SelectionKeyHandler selectionKeyHandler) {
         this.selectionKeyHandler = selectionKeyHandler;
     }
 
+    @Override
     public SelectorHandler getSelectorHandler() {
         return selectorHandler;
     }
 
+    @Override
     public void setSelectorHandler(SelectorHandler selectorHandler) {
         this.selectorHandler = selectorHandler;
     }
 
+    @Override
     public int getSelectorRunnersCount() {
         return selectorRunnersCount;
     }
 
+    @Override
     public void setSelectorRunnersCount(int selectorRunnersCount) {
         this.selectorRunnersCount = selectorRunnersCount;
     }
 
     
-    protected void startSelectorRunners() throws IOException {
+    protected synchronized void startSelectorRunners() throws IOException {
         selectorRunners = new SelectorRunner[selectorRunnersCount];
         
-        synchronized(selectorRunners) {
-            for (int i = 0; i < selectorRunnersCount; i++) {
-                SelectorRunner runner =
-                        new SelectorRunner(this, SelectorFactory.instance().create());
-                runner.start();
-                selectorRunners[i] = runner;
-            }
+        for (int i = 0; i < selectorRunnersCount; i++) {
+            SelectorRunner runner =
+                    new SelectorRunner(this, SelectorFactory.instance().create());
+            runner.start();
+            selectorRunners[i] = runner;
         }
     }
     
-    protected void stopSelectorRunners() throws IOException {
-        if (selectorRunners == null) return;
-        
-        synchronized(selectorRunners) {
-            for (int i = 0; i < selectorRunners.length; i++) {
-                SelectorRunner runner = selectorRunners[i];
-                if (runner != null) {
-                    runner.stop();
-                    selectorRunners[i] = null;
+    protected synchronized void stopSelectorRunners() throws IOException {
+        if (selectorRunners == null) {
+            return;
+        }
 
-                    Selector selector = runner.getSelector();
-                    if (selector != null) {
-                        try {
-                            selector.close();
-                        } catch (IOException e) {
-                        }
+        for (int i = 0; i < selectorRunners.length; i++) {
+            SelectorRunner runner = selectorRunners[i];
+            if (runner != null) {
+                runner.stop();
+                selectorRunners[i] = null;
+
+                Selector selector = runner.getSelector();
+                if (selector != null) {
+                    try {
+                        selector.close();
+                    } catch (IOException e) {
                     }
                 }
             }
-            
-            selectorRunners = null;
         }
+
+        selectorRunners = null;
     }
 
+    @Override
     public NIOChannelDistributor getNioChannelDistributor() {
         return nioChannelDistributor;
     }
 
+    @Override
     public void setNioChannelDistributor(NIOChannelDistributor
             nioChannelDistributor) {
         this.nioChannelDistributor = nioChannelDistributor;
@@ -137,6 +143,7 @@ public abstract class AbstractNIOTransport extends AbstractTransport
         return selectorRunners;
     }
 
+    @Override
     protected abstract void closeConnection(Connection connection)
             throws IOException;
 }

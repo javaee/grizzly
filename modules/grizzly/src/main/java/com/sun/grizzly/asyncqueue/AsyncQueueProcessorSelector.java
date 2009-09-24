@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.asyncqueue;
 
 import java.util.Collection;
@@ -52,6 +51,7 @@ import com.sun.grizzly.ProcessorSelector;
  * @author Alexey Stashok
  */
 public class AsyncQueueProcessorSelector implements ProcessorSelector {
+
     protected AsyncQueueEnabledTransport transport;
 
     public AsyncQueueProcessorSelector(AsyncQueueEnabledTransport transport) {
@@ -71,7 +71,8 @@ public class AsyncQueueProcessorSelector implements ProcessorSelector {
      *         {@link ProcessorSelector} should stop the injection of a
      *         next <tt>Processor</tt>s, or can continue.
      */
-     public Processor select(IOEvent ioEvent,
+    @Override
+    public Processor select(IOEvent ioEvent,
             Connection connection) {
         AsyncQueueProcessor asyncQueueProcessor;
 
@@ -90,5 +91,4 @@ public class AsyncQueueProcessorSelector implements ProcessorSelector {
 
         return null;
     }
-
 }

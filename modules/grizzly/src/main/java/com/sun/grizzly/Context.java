@@ -270,6 +270,7 @@ public class Context implements PoolableObject {
      * {@link Context} instances - this method will be called before
      * {@link Context} will be polled from pool.
      */
+    @Override
     public void prepare() {
         if (attributes == null) {
             attributes = 
@@ -282,6 +283,7 @@ public class Context implements PoolableObject {
      * {@link Context} instances - this method will be called before
      * {@link Context} will be offered to pool.
      */
+    @Override
     public void release() {
         if (attributes != null) {
             attributes.clear();

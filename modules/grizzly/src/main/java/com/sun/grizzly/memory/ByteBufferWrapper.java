@@ -74,16 +74,19 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         visible = underlyingByteBuffer;
     }
     
+    @Override
     public ByteBufferWrapper prepend(final Buffer header) {
         checkDispose();
         return this;
     }
 
+    @Override
     public void trim() {
         checkDispose() ;
         flip();
     }
 
+    @Override
     public void dispose() {
         checkDispose();
         memoryManager.release(this);
@@ -95,245 +98,298 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         }
     }
 
+    @Override
     public ByteBuffer underlying() {
         checkDispose();
         return visible;
     }
 
+    @Override
     public int capacity() {
         return visible.capacity();
     }
 
+    @Override
     public int position() {
         return visible.position();
     }
 
+    @Override
     public ByteBufferWrapper position(int newPosition) {
         visible.position(newPosition);
         return this;
     }
 
+    @Override
     public int limit() {
         return visible.limit();
     }
 
+    @Override
     public ByteBufferWrapper limit(int newLimit) {
         visible.limit(newLimit);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper mark() {
         visible.mark();
         return this;
     }
 
+    @Override
     public ByteBufferWrapper reset() {
         visible.reset();
         return this;
     }
 
+    @Override
     public ByteBufferWrapper clear() {
         visible.clear();
         return this;
     }
 
+    @Override
     public ByteBufferWrapper flip() {
         visible.flip();
         return this;
     }
 
+    @Override
     public ByteBufferWrapper rewind() {
         visible.rewind();
         return this;
     }
 
+    @Override
     public int remaining() {
         return visible.remaining();
     }
 
+    @Override
     public boolean hasRemaining() {
         return visible.hasRemaining();
     }
 
+    @Override
     public boolean isReadOnly() {
         return visible.isReadOnly();
     }
 
+    @Override
     public ByteBufferWrapper slice() {
         ByteBuffer slice = visible.slice();
         return memoryManager.wrap(slice);
     }
 
+    @Override
     public ByteBufferWrapper duplicate() {
         ByteBuffer duplicate = visible.duplicate();
         return memoryManager.wrap(duplicate);
     }
 
+    @Override
     public ByteBufferWrapper asReadOnlyBuffer() {
         visible.asReadOnlyBuffer();
         return this;
     }
 
+    @Override
     public byte get() {
         return visible.get();
     }
 
+    @Override
     public byte get(int index) {
         return visible.get(index);
     }
 
+    @Override
     public ByteBufferWrapper put(byte b) {
         visible.put(b);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper put(int index, byte b) {
         visible.put(index, b);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper get(byte[] dst) {
         visible.get(dst);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper get(byte[] dst, int offset, int length) {
         visible.get(dst, offset, length);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper put(Buffer src) {
         visible.put((ByteBuffer) src.underlying());
         return this;
     }
 
+    @Override
     public ByteBufferWrapper put(byte[] src) {
         visible.put(src);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper put(byte[] src, int offset, int length) {
         visible.put(src, offset, length);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper compact() {
         visible.compact();
         return this;
     }
 
+    @Override
     public ByteOrder order() {
         return visible.order();
     }
 
+    @Override
     public ByteBufferWrapper order(ByteOrder bo) {
         visible.order(bo);
         return this;
     }
 
+    @Override
     public char getChar() {
         return visible.getChar();
     }
 
+    @Override
     public char getChar(int index) {
         return visible.getChar(index);
     }
 
+    @Override
     public ByteBufferWrapper putChar(char value) {
         visible.putChar(value);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper putChar(int index, char value) {
         visible.putChar(index, value);
         return this;
     }
 
+    @Override
     public short getShort() {
         return visible.getShort();
     }
 
+    @Override
     public short getShort(int index) {
         return visible.getShort(index);
     }
 
+    @Override
     public ByteBufferWrapper putShort(short value) {
         visible.putShort(value);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper putShort(int index, short value) {
         visible.putShort(index, value);
         return this;
     }
 
+    @Override
     public int getInt() {
         return visible.getInt();
     }
 
+    @Override
     public int getInt(int index) {
         return visible.getInt(index);
     }
 
+    @Override
     public ByteBufferWrapper putInt(int value) {
         visible.putInt(value);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper putInt(int index, int value) {
         visible.putInt(index, value);
         return this;
     }
 
+    @Override
     public long getLong() {
         return visible.getLong();
     }
 
+    @Override
     public long getLong(int index) {
         return visible.getLong(index);
     }
 
+    @Override
     public ByteBufferWrapper putLong(long value) {
         visible.putLong(value);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper putLong(int index, long value) {
         visible.putLong(index, value);
         return this;
     }
 
+    @Override
     public float getFloat() {
         return visible.getFloat();
     }
 
+    @Override
     public float getFloat(int index) {
         return visible.getFloat(index);
     }
 
+    @Override
     public ByteBufferWrapper putFloat(float value) {
         visible.putFloat(value);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper putFloat(int index, float value) {
         visible.putFloat(index, value);
         return this;
     }
 
+    @Override
     public double getDouble() {
         return visible.getDouble();
     }
 
+    @Override
     public double getDouble(int index) {
         return visible.getDouble(index);
     }
 
+    @Override
     public ByteBufferWrapper putDouble(double value) {
         visible.putDouble(value);
         return this;
     }
 
+    @Override
     public ByteBufferWrapper putDouble(int index, double value) {
         visible.putDouble(index, value);
         return this;
@@ -361,6 +417,7 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         return false;
     }
 
+    @Override
     public int compareTo(Buffer<ByteBuffer> o) {
         return visible.compareTo(o.underlying());
     }
@@ -373,6 +430,7 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         }
     }
 
+    @Override
     public String contentAsString(Charset charset) {
         checkDispose();
         

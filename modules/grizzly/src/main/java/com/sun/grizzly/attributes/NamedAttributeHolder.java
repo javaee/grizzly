@@ -64,6 +64,7 @@ public class NamedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Object getAttribute(String name) {
         return attributesMap.get(name);
     }
@@ -71,6 +72,7 @@ public class NamedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void setAttribute(String name, Object value) {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute == null) {
@@ -83,6 +85,7 @@ public class NamedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Object removeAttribute(String name) {
         return attributesMap.remove(name);
     }
@@ -90,6 +93,7 @@ public class NamedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public Set<String> getAttributeNames() {
         return attributesMap.keySet();
     }
@@ -98,6 +102,7 @@ public class NamedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public void clear() {
         attributesMap.clear();
     }
@@ -105,6 +110,7 @@ public class NamedAttributeHolder implements AttributeHolder {
     /**
      * {@inheritDoc}
      */
+    @Override
     public AttributeBuilder getAttributeBuilder() {
         return attributeBuilder;
     }
@@ -115,6 +121,7 @@ public class NamedAttributeHolder implements AttributeHolder {
      * 
      * @return <tt>null</tt>
      */
+    @Override
     public IndexedAttributeAccessor getIndexedAttributeAccessor() {
         return null;
     }

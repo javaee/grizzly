@@ -73,6 +73,7 @@ public class FilterChainProcessorSelector implements ProcessorSelector {
      * @return {@link FilterChain} instance, if it's interested in processing
      * passed {@link IOEvent}, or <tt>null</tt> otherwise.
      */
+    @Override
     public Processor select(IOEvent ioEvent, Connection connection) {
 
         FilterChain chain = factory.create();

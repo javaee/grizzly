@@ -56,10 +56,12 @@ public class DefaultFilterChainCodec implements Codec {
         encoder = new DefaultEncoderTransformer(filterChain);
     }
 
+    @Override
     public DefaultDecoderTransformer getDecoder() {
         return decoder;
     }
 
+    @Override
     public DefaultEncoderTransformer getEncoder() {
         return encoder;
     }

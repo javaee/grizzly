@@ -57,20 +57,24 @@ public class DefaultSelectionKeyHandler implements SelectionKeyHandler {
         SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, SelectionKey.OP_READ,
         SelectionKey.OP_WRITE, 0};
     
+    @Override
     public void onKeyRegistered(SelectionKey key) {
         if (logger.isLoggable(Level.FINE)) {
             logger.log(Level.FINE, "KEY IS REGISTERED: " + key);
         }
     }
     
+    @Override
     public void cancel(SelectionKey key) throws IOException {
         key.cancel();
     }
 
+    @Override
     public int ioEvent2SelectionKeyInterest(IOEvent ioEvent) {
         return ioEvent2SelectionKeyInterest[ioEvent.ordinal()];
     }
 
+    @Override
     public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest) {
         if ((selectionKeyInterest & SelectionKey.OP_READ) != 0) {
             return IOEvent.READ;
@@ -85,26 +89,32 @@ public class DefaultSelectionKeyHandler implements SelectionKeyHandler {
         return IOEvent.NONE;
     }
     
+    @Override
     public boolean onAcceptInterest(SelectionKey key) throws IOException {
         return true;
     }
 
+    @Override
     public boolean onConnectInterest(SelectionKey key) throws IOException {
         return true;
     }
 
+    @Override
     public boolean onReadInterest(SelectionKey key) throws IOException {
         return true;
     }
     
+    @Override
     public boolean onWriteInterest(SelectionKey key) throws IOException {
         return true;
     }
 
+    @Override
     public NIOConnection getConnectionForKey(SelectionKey selectionKey) {
         return (NIOConnection) selectionKey.attachment();
     }
 
+    @Override
     public void setConnectionForKey(NIOConnection connection,
             SelectionKey selectionKey) {
         selectionKey.attach(connection);

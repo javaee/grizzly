@@ -74,39 +74,48 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
                 ".lastResult");
     }
 
+    @Override
     public TransformationResult<L> transform(AttributeStorage storage)
             throws TransformationException {
 
         return transform(storage, getInput(storage), getOutput(storage));
     }
 
+    @Override
     public K getInput(AttributeStorage storage) {
         return inputBufferAttribute.get(storage);
     }
 
+    @Override
     public void setInput(AttributeStorage storage, K input) {
         inputBufferAttribute.set(storage, input);
     }
 
+    @Override
     public L getOutput(AttributeStorage storage) {
         return outputBufferAttribute.get(storage);
     }
 
+    @Override
     public void setOutput(AttributeStorage storage, L output) {
         outputBufferAttribute.set(storage, output);
     }
 
+    @Override
     public TransformationResult<L> getLastResult(AttributeStorage storage) {
         return lastResultAttribute.get(storage);
     }
 
+    @Override
     public AttributeHolder getProperties(AttributeStorage storage) {
         return storage.getAttributes();
     }
 
+    @Override
     public void hibernate(AttributeStorage storage) {
     }
 
+    @Override
     public void release(AttributeStorage storage) {
         inputBufferAttribute.remove(storage);
         outputBufferAttribute.remove(storage);
