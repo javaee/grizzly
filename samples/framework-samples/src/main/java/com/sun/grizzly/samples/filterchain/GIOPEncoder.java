@@ -35,34 +35,56 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.samples.filterchain;
 
-import com.sun.grizzly.Connection;
-import java.io.IOException;
-import com.sun.grizzly.filterchain.FilterAdapter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.AbstractTransformer;
+import com.sun.grizzly.TransformationException;
+import com.sun.grizzly.TransformationResult;
+import com.sun.grizzly.TransformationResult.Status;
+import com.sun.grizzly.attributes.AttributeStorage;
+import com.sun.grizzly.streams.Stream;
 import com.sun.grizzly.streams.StreamWriter;
+import java.io.IOException;
 
 /**
- * {@link Filter}, which writes back the passed {@link GIOPMessage}
- * 
+ * {@link Transformer}, which serializes {@link GIOPMessage} into specific
+ * {@link Stream}.
+ *
  * @author Alexey Stashok
  */
-public class EchoGIOPMessageFilter extends FilterAdapter {
-    private static final GIOPEncoder encoder = new GIOPEncoder();
-    
+public class GIOPEncoder extends AbstractTransformer<GIOPMessage, Stream> {
+
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        final Connection connection = ctx.getConnection();
-        final StreamWriter writer = ctx.getStreamWriter();
+    public TransformationResult<Stream> transform(AttributeStorage storage,
+            GIOPMessage input, Stream output) throws TransformationException {
 
-        final GIOPMessage message = (GIOPMessage) ctx.getMessage();
-        encoder.transform(connection, message, writer);
-        writer.flush();
+        try {
+            StreamWriter writer = (StreamWriter) output;
 
-        return nextAction;
+            // GIOP header
+            writer.writeByteArray(input.getGIOPHeader());
+
+            // Major version
+            writer.writeByte(input.getMajor());
+
+            // Minor version
+            writer.writeByte(input.getMinor());
+
+            // Flags
+            writer.writeByte(input.getFlags());
+
+            // Value
+            writer.writeByte(input.getValue());
+
+            // Body length
+            writer.writeInt(input.getBodyLength());
+
+            // Body
+            writer.writeByteArray(input.getBody());
+        } catch (IOException e) {
+            throw new TransformationException(e);
+        }
+
+        return new TransformationResult<Stream>(Status.COMPLETED, output);
     }
 }

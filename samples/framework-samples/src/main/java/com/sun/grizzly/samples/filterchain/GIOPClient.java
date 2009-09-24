@@ -37,11 +37,12 @@
  */
 package com.sun.grizzly.samples.filterchain;
 
-import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.StandaloneProcessorSelector;
+import com.sun.grizzly.TransformationResult;
+import com.sun.grizzly.TransformationResult.Status;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
@@ -85,12 +86,24 @@ public class GIOPClient {
             GIOPMessage sentMessage = new GIOPMessage((byte) 1, (byte) 2,
                     (byte) 0x0F, (byte) 0, testMessage);
 
-            int size = writeGIOPMessage(writer, sentMessage);
+            final GIOPEncoder encoder = new GIOPEncoder();
+            final GIOPDecoder decoder = new GIOPDecoder();
+
+            encoder.transform(connection, sentMessage, writer);
+            Future<Integer> writeFuture = writer.flush();
+
+            int size = writeFuture.get(10, TimeUnit.SECONDS);
 
             Future messageAvailFuture = reader.notifyAvailable(size);
             messageAvailFuture.get(10, TimeUnit.SECONDS);
 
-            GIOPMessage rcvMessage = readerGIOPMessage(reader);
+            TransformationResult<GIOPMessage> result =
+                    decoder.transform(connection, reader, null);
+
+            assert result != null;
+            assert result.getStatus() == Status.COMPLETED;
+
+            GIOPMessage rcvMessage = result.getMessage();
             
             // Check if echo returned message equal to original one
             if (sentMessage.equals(rcvMessage)) {
@@ -107,67 +120,5 @@ public class GIOPClient {
             transport.stop();
             TransportFactory.getInstance().close();
         }
-    }
-
-    private static int writeGIOPMessage(StreamWriter writer,
-            GIOPMessage message) throws IOException, InterruptedException {
-
-        // GIOP header
-        writer.writeByteArray(message.getGIOPHeader());
-
-        // Major version
-        writer.writeByte(message.getMajor());
-
-        // Minor version
-        writer.writeByte(message.getMinor());
-
-        // Flags
-        writer.writeByte(message.getFlags());
-
-        // Value
-        writer.writeByte(message.getValue());
-
-        // Body length
-        writer.writeInt(message.getBodyLength());
-
-        // Body
-        writer.writeByteArray(message.getBody());
-
-        // Flush the message
-        writer.flush();
-
-        return 12 + message.getBodyLength();
-    }
-
-    private static GIOPMessage readerGIOPMessage(StreamReader reader)
-            throws IOException {
-
-        GIOPMessage message = new GIOPMessage();
-
-        // GIOP header
-        message.setGIOPHeader(reader.readByte(), reader.readByte(),
-                reader.readByte(), reader.readByte());
-
-        // Major version
-        message.setMajor(reader.readByte());
-
-        // Minor version
-        message.setMinor(reader.readByte());
-
-        // Flags
-        message.setFlags(reader.readByte());
-
-        // Value
-        message.setValue(reader.readByte());
-
-        // Body length
-        message.setBodyLength(reader.readInt());
-
-        // Body
-        byte[] body = new byte[message.getBodyLength()];
-        reader.readByteArray(body);
-        message.setBody(body);
-
-        return message;
     }
 }
