@@ -221,6 +221,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
          * @param context processing context
          * @throws java.io.IOException
          */
+        @Override
         public ProcessorResult process(Context context)
                 throws IOException {
             try {
@@ -268,10 +269,12 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             return null;
         }
 
+        @Override
         public boolean isInterested(IOEvent ioEvent) {
             return true;
         }
 
+        @Override
         public void setInterested(IOEvent ioEvent, boolean isInterested) {
         }
     }

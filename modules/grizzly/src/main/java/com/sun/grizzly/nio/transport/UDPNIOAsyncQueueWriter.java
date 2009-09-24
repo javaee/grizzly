@@ -62,6 +62,7 @@ public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
         super(transport);
     }
 
+    @Override
     protected int write0(Connection connection, SocketAddress dstAddress,
             Buffer buffer,
             WriteResult<Buffer, SocketAddress> currentResult)
@@ -70,6 +71,7 @@ public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 buffer, currentResult);
     }
 
+    @Override
     protected void onReadyToWrite(Connection connection) throws IOException {
         NIOConnection nioConnection = (NIOConnection) connection;
 
@@ -78,13 +80,16 @@ public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
                 nioConnection.getSelectionKey(), SelectionKey.OP_WRITE);
     }
 
+    @Override
     public Context context() {
         return null;
     }
 
+    @Override
     public void beforeProcess(Context context) throws IOException {
     }
 
+    @Override
     public void afterProcess(Context context) throws IOException {
     }
 }

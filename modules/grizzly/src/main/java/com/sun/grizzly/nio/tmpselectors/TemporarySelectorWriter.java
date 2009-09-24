@@ -87,6 +87,7 @@ public abstract class TemporarySelectorWriter
     /**
      * {@inheritDoc}
      */
+    @Override
     public Future<WriteResult<Buffer, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress,
             Buffer buffer,

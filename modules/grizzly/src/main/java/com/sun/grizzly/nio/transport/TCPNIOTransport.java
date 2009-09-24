@@ -341,6 +341,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * {@inheritDoc}
      */
+    @Override
     public TCPNIOServerConnection bind(int port) throws IOException {
         return bind(new InetSocketAddress(port));
     }
@@ -348,6 +349,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * {@inheritDoc}
      */
+    @Override
     public TCPNIOServerConnection bind(String host, int port)
             throws IOException {
         return bind(host, port, 50);
@@ -356,6 +358,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * {@inheritDoc}
      */
+    @Override
     public TCPNIOServerConnection bind(String host, int port, int backlog)
             throws IOException {
         return bind(new InetSocketAddress(host, port), backlog);
@@ -364,6 +367,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * {@inheritDoc}
      */
+    @Override
     public TCPNIOServerConnection bind(SocketAddress socketAddress)
             throws IOException {
         return bind(socketAddress, 4096);
@@ -372,6 +376,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * {@inheritDoc}
      */
+    @Override
     public TCPNIOServerConnection bind(SocketAddress socketAddress, int backlog)
             throws IOException {
         state.getStateLocker().writeLock().lock();
@@ -404,6 +409,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     /**
      * {@inheritDoc}
      */
+    @Override
     public void unbind(Connection connection) throws IOException {
         state.getStateLocker().writeLock().lock();
 
@@ -428,16 +434,19 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
+    @Override
     public Future<Connection> connect(String host, int port)
             throws IOException {
         return connect(new InetSocketAddress(host, port));
     }
 
+    @Override
     public Future<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
         return connect(remoteAddress, (SocketAddress) null);
     }
 
+    @Override
     public Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
         return connect(remoteAddress, localAddress, null);
@@ -548,6 +557,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         socket.setReuseAddress(reuseAddress);
     }
 
+    @Override
     public AsyncQueueIO getAsyncQueueIO() {
         return asyncQueueIO;
     }
@@ -600,14 +610,17 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         this.serverSocketSoTimeout = serverSocketSoTimeout;
     }
 
+    @Override
     public FilterChainFactory getFilterChainFactory() {
         return filterChainFactory;
     }
 
+    @Override
     public void setFilterChainFactory(FilterChainFactory factory) {
         filterChainFactory = factory;
     }
 
+    @Override
     public FilterChain getFilterChain() {
         FilterChainFactory factory = getFilterChainFactory();
         if (factory instanceof PatternFilterChainFactory) {
@@ -621,6 +634,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 "FilterChainFactory API: " + factory.getClass().getName());
     }
 
+    @Override
     public Filter getStreamTransportFilter() {
         return defaultTransportFilter;
     }
@@ -631,14 +645,17 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                 " not supported for TCP NIO transport ");
     }
 
+    @Override
     public TemporarySelectorIO getTemporarySelectorIO() {
         return temporarySelectorIO;
     }
 
+    @Override
     public void setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
         this.temporarySelectorIO = temporarySelectorIO;
     }
 
+    @Override
     public void fireIOEvent(final IOEvent ioEvent, final Connection connection,
             final Object strategyContext) throws IOException {
 
@@ -814,6 +831,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
     public class EnableInterestPostProcessor implements PostProcessor {
 
+        @Override
         public void process(ProcessorResult result,
                 Context context) throws IOException {
             if (result == null || result.getStatus() == Status.OK) {

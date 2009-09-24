@@ -186,6 +186,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         private AcceptorEventProcessor acceptorProcessor =
                 new AcceptorEventProcessor();
 
+        @Override
         public Processor select(IOEvent ioEvent, Connection connection) {
             if (ioEvent == IOEvent.SERVER_ACCEPT) {
                 return acceptorProcessor;
@@ -206,6 +207,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
          * @param context processing context
          * @throws java.io.IOException
          */
+        @Override
         public ProcessorResult process(Context context)
                 throws IOException {
             SocketChannel acceptedChannel = doAccept();
@@ -221,10 +223,12 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
             return null;
         }
 
+        @Override
         public boolean isInterested(IOEvent ioEvent) {
             return true;
         }
 
+        @Override
         public void setInterested(IOEvent ioEvent, boolean isInterested) {
         }
     }

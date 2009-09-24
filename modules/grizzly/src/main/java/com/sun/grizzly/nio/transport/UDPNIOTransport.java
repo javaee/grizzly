@@ -183,6 +183,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     /**
      * {@inheritDoc}
      */
+    @Override
     public UDPNIOServerConnection bind(int port) throws IOException {
         return bind(new InetSocketAddress(port));
     }
@@ -190,6 +191,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     /**
      * {@inheritDoc}
      */
+    @Override
     public UDPNIOServerConnection bind(String host, int port)
             throws IOException {
         return bind(host, port, 50);
@@ -198,6 +200,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     /**
      * {@inheritDoc}
      */
+    @Override
     public UDPNIOServerConnection bind(String host, int port, int backlog)
             throws IOException {
         return bind(new InetSocketAddress(host, port), backlog);
@@ -206,6 +209,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     /**
      * {@inheritDoc}
      */
+    @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress)
             throws IOException {
         return bind(socketAddress, 4096);
@@ -214,6 +218,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     /**
      * {@inheritDoc}
      */
+    @Override
     public UDPNIOServerConnection bind(SocketAddress socketAddress, int backlog)
             throws IOException {
         state.getStateLocker().writeLock().lock();
@@ -244,6 +249,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     /**
      * {@inheritDoc}
      */
+    @Override
     public void unbind(Connection connection) throws IOException {
         state.getStateLocker().writeLock().lock();
 
@@ -278,16 +284,19 @@ public class UDPNIOTransport extends AbstractNIOTransport
         return connect(null, null, null);
     }
 
+    @Override
     public Future<Connection> connect(String host, int port)
             throws IOException {
         return connect(new InetSocketAddress(host, port));
     }
 
+    @Override
     public Future<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
         return connect(remoteAddress, (SocketAddress) null);
     }
 
+    @Override
     public Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
         return connect(remoteAddress, localAddress, null);
@@ -484,14 +493,17 @@ public class UDPNIOTransport extends AbstractNIOTransport
         }
     }
     
+    @Override
     public FilterChainFactory getFilterChainFactory() {
         return filterChainFactory;
     }
 
+    @Override
     public void setFilterChainFactory(FilterChainFactory factory) {
         filterChainFactory = factory;
     }
 
+    @Override
     public FilterChain getFilterChain() {
         final FilterChainFactory factory = getFilterChainFactory();
         if (factory instanceof PatternFilterChainFactory) {
@@ -505,6 +517,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
                 "FilterChainFactory API: " + factory.getClass().getName());
     }
 
+    @Override
     public Filter getStreamTransportFilter() {
         return streamTransportFilter;
     }
@@ -520,14 +533,17 @@ public class UDPNIOTransport extends AbstractNIOTransport
         return connection;
     }
 
+    @Override
     public AsyncQueueIO getAsyncQueueIO() {
         return asyncQueueIO;
     }
 
+    @Override
     public TemporarySelectorIO getTemporarySelectorIO() {
         return temporarySelectorIO;
     }
 
+    @Override
     public void setTemporarySelectorIO(TemporarySelectorIO temporarySelectorIO) {
         this.temporarySelectorIO = temporarySelectorIO;
     }
@@ -548,6 +564,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
         this.reuseAddress = reuseAddress;
     }
 
+    @Override
     public void fireIOEvent(final IOEvent ioEvent, final Connection connection,
             final Object strategyContext) throws IOException {
 
@@ -736,6 +753,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
     public class EnableInterestPostProcessor
             implements PostProcessor {
 
+        @Override
         public void process(final ProcessorResult result,
                 final Context context) throws IOException {
             if (result == null || result.getStatus() == Status.OK) {

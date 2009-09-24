@@ -69,6 +69,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
     }
     
 
+    @Override
     protected Future<Integer> flush0(final Buffer current,
             final CompletionHandler<Integer> completionHandler)
             throws IOException {
@@ -108,6 +109,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
         }
     }
 
+    @Override
     protected Future<Integer> close0(
             final CompletionHandler<Integer> completionHandler)
             throws IOException {
@@ -119,18 +121,22 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             try {
                 overflow(new CompletionHandler<Integer>() {
 
+                    @Override
                     public void cancelled(Connection connection) {
                         close(ZERO);
                     }
 
+                    @Override
                     public void failed(Connection connection, Throwable throwable) {
                         close(ZERO);
                     }
 
+                    @Override
                     public void completed(Connection connection, Integer result) {
                         close(result);
                     }
 
+                    @Override
                     public void updated(Connection connection, Integer result) {
                     }
 
@@ -172,6 +178,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             this.completionHandler = completionHandler;
         }
 
+        @Override
         public void cancelled(Connection connection) {
             if (completionHandler != null) {
                 completionHandler.cancelled(connection);
@@ -182,6 +189,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             }
         }
 
+        @Override
         public void failed(Connection connection, Throwable throwable) {
             if (completionHandler != null) {
                 completionHandler.failed(connection, throwable);
@@ -192,6 +200,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             }
         }
 
+        @Override
         public void completed(Connection connection, WriteResult result) {
             sentBytesCounter += result.getWrittenSize();
             int totalSentBytes = sentBytesCounter;
@@ -205,6 +214,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             }
         }
 
+        @Override
         public void updated(Connection connection, WriteResult result) {
             if (completionHandler != null) {
                 completionHandler.updated(connection, sentBytesCounter +
@@ -222,18 +232,21 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             this.parentCompletionHandler = parentCompletionHandler;
         }
 
+        @Override
         public void cancelled(Connection connection) {
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.cancelled(connection);
             }
         }
 
+        @Override
         public void failed(Connection connection, Throwable throwable) {
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.failed(connection, throwable);
             }
         }
 
+        @Override
         public void completed(Connection connection, Integer result) {
             sentBytesCounter = 0;
             if (parentCompletionHandler != null) {
@@ -241,6 +254,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
             }
         }
 
+        @Override
         public void updated(Connection connection, Integer result) {
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.updated(connection, result);

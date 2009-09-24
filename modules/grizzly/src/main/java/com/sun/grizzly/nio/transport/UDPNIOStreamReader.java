@@ -69,6 +69,7 @@ public class UDPNIOStreamReader extends AbstractStreamReader
         super(connection);
     }
 
+    @Override
     public Future<Integer> notifyCondition(Condition<StreamReader> condition,
             CompletionHandler<Integer> completionHandler) {
 
@@ -114,6 +115,7 @@ public class UDPNIOStreamReader extends AbstractStreamReader
             transport.getAsyncQueueIO().getReader().read(connection, null, null,
                     new Interceptor() {
 
+                        @Override
                         public int intercept(final int event,
                                 final Object context, final Object result) {
 
@@ -165,6 +167,7 @@ public class UDPNIOStreamReader extends AbstractStreamReader
         return future;
     }
     
+    @Override
     protected ReadResult read0() throws IOException {
         final Connection connection = getConnection();
         final UDPNIOTransport transport =

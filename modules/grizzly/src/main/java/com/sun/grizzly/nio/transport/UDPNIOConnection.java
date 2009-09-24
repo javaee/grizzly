@@ -109,14 +109,17 @@ public class UDPNIOConnection extends AbstractNIOConnection {
         super.setSelectorRunner(selectorRunner);
     }
 
+    @Override
     public StreamReader getStreamReader() {
         return streamReader;
     }
 
+    @Override
     public StreamWriter getStreamWriter() {
         return streamWriter;
     }
 
+    @Override
     protected void preClose() {
         try {
             transport.fireIOEvent(IOEvent.CLOSED, this);
@@ -132,6 +135,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
      * @return the address of the endpoint this <tt>Connection</tt> is
      *         connected to, or <tt>null</tt> if it is unconnected.
      */
+    @Override
     public SocketAddress getPeerAddress() {
         if (channel != null) {
             return ((DatagramChannel) channel).socket().getRemoteSocketAddress();
@@ -146,6 +150,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
      * @return the local address of this <tt>Connection</tt>,
      *      or <tt>null</tt> if it is unconnected.
      */
+    @Override
     public SocketAddress getLocalAddress() {
         if (channel != null) {
             return ((DatagramChannel) channel).socket().getLocalSocketAddress();

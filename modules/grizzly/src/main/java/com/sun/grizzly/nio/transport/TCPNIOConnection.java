@@ -101,14 +101,17 @@ public class TCPNIOConnection extends AbstractNIOConnection {
         super.setSelectorRunner(selectorRunner);
     }
 
+    @Override
     public StreamReader getStreamReader() {
         return streamReader;
     }
 
+    @Override
     public StreamWriter getStreamWriter() {
         return streamWriter;
     }
 
+    @Override
     protected void preClose() {
         try {
             transport.fireIOEvent(IOEvent.CLOSED, this);
@@ -124,6 +127,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
      * @return the address of the endpoint this <tt>Connection</tt> is
      *         connected to, or <tt>null</tt> if it is unconnected.
      */
+    @Override
     public SocketAddress getPeerAddress() {
         return peerSocketAddress;
     }
@@ -134,6 +138,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
      * @return the local address of this <tt>Connection</tt>,
      *      or <tt>null</tt> if it is unconnected.
      */
+    @Override
     public SocketAddress getLocalAddress() {
         return localSocketAddress;
     }

@@ -84,6 +84,7 @@ public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         return connect(null, null, null);
     }
 
+    @Override
     public Future<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException {
