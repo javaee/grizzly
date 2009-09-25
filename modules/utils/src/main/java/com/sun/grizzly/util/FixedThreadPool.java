@@ -59,8 +59,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class FixedThreadPool extends AbstractExecutorService
         implements ExtendedThreadPool {
 
-    protected static final Runnable poison = new Runnable(){public void run(){}};    
-    
+    protected static final Runnable poison = new Runnable(){public void run(){}};
+
     protected final ConcurrentHashMap<BasicWorker,Boolean> workers
             = new ConcurrentHashMap<BasicWorker,Boolean>();
 
@@ -70,11 +70,11 @@ public class FixedThreadPool extends AbstractExecutorService
     protected final AtomicInteger aliveworkerCount = new AtomicInteger();
 
     protected final AtomicInteger approximateRunningWorkerCount = new AtomicInteger();
-    
+
     protected final BlockingQueue<Runnable> workQueue;
 
     protected volatile ThreadFactory threadFactory;
-    
+
     protected final Object statelock = new Object();
 
     protected volatile int maxPoolSize;
@@ -91,7 +91,7 @@ public class FixedThreadPool extends AbstractExecutorService
     }
 
     /**
-     *  
+     *
      * @param size
      */
     public FixedThreadPool(int size) {
@@ -99,7 +99,7 @@ public class FixedThreadPool extends AbstractExecutorService
     }
 
     /**
-     * 
+     *
      * @param size
      * @param name
      */
@@ -161,7 +161,7 @@ public class FixedThreadPool extends AbstractExecutorService
 
     /**
      * {@inheritDoc}
-     */    
+     */
     public void execute(Runnable command) {
         if (running){
             workQueue.offer(command);
@@ -170,7 +170,7 @@ public class FixedThreadPool extends AbstractExecutorService
 
     /**
      * {@inheritDoc}
-     */    
+     */
     public List<Runnable> shutdownNow() {
         synchronized(statelock){
             List<Runnable> drained = new ArrayList<Runnable>();
@@ -199,14 +199,14 @@ public class FixedThreadPool extends AbstractExecutorService
         }
     }
 
-    
+
     private void poisonAll(){
         int size = Math.max(maxPoolSize, aliveworkerCount.get()) * 4/3;
         while(size-->0){
             workQueue.offer(poison);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -216,7 +216,7 @@ public class FixedThreadPool extends AbstractExecutorService
 
     /**
      * not supported
-     */    
+     */
     public boolean isTerminated() {
         throw new UnsupportedOperationException("Not supported yet.");
     }
@@ -349,44 +349,54 @@ public class FixedThreadPool extends AbstractExecutorService
      */
     protected void afterExecute(Runnable r, Throwable t) { }
 
-    protected class BasicWorker implements Runnable{
+    /**
+     * Method is called by {@link BasicWorker}, when it's completing
+     * {@link BasicWorker#run()} method execution, which in most cases means,
+     * that ThreadPool's thread will be released. This method is called from
+     * {@link BasicWorker}'s thread.
+     *
+     * @param worker
+     */
+    protected void onWorkerExit(BasicWorker worker) {
+        aliveworkerCount.decrementAndGet();
+        workers.remove(worker);
+    }
+
+    protected class BasicWorker implements Runnable {
         Thread t;
 
-        public BasicWorker() {            
+        public BasicWorker() {
         }
 
-        public void run() {            
-            try{
-                dowork();
-            }finally{
-                aliveworkerCount.decrementAndGet();
-                workers.remove(this);
+        public void run() {
+            try {
+                doWork();
+            } finally {
+                onWorkerExit(this);
             }
         }
 
-        protected void dowork(){
-            while(true){
+        protected void doWork(){
+            Throwable error = null;
+
+            while(error == null){
                 try {
                     Thread.interrupted();
                     Runnable r = getTask();
                     if (r == poison || r == null){
                         return;
                     }
-                    boolean ran = false;
                     beforeExecute( t, r );
                     try {
                         approximateRunningWorkerCount.incrementAndGet();
                         r.run();
-                        afterExecute( r, null );
-                    } catch( Throwable t ) {
-                        if (!ran)
-                            afterExecute( r, t );
-                        throw t;
+                    } catch(Throwable throwable) {
+                        error = throwable;
                     } finally {
+                        afterExecute(r, error);
                         approximateRunningWorkerCount.decrementAndGet();
                     }
-                }catch(Throwable throwable){
-
+                } catch (Throwable throwable) {
                 }
             }
         }
