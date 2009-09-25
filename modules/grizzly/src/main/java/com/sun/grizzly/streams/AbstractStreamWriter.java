@@ -136,6 +136,11 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         } else {
             buffer = newBuffer(bufferSize);
             initBuffer();
+            
+            future = ZERO_READY_FUTURE;
+            if (completionHandler != null) {
+                completionHandler.completed(connection, ZERO);
+            }
         }
 
         return future;
