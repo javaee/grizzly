@@ -18,6 +18,12 @@
 		<finalName>grizzly-cometd-chat</finalName>
     </build>
 	<dependencies>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>${servlet-version}</version>
+            <scope>provided</scope>
+        </dependency>
 		<dependency>
 			<groupId>com.sun.grizzly</groupId>
 			<artifactId>grizzly-cometd</artifactId>
