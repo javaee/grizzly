@@ -349,44 +349,54 @@ public class FixedThreadPool extends AbstractExecutorService
      */
     protected void afterExecute(Runnable r, Throwable t) { }
 
-    protected class BasicWorker implements Runnable{
+    /**
+     * Method is called by {@link BasicWorker}, when it's completing
+     * {@link BasicWorker#run()} method execution, which in most cases means,
+     * that ThreadPool's thread will be released. This method is called from
+     * {@link BasicWorker}'s thread.
+     *
+     * @param worker
+     */
+    protected void onWorkerExit(BasicWorker worker) {
+        aliveworkerCount.decrementAndGet();
+        workers.remove(worker);
+    }
+    
+    protected class BasicWorker implements Runnable {
         Thread t;
 
         public BasicWorker() {            
         }
 
         public void run() {            
-            try{
-                dowork();
-            }finally{
-                aliveworkerCount.decrementAndGet();
-                workers.remove(this);
+            try {
+                doWork();
+            } finally {
+                onWorkerExit(this);
             }
         }
 
-        protected void dowork(){
-            while(true){
+        protected void doWork(){
+            Throwable error = null;
+            
+            while(error == null){
                 try {
                     Thread.interrupted();
                     Runnable r = getTask();
                     if (r == poison || r == null){
                         return;
                     }
-                    boolean ran = false;
                     beforeExecute( t, r );
                     try {
                         approximateRunningWorkerCount.incrementAndGet();
                         r.run();
-                        afterExecute( r, null );
-                    } catch( Throwable t ) {
-                        if (!ran)
-                            afterExecute( r, t );
-                        throw t;
+                    } catch(Throwable throwable) {
+                        error = throwable;
                     } finally {
+                        afterExecute(r, error);
                         approximateRunningWorkerCount.decrementAndGet();
                     }
-                }catch(Throwable throwable){
-
+                } catch (Throwable throwable) {
                 }
             }
         }
