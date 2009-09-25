@@ -377,16 +377,18 @@ public class FixedThreadPool extends AbstractExecutorService
         }
 
         protected void doWork(){
-            Throwable error = null;
+            Throwable error;
 
-            while(error == null){
+            while(true) {
                 try {
+                    error = null;
+
                     Thread.interrupted();
                     Runnable r = getTask();
                     if (r == poison || r == null){
                         return;
                     }
-                    beforeExecute( t, r );
+                    beforeExecute(t, r);
                     try {
                         approximateRunningWorkerCount.incrementAndGet();
                         r.run();
