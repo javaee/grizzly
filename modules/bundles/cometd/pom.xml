@@ -99,5 +99,11 @@
             <artifactId>grizzly-cometd</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>${servlet-version}</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 </project>
