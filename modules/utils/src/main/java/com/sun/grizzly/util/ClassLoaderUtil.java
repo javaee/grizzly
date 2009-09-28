@@ -45,7 +45,7 @@ import java.net.URLClassLoader;
 import java.util.logging.Level;
 
 /**
- * Simple Classloader utility.
+ * Simple {@link ClassLoader} utility.
  *
  * @author Jeanfrancois Arcand
  */
@@ -53,11 +53,11 @@ public class ClassLoaderUtil {
     
     /**
      * Create a class loader that can load classes from the specified
-     * file directory. The file directory must contains .jar ot .zip
+     * file directory. The file directory must contains .jar or .zip
      *
-     * @param libDir a directory
-     * @param cl the parent classloader, or null if none.
-     * @return A Classloader that can load classes from a directory that
+     * @param libDir Directory with jars.
+     * @param cl the parent {@link ClassLoader}, or null if none.
+     * @return A {@link URLClassLoader} that can load classes from a directory that
      *         contains jar and zip files.
      * @throws java.io.IOException I/O fail
      * @deprecated removal candidate, never used
@@ -74,7 +74,7 @@ public class ClassLoaderUtil {
                 });
                 URL[] urls = new URL[jars.length];
                 for (int i=0; i < jars.length; i++){
-                    String path = new File(libDir.getName() 
+                    String path = new File(libDir.getName()
                         + File.separator + jars[i]).getCanonicalFile().toURI().toURL().toString();
                     urls[i] = new URL(path);
                 }
@@ -138,21 +138,40 @@ public class ClassLoaderUtil {
         urls[urls.length -2] = appRoot;
         return new URLClassLoader(urls, Thread.currentThread().getContextClassLoader());
     }
-        
+
+    /**
+     * Construct a {@link URLClassLoader} based on a canonical file location.
+     *
+     * @param location a canonical path location
+     * @param parent {@link ClassLoader} to be used as parent for returned one.
+     * @return a {@link URLClassLoader}
+     * @throws java.io.IOException I/O
+     * @throws java.net.MalformedURLException Invalid URL
+     */
+    public static URLClassLoader createURLClassLoader(String location, ClassLoader parent) throws IOException {
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(parent);
+        try {
+            return createURLClassLoader(location);
+        } finally {
+            Thread.currentThread().setContextClassLoader(loader);
+        }
+    }
+
     /**
      * Load a class using the current {link Thread#getContextClassLoader}
      * @param clazzName The name of the class you want to load.
      * @return an instance of clazzname
      */
-    public static Object load(String clazzName) {    
+    public static Object load(String clazzName) {
         return load(clazzName,Thread.currentThread().getContextClassLoader());
     }
- 
+
     /**
      * Load a class using the provided {@link ClassLoader}
      * @param clazzName The name of the class you want to load.
      * @param classLoader A classloader to use for loading a class.
-     * @return an instance of clazzname 
+     * @return an instance of clazzname
      */
     public static Object load(String clazzName, ClassLoader classLoader) {
         Class className;
@@ -160,10 +179,10 @@ public class ClassLoaderUtil {
             className = Class.forName(clazzName, true, classLoader);
             return className.newInstance();
         } catch (Throwable t) {
-            LoggerUtils.getLogger().log(Level.SEVERE,"Unable to load class " 
+            LoggerUtils.getLogger().log(Level.SEVERE,"Unable to load class "
                     + clazzName,t);
         }
 
         return null;
-    }   
+    }
 }

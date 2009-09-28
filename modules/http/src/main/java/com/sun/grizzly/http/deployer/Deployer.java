@@ -28,6 +28,8 @@ import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Deployer abstraction.
@@ -39,6 +41,7 @@ import java.util.HashMap;
  */
 public abstract class Deployer<V extends Deployable, T extends DeploymentConfiguration> {
 
+    private static final Logger logger = Logger.getLogger("com.sun.grizzly.http.deployer.Deployer");
     private Map<DeploymentID, Set<GrizzlyAdapter>> deployed = new HashMap<DeploymentID, Set<GrizzlyAdapter>>();
 
     /**
@@ -59,9 +62,12 @@ public abstract class Deployer<V extends Deployable, T extends DeploymentConfigu
             throw new DeployException("No GrizzlyAdapters created for: " + toDeploy);
         }
         for (Map.Entry<GrizzlyAdapter, Set<String>> adapterEntry : map.entrySet()) {
+            GrizzlyAdapter adapter = adapterEntry.getKey();
             Set<String> mappings = adapterEntry.getValue();
-            gws.addGrizzlyAdapter(
-                adapterEntry.getKey(), mappings.toArray(new String[mappings.size()]));
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.log(Level.FINEST, String.format("Deploying '%s' to %s", adapter, mappings));
+            }
+            gws.addGrizzlyAdapter(adapter, mappings.toArray(new String[mappings.size()]));
         }
         final DeploymentID deploymentId = new DeploymentID(toDeploy.hashCode());
         deployed.put(deploymentId, map.keySet());

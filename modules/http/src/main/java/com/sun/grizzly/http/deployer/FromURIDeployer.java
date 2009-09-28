@@ -42,22 +42,21 @@ public abstract class FromURIDeployer<V extends Deployable, T extends Deployment
      * @param gws           Grizzly to deploy to.
      * @param deployFrom    URI ofr deployable to be deployed.
      * @param configuration Configuration of deployment.
-     *r
      * @return Deployment identification.
-     *
      * @throws DeployException Error in deployment.
      */
     public final DeploymentID deploy(GrizzlyWebServer gws, URI deployFrom, T configuration)
-        throws DeployException {
-        return super.deploy(gws, fromURI(deployFrom), configuration);
+            throws DeployException {
+        return super.deploy(gws, fromURI(deployFrom, configuration), configuration);
     }
 
     /**
      * Create object to deploy from uri.
      *
-     * @param uri of deployable object.
-     *
+     * @param uri           of deployable object.
+     * @param configuration Configuration of deployment.
      * @return Deployable object.
+     * @throws DeployException If loading Deployable from uri failed.
      */
-    public abstract V fromURI(URI uri);
+    protected abstract V fromURI(URI uri, T configuration) throws DeployException;
 }

@@ -84,6 +84,7 @@ public class ExpandJar {
      * @param jar URL of the web application archive to be expanded
      *  (must start with "jar:")
      *
+     * @return Absolute path as in {@link java.io.File#getAbsolutePath()} of location where to find expanded jar.
      * @exception IllegalArgumentException if this is not a "jar:" URL
      * @exception IOException if an input/output error was encountered
      *  during expansion
@@ -117,6 +118,7 @@ public class ExpandJar {
      *  (must start with "jar:")
      * @param pathname Context path name for web application
      *
+     * @return Absolute path as in {@link java.io.File#getAbsolutePath()} of location where to find expanded jar.
      * @exception IllegalArgumentException if this is not a "jar:" URL
      * @exception IOException if an input/output error was encountered
      *  during expansion

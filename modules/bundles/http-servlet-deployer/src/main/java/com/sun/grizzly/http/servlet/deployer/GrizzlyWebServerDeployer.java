@@ -39,7 +39,7 @@ import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.http.deployer.*;
+import com.sun.grizzly.http.deployer.DeployException;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.embed.GrizzlyWebServer.PROTOCOL;
 import com.sun.grizzly.http.servlet.deployer.comparator.WarFileComparator;
@@ -47,8 +47,8 @@ import com.sun.grizzly.http.servlet.deployer.conf.ConfigurationParser;
 import com.sun.grizzly.http.servlet.deployer.conf.DeployerConfiguration;
 import com.sun.grizzly.http.webxml.WebappLoader;
 import com.sun.grizzly.http.webxml.schema.*;
-import com.sun.grizzly.util.ExpandJar;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import com.sun.grizzly.util.ExpandJar;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -79,12 +79,12 @@ public class GrizzlyWebServerDeployer {
     private static final String ROOT = "/";
 
     private static final String WEB_XML = "web.xml";
-    public static final String WEB_XML_PATH = "WEB-INF" + File.separator + WEB_XML;
+    public static final String WEB_XML_PATH = File.separator + "WEB-INF" + File.separator + WEB_XML;
 
     private GrizzlyWebServer ws = null;
 
     private String webxmlPath;
-    private WebAppDeployer deployer = new WebAppDeployer();
+    private WarDeployer deployer = new WarDeployer();
 
     /**
      * @param args Command line parameters.
@@ -209,29 +209,27 @@ public class GrizzlyWebServerDeployer {
     /**
      * Deploy WAR file.
      *
-     * TODO make {@link GrizzlyWebServer} a parameter here for easier embadability.
-     *
      * @param location Location of WAR file.
      * @param context Context to deploy to.
      * @param serverLibLoader Server wide {@link ClassLoader}. Optional.
      * @param defaultWebApp webdefault application, get's merged with application to deploy. Optional.
-     * @throws Exception Duh. TODO refactor Exception handling.
+     * @throws DeployException Deployment failed.
      */
     public void deployWar(
-            String location, String context, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws Exception {
-
-
-        // This should just return location, CL should be created while deploying
-        final Map.Entry<String, URLClassLoader> loaderEntry =
-                explodeAndCreateWebAppClassLoader(location, serverLibLoader);
-        ExtendedWebApp webApp = new ExtendedWebApp(loaderEntry.getKey(), loaderEntry.getValue());
-        webxmlPath = webApp.getLocation();
+            String location, String context, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws DeployException {
         String ctx = context;
         if (ctx == null) {
-            ctx = getContext(webxmlPath);
+            ctx = getContext(location);
+            int i = ctx.lastIndexOf('.');
+            if (i > 0) {
+                ctx = ctx.substring(0, i);
+            }
         }
-        deployer.deploy(ws, webApp, new WebAppDeploymentConfiguration(serverLibLoader, defaultWebApp, ctx));
-//        deploy(webxmlPath, ctx, webxmlPath + WEB_XML_PATH, loaderEntry.getValue(), defaultWebApp);
+        WarDeploymentConfiguration config = new WarDeploymentConfiguration(ctx, serverLibLoader, defaultWebApp);
+        if (logger.isLoggable(Level.FINER)) {
+            logger.log(Level.FINER, String.format("Configuration for deployment: %s.", config));
+        }
+        deployer.deploy(ws, new File(location).toURI(), config);
     }
 
     private URLClassLoader createServerLibClassLoader(String libraryPath) throws IOException {
@@ -365,7 +363,8 @@ public class GrizzlyWebServerDeployer {
         return result;
     }
 
-    private static String fixPath(String path) {
+    /** TODO extract to utils */
+    static String fixPath(String path) {
         return path
                 .replaceAll("[/\\\\]+", '\\' + ROOT)
                 .replaceAll("\\\\", '\\' + ROOT);
@@ -418,7 +417,7 @@ public class GrizzlyWebServerDeployer {
         if (path != null) {
             WebApp webApp;
             if (path.toLowerCase().endsWith(".xml")) {
-                webApp = extractWebXmlInfo(path);
+                webApp = parseWebXml(path);
             } else {
                 webApp = new WebApp(); // empty web app - we might be dealing here with PHP
             }
@@ -438,11 +437,12 @@ public class GrizzlyWebServerDeployer {
      * ClassLoader.  This function as to be executed before the start() because
      * the new classpath won't take effect.
      *
-     * TODO This potentially can be replaced by {@link com.sun.grizzly.util.ClassLoaderUtil#createClassloader(java.io.File, ClassLoader)}
+     * TODO This potentially can be replaced by {@link com.sun.grizzly.util.ClassLoaderUtil#createURLClassLoader(String, ClassLoader)}
      * @param appliPath
      * @param serverLibLoader
      * @return the exploded war file location and web app CL.
      * @throws java.io.IOException
+     * @deprecated trying to get remove it
      */
     public static Map.Entry<String, URLClassLoader> explodeAndCreateWebAppClassLoader(
             String appliPath, final URLClassLoader serverLibLoader) throws IOException {
@@ -515,7 +515,7 @@ public class GrizzlyWebServerDeployer {
         };
     }
 
-    private static WebApp extractWebXmlInfo(String webxml) throws Exception {
+    private static WebApp parseWebXml(String webxml) throws Exception {
         return webxml == null ? null : WebappLoader.load(webxml);
     }
 
@@ -594,7 +594,7 @@ public class GrizzlyWebServerDeployer {
     }
 
     private static WebApp extractWebAppAndMerge(WebApp mergeTo, String webxmlLocation) throws Exception {
-        WebApp webApp = extractWebXmlInfo(webxmlLocation);
+        WebApp webApp = parseWebXml(webxmlLocation);
         if (webApp == null) {
             throw new Exception("Invalid webdefault: " + webxmlLocation);
         }
@@ -635,75 +635,6 @@ public class GrizzlyWebServerDeployer {
                 }
             }
             return result;
-        }
-    }
-
-    public static class WebAppDeploymentConfiguration implements DeploymentConfiguration {
-        private URLClassLoader serverLibLoader;
-        private WebApp webDefault;
-        private String ctx;
-
-        public WebAppDeploymentConfiguration(URLClassLoader serverLibLoader, WebApp webDefault, String ctx) {
-            this.serverLibLoader = serverLibLoader;
-            this.webDefault = webDefault;
-            this.ctx = ctx;
-        }
-
-        public URLClassLoader getServerLibLoader() {
-            return serverLibLoader;
-        }
-
-        public WebApp getWebDefault() {
-            return webDefault;
-        }
-
-        public String getCtx() {
-            return ctx;
-        }
-    }
-
-    private class ExtendedWebApp implements Deployable {
-        private String location;
-        private URLClassLoader webAppCL;
-
-        public ExtendedWebApp(String location, URLClassLoader webAppCL) {
-            this.location = location;
-            this.webAppCL = webAppCL;
-        }
-
-        public String getLocation() {
-            return location;
-        }
-
-        public URLClassLoader getWebAppCL() {
-            return webAppCL;
-        }
-    }
-
-    public static class WebAppDeployer extends Deployer<ExtendedWebApp, WebAppDeploymentConfiguration> {
-        protected Map<GrizzlyAdapter, Set<String>> convert(ExtendedWebApp toDeploy, WebAppDeploymentConfiguration configuration) throws DeployException {
-
-            String root = toDeploy.getLocation();
-            if (root != null) {
-                root = fixPath(root);
-            }
-
-            String path = root + WEB_XML_PATH;
-            if (logger.isLoggable(Level.INFO)) {
-                logger.log(Level.INFO, "Will deploy application path=" + path);
-            }
-
-            WebApp webApp;
-            try {
-                webApp = extractWebXmlInfo(path);
-            } catch (Exception e) {
-                throw new DeployException("Error extracting web.xml.", e);
-            }
-            try {
-                return new WebAppAdapter(root, configuration.getCtx(), webApp, toDeploy.getWebAppCL(), configuration.getWebDefault()).getToRegister();
-            } catch (Exception e) {
-                throw new DeployException("Not a valid WebApp, will be ignored : path=" + path, e);
-            }
         }
     }
 }

@@ -44,7 +44,6 @@ import com.sun.grizzly.util.ClassLoaderUtil;
 
 import javax.servlet.Servlet;
 import javax.servlet.Filter;
-import java.net.URLClassLoader;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -78,7 +77,7 @@ public class WebAppAdapter extends ServletAdapter {
      * @param webAppCL   Web application class loader.
      * @param webdefault Default web application.
      */
-    public WebAppAdapter(String root, String context, final WebApp webApp, URLClassLoader webAppCL, WebApp webdefault) {
+    public WebAppAdapter(String root, String context, final WebApp webApp, ClassLoader webAppCL, WebApp webdefault) {
         this.root = root;
         this.context = context;
         if (webdefault != null) {
@@ -181,7 +180,7 @@ public class WebAppAdapter extends ServletAdapter {
 
     private static void logServletAdapterConfiguration(final String ctx, final ServletAdapter sa) {
         if (logger.isLoggable(Level.FINEST)) {
-            WebAppAdapter.debugServletAdapterConfiguration(sa, ctx + ROOT);
+            debugServletAdapterConfiguration(sa, ctx + ROOT);
         }
     }
 
@@ -200,7 +199,7 @@ public class WebAppAdapter extends ServletAdapter {
      * @param context context of the application
      * @return a list of ServletAdapter with the UrlPattern for each Servlet.
      */
-    static Map<ServletAdapter, List<String>> getServletAdaptersToAlises(WebApp webApp, String context) {
+    public static Map<ServletAdapter, List<String>> getServletAdaptersToAlises(WebApp webApp, String context) {
 
         Map<ServletAdapter, List<String>> servletAdapterMap;
 
