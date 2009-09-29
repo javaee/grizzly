@@ -116,7 +116,7 @@ import java.util.concurrent.TimeUnit;
         };
         selectorThread.setAlgorithmClassName(StaticStreamAlgorithm.class.getName());       
         selectorThread.setPort(port);
-        SelectorThread.setWebAppRootPath(folder);
+        selectorThread.setWebAppRootPath(folder);
         Adapter adapter = new StaticResourcesAdapter(folder);
         ((StaticResourcesAdapter)adapter).setRootFolder(folder);
         selectorThread.setAdapter(adapter);
@@ -359,7 +359,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * The root folder where application are deployed
      */
     protected String rootFolder = "";
-    
     
     /**
      * The Grizzly's Controller.
