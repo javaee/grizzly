@@ -280,7 +280,7 @@ public class FileCache{
             ByteBuffer bb = mapFile(file);
 
             String root = SelectorThread.getSelector(port).getWebAppRootPath();
-            if (!root.equals(baseDir)){
+            if (bb == null && !root.equals(baseDir)){
                 file = new File(root + requestURI);
                 bb = mapFile(file);
             }
