@@ -99,7 +99,7 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
                 String explodedLocation;
                 if (warFile.isFile()) {
                     try {
-                        explodedLocation = explodeWarFile(new URI("jar:file:" + warFile.getAbsolutePath() + "!/"));
+                        explodedLocation = explodeWarFile(new URI("jar:file:" + warFile.getAbsolutePath().replace('\\', '/') + "!/"));
                     } catch (URISyntaxException e) {
                         throw new DeployException("Error.", e);
                     }
