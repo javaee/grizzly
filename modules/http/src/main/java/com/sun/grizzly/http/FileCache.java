@@ -279,6 +279,12 @@ public class FileCache{
             File file = new File(baseDir + requestURI);
             ByteBuffer bb = mapFile(file);
 
+            String root = SelectorThread.getSelector(port).getWebAppRootPath();
+            if (bb == null && !root.equals(baseDir)){
+                file = new File(root + requestURI);
+                bb = mapFile(file);
+            }
+
             // Always put the answer into the map. If it's null, then
             // we know that it doesn't fit into the cache, so there's no
             // reason to go through this code again.
