@@ -71,7 +71,7 @@ public class ContainerStaticHandler extends StaticHandler {
                 cri = (ContextRootInfo) mappingData.context;
             }
 
-            if (isWebContainer && fileCache.isEnabled()) {
+            if (isWebContainer) {
                 try {
                     Object wrapper = mappingData.wrapper;
                     String servletClass =
