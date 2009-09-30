@@ -850,11 +850,12 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Initialize the {@link FileCacheFactory} associated with this instance
      */
-    protected void initFileCacheFactory(){        
+    protected void initFileCacheFactory() {
         if (fileCacheFactory != null) return;
         
         fileCacheFactory = createFileCacheFactory();
         configureFileCacheFactory();
+        FileCacheFactory.cache.put(port, fileCacheFactory);
     }
        
     protected FileCacheFactory createFileCacheFactory() {
