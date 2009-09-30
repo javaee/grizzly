@@ -102,12 +102,12 @@ public class DefaultThreadPool extends FixedThreadPool
      */
     protected int priority = Thread.NORM_PRIORITY;
 
-    protected volatile int corePoolsize;
+    protected volatile int corePoolSize;
     protected final long idleTimeout;
     protected final TimeUnit timeUnit;
 
     protected final AtomicInteger workerThreadCounter = new AtomicInteger();
-    
+
     /**
      *
      */
@@ -160,25 +160,23 @@ public class DefaultThreadPool extends FixedThreadPool
 
         super(workQueue, threadFactory);
 
-        validateNewPoolsize(corePoolsize, maxPoolSize);
-
         if (keepAliveTime< 0 )
             throw new IllegalArgumentException("keepAliveTime < 0");
         if (timeUnit == null)
             throw new IllegalArgumentException("timeUnit == null");
 
-        this.corePoolsize  = corePoolsize;
-        this.maxPoolSize   = maxPoolSize;
+        setPoolSizes(corePoolsize, maxPoolSize);
+
         this.idleTimeout   = keepAliveTime;
         this.timeUnit      = timeUnit;
         this.name = name;
 
         if (this.threadFactory == null) {
             this.threadFactory = new DefaultWorkerThreadFactory();
-        }        
+        }
     }
 
-    private void validateNewPoolsize(int corePoolsize, int maxPoolSize){
+    private void validateNewPoolSize(int corePoolsize, int maxPoolSize){
         if (maxPoolSize < 1)
             throw new IllegalArgumentException("maxPoolsize < 1");
         if (corePoolsize < 1)
@@ -198,7 +196,7 @@ public class DefaultThreadPool extends FixedThreadPool
 
         int aliveWorkers;
         while((aliveWorkers=aliveworkerCount.get())<maxPoolSize &&
-                (aliveWorkers < corePoolsize ||
+                (aliveWorkers < corePoolSize ||
                 queueSize.get()>0 || !hasIdleWorkersApproximately()) && running){
             if (aliveworkerCount.compareAndSet(aliveWorkers, aliveWorkers+1)){
                 startWorker(new Worker(task, false));
@@ -223,7 +221,7 @@ public class DefaultThreadPool extends FixedThreadPool
 
     public void start() {
         int aliveCount;
-        while((aliveCount = aliveworkerCount.get()) < corePoolsize) {
+        while((aliveCount = aliveworkerCount.get()) < corePoolSize) {
             if (aliveworkerCount.compareAndSet(aliveCount, aliveCount + 1)) {
                 startWorker(new Worker(null,true));
             }
@@ -272,17 +270,26 @@ public class DefaultThreadPool extends FixedThreadPool
         return queueSize.get();
     }
 
+    protected void setPoolSizes(int corePoolSize, int maxPoolSize) {
+        synchronized(statelock){
+            validateNewPoolSize(corePoolSize, maxPoolSize);
+
+            this.corePoolSize = corePoolSize;
+            this.maxPoolSize = maxPoolSize;
+        }
+    }
+
     @Override
     public void setCorePoolSize(int corePoolSize) {
         synchronized(statelock){
-            validateNewPoolsize(corePoolsize, maxPoolSize);
-            this.corePoolsize = corePoolSize;
+            validateNewPoolSize(corePoolSize, maxPoolSize);
+            this.corePoolSize = corePoolSize;
         }
     }
 
     @Override
     public int getCorePoolSize() {
-        return corePoolsize;
+        return corePoolSize;
     }
 
     /**
@@ -292,7 +299,7 @@ public class DefaultThreadPool extends FixedThreadPool
     @Override
     public void setMaximumPoolSize(int maxPoolSize) {
         synchronized(statelock){
-            validateNewPoolsize(corePoolsize, maxPoolSize);
+            validateNewPoolSize(corePoolSize, maxPoolSize);
             this.maxPoolSize = maxPoolSize;
         }
     }
