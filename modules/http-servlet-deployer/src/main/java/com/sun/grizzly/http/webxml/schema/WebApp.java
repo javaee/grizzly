@@ -67,6 +67,7 @@ import java.util.ArrayList;
  */
 public class WebApp {
 
+	public boolean metadataComplete;
 	public List<Icon> icon = new ArrayList<Icon>(0);
 	public List<String> displayName = new ArrayList<String>(0);
 	public List<String> description = new ArrayList<String>(0);
@@ -140,6 +141,18 @@ public class WebApp {
         if (description != null) {
             this.description = description;
         }
+	}
+	
+	/**
+	 * attribute of web-app : metadata-complete="true"
+	 * @param complete is completed
+	 */
+	public void setMetadataComplete(boolean complete){
+		metadataComplete = complete;
+	}
+	
+	public boolean getMetadataComplete(){
+		return metadataComplete;
 	}
 	
 	/**

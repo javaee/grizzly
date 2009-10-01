@@ -241,6 +241,11 @@ public class JAXBWebXml_3_0Parser implements IJAXBWebXmlParser {
 			webApp.setDistributable(true);
 		}
 		
+		// metadata-complete
+		if(root.isMetadataComplete()){
+			webApp.setMetadataComplete(true);
+		}
+		
 		webApp.setDisplayName(populateDisplayName(itemMap));
 		webApp.setDescription(populateDescription(itemMap));
 		webApp.setIcon(populateIcon(itemMap));
