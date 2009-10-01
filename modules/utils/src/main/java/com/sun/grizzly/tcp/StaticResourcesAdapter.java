@@ -50,7 +50,6 @@ import java.util.logging.Level;
 import com.sun.grizzly.util.http.MimeType;
 import java.io.File;
 import java.nio.ByteBuffer;
-import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
@@ -154,9 +153,6 @@ public class StaticResourcesAdapter implements Adapter {
                     resource = new File(webDir, uri);
                 }
 
-                System.out.println("RESOURCE: " + resource);
-
-
                 if (!resource.exists()) {
                     found = false;
                 } else {
@@ -167,8 +163,8 @@ public class StaticResourcesAdapter implements Adapter {
 
             cache.put(uri, resource);
             if (!found) {
-                if (logger.isLoggable(Level.INFO)) {
-                    logger.log(Level.INFO, "File not found  " + resource);
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "File not found  " + resource);
                 }
                 res.setStatus(404);
                 if (commitErrorResponse) {
