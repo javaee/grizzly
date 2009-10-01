@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.NotNull;
 
 import org.jvnet.hk2.component.Injectable;
@@ -66,6 +67,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      * Idle threads are removed from pool, after this time (in seconds)
      */
     @Attribute(defaultValue = "900", dataType = Integer.class)
+    @Max(Integer.MAX_VALUE)
     String getIdleThreadTimeoutSeconds();
 
     void setIdleThreadTimeoutSeconds(String value);
@@ -74,7 +76,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      * The maxim number of tasks, which could be queued on the thread pool.  -1 disables any maximum checks.
      */
     @Attribute(defaultValue = "4096", dataType = Integer.class)
-    @Min(value = -1)
+    @Max(Integer.MAX_VALUE)
     String getMaxQueueSize();
 
     void setMaxQueueSize(String value);
@@ -85,7 +87,8 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      threads that exist in the threadpool.
      */
     @Attribute(defaultValue = "5", dataType = Integer.class)
-	 @Min(value = -1)
+    @Min(value=2)
+    @Max(Integer.MAX_VALUE)
     String getMaxThreadPoolSize();
 
     void setMaxThreadPoolSize(String value);
@@ -96,6 +99,8 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      threadpool is instantiated
      */
     @Attribute(defaultValue = "2", dataType = Integer.class)
+    @Min(2)
+    @Max(Integer.MAX_VALUE)
     String getMinThreadPoolSize();
 
     void setMinThreadPoolSize(String value);
@@ -108,6 +113,9 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setName(String value);
 
+    /**
+     * This is an id for the work-queue e.g. "thread-pool-1", "thread-pool-2" etc
+     */
 	 @Attribute
     @Deprecated
     String getThreadPoolId();
