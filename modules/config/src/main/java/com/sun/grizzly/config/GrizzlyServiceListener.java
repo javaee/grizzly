@@ -67,13 +67,6 @@ public class GrizzlyServiceListener {
     // TODO: Must get the information from domain.xml Config objects.
     // TODO: Pending Grizzly issue 54
     public void configure(NetworkListener networkListener, Habitat habitat) {
-        if (System.getProperty("product.name") == null) {
-            System.setProperty("product.name", "GlassFish/v3");
-        }
-        //TODO: Configure via domain.xml
-        //grizzlyListener.setController(controller);
-        // TODO: This is not the right way to do.
-
         initializeListener(networkListener, habitat);
         setName(networkListener.getName());
         GrizzlyEmbeddedHttp.setLogger(logger);
