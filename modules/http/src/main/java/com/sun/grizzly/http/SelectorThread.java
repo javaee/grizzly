@@ -624,7 +624,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         keyHandler = createSelectionKeyHandler();
 
         keyHandler.setLogger(logger);
-        keyHandler.setTimeout(keepAliveStats.getKeepAliveTimeoutInSeconds() * 1000);
+        keyHandler.setTimeout(keepAliveStats.getKeepAliveTimeoutInSeconds() * 1000L);
         selectorHandler.setSelectionKeyHandler(keyHandler);
 
         configureProtocolChain();
@@ -1393,7 +1393,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         keepAliveStats.setKeepAliveTimeoutInSeconds(timeout);
         if (keyHandler != null) {
             keyHandler.setTimeout(timeout == -1
-                    ? SelectionKeyAttachment.UNLIMITED_TIMEOUT: timeout * 1000);
+                    ? SelectionKeyAttachment.UNLIMITED_TIMEOUT: timeout * 1000L);
         }
     }
 
