@@ -186,6 +186,7 @@ public class FileCacheFactory {
         fileCache.setCacheManager(cacheManager);
         fileCache.setIsMonitoringEnabled(isMonitoringEnabled);
         fileCache.setHeaderBBSize(headerBBSize);
+        fileCache.setPort(port);
     }
 
     public void setCacheManager(ConcurrentLinkedQueue<FileCacheEntry> cacheManager) {

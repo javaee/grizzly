@@ -515,7 +515,21 @@ public class FileCache{
         sb.append(": ");
         sb.append(value);
         sb.append(NEWLINE);
-    }   
+    }
+
+    /**
+     * @return the port
+     */
+    public int getPort() {
+        return port;
+    }
+
+    /**
+     * @param port the port to set
+     */
+    public void setPort(int port) {
+        this.port = port;
+    }
 
     
     public final class FileCacheEntry implements Runnable{       
