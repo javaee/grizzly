@@ -35,21 +35,23 @@
  * holder.
  *
  */
-
-
 package com.sun.grizzly.tcp;
 
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.HtmlHelper;
-import java.io.File;
+import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import com.sun.grizzly.util.http.MimeType;
+import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
@@ -66,54 +68,42 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class StaticResourcesAdapter implements Adapter {
-    
+
     private final static String USE_SEND_FILE =
-        "com.sun.grizzly.useSendFile";    
-    
-    
-    protected String rootFolder = ".";
-    
+            "com.sun.grizzly.useSendFile";
+    private final ConcurrentLinkedQueue<String> rootFolders =
+            new ConcurrentLinkedQueue<String>();
     protected String resourcesContextPath = "";
-
-    protected File webDir = null;
-
-    protected ConcurrentHashMap<String,File> cache
-        = new ConcurrentHashMap<String,File>();
-
+    protected final ConcurrentLinkedQueue<File> fileFolders =
+            new ConcurrentLinkedQueue<File>();
+    protected ConcurrentHashMap<String, File> cache = new ConcurrentHashMap<String, File>();
     protected Logger logger = LoggerUtils.getLogger();
-
     private boolean useSendFile = true;
-
     /**
      * Commit the 404 response automatically.
      */
     protected boolean commitErrorResponse = true;
-    
     private ReentrantLock initializedLock = new ReentrantLock();
-
+    private String defaultContentType = "text/html";
 
     public StaticResourcesAdapter() {
         this(".");
     }
 
-
     public StaticResourcesAdapter(String rootFolder) {
-        this.rootFolder = rootFolder;
-        
+        addRootFolder(rootFolder);
+
         // Ugly workaround
         // See Issue 327
-        if( ( System.getProperty( "os.name" ).equalsIgnoreCase( "linux" )
-              && !System.getProperty( "java.version" ).startsWith( "1.7" ) )
-            || System.getProperty( "os.name" ).equalsIgnoreCase( "HP-UX" ) ) {
+        if ((System.getProperty("os.name").equalsIgnoreCase("linux") && !System.getProperty("java.version").startsWith("1.7")) || System.getProperty("os.name").equalsIgnoreCase("HP-UX")) {
             useSendFile = false;
-        } 
-        
-        if (System.getProperty(USE_SEND_FILE)!= null){
+        }
+
+        if (System.getProperty(USE_SEND_FILE) != null) {
             useSendFile = Boolean.valueOf(System.getProperty(USE_SEND_FILE)).booleanValue();
             logger.info("Send-file enabled:" + useSendFile);
-        }   
+        }
     }
-
 
     /** 
      * Based on the {@link Request} URI, try to map the file from the 
@@ -126,20 +116,19 @@ public class StaticResourcesAdapter implements Adapter {
         String uri = req.requestURI().toString();
         if (uri.indexOf("..") >= 0 || !uri.startsWith(resourcesContextPath)) {
             res.setStatus(404);
-            if (commitErrorResponse){
-                customizedErrorPage(req,res);
+            if (commitErrorResponse) {
+                customizedErrorPage(req, res);
             }
-            return;        
+            return;
         }
-             
+
         // We map only file that take the form of name.extension
-        if (uri.indexOf(".") != -1){
+        if (uri.indexOf(".") != -1) {
             uri = uri.substring(resourcesContextPath.length());
         }
-        
+
         service(uri, req, res);
     }
-
 
     /**
      * Lookup a resource based on the request URI, and send it using send file. 
@@ -150,56 +139,70 @@ public class StaticResourcesAdapter implements Adapter {
      * @throws java.lang.Exception
      */
     protected void service(String uri, Request req, final Response res)
-        throws Exception {
+            throws Exception {
         FileInputStream fis = null;
-        try{
+        try {
             initWebDir();
 
-            // local file
-            File resource = cache.get(uri);
-            if (resource == null){
-                resource = new File(webDir, uri);
-                cache.put(uri,resource);
+            boolean found = false;
+            File resource = null;
+
+            for (File webDir : fileFolders) {
+                // local file
+                resource = cache.get(uri);
+                if (resource == null) {
+                    resource = new File(webDir, uri);
+                }
+
+                System.out.println("RESOURCE: " + resource);
+
+
+                if (!resource.exists()) {
+                    found = false;
+                } else {
+                    found = true;
+                    break;
+                }
+            }
+
+            cache.put(uri, resource);
+            if (!found) {
+                if (logger.isLoggable(Level.INFO)) {
+                    logger.log(Level.INFO, "File not found  " + resource);
+                }
+                res.setStatus(404);
+                if (commitErrorResponse) {
+                    customizedErrorPage(req, res);
+                }
+                return;
             }
 
             if (resource.isDirectory()) {
-                req.action( ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE , null);
+                req.action(ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE, null);
                 res.setStatus(302);
-                res.setMessage("Moved Temporarily");                
-                res.setHeader("Location", req.scheme() + "://" 
-                        + req.serverName() + ":" + req.getServerPort() 
-                        + "/index.html");
+                res.setMessage("Moved Temporarily");
+                res.setHeader("Location", req.scheme() + "://" + req.serverName() + ":" + req.getServerPort() + "/index.html");
                 res.setHeader("Connection", "close");
                 res.setHeader("Cache-control", "private");
                 res.sendHeaders();
-                return;    
+                return;
             }
 
-            if (!resource.exists()) {
-                if (logger.isLoggable(Level.FINE)){
-                    logger.log(Level.FINE,"File not found  " + resource);
-                }
-                res.setStatus(404);
-                if (commitErrorResponse){
-                    customizedErrorPage(req,res);
-                }
-                return;
-            }        
             res.setStatus(200);
 
-            int dot=uri.lastIndexOf(".");
-            if( dot > 0 ) {
-                String ext=uri.substring(dot+1);
-                String ct= MimeType.get(ext);
-                if( ct!=null) {
+            int dot = uri.lastIndexOf(".");
+            if (dot > 0) {
+                String ext = uri.substring(dot + 1);
+                String ct = MimeType.get(ext);
+                if (ct != null) {
                     res.setContentType(ct);
                 }
             } else {
-                res.setContentType(MimeType.get("html"));
+                res.setContentType(defaultContentType);
             }
 
             long length = resource.length();
-            res.setContentLengthLong(length);    
+            res.setContentLengthLong(length);
 
             // Send the header, and flush the bytes as we will now move to use
             // send file.
@@ -212,12 +215,11 @@ public class StaticResourcesAdapter implements Adapter {
                     (outputBuffer instanceof FileOutputBuffer) &&
                     ((FileOutputBuffer) outputBuffer).isSupportFileSend()) {
                 res.flush();
-         
+
                 long nWrite = 0;
                 while (nWrite < length) {
-                    nWrite += ((FileOutputBuffer) outputBuffer).
-                            sendFile(fis.getChannel(), nWrite, length - nWrite);
-                }    
+                    nWrite += ((FileOutputBuffer) outputBuffer).sendFile(fis.getChannel(), nWrite, length - nWrite);
+                }
             } else {
                 byte b[] = new byte[8192];
                 ByteChunk chunk = new ByteChunk();
@@ -225,17 +227,17 @@ public class StaticResourcesAdapter implements Adapter {
                 while ((rd = fis.read(b)) > 0) {
                     chunk.setBytes(b, 0, rd);
                     res.doWrite(chunk);
-                }   
+                }
             }
         } finally {
-            if (fis != null){
-                try{
+            if (fis != null) {
+                try {
                     fis.close();
-                } catch (IOException ex){}
+                } catch (IOException ex) {
+                }
             }
         }
-    }    
-
+    }
 
     /**
      * Customize the error pahe 
@@ -244,14 +246,14 @@ public class StaticResourcesAdapter implements Adapter {
      * @throws java.lang.Exception
      */
     protected void customizedErrorPage(Request req,
-            Response res) throws Exception {        
-        
+            Response res) throws Exception {
+
         /**
          * With Grizzly, we just return a 404 with a simple error message.
-         */ 
+         */
         res.setMessage("Not Found");
         res.setStatus(404);
-        ByteBuffer bb = HtmlHelper.getErrorPage("Not Found","HTTP/1.1 404 Not Found\r\n", "Grizzly");
+        ByteBuffer bb = HtmlHelper.getErrorPage("Not Found", "HTTP/1.1 404 Not Found\r\n", "Grizzly");
         res.setContentLength(bb.limit());
         res.setContentType("text/html");
         res.flushHeaders();
@@ -267,7 +269,6 @@ public class StaticResourcesAdapter implements Adapter {
         }
     }
 
-
     /**
      * Finish the {@link Response} and recycle the {@link Request} and the 
      * {@link Response}. If the {@link StaticResourcesAdapter#commitErrorResponse}
@@ -278,70 +279,92 @@ public class StaticResourcesAdapter implements Adapter {
      * @throws java.lang.Exception
      */
     public void afterService(Request req, Response res) throws Exception {
-        if (req.getNote(14) != null){
+        if (req.getNote(14) != null) {
             req.setNote(14, null);
             return;
         }
-                
-        if (res.getStatus() == 404 && !commitErrorResponse){
+
+        if (res.getStatus() == 404 && !commitErrorResponse) {
             return;
         }
 
-        try{
-            req.action( ActionCode.ACTION_POST_REQUEST , null);
-        }catch (Throwable t) {
-            logger.log(Level.WARNING,"afterService unexpected exception: ",t);
+        try {
+            req.action(ActionCode.ACTION_POST_REQUEST, null);
+        } catch (Throwable t) {
+            logger.log(Level.WARNING, "afterService unexpected exception: ", t);
         }
 
         res.finish();
         req.recycle();
-        res.recycle();     
+        res.recycle();
     }
-
 
     /**
      * Return the directory from where files will be serviced.
      * @return the directory from where file will be serviced.
+     * @deprecated - use {@link #getRootFolders}
      */
     public String getRootFolder() {
-        return rootFolder;
+        return rootFolders.peek();
     }
-
 
     /**
      * Set the directory from where files will be serviced.
      * @param rootFolder the directory from where files will be serviced.
+     * @deprecated - use {@link #addRootFolders}
      */
     public void setRootFolder(String rootFolder) {
-        this.rootFolder = rootFolder;
+        addRootFolder(rootFolder);
     }
 
+    /**
+     * Return the list of folders the adapter can serve file from.
+     * @return a {@link ConcurentLinkedList} of the folders this Adapter can
+     * serve file from.
+     */
+    public ConcurrentLinkedQueue<String> getRootFolders() {
+        return rootFolders;
+    }
+
+    /**
+     * Add a folder to the list of folders this Adapter can serve file from.
+     * @param rootFolder
+     * @return
+     */
+    public boolean addRootFolder(String rootFolder) {
+        return rootFolders.offer(rootFolder);
+    }
 
     /**
      * Initialize.
      */
-    protected void initWebDir(){
-        if (webDir == null){         
-            try{
-                initializedLock.lock();
-                webDir = new File(rootFolder);
-                try {
-                    rootFolder = webDir.getCanonicalPath();
-                } catch (IOException e) {
-                    logger.log(Level.WARNING,"service()",e);
+    protected void initWebDir() throws IOException {
+        try {
+            initializedLock.lock();
+            if (fileFolders.isEmpty()) {
+
+                if (rootFolders.isEmpty()) {
+                    rootFolders.offer(".");
                 }
-            } finally {
-                initializedLock.unlock();
+
+                for (String s: rootFolders){
+                    File webDir = new File(s);
+                    fileFolders.offer(webDir);
+                }
+
+                for (File f : fileFolders) {
+                    rootFolders.add(f.getCanonicalPath());
+                }
             }
+        } finally {
+            initializedLock.unlock();
         }
     }
-    
-    
+
     public void setLogger(Logger logger) {
         this.logger = logger;
     }
-    
-    
+
     /**
      * True if {@link File#transfertTo} to send a static resources.
      * @return True if {@link File#transfertTo} to send a static resources.
@@ -350,7 +373,6 @@ public class StaticResourcesAdapter implements Adapter {
         return useSendFile;
     }
 
-    
     /**
      * True if {@link File#transfertTo} to send a static resources, false if
      * the File needs to be loaded in memory and flushed using {@link ByteBuffer}
@@ -381,5 +403,25 @@ public class StaticResourcesAdapter implements Adapter {
      */
     public void setResourcesContextPath(String resourcesContextPath) {
         this.resourcesContextPath = resourcesContextPath;
+    }
+
+    /**
+     * If the content-type of the request cannot be determined, used the default
+     * value. Current default is text/html
+     * 
+     * @return the defaultContentType
+     */
+    public String getDefaultContentType() {
+        return defaultContentType;
+    }
+
+    /**
+     * Set the default content-type if we can't determine it.
+     * Default was text/html
+     * 
+     * @param defaultContentType the defaultContentType to set
+     */
+    public void setDefaultContentType(String defaultContentType) {
+        this.defaultContentType = defaultContentType;
     }
 }

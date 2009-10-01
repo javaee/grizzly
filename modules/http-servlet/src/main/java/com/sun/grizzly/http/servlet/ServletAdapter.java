@@ -272,7 +272,7 @@ public class ServletAdapter extends GrizzlyAdapter {
         try{
             if (initialize) {
                 initWebDir();
-                configureClassLoader(webDir.getCanonicalPath());
+                configureClassLoader(fileFolders.peek().getCanonicalPath());
             }
             if( classLoader != null ) {
                 ClassLoader prevClassLoader = Thread.currentThread().getContextClassLoader();

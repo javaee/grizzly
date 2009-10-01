@@ -81,7 +81,6 @@ public class ContainerStaticHandler extends StaticHandler {
                         String docroot = System.getProperty("com.sun.aas.instanceRoot")
                                 + File.separatorChar + "applications";
                         String uri = req.requestURI().toString();
-
                         fileCache.add(FileCache.DEFAULT_SERVLET_NAME, docroot, uri,
                                 req.getResponse().getMimeHeaders(), false);
                     } else {
