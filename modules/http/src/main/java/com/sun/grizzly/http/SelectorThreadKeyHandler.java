@@ -84,29 +84,33 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
     @Override
     public void doRegisterKey(SelectionKey key, int ops, long currentTime) {
         final Object attachment = key.attachment();
-        if (attachment != null
-                && attachment.equals(SelectionKeyAttachment.DEREGISTERED)){
+        if (attachment != null && attachment.equals(SelectionKeyAttachment.DEREGISTERED)) {
             return;
         }
 
-        if (!key.isValid()){
+        if (!key.isValid()) {
             selectorHandler.addPendingKeyCancel(key);
-        }else{
+        } else {
             key.interestOps(key.interestOps() | ops);
-            addExpirationStamp(key,currentTime);
+            addExpirationStamp(key, currentTime);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void expire(Iterator<SelectionKey> iterator) {
-        final long currentTime = System.currentTimeMillis();
-        if (currentTime < nextKeysExpiration) {
+        if (timeout == SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
             return;
         }
-        nextKeysExpiration = currentTime + 1000;
+
+        final long currentTime = System.currentTimeMillis();
+        if (currentTime < nextKeysExpiration) {
+            return;     
+        }
+
+        nextKeysExpiration = currentTime + (selectorThread.getEnableAsyncExecution() ? 1000 : timeout);
         while (iterator.hasNext()) {
             SelectionKey key = iterator.next();
             if (!key.isValid()) {
@@ -121,14 +125,15 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                     long idleLimit = getIdleLimit(attachment);
 
                     if (idleLimit != -1 && currentTime - expire >= idleLimit &&
-                        (!(attachment instanceof SelectionKeyAttachment) ||
-                        ((SelectionKeyAttachment)attachment).timedOut(key))){
-                            //preventing further idle timeout detection for same key
-                            //due to we dont directly cancel key anymore we cant rely in key.isvalid detection
-                            addExpirationStamp(key,
-                                    SelectionKeyAttachment.UNLIMITED_TIMEOUT);
-                            selectorHandler.addPendingKeyCancel(key);
-                        }
+                            (!(attachment instanceof SelectionKeyAttachment) ||
+                            ((SelectionKeyAttachment) attachment).timedOut(key))) {
+                        //preventing further idle timeout detection for same key
+                        //due to we dont directly cancel key anymore we cant
+                        //rely in key.isvalid detection
+                        addExpirationStamp(key,
+                                SelectionKeyAttachment.UNLIMITED_TIMEOUT);
+                        selectorHandler.addPendingKeyCancel(key);
+                    }
                 }
             }
         }
@@ -139,8 +144,8 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
      * @param attachment
      * @return
      */
-    private long getIdleLimit(Object attachment){
-        if (attachment instanceof SelectionKeyAttachment){  
+    private long getIdleLimit(Object attachment) {
+        if (attachment instanceof SelectionKeyAttachment) {
             long idleLimit = ((SelectionKeyAttachment) attachment).getIdleTimeoutDelay();
             if (idleLimit != SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
                 return idleLimit;

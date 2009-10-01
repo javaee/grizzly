@@ -624,7 +624,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         keyHandler = createSelectionKeyHandler();
 
         keyHandler.setLogger(logger);
-        keyHandler.setTimeout(keepAliveStats.getKeepAliveTimeoutInSeconds() * 1000L);
+        long timeout = keepAliveStats.getKeepAliveTimeoutInSeconds();
+        keyHandler.setTimeout(timeout == -1
+                    ? SelectionKeyAttachment.UNLIMITED_TIMEOUT: timeout * 1000L);
         selectorHandler.setSelectionKeyHandler(keyHandler);
 
         configureProtocolChain();
