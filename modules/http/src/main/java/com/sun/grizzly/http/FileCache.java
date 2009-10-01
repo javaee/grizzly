@@ -38,6 +38,8 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.File;
@@ -281,7 +283,20 @@ public class FileCache{
 
             String root = SelectorThread.getSelector(port).getWebAppRootPath();
             if (bb == null && !root.equals(baseDir)){
-                file = new File(root + requestURI);
+                Adapter a = SelectorThread.getSelector(port).getAdapter();
+                ConcurrentLinkedQueue<String> rootFolders = null;
+                if (a instanceof StaticResourcesAdapter){
+                    rootFolders = ((StaticResourcesAdapter)a).getRootFolders();
+                    for (String s:rootFolders){
+                        file = new File(s + requestURI);
+                        if (file.exists()){
+                            break;
+                        }
+                    }
+                } else {
+                    // Backward Compatibility with < 1.9.18
+                    file = new File(root + requestURI);
+                }
                 bb = mapFile(file);
             }
 
