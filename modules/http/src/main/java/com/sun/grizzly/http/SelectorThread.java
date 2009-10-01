@@ -275,7 +275,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Keep-alive stats
      */
-    private final KeepAliveStats keepAliveStats = createKeepAliveStats();
+    protected KeepAliveStats keepAliveStats = createKeepAliveStats();
 
 
     /**
