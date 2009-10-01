@@ -57,6 +57,12 @@ public class KeepAliveStats {
     private final AtomicInteger countRefusals    = new AtomicInteger();
     private final AtomicInteger countTimeouts    = new AtomicInteger();
 
+    private volatile int maxKeepAliveRequests = Constants.DEFAULT_MAX_KEEP_ALIVE;
+    /*
+     * Number of seconds before idle keep-alive connections expire
+     */
+    private volatile int keepAliveTimeoutInSeconds = 30;
+
     public synchronized void enable() {
         isEnabled = true;
     }
@@ -170,5 +176,38 @@ public class KeepAliveStats {
      */    
     public void incrementCountTimeouts() {
         countTimeouts.incrementAndGet();
+    }
+
+    public int getMaxKeepAliveRequests() {
+        return maxKeepAliveRequests;
+    }
+
+
+    /**
+     * Set the maximum number of Keep-Alive requests that we will honor.
+     */
+    public void setMaxKeepAliveRequests(int maxKeepAliveRequests) {
+        this.maxKeepAliveRequests = maxKeepAliveRequests;
+    }
+
+    /**
+     * Sets the number of seconds before a keep-alive connection that has
+     * been idle times out and is closed.
+     *
+     * @param timeout Keep-alive timeout in number of seconds
+     */
+    public void setKeepAliveTimeoutInSeconds(int timeout) {
+        keepAliveTimeoutInSeconds = timeout;
+    }
+
+
+    /**
+     * Gets the number of seconds before a keep-alive connection that has
+     * been idle times out and is closed.
+     *
+     * @return Keep-alive timeout in number of seconds
+     */
+    public int getKeepAliveTimeoutInSeconds() {
+        return keepAliveTimeoutInSeconds;
     }
 }

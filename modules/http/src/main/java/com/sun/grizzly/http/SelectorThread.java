@@ -167,8 +167,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     protected int socketTimeout=-1;
     
     
-    protected int maxKeepAliveRequests = Constants.DEFAULT_MAX_KEEP_ALIVE;
-    
     // Number of keep-alive threads
     protected int keepAliveThreadCount = 1;
 
@@ -277,7 +275,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Keep-alive stats
      */
-    private KeepAliveStats keepAliveStats;
+    private final KeepAliveStats keepAliveStats = createKeepAliveStats();
 
 
     /**
@@ -304,12 +302,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     protected boolean useByteBufferView = false;
     
 
-    /*
-     * Number of seconds before idle keep-alive connections expire
-     */
-    protected int keepAliveTimeoutInSeconds = 30;
-        
-    
     /**
      * The {@link Selector} timeout value. By default, it is set to 60000
      * miliseconds (as in the j2se 1.5 ORB).
@@ -632,7 +624,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         keyHandler = createSelectionKeyHandler();
 
         keyHandler.setLogger(logger);
-        keyHandler.setTimeout(keepAliveTimeoutInSeconds * 1000);
+        keyHandler.setTimeout(keepAliveStats.getKeepAliveTimeoutInSeconds() * 1000);
         selectorHandler.setSelectionKeyHandler(keyHandler);
 
         configureProtocolChain();
@@ -702,7 +694,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         selectorHandler.setReuseAddress(reuseAddress);
         selectorHandler.setSelectTimeout(selectorTimeout);
         selectorHandler.setServerTimeout(serverTimeout);
-        selectorHandler.setSocketTimeout(keepAliveTimeoutInSeconds * 1000);
+        selectorHandler.setSocketTimeout(keepAliveStats.getKeepAliveTimeoutInSeconds() * 1000);
         selectorHandler.setSsBackLog(ssBackLog);
         selectorHandler.setTcpNoDelay(tcpNoDelay);
     }
@@ -854,8 +846,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         if (fileCacheFactory != null) return;
         
         fileCacheFactory = createFileCacheFactory();
-        configureFileCacheFactory();
         FileCacheFactory.cache.put(port, fileCacheFactory);
+
+        configureFileCacheFactory();
     }
        
     protected FileCacheFactory createFileCacheFactory() {
@@ -1378,7 +1371,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     public int getMaxKeepAliveRequests() {
-        return maxKeepAliveRequests;
+        return keepAliveStats.getMaxKeepAliveRequests();
     }
     
     
@@ -1386,7 +1379,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Set the maximum number of Keep-Alive requests that we will honor.
      */
     public void setMaxKeepAliveRequests(int maxKeepAliveRequests) {
-        this.maxKeepAliveRequests = maxKeepAliveRequests;
+        keepAliveStats.setMaxKeepAliveRequests(maxKeepAliveRequests);
     }
     
 
@@ -1397,7 +1390,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * @param timeout Keep-alive timeout in number of seconds
      */    
     public void setKeepAliveTimeoutInSeconds(int timeout) {
-        keepAliveTimeoutInSeconds = timeout;
+        keepAliveStats.setKeepAliveTimeoutInSeconds(timeout);
         if (keyHandler != null) {
             keyHandler.setTimeout(timeout == -1
                     ? SelectionKeyAttachment.UNLIMITED_TIMEOUT: timeout * 1000);
@@ -1412,7 +1405,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * @return Keep-alive timeout in number of seconds
      */    
     public int getKeepAliveTimeoutInSeconds() {
-        return keepAliveTimeoutInSeconds;
+        return keepAliveStats.getKeepAliveTimeoutInSeconds();
     }
 
     
@@ -1667,8 +1660,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Initialize the {@link ThreadPoolStat} instance.
      */
     protected void initMonitoringLevel() {
-        keepAliveStats = createKeepAliveStats();
-
         if (threadPoolStat != null) return;
         threadPoolStat = new ThreadPoolStatistic(port);
         int maxQueuedTasks = -1;
@@ -1993,9 +1984,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                     + "\n\t sendBufferSize: "
                     + sendBufferSize
                     + "\n\t maxKeepAliveRequests: "
-                    + maxKeepAliveRequests
+                    + keepAliveStats.getMaxKeepAliveRequests()
                     + "\n\t keepAliveTimeoutInSeconds: "
-                    + keepAliveTimeoutInSeconds
+                    + keepAliveStats.getKeepAliveTimeoutInSeconds()
                     + "\n\t Static File Cache enabled: "                        
                     + isFileCacheEnabled    
                     + "\n\t Static resources directory: "                        

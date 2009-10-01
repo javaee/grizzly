@@ -276,8 +276,8 @@ public class SelectorThreadConfig{
        
         if (System.getProperty(MAX_KEEP_ALIVE_REQUEST) != null){
             try{
-                selectorThread.maxKeepAliveRequests = 
-                  Integer.parseInt(System.getProperty(MAX_KEEP_ALIVE_REQUEST));
+                selectorThread.setMaxKeepAliveRequests(
+                        Integer.parseInt(System.getProperty(MAX_KEEP_ALIVE_REQUEST)));
             } catch (NumberFormatException ex){
                 ;
             }
