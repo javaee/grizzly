@@ -178,7 +178,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
         }
         
         Object ra = workerThread.getAttachment().getAttribute(Response.SUSPENDED);
-        if (ra != null){
+        if (!processorTask.isError() && ra != null){
             // Detatch anything associated with the Thread.
             workerThread.setInputStream(new InputReader());
             workerThread.setByteBuffer(null);
@@ -221,14 +221,14 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     /**
      * Configure {@link ProcessorTask}.
      */
-    protected void configureProcessorTask(ProcessorTask processorTask,
+    protected void configureProcessorTask(ProcessorTask processorTask, 
             Context context, StreamAlgorithm streamAlgorithm) {
         SelectionKey key = context.getSelectionKey();
         
         processorTask.setSelectorHandler(context.getSelectorHandler());
         processorTask.setSelectionKey(key);
         processorTask.setSocket(((SocketChannel) key.channel()).socket());
-
+        
         if (processorTask.getStreamAlgorithm() == null){
             processorTask.setStreamAlgorithm(streamAlgorithm);
         }

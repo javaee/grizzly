@@ -666,8 +666,18 @@ public class ProcessorTask extends TaskBase implements Processor,
                 serverName = System.getProperty("product.name");
             }
 
-            if (response.getStatus() == 400){
-                ByteBuffer bb = HtmlHelper.getErrorPage("Bad Request","HTTP/1.1 400 Bad Request\r\n",
+            int status = response.getStatus();
+            if (statusDropsConnection(response.getStatus())){
+
+                if (Thread.currentThread() instanceof HttpWorkerThread){
+                    // Avoid data corruption is the response has been suspended.
+                    HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());
+                    workerThread.getAttachment().setAttribute(Response.SUSPENDED, null);
+                }
+
+                ByteBuffer bb = HtmlHelper.getErrorPage(messageDropConnection(status),
+                        "HTTP/1.1 " +  response.getStatus()
+                        + " " + messageDropConnection(status) + "\r\n",
                         serverName);
                 response.setContentLength(bb.limit());
                 response.setContentType("text/html");
@@ -862,12 +872,12 @@ public class ProcessorTask extends TaskBase implements Processor,
         try {
             prepareRequest();
         } catch (Throwable t) {
-            if (logger.isLoggable(Level.FINE)){
-                logger.log(Level.FINE,
+            if (logger.isLoggable(Level.SEVERE)){
+                logger.log(Level.SEVERE,
                         sm.getString("processorTask.createRequestError"), t);
             }
-            // 400 - Internal Server Error
-            response.setStatus(400);
+            // 500 - Internal Server Error
+            response.setStatus(500);
             error = true;
         }
         return false;
@@ -1695,6 +1705,20 @@ public class ProcessorTask extends TaskBase implements Processor,
                status == 500 /* SC_INTERNAL_SERVER_ERROR */ ||
                status == 503 /* SC_SERVICE_UNAVAILABLE */ ||
                status == 501 /* SC_NOT_IMPLEMENTED */;
+    }
+
+    protected String messageDropConnection(int status){
+        switch(status){
+            case(400): return "BAD REQUEST";
+            case(408): return "REQUEST TIMEOUT";
+            case(411): return "LENGTH REQUIRED";
+            case(413): return "REQUEST ENTITY TOO LARGE";
+            case(414): return "REQUEST URI TOO LARGE";
+            case(500): return "INTERNAL SERVER ERROR";
+            case(503): return "SERVICE UNAVAILABLE";
+            case(501) : return "NOT IMPLEMENTED";
+            default: return "";
+        }
     }
 
      /**
