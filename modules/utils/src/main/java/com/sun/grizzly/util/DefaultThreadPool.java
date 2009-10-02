@@ -205,8 +205,10 @@ public class DefaultThreadPool extends FixedThreadPool
         }
         if (running){
             if (workQueue.offer(task)) {
+                onTaskQueued(task);
                 queueSize.incrementAndGet();
             } else {
+                onTaskQueueOverflow();
                 throw new RejectedExecutionException("The queue is full");
             }
         }
@@ -237,7 +239,6 @@ public class DefaultThreadPool extends FixedThreadPool
         private Runnable firstTask;
 
         public Worker(Runnable firstTask, boolean core) {
-            super();
             this.core = core;
             this.firstTask = firstTask;
         }
@@ -245,24 +246,24 @@ public class DefaultThreadPool extends FixedThreadPool
         @Override
         protected Runnable getTask() throws InterruptedException {
             Runnable r;
-            if (firstTask != null){
+            if (firstTask != null) {
                 r = firstTask;
                 firstTask = null;
-            }else{
-                 // if maxpoolsize becomes lower during runtime we kill of the
-                 // difference, possible abit more since we are not looping around compareAndSet
-                 if (!core && aliveworkerCount.get() > maxPoolSize){
+            } else {
+                // if maxpoolsize becomes lower during runtime we kill of the
+                // difference, possible abit more since we are not looping around compareAndSet
+                if (!core && aliveworkerCount.get() > maxPoolSize) {
                     return null;
-                 }
-                 r = (core?workQueue.take():workQueue.poll(idleTimeout, timeUnit));
-                 if (r != null){
+                }
+                r = (core ? workQueue.take() : workQueue.poll(idleTimeout, timeUnit));
+                if (r != null) {
+                    onTaskDequeued(r);
                     queueSize.decrementAndGet();
-                 }
+                }
             }
 
             return r;
         }
-
     }
 
     @Override
