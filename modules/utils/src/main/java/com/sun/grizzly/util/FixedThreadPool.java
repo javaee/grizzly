@@ -44,6 +44,7 @@ import java.util.List;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -164,7 +165,13 @@ public class FixedThreadPool extends AbstractExecutorService
      */
     public void execute(Runnable command) {
         if (running){
-            workQueue.offer(command);
+            if (workQueue.offer(command)) {
+                onTaskQueued(command);
+            } else {
+                onTaskQueueOverflow();
+                throw new RejectedExecutionException(
+                        "The thread pool's task queue is full");
+            }
         }
     }
 
@@ -177,6 +184,11 @@ public class FixedThreadPool extends AbstractExecutorService
             if (running){
                 running = false;
                 workQueue.drainTo(drained);
+
+                for(Runnable task : drained) {
+                    onTaskDequeued(task);
+                }
+
                 poisonAll();
                 //try to interrupt their current work so they can get their poison fast
                 for (BasicWorker w:workers.keySet()){
@@ -362,6 +374,31 @@ public class FixedThreadPool extends AbstractExecutorService
         workers.remove(worker);
     }
 
+    /**
+     * Method is called by a thread pool each time new task has been queued to
+     * a task queue.
+     *
+     * @param task
+     */
+    protected void onTaskQueued(Runnable task) {
+    }
+
+    /**
+     * Method is called by a thread pool each time a task has been dequeued from
+     * a task queue.
+     *
+     * @param task
+     */
+    protected void onTaskDequeued(Runnable task) {
+    }
+
+    /**
+     * Method is called by a thread pool, when new task could not be added
+     * to a task queue, because task queue is full.
+     */
+    protected void onTaskQueueOverflow() {
+    }
+
     protected class BasicWorker implements Runnable {
         Thread t;
 
@@ -404,7 +441,9 @@ public class FixedThreadPool extends AbstractExecutorService
         }
 
         protected Runnable getTask() throws InterruptedException{
-            return workQueue.take();
+            final Runnable task = workQueue.take();
+            onTaskDequeued(task);
+            return task;
         }
     }
 
