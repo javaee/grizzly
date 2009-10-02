@@ -178,7 +178,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
         }
         
         Object ra = workerThread.getAttachment().getAttribute(Response.SUSPENDED);
-        if (!processorTask.isError() && ra != null){
+        if (processorTask !== null && !processorTask.isError() && ra != null){
             // Detatch anything associated with the Thread.
             workerThread.setInputStream(new InputReader());
             workerThread.setByteBuffer(null);
