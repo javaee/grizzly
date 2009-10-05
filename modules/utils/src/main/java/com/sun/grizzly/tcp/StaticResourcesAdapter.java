@@ -347,6 +347,7 @@ public class StaticResourcesAdapter implements Adapter {
                     File webDir = new File(s);
                     fileFolders.offer(webDir);
                 }
+                rootFolders.clear();
 
                 for (File f : fileFolders) {
                     rootFolders.add(f.getCanonicalPath());

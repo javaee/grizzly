@@ -56,7 +56,7 @@ public interface PendingIOhandler {
     public void addPendingIO(Runnable runnable);
 
     /**
-     * Enqueues SlectionKey for later cancel and close .<br>
+     * Enqueues SelectionKey for later cancel and close .<br>
      * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
      * @param runnable
      */
