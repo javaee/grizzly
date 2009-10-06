@@ -829,11 +829,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             }
         }
 
-        waitUntilSeletorHandlersStop();
-
         if (displayConfiguration){
             displayConfiguration();
         }
+
+        waitUntilSeletorHandlersStop();
 
         if (readThreadsCount > 0) {
             multiReadThreadSelectorHandler.shutdown();
