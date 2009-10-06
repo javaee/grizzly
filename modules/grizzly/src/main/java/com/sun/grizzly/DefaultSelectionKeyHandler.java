@@ -198,7 +198,6 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
         }
         nextKeysExpiration = currentTime + timeout;        
                 
-        
         SelectionKey key;
         while (iterator.hasNext()) {
             key = iterator.next();
@@ -206,7 +205,6 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             if (!key.isValid()){
                 continue;
             }
-
 
             long expire = getExpirationStamp(key.attachment());
             if (expire != SelectionKeyAttachment.UNLIMITED_TIMEOUT){
