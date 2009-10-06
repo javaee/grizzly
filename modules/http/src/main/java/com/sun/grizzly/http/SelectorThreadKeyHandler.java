@@ -110,7 +110,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
             return;     
         }
 
-        nextKeysExpiration = currentTime + (selectorThread.getEnableAsyncExecution() ? 1000 : timeout);
+        nextKeysExpiration = currentTime + 1000;
         while (iterator.hasNext()) {
             SelectionKey key = iterator.next();
             if (!key.isValid()) {
