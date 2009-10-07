@@ -82,6 +82,7 @@ public class JAXBWebXml_2_4Parser implements IJAXBWebXmlParser {
 	
 	Map<String, List<Object>> itemMap = new HashMap<String, List<Object>>();
 	
+ 
 	@SuppressWarnings("unchecked")
 	public com.sun.grizzly.http.webxml.schema.WebApp parse(String webxml) throws Exception {
 		
@@ -236,6 +237,9 @@ public class JAXBWebXml_2_4Parser implements IJAXBWebXmlParser {
 		if(itemMap.containsKey("EmptyType")){
 			webApp.setDistributable(true);
 		}
+		
+		// force metadata-complete to true : Annotation only supported servlet 2.5+
+		webApp.setMetadataComplete(true);
 		
 		webApp.setDisplayName(populateDisplayName(itemMap));
 		webApp.setDescription(populateDescription(itemMap));

@@ -54,10 +54,8 @@ public class LifecycleCallback {
 
 	public String toString() {
 		StringBuffer buffer = new StringBuffer();
-		buffer.append("<LifecycleCallback>").append("\n");
-		buffer.append("<lifecycleCallbackClass>").append(lifecycleCallbackClass).append("</lifecycleCallbackClass>").append("\n");
-		buffer.append("<lifecycleCallbackMethod>").append(lifecycleCallbackMethod).append("</lifecycleCallbackMethod>").append("\n");
-		buffer.append("</LifecycleCallback>");
+		buffer.append("<lifecycle-callback-class>").append(lifecycleCallbackClass).append("</lifecycle-callback-class>").append("\n");
+		buffer.append("<lifecycle-callback-method>").append(lifecycleCallbackMethod).append("</lifecycle-callback-method>");
 		return buffer.toString();
 	}
 

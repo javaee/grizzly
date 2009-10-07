@@ -43,7 +43,6 @@ import java.util.Map;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
-
 import com.sun.grizzly.http.webxml.schema.version_2_3.AuthConstraint;
 import com.sun.grizzly.http.webxml.schema.version_2_3.ContextParam;
 import com.sun.grizzly.http.webxml.schema.version_2_3.EjbLocalRef;
@@ -196,6 +195,9 @@ public class JAXBWebXml_2_3Parser implements IJAXBWebXmlParser {
 		if(root.getDistributable()!=null){
 			webApp.setDistributable(true);
 		}
+		
+		// force metadata-complete to true : Annotation only supported servlet 2.5+
+		webApp.setMetadataComplete(true);
 		
 		webApp.setServlet(populateServlet(root.getServlet()));
 		webApp.setServletMapping(populateServletMapping(root.getServletMapping()));

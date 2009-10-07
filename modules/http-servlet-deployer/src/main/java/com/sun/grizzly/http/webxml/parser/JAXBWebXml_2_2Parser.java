@@ -187,8 +187,10 @@ public class JAXBWebXml_2_2Parser implements IJAXBWebXmlParser {
 		}
 		if(root.getDistributable()!=null){
 			webApp.setDistributable(true);
-			//webApp.setDistributable(root.getDistributable().toString());
 		}
+		
+		// force metadata-complete to true : Annotation only supported servlet 2.5+
+		webApp.setMetadataComplete(true);
 		
 		webApp.setServlet(populateServlet(root.getServlet()));
 		webApp.setServletMapping(populateServletMapping(root.getServletMapping()));

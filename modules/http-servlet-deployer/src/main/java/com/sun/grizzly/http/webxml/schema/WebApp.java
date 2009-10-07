@@ -1044,18 +1044,22 @@ public class WebApp {
 
 		if (postConstruct != null) {
 			List<LifecycleCallback> list = postConstruct;
-
+			
+			buffer.append("<post-construct>").append("\n");
 			for (LifecycleCallback item : list) {
 				buffer.append(item).append("\n");
 			}
+			buffer.append("</post-construct>").append("\n");
 		}
 
 		if (preDestroy != null) {
 			List<LifecycleCallback> list = preDestroy;
 
+			buffer.append("<pre-destroy>").append("\n");
 			for (LifecycleCallback item : list) {
 				buffer.append(item).append("\n");
 			}
+			buffer.append("</pre-destroy>").append("\n");
 		}
 
 		if (localeEncodingMappingList != null) {
@@ -1102,6 +1106,193 @@ public class WebApp {
         this.sessionConfig.addAll(with.sessionConfig);
         this.taglib.addAll(with.taglib);
         this.welcomeFileList.addAll(with.welcomeFileList);
+        return this;
+    }
+    
+    /**
+     * Merge with annotations attributes that are not already define
+     * 
+     * Types that are used by Annotations
+		EnvEntry
+		LifecycleCallback
+		MessageDestinationRef
+		PortComponentRef
+		ResourceRef
+		SecurityRole
+		ServiceRef
+		Servlet
+		
+		EJB and persistance not yet supported
+     * 
+     * @param webAppAnon WebApp that contains Annotations
+     * @return merge webapp
+     */
+    public WebApp mergeWithAnnotations(WebApp webAppAnon) {
+    	if(webAppAnon==null){
+    		return this;
+    	}
+    	
+        List<EnvEntry> listEnvEntry = new ArrayList<EnvEntry>();
+		for (EnvEntry anon : webAppAnon.envEntry) {
+			boolean found = false;
+			for (EnvEntry item : envEntry) {
+				if(anon.getEnvEntryName().equalsIgnoreCase(item.getEnvEntryName())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listEnvEntry.add(anon);
+			}
+		}
+        
+        this.envEntry.addAll(listEnvEntry);
+        
+        List<MessageDestination> listMessageDestination = new ArrayList<MessageDestination>();
+		for (MessageDestination anon : webAppAnon.messageDestination) {
+			boolean found = false;
+			for (MessageDestination item : messageDestination) {
+				if(anon.getMessageDestinationName().equalsIgnoreCase(item.getMessageDestinationName())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listMessageDestination.add(anon);
+			}
+		}
+        
+        this.messageDestination.addAll(listMessageDestination);
+        
+        List<MessageDestinationRef> listMessageDestinationRef = new ArrayList<MessageDestinationRef>();
+		for (MessageDestinationRef anon : webAppAnon.messageDestinationRef) {
+			boolean found = false;
+			for (MessageDestinationRef item : messageDestinationRef) {
+				if(anon.getMessageDestinationRefName().equalsIgnoreCase(item.getMessageDestinationRefName())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listMessageDestinationRef.add(anon);
+			}
+		}
+        
+        this.messageDestinationRef.addAll(listMessageDestinationRef);
+
+        List<LifecycleCallback> listLifecycleCallbackPost = new ArrayList<LifecycleCallback>();
+		for (LifecycleCallback anon : webAppAnon.postConstruct) {
+			boolean found = false;
+			for (LifecycleCallback item : postConstruct) {
+				if(anon.getLifecycleCallbackMethod().equalsIgnoreCase(item.getLifecycleCallbackMethod())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listLifecycleCallbackPost.add(anon);
+			}
+		}
+		
+        this.postConstruct.addAll(listLifecycleCallbackPost);
+        
+        List<LifecycleCallback> listLifecycleCallbackPre = new ArrayList<LifecycleCallback>();
+		for (LifecycleCallback anon : webAppAnon.preDestroy) {
+			boolean found = false;
+			for (LifecycleCallback item : preDestroy) {
+				if(anon.getLifecycleCallbackMethod().equalsIgnoreCase(item.getLifecycleCallbackMethod())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listLifecycleCallbackPre.add(anon);
+			}
+		}
+        
+        this.preDestroy.addAll(listLifecycleCallbackPre);
+        
+        List<ResourceEnvRef> listResourceEnvRef = new ArrayList<ResourceEnvRef>();
+		for (ResourceEnvRef anon : webAppAnon.resourceEnvRef) {
+			boolean found = false;
+			for (ResourceEnvRef item : resourceEnvRef) {
+				if(anon.getResourceEnvRefName().equalsIgnoreCase(item.getResourceEnvRefName())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listResourceEnvRef.add(anon);
+			}
+		}
+        
+        this.resourceEnvRef.addAll(listResourceEnvRef);
+        
+        List<ResourceRef> listResourceRef = new ArrayList<ResourceRef>();
+		for (ResourceRef anon : webAppAnon.resourceRef) {
+			boolean found = false;
+			for (ResourceRef item : resourceRef) {
+				if(anon.getResRefName().equalsIgnoreCase(item.getResRefName())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listResourceRef.add(anon);
+			}
+		}
+        
+        this.resourceRef.addAll(listResourceRef);
+        
+        
+        List<SecurityRole> listSecurityRole = new ArrayList<SecurityRole>();
+		for (SecurityRole anon : webAppAnon.securityRole) {
+			boolean found = false;
+			for (SecurityRole item : securityRole) {
+				if(anon.getRoleName().equalsIgnoreCase(item.getRoleName())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listSecurityRole.add(anon);
+			}
+		}
+        
+        this.securityRole.addAll(listSecurityRole);
+        
+        List<ServiceRef> listServiceRef = new ArrayList<ServiceRef>();
+		for (ServiceRef anon : webAppAnon.serviceRef) {
+			boolean found = false;
+			for (ServiceRef item : serviceRef) {
+				if(anon.getServiceRefName().equalsIgnoreCase(item.getServiceRefName())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listServiceRef.add(anon);
+			}
+		}
+        
+        this.serviceRef.addAll(listServiceRef);
+        
+        List<Servlet> listServlet = new ArrayList<Servlet>();
+		for (Servlet anon : webAppAnon.servlet) {
+			boolean found = false;
+			for (Servlet item : servlet) {
+				if(anon.getServletName().equalsIgnoreCase(item.getServletName())){
+					found = true;
+					break;
+				}
+			}
+			if(!found){
+				listServlet.add(anon);
+			}
+		}
+		
+        this.servlet.addAll(listServlet);
+        
         return this;
     }
 }
