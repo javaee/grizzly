@@ -38,6 +38,7 @@ package com.sun.grizzly.http.servlet.deployer;
 import com.sun.grizzly.http.deployer.DeployException;
 import com.sun.grizzly.http.deployer.FromURIDeployer;
 import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.http.servlet.deployer.annotation.AnnotationParser;
 import com.sun.grizzly.http.webxml.WebappLoader;
 import com.sun.grizzly.http.webxml.schema.*;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
@@ -108,7 +109,22 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
                 }
                 ClassLoader warCL = createWarCL(explodedLocation, configuration.serverLibLoader);
                 WebApp webApp = parseWebXml(uri, explodedLocation);
-
+                
+                // if metadata-complete skip annotations
+                if(!webApp.getMetadataComplete()){
+                    logger.fine("Will append Annotations to the WebApp");
+                    try {
+                    	AnnotationParser parser = new AnnotationParser();
+    					WebApp webAppAnot = parser.parseAnnotation((URLClassLoader)warCL);
+    					webApp.mergeWithAnnotations(webAppAnot);
+    					
+    				} catch (Throwable t) {
+    					logger.warning("Unable to load annotations : " + t.getMessage());
+    				}
+                } else {
+                	logger.info("Skipping Annotation for this URI : " + uri);
+                }
+                
                 result = new WarDeployable(webApp, explodedLocation, warCL);
             } else {
                 throw new DeployException("War file does not exists: " + uri);
