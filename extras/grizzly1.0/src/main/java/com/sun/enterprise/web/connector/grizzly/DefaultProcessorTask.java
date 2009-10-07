@@ -2219,6 +2219,15 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
         return keepAlive;
     }
 
+
+    /**
+     * Force keep-alive no mather what the client support.
+     */
+    public void setForceKeepAlive(boolean forceKeepAlive){
+        keepAlive = forceKeepAlive;
+        connectionHeaderValueSet = forceKeepAlive;
+    }
+
     
     public void setConnectionHeaderValueSet(boolean connectionHeaderValueSet) {
         this.connectionHeaderValueSet = connectionHeaderValueSet;
