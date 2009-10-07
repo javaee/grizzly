@@ -56,7 +56,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * The number of acceptor threads listening for the transport's events
      */
-    @Attribute(defaultValue = "-1", dataType = Integer.class)
+    @Attribute(defaultValue = "1", dataType = Integer.class)
     String getAcceptorThreads();
 
     void setAcceptorThreads(String value);
