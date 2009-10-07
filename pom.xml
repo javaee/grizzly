@@ -4,7 +4,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>1.9.18c</version>
+    <version>1.9.18d</version>
     <url>https://grizzly.dev.java.net</url>
     <issueManagement>
         <system>bugzilla</system>
@@ -310,8 +310,8 @@
         </dependency>
     </dependencies>
     <properties>
-        <grizzly-version>1.9.18c</grizzly-version>
-        <grizzly-released-version>1.9.18c</grizzly-released-version>
+        <grizzly-version>1.9.18d</grizzly-version>
+        <grizzly-released-version>1.9.18d</grizzly-released-version>
         <grizzly-next-version>2.0.0</grizzly-next-version>
         <junit-version>3.8.1</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
