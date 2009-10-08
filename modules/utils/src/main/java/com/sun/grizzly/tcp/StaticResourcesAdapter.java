@@ -82,7 +82,7 @@ public class StaticResourcesAdapter implements Adapter {
      * Commit the 404 response automatically.
      */
     protected boolean commitErrorResponse = true;
-    private ReentrantLock initializedLock = new ReentrantLock();
+    private final ReentrantLock initializedLock = new ReentrantLock();
     private String defaultContentType = "text/html";
 
     public StaticResourcesAdapter() {
@@ -338,12 +338,7 @@ public class StaticResourcesAdapter implements Adapter {
         try {
             initializedLock.lock();
             if (fileFolders.isEmpty()) {
-
-                if (rootFolders.isEmpty()) {
-                    rootFolders.offer(".");
-                }
-
-                for (String s: rootFolders){
+                for (String s : rootFolders) {
                     File webDir = new File(s);
                     fileFolders.offer(webDir);
                 }
