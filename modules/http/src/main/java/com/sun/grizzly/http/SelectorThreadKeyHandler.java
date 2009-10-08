@@ -121,7 +121,8 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
             if (attachment != null) {
                 long expire = getExpirationStamp(attachment);
 
-                if (expire != SelectionKeyAttachment.UNLIMITED_TIMEOUT) {
+                if (expire != SelectionKeyAttachment.UNLIMITED_TIMEOUT &&
+                        expire != SelectionKeyAttachment.DEREGISTERED) {
                     long idleLimit = getIdleLimit(attachment);
 
                     if (idleLimit != -1 && currentTime - expire >= idleLimit &&

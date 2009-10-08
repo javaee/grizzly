@@ -101,8 +101,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
     @Override
     public boolean execute(Context ctx) throws IOException{
         HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());         
-        SelectionKey key = ctx.getSelectionKey();
-        setSelectionKeyTimeout(key, Long.MAX_VALUE);       
+        SelectionKey key = ctx.getSelectionKey();      
         ByteBuffer byteBuffer = workerThread.getByteBuffer();        
 
         // Intercept the request and delegate the processing to the parent if
@@ -162,7 +161,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
 
         if (streamAlgorithm.parse(byteBuffer)){
             ProcessorTask processor = selectorThread.getProcessorTask();
-            configureProcessorTask(processor, ctx, streamAlgorithm, inputStream);
+            configureProcessorTask(processor, ctx, streamAlgorithm, inputStream);            
             try{
                 selectorThread.getAsyncHandler().handle(processor);
             } catch (Throwable ex){
@@ -184,7 +183,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
         if (event.getStatus() == TaskEvent.COMPLETED
                 || event.getStatus() == TaskEvent.ERROR){
             ProcessorTask processor = (ProcessorTask) event.attachement();
-                                     
+            
             // Should never happens.
             if (processor.getSelectionKey() == null){
                 logger.log(Level.WARNING,"AsyncProtocolFilter invalid state.");
