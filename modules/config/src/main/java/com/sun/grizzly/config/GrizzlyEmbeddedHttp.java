@@ -82,7 +82,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      */
     protected static final ResourceBundle _rb = logger.getResourceBundle();
     private String defaultVirtualServer;
-    private GrizzlyServiceListener service;
+    private final GrizzlyServiceListener service;
 
     private int threadPoolTimeoutSeconds = 0;
 
@@ -323,9 +323,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                             }
                         });
                     } else {
-                        handlers.add(new WebProtocolHandler(isHttpSecured() ?
-                            WebProtocolHandler.Mode.HTTPS :
-                            WebProtocolHandler.Mode.HTTP));
+                        handlers.add(new WebProtocolHandler(protocolName));
                     }
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize sub protocol. Finder: " +
@@ -394,19 +392,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     }
 
     protected void configurePortUnification() {
-        // [1] Detect TLS requests.
-        // If sslContext is null, that means TLS is not enabled on that port.
-        // We need to revisit the way GlassFish is configured and make
-        // sure TLS is always enabled. We can always do what we did for
-        // GlassFish v2, which is to located the keystore/trustore by ourself.
-        // TODO: Enable TLS support on all ports using com.sun.Grizzly.SSLConfig
-        // [2] Add our supported ProtocolFinder. By default, we support http/sip
-        // TODO: The list of ProtocolFinder is retrieved using System.getProperties().
-//        final List<ProtocolFinder> protocolFinders = new ArrayList<ProtocolFinder>();
-//        protocolFinders.add(new HttpProtocolFinder());
-        // [3] Add our supported ProtocolHandler. By default we support http/sip.
-//        final List<ProtocolHandler> protocolHandlers = new ArrayList<ProtocolHandler>();
-//        protocolHandlers.add(new WebProtocolHandler(getWebProtocolHandlerMode(), this));
         configurePortUnification(finders, handlers, preprocessors);
     }
 

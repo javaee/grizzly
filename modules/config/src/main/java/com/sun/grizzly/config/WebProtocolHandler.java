@@ -34,36 +34,14 @@ import com.sun.grizzly.util.WorkerThread;
 /**
  * This class maps the current request to its associated Container.
  *
- * NOTE: <strong>This ServicesHandler only suport HTTP and SIP as protocol.</strong>
- *
- * This class is not thread-safe (for now), which means all the add* method cannot be invoked once the associated
- * GrizzlyServiceListener has been started.
- *
- * TODO: Make it work dynamically like MInnow, allocating Service on the fly.
- *
  * @author Jeanfrancois Arcand
  */
 public class WebProtocolHandler extends DefaultFilterChainProtocolHandler {
-    public enum Mode {
-        HTTP, HTTPS, HTTP_HTTPS, SIP, SIP_TLS
-    }
-
-    /**
-     * The protocols supported by this handler.
-     */
-    protected String[][] protocols = {
-        {"http"}, {"https"},
-        {"https", "http"}, {"sip"}, {"sip", "sip_tls"}
-    };
-    private Mode mode;
     // --------------------------------------------------------------------//
+    private final String[] protocols;
 
-    public WebProtocolHandler() {
-        this(Mode.HTTP);
-    }
-
-    public WebProtocolHandler(final Mode mode) {
-        this.mode = mode;
+    public WebProtocolHandler(String protocolName) {
+        this.protocols = new String[] {protocolName};
     }
     // --------------------------------------------------------------------//
 
@@ -89,7 +67,7 @@ public class WebProtocolHandler extends DefaultFilterChainProtocolHandler {
      */
     @Override
     public String[] getProtocols() {
-        return protocols[mode.ordinal()];
+        return protocols;
     }
 
     /**

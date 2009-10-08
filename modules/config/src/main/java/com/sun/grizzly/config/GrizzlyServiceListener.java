@@ -24,6 +24,7 @@ package com.sun.grizzly.config;
 
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.config.dom.Protocol;
 import org.jvnet.hk2.component.Habitat;
 
 import java.io.IOException;
@@ -45,7 +46,7 @@ public class GrizzlyServiceListener {
      */
     protected static final Logger logger = Logger.getLogger(GrizzlyServiceListener.class.getName());
 
-    private Controller controller;
+    private final Controller controller;
     private boolean isEmbeddedHttpSecured;
     private GrizzlyEmbeddedHttp embeddedHttp;
     private String name;
@@ -73,8 +74,12 @@ public class GrizzlyServiceListener {
     }
 
     private void initializeListener(NetworkListener networkListener, Habitat habitat) {
-        isEmbeddedHttpSecured = Boolean.parseBoolean(
-                networkListener.findHttpProtocol().getSecurityEnabled());
+        final Protocol httpProtocol = networkListener.findHttpProtocol();
+        if (httpProtocol != null) {
+            isEmbeddedHttpSecured = Boolean.parseBoolean(
+                    httpProtocol.getSecurityEnabled());
+        }
+
         embeddedHttp = createEmbeddedHttp(isEmbeddedHttpSecured);
 
         embeddedHttp.setController(controller);
