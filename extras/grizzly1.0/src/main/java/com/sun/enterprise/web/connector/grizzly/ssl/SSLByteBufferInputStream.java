@@ -88,8 +88,8 @@ public class SSLByteBufferInputStream extends ByteBufferInputStream {
                     }
                 } catch (IOException ex){
                     Logger logger = SSLSelectorThread.logger();
-                    if ( logger.isLoggable(Level.FINE) )
-                        logger.log(Level.FINE,"SSLUtils.unwrapAll",ex);
+                    if ( logger.isLoggable(Level.FINEST) )
+                        logger.log(Level.FINEST,"SSLUtils.unwrapAll",ex);
                     return -1;
                 }
             } else if (currentRead == -1) {
