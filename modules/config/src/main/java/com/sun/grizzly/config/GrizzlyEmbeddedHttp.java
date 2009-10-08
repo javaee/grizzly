@@ -82,7 +82,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      */
     protected static final ResourceBundle _rb = logger.getResourceBundle();
     private String defaultVirtualServer;
-    private GrizzlyServiceListener service;
+    private final GrizzlyServiceListener service;
 
     private int threadPoolTimeoutSeconds = 0;
 
@@ -323,9 +323,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                             }
                         });
                     } else {
-                        handlers.add(new WebProtocolHandler(isHttpSecured() ?
-                            WebProtocolHandler.Mode.HTTPS :
-                            WebProtocolHandler.Mode.HTTP));
+                        handlers.add(new WebProtocolHandler(protocolName));
                     }
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize sub protocol. Finder: " +
