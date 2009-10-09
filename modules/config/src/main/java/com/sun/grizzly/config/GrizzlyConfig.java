@@ -124,7 +124,12 @@ public class GrizzlyConfig {
             listener.stop();
         }
     }
-    
+
+    public static boolean toBoolean(String value) {
+        final String v = null != value ? value.trim() : value;
+        return "true".equals(v) || "yes".equals(v) || "on".equals(v) || "1".equals(v);
+    }
+
     private static class ListenerRunnable implements Runnable {
         private final GrizzlyServiceListener grizzlyListener;
 

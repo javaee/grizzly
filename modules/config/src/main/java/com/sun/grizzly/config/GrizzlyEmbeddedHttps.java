@@ -63,7 +63,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     protected ProtocolChainInstanceHandler configureProtocol(
             NetworkListener networkListener, Protocol protocol, Habitat habitat,
             boolean mayEnableComet) {
-        if (protocol.getHttp() != null && toBoolean(protocol.getSecurityEnabled())) {
+        if (protocol.getHttp() != null && GrizzlyConfig.toBoolean(protocol.getSecurityEnabled())) {
             final Ssl ssl = protocol.getSsl();
 
             if (ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit())) {

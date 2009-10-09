@@ -88,7 +88,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
      requests in this queue. This is the upper bound on the no. of
      threads that exist in the threadpool.
      */
-    @Attribute(defaultValue = "5")
+    @Attribute(defaultValue = "5", dataType = Integer.class)
     @Min(value=2)
     @Max(Integer.MAX_VALUE)
     String getMaxThreadPoolSize();

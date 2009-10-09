@@ -3,21 +3,4 @@
                         com.sun.grizzly.config.dom; version=${grizzly-version}
 
 Import-Package: \
-                        javax.net.ssl; \
-                        com.sun.enterprise.v3.services.impl; \
-                        org.jvnet.hk2.config; \
-                        org.jvnet.hk2.config.types; \
-                        org.jvnet.hk2.component; \
-                        com.sun.grizzly; \
-                        com.sun.grizzly.filter; \
-                        com.sun.grizzly.portunif; \
-                        com.sun.grizzly.arp; \
-                        com.sun.grizzly.comet; \
-                        com.sun.grizzly.http; \
-                        com.sun.grizzly.http.algorithms; \
-                        com.sun.grizzly.http.portunif; \
-                        com.sun.grizzly.standalone; \
-                        com.sun.grizzly.ssl; \
-                        com.sun.grizzly.tcp; \
-                        com.sun.grizzly.util.*; \
                         *

@@ -250,9 +250,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         // transport settings
         setBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
         setSsBackLog(Integer.parseInt(transport.getMaxConnectionsCount()));
-        setDisplayConfiguration(toBoolean(transport.getDisplayConfiguration()));
+        setDisplayConfiguration(GrizzlyConfig.toBoolean(transport.getDisplayConfiguration()));
         if (transport.getTcpNoDelay() != null) {
-            setTcpNoDelay(toBoolean(transport.getTcpNoDelay()));
+            setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
         }
     }
 
@@ -269,7 +269,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             defaultVirtualServer = http.getDefaultVirtualServer();
             // acceptor-threads
 
-            if (mayEnableComet && toBoolean(http.getCometSupportEnabled())) {
+            if (mayEnableComet && GrizzlyConfig.toBoolean(http.getCometSupportEnabled())) {
                 configureComet(habitat);
             }
 
@@ -429,7 +429,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (cache == null) {
             return;
         }
-        final boolean enabled = toBoolean(cache.getEnabled());
+        final boolean enabled = GrizzlyConfig.toBoolean(cache.getEnabled());
         setFileCacheIsEnabled(enabled);
         setLargeFileCacheEnabled(enabled);
         setSecondsMaxAge(Integer.parseInt(cache.getMaxAgeSeconds()));
@@ -448,7 +448,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
 
         setMaxKeepAliveRequests(Integer.parseInt(http.getMaxConnections()));
-        setProperty("authPassthroughEnabled", toBoolean(http.getAuthPassThroughEnabled()));
+        setProperty("authPassthroughEnabled", GrizzlyConfig.toBoolean(http.getAuthPassThroughEnabled()));
         setMaxPostSize(Integer.parseInt(http.getMaxPostSizeBytes()));
         setCompression(http.getCompression());
         setCompressableMimeTypes(http.getCompressableMimeType());
@@ -460,14 +460,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (http.getRestrictedUserAgents() != null) {
             setRestrictedUserAgents(http.getRestrictedUserAgents());
         }
-        enableRcmSupport(toBoolean(http.getRcmSupportEnabled()));
+        enableRcmSupport(GrizzlyConfig.toBoolean(http.getRcmSupportEnabled()));
         setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
-        setDisableUploadTimeout(toBoolean(http.getUploadTimeoutEnabled()));
-        setProperty("chunking-enabled", toBoolean(http.getChunkingEnabled()));
+        setDisableUploadTimeout(GrizzlyConfig.toBoolean(http.getUploadTimeoutEnabled()));
+        setProperty("chunking-enabled", GrizzlyConfig.toBoolean(http.getChunkingEnabled()));
         setProperty("uriEncoding", http.getUriEncoding());
 
         if (http.getTraceEnabled() != null) {
-            setProperty("traceEnabled", toBoolean(http.getTraceEnabled()));
+            setProperty("traceEnabled", GrizzlyConfig.toBoolean(http.getTraceEnabled()));
         }
     }
 
@@ -557,11 +557,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     protected int getThreadPoolTimeoutSeconds() {
         return threadPoolTimeoutSeconds;
-    }
-
-    protected static boolean toBoolean(String value) {
-        final String v = null != value ? value.trim() : value;
-        return "true".equals(v) || "yes".equals(v) || "on".equals(v) || "1".equals(v);
     }
 
     public String getDefaultVirtualServer() {

@@ -63,10 +63,10 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setChunkingEnabled(String enabled);
 
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "false", dataType = String.class)
     String getCompression();
 
-    void getCompression(String compression);
+    void setCompression(String compression);
 
     @Attribute(defaultValue = "text/html,text/xml,text/plain")
     String getCompressableMimeType();
@@ -102,7 +102,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setDefaultVirtualServer(final String defaultVirtualServer);
 
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getUploadTimeoutEnabled();
 
     void setUploadTimeoutEnabled(String disable);
