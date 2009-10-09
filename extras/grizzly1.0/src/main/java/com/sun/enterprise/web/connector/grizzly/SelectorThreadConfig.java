@@ -134,7 +134,10 @@ public class SelectorThreadConfig{
     
     private final static String MAX_BUFFERED_BYTES =
         "com.sun.grizzly.maxBufferedBytes";
-    
+
+    private final static String TRANSACTION_TIMEOUT =
+        "com.sun.grizzly.maxTransactionTimeout";
+
     // --------------------------------------------------------- Static -----//
 
 
@@ -181,7 +184,17 @@ public class SelectorThreadConfig{
             } catch (NumberFormatException ex){
                 SelectorThread.logger().log(Level.WARNING, "selectorThread.invalidMinThreads");
             }
-        }    
+        }
+
+       if (System.getProperty(TRANSACTION_TIMEOUT) != null){
+            try{
+                selectorThread.setTransactionTimeout(
+                    Integer.parseInt(System.getProperty(TRANSACTION_TIMEOUT)));
+            } catch (NumberFormatException ex){
+                SelectorThread.logger().log(Level.WARNING, "selectorThread.invalidMaxTransaction");
+            }
+        }
+
         
         if (System.getProperty(MAX_BUFFERED_BYTES) != null){
             try{

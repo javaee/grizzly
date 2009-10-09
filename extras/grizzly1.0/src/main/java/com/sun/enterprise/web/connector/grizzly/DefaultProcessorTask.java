@@ -227,7 +227,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
     /**
      * Maximum timeout on uploads. 5 minutes as in Apache HTTPD server.
      */
-    protected int uploadTimeout = 300000;
+    protected int uploadTimeout = Constants.DEFAULT_IDLE_TIMEOUT;
 
 
     /**
@@ -391,7 +391,12 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                 "com.sun.grizzly.useKeepAliveAlgorithm";   
     
     private boolean useKeepAliveAlgorithm = false;
-    
+
+    /**
+     * The maximum time a connection can stay open holding a {@link WorkerThread}.
+     * Default is 5 minutes like Apache.
+     */
+    private int transactionTimeout = Constants.DEFAULT_IDLE_TIMEOUT;
     
     // ----------------------------------------------------- Constructor ---- //
 
@@ -725,7 +730,8 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                 }
                 setSoTimeout(input, soTimeout);
             }
-            
+
+            configureTransactionTimeout();
             
             inputBuffer.parseRequestLine();
             if (isMonitoringEnabled()) {
@@ -2277,6 +2283,35 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
 
     private static final boolean isBlockingStream(InputStream inputStream) {
         return !(inputStream instanceof ByteBufferInputStream);
+    }
+
+    /**
+     * Set the maximum time, in milliseconds, a {@link WorkerThread} executing
+     * an instance of this class can execute.
+     *
+     * @return  the maximum time, in milliseconds
+     */
+    public int getTransactionTimeout() {
+        return transactionTimeout;
+    }
+
+    /**
+     * Set the maximum time, in milliseconds, a {@link WrokerThread} processing
+     * an instance of this class.
+     *
+     * @param transactionTimeout  the maximum time, in milliseconds.
+     */
+    public void setTransactionTimeout(int transactionTimeout) {
+        this.transactionTimeout = transactionTimeout;
+    }
+
+    /**
+     * Confugure the maximum time a Thread can execute a transation
+     */
+    void configureTransactionTimeout(){
+        if (key != null){
+            key.attach(transactionTimeout);
+        }
     }
 }
 

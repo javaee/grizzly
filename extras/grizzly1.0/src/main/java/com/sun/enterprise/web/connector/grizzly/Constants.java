@@ -71,7 +71,11 @@ public final class Constants {
     public static final int DEFAULT_CONNECTION_UPLOAD_TIMEOUT = 300000;
     public static final int DEFAULT_SERVER_SOCKET_TIMEOUT = 0;
     public static final boolean DEFAULT_TCP_NO_DELAY = true;
-
+    
+    /**
+     * Default transaction time out.
+     */
+    public final static int DEFAULT_IDLE_TIMEOUT = 300000;
     
     /**
      * The default response-type

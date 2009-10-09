@@ -186,6 +186,11 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     
     protected int maxPostSize = 2 * 1024 * 1024;
 
+    /**
+     * The maximum time a connection can stay open holding a {@link WorkerThread}.
+     * Default is 5 minutes like Apache.
+     */
+    private int transactionTimeout = Constants.DEFAULT_IDLE_TIMEOUT;
 
     /**
      * The <code>Selector</code> used by the connector.
@@ -3206,5 +3211,26 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      */
     public int getTimeout() {
         return uploadTimeout;
+    }
+
+
+    /**
+     * Set the maximum time, in milliseconds, a {@link WorkerThread} executing
+     * an instance of this class can execute.
+     *
+     * @return  the maximum time, in milliseconds
+     */
+    public int getTransactionTimeout() {
+        return transactionTimeout;
+    }
+
+    /**
+     * Set the maximum time, in milliseconds, a {@link WrokerThread} processing
+     * an instance of this class.
+     *
+     * @param transactionTimeout  the maximum time, in milliseconds.
+     */
+    public void setTransactionTimeout(int transactionTimeout) {
+        this.transactionTimeout = transactionTimeout;
     }
 }
