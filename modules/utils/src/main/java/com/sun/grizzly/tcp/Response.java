@@ -920,7 +920,7 @@ public class Response<A> {
 
         private CompletionHandler<? super A> completionHandler;
         private final A attachment;
-        private final long idletimeoutdelay;
+        private long idletimeoutdelay;
         private final Response response;
         
         public ResponseAttachment(long idletimeoutdelay,A attachment,
@@ -947,6 +947,11 @@ public class Response<A> {
         @Override
         public long getIdleTimeoutDelay() {
             return idletimeoutdelay;
+        }
+
+        @Override
+        public void setIdleTimeoutDelay(long idletimeoutdelay){
+            this.idletimeoutdelay = idletimeoutdelay;
         }
 
         public void invokeCompletionHandler(){
