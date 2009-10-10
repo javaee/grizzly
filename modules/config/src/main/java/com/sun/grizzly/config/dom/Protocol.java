@@ -109,7 +109,6 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     List<NetworkListener> findNetworkListeners();
 
     class Duck {
-
         static public List<NetworkListener> findNetworkListeners(Protocol protocol) {
             final Collection<NetworkListener> listeners = ConfigBean.unwrap(protocol).getHabitat().getAllByType(NetworkListener.class);
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
@@ -120,6 +119,5 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
             }
             return refs;
         }
-
     }
 }
