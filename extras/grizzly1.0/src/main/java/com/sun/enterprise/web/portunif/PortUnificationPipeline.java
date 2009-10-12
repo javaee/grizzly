@@ -51,6 +51,7 @@ import com.sun.enterprise.web.portunif.util.ProtocolInfo;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
+import java.nio.channels.SocketChannel;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
@@ -84,7 +85,8 @@ import org.apache.tomcat.util.net.ServerSocketFactory;
  * @author Jeanfrancois Arcand
  */
 public class PortUnificationPipeline extends SSLPipeline{  
-    
+    private final static int MAX_RETRY = Integer.getInteger("com.sun.enterprise.web.portunif.PortUnificationPipeline.maxRetry", 2);
+
     public final static String PROTOCOL_FINDERS = 
             "com.sun.enterprise.web.connector.grizzly.protocolFinders";
     
@@ -292,9 +294,7 @@ public class PortUnificationPipeline extends SSLPipeline{
         
         ProtocolInfo protocolInfo = new ProtocolInfo();
         
-        ByteBufferInputStream bbInputStream;
-        
-        private int maxTry = 2;
+        private int maxTry = MAX_RETRY;
         
         private ProtocolHandler protocolHandler = null;
         
@@ -327,7 +327,7 @@ public class PortUnificationPipeline extends SSLPipeline{
                     while (notFound && readTry++ < maxTry){
                         String protocol = null;            
                         Iterator<ProtocolFinder> iterator = protocolFinders.iterator();
-                        while (iterator.hasNext()) {       
+                        while (iterator.hasNext()) {
                             try{
                                 iterator.next().find(protocolInfo);                                                           
                             } catch (IOException ex){
@@ -386,25 +386,31 @@ public class PortUnificationPipeline extends SSLPipeline{
                             // lack of missing bytes. Thus we must register the key for 
                             // extra bytes. The trick here is to re-use the ReadTask
                             // ByteBufferInpuStream.
-                            if (bbInputStream == null){
-                                bbInputStream = new ByteBufferInputStream();
-                            }
-                            ByteBuffer tmpBB = protocolInfo.inputBB;                               
-                            if (tmpBB == null){
+                            final boolean isSslBuffer = !protocolInfo.handshake;
+
+                            ByteBuffer tmpBB;
+                            
+                            if (isSslBuffer) {
+                                tmpBB = protocolInfo.inputBB;
+                            } else {
                                 tmpBB = protocolInfo.byteBuffer;
                             }
+
+
+                            if (!tmpBB.hasRemaining()) {
+                                tmpBB.clear();
+                            }
+                            
                             int byteAvailables = tmpBB.position();
-                            bbInputStream.setByteBuffer(tmpBB);
-                            bbInputStream.setSelectionKey(key);
-                            //One seconds blocking read.
-                            bbInputStream.setReadTimeout(1000); 
-                            bbInputStream.read();
-                            if ((tmpBB.position() - byteAvailables) <= 1){
+                            ByteBufferInputStream.readBlocking(
+                                    (SocketChannel) key.channel(), tmpBB, 1000);
+                            
+                            if ((tmpBB.position() - byteAvailables) <= 0){
                                 cancel(readTask,tmpBB);    
                                 return;
                             }
-                            protocolInfo.byteBuffer = tmpBB;
-                            bbInputStream.recycle();
+                            
+//                            protocolInfo.byteBuffer = tmpBB;
                         }
                     } 
                 } else {
@@ -419,7 +425,7 @@ public class PortUnificationPipeline extends SSLPipeline{
                 }   
                 cancel(readTask,protocolInfo.byteBuffer);         
             } finally {                                
-                if (readTry == maxTry){
+                if (readTry >= maxTry){
                     cancel(readTask,protocolInfo.byteBuffer);
                 } 
                 protocolHandler = null;

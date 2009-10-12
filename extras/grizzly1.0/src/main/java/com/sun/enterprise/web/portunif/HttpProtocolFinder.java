@@ -79,7 +79,7 @@ public class HttpProtocolFinder implements ProtocolFinder {
         int bufferSize = 0;
         int count = -1;
         
-        if (protocolInfo.bytesRead == 0) {
+        if (protocolInfo.bytesRead == 0 && protocolInfo.handshake) {
             try {
                 while ( socketChannel.isOpen() && 
                         ((count = socketChannel.read(byteBuffer))> -1)){
