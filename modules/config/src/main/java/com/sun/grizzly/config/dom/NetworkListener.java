@@ -151,8 +151,11 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
             return findHttpProtocol(new HashSet<String>(), networkConfig, protocol);
         }
 
-        private static Protocol findHttpProtocol(Set<String> tray,
-                NetworkConfig config, Protocol protocol) {
+        private static Protocol findHttpProtocol(Set<String> tray, NetworkConfig config, Protocol protocol) {
+            if(protocol == null) {
+                return null;
+            }
+            
             final String protocolName = protocol.getName();
             if (tray.contains(protocolName)) {
                 throw new IllegalStateException("Loop found in Protocol definition. Protocol name: " + protocol.getName());
