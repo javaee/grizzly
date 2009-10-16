@@ -38,7 +38,10 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.OutputWriter;
 import com.sun.grizzly.util.WorkerThreadImpl;
@@ -48,7 +51,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.SocketChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
@@ -56,6 +58,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.util.http.MimeHeaders;
+import java.util.StringTokenizer;
 
 
 /**
@@ -260,6 +263,19 @@ public class FileCache{
      */
     private int headerBBSize = 4096;
 
+    /**
+     * Status code (304) indicating that a conditional GET operation
+     * found that the resource was available and not modified.
+     */
+    public static final int SC_NOT_MODIFIED = 304;
+
+    /**
+     * Status code (412) indicating that the precondition given in one
+     * or more of the request-header fields evaluated to false when it
+     * was tested on the server.
+     */
+    public static final int SC_PRECONDITION_FAILED = 412;
+
     // ---------------------------------------------------- Methods ----------//
              
             
@@ -307,21 +323,22 @@ public class FileCache{
                 bb = nullByteBuffer;
             
             FileCacheEntry entry = cacheManager.poll();
-            if ( entry == null){
+            if (entry == null){
                 entry = new FileCacheEntry();
             }
             entry.bb = bb;
             entry.requestURI = requestURI;
             
-            if ( bb != nullByteBuffer){
-                entry.lastModified = headers.getHeader("Last-Modified");
-                entry.contentType = headers.getHeader("content-type");
+            if (bb != nullByteBuffer){
+                String ifModif = headers.getHeader("Last-Modified") ;
+                entry.lastModified = (ifModif == null ?
+                    String.valueOf(file.lastModified()):ifModif);
+                entry.contentType = headers.getHeader("Content-type");
                 entry.xPoweredBy = xPoweredBy;
                 entry.isInHeap = (file.length() < minEntrySize);
                 entry.date = headers.getHeader("Date");
                 entry.Etag = headers.getHeader("Etag");
-
-                configHeaders(entry);
+                entry.contentLength = headers.getHeader("Content-Length");
 
                 incOpenCacheEntries();
                 if ( isMonitoringEnabled ) {
@@ -409,12 +426,12 @@ public class FileCache{
     /**
      * Return <tt>true</tt> if the file is cached.
      */
-    protected final FileCacheEntry map(byte[] requestBytes,int start, int length){
+    protected final FileCacheEntry map(Request request){
         String uri = "";
         FileCacheEntry entry = null;
         
         if ( fileCache.size() != 0 ){
-            uri = new String(requestBytes,start,length);
+            uri = request.requestURI().toString();
             entry = fileCache.get(uri);
             
             recalcCacheStatsIfMonitoring(entry);
@@ -447,24 +464,20 @@ public class FileCache{
     /**
      * Send the cache.
      */
-    public boolean sendCache(byte[] req, int start, int length,
-            SocketChannel socketChannel, boolean keepAlive){
+    public boolean sendCache(Request req){
 
         try{
-            FileCacheEntry entry = map(req,start,length);
+            FileCacheEntry entry = map(req);
             if (entry != null && entry.bb != nullByteBuffer){
-                sendCache(socketChannel,entry,keepAlive); 
+                sendCache(req,entry);
                 return true;
             }
-        } catch (IOException ex){
-            SelectorThread.logger()
-                .fine("File Cache: " + ex.getMessage());
-            return true;
         } catch (Throwable t){
+            t.printStackTrace();    
             // If an unexpected exception occurs, try to serve the page
             // as if it wasn't in a cache.
             SelectorThread.logger()
-                .fine("File Cache thread race: " + t.getMessage());
+                .fine("File Cache exception:" + t.getMessage());
         }
         return false;
     }    
@@ -484,52 +497,30 @@ public class FileCache{
     /**
      * Send the cached resource.
      */
-    protected void sendCache(SocketChannel socketChannel,  FileCacheEntry entry,
-            boolean keepAlive) throws IOException{
+    protected void sendCache(Request request, FileCacheEntry entry) throws IOException{
+        boolean flushBody = checkIfHeaders(request, entry);
+        request.getResponse().setContentType(entry.contentType);
+        request.getResponse().setContentLength(Integer.valueOf(entry.contentLength));
 
-        ByteBuffer keepAliveBuf = keepAlive ? connectionKaBB.slice():
-               connectionCloseBB.slice();
-        ByteBuffer[] scatterBB = new ByteBuffer[3];
-        scatterBB[0] = entry.headerBuffer.slice();
-        scatterBB[1] = keepAliveBuf;
-        scatterBB[2] = entry.bb.slice();
-        OutputWriter.flushChannel(socketChannel,scatterBB);
-    }
+        if (flushBody) {
+            ByteBuffer sliced = entry.bb.slice();
+            ByteBuffer ob = ((SocketChannelOutputBuffer)request.getResponse()
+                    .getOutputBuffer()).getOutputByteBuffer();
+            int left = ob.remaining();
 
-    
-    /**
-     * Return a {@link ByteBuffer} contains the server header.
-     */
-    private void configHeaders(FileCacheEntry entry) {
-        if ( entry.headerBuffer == null ) {
-            entry.headerBuffer = 
-                    ByteBuffer.allocate(getHeaderBBSize());
+            // It's better to execute a byte copy than two network operation.
+            if (left > sliced.limit()){
+                request.getResponse().action(ActionCode.ACTION_COMMIT, null);
+                ob.put(sliced);
+                ((SocketChannelOutputBuffer)request.getResponse()
+                    .getOutputBuffer()).flushBuffer();
+            } else {
+                request.getResponse().flush();
+                OutputWriter.flushChannel(request.getResponse().getChannel(),sliced);
+            }
+        } else {
+            request.getResponse().flush();
         }
-        
-        StringBuilder sb = new StringBuilder();
-        sb.append(OK);
-        if ( entry.xPoweredBy){
-            appendHeaderValue(sb,"X-Powered-By", "Servlet/2.5");
-        }     
-        appendHeaderValue(sb, "ETag", entry.Etag);   
-        appendHeaderValue(sb,"Last-Modified", entry.lastModified);
-        appendHeaderValue(sb,"Content-Type", entry.contentType);
-        appendHeaderValue(sb,"Content-Length", entry.bb.capacity() + "");
-        appendHeaderValue(sb,"Date", entry.date);
-        appendHeaderValue(sb,"Server", SelectorThread.SERVER_NAME);
-        entry.headerBuffer.put(sb.toString().getBytes());
-        entry.headerBuffer.flip();
-    }   
-       
-    
-    /**
-     * Utility to add headers to the HTTP response.
-     */
-    private void appendHeaderValue(StringBuilder sb,String name, String value) {
-        sb.append(name);
-        sb.append(": ");
-        sb.append(value);
-        sb.append(NEWLINE);
     }
 
     /**
@@ -547,9 +538,9 @@ public class FileCache{
     }
 
     
-    public final class FileCacheEntry implements Runnable{       
+    public final class FileCacheEntry implements Runnable{
         public String requestURI;
-        public String lastModified;
+        public String lastModified = "";
         public String contentType;
         public ByteBuffer bb;
         public ByteBuffer headerBuffer;        
@@ -558,6 +549,8 @@ public class FileCache{
         public String date;
         public String Etag;
         public Future future;
+        public String contentLength;
+        public String keepAlive;
              
         public void run(){                          
             fileCache.remove(requestURI);
@@ -944,5 +937,203 @@ public class FileCache{
      */
     public void setHeaderBBSize(int headerBBSize) {
         this.headerBBSize = headerBBSize;
+    }
+
+
+    /**
+     * Check if the if-modified-since condition is satisfied.
+     * 
+     * @return boolean true if the resource meets the specified condition,
+     * and false if the condition is not satisfied, in which case request
+     * processing is stopped
+     */
+    private boolean checkIfModifiedSince(Request request, FileCacheEntry entry)
+        throws IOException {
+        try {
+            Response response = request.getResponse();
+            String h = request.getHeader("If-Modified-Since");
+            long headerValue = (h == null ? -1: Long.parseLong(h));
+            if (headerValue != -1) {
+                long lastModified = Long.parseLong(entry.lastModified);
+                // If an If-None-Match header has been specified,
+                // If-Modified-Since is ignored.
+                if ((request.getHeader("If-None-Match") == null)
+                    && (lastModified < headerValue + 1000)) {
+                    // The entity has not been modified since the date
+                    // specified by the client. This is not an error case.
+                    response.setStatus(SC_NOT_MODIFIED);
+                    response.setHeader("ETag", getETag(entry));
+                    return false;
+                }
+            }
+        } catch(IllegalArgumentException illegalArgument) {
+            return true;
+        }
+        return true;
+
+    }
+
+
+    /**
+     * Check if the if-none-match condition is satisfied.
+
+     * @return boolean true if the resource meets the specified condition,
+     * and false if the condition is not satisfied, in which case request
+     * processing is stopped
+     */
+    private boolean checkIfNoneMatch(Request request, FileCacheEntry entry)
+        throws IOException {
+
+        Response response = request.getResponse();
+        String eTag = getETag(entry);
+        String headerValue = request.getHeader("If-None-Match");
+        if (headerValue != null) {
+
+            boolean conditionSatisfied = false;
+
+            if (!headerValue.equals("*")) {
+
+                StringTokenizer commaTokenizer =
+                    new StringTokenizer(headerValue, ",");
+
+                while (!conditionSatisfied && commaTokenizer.hasMoreTokens()) {
+                    String currentToken = commaTokenizer.nextToken();
+                    if (currentToken.trim().equals(eTag))
+                        conditionSatisfied = true;
+                }
+
+            } else {
+                conditionSatisfied = true;
+            }
+
+            if (conditionSatisfied) {
+
+                // For GET and HEAD, we should respond with
+                // 304 Not Modified.
+                // For every other method, 412 Precondition Failed is sent
+                // back.
+                if ( ("GET".equals(request.method().getString()))
+                     || ("HEAD".equals(request.method().getString())) ) {
+                    response.setStatus(SC_NOT_MODIFIED);
+                    response.setHeader("ETag", eTag);
+                    return false;
+                } else {
+                    response.setStatus
+                        (SC_PRECONDITION_FAILED);
+                    return false;
+                }
+            }
+        }
+        return true;
+
+    }
+
+    /**
+     * Check if the if-unmodified-since condition is satisfied.
+     *
+     * @return boolean true if the resource meets the specified condition,
+     * and false if the condition is not satisfied, in which case request
+     * processing is stopped
+     */
+    protected boolean checkIfUnmodifiedSince(Request request, FileCacheEntry entry)
+        throws IOException {
+        try {
+            Response response = request.getResponse();
+            long lastModified = Long.parseLong(entry.lastModified);
+            String h = request.getHeader("If-Unmodified-Since");
+            long headerValue = (h == null? -1: Long.parseLong(h));
+            if (headerValue != -1) {
+                if ( lastModified >= (headerValue + 1000)) {
+                    // The entity has not been modified since the date
+                    // specified by the client. This is not an error case.
+                    response.setStatus(SC_PRECONDITION_FAILED);
+                    return false;
+                }
+            }
+        } catch(IllegalArgumentException illegalArgument) {
+            return true;
+        }
+        return true;
+
+    }
+
+    /**
+     * Get ETag.
+     *
+     * @return strong ETag if available, else weak ETag
+     */
+    private String getETag(FileCacheEntry entry) {
+        String result = entry.Etag;
+        if (result == null) {
+            long contentLength = Long.parseLong(entry.contentLength);
+            long lastModified = Long.parseLong(entry.lastModified);
+            if ((contentLength >= 0) || (lastModified >= 0)) {
+                result = "W/\"" + contentLength + "-" +
+                           lastModified + "\"";
+                entry.Etag = result;
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Check if the conditions specified in the optional If headers are
+     * satisfied.
+     *
+     * @return boolean true if the resource meets all the specified conditions,
+     * and false if any of the conditions is not satisfied, in which case
+     * request processing is stopped
+     */
+    protected boolean checkIfHeaders(Request request, FileCacheEntry entry)
+        throws IOException {
+
+        return checkIfMatch(request,entry)
+            && checkIfModifiedSince(request,entry)
+            && checkIfNoneMatch(request,entry)
+            && checkIfUnmodifiedSince(request,entry);
+
+    }
+
+        /**
+     * Check if the if-match condition is satisfied.
+     *
+     * @param request The servlet request we are processing
+     * @param response The servlet response we are creating
+     * @param resourceInfo File object
+     * @return boolean true if the resource meets the specified condition,
+     * and false if the condition is not satisfied, in which case request
+     * processing is stopped
+     */
+    protected boolean checkIfMatch(Request request, FileCacheEntry entry)
+        throws IOException {
+
+        Response response = request.getResponse();
+        String eTag = getETag(entry);
+        String headerValue = request.getHeader("If-Match");
+        if (headerValue != null) {
+            if (headerValue.indexOf('*') == -1) {
+
+                StringTokenizer commaTokenizer = new StringTokenizer
+                    (headerValue, ",");
+                boolean conditionSatisfied = false;
+
+                while (!conditionSatisfied && commaTokenizer.hasMoreTokens()) {
+                    String currentToken = commaTokenizer.nextToken();
+                    if (currentToken.trim().equals(eTag))
+                        conditionSatisfied = true;
+                }
+
+                // If none of the given ETags match, 412 Precodition failed is
+                // sent back
+                if (!conditionSatisfied) {
+                    response.setStatus
+                        (SC_PRECONDITION_FAILED);
+                    return false;
+                }
+
+            }
+        }
+        return true;
+
     }
 }

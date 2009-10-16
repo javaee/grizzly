@@ -104,9 +104,7 @@ public class ContainerStaticHandler extends StaticHandler {
 
         if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
             ByteChunk requestURI = req.requestURI().getByteChunk();
-            if (fileCache.sendCache(requestURI.getBytes(), requestURI.getStart(),
-                    requestURI.getLength(), socketChannel,
-                    keepAlive(req))) {
+            if (fileCache.sendCache(req)) {
                 return Interceptor.BREAK;
             }
         }

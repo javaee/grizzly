@@ -38,10 +38,9 @@
 package com.sun.grizzly.ssl;
 
 import com.sun.grizzly.http.FileCache;
+import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.SSLOutputWriter;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
 
 /**
  * This class implements a file caching mechanism used to cache static resources.
@@ -52,14 +51,12 @@ import java.nio.channels.SocketChannel;
 public class SSLFileCache extends FileCache {
 
     @Override
-    protected void sendCache(SocketChannel socketChannel,
-            FileCacheEntry entry,
-            boolean keepAlive) throws IOException {
-
-        SSLOutputWriter.flushChannel(socketChannel,
-                entry.headerBuffer.slice());
-        ByteBuffer keepAliveBuf = keepAlive ? connectionKaBB.slice() : connectionCloseBB.slice();
-        SSLOutputWriter.flushChannel(socketChannel, keepAliveBuf);
-        SSLOutputWriter.flushChannel(socketChannel, entry.bb.slice());
+    protected void sendCache(Request request,
+            FileCacheEntry entry) throws IOException {
+        boolean flushBody = checkIfHeaders(request, entry);
+        request.getResponse().sendHeaders();
+        if (flushBody) {
+            SSLOutputWriter.flushChannel(request.getResponse().getChannel(), entry.bb.slice());
+        }
     }
 }
