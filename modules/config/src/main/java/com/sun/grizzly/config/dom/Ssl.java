@@ -42,6 +42,8 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.types.PropertyBag;
 
+import javax.validation.constraints.Pattern;
+
 /**
  * Define SSL processing parameters
  */
@@ -81,6 +83,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * type of the keystore file
      */
     @Attribute
+    @Pattern(regexp="(JKS|NSS)")
     String getKeyStoreType();
 
     void setKeyStoreType(String type);
@@ -112,6 +115,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * ciphers are assumed to be enabled. NOT Used in PE
      */
     @Attribute
+    @Pattern(regexp="((\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3)(\\s*,\\s*(\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3))*)*")
     String getSsl2Ciphers();
 
     void setSsl2Ciphers(String value);
@@ -182,6 +186,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * type of the truststore file
      */
     @Attribute
+    @Pattern(regexp="(JKS|NSS)")
     String getTrustStoreType();
 
     void setTrustStoreType(String type);
