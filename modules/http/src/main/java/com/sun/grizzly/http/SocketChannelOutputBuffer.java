@@ -620,4 +620,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     public static int getMaxBufferPoolSize() {
         return maxBufferPoolSize;
     }
+
+    public ByteBuffer getOutputByteBuffer(){
+        return outputByteBuffer;
+    }
 }

@@ -833,15 +833,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             k.setIdleTimeoutDelay(transactionTimeout);
 
             request.setStartTime(System.currentTimeMillis());
-            final Interceptor handler = getHandler();
-            
-            if ( handler != null && 
-                    handler.handle(request,Interceptor.REQUEST_LINE_PARSED)
-                        == Interceptor.BREAK){
-                keepAlive(request.getMimeHeaders());
-                return true;
-            }
-        
+
             if ( SelectorThread.isEnableNioLogging() ){                               
                 logger.log(Level.INFO, 
                         "SocketChannel request line " + key.channel() + " is: "
@@ -880,6 +872,15 @@ public class ProcessorTask extends TaskBase implements Processor,
             response.setStatus(500);
             error = true;
         }
+
+        final Interceptor handler = getHandler();
+        if (!error && handler != null &&
+                handler.handle(request,Interceptor.REQUEST_LINE_PARSED)
+                    == Interceptor.BREAK){
+            keepAlive(request.getMimeHeaders());
+            return true;
+        }
+
         return false;
     }
     
@@ -988,7 +989,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 if (logger.isLoggable(Level.FINEST)){
                     logger.log(Level.FINEST,
                         sm.getString("processorTask.nonBlockingError"), ex);               
-                error = true;
+                    error = true;
                 }
             }
 
