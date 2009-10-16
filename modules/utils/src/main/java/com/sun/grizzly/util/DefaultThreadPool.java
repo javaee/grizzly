@@ -126,8 +126,7 @@ public class DefaultThreadPool extends FixedThreadPool
      */
     public DefaultThreadPool(final String name, int corePoolsize,
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit){
-        this(name, corePoolsize, maxPoolSize, keepAliveTime, timeUnit,
-                null);
+        this(name, corePoolsize, maxPoolSize, keepAliveTime, timeUnit, null);
     }
 
     /**
@@ -197,7 +196,7 @@ public class DefaultThreadPool extends FixedThreadPool
         int aliveWorkers;
         while((aliveWorkers=aliveworkerCount.get())<maxPoolSize &&
                 (aliveWorkers < corePoolSize ||
-                queueSize.get()>0 || !hasIdleWorkersApproximately()) && running){
+                queueSize.get() >= (aliveWorkers - approximateRunningWorkerCount.get())) && running){
             if (aliveworkerCount.compareAndSet(aliveWorkers, aliveWorkers+1)){
                 startWorker(new Worker(task, false));
                 return;
@@ -206,7 +205,6 @@ public class DefaultThreadPool extends FixedThreadPool
         if (running){
             if (workQueue.offer(task)) {
                 onTaskQueued(task);
-                queueSize.incrementAndGet();
             } else {
                 onTaskQueueOverflow();
                 throw new RejectedExecutionException("The queue is full");
@@ -214,12 +212,12 @@ public class DefaultThreadPool extends FixedThreadPool
         }
     }
 
-    private boolean hasIdleWorkersApproximately() {
-        if( aliveworkerCount.get() <= approximateRunningWorkerCount.get() )
-            return false;
-        else
-            return true;
-    }
+//    private boolean hasIdleWorkersApproximately() {
+//        if( aliveworkerCount.get() <= approximateRunningWorkerCount.get() )
+//            return false;
+//        else
+//            return true;
+//    }
 
     public void start() {
         int aliveCount;
@@ -232,6 +230,18 @@ public class DefaultThreadPool extends FixedThreadPool
 
     public void stop() {
         shutdownNow();
+    }
+
+    @Override
+    protected void onTaskQueued(Runnable task) {
+        super.onTaskQueued(task);
+        queueSize.incrementAndGet();
+    }
+
+    @Override
+    protected void onTaskDequeued(Runnable task) {
+        queueSize.decrementAndGet();
+        super.onTaskDequeued(task);
     }
 
     protected class Worker extends BasicWorker{
@@ -258,7 +268,6 @@ public class DefaultThreadPool extends FixedThreadPool
                 r = (core ? workQueue.take() : workQueue.poll(idleTimeout, timeUnit));
                 if (r != null) {
                     onTaskDequeued(r);
-                    queueSize.decrementAndGet();
                 }
             }
 
