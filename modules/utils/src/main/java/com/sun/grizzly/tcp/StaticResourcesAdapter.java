@@ -189,7 +189,7 @@ public class StaticResourcesAdapter implements Adapter {
             int dot = uri.lastIndexOf(".");
             if (dot > 0) {
                 String ext = uri.substring(dot + 1);
-                String ct = MimeType.get(ext);
+                String ct = MimeType.get(ext, defaultContentType);
                 if (ct != null) {
                     res.setContentType(ct);
                 }

@@ -199,9 +199,13 @@ public class MimeType{
         contentTypes.put("zip", "application/zip");
     }
     
-    
+
     public static String get(String extension){
         return contentTypes.getProperty(extension,"text/plain");
+    }
+
+    public static String get(String extension, String defaultCt){
+        return contentTypes.getProperty(extension,defaultCt);
     }
 
     /**
