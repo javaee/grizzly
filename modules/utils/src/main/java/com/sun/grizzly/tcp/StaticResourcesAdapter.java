@@ -306,10 +306,16 @@ public class StaticResourcesAdapter implements Adapter {
 
     /**
      * Set the directory from where files will be serviced.
+     *
+     * NOTE: For backward compatibility, invoking that method will
+     * clear all previous values added using {@link #addRootFolder}.
+     * 
      * @param rootFolder the directory from where files will be serviced.
+     * 
      * @deprecated - use {@link #addRootFolders}
      */
     public void setRootFolder(String rootFolder) {
+        rootFolders.clear();
         addRootFolder(rootFolder);
     }
 
