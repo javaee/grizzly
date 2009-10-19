@@ -196,13 +196,14 @@ public class DefaultThreadPool extends FixedThreadPool
         int aliveWorkers;
         while((aliveWorkers=aliveworkerCount.get())<maxPoolSize &&
                 (aliveWorkers < corePoolSize ||
-                queueSize.get() >= (aliveWorkers - approximateRunningWorkerCount.get())) && running){
+                queueSize.get()>0 || !hasIdleWorkersApproximately()) && running){
             if (aliveworkerCount.compareAndSet(aliveWorkers, aliveWorkers+1)){
                 startWorker(new Worker(task, false));
                 return;
             }
         }
-        if (running){
+
+        if (running) {
             if (workQueue.offer(task)) {
                 onTaskQueued(task);
             } else {
@@ -212,12 +213,12 @@ public class DefaultThreadPool extends FixedThreadPool
         }
     }
 
-//    private boolean hasIdleWorkersApproximately() {
-//        if( aliveworkerCount.get() <= approximateRunningWorkerCount.get() )
-//            return false;
-//        else
-//            return true;
-//    }
+    private boolean hasIdleWorkersApproximately() {
+        if( aliveworkerCount.get() <= approximateRunningWorkerCount.get() )
+            return false;
+        else
+            return true;
+    }
 
     public void start() {
         int aliveCount;
