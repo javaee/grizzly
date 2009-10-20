@@ -758,15 +758,22 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     /**
+     * Log the current Grizzly version. 
+     */
+    public void logVersion(){
+        if (logger.isLoggable(Level.INFO)){
+            logger.info("Starting Grizzly Framework " + Grizzly.getRawVersion() + " - " + (new Date()));
+        }
+    }
+
+    /**
      * Start the Controller. If the thread pool and/or H andler has not been
      * defined, the default will be used.
      */
     public void start() throws IOException {
         if (isStarted()) return;
 
-        if (logger.isLoggable(Level.INFO)){
-            logger.info("Starting Grizzly Framework " + Grizzly.getRawVersion() + " - " + (new Date()));
-        }
+        logVersion();
 
         stateHolder.getStateLocker().writeLock().lock();
         boolean isUnlocked = false;
