@@ -466,6 +466,8 @@ public class FileCache{
      */
     public boolean sendCache(Request req){
 
+        if (req.method().toString().equalsIgnoreCase("HEAD")) return false;
+
         try{
             FileCacheEntry entry = map(req);
             if (entry != null && entry.bb != nullByteBuffer){
