@@ -156,8 +156,7 @@ public class WebFilterConfig {
     /*
      * Number of seconds before idle keep-alive connections expire
      */
-    protected int keepAliveTimeoutInSeconds = 30;
-
+    protected int keepAliveTimeoutInSeconds = Constants.KEEP_ALIVE_TIMEOUT_IN_SECONDS;
 
     /**
      * The default response-type

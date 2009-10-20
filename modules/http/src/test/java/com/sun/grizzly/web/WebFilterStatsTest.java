@@ -81,7 +81,7 @@ public class WebFilterStatsTest extends TestCase {
         webConfig.setCompression("off"); // don't let proxy compress stuff that's already compressed.
         webConfig.setDisplayConfiguration(true);
 
-        FileCache fileCache = new FileCache(webFilter);
+        FileCache fileCache = new FileCache(webConfig);
         fileCache.setLargeFileCacheEnabled(false);
         webConfig.setFileCache(fileCache);
 

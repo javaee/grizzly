@@ -20,5 +20,6 @@
         <module>http</module>
         <module>http-servlet</module>
         <module>bundles</module>
+        <module>config</module>
     </modules>
 </project>

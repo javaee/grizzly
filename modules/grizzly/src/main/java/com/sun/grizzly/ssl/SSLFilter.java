@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.ssl;
 
 import java.io.IOException;
@@ -43,6 +42,7 @@ import java.util.concurrent.Future;
 import java.util.logging.Filter;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
+
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
@@ -57,13 +57,12 @@ import com.sun.grizzly.streams.StreamWriter;
 
 /**
  * SSL {@link Filter} to operate with SSL encrypted data.
- * 
+ *
  * @author Alexey Stashok
  */
 public class SSLFilter extends FilterAdapter
-        implements CodecFilter, StreamTransformerFilter {
+    implements CodecFilter, StreamTransformerFilter {
     private Logger logger = Grizzly.logger;
-    
     private final SSLEngineConfigurator sslEngineConfigurator;
     private final SSLHandshaker sslHandshaker;
     private final SSLDecoderTransformer decoder;
@@ -72,10 +71,10 @@ public class SSLFilter extends FilterAdapter
     public SSLFilter() {
         this(null);
     }
-    
+
     /**
      * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator}.
-     * 
+     *
      * @param sslEngineConfigurator SSLEngine configurator
      */
     public SSLFilter(SSLEngineConfigurator sslEngineConfigurator) {
@@ -83,68 +82,55 @@ public class SSLFilter extends FilterAdapter
     }
 
     /**
-     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator} and
-     * custom {@link SSLHandshaker}
+     * Build <tt>SSLFilter</tt> with the given {@link SSLEngineConfigurator} and custom {@link SSLHandshaker}
      *
      * @param sslEngineConfigurator SSLEngine configurator
      */
-    public SSLFilter(SSLEngineConfigurator sslEngineConfigurator,
-            SSLHandshaker sslHandshaker) {
+    public SSLFilter(SSLEngineConfigurator sslEngineConfigurator, SSLHandshaker sslHandshaker) {
         if (sslEngineConfigurator == null) {
-            sslEngineConfigurator = new SSLEngineConfigurator(
-                    SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
-                    false, false, false);
+            this.sslEngineConfigurator = new SSLEngineConfigurator(SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
+                false, false, false);
+        } else {
+            this.sslEngineConfigurator = sslEngineConfigurator;
         }
-        this.sslEngineConfigurator = sslEngineConfigurator;
-
         if (sslHandshaker == null) {
-            sslHandshaker = new BlockingSSLHandshaker();
+            this.sslHandshaker = new BlockingSSLHandshaker();
+        } else {
+            this.sslHandshaker = sslHandshaker;
         }
-
-        this.sslHandshaker = sslHandshaker;
-        this.decoder = new SSLDecoderTransformer();
-        this.encoder = new SSLEncoderTransformer();
+        decoder = new SSLDecoderTransformer();
+        encoder = new SSLEncoderTransformer();
     }
 
     /**
-     * Wraps {@link FilterChainContext} default {@link StreamReader} and
-     * {@link StreamWriter} with SSL aware ones.
+     * Wraps {@link FilterChainContext} default {@link StreamReader} and {@link StreamWriter} with SSL aware ones.
      */
     @Override
     public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+        throws IOException {
         Connection connection = ctx.getConnection();
-
         SSLResourcesAccessor sslResourceAccessor =
-                SSLResourcesAccessor.getInstance();
+            SSLResourcesAccessor.getInstance();
         SSLEngine sslEngine = sslResourceAccessor.getSSLEngine(connection);
-
         if (sslEngine == null) {
             // Initialize SSLEngine
             sslEngine = sslEngineConfigurator.createSSLEngine();
             sslResourceAccessor.setSSLEngine(connection, sslEngine);
         }
-
         StreamReader parentReader = ctx.getStreamReader();
         StreamWriter parentWriter = ctx.getStreamWriter();
-
         SSLStreamReader sslStreamReader = new SSLStreamReader(parentReader);
         SSLStreamWriter sslStreamWriter = new SSLStreamWriter(parentWriter);
-
         ctx.setStreamReader(sslStreamReader);
         ctx.setStreamWriter(sslStreamWriter);
-
         sslStreamReader.pull();
-
         if (SSLUtils.isHandshaking(sslEngine)) {
             Future future = sslHandshaker.handshake(sslStreamReader,
-                    sslStreamWriter, sslEngineConfigurator);
+                sslStreamWriter, sslEngineConfigurator);
             if (!future.isDone()) {
                 return ctx.getStopAction();
             }
         }
-
-
         if (!sslStreamReader.hasAvailableData()) {
             nextAction = ctx.getStopAction();
         }
@@ -155,16 +141,12 @@ public class SSLFilter extends FilterAdapter
      * {@inheritDoc}
      */
     @Override
-    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction postRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
         SSLStreamReader sslStreamReader = (SSLStreamReader) ctx.getStreamReader();
         SSLStreamWriter sslStreamWriter = (SSLStreamWriter) ctx.getStreamWriter();
-
         sslStreamReader.detach();
-
         ctx.setStreamReader(sslStreamReader.getUnderlyingReader());
         ctx.setStreamWriter(sslStreamWriter.getUnderlyingWriter());
-        
         return nextAction;
     }
 
@@ -172,17 +154,13 @@ public class SSLFilter extends FilterAdapter
      * {@inheritDoc}
      */
     @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction) throws IOException {
         StreamWriter writer = ctx.getStreamWriter();
-
         Object message = ctx.getMessage();
-
         if (message instanceof Buffer) {
             writer.writeBuffer((Buffer) message);
         }
         writer.flush();
-
         return nextAction;
     }
 
@@ -190,8 +168,7 @@ public class SSLFilter extends FilterAdapter
      * {@inheritDoc}
      */
     @Override
-    public NextAction postWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction postWrite(FilterChainContext ctx, NextAction nextAction) throws IOException {
         return nextAction;
     }
 
@@ -199,8 +176,7 @@ public class SSLFilter extends FilterAdapter
      * {@inheritDoc}
      */
     @Override
-    public NextAction postClose(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction postClose(FilterChainContext ctx, NextAction nextAction) throws IOException {
         SSLResourcesAccessor.getInstance().clear(ctx.getConnection());
         return nextAction;
     }
@@ -215,11 +191,8 @@ public class SSLFilter extends FilterAdapter
         return new SSLStreamWriter(parentStreamWriter);
     }
 
-    public SSLSupport createSSLSupport(
-            SSLStreamReader reader, SSLStreamWriter writer) {
-
-        return new SSLSupportImpl(
-                sslEngineConfigurator, sslHandshaker, reader, writer);
+    public SSLSupport createSSLSupport(SSLStreamReader reader, SSLStreamWriter writer) {
+        return new SSLSupportImpl(sslEngineConfigurator, sslHandshaker, reader, writer);
     }
 
     @Override

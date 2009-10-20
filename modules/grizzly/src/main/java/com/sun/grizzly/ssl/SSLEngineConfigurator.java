@@ -202,6 +202,14 @@ public class SSLEngineConfigurator {
         this.isProtocolConfigured = isProtocolConfigured;
     }
 
+    public SSLContext getSslContext() {
+        return sslContext;
+    }
+
+    public void setSslContext(final SSLContext sslContext) {
+        this.sslContext = sslContext;
+    }
+
     /**
      * Return the list of allowed protocol.
      * @return String[] an array of supported protocols.

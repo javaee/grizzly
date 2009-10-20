@@ -57,18 +57,17 @@ import com.sun.grizzly.util.http.MimeHeaders;
  * @author Jeanfrancois Arcand
  */
 public class StaticHandler implements Interceptor<Request> {
-      
-    private WebFilter webFilter;
+    protected WebFilter webFilter;
     
     /**
      * The {@link StreamReader} used to send a static resources.
      */
-    private StreamReader reader;
+    protected StreamReader reader;
 
     /**
      * The {@link StreamWriter} used to send a static resources.
      */
-    private StreamWriter writer;
+    protected StreamWriter writer;
  
     
     /**
@@ -126,7 +125,7 @@ public class StaticHandler implements Interceptor<Request> {
     /**
      * Get the keep-alive header.
      */
-    private boolean keepAlive(Request request){
+    protected boolean keepAlive(Request request){
         MimeHeaders headers = request.getMimeHeaders();
 
         // Check connection header

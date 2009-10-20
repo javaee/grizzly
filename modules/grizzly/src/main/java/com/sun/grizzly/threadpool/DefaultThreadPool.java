@@ -55,16 +55,16 @@ import java.util.logging.Level;
 public class DefaultThreadPool extends ThreadPoolExecutor
         implements ExtendedThreadPool, Thread.UncaughtExceptionHandler {
     // Min number of worker threads in a pool
-    private static int DEFAULT_MIN_THREAD_COUNT = 5;
+    private static final int DEFAULT_MIN_THREAD_COUNT = 5;
     
     // Max number of worker threads in a pool
-    private static int DEFAULT_MAX_THREAD_COUNT = 20;
+    private static final int DEFAULT_MAX_THREAD_COUNT = 20;
     
     // Max number of tasks thread pool can enqueue
-    private static int DEFAULT_MAX_TASKS_QUEUED = Integer.MAX_VALUE;
+    private static final int DEFAULT_MAX_TASKS_QUEUED = Integer.MAX_VALUE;
     
     // Timeout, after which idle thread will be stopped and excluded from pool
-    private static int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
+    private static final int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
     
     /**
      * AttributeBuilder to index WorkerThread attributes
@@ -120,7 +120,7 @@ public class DefaultThreadPool extends ThreadPoolExecutor
     }
 
     public void start() {
-        this.prestartCoreThread();
+        prestartCoreThread();
     }
 
     public void stop() {

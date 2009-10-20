@@ -110,8 +110,8 @@ public final class Constants {
      * Default recycle value.
      */
     public final static boolean DEFAULT_RECYCLE = true;
-    
-    
+    public static final int KEEP_ALIVE_TIMEOUT_IN_SECONDS = 30;
+
     /**
      * Default max keep-alive count.
      */
@@ -280,5 +280,7 @@ public final class Constants {
      * POST.
      */
     public static final String POST = "POST";
-
+    public static final int MAX_CACHE_ENTRIES = 1024;
+    public static final long MAX_LARGE_FILE_CACHE_SIZE = 10485760;
+    public static final int MAX_AGE_IN_SECONDS = 30;
 }

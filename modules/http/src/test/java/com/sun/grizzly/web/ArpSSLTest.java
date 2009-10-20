@@ -84,7 +84,7 @@ public class ArpSSLTest extends TestCase {
         AsyncWebFilterConfig webConfig = new AsyncWebFilterConfig();
         webConfig.setAdapter(new MyAdapter());
 
-        FileCache fileCache = new FileCache(webFilter);
+        FileCache fileCache = new FileCache(webConfig);
         fileCache.setLargeFileCacheEnabled(false);
         webConfig.setFileCache(fileCache);
 

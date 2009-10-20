@@ -102,18 +102,11 @@ public class FileCache {
      */
     private final static String NEWLINE = "\r\n";
 
-
     /**
      * HTTP OK header
      */
-    public final static String OK = "HTTP/1.1 200 OK" + NEWLINE;    
+    public final static String OK = "HTTP/1.1 200 OK" + NEWLINE;
 
-    /**
-     * The {@link WebFilter} associated with this cache.
-     */
-    private WebFilter webFilter;
-    
-    
     /**
      * Scheduled Thread that clean the cache every XX seconds.
      */
@@ -136,13 +129,13 @@ public class FileCache {
     /**
      * Timeout before remove the static resource from the cache.
      */
-    private int secondsMaxAge = -1;
+    private int secondsMaxAge = Constants.MAX_AGE_IN_SECONDS;
     
     
     /**
      * The maximum entries in the {@link FileCache}
      */
-    private int maxCacheEntries = 1024;
+    private int maxCacheEntries = Constants.MAX_CACHE_ENTRIES;
     
  
     /**
@@ -160,7 +153,7 @@ public class FileCache {
     /**
      * The maximum memory mapped bytes
      */
-    private long maxLargeFileCacheSize = Long.MAX_VALUE;
+    private long maxLargeFileCacheSize = Constants.MAX_LARGE_FILE_CACHE_SIZE;
             
     
     /**
@@ -263,9 +256,10 @@ public class FileCache {
      * The Header ByteBuffer default size.
      */
     private int headerBBSize = 4096;
+    private WebFilterConfig config;
 
-    public FileCache(WebFilter webFilter) {
-        this.webFilter = webFilter;
+    public FileCache(final WebFilterConfig webFilterConfig) {
+        config = webFilterConfig;
     }
 
     // ---------------------------------------------------- Methods ----------//
@@ -380,7 +374,7 @@ public class FileCache {
             if ( size < minEntrySize) {
                 ((MappedByteBuffer)bb).load();
             }
-            return MemoryUtils.wrap(webFilter.getConfig().getMemoryManager(), bb);
+            return MemoryUtils.wrap(config.getMemoryManager(), bb);
         } catch (IOException ioe) {
             return null;
         } finally {
@@ -404,10 +398,10 @@ public class FileCache {
      * Return <tt>true</tt> if the file is cached.
      */
     protected final FileCacheEntry map(byte[] requestBytes,int start, int length){
-        String uri = "";
+        String uri;
         FileCacheEntry entry = null;
         
-        if ( fileCache.size() != 0 ){
+        if (!fileCache.isEmpty()){
             uri = new String(requestBytes,start,length);
             entry = fileCache.get(uri);
             
@@ -487,7 +481,7 @@ public class FileCache {
     private void configHeaders(FileCacheEntry entry) {
         if ( entry.headerBuffer == null ) {
             entry.headerBuffer =
-                    webFilter.getConfig().getMemoryManager().allocate(
+                    config.getMemoryManager().allocate(
                     getHeaderBBSize());
         }
         
@@ -501,7 +495,7 @@ public class FileCache {
         appendHeaderValue(sb,"Content-Type", entry.contentType);
         appendHeaderValue(sb,"Content-Length", entry.bb.capacity() + "");
         appendHeaderValue(sb,"Date", entry.date);
-        appendHeaderValue(sb,"Server", webFilter.getConfig().getServerName());
+        appendHeaderValue(sb,"Server", config.getServerName());
         entry.headerBuffer.put(sb.toString().getBytes());
         entry.headerBuffer.flip();
     }   
@@ -576,7 +570,7 @@ public class FileCache {
      * @return 1 if file cache has been enabled, 0 otherwise
      */
     public int getFlagEnabled() {
-        return (isEnabled == true?1:0);
+        return (isEnabled ? 1 : 0);
     }
     
     

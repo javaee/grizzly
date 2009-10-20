@@ -54,10 +54,9 @@ import java.util.regex.Pattern;
  */
 public class Grizzly {
     private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(?:-(.+))?");
-    public static Logger logger = Logger.getLogger("com.sun.grizzly");
+    public static final Logger logger = Logger.getLogger("com.sun.grizzly");
     
-    public static AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER = 
-            new DefaultAttributeBuilder();
+    public static final AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER = new DefaultAttributeBuilder();
     
     private static final String dotedVersion;
     private static final int major;
