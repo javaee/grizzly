@@ -204,6 +204,10 @@ public class StaticResourcesAdapter implements Adapter {
             // send file.
             res.sendHeaders();
 
+            if (req.method().toString().equalsIgnoreCase("HEAD")){
+                return;
+            }
+
             fis = new FileInputStream(resource);
             OutputBuffer outputBuffer = res.getOutputBuffer();
 
