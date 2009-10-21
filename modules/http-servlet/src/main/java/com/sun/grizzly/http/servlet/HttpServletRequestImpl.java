@@ -522,7 +522,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             throw new IllegalStateException(
                             sm.getString("requestFacade.nullRequest"));
         }
-        String value = (String)request.getAttribute(name);
+        Object value = request.getAttribute(name);
         request.removeAttribute(name);
 
         // Notify interested application event listeners
@@ -785,7 +785,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         pathToRemove.append(getServletPath());
         String s = pathToRemove.toString();
         if (path.startsWith(s)){
-            return path.substring(s.length());
+            String pathInfo = path.substring(s.length());
+            return "".equals(pathInfo) ? null : pathInfo;
         } else {
             throw new IllegalStateException("Request path not in servlet context.");
         }
