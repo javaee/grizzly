@@ -435,7 +435,10 @@ public class FileCache{
             entry = fileCache.get(uri);
             
             recalcCacheStatsIfMonitoring(entry);
+        } else {
+            recalcCacheStatsIfMonitoring(null);
         }
+
         return entry;
     }
 
@@ -545,7 +548,6 @@ public class FileCache{
         public String lastModified = "";
         public String contentType;
         public ByteBuffer bb;
-        public ByteBuffer headerBuffer;        
         public boolean xPoweredBy;
         public boolean isInHeap = false;
         public String date;
@@ -559,14 +561,14 @@ public class FileCache{
             
             if (requestURI == null) return;
             
-            if (headerBuffer != null) {
+            if (bb != null) {
 
                 /**
                  * If the position !=0, it means the ByteBuffer has a view
                  * that is still used. If that's the case, wait another 10 seconds
                  * before marking the ByteBuffer for garbage collection
                  */
-                if ( headerBuffer.position() !=0 || bb.position() != 0 ){        
+                if ( bb.position() != 0 ){
                     future = cacheResourcesThread
                                 .schedule(this, 10, TimeUnit.SECONDS);
                     return;
@@ -578,7 +580,6 @@ public class FileCache{
                     subHeapSize(bb.limit());
 
                 bb = null;
-                headerBuffer = null;
                 decOpenCacheEntries();
             }
             
