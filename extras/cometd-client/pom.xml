@@ -10,7 +10,7 @@
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-cometd-client</artifactId>
     <packaging>jar</packaging>
-    <version>${grizzly-version}</version>
+    <version>1.9.19-SNAPSHOT</version>
     <name>grizzly-cometd-client</name>
     <url>https://grizzly.dev.java.net</url>
     <build>

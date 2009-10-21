@@ -11,7 +11,7 @@
   <groupId>com.sun.grizzly.samples</groupId>
   <artifactId>grizzly-comet-chat</artifactId>
   <packaging>war</packaging>
-  <version>${grizzly-version}</version>
+  <version>1.9.19-SNAPSHOT</version>
   <name>grizzly-comet-chat</name>
   <url>http://maven.apache.org</url>
   <dependencies>

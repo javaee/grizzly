@@ -63,18 +63,14 @@
             <name>Java.net Repository for Grizzly</name>
             <url>http://download.java.net/maven/2</url>
         </repository>
+        <!--
         <repository>
             <id>maven-repository.dev.java.net</id>
             <name>Java.net Maven 1 Repository (legacy)</name>
             <url>http://download.java.net/maven/1</url>
             <layout>legacy</layout>
         </repository>
-        <repository>
-            <id>java.net</id>
-            <name>maven-repository.dev.java.net</name>
-            <url>https://maven-repository.dev.java.net/nonav/repository/</url>
-            <layout>legacy</layout>
-        </repository>
+        -->
         <repository>
             <id>codehaus</id>
             <name>repository.codehaus.org</name>
@@ -256,6 +252,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.5</version>
                 <configuration>
                     <aggregate>true</aggregate>
                     <debug>true</debug>
@@ -269,6 +266,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jxr-plugin</artifactId>
+                <version>2.1</version>
                 <configuration>
                     <aggregate>true</aggregate>
                 </configuration>
@@ -276,6 +274,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>2.1.2</version>
                 <reportSets>
                     <reportSet>
                         <reports>

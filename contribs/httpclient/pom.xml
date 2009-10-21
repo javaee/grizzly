@@ -9,7 +9,7 @@
     </parent>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>httpclient</artifactId>
-    <version>${grizzly-version}</version>
+    <version>1.9.19-SNAPSHOT</version>
     <name>Grizzly HTTP Client</name>
     <url>https://grizzly.dev.java.net</url>
     <!-- Devs -->

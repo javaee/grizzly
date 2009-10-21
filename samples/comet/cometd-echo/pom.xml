@@ -10,7 +10,7 @@
     <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-cometd-echo</artifactId>
     <packaging>war</packaging>
-    <version>${grizzly-version}</version>
+    <version>1.9.19-SNAPSHOT</version>
     <name>grizzly-cometd-sample-echo</name>
     <url>https://grizzly.dev.java.net</url>
     <build>

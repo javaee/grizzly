@@ -10,7 +10,7 @@
     <groupId>com.sun.grizzly.contribs</groupId>
     <artifactId>grizzly-websocket</artifactId>
     <packaging>jar</packaging>
-    <version>${grizzly-version}</version>
+    <version>1.9.19-SNAPSHOT</version>
     <name>grizzly-websocket</name>
     <url>https://grizzly.dev.java.net</url>
     <!--

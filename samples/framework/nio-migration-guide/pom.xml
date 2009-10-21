@@ -10,7 +10,7 @@
     <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-nio-migration-guide</artifactId>
     <packaging>pom</packaging>
-    <version>${grizzly-version}</version>
+    <version>1.9.19-SNAPSHOT</version>
     <name>grizzly-nio-migration-guide</name>
     <url>https://grizzly.dev.java.net</url>
     <modules>
