@@ -68,22 +68,25 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     void setClientAuthEnabled(String value);
 
     /**
-     * Determines if if the engine will request (want) or require (need) client authentication. Valid values:  want, need, or left blank
+     * Determines if if the engine will request (want) or require (need) client authentication. Valid values:  want,
+     * need, or left blank
      */
-    @Attribute(dataType = Boolean.class)
+    @Attribute(dataType = String.class, defaultValue = "")
+    @Pattern(regexp = "(|need|want)")
     String getClientAuth();
 
     void setClientAuth(String value);
 
     @Attribute
     String getCrlFile();
+
     void setCrlFile(String crlFile);
 
     /**
      * type of the keystore file
      */
-    @Attribute
-    @Pattern(regexp="(JKS|NSS)")
+    @Attribute(defaultValue = "JKS")
+    @Pattern(regexp = "(JKS|NSS)")
     String getKeyStoreType();
 
     void setKeyStoreType(String type);
@@ -115,7 +118,8 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * ciphers are assumed to be enabled. NOT Used in PE
      */
     @Attribute
-    @Pattern(regexp="((\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3)(\\s*,\\s*(\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3))*)*")
+    @Pattern(
+        regexp = "((\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3)(\\s*,\\s*(\\+|\\-)(rc2|rc2export|rc4|rc4export|idea|des|desede3))*)*")
     String getSsl2Ciphers();
 
     void setSsl2Ciphers(String value);
@@ -169,7 +173,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
 
     @Attribute
     String getTrustAlgorithm();
-    
+
     void setTrustAlgorithm(String algorithm);
 
     @Attribute(dataType = Integer.class)
@@ -185,8 +189,8 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * type of the truststore file
      */
-    @Attribute
-    @Pattern(regexp="(JKS|NSS)")
+    @Attribute(defaultValue = "JKS")
+    @Pattern(regexp = "(JKS|NSS)")
     String getTrustStoreType();
 
     void setTrustStoreType(String type);
@@ -203,7 +207,6 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Does SSL configuration allow implementation to initialize it lazily way
      */
     @Attribute(defaultValue = "true", dataType = Boolean.class)
-    @Deprecated
     String getAllowLazyInit();
 
     void setAllowLazyInit(String value);

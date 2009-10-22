@@ -45,6 +45,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 
 /**
  *
@@ -83,7 +84,7 @@ public final class CompositeBuffer implements Buffer<List<Buffer>> {
     private boolean allowBufferDispose = false;
 
     public CompositeBuffer() {
-        this(new LightArrayList<Buffer>());
+        this(new ArrayList<Buffer>());
     }
 
     public CompositeBuffer(Buffer... buffers) {
@@ -265,7 +266,7 @@ public final class CompositeBuffer implements Buffer<List<Buffer>> {
         long limitLocation = locateBuffer(limit);
 
 
-        LightArrayList<Buffer> newList = new LightArrayList<Buffer>();
+        ArrayList<Buffer> newList = new ArrayList<Buffer>();
 
         int posBufferIndex = getBufferIndex(posLocation);
         int limitBufferIndex = getBufferIndex(limitLocation);

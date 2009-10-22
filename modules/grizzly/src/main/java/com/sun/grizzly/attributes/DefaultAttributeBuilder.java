@@ -41,7 +41,7 @@ package com.sun.grizzly.attributes;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import com.sun.grizzly.utils.LightArrayList;
+import java.util.ArrayList;
 
 /**
  * Default {@link AttributeBuilder} implementation.
@@ -51,7 +51,7 @@ import com.sun.grizzly.utils.LightArrayList;
  * @author Alexey Stashok
  */
 public class DefaultAttributeBuilder implements AttributeBuilder {
-    protected List<Attribute> attributes = new LightArrayList<Attribute>();
+    protected List<Attribute> attributes = new ArrayList<Attribute>();
     protected Map<String, Attribute> name2Attribute = new HashMap<String, Attribute>();
     
     /**

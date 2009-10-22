@@ -14,8 +14,7 @@ import org.testng.Assert;
 public class BaseGrizzlyConfigTest {
     protected String getContent(URLConnection connection) {
         try {
-            InputStream inputStream;
-            inputStream = connection.getInputStream();
+            InputStream inputStream = connection.getInputStream();
             InputStreamReader reader = new InputStreamReader(inputStream);
             try {
                 StringBuilder builder = new StringBuilder();
@@ -37,7 +36,6 @@ public class BaseGrizzlyConfigTest {
             e.printStackTrace();
             Assert.fail(e.getMessage(), e);
         }
-        
         return "";
     }
 

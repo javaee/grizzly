@@ -77,7 +77,7 @@ public class GrizzlyConfig {
         return listeners;
     }
 
-    public void setupNetwork() throws IOException, InstantiationException {
+    public void setupNetwork() throws IOException {
         validateConfig(config);
         synchronized (listeners) {
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
@@ -103,6 +103,7 @@ public class GrizzlyConfig {
                 try {
                     listener.stop();
                 } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
             listeners.clear();
@@ -116,8 +117,15 @@ public class GrizzlyConfig {
     }
 
     public void shutdown() throws IOException {
-        for (GrizzlyServiceListener listener : listeners) {
-            listener.stop();
+        synchronized (listeners) {
+            for (GrizzlyServiceListener listener : listeners) {
+                try {
+                    listener.stop();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            listeners.clear();
         }
     }
 
@@ -137,9 +145,6 @@ public class GrizzlyConfig {
             try {
                 grizzlyListener.start();
             } catch (IOException e) {
-                logger.log(Level.SEVERE, e.getMessage(), e);
-                throw new RuntimeException(e.getMessage());
-            } catch (InstantiationException e) {
                 logger.log(Level.SEVERE, e.getMessage(), e);
                 throw new RuntimeException(e.getMessage());
             }

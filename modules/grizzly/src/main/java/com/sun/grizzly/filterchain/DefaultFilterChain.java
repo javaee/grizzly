@@ -41,12 +41,12 @@ package com.sun.grizzly.filterchain;
 import java.io.IOException;
 import com.sun.grizzly.ProcessorResult;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Codec;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ProcessorResult.Status;
-import com.sun.grizzly.utils.LightArrayList;
 
 /**
  * Default {@link FilterChain} implementation
@@ -174,7 +174,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
     private final DefaultFilterChainCodec filterChainCodec;
 
     public DefaultFilterChain(FilterChainFactory factory) {
-        super(new LightArrayList<Filter>());
+        super(new ArrayList<Filter>());
         filterChainCodec = new DefaultFilterChainCodec(this);
     }
     
@@ -224,7 +224,6 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
 
         List<Filter> chain = ctx.getFilters();
         int currentFilterIdx = ctx.getCurrentFilterIdx();
-
         NextAction nextAction;
 
         if (chain == null) {
@@ -319,7 +318,7 @@ public class DefaultFilterChain extends ListFacadeFilterChain {
                 final List<Filter> tmpNextFilters = ctx.getFilters();
                 final int tmpCurrentFilterIdx = ctx.getCurrentFilterIdx();
 
-                ctx.setExecutedFilters(new LightArrayList<Filter>());
+                ctx.setExecutedFilters(new ArrayList<Filter>());
                 ctx.setFilters(chain);
                 ctx.setCurrentFilterIdx(i);
                 try {

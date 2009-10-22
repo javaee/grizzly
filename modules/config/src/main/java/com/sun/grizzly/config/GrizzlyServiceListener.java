@@ -25,6 +25,7 @@ package com.sun.grizzly.config;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.List;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,10 +38,14 @@ import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.ThreadPool;
 import com.sun.grizzly.config.dom.Transport;
+import com.sun.grizzly.config.dom.Ssl;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainEnabledTransport;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.http.WebFilter;
 import com.sun.grizzly.http.WebFilterConfig;
 import com.sun.grizzly.nio.NIOTransport;
@@ -54,11 +59,10 @@ import com.sun.grizzly.threadpool.DefaultThreadPool;
  * <p>The GrizzlyServiceListener is responsible of mapping incoming requests to the proper Container or Grizzly
  * extensions. Registered Containers can be notified by Grizzly using three mode:</p>
  *
- * <ul>
- *      <li>At the transport level: Containers can be notified when TCP, TLS or UDP requests are mapped to them.</li>
- *      <li>At the protocol level: Containers can be notified when protocols (ex: SIP, HTTP) requests are mapped to them.</li>
- *      </li>At the requests level: Containers can be notified when specific patterns requests are mapped to them.</li>
- * <ul>
+ * <ul> <li>At the transport level: Containers can be notified when TCP, TLS or UDP requests are mapped to them.</li>
+ * <li>At the protocol level: Containers can be notified when protocols (ex: SIP, HTTP) requests are mapped to
+ * them.</li> </li>At the requests level: Containers can be notified when specific patterns requests are mapped to
+ * them.</li> <ul>
  *
  * @author Jeanfrancois Arcand
  * @author Justin Lee
@@ -80,7 +84,7 @@ public class GrizzlyServiceListener {
      *
      * @param networkListener The listener to configure
      */
-    public GrizzlyServiceListener(NetworkListener networkListener) {
+    public GrizzlyServiceListener(NetworkListener networkListener) throws IOException {
         final Protocol httpProtocol = networkListener.findHttpProtocol();
         if (httpProtocol != null) {
             isEmbeddedHttpSecured = Boolean.parseBoolean(
@@ -88,7 +92,10 @@ public class GrizzlyServiceListener {
         }
         configureListener(networkListener);
         setName(networkListener.getName());
-        add(new WebFilter(getName(), webFilterConfig));
+        final WebFilter filter = new WebFilter(getName(), webFilterConfig);
+        filter.initialize();
+        add(filter);
+        System.out.println(Arrays.toString(((FilterChainEnabledTransport) nioTransport).getFilterChain().toArray()));
     }
 
     public WebFilterConfig getWebFilterConfig() {
@@ -96,24 +103,25 @@ public class GrizzlyServiceListener {
     }
 
     private void add(final Filter filter) {
-        ((FilterChainEnabledTransport)nioTransport).getFilterChain().add(filter);
+        ((FilterChainEnabledTransport) nioTransport).getFilterChain().add(filter);
     }
 
     private void add(final Filter filter, final Class<? extends Filter> after) {
         final FilterChain chain = ((FilterChainEnabledTransport) nioTransport).getFilterChain();
         boolean added = false;
-        for(int index = 0; index < chain.size() && !added; index++) {
-            if(chain.get(index).getClass().isAssignableFrom(after)) {
+        for (int index = 0; index < chain.size() && !added; index++) {
+            if (chain.get(index).getClass().isAssignableFrom(after)) {
                 added = true;
                 chain.add(index + 1, filter);
             }
         }
-        if(!added) {
+        if (!added) {
             chain.add(filter);
         }
     }
 
-    public void start() throws IOException, InstantiationException {
+    public void start() throws IOException {
+        System.out.println("Starting listener " + getName());
         nioTransport.start();
     }
 
@@ -192,7 +200,7 @@ public class GrizzlyServiceListener {
 //                configureComet(habitat);
             }
             if (Boolean.valueOf(protocol.getSecurityEnabled())) {
-                add(new SSLFilter(SSLConfigHolder.configureSSL(protocol.getSsl())), TransportFilter.class);
+                configureSsl(protocol);
             }
 /*
        } else if (protocol.getPortUnification() != null) {
@@ -302,33 +310,43 @@ public class GrizzlyServiceListener {
         }
     }
 
+    private void configureSsl(final Protocol protocol) {
+        final Ssl ssl = protocol.getSsl();
+        if (Boolean.valueOf(ssl.getAllowLazyInit())) {
+            System.out.println("Lazy init'ing ssl");
+            add(new LazyInitSslFilter(ssl));
+        } else {
+            System.out.println("adding ssl filter");
+            add(new SSLFilter(SSLConfigHolder.configureSSL(ssl)), TransportFilter.class);
+        }
+    }
 /*
-        protected void configurePortUnification() {
-            configurePortUnification(finders, handlers, preprocessors);
-        }
+    protected void configurePortUnification() {
+        configurePortUnification(finders, handlers, preprocessors);
+    }
 
-        @Override
-        public void configurePortUnification(List<ProtocolFinder> protocolFinders,
-            List<ProtocolHandler> protocolHandlers,
-            List<PUPreProcessor> preProcessors) {
-            if (puFilter != null) {
-                puFilter.configure(protocolFinders, protocolHandlers, preProcessors);
-            } else {
-                super.configurePortUnification(protocolFinders, protocolHandlers,
-                    preProcessors);
-            }
+    @Override
+    public void configurePortUnification(List<ProtocolFinder> protocolFinders,
+        List<ProtocolHandler> protocolHandlers,
+        List<PUPreProcessor> preProcessors) {
+        if (puFilter != null) {
+            puFilter.configure(protocolFinders, protocolHandlers, preProcessors);
+        } else {
+            super.configurePortUnification(protocolFinders, protocolHandlers,
+                preProcessors);
         }
+    }
 
-        private final void configureComet(Habitat habitat) {
-            final AsyncFilter cometFilter = habitat.getComponent(AsyncFilter.class, "comet");
-            if (cometFilter != null) {
-                setEnableAsyncExecution(true);
-                asyncHandler = new DefaultAsyncHandler();
-                asyncHandler.addAsyncFilter(cometFilter);
-                setAsyncHandler(asyncHandler);
-            }
+    private final void configureComet(Habitat habitat) {
+        final AsyncFilter cometFilter = habitat.getComponent(AsyncFilter.class, "comet");
+        if (cometFilter != null) {
+            setEnableAsyncExecution(true);
+            asyncHandler = new DefaultAsyncHandler();
+            asyncHandler.addAsyncFilter(cometFilter);
+            setAsyncHandler(asyncHandler);
         }
-    */
+    }
+*/
 
     /**
      * Configure the Grizzly FileCache mechanism
@@ -426,5 +444,29 @@ public class GrizzlyServiceListener {
 
     public NIOTransport getTransport() {
         return nioTransport;
+    }
+
+    private class LazyInitSslFilter extends FilterAdapter {
+        private Ssl ssl;
+        private boolean initialized = false;
+
+        public LazyInitSslFilter(final Ssl ssl) {
+            this.ssl = ssl;
+        }
+
+        private void init() {
+            if (!initialized) {
+                add(new SSLFilter(SSLConfigHolder.configureSSL(ssl)), getClass());
+                final FilterChain chain = ((FilterChainEnabledTransport) nioTransport).getFilterChain();
+                chain.remove(this);
+                initialized = true;
+            }
+        }
+
+        @Override
+        public NextAction handleAccept(final FilterChainContext ctx, final NextAction nextAction) throws IOException {
+            init();
+            return nextAction;
+        }
     }
 }

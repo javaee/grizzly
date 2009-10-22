@@ -45,7 +45,6 @@ import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.ssl.SSLStreamReader;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.utils.LightArrayList;
 import com.sun.grizzly.utils.MessageHolder;
 import com.sun.grizzly.utils.ObjectPool;
 
@@ -121,7 +120,7 @@ public class FilterChainContext extends Context {
     public FilterChainContext(ObjectPool parentPool) {
         super(parentPool);
         messageHolder = new MessageHolder();
-        executedFilters = new LightArrayList<Filter>();
+        executedFilters = new ArrayList<Filter>();
         currentFilterIdx = 0;
     }
 

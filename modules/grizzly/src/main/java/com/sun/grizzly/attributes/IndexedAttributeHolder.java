@@ -40,7 +40,7 @@ package com.sun.grizzly.attributes;
 
 import java.util.HashSet;
 import java.util.Set;
-import com.sun.grizzly.utils.LightArrayList;
+import java.util.ArrayList;
 
 /**
  * {@link AttributeHolder}, which supports indexed access to stored
@@ -54,14 +54,14 @@ import com.sun.grizzly.utils.LightArrayList;
  */
 public class IndexedAttributeHolder implements AttributeHolder {
     
-    protected final LightArrayList<Object> attributeValues;
+    protected final ArrayList<Object> attributeValues;
     protected final DefaultAttributeBuilder attributeBuilder;
     
     protected final IndexedAttributeAccessor indexedAttributeAccessor;
 
     public IndexedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
-        attributeValues = new LightArrayList<Object>();
+        attributeValues = new ArrayList<Object>();
         indexedAttributeAccessor = new IndexedAttributeAccessorImpl();
     }
     
@@ -181,13 +181,10 @@ public class IndexedAttributeHolder implements AttributeHolder {
             int attrCount = attributeValues.size();
             if (attrCount <= index) {
                 // increase the size of the attributeValues collection
-
                 // Number of 'fake' null elements to add to the attributeValues
-                int fakeElementsToAdd = index - attrCount;
-
-                attributeValues.size(index + 1);
+                int fakeElementsToAdd = index - attrCount + 1;
                 for (int i = 0; i < fakeElementsToAdd; i++) {
-                    attributeValues.set(attrCount + i, null);
+                    attributeValues.add(null);
                 }
             }
 
