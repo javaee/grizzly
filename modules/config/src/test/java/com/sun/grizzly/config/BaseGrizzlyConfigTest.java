@@ -1,11 +1,11 @@
 package com.sun.grizzly.config;
 
-import java.net.URLConnection;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.File;
-import java.io.FileWriter;
+import java.net.URLConnection;
 
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import org.jvnet.hk2.config.Dom;
@@ -14,8 +14,7 @@ import org.testng.Assert;
 public class BaseGrizzlyConfigTest {
     protected String getContent(URLConnection connection) {
         try {
-            InputStream inputStream;
-            inputStream = connection.getInputStream();
+            InputStream inputStream = connection.getInputStream();
             InputStreamReader reader = new InputStreamReader(inputStream);
             try {
                 StringBuilder builder = new StringBuilder();
@@ -42,8 +41,7 @@ public class BaseGrizzlyConfigTest {
     }
 
     protected void setRootFolder(GrizzlyServiceListener listener, int count) {
-        final GrizzlyEmbeddedHttp http = listener.getEmbeddedHttp();
-        final StaticResourcesAdapter adapter = (StaticResourcesAdapter) http.getAdapter();
+        final StaticResourcesAdapter adapter = (StaticResourcesAdapter) listener.getEmbeddedHttp().getAdapter();
         final String name = System.getProperty("java.io.tmpdir", "/tmp") + "/"
             + Dom.convertName(getClass().getSimpleName()) + count;
         File dir = new File(name);
@@ -52,7 +50,7 @@ public class BaseGrizzlyConfigTest {
         try {
             writer = new FileWriter(new File(dir, "index.html"));
             try {
-                writer.write("<html><body>You've found the server on port " + http.getPort() + "</body></html>");
+                writer.write("<html><body>You've found the server on port " + listener.getPort() + "</body></html>");
                 writer.flush();
             } finally {
                 if (writer != null) {
@@ -62,6 +60,6 @@ public class BaseGrizzlyConfigTest {
         } catch (IOException e) {
             Assert.fail(e.getMessage(), e);
         }
-        adapter.setRootFolder(name);
+        adapter.addRootFolder(name);
     }
 }

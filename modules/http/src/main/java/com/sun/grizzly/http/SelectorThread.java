@@ -1007,6 +1007,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         task.setAsyncHttpWriteEnabled(isAsyncHttpWriteEnabled);
         task.setTransactionTimeout(transactionTimeout);
         task.setUseChunking(useChunking);
+        task.setSendBufferSize(sendBufferSize);
         
         // Asynch extentions
         if ( asyncExecution ) {

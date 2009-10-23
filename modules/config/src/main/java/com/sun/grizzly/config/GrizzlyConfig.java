@@ -56,7 +56,6 @@ import java.util.logging.Logger;
  */
 public class GrizzlyConfig {
     private static final Logger logger = LoggerUtils.getLogger();
-
     private final NetworkConfig config;
     private Habitat habitat;
     private final List<GrizzlyServiceListener> listeners = new ArrayList<GrizzlyServiceListener>();
@@ -78,14 +77,12 @@ public class GrizzlyConfig {
         return listeners;
     }
 
-    public void setupNetwork() throws IOException, InstantiationException {
+    public void setupNetwork() {
         validateConfig(config);
-
-        synchronized(listeners) {
+        synchronized (listeners) {
             for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
                 final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(new Controller());
                 grizzlyListener.configure(listener, habitat);
-
                 listeners.add(grizzlyListener);
                 final Thread thread = new WorkerThreadImpl(new ListenerRunnable(grizzlyListener));
                 thread.setDaemon(true);
@@ -101,14 +98,13 @@ public class GrizzlyConfig {
     }
 
     public void shutdownNetwork() {
-        synchronized(listeners) {
+        synchronized (listeners) {
             for (GrizzlyServiceListener listener : listeners) {
                 try {
                     listener.stop();
                 } catch (Exception e) {
                 }
             }
-
             listeners.clear();
         }
     }
