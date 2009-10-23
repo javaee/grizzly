@@ -38,14 +38,12 @@
 
 package com.sun.grizzly.util;
 
-import com.sun.grizzly.util.ByteBufferFactory.ByteBufferType;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Level;
 
 /**
  *
@@ -73,38 +71,8 @@ import java.util.logging.Level;
  */
 public class DefaultThreadPool extends FixedThreadPool
         implements Thread.UncaughtExceptionHandler{
-    // Min number of worker threads in a pool
-    public static int DEFAULT_MIN_THREAD_COUNT = 5;
-
-    // Max number of worker threads in a pool
-    public static int DEFAULT_MAX_THREAD_COUNT = 5;
-
-    // Max number of tasks thread pool can enqueue
-    public static int DEFAULT_MAX_TASKS_QUEUED = Integer.MAX_VALUE;
-
-    // Timeout, after which idle thread will be stopped and excluded from pool
-    public static int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
-
-    /**
-     * The initial ByteBuffer size for newly created WorkerThread instances
-     */
-    protected int initialByteBufferSize = WorkerThreadImpl.DEFAULT_BYTE_BUFFER_SIZE;
-
-    /**
-     * The {@link ByteBufferType}
-     */
-    protected ByteBufferType byteBufferType = WorkerThreadImpl.DEFAULT_BYTEBUFFER_TYPE;
 
     private final AtomicInteger queueSize = new AtomicInteger();
-
-    /**
-     * Threads priority
-     */
-    protected int priority = Thread.NORM_PRIORITY;
-
-    protected volatile int corePoolSize;
-    protected final long idleTimeout;
-    protected final TimeUnit timeUnit;
 
     protected final AtomicInteger workerThreadCounter = new AtomicInteger();
     
@@ -166,22 +134,12 @@ public class DefaultThreadPool extends FixedThreadPool
 
         setPoolSizes(corePoolsize, maxPoolSize);
 
-        this.idleTimeout   = keepAliveTime;
-        this.timeUnit      = timeUnit;
+        this.keepAliveTime = TimeUnit.MILLISECONDS.convert(keepAliveTime, timeUnit);
         this.name = name;
 
         if (this.threadFactory == null) {
             this.threadFactory = new DefaultWorkerThreadFactory();
         }        
-    }
-
-    private void validateNewPoolSize(int corePoolsize, int maxPoolSize){
-        if (maxPoolSize < 1)
-            throw new IllegalArgumentException("maxPoolsize < 1");
-        if (corePoolsize < 1)
-            throw new IllegalArgumentException("corePoolsize < 1");
-        if (corePoolsize > maxPoolSize)
-            throw new IllegalArgumentException("corePoolsize > maxPoolSize");
     }
 
     /**
@@ -196,14 +154,18 @@ public class DefaultThreadPool extends FixedThreadPool
         int aliveWorkers;        
         while((aliveWorkers=aliveworkerCount.get())<maxPoolSize &&
                 (aliveWorkers < corePoolSize ||
-                queueSize.get() >= (aliveWorkers - approximateRunningWorkerCount.get())) && running){
+                queueSize.get()>0 || !hasIdleWorkersApproximately()) && running){
             if (aliveworkerCount.compareAndSet(aliveWorkers, aliveWorkers+1)){
-                startWorker(new Worker(task, false));
+                startWorker(new DefaultThreadWorker(task, false));
                 return;
             }
         }
-        if (running){
+        if (running) {
             if (workQueue.offer(task)) {
+                if (aliveWorkers >= maxPoolSize) {
+                    onMaxNumberOfThreadsReached();
+                }
+
                 onTaskQueued(task);
             } else {
                 onTaskQueueOverflow();
@@ -212,18 +174,18 @@ public class DefaultThreadPool extends FixedThreadPool
         }
     }
 
-//    private boolean hasIdleWorkersApproximately() {
-//        if( aliveworkerCount.get() <= approximateRunningWorkerCount.get() )
-//            return false;
-//        else
-//            return true;
-//    }
+    private boolean hasIdleWorkersApproximately() {
+        if( aliveworkerCount.get() <= approximateRunningWorkerCount.get() )
+            return false;
+        else
+            return true;
+    }
 
     public void start() {
         int aliveCount;
         while((aliveCount = aliveworkerCount.get()) < corePoolSize) {
             if (aliveworkerCount.compareAndSet(aliveCount, aliveCount + 1)) {
-                startWorker(new Worker(null,true));
+                startWorker(new DefaultThreadWorker(null,true));
             }
         }
     }
@@ -244,11 +206,11 @@ public class DefaultThreadPool extends FixedThreadPool
         super.onTaskDequeued(task);
     }
 
-    protected class Worker extends BasicWorker{
+    protected class DefaultThreadWorker extends BasicWorker {
         private final boolean core;
         private Runnable firstTask;
 
-        public Worker(Runnable firstTask, boolean core) {
+        public DefaultThreadWorker(Runnable firstTask, boolean core) {
             this.core = core;
             this.firstTask = firstTask;
         }
@@ -265,10 +227,7 @@ public class DefaultThreadPool extends FixedThreadPool
                 if (!core && aliveworkerCount.get() > maxPoolSize) {
                     return null;
                 }
-                r = (core ? workQueue.take() : workQueue.poll(idleTimeout, timeUnit));
-                if (r != null) {
-                    onTaskDequeued(r);
-                }
+                r = (core ? workQueue.take() : workQueue.poll(keepAliveTime, TimeUnit.MILLISECONDS));
             }
 
             return r;
@@ -321,38 +280,10 @@ public class DefaultThreadPool extends FixedThreadPool
     }
 
     @Override
-    public long getKeepAliveTime(TimeUnit unit) {
-        return unit.convert(idleTimeout, timeUnit);
+    protected String nextThreadId() {
+        return Integer.toString(workerThreadCounter.getAndIncrement());
     }
 
-    public void uncaughtException(Thread thread, Throwable throwable) {
-        LoggerUtils.getLogger().log(Level.WARNING,
-                "Uncaught thread exception. Thread: " + thread, throwable);
-    }
-
-    public int getPriority() {
-        return priority;
-    }
-
-    public void setPriority(int priority) {
-        this.priority = priority;
-    }
-
-    public ByteBufferType getByteBufferType() {
-        return byteBufferType;
-    }
-
-    public void setByteBufferType(ByteBufferType byteBufferType) {
-        this.byteBufferType = byteBufferType;
-    }
-
-    public int getInitialByteBufferSize() {
-        return initialByteBufferSize;
-    }
-
-    public void setInitialByteBufferSize(int initialByteBufferSize) {
-        this.initialByteBufferSize = initialByteBufferSize;
-    }
 
     @Override
     public String toString() {
@@ -373,19 +304,21 @@ public class DefaultThreadPool extends FixedThreadPool
 
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
+        super.beforeExecute(t, r);
         ((WorkerThreadImpl) t).createByteBuffer(false);
     }
 
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         ((WorkerThreadImpl) Thread.currentThread()).reset();
+        super.afterExecute(r, t);
     }
 
     private class DefaultWorkerThreadFactory implements ThreadFactory {
         public Thread newThread(Runnable r) {
             Thread thread = new WorkerThreadImpl(DefaultThreadPool.this,
                     name + "-WorkerThread(" +
-                    workerThreadCounter.getAndIncrement() + ")", r,
+                    nextThreadId() + ")", r,
                     initialByteBufferSize);
             thread.setUncaughtExceptionHandler(DefaultThreadPool.this);
             thread.setPriority(priority);

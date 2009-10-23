@@ -84,7 +84,7 @@ import com.sun.grizzly.tcp.http11.filters.IdentityOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.VoidInputFilter;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.BufferedInputFilter;
-import com.sun.grizzly.util.DefaultThreadPool;
+import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
@@ -638,7 +638,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         do{
             int soTimeout = ((InputReader)inputStream).getReadTimeout();
             if (handleKeepAliveBlockingThread) {
-                DefaultThreadPool st =(DefaultThreadPool) getThreadPool();
+                ExtendedThreadPool st =(ExtendedThreadPool) getThreadPool();
                 if ( useKeepAliveAlgorithm ) {
                    float threadRatio =
                         (float) st.getActiveCount()

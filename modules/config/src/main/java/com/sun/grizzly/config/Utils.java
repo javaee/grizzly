@@ -37,6 +37,7 @@
 
 package com.sun.grizzly.config;
 
+import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.hk2.component.Holder;
 import com.sun.hk2.component.InhabitantsParser;
 import com.sun.hk2.component.InhabitantsScanner;
@@ -132,5 +133,10 @@ public class Utils {
             }
         }
         return habitat;
+    }
+    
+    public static String composeThreadPoolName(
+            final NetworkListener networkListener) {
+        return networkListener.getThreadPool() + "-" + networkListener.getPort();
     }
 }

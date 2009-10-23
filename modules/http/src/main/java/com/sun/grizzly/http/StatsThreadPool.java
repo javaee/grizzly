@@ -37,12 +37,12 @@
  */
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.util.DefaultThreadPool;
-import java.util.concurrent.LinkedBlockingQueue;
+import com.sun.grizzly.util.SyncThreadPool;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.LinkedList;
 
 /**
  * Internal FIFO used by the Worker Threads to pass information
@@ -50,7 +50,7 @@ import java.security.PrivilegedAction;
  *
  * @author Jean-Francois Arcand
  */
-public class StatsThreadPool extends DefaultThreadPool {
+public class StatsThreadPool extends SyncThreadPool {
     
     /**
      * Port, which is served by this thread pool
@@ -81,7 +81,7 @@ public class StatsThreadPool extends DefaultThreadPool {
             int maxTasksCount, long keepAliveTime, TimeUnit unit) {
         super(name, corePoolSize, maximumPoolSize,
                 keepAliveTime, unit, null,
-                new LinkedBlockingQueue<Runnable>(maxTasksCount));
+                new LinkedList<Runnable>(), maxTasksCount);
         setThreadFactory(new HttpWorkerThreadFactory());
     }
 
@@ -128,8 +128,8 @@ public class StatsThreadPool extends DefaultThreadPool {
                     new PrivilegedAction<Thread>() {
                         public Thread run() {
                             Thread thread = new HttpWorkerThread( StatsThreadPool.this,
-                                                                  name + "-" + port + "-WorkerThread(" +
-                                                                  workerThreadCounter.getAndIncrement() + ")", r,
+                                                                  name + "-WorkerThread(" +
+                                                                  nextThreadId() + ")", r,
                                                                   initialByteBufferSize );
                             thread.setUncaughtExceptionHandler( StatsThreadPool.this );
                             thread.setPriority( priority );

@@ -37,7 +37,7 @@
  */
 package com.sun.grizzly.util;
 
-import java.util.concurrent.BlockingQueue;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -68,7 +68,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      *
      * @return the number of tasks
      */
-    public long getTaskCount();
+    public int getTaskCount();
 
     /**
      * Returns the approximate total number of tasks that have
@@ -126,7 +126,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      *
      * @return the task queue
      */
-    public BlockingQueue<Runnable> getQueue();
+    public Queue<Runnable> getQueue();
 
     /**
      * Returns the number of tasks, which are currently waiting in the queue.
