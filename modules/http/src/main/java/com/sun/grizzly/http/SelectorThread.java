@@ -810,7 +810,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         ExecutorService newThreadPool = null;
         
         if (threadPoolClassname == null) {
-             newThreadPool = new StatsThreadPool(coreThreads,
+             newThreadPool = new StatsThreadPool("Grizzly-" + port, coreThreads,
                     maxThreads, maxQueueSize,
                     StatsThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
                     TimeUnit.MILLISECONDS);
@@ -821,7 +821,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                 Class threadPoolClass = Class.forName(threadPoolClassname);
                 newThreadPool = (ExecutorService) threadPoolClass.newInstance();
             } catch (Exception e) {
-                newThreadPool = new StatsThreadPool(coreThreads,
+                newThreadPool = new StatsThreadPool("Grizzly-" + port, coreThreads,
                         maxThreads, maxQueueSize,
                         StatsThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
                         TimeUnit.MILLISECONDS);

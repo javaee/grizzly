@@ -40,7 +40,6 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.filter.SSLReadFilter;
 import com.sun.grizzly.filter.SSLEchoFilter;
-import com.sun.grizzly.util.PipelineThreadPool;
 import com.sun.grizzly.utils.ControllerUtils;
 import java.io.File;
 import java.io.IOException;

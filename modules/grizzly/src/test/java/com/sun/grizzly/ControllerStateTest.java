@@ -41,7 +41,7 @@ package com.sun.grizzly;
 import com.sun.grizzly.filter.EchoFilter;
 import com.sun.grizzly.filter.LogFilter;
 import com.sun.grizzly.filter.ReadFilter;
-import com.sun.grizzly.util.PipelineThreadPool;
+import com.sun.grizzly.util.SyncThreadPool;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.TCPIOClient;
@@ -148,7 +148,7 @@ public class ControllerStateTest extends TestCase {
         final int[] resultControllerStarted = new int[1];
         final Controller controller = createController(PORT);
         
-        controller.setThreadPool(new PipelineThreadPool("", 5,
+        controller.setThreadPool(new SyncThreadPool("", 5,
                 SIMULT_CONTROLLER_START * 5,
                 Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
         

@@ -46,7 +46,7 @@ import com.sun.grizzly.portunif.PUReadFilter;
 import com.sun.grizzly.portunif.ProtocolFinder;
 import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.util.DefaultThreadPool;
+import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 
 import java.nio.ByteBuffer;
@@ -495,7 +495,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
             final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
-            final String name = networkListener.getName();
+            final String name = Utils.composeThreadPoolName(networkListener);
             setThreadPool(newThreadPool(name, minThreads, maxThreads, maxQueueSize,
                 keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
             setCoreThreads(minThreads);
@@ -520,7 +520,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
     }
 
-    protected DefaultThreadPool newThreadPool(String name, int minThreads, int maxThreads,
+    protected ExtendedThreadPool newThreadPool(String name, int minThreads, int maxThreads,
         int maxQueueSize, long timeout, TimeUnit timeunit) {
         return new StatsThreadPool(name, minThreads, maxThreads, maxQueueSize, timeout, timeunit);
     }

@@ -41,7 +41,6 @@ package com.sun.grizzly.util;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
@@ -57,13 +56,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author gustav trede
  */
-public class FixedThreadPool extends AbstractExecutorService
-        implements ExtendedThreadPool {
+public class FixedThreadPool extends AbstractThreadPool {
 
-    protected static final Runnable poison = new Runnable(){public void run(){}};
-
-    protected final ConcurrentHashMap<BasicWorker,Boolean> workers
-            = new ConcurrentHashMap<BasicWorker,Boolean>();
+    protected final ConcurrentHashMap<Worker,Boolean> workers
+            = new ConcurrentHashMap<Worker,Boolean>();
 
     /**
      * exits for use by subclasses, does not impact the performance of fixed pool
@@ -74,15 +70,9 @@ public class FixedThreadPool extends AbstractExecutorService
 
     protected final BlockingQueue<Runnable> workQueue;
 
-    protected volatile ThreadFactory threadFactory;
-
     protected final Object statelock = new Object();
 
-    protected volatile int maxPoolSize;
-
     protected volatile boolean running = true;
-
-    protected String name = "GrizzlyWorker";
 
     /**
      * creates a fixed pool of size 8
@@ -191,7 +181,7 @@ public class FixedThreadPool extends AbstractExecutorService
 
                 poisonAll();
                 //try to interrupt their current work so they can get their poison fast
-                for (BasicWorker w:workers.keySet()){
+                for (Worker w:workers.keySet()){
                     w.t.interrupt();
                 }
             }
@@ -247,29 +237,44 @@ public class FixedThreadPool extends AbstractExecutorService
         return 0;
     }
 
-    public long getTaskCount() {
+    /**
+     * {@inheritDoc}
+     */
+    public int getTaskCount() {
         return 0;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public long getCompletedTaskCount() {
         return 0;
     }
 
-    public int getCorePoolSize() {
-        return maxPoolSize;
-    }
-
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setCorePoolSize(int corePoolSize) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getLargestPoolSize() {
         return maxPoolSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getPoolSize() {
         return maxPoolSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public BlockingQueue<Runnable> getQueue() {
         return workQueue;
     }
@@ -284,167 +289,65 @@ public class FixedThreadPool extends AbstractExecutorService
         return workQueue.size();
     }
 
-    public long getKeepAliveTime(TimeUnit unit) {
-        return 0;
-    }
-
-    public void setKeepAliveTime(long time, TimeUnit unit) {
-    }
-
-    public int getMaximumPoolSize() {
-        return maxPoolSize;
-    }
-
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setMaximumPoolSize(int maximumPoolSize) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getMaxQueuedTasksCount() {
         return Integer.MAX_VALUE;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setMaxQueuedTasksCount(int maxTasksCount) {
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public void setThreadFactory(ThreadFactory threadFactory) {
-        this.threadFactory = threadFactory;
-    }
-
-    public ThreadFactory getThreadFactory() {
-        return threadFactory;
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void beforeExecute(Thread t, Runnable r) {
+        super.beforeExecute(t, r);
+        approximateRunningWorkerCount.incrementAndGet();
     }
 
     /**
-     * Method invoked prior to executing the given Runnable in the
-     * given thread.  This method is invoked by thread <tt>t</tt> that
-     * will execute task <tt>r</tt>, and may be used to re-initialize
-     * ThreadLocals, or to perform logging.
-     *
-     * <p>This implementation does nothing, but may be customized in
-     * subclasses. Note: To properly nest multiple overridings, subclasses
-     * should generally invoke <tt>super.beforeExecute</tt> at the end of
-     * this method.
-     *
-     * @param t the thread that will run task r.
-     * @param r the task that will be executed.
+     * {@inheritDoc}
      */
-    protected void beforeExecute(Thread t, Runnable r) { }
+    @Override
+    protected void afterExecute(Runnable r, Throwable t) {
+        approximateRunningWorkerCount.decrementAndGet();
+        super.afterExecute(r, t);
+    }
 
     /**
-     * Method invoked upon completion of execution of the given Runnable.
-     * This method is invoked by the thread that executed the task. If
-     * non-null, the Throwable is the uncaught <tt>RuntimeException</tt>
-     * or <tt>Error</tt> that caused execution to terminate abruptly.
-     *
-     * <p><b>Note:</b> When actions are enclosed in tasks (such as
-     * {@link java.util.concurrent.FutureTask}) either explicitly or via methods such as
-     * <tt>submit</tt>, these task objects catch and maintain
-     * computational exceptions, and so they do not cause abrupt
-     * termination, and the internal exceptions are <em>not</em>
-     * passed to this method.
-     *
-     * <p>This implementation does nothing, but may be customized in
-     * subclasses. Note: To properly nest multiple overridings, subclasses
-     * should generally invoke <tt>super.afterExecute</tt> at the
-     * beginning of this method.
-     *
-     * @param r the runnable that has completed.
-     * @param t the exception that caused termination, or null if
-     * execution completed normally.
+     * {@inheritDoc}
      */
-    protected void afterExecute(Runnable r, Throwable t) { }
-
-    /**
-     * Method is called by {@link BasicWorker}, when it's completing
-     * {@link BasicWorker#run()} method execution, which in most cases means,
-     * that ThreadPool's thread will be released. This method is called from
-     * {@link BasicWorker}'s thread.
-     *
-     * @param worker
-     */
-    protected void onWorkerExit(BasicWorker worker) {
+    @Override
+    protected void onWorkerExit(Worker worker) {
         aliveworkerCount.decrementAndGet();
         workers.remove(worker);
+        super.onWorkerExit(worker);
     }
 
     /**
-     * Method is called by a thread pool each time new task has been queued to
-     * a task queue.
-     *
-     * @param task
+     * {@inheritDoc}
      */
-    protected void onTaskQueued(Runnable task) {
+    @Override
+    protected String nextThreadId() {
+        throw new UnsupportedOperationException();
     }
 
-    /**
-     * Method is called by a thread pool each time a task has been dequeued from
-     * a task queue.
-     *
-     * @param task
-     */
-    protected void onTaskDequeued(Runnable task) {
-    }
-
-    /**
-     * Method is called by a thread pool, when new task could not be added
-     * to a task queue, because task queue is full.
-     */
-    protected void onTaskQueueOverflow() {
-    }
-
-    protected class BasicWorker implements Runnable {
-        Thread t;
-
-        public BasicWorker() {
-        }
-
-        public void run() {
-            try {
-                doWork();
-            } finally {
-                onWorkerExit(this);
-            }
-        }
-
-        protected void doWork(){
-            Throwable error;
-
-            while(true) {
-                try {
-                    error = null;
-
-                    Thread.interrupted();
-                    Runnable r = getTask();
-                    if (r == poison || r == null){
-                        return;
-                    }
-                    beforeExecute(t, r);
-                    try {
-                        approximateRunningWorkerCount.incrementAndGet();
-                        r.run();
-                    } catch(Throwable throwable) {
-                        error = throwable;
-                    } finally {
-                        afterExecute(r, error);
-                        approximateRunningWorkerCount.decrementAndGet();
-                    }
-                } catch (Throwable throwable) {
-                }
-            }
-        }
-
-        protected Runnable getTask() throws InterruptedException{
-            final Runnable task = workQueue.take();
-            onTaskDequeued(task);
-            return task;
+    protected class BasicWorker extends Worker {
+        protected Runnable getTask() throws InterruptedException {
+            return workQueue.take();
         }
     }
-
 }
