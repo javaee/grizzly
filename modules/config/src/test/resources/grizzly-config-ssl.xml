@@ -1,0 +1,58 @@
+<network-config>
+    <transports>
+        <transport name="tcp"/>
+    </transports>
+    <protocols>
+        <protocol name="https-lazy" security-enabled="true">
+            <http enable-comet-support="true"/>
+            <ssl ssl3-enabled="false" cert-nickname="s1as"
+                 trust-store="target/test-classes/cacerts.jks"
+                 trust-store-password="changeit"
+                 key-store="target/test-classes/keystore.jks"
+                 key-store-password="changeit"/>
+        </protocol>
+        <protocol name="https" security-enabled="true">
+            <http/>
+            <ssl ssl3-enabled="false" cert-nickname="s1as"
+                 trust-store="target/test-classes/cacerts.jks"
+                 trust-store-password="changeit"
+                 key-store="target/test-classes/keystore.jks"
+                 key-store-password="changeit"
+                 allow-lazy-init="false"/>
+        </protocol>
+    </protocols>
+    <network-listeners>
+        <thread-pool name="defaultThreadPool"/>
+        <network-listener name="http-listener" port="38082" transport="tcp" protocol="https-lazy" thread-pool="defaultThreadPool"/>
+        <network-listener name="https-listener" port="38083" transport="tcp" protocol="https"
+                          thread-pool="defaultThreadPool"/>
+    </network-listeners>
+</network-config>
+<network-config>
+    <transports>
+        <transport name="tcp"/>
+    </transports>
+    <protocols>
+        <!--
+                <protocol name="https-lazy" security-enabled="true">
+                    <http enable-comet-support="true"/>
+                    <ssl ssl3-enabled="false" cert-nickname="s1as" key-store="target/test-classes/keystore.jks"/>
+                </protocol>
+        -->
+        <protocol name="https" security-enabled="true">
+            <http/>
+            <ssl ssl3-enabled="false" cert-nickname="s1as"
+                 trust-store="target/test-classes/cacerts.jks"
+                 trust-store-password="changeit"
+                 key-store="target/test-classes/keystore.jks"
+                 key-store-password="changeit"
+                 allow-lazy-init="false"/>
+        </protocol>
+    </protocols>
+    <network-listeners>
+        <thread-pool name="defaultThreadPool"/>
+        <!--<network-listener name="http-listener" port="38082" transport="tcp" protocol="https-lazy" thread-pool="defaultThreadPool"/>-->
+        <network-listener name="https-listener" port="38083" transport="tcp" protocol="https"
+                          thread-pool="defaultThreadPool"/>
+    </network-listeners>
+</network-config>
