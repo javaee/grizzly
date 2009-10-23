@@ -237,26 +237,44 @@ public class FixedThreadPool extends AbstractThreadPool {
         return 0;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getTaskCount() {
         return 0;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public long getCompletedTaskCount() {
         return 0;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setCorePoolSize(int corePoolSize) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getLargestPoolSize() {
         return maxPoolSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getPoolSize() {
         return maxPoolSize;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public BlockingQueue<Runnable> getQueue() {
         return workQueue;
     }
@@ -271,29 +289,47 @@ public class FixedThreadPool extends AbstractThreadPool {
         return workQueue.size();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void setMaximumPoolSize(int maximumPoolSize) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public int getMaxQueuedTasksCount() {
         return Integer.MAX_VALUE;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public void setMaxQueuedTasksCount(int maxTasksCount) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
         approximateRunningWorkerCount.incrementAndGet();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         approximateRunningWorkerCount.decrementAndGet();
         super.afterExecute(r, t);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected void onWorkerExit(Worker worker) {
         aliveworkerCount.decrementAndGet();
@@ -301,6 +337,9 @@ public class FixedThreadPool extends AbstractThreadPool {
         super.onWorkerExit(worker);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected String nextThreadId() {
         throw new UnsupportedOperationException();
