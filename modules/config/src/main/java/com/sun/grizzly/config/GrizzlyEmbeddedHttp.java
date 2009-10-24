@@ -257,8 +257,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             configureFileCache(http.getFileCache());
             defaultVirtualServer = http.getDefaultVirtualServer();
             // acceptor-threads
-            if (mayEnableComet && GrizzlyConfig.toBoolean(http.getCometSupportEnabled()) && Boolean
-                .getBoolean("v3.grizzly.cometSupport")) {
+            if (mayEnableComet && (GrizzlyConfig.toBoolean(http.getCometSupportEnabled()) || Boolean
+                .getBoolean("v3.grizzly.cometSupport"))) {
                 configureComet(habitat);
             }
             threadPoolTimeoutSeconds = Integer.parseInt(http.getTimeoutSeconds());
