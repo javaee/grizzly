@@ -306,7 +306,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * The {@link Selector} timeout value. By default, it is set to 60000
      * miliseconds (as in the j2se 1.5 ORB).
      */
-    protected static int selectorTimeout = 1000;
+    protected int selectorTimeout = 1000;
 
 
     /**
@@ -2199,11 +2199,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         this.useByteBufferView = useByteBufferView;
     }
 
-    public static int getSelectorTimeout() {
+    public int getSelectorTimeout() {
         return selectorTimeout;
     }
 
-    public static void setSelectorTimeout(int aSelectorTimeout) {
+    public void setSelectorTimeout(int aSelectorTimeout) {
         selectorTimeout = aSelectorTimeout;
     }
 
