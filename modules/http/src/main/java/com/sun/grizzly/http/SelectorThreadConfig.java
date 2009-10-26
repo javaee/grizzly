@@ -175,8 +175,8 @@ public class SelectorThreadConfig{
     protected static void configureProperties(SelectorThread selectorThread){
         if (System.getProperty(SELECTOR_TIMEOUT) != null){
             try{
-                SelectorThread.selectorTimeout =
-                      Integer.parseInt(System.getProperty(SELECTOR_TIMEOUT));
+                selectorThread.setSelectorTimeout(
+                        Integer.parseInt(System.getProperty(SELECTOR_TIMEOUT)));
             } catch (NumberFormatException ex){
                 SelectorThread.logger().log(Level.WARNING, sm.getString("selectorThread.invalidSelectorTimeout"));
             }
