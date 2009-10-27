@@ -12,7 +12,7 @@
         </protocol>
 
         <protocol name="http">
-            <http enable-comet-support="true"/>
+            <http/>
         </protocol>
 
         <protocol name="X-protocol">

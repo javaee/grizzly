@@ -141,13 +141,18 @@
             <artifactId>grizzly-utils</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
-<!--        <dependency>
+        <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
             <version>${grizzly-version}</version>
             <scope>test</scope>
         </dependency>
--->
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>2.5</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>hk2</artifactId>
@@ -175,6 +180,11 @@
             <artifactId>stax</artifactId>
             <version>1.2.0</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-comet</artifactId>
+            <version>${grizzly-version}</version>
         </dependency>
     </dependencies>
     <properties>

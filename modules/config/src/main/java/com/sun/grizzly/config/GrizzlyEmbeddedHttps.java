@@ -54,11 +54,6 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
 
     private final SSLConfigHolder sslConfigHolder = new SSLConfigHolder();
     
-    public GrizzlyEmbeddedHttps(GrizzlyServiceListener grizzlyServiceListener) {
-        super(grizzlyServiceListener);
-    }
-    // ---------------------------------------------------------------------/.
-
     @Override
     protected ProtocolChainInstanceHandler configureProtocol(
             NetworkListener networkListener, Protocol protocol, Habitat habitat,

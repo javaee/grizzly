@@ -27,6 +27,7 @@ import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolFilter;
+import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.config.dom.FileCache;
@@ -84,7 +85,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      */
     protected static final ResourceBundle _rb = logger.getResourceBundle();
     private String defaultVirtualServer;
-    private final GrizzlyServiceListener service;
     private int threadPoolTimeoutSeconds = 0;
     // Port unification settings
     protected PUReadFilter puFilter;
@@ -95,10 +95,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Constructor
      *
-     * @param grizzlyServiceListener
      */
-    public GrizzlyEmbeddedHttp(GrizzlyServiceListener grizzlyServiceListener) {
-        service = grizzlyServiceListener;
+    public GrizzlyEmbeddedHttp() {
         setClassLoader(getClass().getClassLoader());
     }
 
@@ -351,7 +349,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             }
             // Ignore ProtocolChainInstanceHandler class name configuration
             final ProtocolChain finalProtocolChain = protocolChain;
-            ProtocolChainInstanceHandler pcih = new DefaultProtocolChainInstanceHandler() {
+            return new DefaultProtocolChainInstanceHandler() {
                 @Override
                 public boolean offer(ProtocolChain protocolChain) {
                     return true;
@@ -363,7 +361,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                 }
 
             };
-            return pcih;
         }
         return null;
     }
@@ -390,13 +387,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      * @param habitat
      */
     private final void configureComet(Habitat habitat) {
-        final AsyncFilter cometFilter = habitat.getComponent(AsyncFilter.class, "comet");
-        if (cometFilter != null) {
-            setEnableAsyncExecution(true);
-            asyncHandler = new DefaultAsyncHandler();
-            asyncHandler.addAsyncFilter(cometFilter);
-            setAsyncHandler(asyncHandler);
+        AsyncFilter cometFilter = habitat.getComponent(AsyncFilter.class, "comet");
+        if (cometFilter == null) {
+            cometFilter = new CometAsyncFilter();
         }
+        setEnableAsyncExecution(true);
+        asyncHandler = new DefaultAsyncHandler();
+        asyncHandler.addAsyncFilter(cometFilter);
+        setAsyncHandler(asyncHandler);
     }
 
     /**

@@ -88,9 +88,9 @@ public class GrizzlyServiceListener {
 
     protected GrizzlyEmbeddedHttp createEmbeddedHttp(boolean isSecured) {
         if (isSecured) {
-            return new GrizzlyEmbeddedHttps(this);
+            return new GrizzlyEmbeddedHttps();
         } else {
-            return new GrizzlyEmbeddedHttp(this);
+            return new GrizzlyEmbeddedHttp();
         }
     }
 

@@ -12,11 +12,11 @@
         </protocol>
 
         <protocol name="http">
-            <http enable-comet-support="true"/>
+            <http/>
         </protocol>
 
         <protocol name="http-2">
-            <http enable-comet-support="false"/>
+            <http comet-support-enabled="false"/>
         </protocol>
 
         <protocol name="X-protocol">

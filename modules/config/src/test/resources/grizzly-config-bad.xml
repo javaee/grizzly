@@ -4,7 +4,7 @@
     </transports>
     <protocols>
         <protocol name="http">
-            <http enable-comet-support="true"/>
+            <http/>
         </protocol>
     </protocols>
     <network-listeners>
