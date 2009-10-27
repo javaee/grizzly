@@ -57,12 +57,13 @@ package com.sun.grizzly.tcp;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.SelectionKeyAttachment;
+import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Locale;
 import java.nio.channels.SocketChannel;
@@ -188,6 +189,11 @@ public class Response<A> {
     
     // The ResponseAttachment associated with this response.    
     private ResponseAttachment ra;
+
+    // Allow Grizzly to auto detect a remote close connection.
+    public final static boolean discardDisconnectEvent =
+            Boolean.getBoolean("com.sun.grizzly.discardDisconnect");
+
     
     
     // ------------------------------------------------------------- Properties
@@ -915,7 +921,7 @@ public class Response<A> {
     }
     
     
-    public static class ResponseAttachment<A> extends SelectionKeyAttachment
+    public static class ResponseAttachment<A> extends SelectedKeyAttachmentLogic
             implements Runnable {
 
         private CompletionHandler<? super A> completionHandler;
@@ -981,7 +987,29 @@ public class Response<A> {
             timeout(true);
         }
 
-        
+        /**
+         * {@inheritDoc}
+         */
+        @Override
+        public void handleSelectedKey(SelectionKey selectionKey) {
+            if (!selectionKey.isValid() || discardDisconnectEvent){
+                selectionKey.cancel();
+                return;
+            }
+            boolean connectionClosed = true;
+            try {
+                connectionClosed = ((SocketChannel)selectionKey.channel()).
+                    read(ByteBuffer.allocate(1)) == -1;
+            } catch (IOException ex) {
+
+            } finally{
+                if (connectionClosed){
+                   completionHandler.cancelled(attachment);
+                   selectionKey.cancel();
+                }
+            }
+        }
+
         public void timeout(boolean forceClose){
             // If the buffers are empty, commit the response header
             try{                             
