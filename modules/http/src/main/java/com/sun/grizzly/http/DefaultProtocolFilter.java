@@ -152,8 +152,10 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             if (selectorThread.getMaxKeepAliveRequests() != -1){
                 int count = k.getKeepAliveCount();
                 // If count == 0 - then we don't know if connection is keep-alive or not
-                if (count > 0 && count >= selectorThread.getMaxKeepAliveRequests() && ks.isEnabled()) {
-                    ks.incrementCountRefusals();
+                if (count > 0 && count >= selectorThread.getMaxKeepAliveRequests()) {
+                    if (ks.isEnabled()){
+                        ks.incrementCountRefusals();
+                    }
                     processorTask.setDropConnection(true);
                 } else {
                     processorTask.setDropConnection(false);
