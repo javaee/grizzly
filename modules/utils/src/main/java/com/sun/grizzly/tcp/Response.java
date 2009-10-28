@@ -190,7 +190,7 @@ public class Response<A> {
     // The ResponseAttachment associated with this response.    
     private ResponseAttachment ra;
 
-    // Allow Grizzly to auto detect a remote close connection.
+    // Disable Grizzly's auto-detection of remote closed connection.
     public final static boolean discardDisconnectEvent =
             Boolean.getBoolean("com.sun.grizzly.discardDisconnect");
 
@@ -971,7 +971,9 @@ public class Response<A> {
                 response.flush();
                 response.finish();
             } catch (IOException ex){
-                LoggerUtils.getLogger().log(Level.FINEST,"resume",ex);
+                if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
+                    LoggerUtils.getLogger().log(Level.FINEST,"resume",ex);
+                }
             }
         }
 
@@ -1001,7 +1003,9 @@ public class Response<A> {
                 connectionClosed = ((SocketChannel)selectionKey.channel()).
                     read(ByteBuffer.allocate(1)) == -1;
             } catch (IOException ex) {
-
+                if (LoggerUtils.getLogger().isLoggable(Level.FINE)){
+                    LoggerUtils.getLogger().log(Level.FINEST,"handleSelectionKey",ex);
+                }
             } finally{
                 if (connectionClosed){
                    completionHandler.cancelled(attachment);

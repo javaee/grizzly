@@ -52,11 +52,11 @@ import java.util.regex.Pattern;
 public class Grizzly {
 
     private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(.+)?");
-    private static final String dotedVersion;
-    private static final int major;
-    private static final int minor;
-    private static final int micro;
-    private static final String version;
+    private static String dotedVersion;
+    private static int major;
+    private static int minor;
+    private static int micro;
+    private static String version;
 
     public static void main(String[] args) {
         System.out.println(Grizzly.getDotedVersion());
@@ -71,6 +71,10 @@ public class Grizzly {
             e.printStackTrace();
         }
         version = prop.getProperty("grizzly.version");
+        populate();
+    }
+
+    private static void populate(){
         Matcher matcher = versionPattern.matcher(version);
         if (matcher.matches()) {
             dotedVersion = matcher.group(1);
@@ -126,6 +130,14 @@ public class Grizzly {
      */
     public static int getMicroVersion(){
         return micro;
+    }
+
+    /**
+     * Force the Grizzly Raw version
+     */
+    public static void setRawVersion(String s){
+        version = s;
+        populate();
     }
 
     /**
