@@ -86,8 +86,10 @@ public final class FilterChainImpl implements FilterChain {
     /**
      * Filters.
      */
-    private FilterConfigImpl[] filters =
-            new FilterConfigImpl[8];
+    private FilterConfigImpl[] filters = new FilterConfigImpl[8];
+
+    private final static Object[] lock = new Object[0];
+
     /**
      * The int which is used to maintain the current position 
      * in the filter chain.
@@ -165,7 +167,12 @@ public final class FilterChainImpl implements FilterChain {
 
         // Call the next filter if there is one
         if (pos < n) {
-            FilterConfigImpl filterConfig = filters[pos++];
+            FilterConfigImpl filterConfig = null;
+            
+            synchronized (lock){
+                filterConfig = filters[pos++];
+            }
+
             Filter filter = null;
             try {
                 filter = filterConfig.getFilter();
@@ -208,15 +215,16 @@ public final class FilterChainImpl implements FilterChain {
      * @param filterConfig The FilterConfig for the servlet to be executed
      */
     protected void addFilter(FilterConfigImpl filterConfig) {
-        if (n == filters.length) {
-            FilterConfigImpl[] newFilters =
-                    new FilterConfigImpl[n + INCREMENT];
-            System.arraycopy(filters, 0, newFilters, 0, n);
-            filters =
-                    newFilters;
-        }
+        synchronized (lock) {
+            if (n == filters.length) {
+                FilterConfigImpl[] newFilters =
+                        new FilterConfigImpl[n + INCREMENT];
+                System.arraycopy(filters, 0, newFilters, 0, n);
+                filters = newFilters;
+            }
 
-        filters[n++] = filterConfig;
+            filters[n++] = filterConfig;
+        }
     }
 
     /**
