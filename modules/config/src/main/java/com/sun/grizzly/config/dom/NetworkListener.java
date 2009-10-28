@@ -93,8 +93,6 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
      * Port to listen on
      */
     @Attribute(required = true, dataType = Integer.class)
-    @Min(1)
-    @Max(65535)
     String getPort();
 
     void setPort(String value);
