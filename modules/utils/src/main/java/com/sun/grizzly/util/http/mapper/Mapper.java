@@ -1057,7 +1057,7 @@ public class Mapper {
         // Rule 4 -- Welcome resources processing for servlets
         if (mappingData.wrapper == null) {
             boolean checkWelcomeFiles = checkJspWelcomeFiles;
-            if (!checkWelcomeFiles) {
+            if (!checkWelcomeFiles && pathEnd > 0) {
                 char[] buf = path.getBuffer();
                 checkWelcomeFiles = (buf[pathEnd - 1] == '/');
             }
@@ -1194,7 +1194,7 @@ public class Mapper {
             }
             // Redirection to a folder
             char[] buf = path.getBuffer();
-            if (context.resources != null && buf[pathEnd -1 ] != '/') {
+            if (context.resources != null && pathEnd > 0 && buf[pathEnd -1 ] != '/') {
                 Object file = null;
                 String pathStr = path.toString();
 
