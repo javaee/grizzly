@@ -491,8 +491,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             return;
         }
         try {
-            final int maxQueueSize = threadPool.getMaxQueueSize() != null ? Integer.MAX_VALUE
-                : Integer.parseInt(threadPool.getMaxQueueSize());
+            final int maxQueueSize = Integer.parseInt(threadPool.getMaxQueueSize());
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
             final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
