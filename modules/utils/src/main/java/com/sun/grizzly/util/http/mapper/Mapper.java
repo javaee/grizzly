@@ -61,6 +61,7 @@ import javax.naming.directory.DirContext;
 import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.buf.Ascii;
+import java.io.IOException;
 // START GlassFish 1024
 import java.util.HashMap;
 // END GlassFish 1024
@@ -83,7 +84,23 @@ public class Mapper {
 
     private static final String JSP_SERVLET =
             System.getProperty("com.sun.grizzly.util.http.mapper.jspServlet", "jsp");
-    
+
+    private static final CharChunk SLASH = new CharChunk();
+
+    /**
+     * Allow replacement of already added {@link Host}, {@link #Context}
+     * and {@link #Wrapper}
+     */
+    private static boolean allowReplacement = false;
+        
+    static {
+        try {
+            SLASH.append('/'); 
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
+    }
+
     // ----------------------------------------------------- Instance Variables
 
 
@@ -113,12 +130,7 @@ public class Mapper {
      */
     private int port = 0;
     
-    
-    /**
-     * Allow replacement of already added {@link Host}, {@link #Context} and {@link #Wrapper}
-     */
-    private static boolean allowReplacement = false;
-    
+
     // --------------------------------------------------------- Public Methods
     
     
@@ -569,15 +581,20 @@ public class Mapper {
                 // also for "/" and non default servlet
                 if (!isSlashPath || !DEFAULT_SERVLET.equals(servletName)) {
                     newWrapper.name = path;
-                    Wrapper[] oldWrappers = context.exactWrappers;
-                    Wrapper[] newWrappers =
-                        new Wrapper[oldWrappers.length + 1];
-                    Wrapper oldElem = (Wrapper)insertMap(oldWrappers, newWrappers, newWrapper);
-                    if (oldElem == null) {
-                        context.exactWrappers = newWrappers;
-                    } else if (allowReplacement){
-                        oldElem.object = wrapper;
-                        oldElem.jspWildCard = jspWildCard;
+                    if (path.isEmpty()) {
+                        context.emptyPathWrapper = newWrapper;
+                    } else {
+                        Wrapper[] oldWrappers = context.exactWrappers;
+                        Wrapper[] newWrappers =
+                            new Wrapper[oldWrappers.length + 1];
+                        Wrapper oldElem = (Wrapper)insertMap(oldWrappers,
+                            newWrappers, newWrapper);
+                        if (oldElem == null) {
+                            context.exactWrappers = newWrappers;
+                        } else if (allowReplacement){
+                            oldElem.object = wrapper;
+                            oldElem.jspWildCard = jspWildCard;
+                        }
                     }
                 }
             }
@@ -973,9 +990,18 @@ public class Mapper {
 
         path.setOffset(servletPath);
 
+        // Rule 0 -- Empty path match
+        if (context.emptyPathWrapper != null) {
+            if (path.equals(SLASH)) {
+                mappingData.wrapper = context.emptyPathWrapper.object;
+            }
+        }
+
         // Rule 1 -- Exact Match
         Wrapper[] exactWrappers = context.exactWrappers;
-        internalMapExactWrapper(exactWrappers, path, mappingData);
+        if (mappingData.wrapper == null) {
+            internalMapExactWrapper(exactWrappers, path, mappingData);
+        }
 
         // Rule 2 -- Prefix Match
         boolean checkJspWelcomeFiles = false;
@@ -1755,6 +1781,7 @@ public class Mapper {
         public javax.naming.Context resources = null;
         public List<AlternateDocBase> alternateDocBases = null;
         public Wrapper defaultWrapper = null;
+        public Wrapper emptyPathWrapper = null;
         public Wrapper[] exactWrappers = new Wrapper[0];
         public Wrapper[] wildcardWrappers = new Wrapper[0];
         public Wrapper[] extensionWrappers = new Wrapper[0];
