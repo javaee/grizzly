@@ -118,8 +118,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     @Override
     protected void initController() {
         super.initController();
-        // Re-start problem when set to true as of 04/18.
-        //selectorHandler.setReuseAddress(false);
         controller.setReadThreadsCount(readThreadsCount);
         Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
