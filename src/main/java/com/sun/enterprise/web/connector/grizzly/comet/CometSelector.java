@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -47,6 +47,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -96,16 +97,16 @@ public class CometSelector {
 
 
     /**
-     * The list of {@link SelectionKey} to register with the 
+     * The list of {@link SelectionKey} to register with the
      * {@link Selector}
      */
-    private ConcurrentHashMap<SelectionKey,CometTask> keysToRegister 
+    private ConcurrentHashMap<SelectionKey,CometTask> keysToRegister
         = new ConcurrentHashMap<SelectionKey,CometTask>();
 
 
     /**
      * New {@link CometSelector}
-     * @param cometEngine The {@link CometEngine} singleton 
+     * @param cometEngine The {@link CometEngine} singleton
      */
     public CometSelector(CometEngine cometEngine) {
         this.cometEngine = cometEngine;
@@ -113,7 +114,7 @@ public class CometSelector {
 
 
     /**
-     * Start the {@link Selector} running on its 
+     * Start the {@link Selector} running on its
      * Thread.
      */
     public void start() throws InterruptedException{
@@ -121,11 +122,11 @@ public class CometSelector {
 
         new Thread("CometSelector"){
             {
-                setDaemon(true);                
+                setDaemon(true);
             }
 
             @Override
-                public void run(){       
+                public void run(){
                     try{
                         selector = Selector.open();
                     } catch(IOException ex){
@@ -138,7 +139,7 @@ public class CometSelector {
                         SelectionKey key = null;
                         Set readyKeys;
                         Iterator<SelectionKey> iterator;
-                        int selectorState = 0; 
+                        int selectorState = 0;
 
                         try{
                             selectorState = 0;
@@ -163,65 +164,85 @@ public class CometSelector {
                                 }
                             }
 
-                            iterator = readyKeys.iterator();                      
+                            iterator = readyKeys.iterator();
                             CometTask cometTask;
                             while (iterator.hasNext()) {
                                 key = iterator.next();
                                 iterator.remove();
-                                if (key.isValid()) {
-                                    cometTask = (CometTask)key.attachment();
-                                    if (key.isReadable()){
-                                        key.interestOps(key.interestOps() 
-                                                & (~SelectionKey.OP_READ));
-                                        cometTask.upcoming_op = 
-                                            CometTask.OP_EVENT.READ;
-                                    } 
+                                try {
+                                    if (key.isValid()) {
+                                        cometTask = (CometTask) key.attachment();
+                                        if (key.isReadable()) {
+                                            key.interestOps(key.interestOps() &
+                                                    (~SelectionKey.OP_READ));
+                                            cometTask.upcoming_op =
+                                                    CometTask.OP_EVENT.READ;
+                                        }
 
-                                    if (key.isWritable()){
-                                        key.interestOps(key.interestOps() 
-                                                & (~SelectionKey.OP_WRITE));   
-                                        cometTask.upcoming_op = 
-                                            CometTask.OP_EVENT.WRITE;                                    
-                                    }
+                                        if (key.isWritable()) {
+                                            key.interestOps(key.interestOps() &
+                                                    (~SelectionKey.OP_WRITE));
+                                            cometTask.upcoming_op =
+                                                    CometTask.OP_EVENT.WRITE;
+                                        }
 
-                                    if (cometTask != null && cometTask.getSelectionKey() != null
-                                            && cometTask.getSelectionKey().attachment() == null){
-                                        cometTask.execute();
+                                        if (cometTask != null &&
+                                                cometTask.getSelectionKey() != null &&
+                                                cometTask.getSelectionKey().attachment() == null) {
+                                            cometTask.execute();
+                                        } else {
+                                            key.cancel();
+                                        }
                                     } else {
-                                        key.cancel();
+                                        cancelKey(key);
                                     }
-                                } else {
-                                    cancelKey(key);
+                                } catch (Exception e) {
+                                    try {
+                                        cancelKey(key);
+                                    } catch (Exception ee) {
+                                        logger.log(Level.SEVERE, "CometSelector", ee);
+                                    }
                                 }
                             }
 
-                            Iterator<SelectionKey> keys = 
-                                keysToRegister.keySet().iterator();
+                            Iterator<Entry<SelectionKey, CometTask>> entries =
+                                keysToRegister.entrySet().iterator();
                             /**
                              * The mainKey is the SelectionKey returned by the
                              * Selector used in the SelectorThread class.
                              */
                             SelectionKey mainKey;
                             SocketChannel channel;
-                            while (keys.hasNext()){
-                                mainKey = keys.next();
-                                channel =  (SocketChannel)mainKey.channel();
-                                if (mainKey.isValid() && channel.isOpen()) {
-                                    key = channel
-                                        .register(selector,SelectionKey.OP_READ);  
-                                    cometTask = keysToRegister.remove(mainKey);
-                                    cometTask.setCometKey(key);
-                                    key.attach(cometTask); 
-                                    keys.remove();
-                                } 
-                            }                             
+                            while (entries.hasNext()) {
+                                final Entry<SelectionKey, CometTask> entry = entries.next();
+                                entries.remove();
+
+                                mainKey = entry.getKey();
+                                cometTask = entry.getValue();
+
+                                try {
+                                    channel = (SocketChannel) mainKey.channel();
+                                    if (mainKey.isValid() && channel.isOpen()) {
+                                        key = channel.register(selector,
+                                                SelectionKey.OP_READ);
+                                        cometTask.setCometKey(key);
+                                        key.attach(cometTask);
+                                    } else {
+                                        cancelCometTask(cometTask);
+                                    }
+                                } catch (Exception e) {
+                                    cancelCometTask(cometTask);
+                                }
+                            }
+
+
                             expireIdleKeys();
 
                             if (selectorState <= 0){
                                 selector.selectedKeys().clear();
                             }
                         } catch (Throwable t){
-                            if (key != null){                           
+                            if (key != null){
                                 try{
                                     cancelKey(key);
                                 } catch (Throwable t2){
@@ -236,20 +257,20 @@ public class CometSelector {
                             if (logger.isLoggable(Level.FINEST)){
                                 logger.log(Level.FINEST,"CometSelector",t);
                             }
-                        }      
-                    }   
+                        }
+                    }
                 }
         }.start();
         isStartedLatch.await();
-    }   
+    }
 
 
     /**
-     * Expires registered {@link SelectionKey}. If a 
-     * {@link SelectionKey} is expired, the request will be resumed and the 
+     * Expires registered {@link SelectionKey}. If a
+     * {@link SelectionKey} is expired, the request will be resumed and the
      * HTTP request will complete,
      */
-    protected void expireIdleKeys(){       
+    protected void expireIdleKeys(){
         Set<SelectionKey> readyKeys = selector.keys();
         if (readyKeys.isEmpty()){
             return;
@@ -258,31 +279,38 @@ public class CometSelector {
         Iterator<SelectionKey> iterator = readyKeys.iterator();
         SelectionKey key;
         while (iterator.hasNext()) {
-            key = iterator.next();    
-            CometTask cometTask = (CometTask)key.attachment();
+            key = iterator.next();
 
-            if (cometTask == null) return;
+            try {
+                final CometTask cometTask = (CometTask) key.attachment();
 
-            if (cometTask.getExpirationDelay() == -1){
-                continue;
-            }
+                if (cometTask == null) {
+                    continue;
+                }
 
-            long expire = cometTask.getExpireTime();
-            if (current - expire >= cometTask.getExpirationDelay()) {
+                if (cometTask.getExpirationDelay() == -1) {
+                    continue;
+                }
+
+                final long expire = cometTask.getExpireTime();
+                if (current - expire >= cometTask.getExpirationDelay()) {
+                    cancelKey(key);
+                }
+
+                /**
+                 * The connection has been resumed since the timeout is
+                 * re-attached to the SelectionKey so cancel the Comet key.
+                 */
+                if (cometTask.getSelectionKey() != null &&
+                        cometTask.getSelectionKey().attachment() instanceof Long) {
+                    key.cancel();
+                    cometEngine.interrupt(key);
+                }
+            } catch (Exception e) {
                 cancelKey(key);
-            } 
-
-            /**
-             * The connection has been resumed since the timeout is 
-             * re-attached to the SelectionKey so cancel the Comet key.
-             */
-            if (cometTask.getSelectionKey() != null 
-                    && cometTask.getSelectionKey().attachment() instanceof Long){
-                key.cancel();
-                cometEngine.interrupt(key);
             }
-        }                    
-    }  
+        }
+    }
 
 
     /**
@@ -291,20 +319,14 @@ public class CometSelector {
      * @param key the expired {@link SelectionKey}
      */
     protected synchronized void cancelKey(SelectionKey key){
-        if (key == null || !key.isValid()) return;
+        if (key == null) return;
 
         try{
             CometTask cometTask = (CometTask)key.attachment();
             if (cometTask != null){
-                SelectorThread st = cometTask.getSelectorThread();
-                SelectionKey mainKey = cometTask.getSelectionKey();
-                if (cometTask.getCometContext() != null){
-                    cometTask.getCometContext().interrupt(cometTask);   
-                }
-                cometEngine.interrupt(key);                    
-                st.cancelKey(mainKey);
+                cancelCometTask(cometTask);
             } else {
-                cometEngine.interrupt(key);                    
+                cometEngine.interrupt(key);
             }
         } catch (Throwable t) {
             logger.log(Level.SEVERE,"CometSelector",t);
@@ -314,6 +336,22 @@ public class CometSelector {
         key.cancel();
     }
 
+    protected synchronized void cancelCometTask(CometTask cometTask){
+        if (cometTask == null) return;
+
+        try{
+            SelectorThread st = cometTask.getSelectorThread();
+            SelectionKey mainKey = cometTask.getSelectionKey();
+            if (cometTask.getCometContext() != null) {
+                cometTask.getCometContext().interrupt(cometTask);
+            }
+
+            cometEngine.interrupt(cometTask);
+            st.cancelKey(mainKey);
+        } catch (Throwable t) {
+            logger.log(Level.SEVERE,"CometSelector",t);
+        }
+    }
 
     /**
      * Register the {@link SelectionKey} to the {@link Selector}. We
@@ -330,7 +368,7 @@ public class CometSelector {
 
 
     /**
-     * Wakes up the {@link Selector} 
+     * Wakes up the {@link Selector}
      */
     public void wakeup(){
         selector.wakeup();
@@ -348,7 +386,7 @@ public class CometSelector {
         }
     }
 
-    
+
     public void resetSpinCounter(){
         emptySpinCounter  = 0;
     }
