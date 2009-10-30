@@ -99,7 +99,7 @@ public class StaticResourcesAdapter implements Adapter {
         }
 
         if (System.getProperty(USE_SEND_FILE) != null) {
-            useSendFile = Boolean.valueOf(System.getProperty(USE_SEND_FILE)).booleanValue();
+            useSendFile = Boolean.valueOf(System.getProperty(USE_SEND_FILE));
             logger.info("Send-file enabled:" + useSendFile);
         }
     }
@@ -113,7 +113,7 @@ public class StaticResourcesAdapter implements Adapter {
      */
     public void service(Request req, final Response res) throws Exception {
         String uri = req.requestURI().toString();
-        if (uri.indexOf("..") >= 0 || !uri.startsWith(resourcesContextPath)) {
+        if (uri.contains("..") || !uri.startsWith(resourcesContextPath)) {
             res.setStatus(404);
             if (commitErrorResponse) {
                 customizedErrorPage(req, res);
@@ -122,7 +122,7 @@ public class StaticResourcesAdapter implements Adapter {
         }
 
         // We map only file that take the form of name.extension
-        if (uri.indexOf(".") != -1) {
+        if (uri.contains(".")) {
             uri = uri.substring(resourcesContextPath.length());
         }
 

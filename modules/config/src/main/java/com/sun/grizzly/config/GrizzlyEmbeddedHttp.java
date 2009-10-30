@@ -47,6 +47,7 @@ import com.sun.grizzly.portunif.PUReadFilter;
 import com.sun.grizzly.portunif.ProtocolFinder;
 import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 
@@ -452,6 +453,10 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
         setForcedRequestType(http.getForcedResponseType());
         setDefaultResponseType(http.getDefaultResponseType());
+        String ct = http.getDefaultResponseType();
+        if(getAdapter() instanceof StaticResourcesAdapter) {
+            ((StaticResourcesAdapter) getAdapter()).setDefaultContentType(ct);
+        }
         setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthBytes()));
     }
 

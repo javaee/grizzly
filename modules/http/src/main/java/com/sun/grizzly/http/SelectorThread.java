@@ -1018,7 +1018,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         task.setThreadPool(threadPool);
         configureCompression(task);
         
-        return (ProcessorTask)task;        
+        return task;
     }
  
     
