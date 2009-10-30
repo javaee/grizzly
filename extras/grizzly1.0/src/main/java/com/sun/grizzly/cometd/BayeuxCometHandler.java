@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.cometd;
 
+import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.comet.CometContext;
 import com.sun.enterprise.web.connector.grizzly.comet.CometEvent;
 import com.sun.grizzly.cometd.bayeux.ConnectRequest;
@@ -62,9 +63,9 @@ import com.sun.grizzly.cometd.bayeux.VerbBase;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * This class implement the Bayeux Server side protocol. 
@@ -84,8 +85,8 @@ public class BayeuxCometHandler extends BayeuxCometHandlerBase{
     private ConcurrentHashMap<String,Collection<String>> inactiveChannels 
             = new ConcurrentHashMap<String,Collection<String>>();
     
-    private ConcurrentLinkedQueue<String> authenticatedUsers 
-            = new ConcurrentLinkedQueue<String>();    
+    private Queue<String> authenticatedUsers 
+            = new ConcurrentQueue<String>("BayeuxCometHandler.authenticatedUsers");
     
     private Random random = new Random();
     
@@ -275,7 +276,7 @@ public class BayeuxCometHandler extends BayeuxCometHandlerBase{
                     dataHandler.removeChannel(subscription);
                     Collection<String> unsubscribedChannels = inactiveChannels.get(clientId);
                     if (unsubscribedChannels == null) {
-                        unsubscribedChannels = new ConcurrentLinkedQueue<String>();
+                        unsubscribedChannels = new ConcurrentQueue<String>("BayeuxCometHandler.unsubscribedChannels");
                         inactiveChannels.putIfAbsent(clientId, unsubscribedChannels);
                         // just in case two threads both put
                         unsubscribedChannels = inactiveChannels.get(clientId);

@@ -38,6 +38,7 @@ package com.sun.enterprise.web.portunif;
 
 import com.sun.enterprise.web.connector.grizzly.ByteBufferInputStream;
 import com.sun.enterprise.web.connector.grizzly.DefaultReadTask;
+import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.KeepAlivePipeline;
 import com.sun.enterprise.web.connector.grizzly.SecureSelector;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
@@ -56,10 +57,10 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.WeakHashMap;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLContext;
@@ -103,8 +104,8 @@ public class PortUnificationPipeline extends SSLPipeline{
     /**
      * List of available <code>ProtocolFinder</code>.
      */
-    private ConcurrentLinkedQueue<ProtocolFinder> protocolFinders
-            = new ConcurrentLinkedQueue<ProtocolFinder>();
+    private Queue<ProtocolFinder> protocolFinders
+            = new ConcurrentQueue<ProtocolFinder>("PortUnificationPipeline.protocolFinders");
     
     
     /**
@@ -136,8 +137,8 @@ public class PortUnificationPipeline extends SSLPipeline{
     /**
      * A cached list of PUTask.
      */
-    private ConcurrentLinkedQueue<PUTask> puTasks = 
-        new ConcurrentLinkedQueue<PUTask>();
+    private Queue<PUTask> puTasks =
+        new ConcurrentQueue<PUTask>("PortUnificationPipeline.puTasks");
     
     
     /**
@@ -477,8 +478,10 @@ public class PortUnificationPipeline extends SSLPipeline{
                     loadInstance(st.nextToken());
                 if ( protocolHandler != null) {
                     String[] protocols = protocolHandler.getProtocols();
-                    for(String protocol: protocols){
-                        protocolHandlers.put(protocol,protocolHandler);  
+                    for(String protocol: protocols) {
+                        if (protocol != null) {
+                            protocolHandlers.put(protocol.toLowerCase(), protocolHandler);
+                        }
                     }
                 }
             } 

@@ -42,14 +42,15 @@ import com.sun.enterprise.web.connector.grizzly.AsyncHandler;
 import com.sun.enterprise.web.connector.grizzly.AsyncTask;
 import com.sun.enterprise.web.connector.grizzly.Pipeline;
 import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
+import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.async.AsyncProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.ProcessorTask;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.Iterator;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -133,13 +134,13 @@ public class CometEngine {
     /**
      * Cache of {@link CometTask} instance
      */
-    protected ConcurrentLinkedQueue<CometTask> cometTasks;
+    protected Queue<CometTask> cometTasks;
 
 
     /**
      * Cache of {@link CometContext} instance.
      */
-    protected ConcurrentLinkedQueue<CometContext> cometContexts;
+    protected Queue<CometContext> cometContexts;
 
 
     /**
@@ -173,7 +174,7 @@ public class CometEngine {
      * The list of registered {@link AsyncProcessorTask}. This object
      * are mainly keeping the state of the Comet request.
      */    
-    private ConcurrentLinkedQueue<AsyncProcessorTask> asyncTasks;   
+    private Queue<AsyncProcessorTask> asyncTasks;
 
 
     // Simple lock.
@@ -187,8 +188,8 @@ public class CometEngine {
      */
     protected CometEngine() {
         activeContexts = new ConcurrentHashMap<String,CometContext>();
-        cometTasks = new ConcurrentLinkedQueue<CometTask>();
-        cometContexts = new ConcurrentLinkedQueue<CometContext>();
+        cometTasks = new ConcurrentQueue<CometTask>("CometEngine.cometTasks");
+        cometContexts = new ConcurrentQueue<CometContext>("CometEngine.cometContexts");
 
         cometSelector = new CometSelector(this);
         try{
@@ -200,7 +201,7 @@ public class CometEngine {
         threadsId = new ConcurrentHashMap<Long,SelectionKey>(); 
         updatedCometContexts = new ConcurrentHashMap<Long,CometContext>(); 
 
-        asyncTasks = new ConcurrentLinkedQueue<AsyncProcessorTask>();  
+        asyncTasks = new ConcurrentQueue<AsyncProcessorTask>("CometEngine.asyncTasks");
     }
 
 
@@ -393,7 +394,7 @@ public class CometEngine {
              * call if getCometHandler return null. 
              */
             if (cometContext.getCometHandler(key) != null){
-                asyncTasks.offer(apt);                            
+                asyncTasks.offer(apt);
                 CometTask cometTask = getCometTask(cometContext,key,
                         apt.getPipeline());
                 cometTask.setSelectorThread(apt.getSelectorThread());  
@@ -543,7 +544,7 @@ public class CometEngine {
      */
     protected void returnTask(CometTask cometTask){
         cometTask.recycle();
-        cometTasks.offer(cometTask);       
+        cometTasks.offer(cometTask);
     }
 
 

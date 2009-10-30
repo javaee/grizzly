@@ -43,8 +43,8 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -118,7 +118,7 @@ public class FileCache{
     /**
      * FileCacheEntry cache
      */
-    private ConcurrentLinkedQueue<FileCacheEntry> cacheManager;
+    private Queue<FileCacheEntry> cacheManager;
 
     
     /**
@@ -443,7 +443,7 @@ public class FileCache{
     /**
      * Set the cache manager used by this instance.
      */
-    public void setCacheManager(ConcurrentLinkedQueue cacheManager){
+    public void setCacheManager(Queue cacheManager){
         this.cacheManager = cacheManager;
     }   
     

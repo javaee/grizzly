@@ -38,6 +38,7 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
+import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
@@ -45,9 +46,9 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -171,14 +172,14 @@ public class CometContext<E> {
     /**
      * SelectionKey that are in the process of being parked.
      */
-    private static ConcurrentLinkedQueue<SelectionKey> inProgressSelectionKey = null;
+    private static Queue<SelectionKey> inProgressSelectionKey = null;
      
     
     /**
      * Current associated list of {@link CometTask}
      */
-    protected ConcurrentLinkedQueue<CometTask> activeTasks =
-            new ConcurrentLinkedQueue<CometTask>();
+    protected Queue<CometTask> activeTasks =
+            new ConcurrentQueue<CometTask>("CometContext.activeTasks");
     
     // ---------------------------------------------------------------------- //
     
@@ -193,7 +194,7 @@ public class CometContext<E> {
         this.continuationType = continuationType;
         attributes = new ConcurrentHashMap();
         handlers = new ConcurrentHashMap<CometHandler,SelectionKey>();
-        inProgressSelectionKey = new ConcurrentLinkedQueue<SelectionKey>();
+        inProgressSelectionKey = new ConcurrentQueue<SelectionKey>("CometContext.inProgressSelectionKey");
     }
 
     
@@ -792,7 +793,7 @@ public class CometContext<E> {
      * Add a {@link CometTask} to the active list.
      * @param cometTask
      */
-    protected void addActiveCometTask(CometTask cometTask){
+    protected void addActiveCometTask(CometTask cometTask) {
         activeTasks.offer(cometTask);
     }
     

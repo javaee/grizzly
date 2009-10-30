@@ -36,9 +36,9 @@
 package com.sun.enterprise.web.connector.grizzly;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import com.sun.enterprise.web.connector.grizzly.FileCache.FileCacheEntry;
+import java.util.Queue;
 /**
  * A factory for creating <code>FileCache</code> instance.
  *
@@ -112,7 +112,7 @@ public class FileCacheFactory{
      * The cache manager used by instance of <code>FileCache</code>
      * created by this factory;
      */
-    protected ConcurrentLinkedQueue cacheManager;
+    protected Queue cacheManager;
     
     
     /**
@@ -147,8 +147,8 @@ public class FileCacheFactory{
         fileCacheFactory.port = currentPort;
         cache.put(currentPort, fileCacheFactory);
 
-        ConcurrentLinkedQueue<FileCacheEntry> cacheManager =
-            new  ConcurrentLinkedQueue<FileCacheEntry>();
+        Queue<FileCacheEntry> cacheManager =
+            new  ConcurrentQueue<FileCacheEntry>("FileCacheFactory.cacheManager");
         fileCacheFactory.setCacheManager(cacheManager);  
 
         return fileCacheFactory;
@@ -192,7 +192,7 @@ public class FileCacheFactory{
     } 
     
     
-    public void setCacheManager(ConcurrentLinkedQueue cacheManager){
+    public void setCacheManager(Queue cacheManager){
         this.cacheManager = cacheManager;
     }
     

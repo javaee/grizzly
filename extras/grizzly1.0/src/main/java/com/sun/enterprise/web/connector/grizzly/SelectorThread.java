@@ -46,7 +46,6 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.logging.Logger;
 import java.util.logging.Level;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.Selector;
@@ -68,6 +67,7 @@ import com.sun.enterprise.web.connector.grizzly.FileCache.FileCacheEntry;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Queue;
 import java.util.StringTokenizer;
 
 /**
@@ -420,8 +420,8 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      * in j2se 1.4.x that prevent registering selector event if the call
      * is done on another thread.
      */
-    private ConcurrentLinkedQueue<SelectionKey> keysToEnable =
-        new ConcurrentLinkedQueue<SelectionKey>();
+    private Queue<SelectionKey> keysToEnable =
+        new ConcurrentQueue<SelectionKey>("SelectorThread.keysToEnable");
          
     
     // ---------------------------------------------------- Object pools --//
@@ -432,8 +432,8 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      * If the list becomes empty, new <code>ProcessorTask</code> will be
      * automatically added to the list.
      */
-    protected ConcurrentLinkedQueue<ProcessorTask> processorTasks =
-        new ConcurrentLinkedQueue<ProcessorTask>();
+    protected Queue<ProcessorTask> processorTasks =
+        new ConcurrentQueue<ProcessorTask>("SelectorThread.processorTasks");
               
     
     /**
@@ -441,15 +441,15 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      * If the list becomes empty, new <code>ReadTask</code> will be
      * automatically added to the list.
      */
-    protected ConcurrentLinkedQueue<ReadTask> readTasks =
-        new ConcurrentLinkedQueue<ReadTask>();
+    protected Queue<ReadTask> readTasks =
+        new ConcurrentQueue<ReadTask>("SelectorThread.readTasks");
 
     
     /**
      * List of active <code>ProcessorTask</code>.
      */
-    protected ConcurrentLinkedQueue<ProcessorTask> activeProcessorTasks =
-        new ConcurrentLinkedQueue<ProcessorTask>();
+    protected Queue<ProcessorTask> activeProcessorTasks =
+        new ConcurrentQueue<ProcessorTask>("SelectorThread.activeProcessorTasks");
     
     // -----------------------------------------  Multi-Selector supports --//
 
@@ -605,8 +605,8 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     /**
      * Banned SelectionKey registration.
      */
-    protected ConcurrentLinkedQueue<SelectionKey> bannedKeys =
-        new ConcurrentLinkedQueue<SelectionKey>();    
+    protected Queue<SelectionKey> bannedKeys =
+        new ConcurrentQueue<SelectionKey>("SelectorThread.bannedKeys");
 
     // Workaround for Issue 555
     private long lastSpinTimestamp;
@@ -3082,36 +3082,36 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         rootFolder = aRootFolder;
     }
 
-    public ConcurrentLinkedQueue<SelectionKey> getKeysToEnable() {
+    public Queue<SelectionKey> getKeysToEnable() {
         return keysToEnable;
     }
 
-    public void setKeysToEnable(ConcurrentLinkedQueue<SelectionKey> keysToEnable) {
+    public void setKeysToEnable(Queue<SelectionKey> keysToEnable) {
         this.keysToEnable = keysToEnable;
     }
 
-    public ConcurrentLinkedQueue<ProcessorTask> getProcessorTasks() {
+    public Queue<ProcessorTask> getProcessorTasks() {
         return processorTasks;
     }
 
-    public void setProcessorTasks(ConcurrentLinkedQueue<ProcessorTask> 
+    public void setProcessorTasks(Queue<ProcessorTask>
             processorTasks) {
         this.processorTasks = processorTasks;
     }
 
-    public ConcurrentLinkedQueue<ReadTask> getReadTasks() {
+    public Queue<ReadTask> getReadTasks() {
         return readTasks;
     }
 
-    public void setReadTasks(ConcurrentLinkedQueue<ReadTask> readTasks) {
+    public void setReadTasks(Queue<ReadTask> readTasks) {
         this.readTasks = readTasks;
     }
 
-    public ConcurrentLinkedQueue<ProcessorTask> getActiveProcessorTasks() {
+    public Queue<ProcessorTask> getActiveProcessorTasks() {
         return activeProcessorTasks;
     }
 
-    public void setActiveProcessorTasks(ConcurrentLinkedQueue<ProcessorTask> 
+    public void setActiveProcessorTasks(Queue<ProcessorTask>
             activeProcessorTasks) {
         this.activeProcessorTasks = activeProcessorTasks;
     }

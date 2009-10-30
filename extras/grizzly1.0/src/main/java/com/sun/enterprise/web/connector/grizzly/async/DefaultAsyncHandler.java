@@ -39,10 +39,11 @@ import com.sun.enterprise.web.connector.grizzly.AsyncExecutor;
 import com.sun.enterprise.web.connector.grizzly.AsyncFilter;
 import com.sun.enterprise.web.connector.grizzly.AsyncHandler;
 import com.sun.enterprise.web.connector.grizzly.AsyncTask;
+import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.ProcessorTask;
 import com.sun.enterprise.web.connector.grizzly.Task;
 import java.util.ArrayList;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Queue;
 
 /**
  * Default implementation of <code>AsyncHandler</code>. This class handle 
@@ -64,15 +65,15 @@ public class DefaultAsyncHandler implements AsyncHandler{
     /**
      * Cache instance of <code>AsyncTask</code>
      */
-    private ConcurrentLinkedQueue<AsyncTask>
-            asyncProcessors = new ConcurrentLinkedQueue<AsyncTask>();
+    private Queue<AsyncTask>
+            asyncProcessors = new ConcurrentQueue<AsyncTask>("DefaultAsyncHandler.asyncProcessors");
     
     
     /**
      * A queue used to cache interrupted <code>AsyncTask</code>.
      */
-    private ConcurrentLinkedQueue<AsyncTask>
-            interrruptedQueue = new ConcurrentLinkedQueue<AsyncTask>();  
+    private Queue<AsyncTask>
+            interruptedQueue = new ConcurrentQueue<AsyncTask>("DefaultAsyncHandler.interruptedQueue");
                
     
     /**
@@ -168,10 +169,10 @@ public class DefaultAsyncHandler implements AsyncHandler{
             apt.setSelectorThread(task.getSelectorThread());
         }
         
-        boolean wasInterrupted = interrruptedQueue.remove(apt);
+        boolean wasInterrupted = interruptedQueue.remove(apt);
         if ( !wasInterrupted && apt == null) {
             // Try to remove the ProcessorTask itself
-            interrruptedQueue.remove(task);
+            interruptedQueue.remove(task);
         }
 
         // Last chance to execute asynchronously.
@@ -196,7 +197,7 @@ public class DefaultAsyncHandler implements AsyncHandler{
      * Add a <code>Task</code> to the interrupted queue.
      */
     public void addToInterruptedQueue(AsyncTask task){
-        interrruptedQueue.offer(task);
+        interruptedQueue.offer(task);
     }
     
     
@@ -204,7 +205,7 @@ public class DefaultAsyncHandler implements AsyncHandler{
      * Remove the <code>Task</code> from the interrupted queue.
      */
     public void removeFromInterruptedQueue(AsyncTask task){
-        interrruptedQueue.remove(task);
+        interruptedQueue.remove(task);
     }
     
     

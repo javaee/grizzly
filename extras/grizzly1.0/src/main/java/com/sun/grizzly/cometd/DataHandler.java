@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.cometd;
 
+import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
 import com.sun.enterprise.web.connector.grizzly.comet.CometContext;
 import com.sun.enterprise.web.connector.grizzly.comet.CometEvent;
@@ -50,8 +51,6 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -72,7 +71,7 @@ public class DataHandler implements CometHandler<Object[]>{
    
     private String clientId;
    
-    private Collection<String> channels = new ConcurrentLinkedQueue<String>();
+    private Collection<String> channels = new ConcurrentQueue<String>("DataHandler.channels");
 
     private Collection<String> unmodifiableChannels = null;
     

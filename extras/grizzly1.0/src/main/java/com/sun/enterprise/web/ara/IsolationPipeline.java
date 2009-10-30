@@ -37,7 +37,6 @@ package com.sun.enterprise.web.ara;
 
 
 import com.sun.enterprise.web.connector.grizzly.LinkedListPipeline;
-import com.sun.enterprise.web.connector.grizzly.Pipeline;
 import com.sun.enterprise.web.connector.grizzly.StreamAlgorithm;
 import com.sun.enterprise.web.connector.grizzly.Task;
 import com.sun.enterprise.web.connector.grizzly.TaskEvent;
@@ -45,8 +44,9 @@ import com.sun.enterprise.web.connector.grizzly.TaskListener;
 import com.sun.enterprise.web.ara.algorithms.ContextRootAlgorithm;
 
 
+import com.sun.enterprise.web.connector.grizzly.ConcurrentQueue;
 import com.sun.enterprise.web.connector.grizzly.WorkerThreadImpl;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Queue;
 
 
 /**
@@ -67,7 +67,7 @@ public class IsolationPipeline extends LinkedListPipeline
     /**
      * Cache instance of <code>IsolatedTask</code>
      */
-    private ConcurrentLinkedQueue<IsolatedTask> isolatedTasks;
+    private Queue<IsolatedTask> isolatedTasks;
     
       
     // ------------------------------------------------------ Constructor ---/
@@ -87,7 +87,7 @@ public class IsolationPipeline extends LinkedListPipeline
         super.initPipeline();
         
         // 2. Create cache
-        isolatedTasks = new ConcurrentLinkedQueue<IsolatedTask>();
+        isolatedTasks = new ConcurrentQueue<IsolatedTask>("IsolationPipeline.isolatedTasks");
         
         // 3. Cache IsolatedTask
         for (int i=0; i < maxThreads; i++){
