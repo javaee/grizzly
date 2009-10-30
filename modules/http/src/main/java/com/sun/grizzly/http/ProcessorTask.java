@@ -662,10 +662,6 @@ public class ProcessorTask extends TaskBase implements Processor,
             }
 
             String serverName = Grizzly.getServerInfo();
-            if (System.getProperty("product.name") != null){
-                serverName = System.getProperty("product.name");
-            }
-
             int status = response.getStatus();
             if (statusDropsConnection(response.getStatus())){
 
