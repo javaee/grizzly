@@ -869,7 +869,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                         sm.getString("processorTask.createRequestError"), t);
             }
             // 500 - Internal Server Error
-            response.setStatus(500);
+            response.setStatus(400);
             error = true;
         }
 
