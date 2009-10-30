@@ -257,7 +257,9 @@ public class SelectorThreadConfig{
                                                                 .booleanValue();
         }
 
-        selectorThread.setReuseAddress(Boolean.getBoolean(REUSE_ADRESS));
+        if (System.getProperty(REUSE_ADRESS) != null){
+            selectorThread.setReuseAddress(Boolean.getBoolean(REUSE_ADRESS));
+        }
         
         if (System.getProperty(ASYNCH_HANDLER_PORT) != null){
             String ports = System.getProperty(ASYNCH_HANDLER_PORT);
