@@ -661,7 +661,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 keepAlive = false;
             }
 
-            String serverName = "Grizzly/" + Grizzly.getRawVersion();
+            String serverName = Grizzly.getServerInfo();
             if (System.getProperty("product.name") != null){
                 serverName = System.getProperty("product.name");
             }

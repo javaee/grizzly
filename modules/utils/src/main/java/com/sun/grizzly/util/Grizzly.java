@@ -57,6 +57,7 @@ public class Grizzly {
     private static int minor;
     private static int micro;
     private static String version;
+    private static String serverName;
 
     public static void main(String[] args) {
         System.out.println(Grizzly.getDotedVersion());
@@ -86,6 +87,10 @@ public class Grizzly {
             major = -1;
             minor = -1;
             micro = -1;
+        }
+
+        if (serverName == null){
+            serverName = "Grizzly/"+ getRawVersion();
         }
     }
 
@@ -149,5 +154,16 @@ public class Grizzly {
      */
     public static boolean equalVersion(int major, int minor) {
         return minor == Grizzly.minor && major == Grizzly.major;
+    }
+
+    /**
+     * Set the complete version used for the Server header
+     */
+    public static void setServerInfo(String s){
+        serverName = s;
+    }
+
+    public static String getServerInfo(){
+        return serverName;
     }
 }
