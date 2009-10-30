@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-    <parent>
-        <groupId>com.sun.grizzly</groupId>
-        <artifactId>grizzly-project</artifactId>
-        <version>1.9.19-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
-    </parent>
+
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-framework-http</artifactId>
@@ -13,6 +8,42 @@
     <version>1.0.31-SNAPSHOT</version>
     <name>grizzly-framework-http</name>
     <url>https://grizzly.dev.java.net</url>
+    <repositories>
+        <repository>
+            <id>java.net</id>
+            <name>Java.net Repository for Grizzly</name>
+            <url>http://download.java.net/maven/2</url>
+        </repository>
+        <repository>
+            <id>maven-repository.dev.java.net</id>
+            <name>Java.net Maven 1 Repository (legacy)</name>
+            <url>http://download.java.net/maven/1</url>
+            <layout>legacy</layout>
+        </repository>
+        <repository>
+            <id>java.net</id>
+            <name>maven-repository.dev.java.net</name>
+            <url>https://maven-repository.dev.java.net/nonav/repository/</url>
+            <layout>legacy</layout>
+        </repository>
+        <repository>
+            <id>codehaus</id>
+            <name>repository.codehaus.org</name>
+            <url>http://repository.codehaus.org</url>
+        </repository>
+        <repository>
+            <id>glassfish-maven2-repository.dev.java.net</id>
+            <name>Java.net Maven 2 Repository for GlassFish</name>
+            <url>http://download.java.net/maven/glassfish/</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>glassfish</id>
+            <url>http://download.java.net/maven/2/</url>
+        </pluginRepository>
+    </pluginRepositories>
     <build>
         <defaultGoal>install</defaultGoal>
         <resources>
@@ -24,11 +55,57 @@
                 </excludes>
             </resource>
         </resources>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <scriptSourceDirectory>src/main/scripts</scriptSourceDirectory>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+        <outputDirectory>target/classes</outputDirectory>
+        <testOutputDirectory>target/test-classes</testOutputDirectory>
+        <extensions>
+            <extension>
+                <groupId>org.jvnet.wagon-svn</groupId>
+                <artifactId>wagon-svn</artifactId>
+                <version>1.8</version>
+            </extension>
+            <extension>
+                <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-ssh-external</artifactId>
+                <version>1.0-alpha-6</version>
+            </extension>
+            <extension>
+                <groupId>org.apache.maven.wagon</groupId>
+                <artifactId>wagon-webdav</artifactId>
+                <version>1.0-beta-1</version>
+            </extension>
+        </extensions>
+        <finalName>${artifactId}-${version}</finalName>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
+                    <artifactId>maven-antrun-extended-plugin</artifactId>
+                    <version> 1.36 </version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
         <plugins>
+            <plugin>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>1.5</source>
+                    <target>1.5</target>
+                    <compilerArgument>${maven.compiler.argument}</compilerArgument>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-release-plugin</artifactId>
+                <configuration>
+                    <tagBase>https://www.dev.java.net/svn/grizzly/tags</tagBase>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>${felix-version}</version>
+                <version>1.4.0</version>
                 <configuration>
                     <instructions>
                         <Import-Package>*</Import-Package>
@@ -63,13 +140,6 @@
                     </execution>
                 </executions>
             </plugin>
-            <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.5</source>
-                    <target>1.5</target>
-                </configuration>
-            </plugin>
         </plugins>
     </build>
     <dependencies>
@@ -77,7 +147,7 @@
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
             <version>2.5</version>
-	    <scope>provided</scope>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.commons</groupId>
