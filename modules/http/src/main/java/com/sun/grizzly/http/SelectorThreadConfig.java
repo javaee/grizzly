@@ -160,6 +160,12 @@ public class SelectorThreadConfig{
    private final static String ASYNC_HANDLER_ENABLED_CONTEXT_PATH =
            "com.sun.grizzly.arp.asyncHandlerContextPath";
 
+    /**
+     * Do not bind on occupied port
+     */
+    public final static String REUSE_ADRESS =
+            "com.sun.grizzly.http.reuseAddress";
+
    /**
      * The string manager for this package.
      */
@@ -249,7 +255,9 @@ public class SelectorThreadConfig{
             selectorThread.displayConfiguration = 
                 Boolean.valueOf(System.getProperty(DISPLAY_CONFIGURATION))
                                                                 .booleanValue();
-        }     
+        }
+
+        selectorThread.setReuseAddress(Boolean.getBoolean(REUSE_ADRESS));
         
         if (System.getProperty(ASYNCH_HANDLER_PORT) != null){
             String ports = System.getProperty(ASYNCH_HANDLER_PORT);
