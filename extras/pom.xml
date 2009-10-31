@@ -17,5 +17,6 @@
         <module>hudson-on-grizzly</module>
         <module>cachetest</module>
         <module>cometd-client</module>
+        <module>lzma</module>
     </modules>
 </project>
