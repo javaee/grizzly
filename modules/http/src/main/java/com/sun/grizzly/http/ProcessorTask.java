@@ -516,18 +516,14 @@ public class ProcessorTask extends TaskBase implements Processor,
         initializeFilters();
 
         if (System.getProperty(USE_KEEP_ALIVE) != null) {
-            useKeepAliveAlgorithm =
-                        Boolean.valueOf(
-                            System.getProperty(USE_KEEP_ALIVE)).booleanValue();
+            useKeepAliveAlgorithm = Boolean.valueOf(System.getProperty(USE_KEEP_ALIVE));
 
             if (!useKeepAliveAlgorithm)
                 logger.info("Keep Alive algorith will no be used");
         }
 
         if (System.getProperty(BLOCKING_KEEP_ALIVE) != null) {
-            handleKeepAliveBlockingThread =
-                        Boolean.valueOf(
-                            System.getProperty(BLOCKING_KEEP_ALIVE)).booleanValue();
+            handleKeepAliveBlockingThread = Boolean.valueOf(System.getProperty(BLOCKING_KEEP_ALIVE));
 
             if (!handleKeepAliveBlockingThread)
                 logger.info("Keep Alive blocking thread algorithm will no be used");

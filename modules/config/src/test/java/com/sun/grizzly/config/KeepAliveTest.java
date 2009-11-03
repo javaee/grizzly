@@ -24,7 +24,7 @@ import org.jvnet.hk2.config.Dom;
 @Test
 public class KeepAliveTest extends BaseGrizzlyConfigTest {
     private GrizzlyConfig grizzlyConfig;
-    private static final String GET_HTTP = "GET /index.html HTTP/1.0\n";
+    private static final String GET_HTTP = "GET /index.html HTTP/1.1\n";
     private static final String KEEP_ALIVE_END = "KeepAlive:end";
     private static final String KEEP_ALIVE_PASS = "KeepAlive:PASS";
 
@@ -45,35 +45,38 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
         int count = 0;
         Socket s = new Socket("localhost", 38082);
         OutputStream os = s.getOutputStream();
-        send(os, GET_HTTP);
-        send(os, "Connection: keep-alive\n");
-        send(os, "Host: localhost:38082\n");
-        send(os, "\n");
         InputStream is = s.getInputStream();
         BufferedReader bis = new BufferedReader(new InputStreamReader(is));
         String line = null;
+        sendGet(os);
         int tripCount = 0;
         try {
             while ((line = read(bis)) != null) {
                 String[] strings = line.split(":");
-                if (strings.length > 1) {
-                    if ("keep-alive".equalsIgnoreCase(strings[1].trim())) {
-                        count++;
-                    }
-                }
                 if (line.contains(KEEP_ALIVE_END)) {
-//                    if (++tripCount == 1) {
-                        send(os, GET_HTTP);
-//                    }
+                    count++;
+                }
+                if (line.contains(KEEP_ALIVE_END) && tripCount == 0) {
+                    tripCount++;
+                    System.out.println("*****  Getting again");
+                    sendGet(os);
                 }
             }
-//            Assert.assertEquals(count, 1, "Should've made it at least once");
-        } catch(Exception e) {
+            Assert.assertEquals(tripCount, 1, "Should have tried to GET again");
+            Assert.assertEquals(count, 2, "Should have gotten the content twice");
+        } catch (Exception e) {
             Assert.fail(e.getMessage(), e);
         } finally {
             s.close();
             bis.close();
         }
+    }
+
+    private void sendGet(final OutputStream os) throws IOException {
+        send(os, GET_HTTP);
+        send(os, "Host: localhost:38082\n");
+        send(os, "Connection: keep-alive\n");
+        send(os, "\n");
     }
 
     private String read(final BufferedReader bis) throws IOException {
