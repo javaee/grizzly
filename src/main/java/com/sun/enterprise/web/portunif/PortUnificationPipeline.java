@@ -268,7 +268,7 @@ public class PortUnificationPipeline extends SSLPipeline{
                  * Since we can't predict what the user attach to the SelectionKey
                  * a ClassCastException is required.
                  */
-                Integer maxKeepAliveRequestsToken = (Integer)key.attachment();
+                Long maxKeepAliveRequestsToken = (Long) key.attachment();
                 if (maxKeepAliveRequestsToken == -1
                         && ph.getClass().getName().equals("com.sun.xml.ws.transport.tcp.grizzly.WSTCPProtocolHandler")){
                     return false;
