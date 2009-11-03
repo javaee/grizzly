@@ -254,7 +254,6 @@ public class SSLConfigHolder {
             if (tmpSSLArtifactsList.isEmpty()) {
                 logger.log(Level.CONFIG, "pewebcontainer.all_ssl_protocols_disabled",
                     ((Protocol) ssl.getParent()).getName());
-                new Exception("trace").printStackTrace();
             } else {
                 final String[] protocols = new String[tmpSSLArtifactsList.size()];
                 tmpSSLArtifactsList.toArray(protocols);
