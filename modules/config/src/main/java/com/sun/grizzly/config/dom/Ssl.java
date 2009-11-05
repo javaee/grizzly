@@ -53,7 +53,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
      * Nickname of the server certificate in the certificate database or the PKCS#11 token. In the certificate, the name
      * format is tokenname:nickname. Including the tokenname: part of the name in this attribute is optional.
      */
-    @Attribute(required = true)
+    @Attribute(required = true, defaultValue="s1as")
     String getCertNickname();
 
     void setCertNickname(String value);
