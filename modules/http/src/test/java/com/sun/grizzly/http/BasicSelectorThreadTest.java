@@ -115,6 +115,35 @@ public class BasicSelectorThreadTest extends TestCase {
 
     }
 
+    protected HttpURLConnection getConnection(String alias, int port) throws IOException {
+        URL url = new URL("http", "localhost", port, alias);
+        HttpURLConnection urlConn = (HttpURLConnection) url.openConnection();
+        urlConn.connect();
+        return urlConn;
+    }
+
+    public void testKeepAliveTest() throws Exception{
+        System.out.println("Test: testKeepAliveTest");
+        final String testString = "HelloWorld";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(0);
+            st.setAdapter(new HelloWorldAdapter());
+            st.setKeepAliveTimeoutInSeconds(0);
+
+            st.listen();
+
+            HttpURLConnection conn = getConnection("/", st.getPort());
+            String s = conn.getHeaderField("Connection");
+            System.out.println("Connection: " + s);
+            assertEquals(s, "close");
+
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+
+    }
+
     public void testEphemeralPort() throws Exception {
         System.out.println("Test: testEphemeralPort");
         final String testString = "HelloWorld";

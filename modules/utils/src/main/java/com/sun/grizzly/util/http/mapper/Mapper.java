@@ -581,7 +581,7 @@ public class Mapper {
                 // also for "/" and non default servlet
                 if (!isSlashPath || !DEFAULT_SERVLET.equals(servletName)) {
                     newWrapper.name = path;
-                    if (path.isEmpty()) {
+                    if (path.equals("")) {
                         context.emptyPathWrapper = newWrapper;
                     } else {
                         Wrapper[] oldWrappers = context.exactWrappers;
