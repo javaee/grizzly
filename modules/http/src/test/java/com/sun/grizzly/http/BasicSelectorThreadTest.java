@@ -124,8 +124,6 @@ public class BasicSelectorThreadTest extends TestCase {
 
     public void testKeepAliveTest() throws Exception{
         System.out.println("Test: testKeepAliveTest");
-        final String testString = "HelloWorld";
-        final byte[] testData = testString.getBytes();
         try {
             createSelectorThread(0);
             st.setAdapter(new HelloWorldAdapter());
@@ -136,7 +134,26 @@ public class BasicSelectorThreadTest extends TestCase {
 
             HttpURLConnection conn = getConnection("/", st.getPort());
             String s = conn.getHeaderField("Connection");
-            System.out.println("Connection: " + s);
+            assertEquals(s, "close");
+
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+
+    }
+
+        public void testKeepAliveNotFoundTest() throws Exception{
+        System.out.println("Test: testKeepAliveNotFoundTest");
+        try {
+            createSelectorThread(0);
+            st.setAdapter(new NotFoundAdapter());
+            st.setMaxKeepAliveRequests(0);
+            SelectorThread.enableNioLogging = true;
+
+            st.listen();
+
+            HttpURLConnection conn = getConnection("/404.html", st.getPort());
+            String s = conn.getHeaderField("Connection");
             assertEquals(s, "close");
 
         } finally {
@@ -182,6 +199,14 @@ public class BasicSelectorThreadTest extends TestCase {
         } finally {
             SelectorThreadUtils.stopSelectorThread(st);
             pe.shutdown();
+        }
+    }
+
+    public class NotFoundAdapter extends GrizzlyAdapter {
+
+        @Override
+        public void service(GrizzlyRequest request, GrizzlyResponse response) {
+            response.setStatus(404, "Not Found");
         }
     }
 
