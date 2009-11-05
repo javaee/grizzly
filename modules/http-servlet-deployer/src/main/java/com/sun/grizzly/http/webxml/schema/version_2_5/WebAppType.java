@@ -147,7 +147,7 @@ public class WebAppType {
     @XmlSchemaType(name = "ID")
     protected java.lang.String id;
     @XmlAttribute(name = "metadata-complete")
-    protected Boolean metadataComplete;
+    protected Boolean metadataComplete = false;
 
     /**
      * Gets the value of the descriptionAndDisplayNameAndIcon property.
