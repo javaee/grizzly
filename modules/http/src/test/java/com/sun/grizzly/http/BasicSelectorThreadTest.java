@@ -122,27 +122,28 @@ public class BasicSelectorThreadTest extends TestCase {
         return urlConn;
     }
 
-//    public void testKeepAliveTest() throws Exception{
-//        System.out.println("Test: testKeepAliveTest");
-//        final String testString = "HelloWorld";
-//        final byte[] testData = testString.getBytes();
-//        try {
-//            createSelectorThread(0);
-//            st.setAdapter(new HelloWorldAdapter());
-//            st.setKeepAliveTimeoutInSeconds(0);
-//
-//            st.listen();
-//
-//            HttpURLConnection conn = getConnection("/", st.getPort());
-//            String s = conn.getHeaderField("Connection");
-//            System.out.println("Connection: " + s);
-//            assertEquals(s, "close");
-//
-//        } finally {
-//            SelectorThreadUtils.stopSelectorThread(st);
-//        }
-//
-//    }
+    public void testKeepAliveTest() throws Exception{
+        System.out.println("Test: testKeepAliveTest");
+        final String testString = "HelloWorld";
+        final byte[] testData = testString.getBytes();
+        try {
+            createSelectorThread(0);
+            st.setAdapter(new HelloWorldAdapter());
+            st.setMaxKeepAliveRequests(0);
+            SelectorThread.enableNioLogging = true;
+
+            st.listen();
+
+            HttpURLConnection conn = getConnection("/", st.getPort());
+            String s = conn.getHeaderField("Connection");
+            System.out.println("Connection: " + s);
+            assertEquals(s, "close");
+
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+
+    }
 
     public void testEphemeralPort() throws Exception {
         System.out.println("Test: testEphemeralPort");
