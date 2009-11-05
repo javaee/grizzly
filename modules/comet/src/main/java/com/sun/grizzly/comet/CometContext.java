@@ -436,13 +436,7 @@ public class CometContext<E> {
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean resumeCometHandler(CometHandler handler){
-        boolean status = CometEngine.getEngine().interrupt(handlers.get(handler),false);
-        if (status){
-            try {
-                handler.onTerminate(eventTerminate);
-            } catch (IOException ex) { }
-        }
-        return status;
+        return CometEngine.getEngine().interrupt(handlers.get(handler),false);
     }
 
 
