@@ -51,6 +51,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLClassLoader;
+import java.net.URL;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -243,7 +244,10 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
         try {
             warCL = ClassLoaderUtil.createURLClassLoader(explodedLocation, serverLibLoader);
             if (logger.isLoggable(Level.FINEST)) {
-                logger.log(Level.FINEST, String.format("War class path contains %d elements.", warCL.getURLs().length));
+                logger.log(Level.FINEST, "War class path contains:");
+                for (URL url : warCL.getURLs()) {
+                    logger.log(Level.FINEST, url.toString());
+                }
             }
         } catch (IOException e) {
             throw new DeployException(String.format("Error while loading libs from '%s'.", explodedLocation), e);
