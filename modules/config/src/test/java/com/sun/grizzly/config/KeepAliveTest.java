@@ -8,13 +8,8 @@ import java.io.OutputStream;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.Socket;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
-import com.sun.grizzly.http.servlet.ServletAdapter;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -24,16 +19,22 @@ import org.jvnet.hk2.config.Dom;
 @Test
 public class KeepAliveTest extends BaseGrizzlyConfigTest {
     private GrizzlyConfig grizzlyConfig;
-    private static final String GET_HTTP = "GET /index.html HTTP/1.1\n";
+    private static final String GET_HTTP = "GET /index.html HTTP/1.0\n";
     private static final String KEEP_ALIVE_END = "KeepAlive:end";
     private static final String KEEP_ALIVE_PASS = "KeepAlive:PASS";
+    private static final Integer PORT_ONE = 38082;
+    private static final Integer PORT_TWO = PORT_ONE + 1;
+    private static final String HOST = "localhost";
+    private boolean debug = true;
 
     @BeforeClass
     public void setup() {
-        grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+        grizzlyConfig = new GrizzlyConfig("keep-alive.xml");
         grizzlyConfig.setupNetwork();
-        final GrizzlyServiceListener listener = grizzlyConfig.getListeners().get(0);
-        listener.getEmbeddedHttp().setAdapter(new ServletAdapter(new KeepAliveServlet()));
+        int count = 0;
+        for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
+            setRootFolder(listener, count++);
+        }
     }
 
     @AfterClass
@@ -41,25 +42,24 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
         grizzlyConfig.shutdown();
     }
 
+    @SuppressWarnings({"SocketOpenedButNotSafelyClosed"})
     public void keepAlive() throws Exception {
         int count = 0;
-        Socket s = new Socket("localhost", 38082);
+        Socket s = new Socket(HOST, PORT_ONE);
         OutputStream os = s.getOutputStream();
         InputStream is = s.getInputStream();
-        BufferedReader bis = new BufferedReader(new InputStreamReader(is));
-        String line = null;
+        String line;
         sendGet(os);
         int tripCount = 0;
+        BufferedReader bis = new BufferedReader(new InputStreamReader(is));
         try {
             while ((line = read(bis)) != null) {
-                String[] strings = line.split(":");
                 if (line.contains(KEEP_ALIVE_END)) {
                     count++;
-                }
-                if (line.contains(KEEP_ALIVE_END) && tripCount == 0) {
-                    tripCount++;
-                    System.out.println("*****  Getting again");
-                    sendGet(os);
+                    if (tripCount == 0) {
+                        tripCount++;
+                        sendGet(os);
+                    }
                 }
             }
             Assert.assertEquals(tripCount, 1, "Should have tried to GET again");
@@ -72,9 +72,34 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
         }
     }
 
+    @SuppressWarnings({"SocketOpenedButNotSafelyClosed"})
+    public void keepAliveTimeoutZero() throws Exception {
+        boolean found = false;
+        Socket sock = new Socket(HOST, PORT_TWO);
+        sock.setSoTimeout(50000);
+        OutputStream os = sock.getOutputStream();
+        send(os, "GET /index.html HTTP/1.1\n");
+        send(os, String.format("Host: localhost:%s\n", PORT_TWO));
+        send(os, "\n");
+        BufferedReader bis = new BufferedReader(new InputStreamReader(sock.getInputStream()));
+        try {
+            while (read(bis) != null) {
+                found = true;
+            }
+            Assert.assertTrue(found, "Should have gotten the document content");
+            System.out.println("getting again");
+            send(os, "GET /index.html HTTP/1.1\n");
+            send(os, "\n");
+            Assert.fail("Second GET should fail");
+        } catch (Exception e) {
+        } finally {
+            sock.close();
+            bis.close();
+        }
+    }
+
     private void sendGet(final OutputStream os) throws IOException {
         send(os, GET_HTTP);
-        send(os, "Host: localhost:38082\n");
         send(os, "Connection: keep-alive\n");
         send(os, "\n");
     }
@@ -86,7 +111,9 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
     }
 
     private void send(final OutputStream os, final String text) throws IOException {
-        System.out.print("sending: " + text);
+        if (debug) {
+            System.out.print("sending: " + text);
+        }
         os.write(text.getBytes());
     }
 
@@ -114,13 +141,5 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
             Assert.fail(e.getMessage(), e);
         }
         adapter.addRootFolder(name);
-    }
-
-    private class KeepAliveServlet extends HttpServlet {
-        @Override
-        protected void doGet(final HttpServletRequest httpServletRequest, final HttpServletResponse httpServletResponse)
-            throws ServletException, IOException {
-            httpServletResponse.getWriter().println(KEEP_ALIVE_PASS + "\n" + KEEP_ALIVE_END);
-        }
     }
 }

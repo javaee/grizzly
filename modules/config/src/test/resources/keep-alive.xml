@@ -1,0 +1,18 @@
+<network-config>
+    <transports>
+        <transport name="tcp"/>
+    </transports>
+    <protocols>
+        <protocol name="http">
+            <http/>
+        </protocol>
+        <protocol name="timeout-zero">
+            <http timeout-seconds="0"/>
+        </protocol>
+    </protocols>
+    <network-listeners>
+        <thread-pool name="defaultThreadPool"/>
+        <network-listener name="http-listener-1" port="38082" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
+        <network-listener name="http-listener-2" port="38083" transport="tcp" protocol="timeout-zero" thread-pool="defaultThreadPool"/>
+    </network-listeners>
+</network-config>
