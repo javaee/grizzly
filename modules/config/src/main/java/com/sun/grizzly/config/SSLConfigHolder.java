@@ -331,9 +331,7 @@ public class SSLConfigHolder {
             if (ssl.getTrustAlgorithm() != null) {
                 setAttribute(serverSF, "trustAlgorithm", ssl.getTrustAlgorithm(), null, null);
             }
-            if (ssl.getTrustMaxCertLengthBytes() != null) {
-                setAttribute(serverSF, "trustMaxCertLength", ssl.getTrustMaxCertLengthBytes(), null, null);
-            }
+            setAttribute(serverSF, "trustMaxCertLength", ssl.getTrustMaxCertLength(), null, null);
         }
 
         // key store settings

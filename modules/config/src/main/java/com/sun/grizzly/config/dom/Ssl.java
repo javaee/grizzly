@@ -177,9 +177,9 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     void setTrustAlgorithm(String algorithm);
 
     @Attribute(dataType = Integer.class, defaultValue = "5")
-    String getTrustMaxCertLengthBytes();
+    String getTrustMaxCertLength();
 
-    void setTrustMaxCertLengthBytes(String maxLength);
+    void setTrustMaxCertLength(String maxLength);
 
     @Attribute
     String getTrustStore();
