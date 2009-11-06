@@ -42,11 +42,15 @@ import com.sun.grizzly.http.utils.SelectorThreadUtils;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.http.MimeHeaders;
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
+import java.net.Socket;
 import java.net.URL;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -142,7 +146,66 @@ public class BasicSelectorThreadTest extends TestCase {
 
     }
 
-        public void testKeepAliveNotFoundTest() throws Exception{
+    public void testMultipleBytesMimeHeaders() throws Exception{
+        System.out.println("Test: testMultipleBytesMimeHeaders");
+        try {
+            createSelectorThread(0);
+            st.setAdapter(new GrizzlyAdapter() {
+
+                private final byte[] test = "test-1".getBytes();
+                private final byte[] test2 = "test-2".getBytes();
+                private final byte[] test3 = "test-3".getBytes();
+                private final byte[] test4 = "test-4".getBytes();
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) {
+                    MimeHeaders m1 = response.getResponse().getMimeHeaders();
+
+                    m1.addValue("Set-Cookie").setBytes(test, 0, test.length);
+                    m1.addValue("Set-Cookie").setBytes(test2, 0, test2.length);
+                    m1.addValue("Set-Cookie").setBytes(test3, 0, test3.length);
+                    m1.addValue("Set-Cookie").setBytes(test4, 0, test4.length);
+                }
+            });
+
+            st.setMaxKeepAliveRequests(0);
+            SelectorThread.enableNioLogging = true;
+
+            st.listen();
+
+            Socket s = new Socket("localhost", st.getPort());
+            s.setSoTimeout(30 * 1000);
+            OutputStream os = s.getOutputStream();
+
+            System.err.println(("GET / HTTP/1.1\n"));
+            os.write(("GET / HTTP/1.1\n").getBytes());
+            os.write(("Host: localhost:" + PORT + "\n").getBytes());
+            os.write("\n".getBytes());
+            os.flush();
+
+            InputStream is = new DataInputStream(s.getInputStream());
+            BufferedReader br = new BufferedReader(new InputStreamReader(is));
+            String line = null;
+            System.err.println("================== reading the response");
+            boolean gotCorrectResponse = false;
+            int i = 0;
+            while ((line = br.readLine()) != null) {
+                System.err.println("-> " + line);
+                if (line.startsWith("Set-Cookie")) {
+                    if (line.endsWith("test-" + ++i)){
+                        gotCorrectResponse = true;
+                    } else {
+                        gotCorrectResponse = false;
+                    }
+                }
+            }
+            assertTrue(gotCorrectResponse);
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
+
+    }
+
+    public void testKeepAliveNotFoundTest() throws Exception{
         System.out.println("Test: testKeepAliveNotFoundTest");
         try {
             createSelectorThread(0);
