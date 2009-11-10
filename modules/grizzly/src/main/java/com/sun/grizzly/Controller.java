@@ -751,7 +751,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     /**
      * Notify exception occured
      */
-    protected void notifyException(Throwable e) {
+    public void notifyException(Throwable e) {
         for (ControllerStateListener stateListener : stateListeners) {
             stateListener.onException(e);
         }
