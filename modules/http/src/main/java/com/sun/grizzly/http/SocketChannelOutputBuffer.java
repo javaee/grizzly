@@ -341,9 +341,15 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * {@inheritDoc}
      */
     public boolean isSupportFileSend() {
-        return true && (response.getChannel() !=  null);
+        final boolean hasChannel = (response.getChannel() != null);
+        if (lastActiveFilter == -1) {
+            return hasChannel;
+        } else if (lastActiveFilter == 0 && activeFilters[0].getEncodingName().equals("identity")) {
+            return hasChannel;
+        }
+
+        return false;
     }
-    
 
     /**
      * {@inheritDoc}

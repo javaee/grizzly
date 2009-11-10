@@ -822,7 +822,7 @@ public class GrizzlyOutputBuffer extends Writer
      * {@inheritDoc}
      */
     public boolean isSupportFileSend() {
-        return true;
+        return ((FileOutputBuffer)response.getOutputBuffer()).isSupportFileSend();
     }
 
     /**
