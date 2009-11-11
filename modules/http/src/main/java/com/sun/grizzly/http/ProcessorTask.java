@@ -765,11 +765,12 @@ public class ProcessorTask extends TaskBase implements Processor,
             request.updateCounters();  
         }
                 
-        // Next request
         if (keepAlive) {
+            // If keep connection alive - prepare for the next request
             inputBuffer.nextRequest();
             outputBuffer.nextRequest();
         } else {
+            // If connection will not be kept alive - recycle buffers
             inputBuffer.recycle();
             outputBuffer.recycle();
         }
