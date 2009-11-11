@@ -766,8 +766,13 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
                 
         // Next request
-        inputBuffer.nextRequest();
-        outputBuffer.nextRequest();
+        if (keepAlive) {
+            inputBuffer.nextRequest();
+            outputBuffer.nextRequest();
+        } else {
+            inputBuffer.recycle();
+            outputBuffer.recycle();
+        }
     }
        
 
