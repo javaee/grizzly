@@ -8,6 +8,7 @@ import java.util.List;
 
 import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.ThreadPool;
+import com.sun.grizzly.config.dom.Http;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -68,7 +69,9 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
         try {
             grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
+            final Http http = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0).findHttpProtocol().getHttp();
             Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
+            Assert.assertEquals(http.getCompressableMimeType(), "text/html,text/xml,text/plain");
         } finally {
             grizzlyConfig.shutdown();
         }
