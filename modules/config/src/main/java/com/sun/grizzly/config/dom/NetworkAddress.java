@@ -7,6 +7,7 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import javax.validation.Constraint;
+import javax.validation.Payload;
 
 @Retention(RUNTIME)
 @Target({FIELD, METHOD})
@@ -14,6 +15,8 @@ import javax.validation.Constraint;
 @Constraint(validatedBy = NetworkAddressValidator.class)
 public @interface NetworkAddress {
     String message() default "must be a valid network address";
+
+    Class<? extends Payload>[] payload() default {};
 
     Class<?>[] groups() default {};
 }
