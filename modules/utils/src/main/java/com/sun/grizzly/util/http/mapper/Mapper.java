@@ -455,7 +455,7 @@ public class Mapper {
      */
     public void addWrapper(String hostName, String contextPath, String path,
                            Object wrapper, boolean jspWildCard) {
-        addWrapper(hostName, contextPath, path, wrapper, jspWildCard, null);
+        addWrapper(hostName, contextPath, path, wrapper, jspWildCard, null, false);
     }
 
     /**
@@ -470,7 +470,7 @@ public class Mapper {
      */
     public void addWrapper(String hostName, String contextPath, String path,
                            Object wrapper, boolean jspWildCard,
-                           String servletName) {
+                           String servletName, boolean isEmptyPathSpecial) {
         Host[] hosts = this.hosts;
         int pos = findIgnoreCase(hosts, hostName);
         if (pos < 0) {
@@ -486,7 +486,8 @@ public class Mapper {
             }
             Context context = contexts[pos2];
             if (context.name.equals(contextPath)) {
-                addWrapper(context, path, wrapper, jspWildCard, servletName);
+                addWrapper(context, path, wrapper, jspWildCard, servletName,
+                        isEmptyPathSpecial);
             }
         }
     }
@@ -503,19 +504,20 @@ public class Mapper {
     }
 
 
-    public void addWrapper(String path, Object wrapper, boolean jspWildCard) {
-        addWrapper(context, path, wrapper, jspWildCard);
+    public void addWrapper(String path, Object wrapper, boolean jspWildCard,
+            boolean isEmptyPathSpecial) {
+        addWrapper(context, path, wrapper, jspWildCard, isEmptyPathSpecial);
     }
 
 
     protected void addWrapper(Context context, String path, Object wrapper) {
-        addWrapper(context, path, wrapper, false);
+        addWrapper(context, path, wrapper, false, false);
     }
 
 
     protected void addWrapper(Context context, String path, Object wrapper,
-            boolean jspWildCard) {
-        addWrapper(context, path, wrapper, jspWildCard, null);
+            boolean jspWildCard, boolean isEmptyPathSpecial) {
+        addWrapper(context, path, wrapper, jspWildCard, null, isEmptyPathSpecial);
     }
 
 
@@ -530,7 +532,8 @@ public class Mapper {
      * @param servletName then name of servletName or null if unknown
      */
     protected void addWrapper(Context context, String path, Object wrapper,
-                              boolean jspWildCard, String servletName) {
+                              boolean jspWildCard, String servletName,
+                              boolean isEmptyPathSpecial) {
 
         synchronized (context) {
 
@@ -581,7 +584,7 @@ public class Mapper {
                 // also for "/" and non default servlet
                 if (!isSlashPath || !DEFAULT_SERVLET.equals(servletName)) {
                     newWrapper.name = path;
-                    if (path.equals("")) {
+                    if (isEmptyPathSpecial && path.equals("")) {
                         context.emptyPathWrapper = newWrapper;
                     } else {
                         Wrapper[] oldWrappers = context.exactWrappers;
