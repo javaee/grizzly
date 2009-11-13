@@ -85,7 +85,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * type of the keystore file
      */
-    @Attribute(defaultValue = "JKS")
+    @Attribute(dataType = String.class)
     @Pattern(regexp = "(JKS|NSS)")
     String getKeyStoreType();
 
@@ -189,7 +189,7 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * type of the truststore file
      */
-    @Attribute(defaultValue = "JKS")
+    @Attribute(dataType = String.class)
     @Pattern(regexp = "(JKS|NSS)")
     String getTrustStoreType();
 
