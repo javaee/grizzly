@@ -29,14 +29,10 @@ import com.sun.grizzly.comet.CometContext;
 import com.sun.grizzly.comet.CometEngine;
 import com.sun.grizzly.comet.CometEvent;
 import com.sun.grizzly.comet.CometHandler;
-import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import com.sun.grizzly.arp.AsyncFilter;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import org.testng.Assert;
-import org.jvnet.hk2.component.Habitat;
 
 @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
 @Test

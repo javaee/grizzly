@@ -96,8 +96,8 @@ public class BasicCometTest extends TestCase {
 
         HttpURLConnection conn = getConnection(alias,delay+4000);
         long t1 = System.currentTimeMillis();
-        assertEquals(conn.getHeaderField(onInitialize), onInitialize);
-        assertEquals(conn.getHeaderField(onInterrupt), onInterrupt);
+        assertEquals(onInitialize, conn.getHeaderField(onInitialize));
+        assertEquals(onInterrupt, conn.getHeaderField(onInterrupt));
         long delta = System.currentTimeMillis() - t1;
         assertTrue("comet idletimeout was too fast,"+delta+"ms",delta > delay-250);
         assertTrue("comet idletimeout was too late,"+delta+"ms",delta < delay+3000);

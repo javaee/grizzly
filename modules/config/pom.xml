@@ -188,7 +188,7 @@
         </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.4.15</hk2.version>
-        <hk2.plugin.version>0.4.15</hk2.plugin.version>
+        <hk2.version>0.4.17</hk2.version>
+        <hk2.plugin.version>0.4.17</hk2.plugin.version>
     </properties>
 </project>
