@@ -88,9 +88,8 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     void setProtocolChainInstanceHandler(ProtocolChainInstanceHandler value);
 
     /**
-     * True means the protocol is secured and ssl element will be used to
-     *  initialize security settings. False means that protocol is not
-     *  secured and ssl element, if present, will be ignored.
+     * True means the protocol is secured and ssl element will be used to initialize security settings. False means that
+     * protocol is not secured and ssl element, if present, will be ignored.
      */
     @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getSecurityEnabled();
@@ -110,10 +109,11 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
 
     class Duck {
         static public List<NetworkListener> findNetworkListeners(Protocol protocol) {
-            final Collection<NetworkListener> listeners = ConfigBean.unwrap(protocol).getHabitat().getAllByType(NetworkListener.class);
+            final Collection<NetworkListener> listeners = ConfigBean.unwrap(protocol).getHabitat()
+                .getAllByContract(NetworkListener.class);
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
             for (NetworkListener listener : listeners) {
-                if(listener.getProtocol().equals(protocol.getName())) {
+                if (listener.getProtocol().equals(protocol.getName())) {
                     refs.add(listener);
                 }
             }
