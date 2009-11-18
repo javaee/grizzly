@@ -45,7 +45,7 @@ public abstract class Deployer<V extends Deployable, T extends DeploymentConfigu
     private Map<DeploymentID, Set<GrizzlyAdapter>> deployed = new HashMap<DeploymentID, Set<GrizzlyAdapter>>();
 
     /**
-     * Deploy deployable to gws.
+     * Deploy {@link Deployable} to gws.
      *
      * @param gws           Grizzly to deploy to.
      * @param toDeploy      Deployable to be deployed.
@@ -75,10 +75,10 @@ public abstract class Deployer<V extends Deployable, T extends DeploymentConfigu
     }
 
     /**
-     * Undeploy previously deployed deployable. r
+     * Undeploy previously deployed deployable.
      *
      * @param gws          Grizzly to undeploy from.
-     * @param deploymentId Deployment identification
+     * @param deploymentId Deployment identification.
      */
     public final void undeploy(GrizzlyWebServer gws, DeploymentID deploymentId) {
         final Set<GrizzlyAdapter> adapters = deployed.get(deploymentId);
