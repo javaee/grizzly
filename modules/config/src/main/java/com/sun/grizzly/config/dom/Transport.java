@@ -166,7 +166,7 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
     class Duck {
 
         static public List<NetworkListener> findNetworkListeners(Transport transport) {
-            final Collection<NetworkListener> listeners = ConfigBean.unwrap(transport).getHabitat().getAllByType(NetworkListener.class);
+            final Collection<NetworkListener> listeners = ConfigBean.unwrap(transport).getHabitat().getAllByContract(NetworkListener.class);
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
             for (NetworkListener listener : listeners) {
                 if (listener.getTransport().equals(transport.getName())) {

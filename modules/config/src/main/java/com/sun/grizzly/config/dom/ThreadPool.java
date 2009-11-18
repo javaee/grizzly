@@ -130,7 +130,7 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     class Duck {
 
         static public List<NetworkListener> findNetworkListeners(ThreadPool threadpool) {
-            final Collection<NetworkListener> listeners = ConfigBean.unwrap(threadpool).getHabitat().getAllByType(NetworkListener.class);
+            final Collection<NetworkListener> listeners = ConfigBean.unwrap(threadpool).getHabitat().getAllByContract(NetworkListener.class);
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
             for (NetworkListener listener : listeners) {
                 if (listener.getThreadPool().equals(threadpool.getName())) {
