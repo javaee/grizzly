@@ -39,11 +39,9 @@ package com.sun.grizzly.config.dom;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Max;
-import javax.validation.Constraint;
 
 import org.jvnet.hk2.component.Injectable;
+import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -135,21 +133,14 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     class Duck {
         public static Protocol findProtocol(NetworkListener listener) {
-            String name = listener.getProtocol();
-            final NetworkConfig networkConfig = listener.getParent().getParent(
-                    NetworkConfig.class);
-            return networkConfig.findProtocol(name);
+            return ConfigBean.unwrap(listener).getHabitat().getComponent(Protocol.class, listener.getProtocol());
         }
 
         public static Protocol findHttpProtocol(NetworkListener listener) {
-            final NetworkConfig networkConfig = listener.getParent().getParent(
-                    NetworkConfig.class);
-            Protocol protocol = listener.findProtocol();
-
-            return findHttpProtocol(new HashSet<String>(), networkConfig, protocol);
+            return findHttpProtocol(new HashSet<String>(), findProtocol(listener));
         }
 
-        private static Protocol findHttpProtocol(Set<String> tray, NetworkConfig config, Protocol protocol) {
+        private static Protocol findHttpProtocol(Set<String> tray, Protocol protocol) {
             if(protocol == null) {
                 return null;
             }
@@ -162,24 +153,21 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
             if (protocol.getHttp() != null) {
                 return protocol;
             } else if (protocol.getPortUnification() != null) {
+                Habitat habitat = ConfigBean.unwrap(protocol).getHabitat();
                 final List<ProtocolFinder> finders = protocol.getPortUnification().getProtocolFinder();
                 tray.add(protocolName);
 
                 try {
                     Protocol foundHttpProtocol = null;
                     for (ProtocolFinder finder : finders) {
-                        final String subProtocolName = finder.getProtocol();
-                        final Protocol subProtocol = config.findProtocol(subProtocolName);
+                        final Protocol subProtocol = habitat.getComponent(Protocol.class, finder.getProtocol());
                         if (subProtocol != null) {
-                            final Protocol httpProtocol =
-                                    findHttpProtocol(tray, config, subProtocol);
+                            final Protocol httpProtocol = findHttpProtocol(tray, subProtocol);
                             if (httpProtocol != null) {
                                 if (foundHttpProtocol == null) {
                                     foundHttpProtocol = httpProtocol;
                                 } else {
-                                    throw new IllegalStateException(
-                                            "Port unification allows only one " +
-                                            "\"<http>\" definition");
+                                    throw new IllegalStateException("Port unification allows only one \"<http>\" definition");
                                 }
                             }
                         }
@@ -195,24 +183,11 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
         }
 
         public static ThreadPool findThreadPool(NetworkListener listener) {
-            final String name = listener.getThreadPool();
-            for (final ThreadPool threadPool : ConfigBean.unwrap(listener).getHabitat().getAllByType(ThreadPool.class)) {
-                if (threadPool.getName().equals(name)) {
-                    return threadPool;
-                }
-            }
-            return null;
+            return ConfigBean.unwrap(listener).getHabitat().getComponent(ThreadPool.class, listener.getThreadPool());
         }
 
         public static Transport findTransport(NetworkListener listener) {
-            final String name = listener.getTransport();
-            final NetworkConfig networkConfig = listener.getParent().getParent(NetworkConfig.class);
-            for (final Transport transport : networkConfig.getTransports().getTransport()) {
-                if (transport.getName().equals(name)) {
-                    return transport;
-                }
-            }
-            return null;
+            return ConfigBean.unwrap(listener).getHabitat().getComponent(Transport.class, listener.getTransport());
         }
     }
 }
