@@ -110,8 +110,7 @@
                     <instructions>
                         <Import-Package>*</Import-Package>
                         <Export-Package>
-                            SevenZip,
-                            SevenZip.Compression.LZMA
+                            SevenZip.*
                         </Export-Package>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
