@@ -316,7 +316,7 @@ public class StaticResourcesAdapter implements Adapter {
      * 
      * @param rootFolder the directory from where files will be serviced.
      * 
-     * @deprecated - use {@link #addRootFolders}
+     * @deprecated - use {@link #addRootFolder}
      */
     public void setRootFolder(String rootFolder) {
         rootFolders.clear();
