@@ -75,6 +75,8 @@ public class DefaultThreadPool extends FixedThreadPool
     private final AtomicInteger queueSize = new AtomicInteger();
 
     protected final AtomicInteger workerThreadCounter = new AtomicInteger();
+
+    protected final AtomicInteger approximateRunningWorkerCount = new AtomicInteger();
     
     /**
      *
@@ -305,12 +307,14 @@ public class DefaultThreadPool extends FixedThreadPool
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
+        approximateRunningWorkerCount.incrementAndGet();
         ((WorkerThreadImpl) t).createByteBuffer(false);
     }
 
     @Override
     protected void afterExecute(Runnable r, Throwable t) {
         ((WorkerThreadImpl) Thread.currentThread()).reset();
+        approximateRunningWorkerCount.decrementAndGet();
         super.afterExecute(r, t);
     }
 

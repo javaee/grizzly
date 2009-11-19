@@ -64,9 +64,7 @@ public class FixedThreadPool extends AbstractThreadPool {
     /**
      * exits for use by subclasses, does not impact the performance of fixed pool
      */
-    protected final AtomicInteger aliveworkerCount = new AtomicInteger();
-
-    protected final AtomicInteger approximateRunningWorkerCount = new AtomicInteger();
+    protected final AtomicInteger aliveworkerCount = new AtomicInteger();    
 
     protected final BlockingQueue<Runnable> workQueue;
 
@@ -307,24 +305,6 @@ public class FixedThreadPool extends AbstractThreadPool {
      * {@inheritDoc}
      */
     public void setMaxQueuedTasksCount(int maxTasksCount) {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void beforeExecute(Thread t, Runnable r) {
-        super.beforeExecute(t, r);
-        approximateRunningWorkerCount.incrementAndGet();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void afterExecute(Runnable r, Throwable t) {
-        approximateRunningWorkerCount.decrementAndGet();
-        super.afterExecute(r, t);
     }
 
     /**
