@@ -149,7 +149,9 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             // Bind the Attachment to the SelectionKey
             ctx.getSelectionKey().attach(k);
 
-            if (selectorThread.getMaxKeepAliveRequests() != -1){
+            if (selectorThread.getKeepAliveTimeoutInSeconds() == 0){
+                processorTask.setDropConnection(true);
+            } else if (selectorThread.getMaxKeepAliveRequests() != -1){
                 int count = k.getKeepAliveCount();
                 // If count == 0 - then we don't know if connection is keep-alive or not
                 if (count > 0 && count >= selectorThread.getMaxKeepAliveRequests()) {
