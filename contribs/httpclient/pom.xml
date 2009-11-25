@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-i</version>
+        <version>1.9.18-j</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>com.sun.grizzly</groupId>

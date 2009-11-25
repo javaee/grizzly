@@ -3,7 +3,7 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-i</version>
+        <version>1.9.18-j</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
@@ -45,7 +45,7 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
-            <version>1.9.18-i</version>
+            <version>1.9.18-j</version>
         </dependency>
     </dependencies>
 </project>
