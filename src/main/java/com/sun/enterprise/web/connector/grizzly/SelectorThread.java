@@ -64,9 +64,11 @@ import com.sun.enterprise.web.connector.grizzly.algorithms.NoParsingAlgorithm;
 import com.sun.enterprise.web.connector.grizzly.async.DefaultAsyncHandler;
 import com.sun.enterprise.web.connector.grizzly.comet.CometAsyncFilter;
 import com.sun.enterprise.web.connector.grizzly.FileCache.FileCacheEntry;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Properties;
 import java.util.Queue;
 import java.util.StringTokenizer;
 
@@ -409,6 +411,13 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      * The root folder where application are deployed
      */
     protected static String rootFolder = "";
+
+
+    /**
+     * Name of the property file that holds grizzly version number
+     */
+    private static final String VERSION_FILE =
+            "/com/sun/enterprise/web/connector/grizzly/version.properties";
     
     
     // ----------------------------------------------------- Collections --//
@@ -2567,8 +2576,24 @@ public class SelectorThread extends Thread implements MBeanRegistration{
      */
     private void displayConfiguration(){
        if (displayConfiguration){
+
+            InputStream is = getClass().getResourceAsStream(VERSION_FILE);
+            Properties properties = new Properties();
+            try {
+                properties.load(is);
+            } catch (IOException ex) {
+                throw new RuntimeException("Can't read the version file", ex);
+            } finally {
+                try {
+                    is.close();
+                } catch (IOException ex) {
+                    throw new RuntimeException("Can't close version file", ex);
+                }
+            }
+            String version = properties.getProperty("version");
+
             logger.log(Level.INFO,
-                    "\n Grizzly 1.0.30 running on " + System.getProperty("os.name") + "-"
+                    "\n Grizzly " + version + " running on " + System.getProperty("os.name") + "-"
                     + System.getProperty("os.version") + " under JDK version: "
                     + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
                     + "\n\t port: " + port
