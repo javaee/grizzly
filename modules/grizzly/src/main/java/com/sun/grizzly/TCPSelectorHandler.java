@@ -428,7 +428,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                             logger.log( Level.FINE, "setReceiveBufferSize exception ", iae );
                     }
                 }
-                serverSocket.setReuseAddress(reuseAddress);
+                
                 if ( inet == null){
                     portRange.bind(serverSocket,ssBackLog );
                 } else {
