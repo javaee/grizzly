@@ -5,16 +5,16 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-contribs</artifactId>
-        <version>1.9.18-j</version>
+        <version>1.9.18-k</version>
     </parent>
     <groupId>com.sun.grizzly.osgi.httpservice</groupId>
     <artifactId>httpservice-its</artifactId>
     <packaging>jar</packaging>
-    <version>1.9.18-j</version>
+    <version>1.9.18-k</version>
     <name>Grizzly OSGi HttpService Integration Tests</name>
 
     <properties>
-        <grizzly.version>1.9.18-j</grizzly.version>
+        <grizzly.version>1.9.18-k</grizzly.version>
         <felix.version>1.4.3</felix.version>
         <pax.version>1.4</pax.version>
         <org.osgi.service.http.port>8080</org.osgi.service.http.port>
