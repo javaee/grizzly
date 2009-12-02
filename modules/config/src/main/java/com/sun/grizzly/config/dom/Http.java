@@ -38,6 +38,7 @@ package com.sun.grizzly.config.dom;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.Pattern;
 
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
@@ -63,7 +64,8 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setChunkingEnabled(String enabled);
 
-    @Attribute(defaultValue = "false", dataType = String.class)
+    @Attribute(defaultValue = "off", dataType = String.class)
+    @Pattern(regexp = "on|off|force")
     String getCompression();
 
     void setCompression(String compression);
