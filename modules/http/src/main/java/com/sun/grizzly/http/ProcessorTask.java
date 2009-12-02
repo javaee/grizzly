@@ -102,6 +102,7 @@ import com.sun.grizzly.util.net.SSLSupport;
 
 import com.sun.grizzly.util.res.StringManager;
 import java.nio.ByteBuffer;
+import java.util.Collection;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
@@ -1510,12 +1511,12 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
 
         // Check for compression
-        boolean useCompression = false;
+        OutputFilter compressionOutputFilter = null;
         if (entityBody && (compressionLevel > 0)) {
-            useCompression = isCompressable();
+            compressionOutputFilter = detectCompression();
             
             // Change content-length to -1 to force chunking
-            if (useCompression) {
+            if (compressionOutputFilter != null) {
                 response.setContentLength(-1);
             }
         }
@@ -1562,10 +1563,11 @@ public class ProcessorTask extends TaskBase implements Processor,
             }
         }
 
-        if (useCompression) {
-            outputBuffer.addActiveFilter(outputFilters[Constants.GZIP_FILTER]);
+        if (compressionOutputFilter != null) {
+            outputBuffer.addActiveFilter(compressionOutputFilter);
             // FIXME: Make content-encoding generation dynamic
-            response.setHeader("Content-Encoding", "gzip");
+            response.setHeader("Content-Encoding",
+                    compressionOutputFilter.getEncodingName().toString());
             // Make Proxies happy via Vary (from mod_deflate)
             response.setHeader("Vary", "Accept-Encoding");
         }
@@ -1632,6 +1634,13 @@ public class ProcessorTask extends TaskBase implements Processor,
         //inputBuffer.addFilter(new GzipInputFilter());
         outputBuffer.addFilter(new GzipOutputFilter());
 
+        // Add compression filters to filter library
+        final Collection<OutputFilter> compressionOutputFilters =
+                CompressionFiltersProvider.provider().getOutputFilters();
+
+        for(OutputFilter compressionFilter : compressionOutputFilters) {
+            outputBuffer.addFilter(compressionFilter);
+        }
     }
 
 
@@ -2225,32 +2234,36 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Check for compression. Compression is onlky supported when http/1.1 is
      * used.
      */
-    protected boolean isCompressable(){
+    protected OutputFilter detectCompression(){
         // Compression only since HTTP 1.1
         if (! http11)
-            return false;
+            return null;
+
+        final CompressionFiltersProvider compressionFiltersProvider =
+                CompressionFiltersProvider.provider();
 
         // Check if browser support gzip encoding
         MessageBytes acceptEncodingMB = 
             request.getMimeHeaders().getValue("accept-encoding");
             
-        if ((acceptEncodingMB == null) 
-            || (acceptEncodingMB.indexOf("gzip") == -1 
-            && acceptEncodingMB.indexOf("deflate") == -1))
-            return false;
+
+        OutputFilter compressionOutputFilter = null;
+        
+        if ((acceptEncodingMB == null)
+            || ((compressionOutputFilter = compressionFiltersProvider.getOutputFilter(acceptEncodingMB))) == null)
+            return null;
 
         // Check if content is not already gzipped
         MessageBytes contentEncodingMB =
             response.getMimeHeaders().getValue("Content-Encoding");
 
-        if ((contentEncodingMB != null) 
-            && (contentEncodingMB.indexOf("gzip") != -1 
-            || contentEncodingMB.indexOf("deflate") != -1 ))
-            return false;
+        if ((contentEncodingMB != null)
+            && !compressionOutputFilter.equals(compressionFiltersProvider.getOutputFilter(contentEncodingMB)))
+            return null;
 
         // If force mode, allways compress (test purposes only)
         if (compressionLevel == 2)
-           return true;
+           return compressionOutputFilter;
 
         // Check for incompatible Browser
         if (noCompressionUserAgents != null) {
@@ -2260,7 +2273,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 String userAgentValue = userAgentValueMB.toString();
 
         	if (inStringArray(noCompressionUserAgents, userAgentValue))
-        		return false;
+        		return null;
             }
         }
 
@@ -2271,10 +2284,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             // Check for compatible MIME-TYPE
             if (compressableMimeTypes != null)
                 return (startsWithStringArray(compressableMimeTypes, 
-                        response.getContentType()));
+                        response.getContentType())) ? compressionOutputFilter : null;
         }
 
-	return false;
+	return null;
     }
     
 
