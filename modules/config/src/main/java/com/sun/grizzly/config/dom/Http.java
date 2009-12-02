@@ -64,6 +64,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     void setChunkingEnabled(String enabled);
 
     @Attribute(defaultValue = "off", dataType = String.class)
+    @Pattern(regexp = "on|off|force")
     String getCompression();
 
     void setCompression(String compression);
