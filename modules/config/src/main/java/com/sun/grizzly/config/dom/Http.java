@@ -38,6 +38,7 @@ package com.sun.grizzly.config.dom;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.Pattern;
 
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
