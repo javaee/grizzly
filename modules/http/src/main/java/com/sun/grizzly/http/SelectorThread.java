@@ -558,7 +558,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     // AsyncInterceptor implemenation.
     private AsyncInterceptor asyncInterceptor;
 
-
+    // ProcessorTaskFactory, which is used to create ProcessorTasks
+    protected volatile ProcessorTaskFactory processorTaskFactory;
     
     // ---------------------------------------------------- Constructor --//
     
@@ -987,9 +988,15 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Create {@link ProcessorTask} objects and configure it to be ready
      * to proceed request.
      */
-    protected ProcessorTask newProcessorTask(boolean initialize){                                                      
-        ProcessorTask task = 
-                new ProcessorTask(initialize, bufferResponse);
+    protected ProcessorTask newProcessorTask(boolean initialize) {
+        final ProcessorTaskFactory factoryLocal = processorTaskFactory;
+        final ProcessorTask task;
+        if (factoryLocal != null) {
+            task = factoryLocal.createProcessorTask(this, initialize);
+        } else {
+            task = new ProcessorTask(initialize, bufferResponse);
+        }
+
         return configureProcessorTask(task);       
     }
     
@@ -2458,5 +2465,24 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     public void setSendBufferSize(int sendBufferSize) {
         this.sendBufferSize = sendBufferSize;
+    }
+
+    /**
+     * Get {@link ProcessorTaskFactory}.
+     *
+     * @return {@link ProcessorTaskFactory}
+     */
+    public ProcessorTaskFactory getProcessorTaskFactory() {
+        return processorTaskFactory;
+    }
+
+    /**
+     * Sets {@link ProcessorTaskFactory}.
+     *
+     * @param processorTaskFactory
+     */
+    public void setProcessorTaskFactory(ProcessorTaskFactory processorTaskFactory) {
+        this.processorTaskFactory = processorTaskFactory;
+        clearTasks();
     }
 }
