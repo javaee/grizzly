@@ -178,7 +178,7 @@ public class Request {
     /**
      * HTTP specific fields. (remove them ?)
      */
-    private long contentLength = -1;
+    protected long contentLength = -1;
     private MessageBytes contentTypeMB = null;
     private String charEncoding = null;
     private boolean charEncodingParsed = false;
