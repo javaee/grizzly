@@ -497,9 +497,9 @@ public class ProcessorTask extends TaskBase implements Processor,
     public void initialize(){
         isSecurityEnabled = (System.getSecurityManager() != null);
         started = true;   
-        request = new Request();
+        request = createRequest();
 
-        response = new Response();
+        response = createResponse();
         response.setHook(this);
         
         inputBuffer = new InternalInputBuffer(request,requestBufferSize); 
@@ -531,6 +531,21 @@ public class ProcessorTask extends TaskBase implements Processor,
         }   
     }
 
+    /**
+     * Creates {@link Request} object.
+     * @return {@link Request} object.
+     */
+    protected Request createRequest() {
+        return new Request();
+    }
+
+    /**
+     * Creates {@link Response} object.
+     * @return {@link Response} object.
+     */
+    protected Response createResponse() {
+        return new Response();
+    }
 
     // ----------------------------------------------------- Thread run ---- //
     
