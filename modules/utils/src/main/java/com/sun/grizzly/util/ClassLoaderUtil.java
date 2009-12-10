@@ -97,8 +97,10 @@ public class ClassLoaderUtil {
         File file;
         URL appRoot;
         URL classesURL;
-        
-        if (!dirPath.endsWith(File.separator)){
+
+        if (!dirPath.endsWith(File.separator) &&
+            !dirPath.endsWith(".war") &&
+            !dirPath.endsWith(".jar")) {
             dirPath += File.separator;
         }
         

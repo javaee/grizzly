@@ -99,16 +99,21 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
             File warFile = new File(uri);
             if (warFile.exists()) {
                 String explodedLocation;
+                URLClassLoader warCL;
                 if (warFile.isFile()) {
                     try {
-                        explodedLocation = explodeWarFile(new URI("jar:file:" + warFile.getAbsolutePath().replace('\\', '/') + "!/"));
+                        String fileLocation = warFile.getAbsolutePath().replace('\\', '/');
+                        explodedLocation = explodeWarFile(new URI("jar:file:" + fileLocation + "!/"));
+                        warCL = createWarCL(fileLocation, configuration.serverLibLoader);
+                        // TODO if someone can tell me why directory based behavior is not working, beers are on me.
+                        // warCL = createWarCL(explodedLocation, configuration.serverLibLoader);
                     } catch (URISyntaxException e) {
                         throw new DeployException("Error.", e);
                     }
                 } else {
                     explodedLocation = warFile.getAbsolutePath();
+                    warCL = createWarCL(explodedLocation, configuration.serverLibLoader);
                 }
-                ClassLoader warCL = createWarCL(explodedLocation, configuration.serverLibLoader);
                 WebApp webApp = parseWebXml(uri, explodedLocation);
                 
                 // if metadata-complete skip annotations
@@ -116,7 +121,7 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
                     logger.fine("Will append Annotations to the WebApp");
                     try {
                     	AnnotationParser parser = new AnnotationParser();
-    					WebApp webAppAnot = parser.parseAnnotation((URLClassLoader)warCL);
+    					WebApp webAppAnot = parser.parseAnnotation(warCL);
     					webApp.mergeWithAnnotations(webAppAnot);
     					
     				} catch (Throwable t) {
@@ -180,7 +185,7 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
             }
 
             //set root Folder
-            sa.setRootFolder(root);
+            sa.addRootFolder(root);
 
             // create the alias array from the list of urlPattern
             String alias[] = WebAppAdapter.getAlias(sa, adapterAliases.getValue());
@@ -232,15 +237,17 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
         sa.setContextPath(context);
         sa.setServletPath(tmpPath);
         sa.setHandleStaticResources(true);
-        sa.setRootFolder(rootFolder);
+        sa.addRootFolder(rootFolder);
 
         result.put(sa, Collections.singleton(context + ROOT));
         return result;
     }
 
 
-    private static ClassLoader createWarCL(String explodedLocation, URLClassLoader serverLibLoader) throws DeployException {
+    private static URLClassLoader createWarCL(String explodedLocation, URLClassLoader serverLibLoader) throws DeployException {
         URLClassLoader warCL;
+        String oldTmp = System.getProperty(JAVA_IO_TMPDIR);
+        System.setProperty(JAVA_IO_TMPDIR, new File("work").getAbsolutePath());
         try {
             warCL = ClassLoaderUtil.createURLClassLoader(explodedLocation, serverLibLoader);
             if (logger.isLoggable(Level.FINEST)) {
@@ -251,6 +258,8 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
             }
         } catch (IOException e) {
             throw new DeployException(String.format("Error while loading libs from '%s'.", explodedLocation), e);
+        } finally {
+            System.setProperty(JAVA_IO_TMPDIR, oldTmp);
         }
         return warCL;
     }
