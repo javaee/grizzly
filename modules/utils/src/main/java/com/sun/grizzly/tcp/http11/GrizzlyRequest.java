@@ -97,6 +97,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Wrapper object for the Coyote request.
@@ -144,8 +145,7 @@ public class GrizzlyRequest{
      * Not Good. We need a better mechanism.
      * TODO: Move Session Management out of here
      */
-    private static Map<String,GrizzlySession> sessions = new
-            HashMap<String, GrizzlySession>();    
+    private static Map<String,GrizzlySession> sessions = new ConcurrentHashMap<String, GrizzlySession>();
     
     
     /**
@@ -171,7 +171,7 @@ public class GrizzlyRequest{
     
     
     /**
-     * That code is far from optimal and needs to be rewrite appropriately. 
+     * TODO: That code is far from optimal and needs to be rewrite appropriately.
      */ 
     static{
         sessionExpirer.scheduleAtFixedRate(new Runnable(){
