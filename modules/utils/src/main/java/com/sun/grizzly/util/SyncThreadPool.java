@@ -441,11 +441,19 @@ public class SyncThreadPool extends AbstractThreadPool {
                     }
 
                     Runnable r = workQueue.poll();
+
+                    long localKeepAlive = keepAliveTime;
+
                     while (r == null) {
-                        statelock.wait(keepAliveTime);
+                        final long startTime = System.currentTimeMillis();
+                        statelock.wait(localKeepAlive);
                         r = workQueue.poll();
 
-                        if (!core) {
+                        localKeepAlive -= (System.currentTimeMillis() - startTime);
+                        
+                        // Less than 100 millis remainder will consider as keepalive timeout
+                        if (!core &&
+                                (r != null || localKeepAlive < 100)) {
                             break;
                         }
                     }
