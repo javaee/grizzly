@@ -275,14 +275,14 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     private boolean autoConfigure = false;
 
    /**
-     * True if calling thread should execute the pendingIO events.
+     * True if calling selector thread should execute the pendingIO event.
      */
-    private boolean finishIOUsingCurrentThread = true;
-
-   /**
-     * Max number of pendingIO tasks that will be executed per worker thread.
-     */
-    private int pendingIOlimitPerThread = 100;
+    private boolean executePendingIOUsingSelectorThread = false;
+//
+//   /**
+//     * Max number of pendingIO tasks that will be executed per worker thread.
+//     */
+//    private int pendingIOlimitPerThread = 100;
 
     // -------------------------------------------------------------------- //
     /**
@@ -697,8 +697,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         copyController.readThreadsCount = readThreadsCount;
         copyController.selectionKeyHandler = selectionKeyHandler;
         copyController.stateHolder = stateHolder;
-        copyController.finishIOUsingCurrentThread = finishIOUsingCurrentThread;
-        copyController.pendingIOlimitPerThread = pendingIOlimitPerThread;
+        copyController.executePendingIOUsingSelectorThread = executePendingIOUsingSelectorThread;
     }
 
     // -------------------------------------------------------- Lifecycle ----//
@@ -821,9 +820,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                     SelectorHandler selectorHandler = it.next();
                     if (selectorHandler instanceof TCPSelectorHandler){
                         ((TCPSelectorHandler)selectorHandler)
-                                .setFinishIOUsingCurrentThread(finishIOUsingCurrentThread);
-                         ((TCPSelectorHandler)selectorHandler)
-                                .setPendingIOlimitPerThread(pendingIOlimitPerThread);
+                                .setExecutePendingIOUsingSelectorThread(executePendingIOUsingSelectorThread);
+//                         ((TCPSelectorHandler)selectorHandler)
+//                                .setPendingIOlimitPerThread(pendingIOlimitPerThread);
                          ((TCPSelectorHandler)selectorHandler)
                                 .setMaxAcceptRetries(maxAcceptRetries);
                     }
@@ -1273,41 +1272,43 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     /**
-     * Return <tt>true</tt> by default, meaning the {@link WorkerThread} used to
-     * execute the I/O operation will also complete the I/O operations. Setting to false
-     * delegate the task to the kernel thread pool.
-     * 
-     * @return the finishIOUsingCurrentThread
+     * Return <tt>true</tt>, if selector thread has to be applied to execute I/O
+     * operation, or <tt>false</tt> (by default), meaning that I/O operation could
+     * be executed in the current thread.
+     *
+     * @return the executePendingIOUsingSelectorThread
      */
-    public boolean isFinishIOUsingCurrentThread() {
-        return finishIOUsingCurrentThread;
+    public boolean isExecutePendingIOUsingSelectorThread() {
+        return executePendingIOUsingSelectorThread;
     }
 
     /**
-     * Set to false to use a the kernel thread pool to finish pending I/O operations,
-     * like closing connection.
-     * 
-     * @param finishIOUsingCurrentThread the finishIOUsingCurrentThread to set
+     * Set <tt>true</tt>, if selector thread has to be applied to execute I/O
+     * operation, or <tt>false</tt> (by default), meaning that I/O operation could
+     * be executed in the current thread.
+     * It's not safe to change this value, when <tt>TCPSelectorHandler</tt> has been already started.
+     *
+     * @param executePendingIOUsingSelectorThread the executePendingIOUsingSelectorThread to set
      */
-    public void setFinishIOUsingCurrentThread(boolean finishIOUsingCurrentThread) {
-        this.finishIOUsingCurrentThread = finishIOUsingCurrentThread;
+    public void setExecutePendingIOUsingSelectorThread(boolean executePendingIOUsingSelectorThread) {
+        this.executePendingIOUsingSelectorThread = executePendingIOUsingSelectorThread;
     }
 
-    /**
-     * Max number of pendingIO tasks that will be executed per worker thread.
-     * @return
-     */
-    public int getPendingIOlimitPerThread() {
-        return pendingIOlimitPerThread;
-    }
-
-    /**
-     * Max number of pendingIO tasks that will be executed per worker thread.
-     * @param pendingIOlimitPerThread
-     */
-    public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
-        this.pendingIOlimitPerThread = pendingIOlimitPerThread;
-    }
+//    /**
+//     * Max number of pendingIO tasks that will be executed per worker thread.
+//     * @return
+//     */
+//    public int getPendingIOlimitPerThread() {
+//        return pendingIOlimitPerThread;
+//    }
+//
+//    /**
+//     * Max number of pendingIO tasks that will be executed per worker thread.
+//     * @param pendingIOlimitPerThread
+//     */
+//    public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
+//        this.pendingIOlimitPerThread = pendingIOlimitPerThread;
+//    }
 
 
     /**

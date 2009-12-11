@@ -89,7 +89,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
         }
 
         if (!key.isValid()) {
-            selectorHandler.addPendingKeyCancel(key);
+            selectorHandler.getSelectionKeyHandler().cancel(key);
         } else {
             key.interestOps(key.interestOps() | ops);
             addExpirationStamp(key, currentTime);
@@ -107,7 +107,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
 
         final long currentTime = System.currentTimeMillis();
         if (currentTime < nextKeysExpiration) {
-            return;     
+            return;
         }
 
         nextKeysExpiration = currentTime + 1000;
@@ -133,7 +133,7 @@ public class SelectorThreadKeyHandler extends DefaultSelectionKeyHandler {
                         //rely in key.isvalid detection
                         addExpirationStamp(key,
                                 SelectionKeyAttachment.UNLIMITED_TIMEOUT);
-                        selectorHandler.addPendingKeyCancel(key);
+                        cancel(key);
                     }
                 }
             }

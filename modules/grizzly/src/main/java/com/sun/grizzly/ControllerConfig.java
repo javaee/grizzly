@@ -68,10 +68,17 @@ class ControllerConfig{
             = "com.sun.grizzly.autoConfigure";
 
     /**
+     * Use the selector thread to execute an I/O operations (closing a connection),
+     * or execute a task in the current thread
+     */
+    public final static String PENDING_IO_STRATEGY
+            = "com.sun.grizzly.executePendingIOUsingSelectorThread";
+
+    /**
      * Use the current thread ot finish an I/O operations (closing a connection)
      * or queue the task to be executed by an {@link ExecutorService}
      */
-    public final static String PENDING_IO_STRATEGY 
+    public final static String PENDING_IO_STRATEGY_OLD
             = "com.sun.grizzly.finishIOUsingCurrentThread";
 
     /**
@@ -105,10 +112,16 @@ class ControllerConfig{
 
         // Avoid overriding the default with false
         if (System.getProperty(PENDING_IO_STRATEGY) != null){
-            c.setFinishIOUsingCurrentThread(Boolean.getBoolean(PENDING_IO_STRATEGY));
+            c.setExecutePendingIOUsingSelectorThread(Boolean.getBoolean(PENDING_IO_STRATEGY));
         }
 
-        c.setPendingIOlimitPerThread(Integer.getInteger(MAX_PENDING_IO_PER_THREAD, 100));
+        if (System.getProperty(PENDING_IO_STRATEGY_OLD) != null) {
+            Controller.logger.fine("Property " + PENDING_IO_STRATEGY_OLD + " is not longer supported. Please use: " + PENDING_IO_STRATEGY);
+        }
+
+        if (System.getProperty(MAX_PENDING_IO_PER_THREAD) != null) {
+            Controller.logger.fine("Property " + MAX_PENDING_IO_PER_THREAD + " is not longer supported.");
+        }
 
         c.setMaxAcceptRetries(Integer.getInteger(MAX_ACCEPT_RETRIES, 5));
 
