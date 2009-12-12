@@ -51,4 +51,11 @@
             </plugin>
         </plugins>
     </build>
+    <dependencies>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-lzma</artifactId>
+            <version>4.65-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </project>
