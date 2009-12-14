@@ -44,7 +44,8 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- *
+ * Need to evaluate queuesize limit perf implications on this fixedpool variant.
+ * 
  * @author gustav trede
  */
 public class GrizzlyThreadPool extends FixedThreadPool{
