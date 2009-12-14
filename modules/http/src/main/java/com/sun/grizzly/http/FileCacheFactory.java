@@ -38,9 +38,10 @@
 package com.sun.grizzly.http;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import com.sun.grizzly.http.FileCache.FileCacheEntry;
+import com.sun.grizzly.util.DataStructures;
+import java.util.Map;
+import java.util.Queue;
 
 /**
  * A factory for creating {@link FileCache} instance.
@@ -94,7 +95,7 @@ public class FileCacheFactory {
      * The cache manager used by instance of {@link FileCache}
      * created by this factory;
      */
-    protected ConcurrentLinkedQueue<FileCacheEntry> cacheManager;
+    protected Queue<FileCacheEntry> cacheManager;
     /**
      * Is monitoring enabled
      */
@@ -122,8 +123,8 @@ public class FileCacheFactory {
         fileCacheFactory.port = currentPort;
         cache.put(currentPort, fileCacheFactory);
 
-        ConcurrentLinkedQueue<FileCacheEntry> cacheManager =
-                new ConcurrentLinkedQueue<FileCacheEntry>();
+        Queue<FileCacheEntry> cacheManager = 
+                DataStructures.getCLQinstance(FileCacheEntry.class);
         fileCacheFactory.setCacheManager(cacheManager);
         FileCacheFactory.fileCacheClass = fcc;
 
@@ -189,14 +190,14 @@ public class FileCacheFactory {
         fileCache.setPort(port);
     }
 
-    public void setCacheManager(ConcurrentLinkedQueue<FileCacheEntry> cacheManager) {
+    public void setCacheManager(Queue<FileCacheEntry> cacheManager) {
         this.cacheManager = cacheManager;
     }
 
     /**
      * Return the FileCache
      */
-    public ConcurrentHashMap<String, FileCacheEntry> getCache() {
+    public Map<String, FileCacheEntry> getCache() {
         if (fileCache != null) {
             return fileCache.getCache();
         } else {

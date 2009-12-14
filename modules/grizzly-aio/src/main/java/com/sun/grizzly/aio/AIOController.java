@@ -27,14 +27,14 @@ import com.sun.grizzly.Controller;
 import com.sun.grizzly.ControllerStateListener;
 import com.sun.grizzly.DefaultConnectorHandlerPool;
 import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
-import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -84,7 +84,7 @@ public class AIOController extends Controller {
      * The set of <code>AIOHandler</code>s used by this instance. 
      * If not set, the instance of the {@link TCPAIOHandler} will be added by default.
      */
-    protected ConcurrentLinkedQueue<AIOHandler> aioHandlers;
+    protected Queue<AIOHandler> aioHandlers;
     
     
     /**
@@ -120,7 +120,7 @@ public class AIOController extends Controller {
             instanceHandler = new DefaultProtocolChainInstanceHandler();
         }
         if (aioHandlers == null){
-            aioHandlers = new ConcurrentLinkedQueue<AIOHandler>();
+            aioHandlers =  DataStructures.getCLQinstance(AIOHandler.class);
         }
         if (connectorHandlerPool == null) {
             connectorHandlerPool = new DefaultConnectorHandlerPool(this);
@@ -222,7 +222,7 @@ public class AIOController extends Controller {
      * Return all {@link AIOHandler}
      * @return all {@link AIOHandler}
      */
-    public ConcurrentLinkedQueue getAIOHandlers(){
+    public Queue getAIOHandlers(){
         return aioHandlers;
     }
     

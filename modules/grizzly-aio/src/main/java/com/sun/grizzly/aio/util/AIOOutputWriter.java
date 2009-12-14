@@ -38,13 +38,13 @@
 package com.sun.grizzly.aio.util;
 
 import com.sun.grizzly.Controller;
+import com.sun.grizzly.util.DataStructures;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousByteChannel;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.nio.channels.CompletionHandler;
 import java.util.Queue;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
@@ -155,9 +155,9 @@ public class AIOOutputWriter {
      */
     public static class Connection {
 
-        private Queue<ByteBuffer> queue = new LinkedBlockingQueue<ByteBuffer>();
-        private AsynchronousSocketChannel channel;
-        private ByteBufferHandler bbh;
+        private final Queue<ByteBuffer> queue = DataStructures.getCLQinstance(ByteBuffer.class);
+        private final AsynchronousSocketChannel channel;
+        private final ByteBufferHandler bbh;
 
         /**
          * Create a Connection based on {@link AsynchronousSocketChannel} and

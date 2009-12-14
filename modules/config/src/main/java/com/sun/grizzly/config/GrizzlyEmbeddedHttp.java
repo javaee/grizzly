@@ -48,6 +48,7 @@ import com.sun.grizzly.portunif.ProtocolFinder;
 import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 
@@ -62,11 +63,11 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.lang.management.ManagementFactory;
+import java.util.Queue;
 
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
@@ -149,9 +150,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     @Override
     protected void configureProtocolChain() {
         final DefaultProtocolChainInstanceHandler instanceHandler = new DefaultProtocolChainInstanceHandler() {
-            private final ConcurrentLinkedQueue<ProtocolChain> chains =
-                new ConcurrentLinkedQueue<ProtocolChain>();
-
+            private final Queue<ProtocolChain> chains =
+                    DataStructures.getCLQinstance(ProtocolChain.class);
+            
             /**
              * Always return instance of ProtocolChain.
              */

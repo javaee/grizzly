@@ -43,7 +43,7 @@ import com.sun.grizzly.Controller;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.util.ConcurrentWeakHashMap;
-import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -54,6 +54,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -97,14 +98,14 @@ public class PUReadFilter extends ReadFilter {
     /**
      * List of available <code>ProtocolHandler</code>.
      */
-    private final ConcurrentHashMap<String, ProtocolHandler> protocolHandlers =
+    private final Map<String, ProtocolHandler> protocolHandlers =
             new ConcurrentHashMap<String, ProtocolHandler>();
 
     /**
      * List of available <code>ProtocolFinder</code>.
      */
-    private final LinkedTransferQueue<ProtocolFinder> protocolFinders =
-            new LinkedTransferQueue<ProtocolFinder>();
+    private final Queue<ProtocolFinder> protocolFinders =
+        DataStructures.getCLQinstance(ProtocolFinder.class);
 
     /**
      * List of available <code>ProtocolFinder</code>.

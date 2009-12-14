@@ -393,10 +393,10 @@ public class SyncThreadPool extends AbstractThreadPool {
      * {@inheritDoc}
      */
     @Override
-    protected void afterExecute(Runnable r, Throwable t) {
-        ((WorkerThreadImpl) Thread.currentThread()).reset();
+    protected void afterExecute(Thread thread,Runnable r, Throwable t) {
+        ((WorkerThreadImpl)thread).reset();
         completedTasksCount.incrementAndGet();
-        super.afterExecute(r, t);
+        super.afterExecute(thread,r, t);
     }
 
     @Override

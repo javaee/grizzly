@@ -41,7 +41,8 @@ package com.sun.grizzly.ssl;
 import com.sun.grizzly.http.FileCache;
 import com.sun.grizzly.http.FileCacheFactory;
 import com.sun.grizzly.http.FileCache.FileCacheEntry;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import com.sun.grizzly.util.DataStructures;
+import java.util.Queue;
 
 /**
  * File cache extension used to support SSL.
@@ -62,8 +63,8 @@ public class SSLFileCacheFactory extends FileCacheFactory{
         fileCacheFactory.port = currentPort;
         cache.put(currentPort, fileCacheFactory);
 
-        ConcurrentLinkedQueue<FileCacheEntry> cacheManager =
-            new  ConcurrentLinkedQueue<FileCacheEntry>();
+        Queue<FileCacheEntry> cacheManager = 
+                DataStructures.getCLQinstance(FileCacheEntry.class);
         fileCacheFactory.setCacheManager(cacheManager);  
 
         return fileCacheFactory;

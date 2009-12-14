@@ -92,6 +92,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.StringTokenizer;
 import java.util.concurrent.CountDownLatch;
@@ -1758,7 +1759,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Remove a context path from the {@link FileCache}.
      */
     public void removeCacheEntry(String contextPath){  
-        ConcurrentHashMap<String,FileCacheEntry> 
+        Map<String,FileCacheEntry> 
                 cachedEntries = fileCacheFactory.getCache();
         
         if ( cachedEntries == null){

@@ -38,13 +38,16 @@
 
 package com.sun.grizzly.util;
 
+import java.util.Queue;
+
 /**
  * <code>ObjectPool</code> implementation based on {@link LinkedTransferQueue}
  * 
  * @author Alexey Stashok
  */
 public abstract class ConcurrentLinkedQueuePool<E> implements ObjectPool<E> {
-    private final LinkedTransferQueue<E> pool = new LinkedTransferQueue<E>();
+    @SuppressWarnings("unchecked")
+    private final Queue<E> pool = (Queue<E>) DataStructures.getLTQinstance();
 
     public abstract E newInstance();
 

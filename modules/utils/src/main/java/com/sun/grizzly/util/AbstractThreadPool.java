@@ -231,11 +231,12 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * should generally invoke <tt>super.afterExecute</tt> at the
      * beginning of this method.
      *
+     * @param thread 
      * @param r the runnable that has completed.
      * @param t the exception that caused termination, or null if
      * execution completed normally.
      */
-    protected void afterExecute(Runnable r, Throwable t) { }
+    protected void afterExecute(Thread thread,Runnable r, Throwable t) { }
 
     /**
      * Method is called by {@link Worker}, when it's starting
@@ -313,25 +314,22 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
 
         protected void doWork(){
-            Throwable error;
-
+            final Thread t_=t;
             while(true) {
                 try {
-                    error = null;
-
                     Thread.interrupted();
                     Runnable r = getTask();
                     if (r == poison || r == null){
                         return;
                     }
                     onTaskDequeued(r);
-                    beforeExecute(t, r);
+                    beforeExecute(t_, r);
                     try {
                         r.run();
                     } catch(Throwable throwable) {
-                        error = throwable;
+                        afterExecute(t_, r, throwable);
                     } finally {
-                        afterExecute(r, error);
+                        afterExecute(t_, r, null);
                     }
                 } catch (Throwable throwable) {
                 }

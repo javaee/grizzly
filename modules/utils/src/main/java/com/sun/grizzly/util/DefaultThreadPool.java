@@ -312,10 +312,10 @@ public class DefaultThreadPool extends FixedThreadPool
     }
 
     @Override
-    protected void afterExecute(Runnable r, Throwable t) {
-        ((WorkerThreadImpl) Thread.currentThread()).reset();
+    protected void afterExecute(Thread thread,Runnable r, Throwable t) {
+        ((WorkerThreadImpl)thread).reset();
         approximateRunningWorkerCount.decrementAndGet();
-        super.afterExecute(r, t);
+        super.afterExecute(thread, r, t);
     }
 
     private class DefaultWorkerThreadFactory implements ThreadFactory {

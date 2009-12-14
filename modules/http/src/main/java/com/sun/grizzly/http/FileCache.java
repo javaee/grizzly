@@ -52,12 +52,12 @@ import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.util.http.MimeHeaders;
+import java.util.Queue;
 import java.util.StringTokenizer;
 
 
@@ -129,7 +129,7 @@ public class FileCache{
     /**
      * FileCacheEntry cache
      */
-    private ConcurrentLinkedQueue<FileCacheEntry> cacheManager;
+    private Queue<FileCacheEntry> cacheManager;
 
     
     /**
@@ -300,7 +300,7 @@ public class FileCache{
             String root = SelectorThread.getSelector(port).getWebAppRootPath();
             if (bb == null && !root.equals(baseDir)){
                 Adapter a = SelectorThread.getSelector(port).getAdapter();
-                ConcurrentLinkedQueue<String> rootFolders = null;
+                Queue<String> rootFolders = null;
                 if (a instanceof StaticResourcesAdapter){
                     rootFolders = ((StaticResourcesAdapter)a).getRootFolders();
                     for (String s:rootFolders){
@@ -491,7 +491,7 @@ public class FileCache{
     /**
      * Set the cache manager used by this instance.
      */
-    public void setCacheManager(ConcurrentLinkedQueue<FileCacheEntry> cacheManager){
+    public void setCacheManager(Queue<FileCacheEntry> cacheManager){
         this.cacheManager = cacheManager;
     }   
     

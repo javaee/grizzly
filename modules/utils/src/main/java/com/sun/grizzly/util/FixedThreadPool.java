@@ -41,6 +41,7 @@ package com.sun.grizzly.util;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
@@ -66,6 +67,8 @@ public class FixedThreadPool extends AbstractThreadPool {
      */
     protected final AtomicInteger aliveworkerCount = new AtomicInteger();    
 
+    private int expectedWorkerCount;
+    
     protected final BlockingQueue<Runnable> workQueue;
 
     protected final Object statelock = new Object();
@@ -89,11 +92,11 @@ public class FixedThreadPool extends AbstractThreadPool {
 
     /**
      *
-     * @param size
+     * @param poolsize
      * @param name
      */
-    public FixedThreadPool(int size, final String name) {
-        this(size, new ThreadFactory(){
+    public FixedThreadPool(int poolsize, final String name) {
+        this(poolsize,new ThreadFactory(){
             private final AtomicInteger c = new AtomicInteger();
             public Thread newThread(Runnable r) {
                 Thread t = new WorkerThreadImpl(null,name+c.incrementAndGet(),r,0);
@@ -104,33 +107,51 @@ public class FixedThreadPool extends AbstractThreadPool {
         this.name = name;
     }
 
+
     /**
-     *
-     * @param size
-     * @param threadfactory {@link ThreadFactory}
+     * 
+     * @param poolsize
+     * @param threadfactory
      */
-    public FixedThreadPool(int size, ThreadFactory threadfactory) {
-        this(size, new LinkedTransferQueue(), threadfactory);
+    public FixedThreadPool(int poolsize, ThreadFactory threadfactory) {
+        this(poolsize,DataStructures.getLTQinstance(Runnable.class),
+                threadfactory);
     }
+
+    /**
+     * 
+     * @param poolsize
+     * @param workQueue
+     * @param threadfactory
+     */
+    public FixedThreadPool(int poolsize,BlockingQueue<Runnable> workQueue,
+                ThreadFactory threadfactory) {
+        this("FixedPool", poolsize, workQueue, threadfactory);
+    }
+
     /**
      *
-     * @param fixedsize
+     * @param name
+     * @param poolsize
      * @param workQueue
+     * @param threadfactory 
      */
-    public FixedThreadPool(int fixedsize,BlockingQueue<Runnable> workQueue,
+    public FixedThreadPool(String name,int poolsize,BlockingQueue<Runnable> workQueue,
                 ThreadFactory threadfactory) {
-        if (threadfactory == null)
-            throw new IllegalArgumentException("threadfactory == null");
+        if (name == null)
+            throw new IllegalArgumentException("name == null");
+        if (poolsize < 1)
+            throw new IllegalArgumentException("poolsize < 1");
         if (workQueue == null)
-            throw new IllegalArgumentException("workQueue == null");
-        if (fixedsize < 1)
-            throw new IllegalArgumentException("fixedsize < 1");
-        this.threadFactory = threadfactory;
+            workQueue = DataStructures.getLTQinstance(Runnable.class);
+        this.name = name;        
         this.workQueue   = workQueue;
-        this.maxPoolSize = fixedsize;
-        while(fixedsize-->0){
-            aliveworkerCount.incrementAndGet();
-            startWorker(new BasicWorker());
+        this.maxPoolSize = poolsize;
+        if (threadfactory == null)
+            threadfactory = getDefaultThreadFactory();
+        this.threadFactory = threadfactory;
+        while(poolsize-->0){
+            dostartWorker();
         }
     }
 
@@ -141,6 +162,22 @@ public class FixedThreadPool extends AbstractThreadPool {
         this.threadFactory = threadFactory;
     }
 
+    protected ThreadFactory getDefaultThreadFactory(){
+        return new ThreadFactory(){
+            private final AtomicInteger c = new AtomicInteger();
+            public Thread newThread(Runnable r) {
+                Thread t = new WorkerThreadImpl(null,name+c.incrementAndGet(),r,0);
+                t.setDaemon(true);
+                return t;
+            }
+        };
+    }
+
+    private void dostartWorker(){
+        aliveworkerCount.incrementAndGet();
+        startWorker(new BasicWorker());
+        expectedWorkerCount++;
+    }
 
     protected void startWorker(BasicWorker wt){
         wt.t = threadFactory.newThread(wt);
@@ -273,7 +310,7 @@ public class FixedThreadPool extends AbstractThreadPool {
     /**
      * {@inheritDoc}
      */
-    public BlockingQueue<Runnable> getQueue() {
+    public Queue<Runnable> getQueue() {
         return workQueue;
     }
 
@@ -287,11 +324,25 @@ public class FixedThreadPool extends AbstractThreadPool {
         return workQueue.size();
     }
 
+    
     /**
-     * {@inheritDoc}
+     * Sets the
      */
     @Override
     public void setMaximumPoolSize(int maximumPoolSize) {
+        synchronized(statelock){
+            if (running){
+                int toadd = maximumPoolSize - expectedWorkerCount;
+                while(toadd > 0){
+                    toadd--;
+                    dostartWorker();
+                }
+                while(toadd++ < 0){
+                    workQueue.add(poison);
+                    expectedWorkerCount--;
+                }
+            }
+        }
     }
 
     /**
@@ -301,9 +352,7 @@ public class FixedThreadPool extends AbstractThreadPool {
         return Integer.MAX_VALUE;
     }
 
-    /**
-     * {@inheritDoc}
-     */
+    @Override
     public void setMaxQueuedTasksCount(int maxTasksCount) {
     }
 

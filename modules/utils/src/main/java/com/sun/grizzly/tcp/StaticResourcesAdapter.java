@@ -38,6 +38,7 @@
 package com.sun.grizzly.tcp;
 
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.HtmlHelper;
@@ -50,6 +51,7 @@ import java.util.logging.Level;
 import com.sun.grizzly.util.http.MimeType;
 import java.io.File;
 import java.nio.ByteBuffer;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
@@ -70,11 +72,11 @@ public class StaticResourcesAdapter implements Adapter {
 
     private final static String USE_SEND_FILE =
             "com.sun.grizzly.useSendFile";
-    private final ConcurrentLinkedQueue<String> rootFolders =
-            new ConcurrentLinkedQueue<String>();
+    private final Queue<String> rootFolders =
+            DataStructures.getCLQinstance(String.class);
     protected String resourcesContextPath = "";
-    protected final ConcurrentLinkedQueue<File> fileFolders =
-            new ConcurrentLinkedQueue<File>();
+    protected final Queue<File> fileFolders =
+            DataStructures.getCLQinstance(File.class);
     protected ConcurrentHashMap<String, File> cache = new ConcurrentHashMap<String, File>();
     protected Logger logger = LoggerUtils.getLogger();
     private boolean useSendFile = true;
@@ -328,7 +330,7 @@ public class StaticResourcesAdapter implements Adapter {
      * @return a {@link ConcurentLinkedList} of the folders this Adapter can
      * serve file from.
      */
-    public ConcurrentLinkedQueue<String> getRootFolders() {
+    public Queue<String> getRootFolders() {
         return rootFolders;
     }
 

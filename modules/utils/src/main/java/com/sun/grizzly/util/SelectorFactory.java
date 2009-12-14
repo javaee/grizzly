@@ -39,6 +39,7 @@ package com.sun.grizzly.util;
 
 import java.io.IOException;
 import java.nio.channels.Selector;
+import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -62,9 +63,8 @@ public class SelectorFactory{
     /**
      * Cache of {@link Selector}
      */
-    private final static LinkedTransferQueue<Selector> selectors
-            = new LinkedTransferQueue<Selector>();
-
+    private final static Queue<Selector> selectors =
+             DataStructures.getCLQinstance(Selector.class);
 
     /**
      * have we created the Selector instances.

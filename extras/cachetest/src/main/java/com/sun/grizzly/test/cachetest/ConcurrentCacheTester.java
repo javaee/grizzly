@@ -39,6 +39,7 @@ package com.sun.grizzly.test.cachetest;
 
 
 import com.sun.grizzly.test.cachetest.testobjects.SelectionKeyOP;
+import com.sun.grizzly.util.DataStructures;
 import java.lang.management.ManagementFactory;
 import java.lang.management.RuntimeMXBean;
 import java.nio.channels.SelectionKey;
@@ -130,8 +131,8 @@ public class ConcurrentCacheTester {
             ia = new Integer[]{1,8,64,cpus*8};
         return performRangeOfTests(minutesPerTest,factory,
             new Queue[]{
-                new ConcurrentLinkedQueue(),
-                new com.sun.grizzly.util.LinkedTransferQueue(),
+                 DataStructures.getCLQinstance(Object.class),
+                DataStructures.getLTQinstance(),
                 //new LinkedBlockingQueue()
             }, ia, false);
     }
