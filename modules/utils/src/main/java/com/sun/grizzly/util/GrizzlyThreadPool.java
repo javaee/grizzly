@@ -143,8 +143,8 @@ public class GrizzlyThreadPool extends FixedThreadPool{
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(512);
-        builder.append("SyncThreadPool[");
+        StringBuilder builder = new StringBuilder(256);
+        builder.append("GrizzlyThreadPool[");
         injectToStringAttributes(builder);
         builder.append(']');
         return builder.toString();
