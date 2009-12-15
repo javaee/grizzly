@@ -131,9 +131,8 @@
 <!--
         <dependency>
             <groupId>com.sun.grizzly</groupId>
-            <artifactId>grizzly-http-servlet</artifactId>
+            <artifactId>grizzly-comet</artifactId>
             <version>${grizzly-version}</version>
-            <scope>test</scope>
         </dependency>
 -->
         <dependency>
@@ -147,13 +146,6 @@
             <version>${hk2.version}</version>
         </dependency>
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <version>5.8</version>
-            <classifier>jdk15</classifier>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>osgi-adapter</artifactId>
             <version>${hk2.version}</version>
@@ -164,9 +156,30 @@
             <version>1.2.0</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- test deps -->
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>5.8</version>
+            <classifier>jdk15</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+            <version>2.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-http-servlet</artifactId>
+            <version>${grizzly-version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     <properties>
-        <hk2.version>0.3.91</hk2.version>
-        <hk2.plugin.version>0.3.91</hk2.plugin.version>
+        <hk2.version>1.0.0</hk2.version>
+        <hk2.plugin.version>1.0.0</hk2.plugin.version>
     </properties>
 </project>

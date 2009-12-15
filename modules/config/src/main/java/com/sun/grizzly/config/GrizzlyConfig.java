@@ -36,18 +36,18 @@
  */
 package com.sun.grizzly.config;
 
-import com.sun.grizzly.config.dom.NetworkConfig;
-import com.sun.grizzly.config.dom.NetworkListener;
-import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.threadpool.DefaultWorkerThread;
-import com.sun.grizzly.Grizzly;
-import org.jvnet.hk2.component.Habitat;
-
 import java.io.IOException;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.config.dom.NetworkConfig;
+import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.threadpool.DefaultWorkerThread;
+import com.sun.grizzly.util.LoggerUtils;
+import org.jvnet.hk2.component.Habitat;
 
 /**
  * Created Nov 24, 2008
@@ -130,8 +130,8 @@ public class GrizzlyConfig {
     }
 
     public static boolean toBoolean(String value) {
-        final String v = null != value ? value.trim() : value;
-        return "true".equals(v) || "yes".equals(v) || "on".equals(v) || "1".equals(v);
+        final String v = value == null ? value : value.trim();
+        return v != null && ("true".equals(v) || "yes".equals(v) || "on".equals(v) || "1".equals(v));
     }
 
     private static class ListenerRunnable implements Runnable {
