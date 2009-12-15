@@ -38,6 +38,8 @@ package com.sun.grizzly.http.servlet.deployer;
 import com.sun.grizzly.http.deployer.Deployable;
 import com.sun.grizzly.http.webxml.schema.WebApp;
 
+import java.net.URLClassLoader;
+
 /**
  * {@link Deployable} web application (War file).
  * <p/>
@@ -57,7 +59,7 @@ public class WarDeployable implements Deployable {
     /** Location of exploded war file. */
     public String location;
     /** Class loader to be used by web application. */
-    public ClassLoader webAppCL;
+    public URLClassLoader webAppCL;
 
     /**
      * Constructor.
@@ -66,7 +68,7 @@ public class WarDeployable implements Deployable {
      * @param location Location of exploded war file.
      * @param cl       Class loader to be used by web application.
      */
-    public WarDeployable(WebApp webApp, String location, ClassLoader cl) {
+    public WarDeployable(WebApp webApp, String location, URLClassLoader cl) {
         this.webApp = webApp;
         this.location = location;
         this.webAppCL = cl;

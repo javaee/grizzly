@@ -50,8 +50,8 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URLClassLoader;
 import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -69,8 +69,10 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
     private static final String EMPTY_SERVLET_PATH = "";
     private static final String ROOT = "/";
 
-    /** {@inheritDoc} */
-    protected Map<GrizzlyAdapter, Set<String>> convert(WarDeployable toDeploy, WarDeploymentConfiguration configuration) throws DeployException {
+    /**
+     * {@inheritDoc}
+     */
+    protected Map<GrizzlyAdapter, Set<String>> convert(final WarDeployable toDeploy, final WarDeploymentConfiguration configuration) throws DeployException {
 
         String root = toDeploy.location;
         if (root != null) {
@@ -83,16 +85,21 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
         } else {
             webApp = toDeploy.webApp;
         }
+        URLClassLoader loader = new URLClassLoader(
+                toDeploy.webAppCL != null ? toDeploy.webAppCL.getURLs() : new URL[0],
+                configuration.serverLibLoader);
         ClassLoader prevCL = Thread.currentThread().getContextClassLoader();
-        Thread.currentThread().setContextClassLoader(toDeploy.webAppCL);
+        Thread.currentThread().setContextClassLoader(loader);
         try {
-            return createDeployments(root, webApp, configuration.ctx, toDeploy.webAppCL);
+            return createDeployments(root, webApp, configuration.ctx, loader);
         } finally {
             Thread.currentThread().setContextClassLoader(prevCL);
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     */
     protected WarDeployable fromURI(URI uri, WarDeploymentConfiguration configuration) throws DeployException {
         WarDeployable result;
         if ("file".equals(uri.getScheme())) {
@@ -104,7 +111,7 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
                     try {
                         String fileLocation = warFile.getAbsolutePath().replace('\\', '/');
                         explodedLocation = explodeWarFile(new URI("jar:file:" + fileLocation + "!/"));
-                        warCL = createWarCL(fileLocation, configuration.serverLibLoader);
+                        warCL = createWarCL(fileLocation, null);
                         // TODO if someone can tell me why directory based behavior is not working, beers are on me.
                         // warCL = createWarCL(explodedLocation, configuration.serverLibLoader);
                     } catch (URISyntaxException e) {
@@ -112,25 +119,25 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
                     }
                 } else {
                     explodedLocation = warFile.getAbsolutePath();
-                    warCL = createWarCL(explodedLocation, configuration.serverLibLoader);
+                    warCL = createWarCL(explodedLocation, null);
                 }
                 WebApp webApp = parseWebXml(uri, explodedLocation);
-                
+
                 // if metadata-complete skip annotations
-                if(!webApp.getMetadataComplete()){
+                if (!webApp.getMetadataComplete()) {
                     logger.fine("Will append Annotations to the WebApp");
                     try {
-                    	AnnotationParser parser = new AnnotationParser();
-    					WebApp webAppAnot = parser.parseAnnotation(warCL);
-    					webApp.mergeWithAnnotations(webAppAnot);
-    					
-    				} catch (Throwable t) {
-    					logger.warning("Unable to load annotations : " + t.getMessage());
-    				}
+                        AnnotationParser parser = new AnnotationParser();
+                        WebApp webAppAnot = parser.parseAnnotation(warCL);
+                        webApp.mergeWithAnnotations(webAppAnot);
+
+                    } catch (Throwable t) {
+                        logger.warning("Unable to load annotations : " + t.getMessage());
+                    }
                 } else {
-                	logger.info("Skipping Annotation for this URI : " + uri);
+                    logger.info("Skipping Annotation for this URI : " + uri);
                 }
-                
+
                 result = new WarDeployable(webApp, explodedLocation, warCL);
             } else {
                 throw new DeployException("War file does not exists: " + uri);
