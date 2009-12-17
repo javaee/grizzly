@@ -45,31 +45,16 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Need to evaluate queuesize limit perf implications on this fixedpool variant.
+ * The atomic counter can in theory approach synchronized (lack of) scalability
+ * in heavy load situatuions.
  * 
  * @author gustav trede
  */
-public class GrizzlyThreadPool extends FixedThreadPool{
+class GrizzlyThreadPool extends FixedThreadPool{
 
     private final int maxQueuedTasks;
     
     private final AtomicInteger queueSize = new AtomicInteger();
-
-    /**
-     *
-     */
-    public GrizzlyThreadPool() {
-        this("Grizzly",DEFAULT_MAX_THREAD_COUNT, 1000000);
-    }
-
-    /**
-     *
-     * @param name
-     * @param poolsize
-     * @param maxQueuedTasks
-     */
-    public GrizzlyThreadPool(String name, int poolsize,int maxQueuedTasks){
-       this(name, poolsize, maxQueuedTasks, null, null);
-    }
 
     /**
      * @param name

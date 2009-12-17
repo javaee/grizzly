@@ -50,10 +50,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * minimalistic fixed threadpool.
+ * minimalistic fixed threadpool to allow for nice scalability if a
+ * good Queue impl is used.
  * by default: {@link WorkerThreadImpl} is used,
- * {@link LinkedTransferQueue} is used as workQueue for its nice scalability over the lock based alternatives.<br>
- * {@link LinkedTransferQueue} gives FIFO per producer.<br>
  *
  * @author gustav trede
  */
@@ -140,6 +139,8 @@ public class FixedThreadPool extends AbstractThreadPool {
                 ThreadFactory threadfactory) {
         if (name == null)
             throw new IllegalArgumentException("name == null");
+        if (name.length() == 0)
+            throw new IllegalArgumentException("name 0 length");
         if (poolsize < 1)
             throw new IllegalArgumentException("poolsize < 1");
         if (workQueue == null)
