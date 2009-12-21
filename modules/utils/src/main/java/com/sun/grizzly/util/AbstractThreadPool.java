@@ -39,7 +39,6 @@
 package com.sun.grizzly.util;
 
 import com.sun.grizzly.util.ByteBufferFactory.ByteBufferType;
-import com.sun.grizzly.util.FixedThreadPool.BasicWorker;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;

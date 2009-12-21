@@ -253,7 +253,9 @@ public class FixedThreadPool extends AbstractThreadPool {
         return workQueue;
     }
 
-    @Override
+    /**
+     * {@inheritDoc}
+     */
     public int getQueueSize() {
         return workQueue.size();
     }
