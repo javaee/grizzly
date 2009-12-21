@@ -67,8 +67,7 @@ public class SyncThreadPool extends AbstractThreadPool {
     private final Queue<Runnable> workQueue;
     protected int maxQueuedTasks = -1;
     private final AtomicLong completedTasksCount = new AtomicLong();
-    private int largestThreadPoolSize;
-    protected final Object statelock = new Object();
+    private int largestThreadPoolSize;    
     protected boolean running = true;
     protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();    
 
@@ -143,7 +142,7 @@ public class SyncThreadPool extends AbstractThreadPool {
             long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory,
             Queue<Runnable> workQueue, int maxQueuedTasks,
             ThreadPoolMonitoringProbe probe) {
-        super(probe);
+        super(probe,name,threadFactory);
         if (keepAliveTime < 0) {
             throw new IllegalArgumentException("keepAliveTime < 0");
         }
@@ -151,13 +150,7 @@ public class SyncThreadPool extends AbstractThreadPool {
             throw new IllegalArgumentException("timeUnit == null");
         }
         setPoolSizes(corePoolsize, maxPoolSize);
-
         this.keepAliveTime = TimeUnit.MILLISECONDS.convert(keepAliveTime, timeUnit);
-        this.name = name;
-
-        if (this.threadFactory == null) {
-            this.threadFactory = getDefaultThreadFactory();
-        }
         this.workQueue = workQueue;
         this.maxQueuedTasks = maxQueuedTasks;
     }
@@ -383,9 +376,6 @@ public class SyncThreadPool extends AbstractThreadPool {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void onWorkerExit(Worker worker) {                
         synchronized (statelock) {
@@ -396,36 +386,18 @@ public class SyncThreadPool extends AbstractThreadPool {
         super.onWorkerExit(worker);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     protected void afterExecute(Thread thread,Runnable r, Throwable t) {
         super.afterExecute(thread,r, t);
         completedTasksCount.incrementAndGet();
     }
-
     
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(512);
-        builder.append("SyncThreadPool[");
-        injectToStringAttributes(builder);
-        builder.append(']');
-        return builder.toString();
-    }
-
-    protected void injectToStringAttributes(StringBuilder sb) {
-        sb.append("name=").append(name);
-        sb.append(", min-threads=").append(getCorePoolSize());
-        sb.append(", max-threads=").append(getMaximumPoolSize());
-        sb.append(", max-queue-size=").append(getMaxQueuedTasksCount());
-        sb.append(", is-shutdown=").append(isShutdown());
-    }
-
-    @Override
-    protected String nextThreadId() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return super.toString()+
+        ", min-threads="+getCorePoolSize()+
+        ", max-threads="+getMaximumPoolSize()+
+        ", max-queue-size="+getMaxQueuedTasksCount();
     }
 
     protected class SyncThreadWorker extends Worker {

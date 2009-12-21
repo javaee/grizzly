@@ -148,7 +148,7 @@ public class ControllerStateTest extends TestCase {
         final int[] resultControllerStarted = new int[1];
         final Controller controller = createController(PORT);
         
-        controller.setThreadPool(new SyncThreadPool("", 5,
+        controller.setThreadPool(new SyncThreadPool("testpool", 5,
                 SIMULT_CONTROLLER_START * 5,
                 Integer.MAX_VALUE, TimeUnit.MILLISECONDS));
         

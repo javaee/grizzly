@@ -89,15 +89,28 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
     protected volatile long keepAliveTime;
 
-
     protected volatile ThreadFactory threadFactory;
 
-    protected abstract String nextThreadId();
+    private final AtomicInteger nextthreadID = new AtomicInteger();
+
+    protected String nextThreadId(){
+        return String.valueOf(nextthreadID.incrementAndGet());
+    }
 
     protected final ThreadPoolMonitoringProbe probe;
 
-    public AbstractThreadPool(ThreadPoolMonitoringProbe probe){
+    protected final Object statelock = new Object();
+
+    public AbstractThreadPool(ThreadPoolMonitoringProbe probe, String name,
+            ThreadFactory threadFactory){        
+        if (name == null)
+            throw new IllegalArgumentException("name == null");
+        if (name.length() == 0)
+            throw new IllegalArgumentException("name 0 length");
+        if (threadFactory == null)
+            threadFactory = getDefaultThreadFactory();
         this.probe = probe;
+        this.threadFactory = threadFactory;
     }
 
     /**
@@ -331,19 +344,28 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     }
 
     protected ThreadFactory getDefaultThreadFactory(){
-        return new ThreadFactory(){
-            private final AtomicInteger c = new AtomicInteger();
+        return new ThreadFactory(){            
             public Thread newThread(Runnable r) {
                 Thread t = new WorkerThreadImpl(AbstractThreadPool.this,
-                    name + "-WorkerThread(" +
-                    c.incrementAndGet() + ")", r,
-                    initialByteBufferSize);
+                    getName() + "-WorkerThread(" +
+                    nextThreadId() + ")", r,
+                    getInitialByteBufferSize());
                 t.setUncaughtExceptionHandler(AbstractThreadPool.this);
-                t.setPriority(priority);
+                t.setPriority(getPriority());
                 t.setDaemon(true);
                 return t;
             }
         };
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(256);
+        sb.append(getClass().getSimpleName()+":");
+        sb.append("name=").append(name);
+        sb.append(", queuesize=").append(getQueueSize());
+        sb.append(", is-shutdown=").append(isShutdown());
+        return sb.toString();
     }
     
     public abstract class Worker implements Runnable {
@@ -351,7 +373,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
         public void run() {            
             try {
-                onWorkerStarted(this);//inside try, so exist logic will fire.
+                onWorkerStarted(this);//inside try, to ensure balance
                 doWork();
             } finally {
                 onWorkerExit(this);
@@ -361,20 +383,21 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         protected void doWork(){
             final Thread t_=t;
             while(true) {
-                try {
+                try {                    
                     Thread.interrupted();
-                    Runnable r = getTask();
+                    final Runnable r = getTask();
                     if (r == poison || r == null){
                         return;
                     }
                     onTaskDequeued(r);
-                    beforeExecute(t_, r);
+                    Throwable error = null;
                     try {
+                        beforeExecute(t_, r); //inside try. to ensure balance
                         r.run();
                     } catch(Throwable throwable) {
-                        afterExecute(t_, r, throwable);
+                        error = throwable;
                     } finally {
-                        afterExecute(t_, r, null);
+                        afterExecute(t_, r, error);
                     }
                 } catch (Throwable throwable) {
                 }

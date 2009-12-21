@@ -37,8 +37,6 @@
  */
 package com.sun.grizzly.util;
 
-import java.util.concurrent.ExecutorService;
-
 /**
  * Monitoring probe.
  * 

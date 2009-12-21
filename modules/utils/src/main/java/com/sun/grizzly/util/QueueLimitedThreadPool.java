@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 
  * @author gustav trede
  */
-class QueueLimitedThreadPool extends FixedThreadPool{
+final class QueueLimitedThreadPool extends FixedThreadPool{
 
     private final int maxQueuedTasks;
     
@@ -73,7 +73,7 @@ class QueueLimitedThreadPool extends FixedThreadPool{
     }
 
     @Override
-    public void execute(Runnable task) {
+    public final void execute(Runnable task) {
         if (task == null) {
             throw new IllegalArgumentException("Runnable task is null");
         }
@@ -101,30 +101,9 @@ class QueueLimitedThreadPool extends FixedThreadPool{
     }
 
     @Override
-    public void setMaxQueuedTasksCount(int maxTasksCount) {        
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void beforeExecute(Thread t, Runnable r) {
+    protected final void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
         queueSize.decrementAndGet();        
     }
 
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder(256);
-        builder.append("GrizzlyThreadPool[");
-        injectToStringAttributes(builder);
-        builder.append(']');
-        return builder.toString();
-    }
-
-    protected void injectToStringAttributes(StringBuilder sb) {
-        sb.append("name=").append(name);
-        sb.append(", queuesize=").append(getQueueSize());
-        sb.append(", is-shutdown=").append(isShutdown());
-    }
 }

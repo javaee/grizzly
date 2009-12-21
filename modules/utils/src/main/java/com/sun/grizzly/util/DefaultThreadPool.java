@@ -55,8 +55,6 @@ public class DefaultThreadPool extends FixedThreadPool
 
     private final AtomicInteger queueSize = new AtomicInteger();
 
-    protected final AtomicInteger workerThreadCounter = new AtomicInteger();
-
     protected final AtomicInteger approximateRunningWorkerCount = new AtomicInteger();
     
     /**
@@ -69,34 +67,36 @@ public class DefaultThreadPool extends FixedThreadPool
 
     /**
      *
-     * @param workerprefixname
+     * @param name 
      * @param corePoolsize
      * @param maxPoolSize
      * @param keepAliveTime
      * @param timeUnit {@link TimeUnit}
      */
-    public DefaultThreadPool(final String name, int corePoolsize,
+    public DefaultThreadPool(String name, int corePoolsize,
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit){
         this(name, corePoolsize, maxPoolSize, keepAliveTime, timeUnit, null);
     }
 
     /**
      *
+     * @param name
      * @param corePoolsize
      * @param maxPoolSize
      * @param keepAliveTime
      * @param timeUnit  {@link TimeUnit}
      * @param threadFactory {@link ThreadFactory}
      */
-    public DefaultThreadPool(final String name, int corePoolsize,
+    public DefaultThreadPool(String name, int corePoolsize,
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit,
             ThreadFactory threadFactory) {
             this(name, corePoolsize, maxPoolSize, keepAliveTime, timeUnit,
-                    threadFactory, new LinkedTransferQueue<Runnable>());
+                   threadFactory,DataStructures.getLTQinstance(Runnable.class));
     }
 
     /**
      *
+     * @param name 
      * @param corePoolsize
      * @param maxPoolSize
      * @param keepAliveTime
@@ -104,25 +104,16 @@ public class DefaultThreadPool extends FixedThreadPool
      * @param threadFactory {@link ThreadFactory}
      * @param workQueue {@link BlockingQueue}
      */
-    public DefaultThreadPool(final String name, int corePoolsize,int maxPoolSize,
+    public DefaultThreadPool(String name, int corePoolsize,int maxPoolSize,
             long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory,
             BlockingQueue<Runnable> workQueue) {
-
-        super(workQueue, threadFactory,null);
-
+        super(name,maxPoolSize,workQueue, threadFactory,null);
         if (keepAliveTime< 0 )
             throw new IllegalArgumentException("keepAliveTime < 0");
         if (timeUnit == null)
             throw new IllegalArgumentException("timeUnit == null");
-
         setPoolSizes(corePoolsize, maxPoolSize);
-
-        this.keepAliveTime = TimeUnit.MILLISECONDS.convert(keepAliveTime, timeUnit);
-        this.name = name;
-
-        if (this.threadFactory == null) {
-            this.threadFactory = new DefaultWorkerThreadFactory();
-        }        
+        this.keepAliveTime = TimeUnit.MILLISECONDS.convert(keepAliveTime, timeUnit);       
     }
 
     /**
@@ -263,51 +254,22 @@ public class DefaultThreadPool extends FixedThreadPool
     }
 
     @Override
-    protected String nextThreadId() {
-        return Integer.toString(workerThreadCounter.getAndIncrement());
-    }
-
-
-    @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(512);
-        builder.append("DefaultThreadPool[");
-        injectToStringAttributes(builder);
-        builder.append(']');
-        return builder.toString();
-    }
-
-    protected void injectToStringAttributes(StringBuilder sb) {
-        sb.append("name=").append(name);
-        sb.append(", min-threads=").append(getCorePoolSize());
-        sb.append(", max-threads=").append(getMaximumPoolSize());
-        sb.append(", max-queue-size=").append(getMaxQueuedTasksCount());
-        sb.append(", is-shutdown=").append(isShutdown());
+        return super.toString()+
+        ", min-threads="+getCorePoolSize()+
+        ", max-threads="+getMaximumPoolSize()+
+        ", max-queue-size="+getMaxQueuedTasksCount();
     }
 
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
         super.beforeExecute(t, r);
         approximateRunningWorkerCount.incrementAndGet();
-        ((WorkerThreadImpl) t).createByteBuffer(false);
     }
 
     @Override
     protected void afterExecute(Thread thread,Runnable r, Throwable t) {
-        ((WorkerThreadImpl)thread).reset();
         approximateRunningWorkerCount.decrementAndGet();
         super.afterExecute(thread, r, t);
-    }
-
-    private class DefaultWorkerThreadFactory implements ThreadFactory {
-        public Thread newThread(Runnable r) {
-            Thread thread = new WorkerThreadImpl(DefaultThreadPool.this,
-                    name + "-WorkerThread(" +
-                    nextThreadId() + ")", r,
-                    initialByteBufferSize);
-            thread.setUncaughtExceptionHandler(DefaultThreadPool.this);
-            thread.setPriority(priority);
-            return thread;
-        }
     }
 }

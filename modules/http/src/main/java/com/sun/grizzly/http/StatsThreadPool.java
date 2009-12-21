@@ -143,19 +143,7 @@ public class StatsThreadPool extends SyncThreadPool {
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(512);
-        builder.append("StatsThreadPool[");
-        injectToStringAttributes(builder);
-        builder.append(']');
-        return builder.toString();
+        return super.toString()+", port="+port;
     }
-
-
-    @Override
-    protected void injectToStringAttributes(StringBuilder sb) {
-        super.injectToStringAttributes(sb);
-        sb.append(", port=").append(port);
-    }
-
 
 }
