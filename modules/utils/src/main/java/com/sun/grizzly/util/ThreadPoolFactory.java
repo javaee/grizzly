@@ -213,32 +213,24 @@ public class ThreadPoolFactory {
             return pool.submit(r);
         }
 
-        public final <T> List<Future<T>> invokeAll(
-              Collection<? extends Callable<T>> c) throws InterruptedException {
-            return pool.invokeAll(c);
-        }
-
-        public final <T> List<Future<T>> invokeAll(
-                Collection<? extends Callable<T>> c, long l, TimeUnit tu)
-                throws InterruptedException {
-            return pool.invokeAll(c, l, tu);
-        }
-
-        public final <T> T invokeAny(Collection<? extends Callable<T>> c)
-                throws InterruptedException, ExecutionException {
-            return pool.invokeAny(c);
-        }
-
-        public final <T> T invokeAny(
-             Collection<? extends Callable<T>> c,long l,TimeUnit tu)
-             throws InterruptedException, ExecutionException, TimeoutException {
-           return pool.invokeAny(c, l, tu);
-        }
-
         public final void execute(Runnable r) {
             pool.execute(r);
         }
 
-    }
+        public <T> List<Future<T>> invokeAll(Collection<Callable<T>> tasks) throws InterruptedException {
+            return pool.invokeAll(tasks);
+        }
 
+        public <T> List<Future<T>> invokeAll(Collection<Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
+            return pool.invokeAll(tasks, timeout, unit);
+        }
+
+        public <T> T invokeAny(Collection<Callable<T>> tasks) throws InterruptedException, ExecutionException {
+            return pool.invokeAny(tasks);
+        }
+
+        public <T> T invokeAny(Collection<Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+            return pool.invokeAny(tasks, timeout, unit);
+        }
+    }
 }
