@@ -49,11 +49,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * TODO: wrap ordinary pools with something that can replace pool when
- * reconfigure method detect such needs. pool ref needs to be volatile.
+ * TODO: pub set methods in wrap should call reconfigure.
  * 
- *
  * @author gustav trede
+ * @author Alexey Stashok
  */
 public class ThreadPoolFactory {
 
@@ -122,7 +121,7 @@ public class ThreadPoolFactory {
         }
 
         public void setCorePoolSize(int corePoolSize) {
-            
+
         }
 
         public int getLargestPoolSize() {
