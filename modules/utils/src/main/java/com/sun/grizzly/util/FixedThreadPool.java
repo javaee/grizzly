@@ -72,7 +72,6 @@ public class FixedThreadPool extends AbstractThreadPool {
 
     protected final Object statelock = new Object();
 
-
     protected volatile boolean running = true;
 
     /**
@@ -170,6 +169,7 @@ public class FixedThreadPool extends AbstractThreadPool {
         while(poolsize-->0){
             dostartWorker();
         }
+        super.onMaxNumberOfThreadsReached();
     }
 
     protected FixedThreadPool(BlockingQueue<Runnable> workQueue,ThreadFactory threadFactory,
@@ -179,17 +179,6 @@ public class FixedThreadPool extends AbstractThreadPool {
             throw new IllegalArgumentException("workQueue == null");
         this.workQueue     = workQueue;
         this.threadFactory = threadFactory;
-    }
-
-    protected ThreadFactory getDefaultThreadFactory(){
-        return new ThreadFactory(){
-            private final AtomicInteger c = new AtomicInteger();
-            public Thread newThread(Runnable r) {
-                Thread t = new WorkerThreadImpl(null,name+c.incrementAndGet(),r,0);
-                t.setDaemon(true);
-                return t;
-            }
-        };
     }
 
     private void dostartWorker(){

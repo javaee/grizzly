@@ -73,18 +73,18 @@ public class ThreadPoolFactory {
             this.config = config;
         }
 
-        private final ExtendedThreadPool getImpl(ThreadPoolConfig config){
-            if (config.corepoolsize < 0 || config.corepoolsize==config.maxpoolsize){
-                return config.queuelimit < 1 ?
-                    new FixedThreadPool(config.poolname, config.maxpoolsize,
-                    config.queue, config.threadFactory,config.monitoringProbe) :
+        private final ExtendedThreadPool getImpl(ThreadPoolConfig cfg){
+            if (cfg.corepoolsize < 0 || cfg.corepoolsize==cfg.maxpoolsize){
+                return cfg.queuelimit < 1 ?
+                    new FixedThreadPool(cfg.poolname, cfg.maxpoolsize,
+                    cfg.queue, cfg.threadFactory,cfg.monitoringProbe) :
                     new QueueLimitedThreadPool(
-                    config.poolname,config.maxpoolsize,config.queuelimit,
-                    config.threadFactory,config.queue,config.monitoringProbe);
+                    cfg.poolname,cfg.maxpoolsize,cfg.queuelimit,
+                    cfg.threadFactory,cfg.queue,cfg.monitoringProbe);
             }
-            return new SyncThreadPool(config.poolname, config.corepoolsize,
-                    config.maxpoolsize,config.keepAliveTime, config.timeUnit,
-                    config.threadFactory, config.queue, config.queuelimit);
+            return new SyncThreadPool(cfg.poolname, cfg.corepoolsize,
+                    cfg.maxpoolsize,cfg.keepAliveTime, cfg.timeUnit,
+                    cfg.threadFactory, cfg.queue, cfg.queuelimit);
         }
 
         public final void reconfigure(ThreadPoolConfig config) {
@@ -94,7 +94,15 @@ public class ThreadPoolFactory {
                 //TODO: only create new pool if old one cant be runtime config.
                 ExtendedThreadPool oldpool = this.pool;                
                 this.pool = getImpl(config);
-                this.pool.getQueue().addAll(oldpool.getQueue());
+                final Queue<Runnable> tq = this.pool.getQueue();
+                final Queue<Runnable> sq = oldpool.getQueue();
+                boolean cont = true;
+                while(cont){
+                    Runnable r = sq.poll();
+                    if (cont = r!=null){                    
+                        tq.add(r);//bypassing pool queuelimit to not miss tasks
+                    }
+                }
                 oldpool.shutdown();
                 this.config = config;
             }
@@ -188,43 +196,43 @@ public class ThreadPoolFactory {
             return pool.shutdownNow();
         }
 
-        public boolean isShutdown() {
+        public final boolean isShutdown() {
             return pool.isShutdown();
         }
 
-        public boolean isTerminated() {
+        public final boolean isTerminated() {
             return pool.isTerminated();
         }
 
-        public boolean awaitTermination(long l, TimeUnit tu) throws InterruptedException {
+        public final boolean awaitTermination(long l, TimeUnit tu) throws InterruptedException {
             return pool.awaitTermination(l, tu);
         }
 
-        public <T> Future<T> submit(Callable<T> clbl) {
+        public final <T> Future<T> submit(Callable<T> clbl) {
             return pool.submit(clbl);
         }
 
-        public <T> Future<T> submit(Runnable r, T t) {
+        public final <T> Future<T> submit(Runnable r, T t) {
             return pool.submit(r, t);
         }
 
-        public Future<?> submit(Runnable r) {
+        public final Future<?> submit(Runnable r) {
             return pool.submit(r);
         }
 
-        public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> clctn) throws InterruptedException {
+        public final <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> clctn) throws InterruptedException {
             return pool.invokeAll(clctn);
         }
 
-        public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> clctn, long l, TimeUnit tu) throws InterruptedException {
+        public final <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> clctn, long l, TimeUnit tu) throws InterruptedException {
             return pool.invokeAll(clctn, l, tu);
         }
 
-        public <T> T invokeAny(Collection<? extends Callable<T>> clctn) throws InterruptedException, ExecutionException {
+        public final <T> T invokeAny(Collection<? extends Callable<T>> clctn) throws InterruptedException, ExecutionException {
             return pool.invokeAny(clctn);
         }
 
-        public <T> T invokeAny(Collection<? extends Callable<T>> clctn, long l, TimeUnit tu) throws InterruptedException, ExecutionException, TimeoutException {
+        public final <T> T invokeAny(Collection<? extends Callable<T>> clctn, long l, TimeUnit tu) throws InterruptedException, ExecutionException, TimeoutException {
            return pool.invokeAny(clctn, l, tu);
         }
 

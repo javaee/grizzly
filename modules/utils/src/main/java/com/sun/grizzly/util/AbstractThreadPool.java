@@ -42,6 +42,7 @@ import com.sun.grizzly.util.ByteBufferFactory.ByteBufferType;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 
 /**
@@ -329,6 +330,22 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                 "Uncaught thread exception. Thread: " + thread, throwable);
     }
 
+    protected ThreadFactory getDefaultThreadFactory(){
+        return new ThreadFactory(){
+            private final AtomicInteger c = new AtomicInteger();
+            public Thread newThread(Runnable r) {
+                Thread t = new WorkerThreadImpl(AbstractThreadPool.this,
+                    name + "-WorkerThread(" +
+                    c.incrementAndGet() + ")", r,
+                    initialByteBufferSize);
+                t.setUncaughtExceptionHandler(AbstractThreadPool.this);
+                t.setPriority(priority);
+                t.setDaemon(true);
+                return t;
+            }
+        };
+    }
+    
     public abstract class Worker implements Runnable {
         protected Thread t;
 

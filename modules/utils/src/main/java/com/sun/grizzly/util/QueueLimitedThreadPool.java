@@ -73,11 +73,6 @@ class QueueLimitedThreadPool extends FixedThreadPool{
     }
 
     @Override
-    protected ThreadFactory getDefaultThreadFactory() {
-        return new DefaultWorkerFactory();
-    }
-
-    @Override
     public void execute(Runnable task) {
         if (task == null) {
             throw new IllegalArgumentException("Runnable task is null");
@@ -131,19 +126,5 @@ class QueueLimitedThreadPool extends FixedThreadPool{
         sb.append("name=").append(name);
         sb.append(", queuesize=").append(getQueueSize());
         sb.append(", is-shutdown=").append(isShutdown());
-    }
-
-    private class DefaultWorkerFactory implements ThreadFactory {
-        private final AtomicInteger threadsCounter = new AtomicInteger();
-        public Thread newThread(Runnable r) {
-            Thread thread = new WorkerThreadImpl(
-                    QueueLimitedThreadPool.this,
-                    name + "-WorkerThread(" +
-                    threadsCounter.incrementAndGet() + ")", r,
-                    initialByteBufferSize);
-            thread.setUncaughtExceptionHandler(QueueLimitedThreadPool.this);
-            thread.setPriority(priority);
-            return thread;
-        }
     }
 }

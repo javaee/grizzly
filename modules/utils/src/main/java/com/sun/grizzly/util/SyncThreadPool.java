@@ -62,7 +62,6 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SyncThreadPool extends AbstractThreadPool {
 
-    protected int threadsCounter;
     protected int currentPoolSize;
     protected int activeThreadsCount;
     private final Queue<Runnable> workQueue;
@@ -157,7 +156,7 @@ public class SyncThreadPool extends AbstractThreadPool {
         this.name = name;
 
         if (this.threadFactory == null) {
-            this.threadFactory = new SyncWorkerThreadFactory();
+            this.threadFactory = getDefaultThreadFactory();
         }
         this.workQueue = workQueue;
         this.maxQueuedTasks = maxQueuedTasks;
@@ -406,11 +405,6 @@ public class SyncThreadPool extends AbstractThreadPool {
         completedTasksCount.incrementAndGet();
     }
 
-    @Override
-    protected String nextThreadId() {
-        return Integer.toString(threadsCounter++);
-    }
-
     
     @Override
     public String toString() {
@@ -427,6 +421,11 @@ public class SyncThreadPool extends AbstractThreadPool {
         sb.append(", max-threads=").append(getMaximumPoolSize());
         sb.append(", max-queue-size=").append(getMaxQueuedTasksCount());
         sb.append(", is-shutdown=").append(isShutdown());
+    }
+
+    @Override
+    protected String nextThreadId() {
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     protected class SyncThreadWorker extends Worker {
@@ -473,19 +472,5 @@ public class SyncThreadPool extends AbstractThreadPool {
             }
         }
     }
-
-    private class SyncWorkerThreadFactory implements ThreadFactory {
-
-        public Thread newThread(Runnable r) {
-            synchronized (statelock) {
-                Thread thread = new WorkerThreadImpl(SyncThreadPool.this,
-                        name + "-WorkerThread(" +
-                        nextThreadId() + ")", r,
-                        initialByteBufferSize);
-                thread.setUncaughtExceptionHandler(SyncThreadPool.this);
-                thread.setPriority(priority);
-                return thread;
-            }
-        }
-    }
+    
 }
