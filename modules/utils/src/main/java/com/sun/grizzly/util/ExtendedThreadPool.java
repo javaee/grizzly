@@ -107,7 +107,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @throws IllegalArgumentException if <tt>corePoolSize</tt>
      * less than zero
      * @see #getCorePoolSize
-     * @deprecated
+     * @deprecated please use {@link #reconfigure} instead.
      */
     @Deprecated
     public void setCorePoolSize(int corePoolSize);
@@ -168,7 +168,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @param unit  the time unit of the time argument
      * @throws IllegalArgumentException if time less than zero
      * @see #getKeepAliveTime
-     * @deprecated
+     * @deprecated please use {@link #reconfigure} instead.
      */
     @Deprecated
     public void setKeepAliveTime(long time, TimeUnit unit);
@@ -191,7 +191,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @throws IllegalArgumentException if maximumPoolSize less than zero or
      * the {@link #getCorePoolSize core pool size}
      * @see #getMaximumPoolSize
-     * @deprecated 
+     * @deprecated please use {@link #reconfigure} instead.
      */
     @Deprecated
     public void setMaximumPoolSize(int maximumPoolSize);
@@ -199,11 +199,22 @@ public interface ExtendedThreadPool extends ExecutorService {
     @Deprecated
     public int getMaxQueuedTasksCount();
 
+
+    /**
+     *
+     * @param maxTasksCount
+     * @deprecated please use {@link #reconfigure} instead.
+     */
     @Deprecated
     public void setMaxQueuedTasksCount(int maxTasksCount);
 
     public String getName();
 
+    /**
+     *
+     * @param name
+     * @deprecated please use {@link #reconfigure} instead.
+     */
     @Deprecated
     public void setName(String name);
 
@@ -215,7 +226,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @param threadFactory the new thread factory
      * @throws NullPointerException if threadFactory is null
      * @see #getThreadFactory
-     * @deprecated 
+     * @deprecated please use {@link #reconfigure} instead.
      */
     @Deprecated
     public void setThreadFactory(ThreadFactory threadFactory);
@@ -228,5 +239,4 @@ public interface ExtendedThreadPool extends ExecutorService {
      */
     public ThreadFactory getThreadFactory();
 
-    //public void reconfigure(ThreadPoolConfig config);
 }

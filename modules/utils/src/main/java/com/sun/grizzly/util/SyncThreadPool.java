@@ -71,7 +71,7 @@ public class SyncThreadPool extends AbstractThreadPool {
     private int largestThreadPoolSize;
     protected final Object statelock = new Object();
     protected boolean running = true;
-    protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();
+    protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();    
 
     /**
      *
@@ -83,26 +83,27 @@ public class SyncThreadPool extends AbstractThreadPool {
 
     /**
      *
-     * @param workerprefixname
+     * @param name
      * @param corePoolsize
      * @param maxPoolSize
      * @param keepAliveTime
      * @param timeUnit {@link TimeUnit}
      */
-    public SyncThreadPool(final String name, int corePoolsize,
+    public SyncThreadPool(String name, int corePoolsize,
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit) {
         this(name, corePoolsize, maxPoolSize, keepAliveTime, timeUnit, null);
     }
 
     /**
      *
+     * @param name
      * @param corePoolsize
      * @param maxPoolSize
      * @param keepAliveTime
      * @param timeUnit  {@link TimeUnit}
      * @param threadFactory {@link ThreadFactory}
      */
-    public SyncThreadPool(final String name, int corePoolsize,
+    public SyncThreadPool(String name, int corePoolsize,
             int maxPoolSize, long keepAliveTime, TimeUnit timeUnit,
             ThreadFactory threadFactory) {
         this(name, corePoolsize, maxPoolSize, keepAliveTime, timeUnit,
@@ -111,35 +112,53 @@ public class SyncThreadPool extends AbstractThreadPool {
 
     /**
      *
+     * @param name
      * @param corePoolsize
      * @param maxPoolSize
      * @param keepAliveTime
      * @param timeUnit {@link TimeUnit}
      * @param threadFactory {@link ThreadFactory}
      * @param workQueue {@link BlockingQueue}
+     * @param maxQueuedTasks
+     */
+    public SyncThreadPool(String name, int corePoolsize, int maxPoolSize,
+            long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory,
+            Queue<Runnable> workQueue, int maxQueuedTasks) {
+        this(name, corePoolsize, maxPoolSize, keepAliveTime, timeUnit,
+                threadFactory, new LinkedList<Runnable>(), maxQueuedTasks,null);
+    }
+
+    /**
+     * 
+     * @param name
+     * @param corePoolsize
+     * @param maxPoolSize
+     * @param keepAliveTime
+     * @param timeUnit
+     * @param threadFactory
+     * @param workQueue
+     * @param maxQueuedTasks
+     * @param probe
      */
     public SyncThreadPool(final String name, int corePoolsize, int maxPoolSize,
             long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory,
-            Queue<Runnable> workQueue, int maxQueuedTasks) {
-
+            Queue<Runnable> workQueue, int maxQueuedTasks,
+            ThreadPoolMonitoringProbe probe) {
+        super(probe);
         if (keepAliveTime < 0) {
             throw new IllegalArgumentException("keepAliveTime < 0");
         }
         if (timeUnit == null) {
             throw new IllegalArgumentException("timeUnit == null");
         }
-
         setPoolSizes(corePoolsize, maxPoolSize);
 
         this.keepAliveTime = TimeUnit.MILLISECONDS.convert(keepAliveTime, timeUnit);
-
         this.name = name;
 
         if (this.threadFactory == null) {
             this.threadFactory = new SyncWorkerThreadFactory();
         }
-
-
         this.workQueue = workQueue;
         this.maxQueuedTasks = maxQueuedTasks;
     }
@@ -360,7 +379,6 @@ public class SyncThreadPool extends AbstractThreadPool {
     protected void setPoolSizes(int corePoolSize, int maxPoolSize) {
         synchronized (statelock) {
             validateNewPoolSize(corePoolSize, maxPoolSize);
-
             this.corePoolSize = corePoolSize;
             this.maxPoolSize = maxPoolSize;
         }
@@ -370,23 +388,13 @@ public class SyncThreadPool extends AbstractThreadPool {
      * {@inheritDoc}
      */
     @Override
-    protected void onWorkerExit(Worker worker) {
-        super.onWorkerExit(worker);
-        
+    protected void onWorkerExit(Worker worker) {                
         synchronized (statelock) {
             currentPoolSize--;
             activeThreadsCount--;
             workers.remove(worker);
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void beforeExecute(Thread t, Runnable r) {
-        super.beforeExecute(t, r);
-        ((WorkerThreadImpl) t).createByteBuffer(false);
+        super.onWorkerExit(worker);
     }
 
     /**
@@ -394,9 +402,8 @@ public class SyncThreadPool extends AbstractThreadPool {
      */
     @Override
     protected void afterExecute(Thread thread,Runnable r, Throwable t) {
-        ((WorkerThreadImpl)thread).reset();
-        completedTasksCount.incrementAndGet();
         super.afterExecute(thread,r, t);
+        completedTasksCount.incrementAndGet();
     }
 
     @Override
@@ -404,7 +411,7 @@ public class SyncThreadPool extends AbstractThreadPool {
         return Integer.toString(threadsCounter++);
     }
 
-
+    
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(512);

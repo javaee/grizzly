@@ -93,6 +93,12 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
     protected abstract String nextThreadId();
 
+    protected final ThreadPoolMonitoringProbe probe;
+
+    public AbstractThreadPool(ThreadPoolMonitoringProbe probe){
+        this.probe = probe;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -211,7 +217,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param t the thread that will run task r.
      * @param r the task that will be executed.
      */
-    protected void beforeExecute(Thread t, Runnable r) { }
+    protected void beforeExecute(Thread t, Runnable r) { 
+        ((WorkerThreadImpl) t).createByteBuffer(false);
+    }
 
     /**
      * Method invoked upon completion of execution of the given Runnable.
@@ -236,7 +244,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param t the exception that caused termination, or null if
      * execution completed normally.
      */
-    protected void afterExecute(Thread thread,Runnable r, Throwable t) { }
+    protected void afterExecute(Thread thread,Runnable r, Throwable t) { 
+        ((WorkerThreadImpl)thread).reset();
+    }
 
     /**
      * Method is called by {@link Worker}, when it's starting
@@ -247,6 +257,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param worker
      */
     protected void onWorkerStarted(Worker worker) {
+        if (probe != null){
+            probe.threadAllocatedEvent(name,worker.t);
+        }
     }
 
     /**
@@ -258,6 +271,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param worker
      */
     protected void onWorkerExit(Worker worker) {
+       if (probe != null){
+            probe.threadReleasedEvent(name, worker.t);
+        }
     }
 
     /**
@@ -266,6 +282,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * one of the threads will be able to process it.
      */
     protected void onMaxNumberOfThreadsReached() {
+      if (probe != null){
+            probe.maxNumberOfThreadsReachedEvent(name, maxPoolSize);
+        }    
     }
 
     /**
@@ -275,6 +294,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param task
      */
     protected void onTaskQueued(Runnable task) {
+      if (probe != null){
+            probe.onTaskQueuedEvent(task);
+        }
     }
 
     /**
@@ -284,6 +306,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param task
      */
     protected void onTaskDequeued(Runnable task) {
+      if (probe != null){
+            probe.onTaskDequeuedEvent(task);
+        }
     }
 
     /**
@@ -291,6 +316,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * to a task queue, because task queue is full.
      */
     protected void onTaskQueueOverflow() {
+        if (probe != null){
+            probe.onTaskQueueOverflowEvent(name);
+        }
     }
     
     /**
@@ -304,9 +332,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     public abstract class Worker implements Runnable {
         protected Thread t;
 
-        public void run() {
-            onWorkerStarted(this);
+        public void run() {            
             try {
+                onWorkerStarted(this);//inside try, so exist logic will fire.
                 doWork();
             } finally {
                 onWorkerExit(this);

@@ -38,27 +38,201 @@
 
 package com.sun.grizzly.util;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 /**
  * TODO: wrap ordinary pools with something that can replace pool when
  * reconfigure method detect such needs. pool ref needs to be volatile.
  * 
  *
  * @author gustav trede
- * @author Oleksiy Stashok
  */
 public class ThreadPoolFactory {
 
-    public static ExtendedThreadPool getInstance(ThreadPoolConfig config){        
-        if (config.corepoolsize < 0 || config.corepoolsize==config.maxpoolsize){
-            return config.queuelimit < 1 ?
-                new FixedThreadPool(config.poolname, config.maxpoolsize,
-                config.queue, config.threadFactory) :
-                new GrizzlyThreadPool(config.poolname, config.maxpoolsize,
-                config.queuelimit,
-                config.threadFactory,config.queue);
-        }
-        return new SyncThreadPool(config.poolname, config.corepoolsize,
-                config.maxpoolsize,config.keepAliveTime, config.timeUnit,
-                config.threadFactory, config.queue, config.queuelimit);
+    public static ExtendedReconfigurableThreadPool getInstance(
+            ThreadPoolConfig config){
+        return new PoolWrap(config);
     }
+
+    final static class PoolWrap implements ExtendedReconfigurableThreadPool{
+        private volatile ExtendedThreadPool pool;
+        private volatile ThreadPoolConfig config;
+        private final Object statelock = new Object();
+
+        public PoolWrap(ThreadPoolConfig config) {
+            if (config == null)
+                throw new IllegalArgumentException("config is null");
+            this.pool   = getImpl(config);
+            this.config = config;
+        }
+
+        private final ExtendedThreadPool getImpl(ThreadPoolConfig config){
+            if (config.corepoolsize < 0 || config.corepoolsize==config.maxpoolsize){
+                return config.queuelimit < 1 ?
+                    new FixedThreadPool(config.poolname, config.maxpoolsize,
+                    config.queue, config.threadFactory,config.monitoringProbe) :
+                    new QueueLimitedThreadPool(
+                    config.poolname,config.maxpoolsize,config.queuelimit,
+                    config.threadFactory,config.queue,config.monitoringProbe);
+            }
+            return new SyncThreadPool(config.poolname, config.corepoolsize,
+                    config.maxpoolsize,config.keepAliveTime, config.timeUnit,
+                    config.threadFactory, config.queue, config.queuelimit);
+        }
+
+        public final void reconfigure(ThreadPoolConfig config) {
+            if (config == null)
+                throw new IllegalArgumentException("config is null");
+            synchronized(statelock){
+                //TODO: only create new pool if old one cant be runtime config.
+                ExtendedThreadPool oldpool = this.pool;                
+                this.pool = getImpl(config);
+                this.pool.getQueue().addAll(oldpool.getQueue());
+                oldpool.shutdown();
+                this.config = config;
+            }
+        }
+
+        public ThreadPoolConfig getConfiguration() {
+            return config;
+        }
+        
+        public int getActiveCount() {
+            return pool.getActiveCount();
+        }
+
+        public int getTaskCount() {
+            return 0;
+        }
+
+        public long getCompletedTaskCount() {
+            return pool.getCompletedTaskCount();
+        }
+
+        public int getCorePoolSize() {
+            return pool.getCorePoolSize();
+        }
+
+        public void setCorePoolSize(int corePoolSize) {
+            
+        }
+
+        public int getLargestPoolSize() {
+            return pool.getLargestPoolSize();
+        }
+
+        public int getPoolSize() {
+            return pool.getPoolSize();
+        }
+
+        public Queue<Runnable> getQueue() {
+            return pool.getQueue();
+        }
+
+        public int getQueueSize() {
+            return pool.getQueueSize();
+        }
+
+        public long getKeepAliveTime(TimeUnit unit) {
+            return pool.getKeepAliveTime(unit);
+        }
+
+        public void setKeepAliveTime(long time, TimeUnit unit) {
+            pool.setKeepAliveTime(time, unit);
+        }
+
+        public int getMaximumPoolSize() {
+            return pool.getMaximumPoolSize();
+        }
+
+        public void setMaximumPoolSize(int maximumPoolSize) {
+            //throw new UnsupportedOperationException();
+        }
+
+        public int getMaxQueuedTasksCount() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        public void setMaxQueuedTasksCount(int maxTasksCount) {
+            //throw new UnsupportedOperationException();
+        }
+
+        public String getName() {
+            return pool.getName();
+        }
+
+        public void setName(String name) {
+            pool.setName(name);
+        }
+
+        public void setThreadFactory(ThreadFactory threadFactory) {
+            pool.setThreadFactory(threadFactory);
+        }
+
+        public ThreadFactory getThreadFactory() {
+            return pool.getThreadFactory();
+        }
+
+        public void shutdown() {
+            pool.shutdown();
+        }
+
+        public List<Runnable> shutdownNow() {
+            return pool.shutdownNow();
+        }
+
+        public boolean isShutdown() {
+            return pool.isShutdown();
+        }
+
+        public boolean isTerminated() {
+            return pool.isTerminated();
+        }
+
+        public boolean awaitTermination(long l, TimeUnit tu) throws InterruptedException {
+            return pool.awaitTermination(l, tu);
+        }
+
+        public <T> Future<T> submit(Callable<T> clbl) {
+            return pool.submit(clbl);
+        }
+
+        public <T> Future<T> submit(Runnable r, T t) {
+            return pool.submit(r, t);
+        }
+
+        public Future<?> submit(Runnable r) {
+            return pool.submit(r);
+        }
+
+        public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> clctn) throws InterruptedException {
+            return pool.invokeAll(clctn);
+        }
+
+        public <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> clctn, long l, TimeUnit tu) throws InterruptedException {
+            return pool.invokeAll(clctn, l, tu);
+        }
+
+        public <T> T invokeAny(Collection<? extends Callable<T>> clctn) throws InterruptedException, ExecutionException {
+            return pool.invokeAny(clctn);
+        }
+
+        public <T> T invokeAny(Collection<? extends Callable<T>> clctn, long l, TimeUnit tu) throws InterruptedException, ExecutionException, TimeoutException {
+           return pool.invokeAny(clctn, l, tu);
+        }
+
+        public final void execute(Runnable r) {
+            pool.execute(r);
+        }
+
+    }
+
 }

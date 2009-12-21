@@ -39,36 +39,17 @@
 package com.sun.grizzly.util;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- *
- * {@link ExecutorService} implementation, which function the similar way as
- * former Grizzly 1.x Pipeline based thread pools.
- * Unlike {@link DefaultThreadPool}, this thread pool, if there are no free
- * worker threads available, prefers to create new worker thread, up-to maximum,
- * to process new task. And only if max threads count is reached - this
- * thread pool will start to add tasks to queue. Where {@link DefaultThreadPool}
- * first tries to add new task to queue, and only if task queue reaches its
- * maximum - creates new worker thread.
- *
- * corethreads are prestarted.<br>
- * maxPoolSize is runtime configurable.<br><br>
- *
- * Designed around the use of lockfree queue.<br>
- * less performant then {@link FixedThreadPool} due to keeping track
- * of queue size to know when to spawn a worker or not, creating a chokepoint between producers and consumers
- * in the form of looping around compareAndSet inside {@link AtomicInteger} to update the queue size for each put and get of a task .<br>
- * for short lived tasks at saturation throughput this overhead can be substantial on some platforms.<br>
- * by default: {@link WorkerThreadImpl} is used,
- * {@link LinkedTransferQueue} is used as workQueue , this means that its FIFO per producer.<br>
- *
+ * 
+ * @deprecated
  * @author gustav trede
  */
+@Deprecated
 public class DefaultThreadPool extends FixedThreadPool
         implements Thread.UncaughtExceptionHandler{
 
@@ -127,7 +108,7 @@ public class DefaultThreadPool extends FixedThreadPool
             long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory,
             BlockingQueue<Runnable> workQueue) {
 
-        super(workQueue, threadFactory);
+        super(workQueue, threadFactory,null);
 
         if (keepAliveTime< 0 )
             throw new IllegalArgumentException("keepAliveTime < 0");

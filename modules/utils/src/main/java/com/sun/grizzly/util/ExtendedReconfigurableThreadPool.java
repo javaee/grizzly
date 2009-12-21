@@ -35,49 +35,26 @@
  * holder.
  *
  */
+
 package com.sun.grizzly.util;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-
 /**
- * @author Oleksiy Stashok
+ *
+ * Should consider to extend Executorservice directly.
+ * 
  * @author gustav trede
  */
-public class ThreadPoolConfig {
+public interface ExtendedReconfigurableThreadPool extends ExtendedThreadPool{
 
-    protected final BlockingQueue<Runnable> queue;
-    protected final ThreadFactory threadFactory;
-    protected final String poolname;
-    protected final int maxpoolsize;
-    protected final int corepoolsize;
-    protected final int queuelimit;
-    protected final long keepAliveTime;
-    protected final TimeUnit timeUnit;
-    protected final ThreadPoolMonitoringProbe monitoringProbe;
+    /**
+     * Sets the {@Link ThreadPoolConfig}
+     * @param config
+     */
+    public void reconfigure(ThreadPoolConfig config);
 
-    public ThreadPoolConfig(
-            BlockingQueue<Runnable> queue,
-            ThreadFactory threadFactory,
-            String poolname,
-            int queuelimit,
-            int maxpoolsize
-            ,int corepoolsize,
-            long keepAliveTime,
-            TimeUnit timeUnit,
-            ThreadPoolMonitoringProbe monitoringProbe
-            ) {
-        
-        this.queue = queue;
-        this.threadFactory = threadFactory;
-        this.poolname = poolname;
-        this.maxpoolsize = maxpoolsize;        
-        this.queuelimit = queuelimit;
-        this.corepoolsize = corepoolsize;
-        this.keepAliveTime = keepAliveTime;
-        this.timeUnit = timeUnit;
-        this.monitoringProbe = monitoringProbe;
-    }        
-
+    /**
+     * Returns the {@Link ThreadPoolConfig}
+     * @return
+     */
+    public ThreadPoolConfig getConfiguration();
 }

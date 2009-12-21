@@ -72,6 +72,7 @@ public class FixedThreadPool extends AbstractThreadPool {
 
     protected final Object statelock = new Object();
 
+
     protected volatile boolean running = true;
 
     /**
@@ -133,10 +134,25 @@ public class FixedThreadPool extends AbstractThreadPool {
      * @param name
      * @param poolsize
      * @param workQueue
-     * @param threadfactory 
+     * @param threadfactory
      */
     public FixedThreadPool(String name,int poolsize,BlockingQueue<Runnable> workQueue,
                 ThreadFactory threadfactory) {
+         this(name, poolsize, workQueue, threadfactory,null);
+    }
+
+    /**
+     *
+     * @param name
+     * @param poolsize
+     * @param workQueue
+     * @param threadfactory
+     * @param probe 
+     */
+    public FixedThreadPool(String name,int poolsize,
+            BlockingQueue<Runnable> workQueue,ThreadFactory threadfactory,
+            ThreadPoolMonitoringProbe probe) {
+        super(probe);
         if (name == null)
             throw new IllegalArgumentException("name == null");
         if (name.length() == 0)
@@ -145,7 +161,7 @@ public class FixedThreadPool extends AbstractThreadPool {
             throw new IllegalArgumentException("poolsize < 1");
         if (workQueue == null)
             workQueue = DataStructures.getLTQinstance(Runnable.class);
-        this.name = name;        
+        this.name = name;
         this.workQueue   = workQueue;
         this.maxPoolSize = poolsize;
         if (threadfactory == null)
@@ -156,7 +172,9 @@ public class FixedThreadPool extends AbstractThreadPool {
         }
     }
 
-    protected FixedThreadPool(BlockingQueue<Runnable> workQueue,ThreadFactory threadFactory){
+    protected FixedThreadPool(BlockingQueue<Runnable> workQueue,ThreadFactory threadFactory,
+            ThreadPoolMonitoringProbe probe){
+        super(probe);
         if (workQueue == null)
             throw new IllegalArgumentException("workQueue == null");
         this.workQueue     = workQueue;
@@ -331,8 +349,11 @@ public class FixedThreadPool extends AbstractThreadPool {
      */
     @Override
     public void setMaximumPoolSize(int maximumPoolSize) {
+        if (maximumPoolSize < 1)
+            throw new IllegalStateException("maximumPoolSize < 1");
         synchronized(statelock){
             if (running){
+                this.maxPoolSize = maximumPoolSize;
                 int toadd = maximumPoolSize - expectedWorkerCount;
                 while(toadd > 0){
                     toadd--;
@@ -342,6 +363,7 @@ public class FixedThreadPool extends AbstractThreadPool {
                     workQueue.add(poison);
                     expectedWorkerCount--;
                 }
+                super.onMaxNumberOfThreadsReached();
             }
         }
     }

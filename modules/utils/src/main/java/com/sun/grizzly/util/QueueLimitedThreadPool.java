@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 
  * @author gustav trede
  */
-class GrizzlyThreadPool extends FixedThreadPool{
+class QueueLimitedThreadPool extends FixedThreadPool{
 
     private final int maxQueuedTasks;
     
@@ -63,10 +63,10 @@ class GrizzlyThreadPool extends FixedThreadPool{
      * @param workQueue {@link BlockingQueue}
      * @param maxQueuedTasks 
      */
-    public GrizzlyThreadPool(String name, int poolsize,int maxQueuedTasks,
-            ThreadFactory threadFactory,
-            BlockingQueue<Runnable> workQueue ) {
-        super(poolsize, workQueue, threadFactory);
+    QueueLimitedThreadPool(String name, int poolsize,int maxQueuedTasks,
+            ThreadFactory threadFactory,BlockingQueue<Runnable> workQueue,
+            ThreadPoolMonitoringProbe probe) {
+        super(name,poolsize,workQueue,threadFactory,probe);
         if (maxQueuedTasks < 1)
             throw new IllegalArgumentException("maxQueuedTasks < 1");
         this.maxQueuedTasks = maxQueuedTasks;
@@ -114,16 +114,8 @@ class GrizzlyThreadPool extends FixedThreadPool{
      */
     @Override
     protected void beforeExecute(Thread t, Runnable r) {
-        queueSize.decrementAndGet();
-        ((WorkerThreadImpl) t).createByteBuffer(false);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void afterExecute(Thread thread,Runnable r, Throwable t) {
-        ((WorkerThreadImpl)thread).reset();
+        super.beforeExecute(t, r);
+        queueSize.decrementAndGet();        
     }
 
     @Override
@@ -145,11 +137,11 @@ class GrizzlyThreadPool extends FixedThreadPool{
         private final AtomicInteger threadsCounter = new AtomicInteger();
         public Thread newThread(Runnable r) {
             Thread thread = new WorkerThreadImpl(
-                    GrizzlyThreadPool.this,
+                    QueueLimitedThreadPool.this,
                     name + "-WorkerThread(" +
                     threadsCounter.incrementAndGet() + ")", r,
                     initialByteBufferSize);
-            thread.setUncaughtExceptionHandler(GrizzlyThreadPool.this);
+            thread.setUncaughtExceptionHandler(QueueLimitedThreadPool.this);
             thread.setPriority(priority);
             return thread;
         }

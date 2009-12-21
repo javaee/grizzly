@@ -37,47 +37,26 @@
  */
 package com.sun.grizzly.util;
 
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-
 /**
- * @author Oleksiy Stashok
+ * Monitoring probe.
+ * 
  * @author gustav trede
+ * @author Alexey Stashok
  */
-public class ThreadPoolConfig {
+public interface ThreadPoolMonitoringProbe {
 
-    protected final BlockingQueue<Runnable> queue;
-    protected final ThreadFactory threadFactory;
-    protected final String poolname;
-    protected final int maxpoolsize;
-    protected final int corepoolsize;
-    protected final int queuelimit;
-    protected final long keepAliveTime;
-    protected final TimeUnit timeUnit;
-    protected final ThreadPoolMonitoringProbe monitoringProbe;
+   /*public void setMaxThreadsEvent(String threadPoolName,int maxNumberOfThreads);
+   public void setCoreThreadsEvent(String threadPoolName,int coreNumberOfThreads);*/
 
-    public ThreadPoolConfig(
-            BlockingQueue<Runnable> queue,
-            ThreadFactory threadFactory,
-            String poolname,
-            int queuelimit,
-            int maxpoolsize
-            ,int corepoolsize,
-            long keepAliveTime,
-            TimeUnit timeUnit,
-            ThreadPoolMonitoringProbe monitoringProbe
-            ) {
-        
-        this.queue = queue;
-        this.threadFactory = threadFactory;
-        this.poolname = poolname;
-        this.maxpoolsize = maxpoolsize;        
-        this.queuelimit = queuelimit;
-        this.corepoolsize = corepoolsize;
-        this.keepAliveTime = keepAliveTime;
-        this.timeUnit = timeUnit;
-        this.monitoringProbe = monitoringProbe;
-    }        
+   public void threadAllocatedEvent(String threadPoolName,Thread thread);
 
+   public void threadReleasedEvent(String threadPoolName,Thread thread);
+
+   public void maxNumberOfThreadsReachedEvent(String threadPoolName,int maxNumberOfThreads);
+
+   public void onTaskQueuedEvent(Runnable task);
+
+   public void onTaskDequeuedEvent(Runnable task);
+
+   public void onTaskQueueOverflowEvent(String threadPoolName);
 }
