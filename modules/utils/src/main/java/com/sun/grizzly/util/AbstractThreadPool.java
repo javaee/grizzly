@@ -39,6 +39,13 @@
 package com.sun.grizzly.util;
 
 import com.sun.grizzly.util.ByteBufferFactory.ByteBufferType;
+import com.sun.grizzly.util.FixedThreadPool.BasicWorker;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -93,13 +100,16 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
     private final AtomicInteger nextthreadID = new AtomicInteger();
 
-    protected String nextThreadId(){
-        return String.valueOf(nextthreadID.incrementAndGet());
-    }
-
     protected final ThreadPoolMonitoringProbe probe;
 
     protected final Object statelock = new Object();
+
+    protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();
+
+    protected volatile boolean running = true;
+
+    protected int currentPoolSize;
+    protected int activeThreadsCount;
 
     public AbstractThreadPool(ThreadPoolMonitoringProbe probe, String name,
             ThreadFactory threadFactory){        
@@ -107,12 +117,83 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
             throw new IllegalArgumentException("name == null");
         if (name.length() == 0)
             throw new IllegalArgumentException("name 0 length");
-        if (threadFactory == null)
-            threadFactory = getDefaultThreadFactory();
         this.probe = probe;
-        this.threadFactory = threadFactory;
+        this.threadFactory = threadFactory != null ? 
+            threadFactory : getDefaultThreadFactory();
     }
 
+    /**
+     * must hold statelock while calling this method.
+     * @param wt
+     */
+    protected void startWorker(Worker wt){
+        wt.t = threadFactory.newThread(wt);
+        workers.put(wt, System.currentTimeMillis());
+        wt.t.start();
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    public List<Runnable> shutdownNow() {
+        synchronized (statelock) {
+            List<Runnable> drained = new ArrayList<Runnable>();
+            if (running) {
+                running = false;
+                drain(getQueue(), drained);
+                for (Runnable task : drained) {
+                    onTaskDequeued(task);
+                }
+                poisonAll();
+                //try to interrupt their current work so they can get their poison fast
+                for (Worker w : workers.keySet()) {
+                    w.t.interrupt();
+                }
+            }
+            return drained;
+        }
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    public void shutdown() {
+        synchronized (statelock) {
+            if (running) {
+                running = false;
+                poisonAll();
+                statelock.notifyAll();
+            }
+        }
+    }
+
+    private void poisonAll() {
+        int size = Math.max(maxPoolSize, workers.size()) * 4 / 3;
+        final Queue<Runnable> q = getQueue();
+        while (size-- > 0) {
+            q.offer(poison);
+        }
+    }
+
+    protected static final void drain(
+            Queue<Runnable> from,Collection<Runnable> too){
+        boolean cont = true;
+        while(cont){
+            Runnable r = from.poll();
+            if (cont = r!=null){
+                //resizable fixedpool can have poison
+                //from runtime resize (shrink) operation
+                if (r != AbstractThreadPool.poison){
+                    too.add(r);//bypassing pool queuelimit
+                }
+            }
+        }
+    }
+
+    protected String nextThreadId(){
+        return String.valueOf(nextthreadID.incrementAndGet());
+    }
+    
     /**
      * {@inheritDoc}
      */
@@ -285,6 +366,11 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param worker
      */
     protected void onWorkerExit(Worker worker) {
+        synchronized (statelock) {
+            currentPoolSize--;
+            activeThreadsCount--;
+            workers.remove(worker);        
+        }
        if (probe != null){
             probe.threadReleasedEvent(name, worker.t);
         }

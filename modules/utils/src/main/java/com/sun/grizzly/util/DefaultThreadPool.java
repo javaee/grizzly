@@ -39,10 +39,8 @@
 package com.sun.grizzly.util;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 
@@ -50,13 +48,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author gustav trede
  */
 @Deprecated
-public class DefaultThreadPool extends FixedThreadPool
-        implements Thread.UncaughtExceptionHandler{
+public class DefaultThreadPool extends FixedThreadPool{
 
-    private final AtomicInteger queueSize = new AtomicInteger();
-
-    protected final AtomicInteger approximateRunningWorkerCount = new AtomicInteger();
-    
     /**
      *
      */
@@ -107,169 +100,18 @@ public class DefaultThreadPool extends FixedThreadPool
     public DefaultThreadPool(String name, int corePoolsize,int maxPoolSize,
             long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory,
             BlockingQueue<Runnable> workQueue) {
-        super(name,maxPoolSize,workQueue, threadFactory,null);
-        if (keepAliveTime< 0 )
-            throw new IllegalArgumentException("keepAliveTime < 0");
-        if (timeUnit == null)
-            throw new IllegalArgumentException("timeUnit == null");
-        setPoolSizes(corePoolsize, maxPoolSize);
+        super(name,maxPoolSize,workQueue,threadFactory,null);
+        this.corePoolSize = 0;
         this.keepAliveTime = TimeUnit.MILLISECONDS.convert(keepAliveTime, timeUnit);       
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void execute(Runnable task) {
-        if (task == null){
-            throw new IllegalArgumentException("Runnable task is null");
-        }
-
-        int aliveWorkers;        
-        while((aliveWorkers=aliveworkerCount.get())<maxPoolSize &&
-                (aliveWorkers < corePoolSize ||
-                queueSize.get()>0 || !hasIdleWorkersApproximately()) && running){
-            if (aliveworkerCount.compareAndSet(aliveWorkers, aliveWorkers+1)){
-                startWorker(new DefaultThreadWorker(task, false));
-                return;
-            }
-        }
-        if (running) {
-            if (workQueue.offer(task)) {
-                if (aliveWorkers >= maxPoolSize) {
-                    onMaxNumberOfThreadsReached();
-                }
-
-                onTaskQueued(task);
-            } else {
-                onTaskQueueOverflow();
-                throw new RejectedExecutionException("The queue is full");
-            }
-        }
-    }
-
-    private boolean hasIdleWorkersApproximately() {
-        if( aliveworkerCount.get() <= approximateRunningWorkerCount.get() )
-            return false;
-        else
-            return true;
-    }
-
-    public void start() {
-        int aliveCount;
-        while((aliveCount = aliveworkerCount.get()) < corePoolSize) {
-            if (aliveworkerCount.compareAndSet(aliveCount, aliveCount + 1)) {
-                startWorker(new DefaultThreadWorker(null,true));
-            }
-        }
-    }
-
-    public void stop() {
-        shutdownNow();
-    }
-
-    @Override
-    protected void onTaskQueued(Runnable task) {
-        super.onTaskQueued(task);
-        queueSize.incrementAndGet();
-    }
-
-    @Override
-    protected void onTaskDequeued(Runnable task) {
-        queueSize.decrementAndGet();
-        super.onTaskDequeued(task);
-    }
-
-    protected class DefaultThreadWorker extends BasicWorker {
-        private final boolean core;
-        private Runnable firstTask;
-
-        public DefaultThreadWorker(Runnable firstTask, boolean core) {
-            this.core = core;
-            this.firstTask = firstTask;
-        }
-
-        @Override
-        protected Runnable getTask() throws InterruptedException {
-            Runnable r;
-            if (firstTask != null) {
-                r = firstTask;
-                firstTask = null;
-            } else {
-                // if maxpoolsize becomes lower during runtime we kill of the
-                // difference, possible abit more since we are not looping around compareAndSet
-                if (!core && aliveworkerCount.get() > maxPoolSize) {
-                    return null;
-                }
-                r = (core ? workQueue.take() : workQueue.poll(keepAliveTime, TimeUnit.MILLISECONDS));
-            }
-
-            return r;
-        }
-    }
-
-    @Override
-    public int getQueueSize() {
-        return queueSize.get();
-    }
-
-    protected void setPoolSizes(int corePoolSize, int maxPoolSize) {
-        synchronized(statelock){
-            validateNewPoolSize(corePoolSize, maxPoolSize);
-
-            this.corePoolSize = corePoolSize;
-            this.maxPoolSize = maxPoolSize;
-        }
-    }
-
-    @Override
-    public void setCorePoolSize(int corePoolSize) {
-        synchronized(statelock){
-            validateNewPoolSize(corePoolSize, maxPoolSize);
-            this.corePoolSize = corePoolSize;
-        }
-    }
-
-    @Override
-    public int getCorePoolSize() {
-        return corePoolSize;
-    }
-
-    /**
-     *
-     * @param maxPoolSize
-     */
-    @Override
-    public void setMaximumPoolSize(int maxPoolSize) {
-        synchronized(statelock){
-            validateNewPoolSize(corePoolSize, maxPoolSize);
-            this.maxPoolSize = maxPoolSize;
-        }
-    }
-
-
-    @Override
-    public int getMaximumPoolSize() {
-        return maxPoolSize;
+    public void start(){
     }
 
     @Override
     public String toString() {
         return super.toString()+
         ", min-threads="+getCorePoolSize()+
-        ", max-threads="+getMaximumPoolSize()+
-        ", max-queue-size="+getMaxQueuedTasksCount();
-    }
-
-    @Override
-    protected void beforeExecute(Thread t, Runnable r) {
-        super.beforeExecute(t, r);
-        approximateRunningWorkerCount.incrementAndGet();
-    }
-
-    @Override
-    protected void afterExecute(Thread thread,Runnable r, Throwable t) {
-        approximateRunningWorkerCount.decrementAndGet();
-        super.afterExecute(thread, r, t);
+        ", max-threads="+getMaximumPoolSize();
     }
 }

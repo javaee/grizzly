@@ -62,14 +62,10 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class SyncThreadPool extends AbstractThreadPool {
 
-    protected int currentPoolSize;
-    protected int activeThreadsCount;
     private final Queue<Runnable> workQueue;
     protected int maxQueuedTasks = -1;
     private final AtomicLong completedTasksCount = new AtomicLong();
-    private int largestThreadPoolSize;    
-    protected boolean running = true;
-    protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();    
+    private int largestThreadPoolSize;        
 
     /**
      *
@@ -206,60 +202,11 @@ public class SyncThreadPool extends AbstractThreadPool {
 
     protected void startWorker(Worker wt) {
         // Must be executed in synchronized block
-        
-        wt.t = threadFactory.newThread(wt);
-        workers.put(wt, System.currentTimeMillis());
-        wt.t.start();
+        super.startWorker(wt);
         currentPoolSize++;
         activeThreadsCount++;
-
         if (currentPoolSize > largestThreadPoolSize) {
             largestThreadPoolSize = currentPoolSize;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public List<Runnable> shutdownNow() {
-        synchronized (statelock) {
-            List<Runnable> drained = new ArrayList<Runnable>();
-            if (running) {
-                running = false;
-                drained.addAll(workQueue);
-                workQueue.clear();
-
-                for (Runnable task : drained) {
-                    onTaskDequeued(task);
-                }
-
-                poisonAll();
-                //try to interrupt their current work so they can get their poison fast
-                for (Worker w : workers.keySet()) {
-                    w.t.interrupt();
-                }
-            }
-            return drained;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void shutdown() {
-        synchronized (statelock) {
-            if (running) {
-                running = false;
-                poisonAll();
-                statelock.notifyAll();
-            }
-        }
-    }
-
-    private void poisonAll() {
-        int size = Math.max(maxPoolSize, currentPoolSize) * 4 / 3;
-        while (size-- > 0) {
-            workQueue.offer(poison);
         }
     }
 
@@ -374,16 +321,6 @@ public class SyncThreadPool extends AbstractThreadPool {
             this.corePoolSize = corePoolSize;
             this.maxPoolSize = maxPoolSize;
         }
-    }
-
-    @Override
-    protected void onWorkerExit(Worker worker) {                
-        synchronized (statelock) {
-            currentPoolSize--;
-            activeThreadsCount--;
-            workers.remove(worker);
-        }
-        super.onWorkerExit(worker);
     }
 
     @Override

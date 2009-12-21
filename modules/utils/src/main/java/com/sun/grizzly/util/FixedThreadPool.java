@@ -36,19 +36,13 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.util;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * minimalistic fixed threadpool to allow for nice scalability if a
@@ -57,21 +51,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author gustav trede
  */
-public class FixedThreadPool extends AbstractThreadPool {
-
-    protected final Map<Worker,Boolean> workers
-            = new ConcurrentHashMap<Worker,Boolean>();
-
-    /**
-     * exits for use by subclasses, does not impact the performance of fixed pool
-     */
-    protected final AtomicInteger aliveworkerCount = new AtomicInteger();    
+public class FixedThreadPool extends AbstractThreadPool {   
 
     private int expectedWorkerCount;
     
-    protected final BlockingQueue<Runnable> workQueue;
-
-    protected volatile boolean running = true;
+    protected final BlockingQueue<Runnable> workQueue;   
 
     /**
      * creates a fixed pool of size 8
@@ -149,22 +133,42 @@ public class FixedThreadPool extends AbstractThreadPool {
             workQueue = DataStructures.getLTQinstance(Runnable.class);
         this.workQueue   = workQueue;
         this.maxPoolSize = poolsize;
-        while(poolsize-->0){
-            dostartWorker();
+        synchronized(statelock){
+            while(poolsize-->0){
+                dostartWorker();
+            }
         }
         super.onMaxNumberOfThreadsReached();
     }
 
-    private void dostartWorker(){
-        aliveworkerCount.incrementAndGet();
-        startWorker(new BasicWorker());
-        expectedWorkerCount++;
+    @Override
+    public final void setMaximumPoolSize(int maximumPoolSize) {
+        if (maximumPoolSize < 1)
+            throw new IllegalStateException("maximumPoolSize < 1");
+        synchronized(statelock){
+            if (running){
+                this.maxPoolSize = maximumPoolSize;
+                int toadd = maximumPoolSize - expectedWorkerCount;
+                while(toadd > 0){
+                    toadd--;
+                    dostartWorker();
+                }
+                while(toadd++ < 0){
+                    workQueue.add(poison);
+                    expectedWorkerCount--;
+                }
+                super.onMaxNumberOfThreadsReached();
+            }
+        }
     }
 
-    protected void startWorker(BasicWorker wt){
-        wt.t = threadFactory.newThread(wt);
-        workers.put(wt, Boolean.TRUE);
-        wt.t.start();
+    /**
+     * must hold statelock while calling this method.
+     * @param wt
+     */
+    private void dostartWorker(){
+        startWorker(new BasicWorker());
+        expectedWorkerCount++;
     }
 
     /**
@@ -179,49 +183,6 @@ public class FixedThreadPool extends AbstractThreadPool {
                 throw new RejectedExecutionException(
                         "The thread pool's task queue is full");
             }
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public List<Runnable> shutdownNow() {
-        synchronized(statelock){
-            List<Runnable> drained = new ArrayList<Runnable>();
-            if (running){
-                running = false;
-                workQueue.drainTo(drained);
-
-                for(Runnable task : drained) {
-                    onTaskDequeued(task);
-                }
-                
-                poisonAll();
-                //try to interrupt their current work so they can get their poison fast
-                for (Worker w:workers.keySet()){
-                    w.t.interrupt();
-                }
-            }
-            return drained;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void shutdown() {
-        synchronized(statelock){
-            if (running){
-                running = false;
-                poisonAll();
-            }
-        }
-    }
-
-    private void poisonAll(){
-        int size = Math.max(maxPoolSize, aliveworkerCount.get()) * 4/3;
-        while(size-->0){
-            workQueue.offer(poison);
         }
     }
 
@@ -296,40 +257,12 @@ public class FixedThreadPool extends AbstractThreadPool {
     public int getQueueSize() {
         return workQueue.size();
     }
-   
-    @Override
-    public void setMaximumPoolSize(int maximumPoolSize) {
-        if (maximumPoolSize < 1)
-            throw new IllegalStateException("maximumPoolSize < 1");
-        synchronized(statelock){
-            if (running){
-                this.maxPoolSize = maximumPoolSize;
-                int toadd = maximumPoolSize - expectedWorkerCount;
-                while(toadd > 0){
-                    toadd--;
-                    dostartWorker();
-                }
-                while(toadd++ < 0){
-                    workQueue.add(poison);
-                    expectedWorkerCount--;
-                }
-                super.onMaxNumberOfThreadsReached();
-            }
-        }
-    }
 
     public int getMaxQueuedTasksCount() {
         return Integer.MAX_VALUE;
     }
 
     public void setMaxQueuedTasksCount(int maxTasksCount) {
-    }
-
-    @Override
-    protected void onWorkerExit(Worker worker) {
-        aliveworkerCount.decrementAndGet();
-        workers.remove(worker);
-        super.onWorkerExit(worker);
     }
 
     protected class BasicWorker extends Worker {
