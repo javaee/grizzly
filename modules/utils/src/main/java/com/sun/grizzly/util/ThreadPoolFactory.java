@@ -217,6 +217,7 @@ public class ThreadPoolFactory {
             pool.execute(r);
         }
 
+        //broken 1.5 compile
         public final <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
             return pool.invokeAll(tasks);
         }
