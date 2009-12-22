@@ -84,7 +84,9 @@ public class GrizzlyExecutorServiceTest {
         assertTrue(r.getActiveCount() == 0);
         assertTrue(r.getCompletedTaskCount() == 0);
         assertTrue(r.getMaxQueuedTasksCount() == -1);
-        assertTrue(r.getQueue().getClass().getSimpleName().contains("LinkedTransferQueue"));
+        int jver = Integer.valueOf(System.getProperty("java.version").substring(0,3).replace(".", ""));
+        assertTrue(jver < 16 || r.getQueue().getClass().getSimpleName().contains("LinkedTransferQueue"));
+
         doTest(r.reconfigure(r.getConfiguration().setQueueLimit(tasks)),tasks);
         int coresize = r.getConfiguration().getMaxPoolSize()+1;
         doTest( r.reconfigure(r.getConfiguration().
@@ -110,6 +112,6 @@ public class GrizzlyExecutorServiceTest {
                 }
             });
         }
-        assertTrue("latch timed out",cl.await(20, TimeUnit.SECONDS));
+        assertTrue("latch timed out",cl.await(30, TimeUnit.SECONDS));
     }
 }
