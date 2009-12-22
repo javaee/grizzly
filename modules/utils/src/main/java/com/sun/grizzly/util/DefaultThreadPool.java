@@ -44,10 +44,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 
- * @deprecated
+ * @deprecated please use {@link GrizzlyExecutorService#createInstance} instead.
  * @author gustav trede
  */
-@Deprecated
+@Deprecated 
 public class DefaultThreadPool extends FixedThreadPool{
 
     /**
