@@ -45,10 +45,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
- * TODO: fix so config has the actual value the impl has,
- * all null config values can be set to something by the impl.
- *
- * TODO: map set methods to reconfigure.
  * 
  * @author gustav trede
  */
@@ -77,17 +73,17 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     }
 
     private final ExtendedThreadPool getImpl(ThreadPoolConfig cfg){
-        if (cfg.corepoolsize < 0 || cfg.corepoolsize==cfg.maxpoolsize){
-            return cfg.queuelimit < 1 ?
-                new FixedThreadPool(cfg.poolname, cfg.maxpoolsize,
-                cfg.queue, cfg.threadFactory,cfg.monitoringProbe) :
+        if (cfg.getCorepoolsize() < 0 || cfg.getCorepoolsize()==cfg.getMaxpoolsize()){
+            return cfg.getQueuelimit() < 1 ?
+               new FixedThreadPool(cfg.getPoolname(), cfg.getMaxpoolsize(),
+               cfg.getQueue(),cfg.getThreadFactory(),cfg.getMonitoringProbe()) :
                 new QueueLimitedThreadPool(
-                cfg.poolname,cfg.maxpoolsize,cfg.queuelimit,
-                cfg.threadFactory,cfg.queue,cfg.monitoringProbe);
+                cfg.getPoolname(), cfg.getMaxpoolsize(), cfg.getQueuelimit(),
+                cfg.getThreadFactory(),cfg.getQueue(),cfg.getMonitoringProbe());
         }
-        return new SyncThreadPool(cfg.poolname, cfg.corepoolsize,
-                cfg.maxpoolsize,cfg.keepAliveTime, cfg.timeUnit,
-                cfg.threadFactory, cfg.queue, cfg.queuelimit);
+        return new SyncThreadPool(cfg.getPoolname(), cfg.getCorepoolsize(),
+             cfg.getMaxpoolsize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
+             cfg.getThreadFactory(), cfg.getQueue(), cfg.getQueuelimit());
     }
 
     /**
@@ -98,12 +94,14 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         if (config == null)
             throw new IllegalArgumentException("config is null");
         synchronized(statelock){
-            //TODO: only create new pool if old one cant be runtime config.
+            config = config.clone();
+            //TODO: only create new pool if old one cant be runtime config
+            // for the needed state change(s).
             ExtendedThreadPool oldpool = this.pool;
             this.pool = getImpl(config);
             AbstractThreadPool.drain(oldpool.getQueue(), pool.getQueue());
             oldpool.shutdown();
-            this.config = config;
+            this.config = config.updatefrom(pool);
         }
     }
 
@@ -112,7 +110,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * @return config - {@link ThreadPoolConfig}
      */
     public ThreadPoolConfig getConfiguration() {
-        return config;
+        return config.clone();
     }
 
     public void shutdown() {
@@ -167,7 +165,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     @Deprecated
     public void setCorePoolSize(int corePoolSize) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        reconfigure(config.clone().setCorepoolsize(corePoolSize));
     }
 
     @Deprecated
@@ -187,32 +185,32 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     @Deprecated
     public long getKeepAliveTime(TimeUnit unit) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return pool.getKeepAliveTime(unit);
     }
 
     @Deprecated
     public void setKeepAliveTime(long time, TimeUnit unit) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        reconfigure(config.clone().setKeepAliveTime(time, unit));
     }
 
     @Deprecated
     public int getMaximumPoolSize() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return pool.getMaximumPoolSize();
     }
 
     @Deprecated
     public void setMaximumPoolSize(int maximumPoolSize) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        reconfigure(config.clone().setMaxpoolsize(maximumPoolSize));
     }
 
     @Deprecated
     public int getMaxQueuedTasksCount() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return pool.getMaxQueuedTasksCount();
     }
 
     @Deprecated
     public void setMaxQueuedTasksCount(int maxTasksCount) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        reconfigure(config.clone().setQueuelimit(maxTasksCount));
     }
 
     @Deprecated
@@ -222,12 +220,12 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     @Deprecated
     public void setName(String name) {
-        pool.setName(name);
+        reconfigure(config.clone().setPoolname(name));
     }
 
     @Deprecated
     public void setThreadFactory(ThreadFactory threadFactory) {
-        pool.setThreadFactory(threadFactory);
+        reconfigure(config.clone().setThreadFactory(threadFactory));
     }
 
     @Deprecated

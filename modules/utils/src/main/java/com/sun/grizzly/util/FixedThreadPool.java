@@ -183,10 +183,6 @@ public class FixedThreadPool extends AbstractThreadPool {
         throw new RejectedExecutionException("ThreadPool is not running");
     }
 
-    public boolean isShutdown() {
-        return !running;
-    }
-
     /**
      * not supported
      */

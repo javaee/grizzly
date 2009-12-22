@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.util;
 
+import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -47,15 +48,15 @@ import java.util.concurrent.TimeUnit;
  */
 public class ThreadPoolConfig {
 
-    protected final BlockingQueue<Runnable> queue;
-    protected final ThreadFactory threadFactory;
-    protected final String poolname;
-    protected final int maxpoolsize;
-    protected final int corepoolsize;
-    protected final int queuelimit;
-    protected final long keepAliveTime;
-    protected final TimeUnit timeUnit;
-    protected final ThreadPoolMonitoringProbe monitoringProbe;
+    protected BlockingQueue<Runnable> queue;
+    protected ThreadFactory threadFactory;
+    protected String poolname;
+    protected int maxpoolsize;
+    protected int corepoolsize;
+    protected int queuelimit;
+    protected long keepAliveTime;
+    protected TimeUnit timeUnit;
+    protected ThreadPoolMonitoringProbe monitoringProbe;
 
     public ThreadPoolConfig(
             BlockingQueue<Runnable> queue,
@@ -68,7 +69,6 @@ public class ThreadPoolConfig {
             TimeUnit timeUnit,
             ThreadPoolMonitoringProbe monitoringProbe
             ) {
-        
         this.queue = queue;
         this.threadFactory = threadFactory;
         this.poolname = poolname;
@@ -78,6 +78,169 @@ public class ThreadPoolConfig {
         this.keepAliveTime = keepAliveTime;
         this.timeUnit = timeUnit;
         this.monitoringProbe = monitoringProbe;
-    }        
+    }
+
+    public ThreadPoolConfig(ThreadPoolConfig cfg) {
+        this.queue = cfg.queue;
+        this.threadFactory = cfg.threadFactory;
+        this.poolname = cfg.poolname;
+        this.maxpoolsize = cfg.maxpoolsize;
+        this.queuelimit = cfg.queuelimit;
+        this.corepoolsize = cfg.corepoolsize;
+        this.keepAliveTime = cfg.keepAliveTime;
+        this.timeUnit = cfg.timeUnit;
+        this.monitoringProbe = cfg.monitoringProbe;
+    }
+
+    @Override
+    public ThreadPoolConfig clone() {
+        return new ThreadPoolConfig(this);
+    }
+
+    @SuppressWarnings("deprecation")
+    protected ThreadPoolConfig updatefrom(ExtendedThreadPool ep){
+        Queue q = ep.getQueue();
+        this.queue = ((q instanceof BlockingQueue) ? 
+            (BlockingQueue<Runnable>)q : null);
+        this.threadFactory = ep.getThreadFactory();
+        this.poolname = ep.getName();
+        this.maxpoolsize = ep.getMaximumPoolSize();
+        this.queuelimit = ep.getMaxQueuedTasksCount();
+        this.corepoolsize = ep.getCorePoolSize();
+        /*this.keepAliveTime = keepAliveTime;
+        this.timeUnit = timeUnit;
+        this.monitoringProbe = monitoringProbe;*/
+        return this;
+    }
+
+    /**
+     * @return the queue
+     */
+    public BlockingQueue<Runnable> getQueue() {
+        return queue;
+    }
+
+    /**
+     * @param queue the queue to set
+     */
+    public ThreadPoolConfig setQueue(BlockingQueue<Runnable> queue) {
+        this.queue = queue;
+        return this;
+    }
+
+    /**
+     * @return the threadFactory
+     */
+    public ThreadFactory getThreadFactory() {
+        return threadFactory;
+    }
+
+    /**
+     * @param threadFactory the threadFactory to set
+     */
+    public ThreadPoolConfig setThreadFactory(ThreadFactory threadFactory) {
+        this.threadFactory = threadFactory;
+        return this;
+    }
+
+    /**
+     * @return the poolname
+     */
+    public String getPoolname() {
+        return poolname;
+    }
+
+    /**
+     * @param poolname the poolname to set
+     */
+    public ThreadPoolConfig setPoolname(String poolname) {
+        this.poolname = poolname;
+        return this;
+    }
+
+    /**
+     * @return the maxpoolsize
+     */
+    public int getMaxpoolsize() {
+        return maxpoolsize;
+    }
+
+    /**
+     * @param maxpoolsize the maxpoolsize to set
+     */
+    public ThreadPoolConfig setMaxpoolsize(int maxpoolsize) {
+        this.maxpoolsize = maxpoolsize;
+        return this;
+    }
+
+    /**
+     * @return the corepoolsize
+     */
+    public int getCorepoolsize() {
+        return corepoolsize;
+    }
+
+    /**
+     * @param corepoolsize the corepoolsize to set
+     */
+    public ThreadPoolConfig setCorepoolsize(int corepoolsize) {
+        this.corepoolsize = corepoolsize;
+        return this;
+    }
+
+    /**
+     * @return the queuelimit
+     */
+    public int getQueuelimit() {
+        return queuelimit;
+    }
+
+    /**
+     * @param queuelimit the queuelimit to set
+     */
+    public ThreadPoolConfig setQueuelimit(int queuelimit) {
+        this.queuelimit = queuelimit;
+        return this;
+    }
+
+    /**
+     * @param keepAliveTime the keepAliveTime to set
+     */
+    public ThreadPoolConfig setKeepAliveTime(long time, TimeUnit unit) {
+        this.keepAliveTime = keepAliveTime;
+        this.timeUnit = unit;
+        return this;
+    }
+
+    /**
+     * @return the timeUnit
+     */
+    public TimeUnit getTimeUnit() {
+        return timeUnit;
+    }
+
+    /**
+     * @return the keepAliveTime
+     */
+    public long getKeepAliveTime() {
+        return keepAliveTime;
+    }
+    
+    /**
+     * @return the monitoringProbe
+     */
+    public ThreadPoolMonitoringProbe getMonitoringProbe() {
+        return monitoringProbe;
+    }
+
+    /**
+     * @param monitoringProbe the monitoringProbe to set
+     */
+    public ThreadPoolConfig setMonitoringProbe(ThreadPoolMonitoringProbe monitoringProbe) {
+        this.monitoringProbe = monitoringProbe;
+        return this;
+    }
+
+
 
 }

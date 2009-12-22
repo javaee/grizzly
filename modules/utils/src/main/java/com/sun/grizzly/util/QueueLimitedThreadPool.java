@@ -74,6 +74,9 @@ final class QueueLimitedThreadPool extends FixedThreadPool{
 
     @Override
     public final void execute(Runnable command) {
+       if (command == null) { // must nullcheck to ensure queuesize is valid
+            throw new IllegalArgumentException("Runnable task is null");
+        }
         if (running){
             if (queueSize.incrementAndGet() <= maxQueuedTasks
                     && workQueue.offer(command)) {
@@ -97,6 +100,12 @@ final class QueueLimitedThreadPool extends FixedThreadPool{
     public int getQueueSize() {
         return queueSize.get();
     }
+
+    @Override
+    public int getMaxQueuedTasksCount() {
+        return maxQueuedTasks;
+    }
+
 
     @Override
     protected final void beforeExecute(Thread t, Runnable r) {

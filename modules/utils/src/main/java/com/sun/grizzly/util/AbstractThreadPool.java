@@ -164,6 +164,10 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
     }
 
+    public boolean isShutdown() {
+        return !running;
+    }
+
     private void poisonAll() {
         int size = Math.max(maxPoolSize, workers.size()) * 4 / 3;
         final Queue<Runnable> q = getQueue();

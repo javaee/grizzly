@@ -213,15 +213,6 @@ public class SyncThreadPool extends AbstractThreadPool {
     /**
      * {@inheritDoc}
      */
-    public boolean isShutdown() {
-        synchronized(statelock) {
-            return !running;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
     public boolean isTerminated() {
         synchronized(statelock) {
            return !running && workers.isEmpty();
