@@ -50,13 +50,16 @@ import java.util.concurrent.TimeoutException;
 
 /**
  * TODO: pub set methods should call reconfigure.
- * 
+ *
+ * TODO: find a way to override executorservice in both java 1.5 1.6,
+ * until then the code is commented out to not break compile.
+ *
  * @author gustav trede
  * @author Alexey Stashok
  */
 public class ThreadPoolFactory {
 
-    public static ExtendedReconfigurableThreadPool getInstance(
+   /* public static ExtendedReconfigurableThreadPool getInstance(
             ThreadPoolConfig config){
         return new PoolWrap(config);
     }
@@ -233,5 +236,5 @@ public class ThreadPoolFactory {
         public final <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
              return pool.invokeAny(tasks, timeout, unit);
         }
-    }
+    }*/
 }
