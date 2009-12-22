@@ -40,6 +40,7 @@ package com.sun.grizzly.util;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
@@ -68,25 +69,34 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         if (config == null) {
             throw new IllegalArgumentException("config is null");
         }
+        
         setImpl(config);
     }
 
     private final void setImpl(ThreadPoolConfig cfg) {
         cfg = cfg.clone();
         ExtendedThreadPool impl = null;
-        if (cfg.getCorePoolSize() < 0
-                || cfg.getCorePoolSize() == cfg.getMaxPoolSize()) {
+        final Queue<Runnable> queue = cfg.getQueue();
+
+        if ((queue == null || queue instanceof BlockingQueue) &&
+                (cfg.getCorePoolSize() < 0 || cfg.getCorePoolSize() == cfg.getMaxPoolSize())) {
+
+            final BlockingQueue<Runnable> blockingQueue = (BlockingQueue<Runnable>) queue;
+
             impl = cfg.getQueueLimit() < 1
                     ? new FixedThreadPool(cfg.getPoolName(), cfg.getMaxPoolSize(),
-                    cfg.getQueue(), cfg.getThreadFactory(), cfg.getMonitoringProbe())
+                    blockingQueue,
+                    cfg.getThreadFactory(), cfg.getMonitoringProbe())
                     : new QueueLimitedThreadPool(
                     cfg.getPoolName(), cfg.getMaxPoolSize(), cfg.getQueueLimit(),
-                    cfg.getThreadFactory(), cfg.getQueue(), cfg.getMonitoringProbe());
+                    cfg.getThreadFactory(),
+                    blockingQueue, cfg.getMonitoringProbe());
         } else {
             impl = new SyncThreadPool(cfg.getPoolName(), cfg.getCorePoolSize(),
                     cfg.getMaxPoolSize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
-                    cfg.getThreadFactory(), cfg.getQueue(), cfg.getQueueLimit());
+                    cfg.getThreadFactory(), queue, cfg.getQueueLimit());
         }
+        
         this.pool = impl;
         this.config = cfg.updateFrom(pool);
     }
@@ -100,7 +110,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         if (config == null) {
             throw new IllegalArgumentException("config is null");
         }
-        System.err.println(config);
+
         synchronized (statelock) {
             //TODO: only create new pool if old one cant be runtime config
             // for the needed state change(s).

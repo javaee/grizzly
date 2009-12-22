@@ -48,7 +48,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class ThreadPoolConfig {
 
-    protected BlockingQueue<Runnable> queue;
+    protected Queue<Runnable> queue;
     protected ThreadFactory threadFactory;
     protected String poolName;
     protected int maxPoolSize;
@@ -59,7 +59,7 @@ public class ThreadPoolConfig {
     protected ThreadPoolMonitoringProbe monitoringProbe;
 
     public ThreadPoolConfig(
-            BlockingQueue<Runnable> queue,
+            Queue<Runnable> queue,
             ThreadFactory threadFactory,
             String poolname,
             int queuelimit,
@@ -114,7 +114,7 @@ public class ThreadPoolConfig {
     /**
      * @return the queue
      */
-    public BlockingQueue<Runnable> getQueue() {
+    public Queue<Runnable> getQueue() {
         return queue;
     }
 

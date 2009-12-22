@@ -51,11 +51,10 @@ import java.util.concurrent.TimeUnit;
  *
  * @author gustav trede
  */
-public class FixedThreadPool extends AbstractThreadPool {   
+public class FixedThreadPool extends AbstractThreadPool {
 
     private int expectedWorkerCount;
-    
-    protected final BlockingQueue<Runnable> workQueue;   
+    protected final BlockingQueue<Runnable> workQueue;
 
     /**
      * creates a fixed pool of size 8
@@ -78,7 +77,7 @@ public class FixedThreadPool extends AbstractThreadPool {
      * @param name
      */
     public FixedThreadPool(int poolsize, String name) {
-        this(name,poolsize,DataStructures.getLTQinstance(Runnable.class),null);
+        this(name, poolsize, DataStructures.getLTQinstance(Runnable.class), null);
     }
 
     /**
@@ -87,7 +86,7 @@ public class FixedThreadPool extends AbstractThreadPool {
      * @param threadfactory
      */
     public FixedThreadPool(int poolsize, ThreadFactory threadfactory) {
-        this(poolsize,DataStructures.getLTQinstance(Runnable.class),
+        this(poolsize, DataStructures.getLTQinstance(Runnable.class),
                 threadfactory);
     }
 
@@ -97,8 +96,8 @@ public class FixedThreadPool extends AbstractThreadPool {
      * @param workQueue
      * @param threadfactory
      */
-    public FixedThreadPool(int poolsize,BlockingQueue<Runnable> workQueue,
-                ThreadFactory threadfactory) {
+    public FixedThreadPool(int poolsize, BlockingQueue<Runnable> workQueue,
+            ThreadFactory threadfactory) {
         this(FixedThreadPool.class.getSimpleName(),
                 poolsize, workQueue, threadfactory);
     }
@@ -110,9 +109,9 @@ public class FixedThreadPool extends AbstractThreadPool {
      * @param workQueue
      * @param threadfactory
      */
-    public FixedThreadPool(String name,int poolsize,BlockingQueue<Runnable> workQueue,
-                ThreadFactory threadfactory) {
-         this(name, poolsize, workQueue, threadfactory,null);
+    public FixedThreadPool(String name, int poolsize, BlockingQueue<Runnable> workQueue,
+            ThreadFactory threadfactory) {
+        this(name, poolsize, workQueue, threadfactory, null);
     }
 
     /**
@@ -123,18 +122,20 @@ public class FixedThreadPool extends AbstractThreadPool {
      * @param threadfactory
      * @param probe 
      */
-    public FixedThreadPool(String name,int poolsize,
-            BlockingQueue<Runnable> workQueue,ThreadFactory threadfactory,
+    public FixedThreadPool(String name, int poolsize,
+            BlockingQueue<Runnable> workQueue, ThreadFactory threadfactory,
             ThreadPoolMonitoringProbe probe) {
-        super(probe,name,threadfactory);
-        if (poolsize < 1)
+        super(probe, name, threadfactory);
+        if (poolsize < 1) {
             throw new IllegalArgumentException("poolsize < 1");
-        if (workQueue == null)
+        }
+        if (workQueue == null) {
             workQueue = DataStructures.getLTQinstance(Runnable.class);
-        this.workQueue   = workQueue;
+        }
+        this.workQueue = workQueue;
         this.maxPoolSize = poolsize;
-        synchronized(statelock){
-            while(poolsize-->0){
+        synchronized (statelock) {
+            while (poolsize-- > 0) {
                 dostartWorker();
             }
         }
@@ -143,17 +144,18 @@ public class FixedThreadPool extends AbstractThreadPool {
 
     @Override
     public final void setMaximumPoolSize(int maximumPoolSize) {
-        if (maximumPoolSize < 1)
+        if (maximumPoolSize < 1) {
             throw new IllegalStateException("maximumPoolSize < 1");
-        synchronized(statelock){
-            if (running){
+        }
+        synchronized (statelock) {
+            if (running) {
                 this.maxPoolSize = maximumPoolSize;
                 int toadd = maximumPoolSize - expectedWorkerCount;
-                while(toadd > 0){
+                while (toadd > 0) {
                     toadd--;
                     dostartWorker();
                 }
-                while(toadd++ < 0){
+                while (toadd++ < 0) {
                     workQueue.add(poison);
                     expectedWorkerCount--;
                 }
@@ -166,13 +168,13 @@ public class FixedThreadPool extends AbstractThreadPool {
      * must hold statelock while calling this method.
      * @param wt
      */
-    private void dostartWorker(){
+    private void dostartWorker() {
         startWorker(new BasicWorker());
         expectedWorkerCount++;
     }
 
     public void execute(Runnable command) {
-        if (running){
+        if (running) {
             if (workQueue.offer(command)) {
                 onTaskQueued(command);
                 return;
@@ -237,6 +239,7 @@ public class FixedThreadPool extends AbstractThreadPool {
     }
 
     private final class BasicWorker extends Worker {
+
         protected final Runnable getTask() throws InterruptedException {
             return workQueue.take();
         }
