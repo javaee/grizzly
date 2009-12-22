@@ -55,20 +55,18 @@ public class DataStructures {
 
     static{
         Class<?> LTQ = LinkedBlockingQueue.class ,
-                 CLQ = ConcurrentLinkedQueue.class;
+                 CLQ = LinkedBlockingQueue.class;
         int jver = 0;
         try{
             jver = Integer.valueOf(System.getProperty("java.version").
                     substring(0,3).replace(".", ""));
             if (jver > 16){
+                CLQ = ConcurrentLinkedQueue.class;
                 LTQ = getAndVerify("maskedclasses.LinkedTransferQueue");
             }else
             if (jver == 16){
                 LTQ = getAndVerify("maskedclasses.LinkedTransferQueue");
                 CLQ = getAndVerify("maskedclasses.ConcurrentLinkedQueue");
-            }else{
-                CLQ = LTQ;
-               //LTQ = getAndVerify("com.sun.grizzly.util.LinkedTransferQueue");
             }
         }catch(Throwable t){
             LoggerUtils.getLogger().log(Level.WARNING,
