@@ -49,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * TODO: pub set methods in wrap should call reconfigure.
+ * TODO: pub set methods should call reconfigure.
  * 
  * @author gustav trede
  * @author Alexey Stashok
@@ -109,7 +109,7 @@ public class ThreadPoolFactory {
         }
 
         public int getTaskCount() {
-            return 0;
+            return pool.getTaskCount();
         }
 
         public long getCompletedTaskCount() {
@@ -121,7 +121,7 @@ public class ThreadPoolFactory {
         }
 
         public void setCorePoolSize(int corePoolSize) {
-
+            
         }
 
         public int getLargestPoolSize() {
@@ -217,20 +217,20 @@ public class ThreadPoolFactory {
             pool.execute(r);
         }
 
-        public <T> List<Future<T>> invokeAll(Collection<Callable<T>> tasks) throws InterruptedException {
+        public final <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks) throws InterruptedException {
             return pool.invokeAll(tasks);
         }
 
-        public <T> List<Future<T>> invokeAll(Collection<Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
+        public final <T> List<Future<T>> invokeAll(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException {
             return pool.invokeAll(tasks, timeout, unit);
         }
 
-        public <T> T invokeAny(Collection<Callable<T>> tasks) throws InterruptedException, ExecutionException {
-            return pool.invokeAny(tasks);
+        public final <T> T invokeAny(Collection<? extends Callable<T>> tasks) throws InterruptedException, ExecutionException {
+             return pool.invokeAny(tasks);
         }
 
-        public <T> T invokeAny(Collection<Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-            return pool.invokeAny(tasks, timeout, unit);
+        public final <T> T invokeAny(Collection<? extends Callable<T>> tasks, long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+             return pool.invokeAny(tasks, timeout, unit);
         }
     }
 }
