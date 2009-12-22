@@ -207,7 +207,7 @@ public class ThreadPoolConfig {
      * @param keepAliveTime the keepAliveTime to set
      */
     public ThreadPoolConfig setKeepAliveTime(long time, TimeUnit unit) {
-        this.keepAliveTime = keepAliveTime;
+        this.keepAliveTime = time;
         this.timeUnit = unit;
         return this;
     }
