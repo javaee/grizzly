@@ -45,18 +45,17 @@ package com.sun.grizzly.util;
  */
 public interface ThreadPoolMonitoringProbe {
 
-   /*public void setMaxThreadsEvent(String threadPoolName,int maxNumberOfThreads);
-   public void setCoreThreadsEvent(String threadPoolName,int coreNumberOfThreads);*/
+    /*public void setMaxThreadsEvent(String threadPoolName,int maxNumberOfThreads);
+    public void setCoreThreadsEvent(String threadPoolName,int coreNumberOfThreads);*/
+    public void threadAllocatedEvent(String threadPoolName, Thread thread);
 
-   public void threadAllocatedEvent(String threadPoolName,Thread thread);
+    public void threadReleasedEvent(String threadPoolName, Thread thread);
 
-   public void threadReleasedEvent(String threadPoolName,Thread thread);
+    public void maxNumberOfThreadsReachedEvent(String threadPoolName, int maxNumberOfThreads);
 
-   public void maxNumberOfThreadsReachedEvent(String threadPoolName,int maxNumberOfThreads);
+    public void onTaskQueuedEvent(Runnable task);
 
-   public void onTaskQueuedEvent(Runnable task);
+    public void onTaskDequeuedEvent(Runnable task);
 
-   public void onTaskDequeuedEvent(Runnable task);
-
-   public void onTaskQueueOverflowEvent(String threadPoolName);
+    public void onTaskQueueOverflowEvent(String threadPoolName);
 }

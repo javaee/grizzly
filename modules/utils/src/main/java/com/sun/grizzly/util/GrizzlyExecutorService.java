@@ -74,21 +74,21 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     private final void setImpl(ThreadPoolConfig cfg){
         cfg = cfg.clone();
         ExtendedThreadPool impl = null;
-        if (cfg.getCorepoolsize() < 0 ||
-                cfg.getCorepoolsize()==cfg.getMaxpoolsize()){
-            impl = cfg.getQueuelimit() < 1 ?
-               new FixedThreadPool(cfg.getPoolname(), cfg.getMaxpoolsize(),
+        if (cfg.getCorePoolSize() < 0 ||
+                cfg.getCorePoolSize()==cfg.getMaxPoolSize()){
+            impl = cfg.getQueueLimit() < 1 ?
+               new FixedThreadPool(cfg.getPoolName(), cfg.getMaxPoolSize(),
                cfg.getQueue(),cfg.getThreadFactory(),cfg.getMonitoringProbe()) :
                 new QueueLimitedThreadPool(
-                cfg.getPoolname(), cfg.getMaxpoolsize(), cfg.getQueuelimit(),
+                cfg.getPoolName(), cfg.getMaxPoolSize(), cfg.getQueueLimit(),
                 cfg.getThreadFactory(),cfg.getQueue(),cfg.getMonitoringProbe());
         }else{
-        impl = new SyncThreadPool(cfg.getPoolname(), cfg.getCorepoolsize(),
-             cfg.getMaxpoolsize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
-             cfg.getThreadFactory(), cfg.getQueue(), cfg.getQueuelimit());
+        impl = new SyncThreadPool(cfg.getPoolName(), cfg.getCorePoolSize(),
+             cfg.getMaxPoolSize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
+             cfg.getThreadFactory(), cfg.getQueue(), cfg.getQueueLimit());
         }
         this.pool = impl;
-        this.config = cfg.updatefrom(pool);
+        this.config = cfg.updateFrom(pool);
     }
 
     /**
@@ -171,7 +171,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     @Deprecated
     public void setCorePoolSize(int corePoolSize) {
-        reconfigure(config.clone().setCorepoolsize(corePoolSize));
+        reconfigure(config.clone().setCorePoolSize(corePoolSize));
     }
 
     @Deprecated
@@ -206,7 +206,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     @Deprecated
     public void setMaximumPoolSize(int maximumPoolSize) {
-        reconfigure(config.clone().setMaxpoolsize(maximumPoolSize));
+        reconfigure(config.clone().setMaxPoolSize(maximumPoolSize));
     }
 
     @Deprecated
@@ -216,7 +216,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     @Deprecated
     public void setMaxQueuedTasksCount(int maxTasksCount) {
-        reconfigure(config.clone().setQueuelimit(maxTasksCount));
+        reconfigure(config.clone().setQueueLimit(maxTasksCount));
     }
 
     @Deprecated
@@ -226,7 +226,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     @Deprecated
     public void setName(String name) {
-        reconfigure(config.clone().setPoolname(name));
+        reconfigure(config.clone().setPoolName(name));
     }
 
     @Deprecated
