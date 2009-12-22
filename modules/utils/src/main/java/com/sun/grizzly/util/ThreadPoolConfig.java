@@ -241,6 +241,17 @@ public class ThreadPoolConfig {
         return this;
     }
 
-
-
+    @Override
+    public String toString() {
+        return ThreadPoolConfig.class.getSimpleName()+" :\r\n"+
+        "  corepoolsize: "+corepoolsize+"\r\n"+
+        "  maxpoolsize: "+maxpoolsize+"\r\n"+
+        "  poolname: "+poolname+"\r\n"+
+        "  threadFactory: "+threadFactory +"\r\n"+
+        "  queuelimit: "+queuelimit +"\r\n"+
+        "  queu: "+queue.getClass() +"\r\n"+
+        "  monitoringProbe: "+monitoringProbe +"\r\n"+
+        "  keepAliveTime: "+keepAliveTime +"\r\n"+
+        "  timeUnit: "+timeUnit +"\r\n";
+    }
 }

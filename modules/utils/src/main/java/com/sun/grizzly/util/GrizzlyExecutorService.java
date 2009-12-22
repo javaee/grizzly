@@ -68,41 +68,47 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     private GrizzlyExecutorService(ThreadPoolConfig config){
         if (config == null)
             throw new IllegalArgumentException("config is null");
-        this.pool   = getImpl(config);
-        this.config = config.updatefrom(pool);
+        setImpl(config);
     }
 
-    private final ExtendedThreadPool getImpl(ThreadPoolConfig cfg){
+    private final void setImpl(ThreadPoolConfig cfg){
+        cfg = cfg.clone();
+        ExtendedThreadPool impl = null;
         if (cfg.getCorepoolsize() < 0 ||
                 cfg.getCorepoolsize()==cfg.getMaxpoolsize()){
-            return cfg.getQueuelimit() < 1 ?
+            impl = cfg.getQueuelimit() < 1 ?
                new FixedThreadPool(cfg.getPoolname(), cfg.getMaxpoolsize(),
                cfg.getQueue(),cfg.getThreadFactory(),cfg.getMonitoringProbe()) :
                 new QueueLimitedThreadPool(
                 cfg.getPoolname(), cfg.getMaxpoolsize(), cfg.getQueuelimit(),
                 cfg.getThreadFactory(),cfg.getQueue(),cfg.getMonitoringProbe());
-        }
-        return new SyncThreadPool(cfg.getPoolname(), cfg.getCorepoolsize(),
+        }else{
+        impl = new SyncThreadPool(cfg.getPoolname(), cfg.getCorepoolsize(),
              cfg.getMaxpoolsize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
              cfg.getThreadFactory(), cfg.getQueue(), cfg.getQueuelimit());
+        }
+        this.pool = impl;
+        this.config = cfg.updatefrom(pool);
     }
 
     /**
      * Sets the {@link ThreadPoolConfig}
      * @param config
+     * @return returns {@link GrizzlyExecutorService}
      */
-    public final void reconfigure(ThreadPoolConfig config) {
+    public final GrizzlyExecutorService reconfigure(ThreadPoolConfig config) {
         if (config == null)
             throw new IllegalArgumentException("config is null");
+        System.err.println(config);
         synchronized(statelock){            
             //TODO: only create new pool if old one cant be runtime config
             // for the needed state change(s).
             final ExtendedThreadPool oldpool = this.pool;
-            this.pool = getImpl(config = config.clone());
-            this.config = config.updatefrom(pool);
+            setImpl(config);
             AbstractThreadPool.drain(oldpool.getQueue(), pool.getQueue());
             oldpool.shutdown();            
         }
+        return this;
     }
 
     /**
