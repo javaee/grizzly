@@ -61,11 +61,9 @@ public class ThreadPoolConfig {
     public ThreadPoolConfig(
             Queue<Runnable> queue,
             ThreadFactory threadFactory,
-            String poolname,
-            int queuelimit,
+            String poolname, int queuelimit,
             int maxpoolsize, int corepoolsize,
-            long keepAliveTime,
-            TimeUnit timeUnit,
+            long keepAliveTime, TimeUnit timeUnit,
             ThreadPoolMonitoringProbe monitoringProbe) {
         this.queue = queue;
         this.threadFactory = threadFactory;
@@ -119,9 +117,11 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param queue the queue to set
+     * 
+     * @param queue
+     * @return
      */
-    public ThreadPoolConfig setQueue(BlockingQueue<Runnable> queue) {
+    public ThreadPoolConfig setQueue(Queue<Runnable> queue) {
         this.queue = queue;
         return this;
     }
@@ -134,7 +134,9 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param threadFactory the threadFactory to set
+     *
+     * @param threadFactory
+     * @return
      */
     public ThreadPoolConfig setThreadFactory(ThreadFactory threadFactory) {
         this.threadFactory = threadFactory;
@@ -149,7 +151,9 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param poolname the poolname to set
+     * 
+     * @param poolname
+     * @return
      */
     public ThreadPoolConfig setPoolName(String poolname) {
         this.poolName = poolname;
@@ -164,7 +168,9 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param maxpoolsize the maxpoolsize to set
+     *
+     * @param maxPoolSize
+     * @return
      */
     public ThreadPoolConfig setMaxPoolSize(int maxPoolSize) {
         this.maxPoolSize = maxPoolSize;
@@ -179,7 +185,9 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param corepoolsize the corepoolsize to set
+     *
+     * @param corePoolSize
+     * @return
      */
     public ThreadPoolConfig setCorePoolSize(int corePoolSize) {
         this.corepoolsize = corePoolSize;
@@ -203,7 +211,7 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * 
+     *
      * @param time
      * @param unit
      * @return
@@ -236,7 +244,9 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param monitoringProbe the monitoringProbe to set
+     *
+     * @param monitoringProbe
+     * @return
      */
     public ThreadPoolConfig setMonitoringProbe(ThreadPoolMonitoringProbe monitoringProbe) {
         this.monitoringProbe = monitoringProbe;

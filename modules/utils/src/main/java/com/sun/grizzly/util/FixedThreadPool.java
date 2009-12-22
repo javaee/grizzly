@@ -232,7 +232,7 @@ public class FixedThreadPool extends AbstractThreadPool {
     }
 
     public int getMaxQueuedTasksCount() {
-        return Integer.MAX_VALUE;
+        return -1;
     }
 
     public void setMaxQueuedTasksCount(int maxTasksCount) {

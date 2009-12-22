@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.util;
 
+import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
@@ -73,19 +74,34 @@ public class GrizzlyExecutorServiceTest {
 
     @Test
     public void testCreateInstance() throws Exception {
+        int threads = 100;
         ThreadPoolConfig cfg = new ThreadPoolConfig(null, null,"test", 0,
-                100, -1,0, null, null);
+                threads, -1,0, null, null);
         GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
-        final int tasks = 1000000;
-        doTest(r,tasks);        
+        assertTrue(r.getMaximumPoolSize() == threads);
+        final int tasks = 2000000;
+        doTest(r,tasks);
+        assertTrue(r.getActiveCount() == 0);
+        assertTrue(r.getCompletedTaskCount() == 0);
+        assertTrue(r.getMaxQueuedTasksCount() == -1);
+        assertTrue(r.getQueue().getClass().getSimpleName().contains("LinkedTransferQueue"));
         doTest(r.reconfigure(r.getConfiguration().setQueueLimit(tasks)),tasks);
+        int coresize = r.getConfiguration().getMaxPoolSize()+1;
         doTest( r.reconfigure(r.getConfiguration().
-                setCorePoolSize(cfg.getMaxPoolSize()).
-                setKeepAliveTime(1, TimeUnit.MILLISECONDS)),tasks);
+                setQueue(new LinkedList<Runnable>()).
+                setCorePoolSize(coresize).
+                setKeepAliveTime(1, TimeUnit.MILLISECONDS).
+                setMaxPoolSize(threads+=50)),tasks);
+        assertTrue(r.getQueue().getClass().getSimpleName().contains("LinkedList"));
+        assertTrue(r.getCompletedTaskCount() == tasks);
+        assertTrue(r.getName() == cfg.getPoolName());
+        assertTrue(r.getMaxQueuedTasksCount() == tasks);
+        assertTrue(r.getCorePoolSize() == coresize);
+        assertTrue(r.getMaximumPoolSize() == threads);
     }
 
     private void doTest(GrizzlyExecutorService r,int tasks) throws Exception{        
-        System.err.println(r.getQueue().getClass());
+        System.err.println("threadpool queueImpl : "+r.getQueue().getClass());
         final CountDownLatch cl = new CountDownLatch(tasks);
         while(tasks-->0){
             r.execute(new Runnable() {
@@ -94,6 +110,6 @@ public class GrizzlyExecutorServiceTest {
                 }
             });
         }
-        assertTrue("latch timed out",cl.await(10, TimeUnit.SECONDS));
+        assertTrue("latch timed out",cl.await(20, TimeUnit.SECONDS));
     }
 }

@@ -300,11 +300,12 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
     protected void validateNewPoolSize(int corePoolsize, int maxPoolSize){
         if (maxPoolSize < 1)
-            throw new IllegalArgumentException("maxPoolsize < 1");
+            throw new IllegalArgumentException("maxPoolsize < 1 :"+maxPoolSize);
         if (corePoolsize < 1)
-            throw new IllegalArgumentException("corePoolsize < 1");
+            throw new IllegalArgumentException("corePoolsize < 1 :"+corePoolsize);
         if (corePoolsize > maxPoolSize)
-            throw new IllegalArgumentException("corePoolsize > maxPoolSize");
+            throw new IllegalArgumentException("corePoolsize > maxPoolSize: "+
+                    corePoolsize+" > "+maxPoolSize);
     }
     
     /**

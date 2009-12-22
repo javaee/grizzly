@@ -65,15 +65,14 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         return new GrizzlyExecutorService(cfg);
     }
 
-    private GrizzlyExecutorService(ThreadPoolConfig config) {
-        if (config == null) {
-            throw new IllegalArgumentException("config is null");
-        }
-        
+    private GrizzlyExecutorService(ThreadPoolConfig config) {       
         setImpl(config);
     }
 
     private final void setImpl(ThreadPoolConfig cfg) {
+        if (cfg == null) {
+            throw new IllegalArgumentException("config is null");
+        }
         cfg = cfg.clone();
         final Queue<Runnable> queue = cfg.getQueue();
         if ((queue == null || queue instanceof BlockingQueue) &&
@@ -90,7 +89,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         } else {
             this.pool = new SyncThreadPool(cfg.getPoolName(), cfg.getCorePoolSize(),
                     cfg.getMaxPoolSize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
-                    cfg.getThreadFactory(), queue, cfg.getQueueLimit());
+                    cfg.getThreadFactory(), queue, cfg.getQueueLimit(),cfg.getMonitoringProbe());
         }        
         this.config = cfg.updateFrom(pool);
     }
@@ -101,16 +100,12 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * @return returns {@link GrizzlyExecutorService}
      */
     public final GrizzlyExecutorService reconfigure(ThreadPoolConfig config) {
-        if (config == null) {
-            throw new IllegalArgumentException("config is null");
-        }
-
         synchronized (statelock) {
             //TODO: only create new pool if old one cant be runtime config
             // for the needed state change(s).
             final ExtendedThreadPool oldpool = this.pool;
             setImpl(config);
-            AbstractThreadPool.drain(oldpool.getQueue(), pool.getQueue());
+            AbstractThreadPool.drain(oldpool.getQueue(), this.pool.getQueue());
             oldpool.shutdown();
         }
         return this;
