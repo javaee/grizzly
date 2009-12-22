@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.util;
 
 import java.util.List;
@@ -50,8 +49,8 @@ import java.util.concurrent.TimeUnit;
  */
 @SuppressWarnings("deprecation")
 public class GrizzlyExecutorService extends AbstractExecutorService
-        implements ExtendedThreadPool{
-    
+        implements ExtendedThreadPool {
+
     private volatile ExtendedThreadPool pool;
     private volatile ThreadPoolConfig config;
     private final Object statelock = new Object();
@@ -61,31 +60,32 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * @param cfg {@link ThreadPoolConfig}
      * @return {@link GrizzlyExecutorService}
      */
-    public static GrizzlyExecutorService createInstance(ThreadPoolConfig cfg){
+    public static GrizzlyExecutorService createInstance(ThreadPoolConfig cfg) {
         return new GrizzlyExecutorService(cfg);
     }
 
-    private GrizzlyExecutorService(ThreadPoolConfig config){
-        if (config == null)
+    private GrizzlyExecutorService(ThreadPoolConfig config) {
+        if (config == null) {
             throw new IllegalArgumentException("config is null");
+        }
         setImpl(config);
     }
 
-    private final void setImpl(ThreadPoolConfig cfg){
+    private final void setImpl(ThreadPoolConfig cfg) {
         cfg = cfg.clone();
         ExtendedThreadPool impl = null;
-        if (cfg.getCorePoolSize() < 0 ||
-                cfg.getCorePoolSize()==cfg.getMaxPoolSize()){
-            impl = cfg.getQueueLimit() < 1 ?
-               new FixedThreadPool(cfg.getPoolName(), cfg.getMaxPoolSize(),
-               cfg.getQueue(),cfg.getThreadFactory(),cfg.getMonitoringProbe()) :
-                new QueueLimitedThreadPool(
-                cfg.getPoolName(), cfg.getMaxPoolSize(), cfg.getQueueLimit(),
-                cfg.getThreadFactory(),cfg.getQueue(),cfg.getMonitoringProbe());
-        }else{
-        impl = new SyncThreadPool(cfg.getPoolName(), cfg.getCorePoolSize(),
-             cfg.getMaxPoolSize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
-             cfg.getThreadFactory(), cfg.getQueue(), cfg.getQueueLimit());
+        if (cfg.getCorePoolSize() < 0
+                || cfg.getCorePoolSize() == cfg.getMaxPoolSize()) {
+            impl = cfg.getQueueLimit() < 1
+                    ? new FixedThreadPool(cfg.getPoolName(), cfg.getMaxPoolSize(),
+                    cfg.getQueue(), cfg.getThreadFactory(), cfg.getMonitoringProbe())
+                    : new QueueLimitedThreadPool(
+                    cfg.getPoolName(), cfg.getMaxPoolSize(), cfg.getQueueLimit(),
+                    cfg.getThreadFactory(), cfg.getQueue(), cfg.getMonitoringProbe());
+        } else {
+            impl = new SyncThreadPool(cfg.getPoolName(), cfg.getCorePoolSize(),
+                    cfg.getMaxPoolSize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
+                    cfg.getThreadFactory(), cfg.getQueue(), cfg.getQueueLimit());
         }
         this.pool = impl;
         this.config = cfg.updateFrom(pool);
@@ -97,16 +97,17 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * @return returns {@link GrizzlyExecutorService}
      */
     public final GrizzlyExecutorService reconfigure(ThreadPoolConfig config) {
-        if (config == null)
+        if (config == null) {
             throw new IllegalArgumentException("config is null");
+        }
         System.err.println(config);
-        synchronized(statelock){            
+        synchronized (statelock) {
             //TODO: only create new pool if old one cant be runtime config
             // for the needed state change(s).
             final ExtendedThreadPool oldpool = this.pool;
             setImpl(config);
             AbstractThreadPool.drain(oldpool.getQueue(), pool.getQueue());
-            oldpool.shutdown();            
+            oldpool.shutdown();
         }
         return this;
     }
@@ -140,7 +141,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     }
 
     public boolean awaitTermination(long timeout, TimeUnit unit)
-            throws InterruptedException{
+            throws InterruptedException {
         return pool.awaitTermination(timeout, unit);
     }
 
@@ -148,7 +149,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     public Queue<Runnable> getQueue() {
         return pool.getQueue();
     }
-    
+
     @Deprecated
     public int getActiveCount() {
         return pool.getActiveCount();
@@ -238,5 +239,4 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     public ThreadFactory getThreadFactory() {
         return pool.getThreadFactory();
     }
-
 }
