@@ -194,7 +194,8 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param queuelimit the queuelimit to set
+     * @param queueLimit
+     * @return
      */
     public ThreadPoolConfig setQueueLimit(int queueLimit) {
         this.queueLimit = queueLimit;
@@ -202,7 +203,10 @@ public class ThreadPoolConfig {
     }
 
     /**
-     * @param keepAliveTime the keepAliveTime to set
+     * 
+     * @param time
+     * @param unit
+     * @return
      */
     public ThreadPoolConfig setKeepAliveTime(long time, TimeUnit unit) {
         this.keepAliveTime = time;

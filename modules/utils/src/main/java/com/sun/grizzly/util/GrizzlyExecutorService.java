@@ -75,29 +75,23 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     private final void setImpl(ThreadPoolConfig cfg) {
         cfg = cfg.clone();
-        ExtendedThreadPool impl = null;
         final Queue<Runnable> queue = cfg.getQueue();
-
         if ((queue == null || queue instanceof BlockingQueue) &&
                 (cfg.getCorePoolSize() < 0 || cfg.getCorePoolSize() == cfg.getMaxPoolSize())) {
-
-            final BlockingQueue<Runnable> blockingQueue = (BlockingQueue<Runnable>) queue;
-
-            impl = cfg.getQueueLimit() < 1
-                    ? new FixedThreadPool(cfg.getPoolName(), cfg.getMaxPoolSize(),
-                    blockingQueue,
-                    cfg.getThreadFactory(), cfg.getMonitoringProbe())
-                    : new QueueLimitedThreadPool(
-                    cfg.getPoolName(), cfg.getMaxPoolSize(), cfg.getQueueLimit(),
-                    cfg.getThreadFactory(),
-                    blockingQueue, cfg.getMonitoringProbe());
+            
+            this.pool = cfg.getQueueLimit() < 1
+                ? new FixedThreadPool(cfg.getPoolName(), cfg.getMaxPoolSize(),
+                (BlockingQueue<Runnable>) queue,
+                cfg.getThreadFactory(), cfg.getMonitoringProbe())
+                : new QueueLimitedThreadPool(
+                cfg.getPoolName(), cfg.getMaxPoolSize(), cfg.getQueueLimit(),
+                cfg.getThreadFactory(),
+                (BlockingQueue<Runnable>) queue, cfg.getMonitoringProbe());
         } else {
-            impl = new SyncThreadPool(cfg.getPoolName(), cfg.getCorePoolSize(),
+            this.pool = new SyncThreadPool(cfg.getPoolName(), cfg.getCorePoolSize(),
                     cfg.getMaxPoolSize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
                     cfg.getThreadFactory(), queue, cfg.getQueueLimit());
-        }
-        
-        this.pool = impl;
+        }        
         this.config = cfg.updateFrom(pool);
     }
 

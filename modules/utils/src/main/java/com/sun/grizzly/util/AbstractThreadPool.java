@@ -114,6 +114,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     public AbstractThreadPool(ThreadPoolMonitoringProbe probe, String name,
             ThreadFactory threadFactory){        
         setName(name);
+        corePoolSize = -1;
         this.probe = probe;
         this.threadFactory = threadFactory != null ? 
             threadFactory : getDefaultThreadFactory();
