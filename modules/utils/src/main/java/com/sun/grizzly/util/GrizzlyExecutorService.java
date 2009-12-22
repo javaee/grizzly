@@ -73,7 +73,8 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     }
 
     private final ExtendedThreadPool getImpl(ThreadPoolConfig cfg){
-        if (cfg.getCorepoolsize() < 0 || cfg.getCorepoolsize()==cfg.getMaxpoolsize()){
+        if (cfg.getCorepoolsize() < 0 ||
+                cfg.getCorepoolsize()==cfg.getMaxpoolsize()){
             return cfg.getQueuelimit() < 1 ?
                new FixedThreadPool(cfg.getPoolname(), cfg.getMaxpoolsize(),
                cfg.getQueue(),cfg.getThreadFactory(),cfg.getMonitoringProbe()) :
@@ -93,15 +94,14 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     public final void reconfigure(ThreadPoolConfig config) {
         if (config == null)
             throw new IllegalArgumentException("config is null");
-        synchronized(statelock){
-            config = config.clone();
+        synchronized(statelock){            
             //TODO: only create new pool if old one cant be runtime config
             // for the needed state change(s).
-            ExtendedThreadPool oldpool = this.pool;
-            this.pool = getImpl(config);
-            AbstractThreadPool.drain(oldpool.getQueue(), pool.getQueue());
-            oldpool.shutdown();
+            final ExtendedThreadPool oldpool = this.pool;
+            this.pool = getImpl(config = config.clone());
             this.config = config.updatefrom(pool);
+            AbstractThreadPool.drain(oldpool.getQueue(), pool.getQueue());
+            oldpool.shutdown();            
         }
     }
 
