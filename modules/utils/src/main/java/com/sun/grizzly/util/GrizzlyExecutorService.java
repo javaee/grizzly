@@ -69,7 +69,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         if (config == null)
             throw new IllegalArgumentException("config is null");
         this.pool   = getImpl(config);
-        this.config = config;
+        this.config = config.updatefrom(pool);
     }
 
     private final ExtendedThreadPool getImpl(ThreadPoolConfig cfg){
