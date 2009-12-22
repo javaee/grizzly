@@ -69,7 +69,7 @@ public class DataStructures {
                 CLQ = getAndVerify("maskedclasses.ConcurrentLinkedQueue");
             }
         }catch(Throwable t){
-            LoggerUtils.getLogger().log(Level.WARNING,
+            LoggerUtils.getLogger().log(Level.FINE,
                  "failed loading grizzly version of datastructure classes," +
                  " dont worry we load other classes instead.", t);
         }
