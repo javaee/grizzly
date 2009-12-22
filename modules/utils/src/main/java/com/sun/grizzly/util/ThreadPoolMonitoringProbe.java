@@ -48,7 +48,7 @@ public interface ThreadPoolMonitoringProbe {
    /*public void setMaxThreadsEvent(String threadPoolName,int maxNumberOfThreads);
    public void setCoreThreadsEvent(String threadPoolName,int coreNumberOfThreads);*/
 
-   public void threadAllocatedEvent(String name,Thread thread);
+   public void threadAllocatedEvent(String threadPoolName,Thread thread);
 
    public void threadReleasedEvent(String threadPoolName,Thread thread);
 
