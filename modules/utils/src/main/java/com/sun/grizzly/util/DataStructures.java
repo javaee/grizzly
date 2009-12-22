@@ -70,7 +70,8 @@ public class DataStructures {
             }
         }catch(Throwable t){
             LoggerUtils.getLogger().log(Level.WARNING,
-                 "failed loading grizzly version of datastructure classes", t);
+                 "failed loading grizzly version of datastructure classes," +
+                 " dont worry we load other classes instead.", t);
         }
         LTQclass =  LTQ;
         CLQclass =  CLQ;
