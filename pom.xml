@@ -153,7 +153,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <version>2.1</version>
+                <!-- <version>2.1</version>-->
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -252,7 +252,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.5</version>
+                <version>2.6.1</version>
                 <configuration>
                     <aggregate>true</aggregate>
                     <debug>true</debug>
@@ -286,7 +286,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>findbugs-maven-plugin</artifactId>
-                <version>1.2</version>
+                <version>2.3</version>
                 <configuration>
                     <xmlOutput>true</xmlOutput>
                     <xmlOutputDirectory>${project.reporting.outputDirectory}</xmlOutputDirectory>
@@ -327,7 +327,7 @@
         <grizzly-version>1.9.19-SNAPSHOT</grizzly-version>
         <grizzly-released-version>1.9.18</grizzly-released-version>
         <grizzly-next-version>2.0.0</grizzly-next-version>
-        <junit-version>3.8.1</junit-version>
+        <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
         <felix-version>1.4.3</felix-version>
