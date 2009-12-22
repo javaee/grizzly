@@ -41,15 +41,20 @@ package com.sun.grizzly.util;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
 /**
  * TODO: fix so config has the actual value the impl has,
  * all null config values can be set to something by the impl.
+ *
+ * TODO: map set methods to reconfigure.
  * 
  * @author gustav trede
  */
-public class GrizzlyExecutorService extends AbstractExecutorService{
+@SuppressWarnings("deprecation")
+public class GrizzlyExecutorService extends AbstractExecutorService
+        implements ExtendedThreadPool{
     
     private volatile ExtendedThreadPool pool;
     private volatile ThreadPoolConfig config;
@@ -86,8 +91,8 @@ public class GrizzlyExecutorService extends AbstractExecutorService{
     }
 
     /**
-     * Sets the {@Link ThreadPoolConfig}
-     * @param cfg
+     * Sets the {@link ThreadPoolConfig}
+     * @param config
      */
     public final void reconfigure(ThreadPoolConfig config) {
         if (config == null)
@@ -102,12 +107,12 @@ public class GrizzlyExecutorService extends AbstractExecutorService{
         }
     }
 
+    /**
+     *
+     * @return config - {@link ThreadPoolConfig}
+     */
     public ThreadPoolConfig getConfiguration() {
         return config;
-    }
-
-    public Queue<Runnable> getQueue() {
-        return pool.getQueue();
     }
 
     public void shutdown() {
@@ -130,8 +135,104 @@ public class GrizzlyExecutorService extends AbstractExecutorService{
         pool.execute(r);
     }
 
-    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+    public boolean awaitTermination(long timeout, TimeUnit unit)
+            throws InterruptedException{
+        return pool.awaitTermination(timeout, unit);
+    }
+
+    @Deprecated
+    public Queue<Runnable> getQueue() {
+        return pool.getQueue();
+    }
+    
+    @Deprecated
+    public int getActiveCount() {
+        return pool.getActiveCount();
+    }
+
+    @Deprecated
+    public int getTaskCount() {
+        return pool.getTaskCount();
+    }
+
+    @Deprecated
+    public long getCompletedTaskCount() {
+        return pool.getCompletedTaskCount();
+    }
+
+    @Deprecated
+    public int getCorePoolSize() {
+        return pool.getCorePoolSize();
+    }
+
+    @Deprecated
+    public void setCorePoolSize(int corePoolSize) {
         throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Deprecated
+    public int getLargestPoolSize() {
+        return pool.getLargestPoolSize();
+    }
+
+    @Deprecated
+    public int getPoolSize() {
+        return pool.getPoolSize();
+    }
+
+    @Deprecated
+    public int getQueueSize() {
+        return pool.getQueueSize();
+    }
+
+    @Deprecated
+    public long getKeepAliveTime(TimeUnit unit) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Deprecated
+    public void setKeepAliveTime(long time, TimeUnit unit) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Deprecated
+    public int getMaximumPoolSize() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Deprecated
+    public void setMaximumPoolSize(int maximumPoolSize) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Deprecated
+    public int getMaxQueuedTasksCount() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Deprecated
+    public void setMaxQueuedTasksCount(int maxTasksCount) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Deprecated
+    public String getName() {
+        return pool.getName();
+    }
+
+    @Deprecated
+    public void setName(String name) {
+        pool.setName(name);
+    }
+
+    @Deprecated
+    public void setThreadFactory(ThreadFactory threadFactory) {
+        pool.setThreadFactory(threadFactory);
+    }
+
+    @Deprecated
+    public ThreadFactory getThreadFactory() {
+        return pool.getThreadFactory();
     }
 
 }

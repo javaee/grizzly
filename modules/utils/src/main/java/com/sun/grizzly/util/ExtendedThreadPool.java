@@ -47,7 +47,9 @@ import java.util.concurrent.TimeUnit;
  * and finer control its execution.
  *
  * @author Alexey Stashok
+ * @Deprecated
  */
+@Deprecated
 public interface ExtendedThreadPool extends ExecutorService {
 
     /**
@@ -92,6 +94,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      *
      * @return the core number of threads
      * @see #setCorePoolSize
+     * @deprecated 
      */
     @Deprecated
     public int getCorePoolSize();
@@ -126,7 +129,9 @@ public interface ExtendedThreadPool extends ExecutorService {
      * Returns the current number of threads in the pool.
      *
      * @return the number of threads
+     * @deprecated 
      */
+    @Deprecated
     public int getPoolSize();
 
     /**
@@ -136,14 +141,18 @@ public interface ExtendedThreadPool extends ExecutorService {
      * does not prevent queued tasks from executing.
      *
      * @return the task queue
+     * @deprecated 
      */
+    @Deprecated
     public Queue<Runnable> getQueue();
 
     /**
      * Returns the number of tasks, which are currently waiting in the queue.
      *
      * @return the number of tasks, which are currently waiting in the queue.
+     * @deprecated 
      */
+    @Deprecated
     public int getQueueSize();
 
     /**
@@ -154,7 +163,9 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @param unit the desired time unit of the result
      * @return the time limit
      * @see #setKeepAliveTime
+     * @deprecated 
      */
+    @Deprecated
     public long getKeepAliveTime(TimeUnit unit);
 
     /**
@@ -178,7 +189,9 @@ public interface ExtendedThreadPool extends ExecutorService {
      *
      * @return the maximum allowed number of threads
      * @see #setMaximumPoolSize
+     * @deprecated 
      */
+    @Deprecated
     public int getMaximumPoolSize();
 
     /**
@@ -208,6 +221,7 @@ public interface ExtendedThreadPool extends ExecutorService {
     @Deprecated
     public void setMaxQueuedTasksCount(int maxTasksCount);
 
+    @Deprecated
     public String getName();
 
     /**
@@ -236,7 +250,9 @@ public interface ExtendedThreadPool extends ExecutorService {
      *
      * @return the current thread factory
      * @see #setThreadFactory
+     * @deprecated
      */
+    @Deprecated
     public ThreadFactory getThreadFactory();
 
 }

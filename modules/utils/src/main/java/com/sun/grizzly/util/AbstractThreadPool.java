@@ -418,6 +418,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     /**
      * Method is called by a thread pool, when new task could not be added
      * to a task queue, because task queue is full.
+     * throws  {@link RejectedExecutionException}
      */
     protected void onTaskQueueOverflow() {
         if (probe != null){

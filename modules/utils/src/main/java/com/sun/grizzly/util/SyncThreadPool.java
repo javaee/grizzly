@@ -180,8 +180,7 @@ public class SyncThreadPool extends AbstractThreadPool {
                     workQueue.offer(task)) {
                 onTaskQueued(task);
             } else {
-                onTaskQueueOverflow();
-                throw new RejectedExecutionException("ThreadPool is full");
+                onTaskQueueOverflow();                
             }
 
             final boolean isCore = (currentPoolSize < corePoolSize);

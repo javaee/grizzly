@@ -171,9 +171,6 @@ public class FixedThreadPool extends AbstractThreadPool {
         expectedWorkerCount++;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public void execute(Runnable command) {
         if (running){
             if (workQueue.offer(command)) {
@@ -186,9 +183,6 @@ public class FixedThreadPool extends AbstractThreadPool {
         throw new RejectedExecutionException("ThreadPool is not running");
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public boolean isShutdown() {
         return !running;
     }
@@ -207,55 +201,33 @@ public class FixedThreadPool extends AbstractThreadPool {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public int getActiveCount() {
         return 0;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public int getTaskCount() {
         return 0;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public long getCompletedTaskCount() {
         return 0;
     }
 
-    @Override
     public void setCorePoolSize(int corePoolSize) {
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public int getLargestPoolSize() {
         return maxPoolSize;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public int getPoolSize() {
         return maxPoolSize;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public Queue<Runnable> getQueue() {
         return workQueue;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public int getQueueSize() {
         return workQueue.size();
     }
