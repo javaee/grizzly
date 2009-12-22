@@ -77,10 +77,10 @@ public class GrizzlyExecutorServiceTest {
         int threads = 100;
         ThreadPoolConfig cfg = new ThreadPoolConfig(null, null,"test", 0,
                 threads, -1,0, null, null);
-        GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);
-        assertTrue(r.getMaximumPoolSize() == threads);
+        GrizzlyExecutorService r = GrizzlyExecutorService.createInstance(cfg);        
         final int tasks = 2000000;
         doTest(r,tasks);
+        assertTrue(r.getMaximumPoolSize() == threads);
         assertTrue(r.getActiveCount() == 0);
         assertTrue(r.getCompletedTaskCount() == 0);
         assertTrue(r.getMaxQueuedTasksCount() == -1);
@@ -88,6 +88,8 @@ public class GrizzlyExecutorServiceTest {
         assertTrue(jver < 16 || r.getQueue().getClass().getSimpleName().contains("LinkedTransferQueue"));
 
         doTest(r.reconfigure(r.getConfiguration().setQueueLimit(tasks)),tasks);
+        assertTrue(r.getMaxQueuedTasksCount() == tasks);
+
         int coresize = r.getConfiguration().getMaxPoolSize()+1;
         doTest( r.reconfigure(r.getConfiguration().
                 setQueue(new LinkedList<Runnable>()).
