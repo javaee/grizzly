@@ -47,9 +47,7 @@ import java.util.concurrent.TimeUnit;
  * and finer control its execution.
  *
  * @author Alexey Stashok
- * @Deprecated
  */
-@Deprecated
 public interface ExtendedThreadPool extends ExecutorService {
 
     /**
