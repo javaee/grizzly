@@ -178,12 +178,12 @@ public class FixedThreadPool extends AbstractThreadPool {
         if (running){
             if (workQueue.offer(command)) {
                 onTaskQueued(command);
-            } else {
-                onTaskQueueOverflow();
-                throw new RejectedExecutionException(
-                        "The thread pool's task queue is full");
+                return;
             }
+            onTaskQueueOverflow();
+            return;
         }
+        throw new RejectedExecutionException("ThreadPool is not running");
     }
 
     /**
@@ -267,10 +267,9 @@ public class FixedThreadPool extends AbstractThreadPool {
     public void setMaxQueuedTasksCount(int maxTasksCount) {
     }
 
-    protected class BasicWorker extends Worker {
-        protected Runnable getTask() throws InterruptedException {
+    private final class BasicWorker extends Worker {
+        protected final Runnable getTask() throws InterruptedException {
             return workQueue.take();
         }
     }
-
 }

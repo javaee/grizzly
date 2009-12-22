@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -112,10 +113,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
     public AbstractThreadPool(ThreadPoolMonitoringProbe probe, String name,
             ThreadFactory threadFactory){        
-        if (name == null)
-            throw new IllegalArgumentException("name == null");
-        if (name.length() == 0)
-            throw new IllegalArgumentException("name 0 length");
+        setName(name);
         this.probe = probe;
         this.threadFactory = threadFactory != null ? 
             threadFactory : getDefaultThreadFactory();
@@ -204,6 +202,10 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * {@inheritDoc}
      */
     public void setName(String name) {
+        if (name == null)
+            throw new IllegalArgumentException("name == null");
+        if (name.length() == 0)
+            throw new IllegalArgumentException("name 0 length");
         this.name = name;
     }
 
@@ -253,6 +255,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * {@inheritDoc}
      */
     public void setThreadFactory(ThreadFactory threadFactory) {
+        if (threadFactory == null){
+            throw new IllegalArgumentException("threadFactory is null");
+        }
         this.threadFactory = threadFactory;
     }
 
@@ -368,9 +373,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         synchronized (statelock) {
             currentPoolSize--;
             activeThreadsCount--;
-            workers.remove(worker);        
+            workers.remove(worker);
         }
-       if (probe != null){
+        if (probe != null){
             probe.threadReleasedEvent(name, worker.t);
         }
     }
@@ -418,6 +423,8 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         if (probe != null){
             probe.onTaskQueueOverflowEvent(name);
         }
+        throw new RejectedExecutionException(
+                "The thread pool's task queue is full");
     }
     
     /**

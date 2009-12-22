@@ -197,8 +197,12 @@ public class SyncThreadPool extends AbstractThreadPool {
         }
     }
 
+    /**
+     * must hold statelock while calling this method.
+     * @param wt
+     */
+    @Override
     protected void startWorker(Worker wt) {
-        // Must be executed in synchronized block
         super.startWorker(wt);
         currentPoolSize++;
         activeThreadsCount++;

@@ -73,28 +73,26 @@ final class QueueLimitedThreadPool extends FixedThreadPool{
     }
 
     @Override
-    public final void execute(Runnable task) {
-        if (task == null) {
-            throw new IllegalArgumentException("Runnable task is null");
-        }
+    public final void execute(Runnable command) {
         if (running){
             if (queueSize.incrementAndGet() <= maxQueuedTasks
-                    && workQueue.offer(task)) {
-                onTaskQueued(task);
-            } else {
-                queueSize.decrementAndGet();
-                onTaskQueueOverflow();
-                throw new RejectedExecutionException(
-                        "The thread pool's task queue is full");
+                    && workQueue.offer(command)) {
+                onTaskQueued(command);
+                return;
             }
+            onTaskQueueOverflow();
+            return;
         }
+        throw new RejectedExecutionException("ThreadPool is not running");
     }
 
-    /**
-     * Returns the number of tasks, which are currently waiting in the queue.
-     *
-     * @return the number of tasks, which are currently waiting in the queue.
-     */
+    @Override
+    protected void onTaskQueueOverflow() {
+        queueSize.decrementAndGet();
+        super.onTaskQueueOverflow();
+    }
+
+
     @Override
     public int getQueueSize() {
         return queueSize.get();
