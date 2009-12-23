@@ -219,6 +219,13 @@ public interface ExtendedThreadPool extends ExecutorService {
     @Deprecated
     public void setMaxQueuedTasksCount(int maxTasksCount);
 
+
+    @Deprecated
+    public int getPriority();
+
+    @Deprecated
+    public void setPriority(int priority);
+
     @Deprecated
     public String getName();
 

@@ -170,8 +170,9 @@ public class ThreadPoolConfig {
         return priority;
     }
 
-    public void setPriority(int priority) {
+    public ThreadPoolConfig setPriority(int priority) {
         this.priority = priority;
+        return this;
     }
 
     /**

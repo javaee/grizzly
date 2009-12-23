@@ -229,6 +229,14 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         reconfigure(config.clone().setPoolName(name));
     }
 
+    public int getPriority() {
+        return pool.getPriority();
+    }
+
+    public void setPriority(int priority) {
+        reconfigure(config.clone().setPriority(priority));
+    }
+
     @Deprecated
     public void setThreadFactory(ThreadFactory threadFactory) {
         reconfigure(config.clone().setThreadFactory(threadFactory));
