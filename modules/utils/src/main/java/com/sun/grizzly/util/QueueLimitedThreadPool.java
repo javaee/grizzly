@@ -67,8 +67,8 @@ final class QueueLimitedThreadPool extends FixedThreadPool{
             ThreadFactory threadFactory,BlockingQueue<Runnable> workQueue,
             ThreadPoolMonitoringProbe probe) {
         super(name,poolsize,workQueue,threadFactory,probe);
-        if (maxQueuedTasks < 1)
-            throw new IllegalArgumentException("maxQueuedTasks < 1");
+        if (maxQueuedTasks < 0)
+            throw new IllegalArgumentException("maxQueuedTasks < 0");
         this.maxQueuedTasks = maxQueuedTasks;
     }
 
