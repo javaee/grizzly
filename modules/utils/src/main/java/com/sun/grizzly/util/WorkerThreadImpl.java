@@ -281,6 +281,13 @@ public class WorkerThreadImpl extends WorkerThread {
         this.byteBufferType = byteBufferType;
     }
 
+    public int getInitialByteBufferSize() {
+        return initialByteBufferSize;
+    }
+
+    public void setInitialByteBufferSize(int initialByteBufferSize) {
+        this.initialByteBufferSize = initialByteBufferSize;
+    }
 
     /**
      * Processes the given task.

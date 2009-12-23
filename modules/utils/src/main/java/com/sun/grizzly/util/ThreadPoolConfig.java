@@ -48,31 +48,33 @@ import java.util.concurrent.TimeUnit;
  */
 public class ThreadPoolConfig {
 
-    protected Queue<Runnable> queue;
-    protected ThreadFactory threadFactory;
     protected String poolName;
+    protected int corePoolSize;
     protected int maxPoolSize;
-    protected int corepoolsize;
+    protected Queue<Runnable> queue;
     protected int queueLimit;
     protected long keepAliveTime;
     protected TimeUnit timeUnit;
+    protected ThreadFactory threadFactory;
+    protected int priority;
     protected ThreadPoolMonitoringProbe monitoringProbe;
 
     public ThreadPoolConfig(
-            Queue<Runnable> queue,
-            ThreadFactory threadFactory,
-            String poolname, int queuelimit,
-            int maxpoolsize, int corepoolsize,
+            String poolName,
+            int corePoolSize, int maxPoolSize,
+            Queue<Runnable> queue, int queueLimit,
             long keepAliveTime, TimeUnit timeUnit,
+            ThreadFactory threadFactory, int priority,
             ThreadPoolMonitoringProbe monitoringProbe) {
+        this.poolName = poolName;
+        this.corePoolSize = corePoolSize;
+        this.maxPoolSize = maxPoolSize;
         this.queue = queue;
-        this.threadFactory = threadFactory;
-        this.poolName = poolname;
-        this.maxPoolSize = maxpoolsize;
-        this.queueLimit = queuelimit;
-        this.corepoolsize = corepoolsize;
+        this.queueLimit = queueLimit;
         this.keepAliveTime = keepAliveTime;
         this.timeUnit = timeUnit;
+        this.threadFactory = threadFactory;
+        this.priority = priority;
         this.monitoringProbe = monitoringProbe;
     }
 
@@ -80,9 +82,10 @@ public class ThreadPoolConfig {
         this.queue = cfg.queue;
         this.threadFactory = cfg.threadFactory;
         this.poolName = cfg.poolName;
+        this.priority = cfg.priority;
         this.maxPoolSize = cfg.maxPoolSize;
         this.queueLimit = cfg.queueLimit;
-        this.corepoolsize = cfg.corepoolsize;
+        this.corePoolSize = cfg.corePoolSize;
         this.keepAliveTime = cfg.keepAliveTime;
         this.timeUnit = cfg.timeUnit;
         this.monitoringProbe = cfg.monitoringProbe;
@@ -101,7 +104,7 @@ public class ThreadPoolConfig {
         this.threadFactory = ep.getThreadFactory();
         this.poolName = ep.getName();
         this.maxPoolSize = ep.getMaximumPoolSize();
-        
+
         //hiding internal values, due to they might not match configure
 
         //this.queueLimit = ep.getMaxQueuedTasksCount();
@@ -163,6 +166,14 @@ public class ThreadPoolConfig {
         return this;
     }
 
+    public int getPriority() {
+        return priority;
+    }
+
+    public void setPriority(int priority) {
+        this.priority = priority;
+    }
+
     /**
      * @return the maxpoolsize
      */
@@ -184,7 +195,7 @@ public class ThreadPoolConfig {
      * @return the corepoolsize
      */
     public int getCorePoolSize() {
-        return corepoolsize;
+        return corePoolSize;
     }
 
     /**
@@ -193,7 +204,7 @@ public class ThreadPoolConfig {
      * @return
      */
     public ThreadPoolConfig setCorePoolSize(int corePoolSize) {
-        this.corepoolsize = corePoolSize;
+        this.corePoolSize = corePoolSize;
         return this;
     }
 
@@ -258,15 +269,16 @@ public class ThreadPoolConfig {
 
     @Override
     public String toString() {
-        return ThreadPoolConfig.class.getSimpleName()+" :\r\n"+
-        "  corepoolsize: "+corepoolsize+"\r\n"+
-        "  maxpoolsize: "+maxPoolSize+"\r\n"+
-        "  poolname: "+poolName+"\r\n"+
-        "  threadFactory: "+threadFactory +"\r\n"+
-        "  queuelimit: "+queueLimit +"\r\n"+
-        "  queu: "+queue.getClass() +"\r\n"+
-        "  monitoringProbe: "+monitoringProbe +"\r\n"+
-        "  keepAliveTime: "+keepAliveTime +"\r\n"+
-        "  timeUnit: "+timeUnit +"\r\n";
+        return ThreadPoolConfig.class.getSimpleName() + " :\r\n"
+                + "  poolName: " + poolName + "\r\n"
+                + "  corePoolSize: " + corePoolSize + "\r\n"
+                + "  maxPoolSize: " + maxPoolSize + "\r\n"
+                + "  queue: " + queue.getClass() + "\r\n"
+                + "  queueLimit: " + queueLimit + "\r\n"
+                + "  keepAliveTime: " + keepAliveTime + "\r\n"
+                + "  timeUnit: " + timeUnit + "\r\n"
+                + "  threadFactory: " + threadFactory + "\r\n"
+                + "  priority: " + priority + "\r\n"
+                + "  monitoringProbe: " + monitoringProbe + "\r\n";
     }
 }

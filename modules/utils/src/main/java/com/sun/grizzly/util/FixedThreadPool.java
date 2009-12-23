@@ -136,7 +136,7 @@ public class FixedThreadPool extends AbstractThreadPool {
         this.maxPoolSize = poolsize;
         synchronized (statelock) {
             while (poolsize-- > 0) {
-                dostartWorker();
+                doStartWorker();
             }
         }
         super.onMaxNumberOfThreadsReached();
@@ -150,12 +150,12 @@ public class FixedThreadPool extends AbstractThreadPool {
         synchronized (statelock) {
             if (running) {
                 this.maxPoolSize = maximumPoolSize;
-                int toadd = maximumPoolSize - expectedWorkerCount;
-                while (toadd > 0) {
-                    toadd--;
-                    dostartWorker();
+                int toAdd = maximumPoolSize - expectedWorkerCount;
+                while (toAdd > 0) {
+                    toAdd--;
+                    doStartWorker();
                 }
-                while (toadd++ < 0) {
+                while (toAdd++ < 0) {
                     workQueue.add(poison);
                     expectedWorkerCount--;
                 }
@@ -168,7 +168,7 @@ public class FixedThreadPool extends AbstractThreadPool {
      * must hold statelock while calling this method.
      * @param wt
      */
-    private void dostartWorker() {
+    private void doStartWorker() {
         startWorker(new BasicWorker());
         expectedWorkerCount++;
     }

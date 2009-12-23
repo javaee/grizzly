@@ -124,8 +124,21 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * must hold statelock while calling this method.
      * @param wt
      */
-    protected void startWorker(Worker wt){
-        wt.t = threadFactory.newThread(wt);
+    protected void startWorker(Worker wt) {
+        final Thread thread = threadFactory.newThread(wt);
+
+        thread.setName(getName() + "(" + nextThreadId() + ")");
+        thread.setUncaughtExceptionHandler(this);
+        thread.setPriority(priority);
+        thread.setDaemon(true);
+        
+        if (thread instanceof WorkerThreadImpl) {
+            final WorkerThreadImpl workerThread = (WorkerThreadImpl) thread;
+            workerThread.setByteBufferType(getByteBufferType());
+            workerThread.setInitialByteBufferSize(getInitialByteBufferSize());
+        }
+
+        wt.t = thread;
         workers.put(wt, System.currentTimeMillis());
         wt.t.start();
     }
