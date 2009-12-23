@@ -88,10 +88,12 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
             }
             Assert.assertTrue(found, "Should have gotten the document content");
             System.out.println("getting again");
-            send(os, "GET /index.html HTTP/1.1\n");
-            send(os, "\n");
-            Assert.fail("Second GET should fail");
-        } catch (Exception e) {
+            try{//should not hide IOexceptions from previous logic.
+                send(os, "GET /index.html HTTP/1.1\n");
+                send(os, "\n");
+                found = false;
+            }catch(Exception e ){ }
+            Assert.assertTrue(found,"Second GET should fail");
         } finally {
             sock.close();
             bis.close();
