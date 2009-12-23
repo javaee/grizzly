@@ -431,7 +431,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
             probe.onTaskQueueOverflowEvent(name);
         }
         throw new RejectedExecutionException(
-                "The thread pool's task queue is full");
+                "The thread pool's task queue is full, limit: "+getMaxQueuedTasksCount());
     }
     
     /**
