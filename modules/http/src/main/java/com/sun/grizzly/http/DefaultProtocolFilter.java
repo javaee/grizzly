@@ -214,6 +214,9 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             ctx.removeAttribute(ResourceAllocationFilter.INVOKE_NEXT);
         }
 
+        if (processorTask != null && processorTask.isSkipPostExecute()){
+            ctx.setKeyRegistrationState(Context.KeyRegistrationState.NONE);
+        }
         // Last filter.
         return true;
     }

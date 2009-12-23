@@ -465,7 +465,8 @@ public class ProcessorTask extends TaskBase implements Processor,
     
     // Has processing of this object completed.
     private boolean isProcessingCompleted = false;
-    
+
+    private boolean setSkipPostExecute;
     // ----------------------------------------------------- Constructor ---- //
 
     public ProcessorTask(){
@@ -791,7 +792,6 @@ public class ProcessorTask extends TaskBase implements Processor,
             outputBuffer.recycle();
         }
     }
-       
 
     /**
      * Invoke the {@link Adapter}, which usualy invoke the Servlet
@@ -800,6 +800,10 @@ public class ProcessorTask extends TaskBase implements Processor,
     public void invokeAdapter(){
         if (!error) {
             try {
+                if (temphack != null &&temphack.checkForUpgrade(request)){
+                    doupgrade();
+                    return;
+                }
                 adapter.service(request, response);
                 // Handle when the response was committed before a serious
                 // error occurred.  Throwing a ServletException should both
@@ -820,6 +824,28 @@ public class ProcessorTask extends TaskBase implements Processor,
                 error = true;
             }
         }
+    }
+
+     public static TemporaryInterceptor temphack;
+
+    private void doupgrade(){
+        boolean kill = true;
+            try{
+                kill = temphack.doUpgrade(key, request,sslSupport);
+            }finally{
+                try{
+                    if (kill){//TODO: fix so not shares lock with grizzly selector:
+                        key.channel().close();
+                    }
+                    }catch(IOException e) { }
+                    finally{
+                        sslSupport = null;
+                        setSkipPostExecute = true;
+                        isProcessingCompleted = true;
+                        inputBuffer.recycle();
+                        outputBuffer.recycle();
+                    }
+            }
     }
 
     /**
@@ -2505,6 +2531,17 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public void setSendBufferSize(int sendBufferSize) {
         this.sendBufferSize = sendBufferSize;
+    }
+
+
+    /**
+     * returns value and resets it to false.
+     * @return
+     */
+    public boolean isSkipPostExecute() {
+        boolean ret = setSkipPostExecute;
+        setSkipPostExecute = false;
+        return ret;
     }
 }
 
