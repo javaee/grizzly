@@ -109,8 +109,8 @@ public class FixedThreadPool extends AbstractThreadPool {
      * @param workQueue
      * @param threadfactory
      */
-    public FixedThreadPool(String name, int poolsize, BlockingQueue<Runnable> workQueue,
-            ThreadFactory threadfactory) {
+    public FixedThreadPool(String name, int poolsize,
+            BlockingQueue<Runnable> workQueue,ThreadFactory threadfactory) {
         this(name, poolsize, workQueue, threadfactory, null);
     }
 
@@ -125,15 +125,9 @@ public class FixedThreadPool extends AbstractThreadPool {
     public FixedThreadPool(String name, int poolsize,
             BlockingQueue<Runnable> workQueue, ThreadFactory threadfactory,
             ThreadPoolMonitoringProbe probe) {
-        super(probe, name, threadfactory);
-        if (poolsize < 1) {
-            throw new IllegalArgumentException("poolsize < 1");
-        }
-        if (workQueue == null) {
-            workQueue = DataStructures.getLTQinstance(Runnable.class);
-        }
-        this.workQueue = workQueue;
-        this.maxPoolSize = poolsize;
+        super(probe, name, threadfactory,poolsize);
+        this.workQueue = workQueue != null ? workQueue :
+            DataStructures.getLTQinstance(Runnable.class);
         synchronized (statelock) {
             while (poolsize-- > 0) {
                 doStartWorker();
@@ -165,7 +159,7 @@ public class FixedThreadPool extends AbstractThreadPool {
     }
 
     /**
-     * must hold statelock while calling this method.
+     * Must hold statelock while calling this method.
      * @param wt
      */
     private void doStartWorker() {
@@ -239,7 +233,6 @@ public class FixedThreadPool extends AbstractThreadPool {
     }
 
     private final class BasicWorker extends Worker {
-
         protected final Runnable getTask() throws InterruptedException {
             return workQueue.take();
         }

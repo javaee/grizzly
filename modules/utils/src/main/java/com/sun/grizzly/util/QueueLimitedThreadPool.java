@@ -95,7 +95,6 @@ final class QueueLimitedThreadPool extends FixedThreadPool{
         super.onTaskQueueOverflow();
     }
 
-
     @Override
     public int getQueueSize() {
         return queueSize.get();
@@ -105,7 +104,6 @@ final class QueueLimitedThreadPool extends FixedThreadPool{
     public int getMaxQueuedTasksCount() {
         return maxQueuedTasks;
     }
-
 
     @Override
     protected final void beforeExecute(Thread t, Runnable r) {

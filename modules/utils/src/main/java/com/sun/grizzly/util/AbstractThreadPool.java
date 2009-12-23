@@ -112,9 +112,13 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected int activeThreadsCount;
 
     public AbstractThreadPool(ThreadPoolMonitoringProbe probe, String name,
-            ThreadFactory threadFactory){        
+            ThreadFactory threadFactory, int maxPoolSize){        
+        if (maxPoolSize < 1) {
+            throw new IllegalArgumentException("poolsize < 1");
+        }
         setName(name);
         corePoolSize = -1;
+        this.maxPoolSize = maxPoolSize;
         this.probe = probe;
         this.threadFactory = threadFactory != null ? 
             threadFactory : getDefaultThreadFactory();

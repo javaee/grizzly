@@ -135,7 +135,7 @@ public class SyncThreadPool extends AbstractThreadPool {
             long keepAliveTime, TimeUnit timeUnit, ThreadFactory threadFactory,
             Queue<Runnable> workQueue, int maxQueuedTasks,
             ThreadPoolMonitoringProbe probe) {
-        super(probe,name,threadFactory);
+        super(probe,name,threadFactory,maxPoolSize);
         if (keepAliveTime < 0) {
             throw new IllegalArgumentException("keepAliveTime < 0");
         }
