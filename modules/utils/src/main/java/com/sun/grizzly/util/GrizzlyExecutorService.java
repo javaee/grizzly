@@ -211,7 +211,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
 
     @Deprecated
     public int getMaxQueuedTasksCount() {
-        return pool.getMaxQueuedTasksCount();
+        return config.getQueueLimit();
     }
 
     @Deprecated

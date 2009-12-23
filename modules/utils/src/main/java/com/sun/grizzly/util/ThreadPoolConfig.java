@@ -101,11 +101,14 @@ public class ThreadPoolConfig {
         this.threadFactory = ep.getThreadFactory();
         this.poolName = ep.getName();
         this.maxPoolSize = ep.getMaximumPoolSize();
-        this.queueLimit = ep.getMaxQueuedTasksCount();
-        this.corepoolsize = ep.getCorePoolSize();
-        /*this.keepAliveTime = keepAliveTime;
-        this.timeUnit = timeUnit;
-        this.monitoringProbe = monitoringProbe;*/
+        
+        //hiding internal values, due to they might not match configure
+
+        //this.queueLimit = ep.getMaxQueuedTasksCount();
+        //this.corepoolsize = ep.getCorePoolSize();
+        //this.keepAliveTime = keepAliveTime;
+        //this.timeUnit = timeUnit;
+        //this.monitoringProbe = monitoringProbe;
         return this;
     }
 
