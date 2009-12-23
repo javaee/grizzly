@@ -65,7 +65,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         return new GrizzlyExecutorService(cfg);
     }
 
-    private GrizzlyExecutorService(ThreadPoolConfig config) {       
+    protected GrizzlyExecutorService(ThreadPoolConfig config) {
         setImpl(config);
     }
 
