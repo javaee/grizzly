@@ -240,9 +240,9 @@ public class WebSocketTest  extends TestCase{
     private void doTestChats(boolean useSSL) throws Exception{
         SelectThread.getStatistics(true);
         init(useSSL);
-        final int shortTestSeconds = 3;
+        final int shortTestSeconds = 5;
         final int longTestSeconds  = 30;
-        int m = 8;
+        int m = 4;
         // test here is in low perf mode now ((,
         // had to temporarly disable real world like chat tests
         // inorder to more easily  ensure stable self balanced load.
@@ -252,8 +252,8 @@ public class WebSocketTest  extends TestCase{
             { 16  , 4    ,m   ,shortTestSeconds },
             { 4   , 16   ,m   ,shortTestSeconds },
             { 16  , 16   ,m   ,shortTestSeconds },
-            { 1   , 64   ,m   ,shortTestSeconds },
-            { 8   , 64   ,m   ,shortTestSeconds }
+            //{ 1   , 64   ,m   ,shortTestSeconds }
+            //{ 8   , 64   ,m   ,shortTestSeconds }
             
             // disabled heavier tests to unit test dont fail on weak systems :
             
@@ -275,7 +275,7 @@ public class WebSocketTest  extends TestCase{
         for (int i=0;i < numberofchats;i++){
             sli[i] = new ServerChatListener(clientsPerChat);
             String chat = "chat"+i;
-            addContext(chat,sli[i],true).setDataFrameLimits(1024, 1<<10, 10);
+            addContext(chat,sli[i],true).setDataFrameLimits(1024, 1<<12, 10);
             for (int x=1;x<=clientsPerChat;x++){
                 if (i*clientsPerChat+x > 2000){
                   Thread.sleep(10);
