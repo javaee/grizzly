@@ -604,13 +604,14 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
                         //Lets do as much IO in worker thread as possible
                         //without waiting for it (workerqueue).
                         ByteBuffer bb;
-                        done = false;
+                        done = false;  //TODO: QA
                         while((bb=writeQueue.peek())!=null){
                             final int a = bb.position();
-                            if (done = iohandler.write(bb)){
-                                writeQueue.remove();
-                            }
+                            done = iohandler.write(bb);
                             written_ += bb.position() - a;
+                            if (done){
+                                writeQueue.remove();
+                            }else break;
                         }
                     }
                     if (!done){
