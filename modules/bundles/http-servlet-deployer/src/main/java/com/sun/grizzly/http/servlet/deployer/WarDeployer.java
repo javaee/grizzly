@@ -44,6 +44,7 @@ import com.sun.grizzly.http.webxml.schema.*;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.ExpandJar;
+import com.sun.grizzly.util.FileUtil;
 
 import javax.servlet.Filter;
 import java.io.File;
@@ -284,14 +285,40 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
     private static String explodeWarFile(URI uri) throws DeployException {
         String explodedLocation = null;
         String oldTmp = System.getProperty(JAVA_IO_TMPDIR);
-        System.setProperty(JAVA_IO_TMPDIR, new File("work").getAbsolutePath());
+        String newTmp = new File("work").getAbsolutePath();
+        System.setProperty(JAVA_IO_TMPDIR, newTmp);
         try {
+        	// clean up previous work folder
+        	cleanup(newTmp);
+        	
             explodedLocation = ExpandJar.expand(uri.toURL());
         } catch (IOException e) {
+        	// clean up work folder
+        	cleanup(newTmp);
             throw new DeployException(String.format("Error extracting contents of war file '%s'.", uri), e);
         } finally {
             System.setProperty(JAVA_IO_TMPDIR, oldTmp);
         }
         return explodedLocation;
+    }
+    
+    /**
+     * Will try to delete the folder and his children
+     * @param folder foldername
+     */
+    private static void cleanup(String folder){
+    	if(folder==null){
+    		return ;
+    	}
+    	
+    	File file = new File(folder);
+    	
+    	if(file.exists() && file.isDirectory()){
+    		logger.info("cleaning folder : " + folder);
+    		if(!FileUtil.deleteDir(file)){
+    			logger.info("cleanup failed");
+    		}
+    	}
+    	
     }
 }
