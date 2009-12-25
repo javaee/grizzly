@@ -94,6 +94,8 @@ import javax.net.ssl.SSLEngine;
  * <br>
  * Further optimize buffer.compact and resize logic in parseFrame().
  * <br>
+ * MySwapList, ensure no large datastructure is left behind.
+ * <br>
  * TODO: is there a need for pluggable handler for uncaught exceptions
  * from services ({@link WebSocketListener}) per context or global ?.
  * It could be used to detect unhealthy services and remove them, or at least
@@ -113,8 +115,6 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
     protected final static byte TEXTTYPE      = (byte)0x00;
     protected final static byte BINARYTYPE    = (byte)0x80;
     protected final static byte TEXTterminate = (byte)0xff;
-
-    private final static ByteBuffer emptybuffer = ByteBuffer.allocate(0);
 
     public final static SelectedKeyAttachmentLogic dummyAttachment =
             new SelectedKeyAttachmentLogic() {
@@ -180,19 +180,19 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
     private SelectThread selthread;
 
     /**
-     * 
+     *
      * @param uri
+     * @param listener
      * @param origin
      * @param protocol
-     * @param listener
      * @param sslctx
      * @param copysettingsfrom
      * @return
      * @throws IOException
      */
-    protected final static WebSocket openClient(String uri, String origin,
-            String protocol,WebSocketListener listener,SSLContext sslctx,
-             WebSocketContext copysettingsfrom)
+    protected final static WebSocket openClient(String uri,
+            WebSocketListener listener,String origin,String protocol,
+            SSLContext sslctx,WebSocketContext copysettingsfrom)
             throws IOException{
         try{
             WebsocketClientHandshake wsh =
@@ -230,7 +230,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
      * @param ctx
      * @return
      */
-    public final static WebSocket doOPen(WebsocketHandshake handshake,
+    protected final static WebSocket doOPen(WebsocketHandshake handshake,
             TCPIOhandler iohandler,WebSocketContext ctx) {
         WebSocketImpl wsi = new WebSocketImpl(handshake,iohandler,ctx);
         SelectThread.moveToSelectThread(wsi);
@@ -301,7 +301,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
                 // overflow
                 Math.max(ctx.getMaxDataFramelengthBytes(),4096)+
                 ((SSLIOhandler)iohandler).getRequiredReadBuffersize() :
-                ctx.initialReadBufferLength;
+                ctx.getInitialReadBufferLength();
             readBuffer = ByteBuffer.allocate(bufflength);
             readByteArray = readBuffer.array();
             handshake.bbf = readBuffer;            
@@ -465,7 +465,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         }*/
         //TODO: dont sticky large buffers forever.impl and configuration needed.
         //TODO: improve adaptive resizing
-        final int minIncrease =(bend > 0 ? bend-fstart : Math.min(flimit,16384))
+        final int minIncrease =(bend > 0 ? bend-fstart : Math.max(flimit,4096))
                 -ba.length
         //ensuring theres at least +x bytes to read into beyond framedata needed
                 + 10000;
@@ -485,7 +485,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         }
         parsed = parsed_;
         framestart = 0;
-       if (!readBuffer.hasRemaining() || readBuffer.position() == readBuffer.capacity())//TODO remove when QA done
+        if (!readBuffer.hasRemaining() || readBuffer.position() == readBuffer.capacity())//TODO remove when QA done
             throw new RuntimeException(this.toString());
     }
 
@@ -566,62 +566,43 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         return false;
     }
 
-    //protected volatile int apa;
     /**
      * 
-     * @param rawdataframe
+     * @param rawframe
      * @return
      */
     @Override
-    public final boolean send(ByteBuffer rawdataframe){
+    public final boolean send(ByteBuffer rawframe){
         try {
             final ReadyState rs = readystate;
             if (rs == ReadyState.OPEN){
-                if (rawdataframe == null){
+                if (rawframe == null){
                     throw new IllegalArgumentException("rawdataframe is null");
                 }
-                int tosend = rawdataframe.remaining();
+                int tosend = rawframe.remaining();
                 final int buffsize = bufferedSendBytes.addAndGet(tosend);
                 final int bufflimit = ctx.dataFrameSendQueueLimitBytes;
                 if (bufflimit-buffsize < 0 ){
                     throw new WebSocketWriteQueueOverflow(buffsize,bufflimit);
                 }
                 if (tosend == buffsize){
-                    boolean done = iohandler.write(rawdataframe);
-                    int written_;
-                    if (!done){ //TODO:If send(String) slice is not needed:
-                        written_ = rawdataframe.remaining();
-                        writeQueue.setProducerfirstElement(written_ > 0 ?
-                            rawdataframe.slice() : emptybuffer);
-                        tosend -= written_;
+                    final boolean frameNotDone = !iohandler.write(rawframe);
+                    if (frameNotDone){
+                        tosend -= rawframe.remaining();
                     }
-                    written_ = tosend;
-                    while(done && bufferedSendBytes.addAndGet(-written_) > 0){
-                        //apa++;
-                        written_ = 0;
-                        //Another thread called send and our write is completed,
-                        //Its likely that socket native buffer is not full:
-                        //Lets do as much IO in worker thread as possible
-                        //without waiting for it (workerqueue).
-                        ByteBuffer bb;
-                        done = false;  //TODO: QA
-                        while((bb=writeQueue.peek())!=null){
-                            final int a = bb.position();
-                            done = iohandler.write(bb);
-                            written_ += bb.position() - a;
-                            if (done){
-                                writeQueue.remove();
-                            }else break;
+                    if (bufferedSendBytes.addAndGet(-tosend) > 0){
+                        //TODO: re enable draining :
+                        if (!drainWriteQueue(Integer.MAX_VALUE)){
+                            if (frameNotDone){
+                                writeQueue.setProducerfirstElement(rawframe.slice());
+                            }
+                            iohandler.writeInterestTaskOffer();
                         }
                     }
-                    if (!done){
-                        this.written = written_;
-                        iohandler.writeInterestTaskOffer();
-                    }
-                    rawdataframe.rewind();// frame is ready for another send
+                    rawframe.rewind();// frame is ready for another send
                     return true;
                 }
-                writeQueue.add(rawdataframe.duplicate());
+                writeQueue.add(rawframe.duplicate());
                 return true;
             }
             if (rs == ReadyState.CONNECTING){
@@ -632,149 +613,40 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         }catch (Throwable ex) {
             close(ex,false);
         }
-        rawdataframe.rewind();// frame is ready for another send
+        rawframe.rewind();// frame is ready for another send
         return false;
     }
- /*  public final synchronized boolean send(ByteBuffer rawdataframe){
-        try {
-            final ReadyState rs = readystate;
-            if (rs == ReadyState.OPEN){
-                if (rawdataframe == null){
-                    throw new IllegalArgumentException("rawdataframe is null");
-                }
-                final int tosend = rawdataframe.remaining();
-                final int buffsize = bufferedSendBytes.addAndGet(tosend);
-                final int bufflimit = ctx.dataFrameSendQueueLimitBytes;
-                if (bufflimit-buffsize < 0 ){
-                    throw new WebSocketWriteQueueOverflow(buffsize,bufflimit);
-                }
-                if (tosend == buffsize){
-                    boolean done = iohandler.write(rawdataframe);
-                    if (!done){ //TODO:If send(String) slice is not needed:
-                        int written_ = rawdataframe.remaining();
-                        currentwrite = written_ > 0?
-                            rawdataframe.slice() : emptybuffer;
-                        written = tosend - written_;
-                    }
-                    else{
-                        written = 0;
-                        currentwrite = null;
-                    }
-                    while(done && bufferedSendBytes.addAndGet(-tosend) > 0){
-                        //Another thread called send and our write is completed,
-                        //Its likely that socket native buffer is not full:
-                        //Lets do as much IO in worker thread as possible.
-                        //TODO: compare with LTQ using take and poll
-                        // LTQ.take can truly ensure we fill the socket
-                        // the "cost" would be a worker thread waiting for other
-                        // threads between their bufferedSendByte.addAndGet
-                        // and their writeQueue.add to complete.
-                        // the benefit is to only ever register write interest
-                        // when native socket buffer is full.
-                        // Question is how likely such concurrent bursts are ?.
-                        // the logic to handle them are however almost free.
-
-                        int written_ = 0;
-                        ByteBuffer bb;
-                        //while((bb = wq.poll())==null); // or ltq.take()
-                        while((bb = writeQueue.poll())!=null){
-                            int a = bb.position();
-                            done = iohandler.write(bb);
-                            written_ += bb.position() - a;
-                            if (!done){
-                                currentwrite = bb;
-                                written = written_;
-                                break;
-                            }
-                        }
-                    }
-                    if (!done){
-                        iohandler.writeInterestTaskOffer();
-                    }
-                    rawdataframe.rewind();// frame is ready for another send
-                    return true;
-                }
-                writeQueue.add(rawdataframe.duplicate());
-                return true;
-            }
-            if (rs == ReadyState.CONNECTING){
-                throw new NotYetConnectedException();
-            }
-        }catch(java.nio.BufferOverflowException boe){
-            close(TCPIOhandler.otherpeerclosed,false);
-        }catch (Throwable ex) {
-            close(ex,false);
-        }
-        rawdataframe.rewind();// frame is ready for another send
-        return false;
-    }*/
-   /* private final void dowrite(){
-        try{
-            //TODO move currentwrite into swaplist if thats final datastructure,
-            // setfirstelement for producer and consumer uses peek and poll.
-
-            ByteBuffer bb = currentwrite;
-            if (bb != null){
-                currentwrite = null;
-            }else{
-                bb =  writeQueue.poll();
-            }
-            int written_ = written;
-            boolean done = true;
-            while(bb!=null){
-                int a = bb.position();
-                done = iohandler.write(bb);
-                written_ += bb.position() - a;
-                if (!done){
-                    currentwrite = bb;
-                    break;
-                }
-                bb = writeQueue.poll();
-            }
-
-            if (done){
-                if(bufferedSendBytes.addAndGet(-written_) == 0){
-                    iohandler.removeKeyInterest(SelectionKey.OP_WRITE);
-                    return;
-                }
-                written_ = 0;
-            }
-            written = written_;
-     
-        }catch(java.nio.BufferOverflowException boe){
-            close(TCPIOhandler.otherpeerclosed,true);
-        }catch(Throwable t){
-            close(t,true);
-        }
-    }*/
 
     /**
-     * TODO: QA
-     * @return
-     * @throws IOException
+     * TODO: QA ensure this logic works good.
+     * @param maxwrites
+     * @return 
      */
-    private final boolean drainWriteQuee() throws IOException{
+    private final boolean drainWriteQueue(int maxwrites) throws IOException{
         ByteBuffer bb;
-        boolean done = true;
-        int writes = 0; //limit number of writes, maxtime spent here
-        while(done && (bb=writeQueue.peek())!=null && ++writes < 50 ){
-            final int a = bb.position();
-            if (done = iohandler.write(bb)){
+        int failedwr = 0;
+        int written_ = written;
+        while((bb=writeQueue.peek())!=null && maxwrites-->0 ){
+            int a = bb.position();
+            final boolean done = iohandler.write(bb);
+            a = bb.position() - a;
+            written_ += a;
+            if (done){
                 writeQueue.remove();
+                continue;
             }
-            written += bb.position() - a;
+            failedwr = a;
+            break;
         }
-        return done;
+        written = failedwr;
+        return bufferedSendBytes.addAndGet(-(written_-failedwr)) == 0;
     }
 
     private final void doSelectThreadWrite(){
-        try{ //TODO: QA ensure this logic works good. 
-            if (drainWriteQuee()){
-                if(bufferedSendBytes.addAndGet(-written) == 0){
-                    iohandler.removeKeyInterest(SelectionKey.OP_WRITE);
-                    return;
-                }
-                written = 0;
+        try{
+            if (drainWriteQueue(25)){
+                writeQueue.reset();//TODO: not good. must look into this
+                iohandler.removeKeyInterest(SelectionKey.OP_WRITE);                
             }
         }catch(java.nio.BufferOverflowException boe){
             close(TCPIOhandler.otherpeerclosed,true);
@@ -1022,13 +894,18 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         public final T peek(){
             int i = consumerCounter;
             if (i > consumerDatalength){
-                if ( consumerItems.length>32){
+                if (consumerItems.length > 32){
                     consumerItems = (T[]) new Object[32];
                 }                                
                 consumerCounter = i = 
                         (consumerItems = swaplists())[0] != null ? 0 : 1;
             }
             return consumerItems[i];
+        }
+
+        public synchronized void reset(){
+            this.consumerCounter = 1;
+            this.consumerDatalength = 0;
         }
     }
 

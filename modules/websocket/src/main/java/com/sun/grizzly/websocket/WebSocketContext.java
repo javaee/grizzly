@@ -103,7 +103,7 @@ public class WebSocketContext {
     /**
      * Changing this value will not affect existing connections, only new ones.
      */
-    protected volatile int initialReadBufferLength;
+    private volatile int initialReadBufferLength;
 
     /**
      * This value limits the max allowed length for {@link DataFrame}s in both
@@ -234,9 +234,12 @@ public class WebSocketContext {
      * read and send/write operations.
      * @param dataFrameSendQueueLimit number of frames at max size per websocket
      * @param dataFrameReadQueueLimit number of frames at max size per websocket
+     * @return 
      */
-    public WebSocketContext setDataFrameLimits(int maxDataFramelengthBytes,
-            int dataFrameSendQueueLimit, int dataFrameReadQueueLimit) {
+    public WebSocketContext setDataFrameLimits(
+            final int maxDataFramelengthBytes,
+            final int dataFrameSendQueueLimit,
+            final int dataFrameReadQueueLimit) {
         
         if (maxDataFramelengthBytes < mindataframelengthneededbyprotocol)
             throw new IllegalArgumentException("maxDataFramelengthBytes < "+

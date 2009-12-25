@@ -186,7 +186,7 @@ public class SSLIOhandler extends TCPIOhandler implements Handshaker{
     }
 
     private boolean flush() throws IOException{
-        ByteBuffer wbuf = sslWriteBuffer;
+        final ByteBuffer wbuf = sslWriteBuffer;
         if (channel.write(wbuf) == 0){//TODO: remove this when QA is done ?
             throw new RuntimeException("SSL.flush 0 bytes from "+wbuf);
         }
@@ -197,7 +197,7 @@ public class SSLIOhandler extends TCPIOhandler implements Handshaker{
     public boolean write(ByteBuffer buffer) throws IOException {
         // 16635 at least is needed free or buffer overflow will trigger.
         
-        ByteBuffer wbuf = sslWriteBuffer;
+        final ByteBuffer wbuf = sslWriteBuffer;
         if (buffer.remaining() == 0 && wbuf.hasRemaining() ){
             return super.write(wbuf);
         }        
