@@ -39,6 +39,7 @@ package com.sun.grizzly.websocket;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,7 +51,7 @@ public class WebSocketContext {
 
     public final static int TIMEOUTDISABLEDVALUE = 0;
 
-    protected final static int memOverheadPerQueuedReadFrame = 100;
+    protected final static int memOverheadPerReadFrame = 100;
 
     protected final static int maxallowedReadOrWriteQueueBytes = 1<<30;
 
@@ -256,7 +257,7 @@ public class WebSocketContext {
         if (sq > maxallowedReadOrWriteQueueBytes)
             throw new IllegalArgumentException("Max allowed dataFrameSendQu" +
           "eueLimitBytes exceeded : "+sq+" > "+maxallowedReadOrWriteQueueBytes);
-        long rq =((long)maxDataFramelengthBytes + memOverheadPerQueuedReadFrame)
+        long rq =((long)maxDataFramelengthBytes + memOverheadPerReadFrame)
                 * dataFrameReadQueueLimit;
         if (rq > maxallowedReadOrWriteQueueBytes)
             throw new IllegalArgumentException("Max allowed dataFrameReadQu" +
@@ -403,8 +404,10 @@ public class WebSocketContext {
      * @param eventlistener
      */
     public void setEventlistener(WebSocketListener eventlistener) {
-        if (eventlistener != null)
-            this.eventlistener = eventlistener;
+        if (eventlistener == null){
+            throw new IllegalArgumentException("eventlistener is null");
+        }
+        this.eventlistener = eventlistener;
     }
 
     /**
@@ -439,8 +442,8 @@ public class WebSocketContext {
      * will be reflected in the backing datastructure.
      * @return
      */
-    public static Collection<WebSocketContext> getAll(){
-        return contexts.values();
+    public static Map<String,WebSocketContext> getAll(){
+        return contexts;
     }
 
     public static WebSocketContext create(String resourcepath,String protocol,

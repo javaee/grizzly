@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.websocket;
 
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import java.io.IOException;
@@ -45,6 +46,8 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.NotYetConnectedException;
 import java.nio.channels.SelectionKey;
+import java.util.Queue;
+import java.util.concurrent.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReferenceFieldUpdater;
 import java.util.logging.Level;
@@ -95,6 +98,10 @@ import javax.net.ssl.SSLEngine;
  * Further optimize buffer.compact and resize logic in parseFrame().
  * <br>
  * MySwapList, ensure no large datastructure is left behind.
+ * <br>
+ * socketchannel.write(ByteBuffer[]) does not perform well.
+ * Investigate why, and how hard its to fix.
+ * It should give a perf boost to allow for bulk writes when draining.
  * <br>
  * TODO: is there a need for pluggable handler for uncaught exceptions
  * from services ({@link WebSocketListener}) per context or global ?.
@@ -160,14 +167,12 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
      */
     private final AtomicInteger bufferedSendBytes = new AtomicInteger();
 
-    private int written ;
-
     protected ByteBuffer readBuffer;
     private byte[] readByteArray;
 
     private ByteBuffer currentwrite;
 
-    private final MySwapList<ByteBuffer> writeQueue;
+    private final Queue<ByteBuffer> writeQueue;
     
     private volatile Throwable closedCause;
 
@@ -178,6 +183,16 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
     private final WebsocketHandshake handshake;
 
     private SelectThread selthread;
+
+    private final Runnable reEnableReadInterest = new Runnable() {
+        public void run() {
+            try{
+                iohandler.addKeyInterest(SelectionKey.OP_READ);
+                parseFrame();//consume any remaining data.
+            }catch(Throwable t){
+                close(t,true);
+            }
+        }};
 
     /**
      *
@@ -255,8 +270,8 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         this.handshake        = handshake;
         this.iohandler        = iohandler;
         this.ctx              = ctx;
-       // this.writeQueue       = SelectThread.getCLQinstance();
-        this.writeQueue       = new MySwapList<ByteBuffer>();
+        this.writeQueue       = DataStructures.getCLQinstance(ByteBuffer.class);
+        //this.writeQueue     = new MySwapList<ByteBuffer>();
     }
 
     @Override
@@ -353,7 +368,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         final boolean hasdata = parsed > 0;
         if (hasdata){
             iohandler.setKeyInterest(0);
-        }
+        }   
         if(state.compareAndSet(this,ReadyState.CONNECTING,ReadyState.OPEN)){
             this.idleTimestamp = timestamp;
             currentTimeOut = ctx.getIdleTimeoutSeconds() * 1000000000L;
@@ -497,8 +512,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         //TODO validate UTF8: user configurable if to trust data or validate.
         final DataFrame frame = new DataFrame(frametype==TEXTTYPE, bbf);
         frametype = -1;
-        final int memsize = length +
-                WebSocketContext.memOverheadPerQueuedReadFrame;
+        final int memsize = length + WebSocketContext.memOverheadPerReadFrame;
         final boolean throttled = bufferedOnMessageRAMbytes.addAndGet(memsize)
                 > ctx.dataFrameReadQueueLimitBytes;
         if (throttled){
@@ -511,7 +525,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         // fits in the remaining alingnment overhead in 64bit mode)
         SelectThread.workers.execute(new Runnable() {
             public void run() {
-               fireOnMessage(frame,memsize);
+               fireOnMessage(frame,memsize,throttled);
             }
         });        
         return throttled;
@@ -522,9 +536,9 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
      *  and calculate consume before the onMessage call.
      * @param frame
      */
-    private final void fireOnMessage(DataFrame frame, final int memsize){
-        if(bufferedOnMessageRAMbytes.addAndGet(-memsize) == 0 &&
-                (iohandler.keyInterest&SelectionKey.OP_READ)==0){
+    private final void fireOnMessage(
+            DataFrame frame,int memsize,boolean throttled){
+        if(bufferedOnMessageRAMbytes.addAndGet(-memsize) == 0 && throttled){
             selthread.offerTask(reEnableReadInterest);
         }
         try{
@@ -533,16 +547,6 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
             handleListenerException(t);
         }        
     }
-
-    private final Runnable reEnableReadInterest = new Runnable() {
-        public void run() {
-            try{
-                iohandler.addKeyInterest(SelectionKey.OP_READ);
-                parseFrame();//consume any remaining data.
-            }catch(Throwable t){
-                close(t,true);
-            }
-        }};
 
     @Override
     public final boolean send(DataFrame dataframe) {
@@ -568,7 +572,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
 
     /**
      * 
-     * @param rawframe
+     * @param rawframe with position at 0
      * @return
      */
     @Override
@@ -586,18 +590,15 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
                     throw new WebSocketWriteQueueOverflow(buffsize,bufflimit);
                 }
                 if (tosend == buffsize){
-                    final boolean frameNotDone = !iohandler.write(rawframe);
-                    if (frameNotDone){
-                        tosend -= rawframe.remaining();
+                    final boolean notdone = !iohandler.write(rawframe);
+                    if (notdone){
+                        currentwrite = rawframe.slice();
+                        tosend -= rawframe.remaining() + 1;                       
                     }
-                    if (bufferedSendBytes.addAndGet(-tosend) > 0){
-                        //TODO: re enable draining :
-                        if (!drainWriteQueue(Integer.MAX_VALUE)){
-                            if (frameNotDone){
-                                writeQueue.setProducerfirstElement(rawframe.slice());
-                            }
-                            iohandler.writeInterestTaskOffer();
-                        }
+                    if (bufferedSendBytes.addAndGet(-tosend) > 0
+                            && (notdone || !drainWriteQueue(Integer.MAX_VALUE))
+                            ){
+                        iohandler.writeInterestTaskOffer();
                     }
                     rawframe.rewind();// frame is ready for another send
                     return true;
@@ -617,35 +618,39 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         return false;
     }
 
-    /**
-     * TODO: QA ensure this logic works good.
-     * @param maxwrites
-     * @return 
-     */
-    private final boolean drainWriteQueue(int maxwrites) throws IOException{
-        ByteBuffer bb;
-        int failedwr = 0;
-        int written_ = written;
-        while((bb=writeQueue.peek())!=null && maxwrites-->0 ){
-            int a = bb.position();
+    private final boolean drainWriteQueue(int maxwrites) throws IOException{        
+        ByteBuffer bb = currentwrite;
+        boolean cw = bb != null;
+        if (!cw){
+            bb = writeQueue.poll();            
+        }
+        int written = 0;
+        while(bb != null){
+            final int a = bb.position();
             final boolean done = iohandler.write(bb);
-            a = bb.position() - a;
-            written_ += a;
+            written += bb.position() - a;
             if (done){
-                writeQueue.remove();
+                if (cw){
+                    cw = false;
+                    currentwrite = null;
+                    written++;
+                }
+                bb = --maxwrites>0 ? writeQueue.poll() : null;
                 continue;
             }
-            failedwr = a;
+            if (!cw){
+                written--;
+                currentwrite = bb;
+            }
             break;
-        }
-        written = failedwr;
-        return bufferedSendBytes.addAndGet(-(written_-failedwr)) == 0;
+        }        
+        return bufferedSendBytes.addAndGet(-written) == 0;
     }
 
     private final void doSelectThreadWrite(){
         try{
             if (drainWriteQueue(25)){
-                writeQueue.reset();//TODO: not good. must look into this
+                //System.err.println("seldrained "+handshake.getClass()+ "");
                 iohandler.removeKeyInterest(SelectionKey.OP_WRITE);                
             }
         }catch(java.nio.BufferOverflowException boe){
@@ -785,9 +790,11 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         }
     }
 
-    public final class WebSocketWriteQueueOverflow extends Nostacktrace{
-        public final long buffsize, limit;
+    public final class WebSocketWriteQueueOverflow extends Exception{
+        public final long buffsize;
+        public final int limit;
         public WebSocketWriteQueueOverflow(long buffsize, int limit) {
+            super();
             this.buffsize = buffsize<0?buffsize+(1L<<32):buffsize;
             this.limit = limit;
         }

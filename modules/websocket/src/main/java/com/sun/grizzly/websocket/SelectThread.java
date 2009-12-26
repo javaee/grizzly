@@ -109,25 +109,25 @@ class SelectThread extends Thread{
         if (i>2){
             i = Math.min(8,i/2);
         }
-        SelectThread first = dostart();
+        final SelectThread first = createInstance();
         SelectThread a = first;
         while(--i>0){
-            a = a.next = dostart();
+            a = a.next = createInstance();
         }
         a.next = first;
         current = first;
+        SelectThread c = first;
+        do{
+            c.start();
+        }while((c = c.next) !=  first);
     }
 
-  //todo make more rubust design.
-    private static SelectThread dostart() {
+    private static SelectThread createInstance() {
         try {
-            SelectThread ws = new SelectThread();
-            ws.start();
-            return ws;
+            return new SelectThread();
         } catch (Throwable ex) {
-            logger.log(Level.SEVERE,"" , ex);
-        }
-        return null;
+            throw new RuntimeException(ex);
+        }        
     }
 
     /**
@@ -175,9 +175,9 @@ class SelectThread extends Thread{
         super(SelectThread.class.getSimpleName()+
                 "("+threadcount.incrementAndGet()+")");
         this.selector = Selector.open();
-        this.newConnections = DataStructures.getCLQinstance(SelectorLogicHandler.class);
-        this.tasksforSelectThread = DataStructures.getCLQinstance(Runnable.class);
-        //this.workers  = initThreadPool();
+        this.newConnections =
+                DataStructures.getCLQinstance(SelectorLogicHandler.class);
+        this.tasksforSelectThread=DataStructures.getCLQinstance(Runnable.class);
         this.setPriority(Thread.NORM_PRIORITY + 1);
     }
  
