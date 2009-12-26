@@ -46,7 +46,6 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.util.AbstractThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.net.SSLSupport;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
@@ -59,11 +58,9 @@ import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.nio.charset.CharacterCodingException;
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -213,14 +210,12 @@ public class WebSocketTest  extends TestCase{
             sslConfig.setTrustStoreFile(trustStoreFile);
             sslConfig.setTrustStorePass("changeit");
         }
-        //System.out.println("SSL certs path: " + trustStoreFile);
         URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
         String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
         if (keystoreUrl != null) {
             sslConfig.setKeyStoreFile(keyStoreFile);
             sslConfig.setKeyStorePass("changeit");
         }
-        //System.out.println("SSL keystore path: " + keyStoreFile);
         SSLConfig.DEFAULT_CONFIG = sslConfig;
     }
    
@@ -230,14 +225,9 @@ public class WebSocketTest  extends TestCase{
         //System.err.println(System.getProperty("jsse.SSLEngine.acceptLargeFragments"));
     }   
 
-    public void testar() throws Exception{
-        init(false);
-        dotestFrames(8, (1<<13)+1, (1<<13)+1, 40000, 0);
-    }
-
-    public void testChatsPlain() throws Exception{
+   /* public void testChatsPlain() throws Exception{
         doTestChats(false);
-    }
+    }*/
 
    /* public void testChatsSSL() throws Exception{
         doTestChats(true);
@@ -246,17 +236,17 @@ public class WebSocketTest  extends TestCase{
     private void doTestChats(boolean useSSL) throws Exception{
         SelectThread.getStatistics(true);
         init(useSSL);
-        final int shortTestSeconds = 5; //30
+        final int shortTestSeconds = 30; //30
         final int longTestSeconds  = 300;
         int m = 1;
         // test here is in low perf mode now ((,
         // had to temporarly disable real world like chat tests
         // inorder to more easily  ensure stable self balanced load.
         
-        int[][] v  = new int[][]{            
-            { 1   , 10  ,m   ,shortTestSeconds },
-            { 1   , 50  ,m   ,shortTestSeconds }
-            //{ 1   , 1000 ,m   ,shortTestSeconds },
+        int[][] v  = new int[][]{
+            { 1   , 1   ,100  ,1 ,shortTestSeconds },
+            { 1   , 50  ,1   ,1  ,shortTestSeconds }
+            //{ 1   , 1000 ,m,1  ,shortTestSeconds },
 
             // disabled heavier tests to unit test dont fail on weak systems :
             
@@ -265,17 +255,17 @@ public class WebSocketTest  extends TestCase{
             //{ 1   , 8192 ,8   ,longTestSeconds  }
         };
         
-        int[] msgSizes = new int[]{100000, 4000, 1 };
+        int[] msgSizes = new int[]{1,4000, 100000};
         for (int[] iv:v){
             for (int msgs:msgSizes){
-                doOnetestChat(iv[0],iv[1],iv[3],iv[2],msgs);
+                doOnetestChat(iv[0],iv[1],iv[4],iv[2],msgs,iv[3]);
             }
         }
     }
 
     private void doOnetestChat(final int chatcount,final int clientsPerChat,
-            final int chatTimeSec, final int msgRepeats, final int msgsize)
-            throws Exception{
+            final int chatTimeSec, final int msgRepeats, final int msgsize,
+            final int readlimitframes) throws Exception{
         WebSocketContext.getAll().clear();        
         byte[] ba = new byte[msgsize];
         Arrays.fill(ba, (byte)65);
@@ -283,11 +273,12 @@ public class WebSocketTest  extends TestCase{
         ServerChatListener[] sli = new ServerChatListener[chatcount];
         final CountDownLatch cd = new CountDownLatch(chatcount*clientsPerChat);
         shouldDie = false;
+        
         for (int i=0;i < chatcount;i++){
             sli[i] = new ServerChatListener(clientsPerChat,msg);
             String chat = "chat"+i;
             WebSocketContext wsctx = addContext(chat,sli[i],true).
-                    setDataFrameLimits(2+msgsize, 1024, 1);
+                    setDataFrameLimits( 2+msgsize, 500, readlimitframes);
             for (int x=1;x<=clientsPerChat;x++){
                 if (i*clientsPerChat+x > 500){
                   Thread.sleep(5);
@@ -298,6 +289,7 @@ public class WebSocketTest  extends TestCase{
                     null,null,sslctx,wsctx);
             }
         }
+        
         Thread.sleep(500+chatTimeSec*1000);
         shouldDie = true;        
         double tp = 0;
@@ -478,34 +470,7 @@ public class WebSocketTest  extends TestCase{
             }
         }
     }*/
-
-  /*  public void testMixedLoadPatternsPLAINTCP() throws Exception{
-        dotestMixedLoadPatterns(false,8,64);
-    }
-
-    public void testMixedLoadPatternsSSL() throws Exception{
-        dotestMixedLoadPatterns(true,8,64);
-    }*/
-
-    public void dotestMixedLoadPatterns(boolean ssl,int minc, int maxc) throws Exception{
-        init(ssl);
-        dota(minc);
-        if (minc != maxc)
-            dota(maxc);
-    }
-
-    private void dota(int c) throws Exception{
-        for (int i=3;i<=16;i++){
-            dotestFrames(c, 1<<i, 1<<i, 1, 0);
-        }
-        int i = 1<<16;
-        dotestFrames(c,   2, 2,   i, 0);
-        dotestFrames(c,   3, 3,   i, 0);
-        dotestFrames(c, 129, 129, i, 0);
-    }
-    
- 
-
+   
     public int dotestFrames(int clients,int minframelangth, int maxframelength,
             int maxframes, int targettime) throws Exception{
         String ctxname = "a";
@@ -525,7 +490,7 @@ public class WebSocketTest  extends TestCase{
                 int msgs=ctx.dataFrameSendQueueLimitBytes/(x);
                 String ti;
                 //ti = startAndwait(clients,1+(msgs>>2),x, false, false,ctxname,40);
-                ti = startAndwait(clients,msgs   ,x, true,ctxname,300,targettime);
+                ti = startAndwait(clients,msgs   ,x, true,ctxname,60,targettime);
                 System.err.println("ping-pong total "+msgs*clients+" frames a "+x+
                         " bytes using "+clients+" clients "+ti);
             }
