@@ -43,7 +43,7 @@
               <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <configuration>
+                <configuration>         
                     <argLine>-Xms512m -server</argLine>
                     <!-- <argLine>-Xmx3g -Xms3g -d64 -XX:CompileThreshold=3000 -Xss224k -XX:BiasedLockingStartupDelay=0 -XX:-DontCompileHugeMethods -XX:+UseOnStackReplacement</argLine> !-->
                 </configuration>
@@ -53,8 +53,14 @@
     <dependencies>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-utils</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
             <version>${grizzly-version}</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
