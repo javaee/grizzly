@@ -63,14 +63,6 @@
             <name>Java.net Repository for Grizzly</name>
             <url>http://download.java.net/maven/2</url>
         </repository>
-        <!--
-        <repository>
-            <id>maven-repository.dev.java.net</id>
-            <name>Java.net Maven 1 Repository (legacy)</name>
-            <url>http://download.java.net/maven/1</url>
-            <layout>legacy</layout>
-        </repository>
-        -->
         <repository>
             <id>codehaus</id>
             <name>repository.codehaus.org</name>
@@ -99,17 +91,17 @@
             <extension>
                 <groupId>org.jvnet.wagon-svn</groupId>
                 <artifactId>wagon-svn</artifactId>
-                <version>1.8</version>
+                <version>1.9</version>
             </extension>
             <extension>
                 <groupId>org.apache.maven.wagon</groupId>
                 <artifactId>wagon-ssh-external</artifactId>
-                <version>1.0-alpha-6</version>
+                <version>1.0-beta-6</version>
             </extension>
             <extension>
                 <groupId>org.apache.maven.wagon</groupId>
                 <artifactId>wagon-webdav</artifactId>
-                <version>1.0-beta-1</version>
+                <version>1.0-beta-2</version>
             </extension>
         </extensions>
         <defaultGoal>install</defaultGoal>
@@ -128,14 +120,16 @@
         <pluginManagement>
             <plugins>
                 <plugin>
+                    <inherited>true</inherited>
                     <groupId>org.jvnet.maven-antrun-extended-plugin</groupId>
                     <artifactId>maven-antrun-extended-plugin</artifactId>
-                    <version> 1.36 </version>
+                    <version>1.40</version>
                 </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
             <plugin>
+                <inherited>true</inherited>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
                     <source>1.5</source>
@@ -149,11 +143,10 @@
                     <tagBase>https://www.dev.java.net/svn/grizzly/tags</tagBase>
                 </configuration>
             </plugin>
-
             <plugin>
+                <inherited>true</inherited>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
-                <!-- <version>2.1</version>-->
                 <configuration>
                     <archive>
                         <manifestEntries>
@@ -165,15 +158,6 @@
                     </archive>
                 </configuration>
             </plugin>
-            <!--           <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>cobertura-maven-plugin</artifactId>
-                <configuration>
-                    <formats>
-                        <format>xml</format>
-                    </formats>
-                </configuration>
-            </plugin> -->
         </plugins>
     </build>
     <profiles>
@@ -182,6 +166,7 @@
             <build>
                 <plugins>
                     <plugin>
+                        <inherited>true</inherited>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>build-helper-maven-plugin</artifactId>
                         <executions>
@@ -213,6 +198,7 @@
                         </executions>
                     </plugin>
                     <plugin>
+                        <inherited>true</inherited>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-javadoc-plugin</artifactId>
                         <configuration>
