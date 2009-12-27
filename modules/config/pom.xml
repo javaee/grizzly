@@ -41,38 +41,13 @@
     </pluginRepositories>
 
     <build>
-        <extensions>
-            <extension>
-                <groupId>org.jvnet.wagon-svn</groupId>
-                <artifactId>wagon-svn</artifactId>
-                <version>1.8</version>
-            </extension>
-            <extension>
-                <groupId>org.apache.maven.wagon</groupId>
-                <artifactId>wagon-ssh-external</artifactId>
-                <version>1.0-alpha-6</version>
-            </extension>
-            <extension>
-                <groupId>org.apache.maven.wagon</groupId>
-                <artifactId>wagon-webdav</artifactId>
-                <version>1.0-beta-1</version>
-            </extension>
-        </extensions>
         <defaultGoal>install</defaultGoal>
         <finalName>${artifactId}</finalName>
         <plugins>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.5</source>
-                    <target>1.5</target>
-                    <compilerArgument>${maven.compiler.argument}</compilerArgument>
-                </configuration>
-            </plugin>
-            <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <version>1.4.0</version>
+                <version>${felix-version}</version>
                 <configuration>
                     <supportedProjectTypes>
                         <supportedProjectType>hk2-jar</supportedProjectType>
@@ -111,12 +86,6 @@
             </plugin>
         </plugins>
     </build>
-    <distributionManagement>
-        <repository>
-            <id>java.net-m2-repository</id>
-            <url>java-net:/maven2-repository/trunk/repository/</url>
-        </repository>
-    </distributionManagement>
     <reporting>
         <plugins>
             <plugin>
@@ -129,7 +98,6 @@
             </plugin>
         </plugins>
     </reporting>
-
     <dependencies>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
@@ -166,7 +134,7 @@
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>5.8</version>
+            <version>5.10</version>
             <classifier>jdk15</classifier>
             <scope>test</scope>
         </dependency>
