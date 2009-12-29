@@ -61,9 +61,6 @@ import java.util.logging.Logger;
  * The increased concurrency and faster iteration, removal is
  * likely to outweight the GC overad of iterator creation at high loads.
  * <br>
- * getstatistics . make it threadsafe by using a runnable task that gets the
- * info from inside selthread and then uses a barrier to return it to caller.
- * <br>
  * TODO: add easy to use configuration of everything.
  * <br>
  * TODO: add jdoc
@@ -85,9 +82,9 @@ class SelectThread extends Thread{
             Math.max(4, 1*Runtime.getRuntime().availableProcessors())
             ,null, -1, 1, TimeUnit.MILLISECONDS,
             new ThreadFactory(){
-                private final AtomicInteger c = new AtomicInteger();
-                public Thread newThread(Runnable r) {                    
-                  return new Thread("WebSocketWorker("+c.incrementAndGet()+")");
+                //private final AtomicInteger c = new AtomicInteger();
+                public Thread newThread(Runnable r) {
+                  return new Thread(r);//r,"WebSocketWorker("+c.incrementAndGet()+")");
                 }
             }
             ,Thread.NORM_PRIORITY, null));
@@ -299,7 +296,6 @@ class SelectThread extends Thread{
     @Override
     public String toString() {
         return getName() +
-                //" sockets:"+socketCount+
                 " socketsServedLifeTime:"+socketsServedLifeTimeCounter+" ";
     }    
 
