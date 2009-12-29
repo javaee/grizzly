@@ -72,10 +72,9 @@ import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyListener;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.IntrospectionUtils;
-
-import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.WorkerThreadImpl;
@@ -94,6 +93,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -384,19 +384,19 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     /**
-     * {@link LinkedTransferQueue} used as an object pool.
+     * {@link Queue} used as an object pool.
      * If the list becomes empty, new {@link ProcessorTask} will be
      * automatically added to the list.
      */
-    protected LinkedTransferQueue<ProcessorTask> processorTasks =
-        new LinkedTransferQueue<ProcessorTask>();
+    protected final Queue<ProcessorTask> processorTasks =
+        DataStructures.getCLQinstance(ProcessorTask.class);
                                                                              
     
     /**
      * List of active {@link ProcessorTask}.
      */
-    protected LinkedTransferQueue<ProcessorTask> activeProcessorTasks =
-        new LinkedTransferQueue<ProcessorTask>();
+    protected final Queue<ProcessorTask> activeProcessorTasks =
+        DataStructures.getCLQinstance(ProcessorTask.class);
     
     // -----------------------------------------  Multi-Selector supports --//
 
@@ -2247,7 +2247,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         this.forcedRequestType = forcedRequestType;
     }
 
-    public LinkedTransferQueue<ProcessorTask> getActiveProcessorTasks() {
+    public Queue<ProcessorTask> getActiveProcessorTasks() {
         return activeProcessorTasks;
     }
 

@@ -43,12 +43,12 @@ import com.sun.grizzly.Controller;
 import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.async.AsyncQueue.AsyncQueueEntry;
 import com.sun.grizzly.util.FutureImpl;
-import com.sun.grizzly.util.LinkedTransferQueue;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.Queue;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -59,8 +59,8 @@ import java.util.logging.Level;
  * @author oleksiys
  */
 public abstract class AbstractAsyncQueueReader implements AsyncQueueReader {
-    protected SelectorHandler selectorHandler;
-    private AsyncQueue<SelectableChannel, AsyncQueueReadUnit> readQueue;
+    protected final SelectorHandler selectorHandler;
+    private final AsyncQueue<SelectableChannel, AsyncQueueReadUnit> readQueue;
     
     public AbstractAsyncQueueReader(SelectorHandler selectorHandler) {
         this.selectorHandler = selectorHandler;
@@ -109,8 +109,8 @@ public abstract class AbstractAsyncQueueReader implements AsyncQueueReader {
 
         AsyncQueueReadUnit record = new AsyncQueueReadUnit();
 
-        LinkedTransferQueue<AsyncQueueReadUnit> queue = channelEntry.queue;
-        AtomicReference<AsyncQueueReadUnit> currentElement = channelEntry.currentElement;
+        final Queue<AsyncQueueReadUnit> queue = channelEntry.queue;
+        final AtomicReference<AsyncQueueReadUnit> currentElement = channelEntry.currentElement;
         ReentrantLock lock = channelEntry.queuedActionLock;
         
         final int holdState = lock.getHoldCount();
@@ -253,8 +253,8 @@ public abstract class AbstractAsyncQueueReader implements AsyncQueueReader {
         AsyncQueueEntry channelEntry = 
                 readQueue.obtainAsyncQueueEntry(channel);
         
-        LinkedTransferQueue<AsyncQueueReadUnit> queue = channelEntry.queue;
-        AtomicReference<AsyncQueueReadUnit> currentElement = channelEntry.currentElement;
+        final Queue<AsyncQueueReadUnit> queue = channelEntry.queue;
+        final AtomicReference<AsyncQueueReadUnit> currentElement = channelEntry.currentElement;
         ReentrantLock lock = channelEntry.queuedActionLock;
 
         if (currentElement.get() == null) {
@@ -350,7 +350,7 @@ public abstract class AbstractAsyncQueueReader implements AsyncQueueReader {
      */
     public void close() {
         readQueue.clear();
-        readQueue = null;
+        //readQueue = null;
     }
 
     protected abstract OperationResult doRead(ReadableByteChannel channel,

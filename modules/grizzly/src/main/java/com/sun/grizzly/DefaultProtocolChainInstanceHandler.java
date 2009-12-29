@@ -38,7 +38,8 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.DataStructures;
+import java.util.Queue;
 
 /**
  * Default implementation of an ProtocolChainInstanceHandler. 
@@ -55,11 +56,11 @@ public class DefaultProtocolChainInstanceHandler
     /**
      * List used to cache instance of ProtocolChain.
      */
-    protected LinkedTransferQueue<ProtocolChain> protocolChains;
+    protected final Queue<ProtocolChain> protocolChains;
         
     
     public DefaultProtocolChainInstanceHandler() {
-        protocolChains = new LinkedTransferQueue<ProtocolChain>();
+        protocolChains = DataStructures.getCLQinstance(ProtocolChain.class);
     }
 
     

@@ -61,8 +61,7 @@ import com.sun.grizzly.cometd.bayeux.UnsubscribeResponse;
 import com.sun.grizzly.cometd.bayeux.VerbBase;
 import com.sun.grizzly.cometd.bayeux.Verb.Type.*;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.util.LinkedTransferQueue;
-
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.buf.Base64Utils;
 import java.io.IOException;
 import java.security.SecureRandom;
@@ -296,7 +295,7 @@ public class BayeuxParser{
                     String clientId = unsubscribeReq.getClientId();
                     AbstractQueue<String> unsubscribedChannels = inactiveChannels.get(clientId);
                     if (unsubscribedChannels == null) {
-                        unsubscribedChannels = new LinkedTransferQueue<String>();
+                        unsubscribedChannels = (AbstractQueue<String>) DataStructures.getCLQinstance(String.class);
                         AbstractQueue<String> uscs = inactiveChannels.putIfAbsent(clientId, unsubscribedChannels);
                         if (uscs != null) {
                             unsubscribedChannels = uscs;

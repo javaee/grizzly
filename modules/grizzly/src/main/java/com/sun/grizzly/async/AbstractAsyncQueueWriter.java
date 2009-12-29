@@ -46,13 +46,13 @@ import com.sun.grizzly.Controller;
 import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.async.AsyncQueue.AsyncQueueEntry;
 import com.sun.grizzly.util.FutureImpl;
-import com.sun.grizzly.util.LinkedTransferQueue;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.WritableByteChannel;
+import java.util.Queue;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -63,8 +63,8 @@ import java.util.logging.Level;
  * @author oleksiys
  */
 public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
-    protected SelectorHandler selectorHandler;
-    private AsyncQueue<SelectableChannel, AsyncQueueWriteUnit> writeQueue;
+    protected final SelectorHandler selectorHandler;
+    private final AsyncQueue<SelectableChannel, AsyncQueueWriteUnit> writeQueue;
     
     public AbstractAsyncQueueWriter(SelectorHandler selectorHandler) {
         this.selectorHandler = selectorHandler;
@@ -166,8 +166,8 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
 
         AsyncQueueWriteUnit record = new AsyncQueueWriteUnit();
         
-        LinkedTransferQueue<AsyncQueueWriteUnit> queue = channelEntry.queue;
-        AtomicReference<AsyncQueueWriteUnit> currentElement = channelEntry.currentElement;
+        final Queue<AsyncQueueWriteUnit> queue = channelEntry.queue;
+        final AtomicReference<AsyncQueueWriteUnit> currentElement = channelEntry.currentElement;
         ReentrantLock lock = channelEntry.queuedActionLock;
         
         // If AsyncQueue is empty - try to write ByteBuffer here
@@ -299,8 +299,8 @@ public abstract class AbstractAsyncQueueWriter implements AsyncQueueWriter {
         AsyncQueueEntry channelEntry = 
                 writeQueue.obtainAsyncQueueEntry(channel);
         
-        LinkedTransferQueue<AsyncQueueWriteUnit> queue = channelEntry.queue;
-        AtomicReference<AsyncQueueWriteUnit> currentElement = channelEntry.currentElement;
+        final Queue<AsyncQueueWriteUnit> queue = channelEntry.queue;
+        final AtomicReference<AsyncQueueWriteUnit> currentElement = channelEntry.currentElement;
         ReentrantLock lock = channelEntry.queuedActionLock;
 
         if (currentElement.get() == null) {

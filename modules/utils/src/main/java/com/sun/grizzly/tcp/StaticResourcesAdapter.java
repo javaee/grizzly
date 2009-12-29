@@ -52,7 +52,6 @@ import com.sun.grizzly.util.http.MimeType;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 
@@ -77,7 +76,7 @@ public class StaticResourcesAdapter implements Adapter {
     protected String resourcesContextPath = "";
     protected final Queue<File> fileFolders =
             DataStructures.getCLQinstance(File.class);
-    protected ConcurrentHashMap<String, File> cache = new ConcurrentHashMap<String, File>();
+    protected final ConcurrentHashMap<String, File> cache = new ConcurrentHashMap<String, File>();
     protected Logger logger = LoggerUtils.getLogger();
     private boolean useSendFile = true;
     /**

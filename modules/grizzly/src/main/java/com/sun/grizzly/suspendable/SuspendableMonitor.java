@@ -48,11 +48,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.grizzly.suspendable.SuspendableFilter.KeyHandler;
-import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.Utils;
-import com.sun.grizzly.util.WorkerThreadImpl;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
+import java.util.Queue;
 
 /**
  * A secondary {@link Selector} used to keep the state of a suspended
@@ -66,27 +66,28 @@ public class SuspendableMonitor implements Runnable {
     /**
      * The {@link Selector}
      */
-    private Selector selector;
+    private final Selector selector;
     
 
-    private LinkedTransferQueue<KeyHandler> keysToRegister
-            = new LinkedTransferQueue<KeyHandler>();
+    private final Queue<KeyHandler> keysToRegister =
+            DataStructures.getCLQinstance(KeyHandler.class);
     
     /**
      * Logger.
      */
-    private Logger logger = Controller.logger();
+    private final Logger logger = Controller.logger();
 
     /**
      * Start a new Thread with a Selector running.
      */
     public SuspendableMonitor() {
+        Selector sel = null;
         try {
-            selector = Utils.openSelector();
+            sel = Utils.openSelector();
         } catch (IOException ex) {
-            // Most probably a fd leak.
-            logger.log(Level.SEVERE, "SuspendableMonitor.open()", ex);
+            throw new RuntimeException("SuspendableMonitor.open()",ex);
         }
+        this.selector = sel;
     }
 
 

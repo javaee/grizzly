@@ -46,7 +46,7 @@ import com.sun.grizzly.async.TCPAsyncQueueReader;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.Copyable;
-import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
@@ -67,6 +67,7 @@ import java.nio.channels.SocketChannel;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
@@ -103,31 +104,32 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * Selector.select is invoked.
      * can be combined read+write interest or Connect
      */
-    protected final LinkedTransferQueue<SelectionKeyOP> opToRegister
-            = new LinkedTransferQueue<SelectionKeyOP>();
+    protected final Queue<SelectionKeyOP> opToRegister =
+            DataStructures.getCLQinstance(SelectionKeyOP.class);
+
 
     /**
      *  SelectionKeys to be registered with Read interest in the next Selector.select();
      */
-    private final LinkedTransferQueue<SelectionKey> readOpToRegister
-            = new LinkedTransferQueue<SelectionKey>();
+    private final Queue<SelectionKey> readOpToRegister =
+            DataStructures.getCLQinstance(SelectionKey.class);
 
     /**
      *  SelectionKeys to be registered with Write interest in the next Selector.select();
      */
-    private final LinkedTransferQueue<SelectionKey> writeOpToRegister
-            = new LinkedTransferQueue<SelectionKey>();
+    private final Queue<SelectionKey> writeOpToRegister =
+            DataStructures.getCLQinstance(SelectionKey.class);
 
     /**
      * SelectionKeys to be registered with Read and Write interest in the next Selector.select();
      */
-    private final LinkedTransferQueue<SelectionKey> readWriteOpToRegister
-            = new LinkedTransferQueue<SelectionKey>();
+    private final Queue<SelectionKey> readWriteOpToRegister =
+            DataStructures.getCLQinstance(SelectionKey.class);
 
     /**
      *  enqueued events from selectionkey attachment logic.
      */
-    private final LinkedTransferQueue pendingIO = new LinkedTransferQueue();
+    private final Queue pendingIO = DataStructures.getCLQinstance();
 
 
     /**

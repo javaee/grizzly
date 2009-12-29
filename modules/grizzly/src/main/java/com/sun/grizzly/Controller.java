@@ -41,10 +41,10 @@ import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
 import com.sun.grizzly.util.Copyable;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.FixedThreadPool;
 import com.sun.grizzly.util.Grizzly;
-import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
@@ -52,7 +52,6 @@ import com.sun.grizzly.util.SupportStateHolder;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.WorkerThreadFactory;
 import com.sun.grizzly.util.WorkerThreadImpl;
-
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -61,6 +60,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -196,7 +196,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * The set of {@link SelectorHandler}s used by this instance. If not set, the instance
      * of the TCPSelectorHandler will be added by default.
      */
-    protected LinkedTransferQueue<SelectorHandler> selectorHandlers;
+    protected final Queue<SelectorHandler> selectorHandlers =
+            DataStructures.getCLQinstance(SelectorHandler.class);
     /**
      * Current {@link Controller} state
      */
@@ -223,7 +224,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * will are notified on {@link Controller} state change.
      */
     protected final Collection<ControllerStateListener> stateListeners =
-            new LinkedTransferQueue<ControllerStateListener>();
+            DataStructures.getCLQinstance(ControllerStateListener.class);
+
     /**
      * Internal countdown counter of {@link SelectorHandler}s, which
      * are ready to process
@@ -245,8 +247,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * The current Controller instance.
      *
      */
-    private final static LinkedTransferQueue<Controller> controllers =
-            new LinkedTransferQueue<Controller>();
+    private final static Queue<Controller> controllers =
+            DataStructures.getCLQinstance(Controller.class);
 
     // Internal Thread Pool.
     private ExecutorService kernelExecutor;
@@ -315,9 +317,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     private void initializeDefaults() {
         if (instanceHandler == null) {
             instanceHandler = new DefaultProtocolChainInstanceHandler();
-        }
-        if (selectorHandlers == null) {
-            selectorHandlers = new LinkedTransferQueue<SelectorHandler>();
         }
         if (connectorHandlerPool == null) {
             connectorHandlerPool = new DefaultConnectorHandlerPool(this);
@@ -607,9 +606,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
     /**
      * Return the list {@link SelectorHandler}
-     * @return {@link ConcurrentLinkedQueue}
+     * @return {@link Queue}
      */
-    public LinkedTransferQueue getSelectorHandlers() {
+    public Queue getSelectorHandlers() {
         return selectorHandlers;
     }
 

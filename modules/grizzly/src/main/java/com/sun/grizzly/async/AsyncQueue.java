@@ -38,9 +38,11 @@
 
 package com.sun.grizzly.async;
 
-import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.DataStructures;
 import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
@@ -52,7 +54,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * @author Alexey Stashok
  */
 public class AsyncQueue<K, E> {
-    private Map<K, AsyncQueueEntry> queueMap =
+    private final ConcurrentMap<K, AsyncQueueEntry> queueMap =
             new ConcurrentHashMap<K, AsyncQueueEntry>();
     
     /**
@@ -158,22 +160,22 @@ public class AsyncQueue<K, E> {
      * {@link AsyncQueue} data unit
      */
     public class AsyncQueueEntry {
-        public LinkedTransferQueue<E> queue;
-        public AtomicReference<E> currentElement;
-        public ReentrantLock queuedActionLock;
+        public final Queue<E> queue;
+        public final AtomicReference<E> currentElement;
+        public final ReentrantLock queuedActionLock;
         // Amound of data, processed by the key
-        public AtomicInteger processedDataSize;
+        public final AtomicInteger processedDataSize;
         // Number of queue elements processed
-        public AtomicInteger processedElementsCount;
+        public final AtomicInteger processedElementsCount;
         // Total number of elements were requested to be processed
-        public AtomicInteger totalElementsCount;
+        public final AtomicInteger totalElementsCount;
         // Number of elements passed throw the async queue (not processed directly)
-        public AtomicInteger queuedElementsCount;
+        public final AtomicInteger queuedElementsCount;
         
         protected OperationResult tmpResult;
 
         public AsyncQueueEntry() {
-            queue = new LinkedTransferQueue<E>();
+            queue = (Queue<E>) DataStructures.getCLQinstance();
             currentElement = new AtomicReference<E>();
             queuedActionLock = new ReentrantLock();
             processedDataSize = new AtomicInteger();

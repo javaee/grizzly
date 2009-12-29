@@ -53,6 +53,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -154,32 +155,32 @@ public class SuspendableFilter<T> implements ProtocolFilter {
     /**
      * Cache the pattern and its associated {@link SuspendableHandler} wrapper.
      */
-    private ConcurrentHashMap<byte[],SuspendableHandlerWrapper<? extends T>> suspendCandidates
+    private final Map<byte[],SuspendableHandlerWrapper<? extends T>> suspendCandidates
             = new ConcurrentHashMap<byte[],SuspendableHandlerWrapper<? extends T>>();
     
     
     /**
      * The current list of suspended {@link SelectionKey}.
      */
-    protected ConcurrentHashMap<SelectionKey,KeyHandler> suspendedKeys
+    protected final Map<SelectionKey,KeyHandler> suspendedKeys
             = new ConcurrentHashMap<SelectionKey,KeyHandler>();
         
     
     /**
      * Monitor suspended {@link SelectionKey}
      */
-    private static SuspendableMonitor suspendableMonitor = new SuspendableMonitor();
+    private final static SuspendableMonitor suspendableMonitor = new SuspendableMonitor();
      
     
     /**
      * Logger
      */
-    private static Logger logger = Controller.logger();
+    private final static Logger logger = Controller.logger();
      
     /**
      * Controller
      */
-    private Controller controller;
+    private volatile Controller controller;
     
     /**
      * {@link DefaultProtocolChain} used to execute resumed connection.
@@ -190,13 +191,14 @@ public class SuspendableFilter<T> implements ProtocolFilter {
     /**
      * The next {@link ProtocolFilter} to invoke when resuming a connection.
      */
-    private int nextFilterPosition = 2;
+    private final int nextFilterPosition;
     
     
     // -------------------------------------------------- Constructor ------- //
     
     
     public SuspendableFilter(){
+        this(2);
     }
     
     
@@ -282,8 +284,10 @@ public class SuspendableFilter<T> implements ProtocolFilter {
         
         if (controller == null){
             synchronized(this){
-                controller = ctx.getController();
-                controller.executeUsingKernelExecutor(suspendableMonitor);
+                if (controller == null){
+                    controller = ctx.getController();
+                    controller.executeUsingKernelExecutor(suspendableMonitor);
+                }
             }
         }
 

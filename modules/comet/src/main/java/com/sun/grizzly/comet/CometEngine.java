@@ -42,8 +42,8 @@ import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
-import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.SelectorFactory;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
@@ -52,6 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.util.FixedThreadPool;
+import java.util.Queue;
 
 /**
  * Main class allowing Comet support on top of Grizzly Asynchronous
@@ -138,7 +139,7 @@ public class CometEngine {
     /**
      *  cached CometContexts
      */
-    protected final LinkedTransferQueue<CometContext> cometContextCache;
+    protected final Queue<CometContext> cometContextCache;
     
     
     /**
@@ -156,7 +157,7 @@ public class CometEngine {
      * Creat a singleton and initialize all lists required.
      */
     protected CometEngine() {       
-        cometContextCache = new LinkedTransferQueue<CometContext>();
+        cometContextCache = DataStructures.getCLQinstance(CometContext.class);
         activeContexts    = new ConcurrentHashMap<String,CometContext>(16,0.75f,64);
 
         ExtendedThreadPool tpe = new FixedThreadPool(Runtime.getRuntime().availableProcessors(),"CometWorker");

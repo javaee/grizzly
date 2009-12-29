@@ -38,7 +38,8 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.DataStructures;
+import java.util.Queue;
 import java.util.concurrent.Callable;
 
 /**
@@ -73,11 +74,11 @@ public interface ConnectorInstanceHandler<E extends ConnectorHandler> {
         /**
          * Simple queue used to pool {@link ConnectorHandler}
          */
-        private LinkedTransferQueue<E> pool;
+        private final Queue<E> pool;
         
         
         public ConcurrentQueueConnectorInstanceHandler(){
-            pool = new LinkedTransferQueue<E>();
+            pool = (Queue<E>) DataStructures.getCLQinstance();
         }
         
         /**
@@ -109,7 +110,7 @@ public interface ConnectorInstanceHandler<E extends ConnectorHandler> {
             extends ConcurrentQueueConnectorInstanceHandler<E> {
         
         // ConnectorHandler instance creator
-        private Callable<E> delegate;
+        private final Callable<E> delegate;
         
         public ConcurrentQueueDelegateCIH(Callable<E> delegate) {
             this.delegate = delegate;

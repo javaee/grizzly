@@ -43,18 +43,20 @@ import com.sun.grizzly.Controller;
 import com.sun.grizzly.Controller.Protocol;
 import com.sun.grizzly.NIOContext;
 import com.sun.grizzly.ProtocolParser;
+import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.filter.ParserProtocolFilter;
 import com.sun.grizzly.util.ByteBufferFactory;
 import com.sun.grizzly.util.ByteBufferInputStream;
 import com.sun.grizzly.util.Cloner;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.ExtendedThreadPool;
-import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.WorkerThread;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Collection;
+import java.util.Queue;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -146,8 +148,8 @@ public class ResourceAllocationFilter extends ParserProtocolFilter{
     /**
      * Cache the current statefull ProtocolParser.
      */
-    private LinkedTransferQueue<ProtocolParser> protocolParserCache
-            = new LinkedTransferQueue<ProtocolParser>();
+    private final Queue<ProtocolParser> protocolParserCache =
+            DataStructures.getCLQinstance(ProtocolParser.class);
     
     static {
         try{

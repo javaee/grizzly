@@ -43,8 +43,7 @@ import com.sun.grizzly.comet.CometHandler;
 import com.sun.grizzly.cometd.bayeux.DeliverResponse;
 import com.sun.grizzly.cometd.bayeux.End;
 import com.sun.grizzly.cometd.bayeux.VerbBase;
-import com.sun.grizzly.util.LinkedTransferQueue;
-
+import com.sun.grizzly.util.DataStructures;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Set;
@@ -66,7 +65,7 @@ public class DataHandler implements CometHandler<Object[]>{
     
     private CometdResponse res; 
    
-    private final Collection<String> channels = new LinkedTransferQueue<String>();    
+    private final Collection<String> channels = DataStructures.getCLQinstance(String.class);
 
     private BayeuxParser bayeuxParser;
     

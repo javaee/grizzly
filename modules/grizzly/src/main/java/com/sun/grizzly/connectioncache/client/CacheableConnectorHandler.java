@@ -75,10 +75,10 @@ public class CacheableConnectorHandler
 
     private SocketAddress targetAddress;
     
-    private CacheableConnectorHandlerPool parentPool;
+    private final CacheableConnectorHandlerPool parentPool;
     private ConnectorHandler underlyingConnectorHandler;
     
-    private ConnectExecutor connectExecutor;
+    private final ConnectExecutor connectExecutor;
     
     public CacheableConnectorHandler(CacheableConnectorHandlerPool parentPool) {
         this.parentPool = parentPool;
@@ -361,10 +361,10 @@ public class CacheableConnectorHandler
     //---------------------- ContactInfo implementation --------------------------------
     private static class CacheableConnectorInfo implements ContactInfo<ConnectorHandler> {
         private SelectorHandler selectorHandler;
-        private CacheableConnectorHandlerPool parentPool;
-        private ConnectExecutor connectExecutor;
-        private Protocol protocol;
-        private SocketAddress targetAddress;
+        private final CacheableConnectorHandlerPool parentPool;
+        private final ConnectExecutor connectExecutor;
+        private final Protocol protocol;
+        private final SocketAddress targetAddress;
 
         public CacheableConnectorInfo(CacheableConnectorHandlerPool parentPool,
                 ConnectExecutor connectExecutor,

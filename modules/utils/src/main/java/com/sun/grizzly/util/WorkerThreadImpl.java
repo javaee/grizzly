@@ -53,19 +53,19 @@ public class WorkerThreadImpl extends WorkerThread {
     
     public static final int DEFAULT_BYTE_BUFFER_SIZE = 8192;
     
-    public static final ByteBufferType DEFAULT_BYTEBUFFER_TYPE = ByteBufferType.HEAP_VIEW;;
-    
+    public static final ByteBufferType DEFAULT_BYTEBUFFER_TYPE = ByteBufferType.HEAP_VIEW;;  
+
     /**
      * The {@link ExecutorService} on which this thread synchronize.
-     */
+
     protected ExecutorService threadPool;
-    
-    
-    /**
+
+
+    **
      * The <code>ThreadGroup</code> used.
-     */
+     *
     protected final static ThreadGroup threadGroup = new ThreadGroup("Grizzly");
-    
+    */
 
     /**
      * The state/attributes on this WorkerThread.
@@ -142,8 +142,8 @@ public class WorkerThreadImpl extends WorkerThread {
      */
     public WorkerThreadImpl(ExecutorService threadPool, String name,
             int initialByteBufferSize){
-        super(threadGroup, name);
-        this.threadPool = threadPool;
+        super(name);
+        //this.threadPool = threadPool;
         this.initialByteBufferSize = initialByteBufferSize;
     }
     
@@ -156,8 +156,8 @@ public class WorkerThreadImpl extends WorkerThread {
      */
     public WorkerThreadImpl(ExecutorService threadPool, String name,
             Runnable runnable, int initialByteBufferSize){
-        super(threadGroup, runnable, name);
-        this.threadPool = threadPool;        
+        super(runnable, name);
+        //this.threadPool = threadPool;
         this.initialByteBufferSize = initialByteBufferSize;
     }
 
@@ -334,9 +334,8 @@ public class WorkerThreadImpl extends WorkerThread {
              * the ThreadAttachment association with the current thread
              */
             threadAttachment.deassociate();
-        }
-        
-        threadAttachment = null;
+            threadAttachment = null;
+        }                
         super.reset();
     }
 }

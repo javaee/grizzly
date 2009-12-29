@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.filter;
 
+import com.sun.grizzly.util.DataStructures;
 import java.io.InputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -66,7 +67,7 @@ public class RemoteInputStream extends InputStream {
     private static ByteBuffer POISON = ByteBuffer.allocate(1);
     private final static int END = -1;
     private ByteBuffer buffer;
-    private BlockingQueue<ByteBuffer> queue;
+    private final BlockingQueue<ByteBuffer> queue;
     private long timeStamp;
     private  IOException exception;
     private boolean applicationLayerException;
@@ -75,7 +76,7 @@ public class RemoteInputStream extends InputStream {
 
 
     public RemoteInputStream() {
-        queue = new LinkedBlockingQueue<ByteBuffer>();
+        queue = DataStructures.getLTQinstance(ByteBuffer.class);
         timeStamp=System.currentTimeMillis();
     }
 

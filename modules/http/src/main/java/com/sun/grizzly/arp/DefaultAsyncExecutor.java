@@ -92,9 +92,9 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
     /**
      * Only one execution of every steps are allowed.
      */
-    private AtomicBoolean parseHeaderPhase = new AtomicBoolean(false);
-    private AtomicBoolean executeAdapterPhase = new AtomicBoolean(false);
-    private AtomicBoolean commitResponsePhase = new AtomicBoolean(false);
+    private final AtomicBoolean parseHeaderPhase = new AtomicBoolean(false);
+    private final AtomicBoolean executeAdapterPhase = new AtomicBoolean(false);
+    private final AtomicBoolean commitResponsePhase = new AtomicBoolean(false);
 
     
     // --------------------------------------------------------------------- //

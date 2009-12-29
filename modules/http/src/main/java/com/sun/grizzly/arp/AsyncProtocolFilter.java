@@ -49,14 +49,15 @@ import com.sun.grizzly.http.TaskEvent;
 import com.sun.grizzly.http.TaskListener;
 import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.util.ByteBufferFactory;
+import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.InputReader;
-import com.sun.grizzly.util.LinkedTransferQueue;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.Queue;
 import java.util.logging.Level;
 
 /**
@@ -71,8 +72,8 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
      * per thread mechanism cannot be used as the execution will
      * free the thread hence the ByteBuffer will be re-used.
      */
-    private LinkedTransferQueue<InputReader> byteBufferStreams
-            = new LinkedTransferQueue<InputReader>();
+    private final Queue<InputReader> byteBufferStreams
+            = DataStructures.getCLQinstance(InputReader.class);
     
     
     /**

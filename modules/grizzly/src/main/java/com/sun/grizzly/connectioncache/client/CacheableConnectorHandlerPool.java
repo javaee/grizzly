@@ -56,11 +56,11 @@ import com.sun.grizzly.connectioncache.spi.transport.OutboundConnectionCache;
 public class CacheableConnectorHandlerPool implements
         ConnectorHandlerPool<CacheableConnectorHandler> {
 
-    private Controller controller;
-    private ConnectorHandlerPool protocolConnectorHandlerPool;
-    private ConnectorInstanceHandler<CacheableConnectorHandler> connectorInstanceHandler;
-    private OutboundConnectionCache<ConnectorHandler> outboundConnectionCache;
-    private ConnectionFinder<ConnectorHandler> connectionFinder;
+    private final Controller controller;
+    private final ConnectorHandlerPool protocolConnectorHandlerPool;
+    private final ConnectorInstanceHandler<CacheableConnectorHandler> connectorInstanceHandler;
+    private final OutboundConnectionCache<ConnectorHandler> outboundConnectionCache;
+    private final ConnectionFinder<ConnectorHandler> connectionFinder;
 
     public CacheableConnectorHandlerPool(Controller controller, int highWaterMark,
             int numberToReclaim, int maxParallel) {

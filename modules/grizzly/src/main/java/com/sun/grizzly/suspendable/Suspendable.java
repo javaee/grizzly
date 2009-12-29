@@ -49,7 +49,7 @@ import java.nio.channels.SelectionKey;
  */
 public class Suspendable {
 
-    private SuspendableFilter suspendableFilter;
+    private final SuspendableFilter suspendableFilter;
     private SelectionKey key;
     private boolean isResumed = false;
 

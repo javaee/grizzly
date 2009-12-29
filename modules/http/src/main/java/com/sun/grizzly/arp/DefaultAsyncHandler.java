@@ -39,8 +39,9 @@ package com.sun.grizzly.arp;
 
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.Task;
-import com.sun.grizzly.util.LinkedTransferQueue;
+import com.sun.grizzly.util.DataStructures;
 import java.util.ArrayList;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -63,8 +64,8 @@ public class DefaultAsyncHandler implements AsyncHandler{
     /**
      * Cache instance of {@link AsyncTask}
      */
-    private LinkedTransferQueue<AsyncTask>
-            asyncProcessors = new LinkedTransferQueue<AsyncTask>();
+    private final Queue<AsyncTask> asyncProcessors =
+            DataStructures.getCLQinstance(AsyncTask.class);
     
                
     
@@ -72,7 +73,7 @@ public class DefaultAsyncHandler implements AsyncHandler{
      * The {@link AsyncFilter} to execute asynchronous operations on 
      * a {@link ProcessorTask}.
      */
-    private ArrayList<AsyncFilter> asyncFilters = 
+    private final ArrayList<AsyncFilter> asyncFilters =
             new ArrayList<AsyncFilter>();   
     
     

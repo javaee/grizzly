@@ -133,9 +133,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
         thread.setName(getName() + "(" + nextThreadId() + ")");
         thread.setUncaughtExceptionHandler(this);
-        thread.setPriority(priority);
+        thread.setPriority(getPriority());
         thread.setDaemon(true);
-        
+
         if (thread instanceof WorkerThreadImpl) {
             final WorkerThreadImpl workerThread = (WorkerThreadImpl) thread;
             workerThread.setByteBufferType(getByteBufferType());
@@ -339,8 +339,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param t the thread that will run task r.
      * @param r the task that will be executed.
      */
-    protected void beforeExecute(Thread t, Runnable r) { 
-        ((WorkerThreadImpl) t).createByteBuffer(false);
+    protected void beforeExecute(Thread t, Runnable r) {
+        if (t instanceof WorkerThreadImpl)
+            ((WorkerThreadImpl) t).createByteBuffer(false);
     }
 
     /**
@@ -366,8 +367,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param t the exception that caused termination, or null if
      * execution completed normally.
      */
-    protected void afterExecute(Thread thread,Runnable r, Throwable t) { 
-        ((WorkerThreadImpl)thread).reset();
+    protected void afterExecute(Thread thread,Runnable r, Throwable t) {
+        if (thread instanceof WorkerThreadImpl)
+            ((WorkerThreadImpl)thread).reset();
     }
 
     /**
@@ -462,14 +464,10 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected ThreadFactory getDefaultThreadFactory(){
         return new ThreadFactory(){            
             public Thread newThread(Runnable r) {
-                Thread t = new WorkerThreadImpl(AbstractThreadPool.this,
+                return new WorkerThreadImpl(AbstractThreadPool.this,
                     getName() + "-WorkerThread(" +
                     nextThreadId() + ")", r,
                     getInitialByteBufferSize());
-                t.setUncaughtExceptionHandler(AbstractThreadPool.this);
-                t.setPriority(getPriority());
-                t.setDaemon(true);
-                return t;
             }
         };
     }
