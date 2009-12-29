@@ -61,7 +61,7 @@ public class ByteBufferFactory{
     /**
      * The default capacity of the default view of a {@link ByteBuffer}
      */ 
-    public static int defaultCapacity = 8192;
+    public final static int defaultCapacity = 8192;
     
     
     /**
@@ -96,8 +96,9 @@ public class ByteBufferFactory{
      * @param direct - direct or non-direct buffer?
      * @return {@link ByteBuffer}
      */ 
-    public synchronized static ByteBuffer allocateView(int size, boolean direct){
-        if (direct && (directByteBuffer == null || 
+    public final static ByteBuffer allocateView(int size, boolean direct){
+      return direct ? ByteBuffer.allocateDirect(size):ByteBuffer.allocate(size);
+        /*if (direct && (directByteBuffer == null ||
                (directByteBuffer.capacity() - directByteBuffer.limit() < size))){
             directByteBuffer = ByteBuffer.allocateDirect(capacity);                 
         } else if (heapByteBuffer == null || 
@@ -110,7 +111,7 @@ public class ByteBufferFactory{
         ByteBuffer view = byteBuffer.slice();
         byteBuffer.position(byteBuffer.limit());  
         
-        return view;
+        return view;*/
     }
 
     
@@ -119,8 +120,9 @@ public class ByteBufferFactory{
      * @param direct - direct or non-direct buffer
      * @return {@link ByteBuffer}
      */ 
-    public synchronized static ByteBuffer allocateView(boolean direct){
-        return allocateView(defaultCapacity, direct);
+    public final static ByteBuffer allocateView(boolean direct){
+        return direct ? ByteBuffer.allocateDirect(defaultCapacity) :
+            ByteBuffer.allocate(defaultCapacity);
     }
      
     
@@ -130,8 +132,10 @@ public class ByteBufferFactory{
      * @param size the {@link ByteBuffer} size.
      * @return a new ByteBuffer based on the requested <code>ByteBufferType</code>
      */
-    public static ByteBuffer allocate(ByteBufferType type,int size){       
-        if (type == ByteBufferType.HEAP){
+    public final static ByteBuffer allocate(ByteBufferType type,int size){
+        return type != ByteBufferType.DIRECT ? ByteBuffer.allocate(size) :
+            ByteBuffer.allocateDirect(size);
+        /*if (type == ByteBufferType.HEAP){
             return ByteBuffer.allocate(size);
         } else if (type == ByteBufferType.HEAP_VIEW) {
             return allocateView(size,false);
@@ -143,6 +147,6 @@ public class ByteBufferFactory{
             return allocateView(size,true);
         } else {
             throw new IllegalStateException("Invalid ByteBuffer Type");
-        }
+        }*/
     }
 }
