@@ -47,6 +47,7 @@ import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.WorkerThread;
+import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.net.SSLSupport;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import com.sun.grizzly.websocket.WebSocketImpl.WebSocketPublicClosedMethod;
@@ -80,6 +81,8 @@ public class WebSocketTest  extends TestCase{
     private volatile CountDownLatch latch;
     private final Throwable empty = new Throwable()
         { @Override public String toString() { return ""; }};
+    private final static SelectedKeyAttachmentLogic dummyAttachment =
+            new SelectedKeyAttachmentLogic() { public void handleSelectedKey(SelectionKey selectionKey){}};
     private final AtomicReference<Throwable> firstFault = new AtomicReference<Throwable>();    
     private final AtomicInteger clientsglobalrec = new AtomicInteger();
     private final AtomicInteger allCientsincomingDataWasThrottledCounter = new AtomicInteger();
@@ -89,7 +92,6 @@ public class WebSocketTest  extends TestCase{
     private final int cpus = Runtime.getRuntime().availableProcessors();    
     private boolean wantTimeOutException;
     protected static volatile boolean shouldDie;
-
     private SSLConfig sslConfig;
     private SSLContext sslctx;
 
@@ -145,7 +147,9 @@ public class WebSocketTest  extends TestCase{
         }else{
             st = new SelectorThread();
         }
-
+        st.setSsBackLog(8192);
+        st.setCoreThreads(2);
+        st.setMaxThreads(2);
         st.setPort(port);
         st.setDisplayConfiguration(false);
         st.setAdapter(new GrizzlyAdapter() {
@@ -187,8 +191,8 @@ public class WebSocketTest  extends TestCase{
                     //TODO: use hostname+port from server logic instead ?
                     WebSocketImpl.doOPen(
                             new WebsocketServerHandshake(origin,location,host,ct),
-                            ioh, ct);
-                    key.attach(WebSocketImpl.dummyAttachment);
+                            ioh, ct, null);
+                    key.attach(dummyAttachment);
                     //TODO: fix so not shares lock with grizzly selector:
                     key.cancel();
                     if (sslSupport != null){
@@ -225,9 +229,9 @@ public class WebSocketTest  extends TestCase{
         //System.err.println(System.getProperty("jsse.SSLEngine.acceptLargeFragments"));
     }   
 
-   /* public void testChatsPlain() throws Exception{
-        doTestChats(false);
-    }*/
+    public void testChatsPlain() throws Exception{
+       // doTestChats(false);
+    }
 
    /* public void testChatsSSL() throws Exception{
         doTestChats(true);
@@ -236,36 +240,32 @@ public class WebSocketTest  extends TestCase{
     private void doTestChats(boolean useSSL) throws Exception{
         SelectThread.getStatistics(true);
         init(useSSL);
+        SelectThread.getThreadPool().setMaximumPoolSize(4);
+        /*final SelectThread stt = new SelectThread();
+        stt.start();*/
         final int shortTestSeconds = 30; //30
         final int longTestSeconds  = 300;
-        int m = 1;
-        // test here is in low perf mode now ((,
-        // had to temporarly disable real world like chat tests
-        // inorder to more easily  ensure stable self balanced load.
-        
+        int m = 1;        
         int[][] v  = new int[][]{
-            { 1   , 1   ,1  ,1 ,shortTestSeconds },
-            { 1   , 50  ,1   ,1  ,shortTestSeconds }
-            //{ 1   , 1000 ,m,1  ,shortTestSeconds },
-
-            // disabled heavier tests to unit test dont fail on weak systems :
-            
-           //,{ 8192, 2    ,8   ,longTestSeconds  },
-            //{ 1024, 8    ,8   ,longTestSeconds  },
-            //{ 1   , 8192 ,8   ,longTestSeconds  }
+            { 1000 , 10    ,1  ,1 ,shortTestSeconds }
+           //,{ 100  , 200   ,1  ,1 ,shortTestSeconds }
+           //,{ 10   , 2000  ,1  ,1 ,shortTestSeconds }
+           ,{ 1    , 10000 ,1  ,1 ,shortTestSeconds }
         };
         
-        int[] msgSizes = new int[]{ 1, 4000, 200000 };
+        int[] msgSizes = new int[]{ 4000, 200000 };
         for (int[] iv:v){
             for (int msgs:msgSizes){
-                doOnetestChat(iv[0],iv[1],iv[4],iv[2],msgs,iv[3]);
+                doOnetestChat(iv[0],iv[1],iv[4],iv[2],msgs,iv[3],null);
+                System.gc();
+                Thread.sleep(1000);
             }
         }
     }
 
     private void doOnetestChat(final int chatcount,final int clientsPerChat,
             final int chatTimeSec, final int msgRepeats, final int msgsize,
-            final int readlimitframes) throws Exception{
+            final int readlimitframes,SelectThread stt) throws Exception{
         WebSocketContext.getAll().clear();        
         byte[] ba = new byte[msgsize];
         Arrays.fill(ba, (byte)65);
@@ -273,36 +273,33 @@ public class WebSocketTest  extends TestCase{
         ServerChatListener[] sli = new ServerChatListener[chatcount];
         final CountDownLatch cd = new CountDownLatch(chatcount*clientsPerChat);
         shouldDie = false;
-        
+        Thread.currentThread().setPriority(Thread.MIN_PRIORITY);
         for (int i=0;i < chatcount;i++){
             sli[i] = new ServerChatListener(clientsPerChat,msg);
             String chat = "chat"+i;
             WebSocketContext wsctx = addContext(chat,sli[i],true).
-                    setDataFrameLimits( 2+msgsize, 100, readlimitframes);
+                    setDataFrameLimits( 2+msgsize, 2, readlimitframes);
+            wsctx.setDoOnCloseEventsInThreadPool(false);
             for (int x=1;x<=clientsPerChat;x++){
-                if (i*clientsPerChat+x > 500){
-                  Thread.sleep(5);
-                }
+                //if ((i*clientsPerChat+x)%100==0){
+                 Thread.sleep(2);
+                //}
                 WebSocketImpl.openClient((sslctx==null?
                     "ws":"wss")+"://localhost:"+port+"/"+chat,
-                new ClientChatListener( x==clientsPerChat ? msgRepeats : 0,cd ),
-                    null,null,sslctx,wsctx);
+                new ClientChatListener(msgRepeats,cd),null,null,sslctx,wsctx,stt);
             }
         }
         
-        Thread.sleep(500+chatTimeSec*1000);
-        shouldDie = true;        
+        Thread.sleep(chatTimeSec*1000);
+        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);        
+        shouldDie = true;
+        clearthreadpoolQueue();
         double tp = 0;
         for (ServerChatListener sl:sli){
             tp += sl.shutdown();
-        }
-        clearthreadpoolQueue();
-        if (!cd.await(10, TimeUnit.SECONDS)){
-            Throwable t = firstFault.getAndSet(empty);
-            if (t!=empty){
-                t.printStackTrace();
-            }
-            fail("clientclose latch timedout: count:"+cd.getCount()+" "+t);
+        }        
+        if (!cd.await(4, TimeUnit.SECONDS)){
+            firstFault.set(new Exception("clientclose latch timedout: count:"+cd.getCount(), firstFault.get()));
         }
         tp = ((int)(tp+0.5))/1000d;
         System.err.println("Throughput: "+tp+" M chat msgs/sec. a "+msgsize +" bytes : "+
@@ -318,8 +315,8 @@ public class WebSocketTest  extends TestCase{
     }
 
     private class ClientChatListener implements WebSocketListener{
-        private final int msgRepeats;
         private final CountDownLatch deathlatch;
+        private final int msgRepeats;        
         public ClientChatListener(int msgRepeats,CountDownLatch deathlatch) {
             this.msgRepeats = msgRepeats;
             this.deathlatch = deathlatch;
@@ -329,14 +326,14 @@ public class WebSocketTest  extends TestCase{
         }
 
         public void onMessage(WebSocket wsoc, DataFrame dataframe) {
-            if (msgRepeats>0 
+            /*if (msgRepeats>0
                     && wsoc.getBufferedOnMessageBytes() == 0
                     && wsoc.getBufferedSendBytes() == 0
-                    ){
-                for (int i=0;i<msgRepeats;i++){
+                    ){*/
+               // for (int i=0;i<msgRepeats;i++){
                     wsoc.send(dataframe);
-                }            
-            }
+                //}
+            //}
         }
         
         public void onClosed(WebSocket wsoc) {
@@ -353,31 +350,35 @@ public class WebSocketTest  extends TestCase{
         private final ConcurrentHashMap<WebSocket,Boolean> clients;
         private final int wantedclients;
         private final AtomicInteger msgc = new AtomicInteger();
-        private final DataFrame message;
+        private final AtomicInteger recv = new AtomicInteger();
+        private final DataFrame message;        
         private volatile long t1;
 
         public ServerChatListener(int clients,DataFrame message) {
             this.clients = new ConcurrentHashMap<WebSocket, Boolean>(clients);
             this.wantedclients = clients;
-            this.message = message;
+            this.message = message;           
         }
 
         public void onOpen(WebSocket webcon) {
             clients.put(webcon, Boolean.TRUE);
             if (clients.size() == wantedclients){
                 t1 = System.currentTimeMillis();
+                recv.set(wantedclients-1);
                 onMessage(null,message);
             }            
         }
 
         public void onMessage(WebSocket wsoc, DataFrame dataframe) {
-            //if (wsoc == null || wsoc.getBufferedSendBytes() < 1000  ){
-                msgc.addAndGet(1+wantedclients);
+            if (recv.incrementAndGet() == wantedclients){
+                if (!recv.compareAndSet(wantedclients, 0)){
+                    failInsideWebSocket("serveronmessage recv set failed");
+                }
+                msgc.addAndGet(2*wantedclients);
                 for (WebSocket wso:clients.keySet()){
-                    //if (wso != webcon){
                         wso.send(dataframe);
                 }
-            //}
+            }
         }
 
         public double shutdown(){
@@ -390,9 +391,9 @@ public class WebSocketTest  extends TestCase{
             clients.clear();
             if (wso != null){
                 allCientsincomingDataWasThrottledCounter.addAndGet(wso.
-                      getWebSocketContext().readDataThrottledCounter.getAndSet(0));
+                   getWebSocketContext().readDataThrottledCounter.getAndSet(0));
                 allCientsWriteThrottledCounter.addAndGet(wso.
-                      getWebSocketContext().writeDataThrottledCounter.getAndSet(0));
+                  getWebSocketContext().writeDataThrottledCounter.getAndSet(0));
             }
             return ret;
         }
@@ -400,7 +401,7 @@ public class WebSocketTest  extends TestCase{
         public void onClosed(WebSocket webcon) {            
             if (!shouldDie){
                 failInsideWebSocket(webcon.getClosedCause());
-            }
+            }          
         }
     }
 
@@ -589,7 +590,7 @@ public class WebSocketTest  extends TestCase{
         WebSocketContext cs = WebSocketContext.getWebScocketContext("/"+cta);
         while(ccount-->0){
            WebSocketImpl.openClient((sslctx==null?"ws":"wss")+"://localhost:"+port+"/"+cta,
-                   new ClientListener(reclimit,msgsize,binary),null,null,sslctx,cs);
+                   new ClientListener(reclimit,msgsize,binary),null,null,sslctx,cs,null);
         }
         return cs;
     }

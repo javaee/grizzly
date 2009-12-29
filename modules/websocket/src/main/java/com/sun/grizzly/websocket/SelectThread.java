@@ -47,6 +47,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -80,14 +81,29 @@ class SelectThread extends Thread{
 
     protected final static GrizzlyExecutorService workers = 
             GrizzlyExecutorService.createInstance(
-            new ThreadPoolConfig("websocketpool", -1,
-            Math.max(16, 2*Runtime.getRuntime().availableProcessors()),
-            null, -1,
-            1, TimeUnit.MILLISECONDS,
-            null, Thread.NORM_PRIORITY, null));
+            new ThreadPoolConfig("WebsocketThreadPool", -1,
+            Math.max(4, 1*Runtime.getRuntime().availableProcessors())
+            ,null, -1, 1, TimeUnit.MILLISECONDS,
+            new ThreadFactory(){
+                private final AtomicInteger c = new AtomicInteger();
+                public Thread newThread(Runnable r) {                    
+                  return new Thread("WebSocketWorker("+c.incrementAndGet()+")");
+                }
+            }
+            ,Thread.NORM_PRIORITY, null));
+
+    public static GrizzlyExecutorService getThreadPool() {
+        return workers;
+    }
+
 
     private final AtomicLong socketsServedLifeTimeCounter = new AtomicLong();
 
+    /**
+     * Ensures selector.wakeup() is only called once per select loop.
+     * This is needed due to wakeup is internaly synchronized, and its
+     * also sharing the lock with selector.select() (least on sun jdk7).
+     */
     private final AtomicInteger wakenup = new AtomicInteger();
 
     private long nextIdleCheck;
@@ -100,14 +116,14 @@ class SelectThread extends Thread{
 
     protected final Queue<Runnable> tasksforSelectThread;
 
-    private SelectThread next;
+    private SelectThread next;//TODO: change to volatile and runtime recconfig
 
-    private static SelectThread current;
+    private volatile static SelectThread current;
 
     static{
         int i = Runtime.getRuntime().availableProcessors();
         if (i>2){
-            i = Math.min(8,i/2);
+            i = Math.min(16,i/2);
         }
         final SelectThread first = createInstance();
         SelectThread a = first;
@@ -149,21 +165,14 @@ class SelectThread extends Thread{
             max = Math.max(max, v);
             min = Math.min(min,v);
         }while((c = c.next) !=  start);
-        return "SelectorLoadBalance stats: threads:"+tc+" sockets[max:"+max+" min:"+min+
-                " total:"+total+"]";
+        return "SelectorLoadBalance stats: threads:"+tc+" sockets[max:"+max
+                +" min:"+min+" total:"+total+"]";
     }
 
-
-    /**
-     * TODO supposed to be called from one thread only,
-     * currently its not.
-     * @param slh
-     */
-    protected final static void moveToSelectThread(SelectorLogicHandler slh){
+    protected final static SelectThread getNextSelectThread(){
         SelectThread current_  = current;
         current = current_.next;
-        current_.newConnections.offer(slh);
-        current_.wakeUpSelector();
+        return current_;
     }
     
 
@@ -178,9 +187,13 @@ class SelectThread extends Thread{
         this.newConnections =
                 DataStructures.getCLQinstance(SelectorLogicHandler.class);
         this.tasksforSelectThread=DataStructures.getCLQinstance(Runnable.class);
-        this.setPriority(Thread.NORM_PRIORITY + 1);
+        this.setPriority(Thread.NORM_PRIORITY - 0);
     }
- 
+
+    public void addConnection(SelectorLogicHandler slh){
+        newConnections.offer(slh);
+        wakeUpSelector();
+    }
 
     @Override
     public void run() {
@@ -203,12 +216,11 @@ class SelectThread extends Thread{
     }
 
     private void handleNewConnections(){
-        long t1 = System.nanoTime();
+        final long t1 = System.nanoTime();
         currentSelectTimeStamp = t1;
         SelectorLogicHandler wsl;
-        Queue<SelectorLogicHandler> queue = newConnections;
         int added = 0;
-        while((wsl=queue.poll())!=null){
+        while((wsl=newConnections.poll()) != null){
             wsl.enteredSelector(this,t1);
             added++;
         }
@@ -218,7 +230,7 @@ class SelectThread extends Thread{
     }
 
     private void idlecheck(){
-        long t = currentSelectTimeStamp;
+        final long t = currentSelectTimeStamp;
         if (t-nextIdleCheck>0){
             nextIdleCheck = t + idlecheckdelta;
             for (SelectionKey key:selector.keys()){
@@ -228,8 +240,8 @@ class SelectThread extends Thread{
     }
 
     private void handleSelectedKeys(){
-        long t1 = currentSelectTimeStamp;
-        Set<SelectionKey> selectedkeys = selector.selectedKeys();
+        final long t1 = currentSelectTimeStamp;
+        final Set<SelectionKey> selectedkeys = selector.selectedKeys();
         for (SelectionKey key:selectedkeys){
             ((SelectorLogicHandler)key.attachment()).handleSelectedKey(key,t1);
         }
@@ -238,10 +250,16 @@ class SelectThread extends Thread{
     
     private void handleTasksforSelectThread(){
         Runnable task;
-        Queue<Runnable> queue = tasksforSelectThread;
-        while((task=queue.poll())!=null){
+        while((task=tasksforSelectThread.poll())!=null){
             task.run();
         }
+        /*
+        final Iterator<Runnable> iter = tasksforSelectThread.iterator();
+        while(iter.hasNext()){
+            iter.next().run();
+            iter.remove();
+        }
+        */
     }
 
     /**
@@ -270,7 +288,6 @@ class SelectThread extends Thread{
 
     protected final void wakeUpSelector(){
         if (wakenup.compareAndSet(0,1)){
-           //internaly synchronized on same lock as select....(sun jdk7)
             selector.wakeup();
         }
     }

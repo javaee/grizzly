@@ -38,7 +38,6 @@
 package com.sun.grizzly.websocket;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -163,8 +162,7 @@ public class WebSocketContext {
      * Total number of {@link WebSocketListener} method calls that failed
      * by emitting a Throwable.
      */
-    protected final AtomicInteger eventListenerExceptionCounter
-            = new AtomicInteger();
+    protected final AtomicInteger eventListenerExceptionCounter = new AtomicInteger();
 
     private final boolean secureOnly;
     private final boolean secureEnabled;
@@ -195,7 +193,7 @@ public class WebSocketContext {
         setInitialReadBufferLength(initialReadBufferLengthMINVALUE);
         setIdleTimeoutSeconds(idleTimeoutSecondsDefaultValue);
         setHandshakeTimeoutSeconds(handshakeTimeOutSecondsDefaultValue);
-        doOnCloseEventsInThreadPool   = true;
+        doOnCloseEventsInThreadPool = true;
     }
 
     protected WebSocketContext copySomeSettingsFrom(WebSocketContext ctx){

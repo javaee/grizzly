@@ -39,7 +39,6 @@ package com.sun.grizzly.websocket;
 
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.SocketAddress;
@@ -122,11 +121,6 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
     protected final static byte BINARYTYPE    = (byte)0x80;
     protected final static byte TEXTterminate = (byte)0xff;
 
-    public final static SelectedKeyAttachmentLogic dummyAttachment =
-            new SelectedKeyAttachmentLogic() {
-        public void handleSelectedKey(SelectionKey selectionKey){}
-    };
-
     protected enum ReadyState{CONNECTING,OPEN,CLOSED};
 
     private final static AtomicReferenceFieldUpdater<WebSocketImpl,ReadyState>
@@ -182,10 +176,10 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
     private final WebsocketHandshake handshake;
 
     private SelectThread selthread;
-
+    
     private final Runnable reEnableReadInterest = new Runnable() {
-        public void run() {
-            try{
+        public void run() {                
+            try{ 
                 iohandler.addKeyInterest(SelectionKey.OP_READ);
                 parseFrame();//consume any remaining data.
             }catch(Throwable t){
@@ -201,12 +195,13 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
      * @param protocol
      * @param sslctx
      * @param copysettingsfrom
+     * @param st
      * @return
      * @throws IOException
      */
     protected final static WebSocket openClient(String uri,
             WebSocketListener listener,String origin,String protocol,
-            SSLContext sslctx,WebSocketContext copysettingsfrom)
+            SSLContext sslctx,WebSocketContext copysettingsfrom,SelectThread st)
             throws IOException{
         try{
             WebsocketClientHandshake wsh =
@@ -228,7 +223,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
                     new WebSocketContext("/notused",protocol,listener);
             if (copysettingsfrom!=null)
                 ctx.copySomeSettingsFrom(copysettingsfrom);
-            return doOPen(wsh, ioh, ctx);
+            return doOPen(wsh, ioh, ctx, st);
         }catch(IOException ie){
             throw ie;
         }
@@ -242,12 +237,15 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
      * @param handshake
      * @param iohandler
      * @param ctx
+     * @param st
      * @return
      */
     protected final static WebSocket doOPen(WebsocketHandshake handshake,
-            TCPIOhandler iohandler,WebSocketContext ctx) {
+            TCPIOhandler iohandler,WebSocketContext ctx,SelectThread st) {
         WebSocketImpl wsi = new WebSocketImpl(handshake,iohandler,ctx);
-        SelectThread.moveToSelectThread(wsi);
+        if (st == null)
+            st = SelectThread.getNextSelectThread();
+        st.addConnection(wsi);
         return wsi;
     }
 
@@ -270,7 +268,6 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         this.iohandler        = iohandler;
         this.ctx              = ctx;
         this.writeQueue       = DataStructures.getCLQinstance(ByteBuffer.class);
-        //this.writeQueue     = new MySwapList<ByteBuffer>();
     }
 
     @Override
@@ -344,13 +341,13 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
             }
             //System.err.println(key+" read:"+key.isReadable()+"  write:"+key.isWritable()+"  connect:"+key.isConnectable());
             final int ops = key.readyOps();
+            if ((ops & SelectionKey.OP_WRITE)!=0 ){
+                doSelectThreadWrite();
+            }
             if ((ops & SelectionKey.OP_READ)!=0 ){
                 idleTimestamp = timestamp; 
                 iohandler.read(readBuffer);
                 parseFrame();
-            }
-            if ((ops & SelectionKey.OP_WRITE)!=0 ){
-                doSelectThreadWrite();
             }
         } catch (Throwable ex) {
             close(ex,true);
@@ -482,7 +479,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         final int minIncrease =(bend > 0 ? bend-fstart : Math.max(flimit,4096))
                 -ba.length
         //ensuring theres at least +x bytes to read into beyond framedata needed
-                + 10000;
+                + 11000; //odd value to look for a possible bug
 
         readbuf.limit(pos).position(fstart);
         if (minIncrease <= 0){
@@ -592,11 +589,10 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
                     final boolean notdone = !iohandler.write(rawframe);
                     if (notdone){
                         currentwrite = rawframe.slice();
-                        tosend -= rawframe.remaining() + 1;                       
+                        tosend -= rawframe.remaining() + 1;
                     }
                     if (bufferedSendBytes.addAndGet(-tosend) > 0
-                            && (notdone || !drainWriteQueue(Integer.MAX_VALUE))
-                            ){
+                            && (notdone || !drainWriteQueue(100))){
                         iohandler.writeInterestTaskOffer();
                     }
                     rawframe.rewind();// frame is ready for another send
@@ -633,7 +629,10 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
                     cw = false;
                     currentwrite = null;
                     written++;
-                }
+                }     
+                /*if (bufferedSendBytes.addAndGet(-written) == 0)
+                    return true;
+                written = 0;*/
                 bb = --maxwrites>0 ? writeQueue.poll() : null;
                 continue;
             }
@@ -642,7 +641,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
                 currentwrite = bb;
             }
             break;
-        }        
+        }
         return bufferedSendBytes.addAndGet(-written) == 0;
     }
 
@@ -705,9 +704,9 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
             }
             selthread.tasksforSelectThread.offer(new Runnable(){
                 public void run() {
-                    doclose();
+                    doclose();//shares lock with selector.select();
                 }});
-            //selthread.wakeUpSelector(); //channel.close can wait some ?
+            selthread.wakeUpSelector();
             fireClosed();
        }
     }
@@ -859,7 +858,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         }
     }
 
-    @SuppressWarnings("unchecked")
+  /*  @SuppressWarnings("unchecked")
     final class MySwapList<T> {
         T[] producerItems = (T[]) new Object[8];
         int producedCounter;
@@ -912,66 +911,6 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         public synchronized void reset(){
             this.consumerCounter = 1;
             this.consumerDatalength = 0;
-        }
-    }
-
- /* @SuppressWarnings("unchecked")
-    final class MySwapList<T> {
-        T[] producerItems = (T[]) new Object[8];
-        int producedCounter;
-
-        T[] consumerItems = (T[]) new Object[8];
-        int consumerCounter;
-        int consumerDatalength;
-
-        public MySwapList() {
-        }
-
-        public final synchronized boolean add(T obj){
-            if (producedCounter >= producerItems.length){
-                T[] list2 = (T[])new Object[producerItems.length*2];
-                System.arraycopy(producerItems,0,list2 ,0,producerItems.length);
-                producerItems = list2;
-            }
-            producerItems[producedCounter++] = obj;
-            return true;
-        }
-
-        // ugly test code for now.
-        public final synchronized void setProducerfirstElement(T obj){
-            if (producedCounter > 0 && producedCounter < producerItems.length){
-                System.arraycopy(producerItems,0,producerItems ,1,producedCounter);
-            }else
-            if (producedCounter == producerItems.length){
-                T[] list2 = (T[])new Object[producerItems.length*2];
-                System.arraycopy(producerItems,0,list2 ,1,producerItems.length);
-                producerItems = list2;
-            }
-            producerItems[0] = obj;
-        }
-
-        final synchronized T[] swaplists(){
-            final T[] list = producerItems;
-            producerItems = consumerItems;
-            consumerDatalength = producedCounter;
-            producedCounter = 0;
-            return list;
-        }
-
-        public final void remove() {
-            consumerItems[consumerCounter++] = null;
-        }
-
-        public final T peek(){
-            int i = consumerCounter;
-            if (i >= consumerDatalength){
-                if ( consumerItems.length>32){
-                    consumerItems = (T[]) new Object[32];
-                }
-                consumerItems = swaplists();
-                consumerCounter = i = 0;
-            }
-            return consumerItems[i];
         }
     }*/
 }

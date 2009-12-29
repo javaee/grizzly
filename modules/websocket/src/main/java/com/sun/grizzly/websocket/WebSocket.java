@@ -71,7 +71,7 @@ public abstract class WebSocket {
      */
     public static WebSocket open(String uri,WebSocketListener eventlistener)
            throws IOException{
-       return WebSocketImpl.openClient(uri,eventlistener,null,null,null,null);
+       return WebSocket.open(uri,eventlistener,null,null,null);
     }
 
     /**
@@ -91,7 +91,7 @@ public abstract class WebSocket {
     public static WebSocket open(String uri,WebSocketListener eventlistener,
            String origin, String protocol, SSLContext sslctx)throws IOException{
        return WebSocketImpl.
-               openClient(uri,eventlistener,origin,protocol,sslctx,null);
+               openClient(uri,eventlistener,origin,protocol,sslctx,null,null);
     }
 
     /**
