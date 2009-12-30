@@ -66,28 +66,28 @@ public class ThreadPoolConfig {
             long keepAliveTime, TimeUnit timeUnit,
             ThreadFactory threadFactory, int priority,
             ThreadPoolMonitoringProbe monitoringProbe) {
-        this.poolName = poolName;
-        this.corePoolSize = corePoolSize;
-        this.maxPoolSize = maxPoolSize;
-        this.queue = queue;
-        this.queueLimit = queueLimit;
-        this.keepAliveTime = keepAliveTime;
-        this.timeUnit = timeUnit;
-        this.threadFactory = threadFactory;
-        this.priority = priority;
+        this.poolName        = poolName;
+        this.corePoolSize    = corePoolSize;
+        this.maxPoolSize     = maxPoolSize;
+        this.queue           = queue;
+        this.queueLimit      = queueLimit;
+        this.keepAliveTime   = keepAliveTime;
+        this.timeUnit        = timeUnit;
+        this.threadFactory   = threadFactory;
+        this.priority        = priority;
         this.monitoringProbe = monitoringProbe;
     }
 
     public ThreadPoolConfig(ThreadPoolConfig cfg) {
-        this.queue = cfg.queue;
-        this.threadFactory = cfg.threadFactory;
-        this.poolName = cfg.poolName;
-        this.priority = cfg.priority;
-        this.maxPoolSize = cfg.maxPoolSize;
-        this.queueLimit = cfg.queueLimit;
-        this.corePoolSize = cfg.corePoolSize;
-        this.keepAliveTime = cfg.keepAliveTime;
-        this.timeUnit = cfg.timeUnit;
+        this.queue           = cfg.queue;
+        this.threadFactory   = cfg.threadFactory;
+        this.poolName        = cfg.poolName;
+        this.priority        = cfg.priority;
+        this.maxPoolSize     = cfg.maxPoolSize;
+        this.queueLimit      = cfg.queueLimit;
+        this.corePoolSize    = cfg.corePoolSize;
+        this.keepAliveTime   = cfg.keepAliveTime;
+        this.timeUnit        = cfg.timeUnit;
         this.monitoringProbe = cfg.monitoringProbe;
     }
 

@@ -43,8 +43,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.CharacterCodingException;
 
 /**
- * Crude and preliminary design of a frame concept that is
- * easier to use then a raw ByteBuffer.
+ * WebSocket dataframe(s) wrapper.
  *
  * @author gustav trede
  * @since 2009
@@ -95,6 +94,12 @@ public class DataFrame {
         this.isText       = istext;
         this.rawFrameData = rawFrameData;
     }
+
+    @Override
+    protected DataFrame clone(){
+        return new DataFrame(isText,rawFrameData.duplicate());
+    }
+
 
     /**
      * Returns true if text and false if binary frame.

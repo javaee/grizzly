@@ -54,7 +54,8 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
 /**
- * TODO: {@link DataFrame} design and QA. more unit testing.
+ * TODO: {@link DataFrame} needs QA and feedback about design.
+ * <br>
  * TODO: throttle and concurrent send , user control of the situation.
  * if we dont fail  on writebuffer limit reached
  * we must propagate that info somehow,
@@ -93,13 +94,19 @@ import javax.net.ssl.SSLEngine;
  * its perhaps better to leave that to service implementator ,
  * or we can provide another layer ontop that can be used if wanted.
  * <br>
- * Further optimize buffer.compact and resize logic in parseFrame().
+ * TODO: dont sticky large buffers forever in parseframe().
+ * impl and configuration needed. 
  * <br>
  * MySwapList, ensure no large datastructure is left behind.
  * <br>
  * socketchannel.write(ByteBuffer[]) does not perform well.
  * Investigate why, and how hard its to fix.
  * It should give a perf boost to allow for bulk writes when draining.
+ * <br>
+ * TODO: change closedCause to a list ?:
+ * The cause might not be the actual cause, another thread might cause
+ * on exception and update state to closed first, hence the true cause
+ * is hidden.
  * <br>
  * TODO: is there a need for pluggable handler for uncaught exceptions
  * from services ({@link WebSocketListener}) per context or global ?.
@@ -413,20 +420,19 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
             }
             
             if (frametype == TEXTTYPE){
-                int end = indexOf(parsed_,TEXTterminate,ba,pos);
-                boolean done = end++ > 0;
+                parsed_ = indexOf(parsed_,TEXTterminate,ba,pos);
+                final boolean done = parsed_++ > 0;
                 if (!done){
-                    end = 1+pos;
                     parsed_ = pos;
-                }                
-                if (end-fstart <= flimit){
-                   // System.err.println((handshake instanceof WebsocketServerHandshake)+" ** parsed "+parsed_+" limit:"+pos+" fstart:"+fstart+" end:"+end+" "+" fle: "+(end-fstart)+" flimit:"+flimit+" buf:"+readbuf );
-                    if (done && frameisdone(fstart, (parsed_=end)-fstart, ba)){
+                }
+                final int length = parsed_ - fstart;
+                if (length <= flimit){                   
+                    if (done && frameisdone(fstart, length, ba)){
                         break;
                     }
                     continue;
                 }
-                throw new WebSocketClientSentTooLargeFrame(end-fstart,flimit);
+                throw new WebSocketClientSentTooLargeFrame(length,flimit);
             }
             
             if (frametype == BINARYTYPE){
@@ -459,8 +465,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
                         }
                         continue;
                 }
-                parsed_ = pos;
-                continue;
+                break;
             }
             throw new BadWebSocketFrameTypeFromClientException(frametype);
         }        
@@ -470,16 +475,11 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
             readbuf.clear();            
             return;
         }
-       /* if (pos<4096){
-            parsed = parsed_;
-            return;
-        }*/
-        //TODO: dont sticky large buffers forever.impl and configuration needed.
-        //TODO: improve adaptive resizing
+                
         final int minIncrease =(bend > 0 ? bend-fstart : Math.max(flimit,4096))
                 -ba.length
         //ensuring theres at least +x bytes to read into beyond framedata needed
-                + 11000; //odd value to look for a possible bug
+                + 10000;
 
         readbuf.limit(pos).position(fstart);
         if (minIncrease <= 0){
@@ -496,10 +496,17 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         }
         parsed = parsed_;
         framestart = 0;
-        if (!readBuffer.hasRemaining() || readBuffer.position() == readBuffer.capacity())//TODO remove when QA done
+        if (readBuffer.remaining()<10000)//TODO remove when QA done
             throw new RuntimeException(this.toString());
     }
 
+    /**
+     * 
+     * @param framestart
+     * @param length
+     * @param ba
+     * @return true if reads are throttled
+     */
     private final boolean frameisdone(int framestart,int length,byte[] ba) {
         //System.err.println((handshake instanceof WebsocketServerHandshake)+" ** fstart:"+framestart+" fle: "+length+" readbuf: "+readBuffer);
         final ByteBuffer bbf = ByteBuffer.allocate(length);
@@ -518,7 +525,7 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
         }
         //TODO: make package private DataFrame subclass thats Runnable
         // IF the mem footprint is not increased (the added websocketimpl ref
-        // fits in the remaining alingnment overhead in 64bit mode)
+        // fits in the remaining alingnment overhead in 64bit mode) ?
         SelectThread.workers.execute(new Runnable() {
             public void run() {
                fireOnMessage(frame,memsize,throttled);
@@ -647,9 +654,8 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
 
     private final void doSelectThreadWrite(){
         try{
-            if (drainWriteQueue(25)){
-                //System.err.println("seldrained "+handshake.getClass()+ "");
-                iohandler.removeKeyInterest(SelectionKey.OP_WRITE);                
+            if (drainWriteQueue(50)){
+                iohandler.removeKeyInterest(SelectionKey.OP_WRITE);
             }
         }catch(java.nio.BufferOverflowException boe){
             close(TCPIOhandler.otherpeerclosed,true);
@@ -687,9 +693,10 @@ public class WebSocketImpl extends WebSocket implements SelectorLogicHandler{
             if (cause instanceof WebSocketWriteQueueOverflow){
                 ctx.writeDataThrottledCounter.incrementAndGet();
             }
-            if (needsLoging(cause) || needsLoging(cause.getCause())){
+            //log is internal synchronized.hence removed for now.
+            /*if (needsLoging(cause) || needsLoging(cause.getCause())){
                 logger.log(Level.SEVERE,"websocket abnormal close cause",cause);
-            }
+            }*/
             if (callerIsSelectThread){
                 if (ctx.doOnCloseEventsInThreadPool){
                     SelectThread.workers.execute(new Runnable() {
