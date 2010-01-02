@@ -103,14 +103,17 @@ public class ClassLoaderUtil {
             !dirPath.endsWith(".jar")) {
             dirPath += File.separator;
         }
+         
+        //Must be a better way because that sucks!
+        String separator = (System.getProperty("os.name").toLowerCase().startsWith("win")? "/" : "//");
         
         if (dirPath != null && 
                 (dirPath.endsWith(".war") || dirPath.endsWith(".jar"))) {
             file = new File(dirPath);
             appRoot = new URL("jar:file:" +
-                    file.getCanonicalPath() + "!/");
+                    file.getCanonicalPath().replace('\\','/') + "!/");
             classesURL = new URL("jar:file:" +
-                    file.getCanonicalPath() + "!/WEB-INF/classes/");
+                    file.getCanonicalPath().replace('\\','/') + "!/WEB-INF/classes/");
             path = ExpandJar.expand(appRoot);
         } else {
             path = dirPath;
@@ -122,10 +125,6 @@ public class ClassLoaderUtil {
         URL[] urls;
         File libFiles = new File(absolutePath + File.separator + "WEB-INF"+ File.separator + "lib");
         int arraySize = 2;
-
-        //Must be a better way because that sucks!
-        String separator = (System.getProperty("os.name")
-                .toLowerCase().startsWith("win")? "/" : "//");
 
         if (libFiles.exists() && libFiles.isDirectory()){
             urls = new URL[libFiles.listFiles().length + arraySize];
