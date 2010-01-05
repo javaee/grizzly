@@ -107,7 +107,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
 
         // Intercept the request and delegate the processing to the parent if
         // true.
-        if (interceptor != null 
+        if (interceptor != null
                 && interceptor.handle(byteBuffer, Interceptor.REQUEST_BUFFERED)
                     == Interceptor.BREAK){
             return super.execute(ctx);
