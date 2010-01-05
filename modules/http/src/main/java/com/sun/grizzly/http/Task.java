@@ -40,9 +40,7 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.SelectorHandler;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.ArrayList;
 import java.util.concurrent.Callable;
-import com.sun.grizzly.tcp.RequestGroupInfo;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -112,6 +110,13 @@ public interface Task extends Runnable, Callable{
      * method will be invoked.
      */   
     public void execute();
+
+    /**
+     * Execute this task using the passed {@link ExecutorService}.
+     * If the {@link ExecutorService} is null, the task's <code>doTask()</code>
+     * method will be invoked.
+     */
+    public void execute(ExecutorService threadPool);
     
     
     /**

@@ -38,15 +38,9 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.SelectorHandler;
-import com.sun.grizzly.util.http.HtmlHelper;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
-import java.util.logging.Level;
 
-import com.sun.grizzly.tcp.RequestGroupInfo;
-import com.sun.grizzly.util.OutputWriter;
 import java.util.concurrent.ExecutorService;
 
 /**
@@ -165,6 +159,13 @@ public abstract class TaskBase implements Task{
      * calling thread.
      */
     public void execute(){
+        execute(threadPool);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public void execute(ExecutorService threadPool) {
         if (threadPool != null) {
             threadPool.execute(this);
         } else {
