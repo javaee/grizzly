@@ -37,12 +37,15 @@
  */
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.util.SyncThreadPool;
+import com.sun.grizzly.util.AbstractThreadPool;
+import com.sun.grizzly.util.GrizzlyExecutorService;
+import com.sun.grizzly.util.ThreadPoolConfig;
+import java.util.List;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.LinkedList;
+import java.util.Collections;
 
 /**
  * Internal FIFO used by the Worker Threads to pass information
@@ -50,25 +53,36 @@ import java.util.LinkedList;
  *
  * @author Jean-Francois Arcand
  */
-public class StatsThreadPool extends SyncThreadPool {
-    
+public class StatsThreadPool extends GrizzlyExecutorService {
+    // Min number of worker threads in a pool
+
+    public static int DEFAULT_MIN_THREAD_COUNT = 5;
+    // Max number of worker threads in a pool
+    public static int DEFAULT_MAX_THREAD_COUNT = 5;
+    // Max number of tasks thread pool can enqueue
+    public static int DEFAULT_MAX_TASKS_QUEUED = Integer.MAX_VALUE;
+    // Timeout, after which idle thread will be stopped and excluded from pool
+    public static int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
     /**
      * Port, which is served by this thread pool
      */
     protected int port;
-
     /**
      * The {@link ThreadPoolStatistic} objects used when gathering statistics.
      */
+    private final Object startStopSync = new Object();
+    private volatile boolean wasEverStarted;
     protected transient ThreadPoolStatistic threadPoolStat;
 
     public StatsThreadPool() {
-        this(DEFAULT_MAX_TASKS_QUEUED);
+        this(AbstractThreadPool.DEFAULT_MAX_TASKS_QUEUED);
     }
 
     public StatsThreadPool(int maxTasksCount) {
-        this(DEFAULT_MIN_THREAD_COUNT, DEFAULT_MAX_THREAD_COUNT, maxTasksCount,
-                DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT, TimeUnit.MILLISECONDS);
+        this(AbstractThreadPool.DEFAULT_MIN_THREAD_COUNT,
+                AbstractThreadPool.DEFAULT_MAX_THREAD_COUNT, maxTasksCount,
+                AbstractThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
+                TimeUnit.MILLISECONDS);
     }
 
     public StatsThreadPool(int corePoolSize, int maximumPoolSize,
@@ -79,10 +93,58 @@ public class StatsThreadPool extends SyncThreadPool {
 
     public StatsThreadPool(String name, int corePoolSize, int maximumPoolSize,
             int maxTasksCount, long keepAliveTime, TimeUnit unit) {
-        super(name, corePoolSize, maximumPoolSize,
-                keepAliveTime, unit, null,
-                new LinkedList<Runnable>(), maxTasksCount);
-        setThreadFactory(new HttpWorkerThreadFactory());
+        this(new ThreadPoolConfig(name, corePoolSize, maximumPoolSize,
+                null, maxTasksCount, keepAliveTime, unit, null,
+                Thread.NORM_PRIORITY, null));
+    }
+
+    public StatsThreadPool(ThreadPoolConfig config) {
+        super(config, false);
+        super.config.setThreadFactory(
+                new HttpWorkerThreadFactory(this));
+    }
+
+    public void start() {
+        synchronized (startStopSync) {
+            setImpl(config);
+            wasEverStarted = true;
+        }
+    }
+
+    public void stop() {
+        shutdown();
+    }
+
+    @Override
+    public final void execute(Runnable r) {
+        if (!wasEverStarted) {
+            start();
+        }
+
+        super.execute(r);
+    }
+
+
+    @Override
+    public void shutdown() {
+        synchronized (startStopSync) {
+            if (!wasEverStarted) {
+                return;
+            }
+
+            super.shutdown();
+        }
+    }
+
+    @Override
+    public List<Runnable> shutdownNow() {
+        synchronized (startStopSync) {
+            if (!wasEverStarted) {
+                return Collections.<Runnable>emptyList();
+            }
+
+            return super.shutdownNow();
+        }
     }
 
     /**
@@ -101,49 +163,123 @@ public class StatsThreadPool extends SyncThreadPool {
         this.port = port;
     }
 
-    
     /**
      * Set the {@link ThreadPoolStatistic} object used
      * to gather statistic;
      */
-    public void setStatistic(ThreadPoolStatistic threadPoolStatistic){
+    public void setStatistic(ThreadPoolStatistic threadPoolStatistic) {
         this.threadPoolStat = threadPoolStatistic;
     }
-    
-    
+
     /**
      * Return the {@link ThreadPoolStatistic} object used
      * to gather statistic;
      */
-    public ThreadPoolStatistic getStatistic(){
+    public ThreadPoolStatistic getStatistic() {
         return threadPoolStat;
+    }
+
+    @Override
+    public GrizzlyExecutorService reconfigure(ThreadPoolConfig config) {
+        if (wasEverStarted) {
+            return super.reconfigure(config);
+        }
+
+        super.config = config;
+        return this;
+    }
+
+    @Override
+    public int getLargestPoolSize() {
+        if (!wasEverStarted) {
+            return 0;
+        }
+
+        return super.getLargestPoolSize();
+    }
+
+    @Override
+    public int getPoolSize() {
+        if (!wasEverStarted) {
+            return 0;
+        }
+
+        return super.getPoolSize();
+    }
+
+    @Override
+    public int getQueueSize() {
+        if (!wasEverStarted) {
+            return 0;
+        }
+
+        return super.getQueueSize();
+    }
+
+    @Override
+    public int getTaskCount() {
+        if (!wasEverStarted) {
+            return 0;
+        }
+
+        return super.getTaskCount();
+    }
+
+    @Override
+    public boolean isShutdown() {
+        if (!wasEverStarted) {
+            return false;
+        }
+
+        return super.isShutdown();
+    }
+
+    @Override
+    public boolean isTerminated() {
+        if (!wasEverStarted) {
+            return false;
+        }
+
+        return super.isTerminated();
     }
 
     /**
      * Create new {@link HttpWorkerThread}.
      */
-    protected class HttpWorkerThreadFactory implements ThreadFactory {
+    protected static class HttpWorkerThreadFactory implements ThreadFactory {
+
+        private final StatsThreadPool statsThreadPool;
+
+        public HttpWorkerThreadFactory(StatsThreadPool statsThreadPool) {
+            this.statsThreadPool = statsThreadPool;
+        }
+
         public Thread newThread(final Runnable r) {
             return AccessController.doPrivileged(
                     new PrivilegedAction<Thread>() {
+
                         public Thread run() {
-                            Thread thread = new HttpWorkerThread( StatsThreadPool.this,
-                                                                  name + "-WorkerThread(" +
-                                                                  nextThreadId() + ")", r,
-                                                                  initialByteBufferSize );
-                            thread.setUncaughtExceptionHandler( StatsThreadPool.this );
-                            thread.setPriority( priority );
-                            thread.setContextClassLoader( HttpWorkerThreadFactory.class.getClassLoader() );
+                            final Thread thread = new HttpWorkerThread(null, r);
+                            thread.setContextClassLoader(
+                                    HttpWorkerThreadFactory.class.getClassLoader());
                             return thread;
                         }
-                    }
-            );
+                    });
         }
     }
 
     @Override
     public String toString() {
-        return super.toString()+", port="+port;
+        return super.toString() + ", port=" + port;
     }
 
+    /**
+     * Inject toString() to a specific {@link StringBuilder}
+     * @param sb
+     * 
+     * @deprecated
+     */
+    protected void injectToStringAttributes(StringBuilder sb) {
+        sb.append(toString());
+    }
 }

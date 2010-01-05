@@ -41,6 +41,7 @@ package com.sun.grizzly;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.filter.EchoFilter;
 import com.sun.grizzly.util.DefaultThreadPool;
+import com.sun.grizzly.util.GrizzlyExecutorService;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.TCPIOClient;
 import java.io.IOException;
@@ -48,6 +49,7 @@ import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import junit.framework.TestCase;
 
 /**
@@ -61,7 +63,7 @@ public class RoundRobinSelectorHandlerTest extends TestCase {
     public void testSimplePacket() throws IOException {
         final Controller controller = new Controller();
         controller.setReadThreadsCount(0);
-        controller.setThreadPool(new DefaultThreadPool());
+        controller.setThreadPool(GrizzlyExecutorService.createInstance());
         
         // Thread pool and SelectionKeyHandler will be copied from controller
         final ReadController[] rrControllers = createRRControllers(2, controller);

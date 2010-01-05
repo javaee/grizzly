@@ -55,9 +55,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * executing tasks.
      *
      * @return the number of threads
-     * @deprecated 
      */
-    @Deprecated
     public int getActiveCount();
 
 
@@ -69,9 +67,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * decrease across successive calls.
      *
      * @return the number of tasks
-     * @deprecated 
      */
-    @Deprecated
     public int getTaskCount();
 
     /**
@@ -82,9 +78,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * across successive calls.
      *
      * @return the number of tasks
-     * @deprecated
      */
-    @Deprecated
     public long getCompletedTaskCount();
 
     /**
@@ -92,9 +86,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      *
      * @return the core number of threads
      * @see #setCorePoolSize
-     * @deprecated 
      */
-    @Deprecated
     public int getCorePoolSize();
 
     /**
@@ -108,9 +100,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @throws IllegalArgumentException if <tt>corePoolSize</tt>
      * less than zero
      * @see #getCorePoolSize
-     * @deprecated please use {@link #reconfigure} instead.
      */
-    @Deprecated
     public void setCorePoolSize(int corePoolSize);
 
     /**
@@ -118,18 +108,14 @@ public interface ExtendedThreadPool extends ExecutorService {
      * simultaneously been in the pool.
      *
      * @return the number of threads
-     * @deprecated
      */
-    @Deprecated
     public int getLargestPoolSize();
 
     /**
      * Returns the current number of threads in the pool.
      *
      * @return the number of threads
-     * @deprecated 
      */
-    @Deprecated
     public int getPoolSize();
 
     /**
@@ -139,18 +125,14 @@ public interface ExtendedThreadPool extends ExecutorService {
      * does not prevent queued tasks from executing.
      *
      * @return the task queue
-     * @deprecated 
      */
-    @Deprecated
     public Queue<Runnable> getQueue();
 
     /**
      * Returns the number of tasks, which are currently waiting in the queue.
      *
      * @return the number of tasks, which are currently waiting in the queue.
-     * @deprecated 
      */
-    @Deprecated
     public int getQueueSize();
 
     /**
@@ -161,9 +143,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @param unit the desired time unit of the result
      * @return the time limit
      * @see #setKeepAliveTime
-     * @deprecated 
      */
-    @Deprecated
     public long getKeepAliveTime(TimeUnit unit);
 
     /**
@@ -177,9 +157,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @param unit  the time unit of the time argument
      * @throws IllegalArgumentException if time less than zero
      * @see #getKeepAliveTime
-     * @deprecated please use {@link #reconfigure} instead.
      */
-    @Deprecated
     public void setKeepAliveTime(long time, TimeUnit unit);
 
     /**
@@ -187,9 +165,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      *
      * @return the maximum allowed number of threads
      * @see #setMaximumPoolSize
-     * @deprecated 
      */
-    @Deprecated
     public int getMaximumPoolSize();
 
     /**
@@ -202,39 +178,29 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @throws IllegalArgumentException if maximumPoolSize less than zero or
      * the {@link #getCorePoolSize core pool size}
      * @see #getMaximumPoolSize
-     * @deprecated please use {@link #reconfigure} instead.
      */
-    @Deprecated
     public void setMaximumPoolSize(int maximumPoolSize);
 
-    @Deprecated
     public int getMaxQueuedTasksCount();
 
 
     /**
      *
      * @param maxTasksCount
-     * @deprecated please use {@link #reconfigure} instead.
      */
-    @Deprecated
     public void setMaxQueuedTasksCount(int maxTasksCount);
 
 
-    @Deprecated
     public int getPriority();
 
-    @Deprecated
     public void setPriority(int priority);
 
-    @Deprecated
     public String getName();
 
     /**
      *
      * @param name
-     * @deprecated please use {@link #reconfigure} instead.
      */
-    @Deprecated
     public void setName(String name);
 
     /* Getting and setting tunable parameters */
@@ -245,9 +211,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      * @param threadFactory the new thread factory
      * @throws NullPointerException if threadFactory is null
      * @see #getThreadFactory
-     * @deprecated please use {@link #reconfigure} instead.
      */
-    @Deprecated
     public void setThreadFactory(ThreadFactory threadFactory);
 
     /**
@@ -255,9 +219,7 @@ public interface ExtendedThreadPool extends ExecutorService {
      *
      * @return the current thread factory
      * @see #setThreadFactory
-     * @deprecated
      */
-    @Deprecated
     public ThreadFactory getThreadFactory();
 
 }

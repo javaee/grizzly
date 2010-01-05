@@ -142,6 +142,10 @@ public class SyncThreadPool extends AbstractThreadPool {
         if (timeUnit == null) {
             throw new IllegalArgumentException("timeUnit == null");
         }
+        if (workQueue == null) {
+            workQueue = new LinkedList<Runnable>();
+        }
+        
         setPoolSizes(corePoolsize, maxPoolSize);
         this.keepAliveTime = TimeUnit.MILLISECONDS.convert(keepAliveTime, timeUnit);
         this.workQueue = workQueue;

@@ -40,7 +40,6 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.filter.EchoFilter;
 import com.sun.grizzly.filter.ReadFilter;
-import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.TCPIOClient;
 import java.io.IOException;
@@ -83,9 +82,6 @@ public class BaseSelectionKeyHandlerTest extends TestCase {
         pciHandler.poll().addFilter(new ReadFilter());
         pciHandler.poll().addFilter(new EchoFilter());
 
-        DefaultThreadPool threadPool = new DefaultThreadPool();
-        threadPool.setMaximumPoolSize(5);
-        controller.setThreadPool(threadPool);
         // set up client side, start controller & run test
         List<TCPIOClient> clients = null;        
         try {

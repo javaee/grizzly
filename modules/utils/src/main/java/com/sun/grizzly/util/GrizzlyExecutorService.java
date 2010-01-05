@@ -52,9 +52,17 @@ import java.util.concurrent.TimeUnit;
 public class GrizzlyExecutorService extends AbstractExecutorService
         implements ExtendedThreadPool {
 
-    private volatile ExtendedThreadPool pool;
-    private volatile ThreadPoolConfig config;
     private final Object statelock = new Object();
+    private volatile ExtendedThreadPool pool;
+    protected volatile ThreadPoolConfig config;
+
+    /**
+     *
+     * @return {@link GrizzlyExecutorService}
+     */
+    public static GrizzlyExecutorService createInstance() {
+        return createInstance(ThreadPoolConfig.DEFAULT);
+    }
 
     /**
      *
@@ -66,10 +74,18 @@ public class GrizzlyExecutorService extends AbstractExecutorService
     }
 
     protected GrizzlyExecutorService(ThreadPoolConfig config) {
-        setImpl(config);
+        this(config, true);
     }
 
-    private final void setImpl(ThreadPoolConfig cfg) {
+    protected GrizzlyExecutorService(ThreadPoolConfig config, boolean initialize) {
+        if (initialize) {
+            setImpl(config);
+        } else {
+            this.config = config;
+        }
+    }
+
+    protected final void setImpl(ThreadPoolConfig cfg) {
         if (cfg == null) {
             throw new IllegalArgumentException("config is null");
         }
@@ -78,7 +94,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         if ((queue == null || queue instanceof BlockingQueue) &&
                 (cfg.getCorePoolSize() < 0 || cfg.getCorePoolSize() == cfg.getMaxPoolSize())) {
             
-            this.pool = cfg.getQueueLimit() < 1
+            this.pool = cfg.getQueueLimit() < 0
                 ? new FixedThreadPool(cfg.getPoolName(), cfg.getMaxPoolSize(),
                 (BlockingQueue<Runnable>) queue,
                 cfg.getThreadFactory(), cfg.getMonitoringProbe())
@@ -88,7 +104,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
                 (BlockingQueue<Runnable>) queue, cfg.getMonitoringProbe());
         } else {
             this.pool = new SyncThreadPool(cfg.getPoolName(), cfg.getCorePoolSize(),
-                    cfg.getMaxPoolSize(), cfg.getKeepAliveTime(), cfg.getTimeUnit(),
+                    cfg.getMaxPoolSize(), cfg.getKeepAliveTime(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS,
                     cfg.getThreadFactory(), queue, cfg.getQueueLimit(),cfg.getMonitoringProbe());
         }        
         this.config = cfg.updateFrom(pool);
@@ -99,11 +115,15 @@ public class GrizzlyExecutorService extends AbstractExecutorService
      * @param config
      * @return returns {@link GrizzlyExecutorService}
      */
-    public final GrizzlyExecutorService reconfigure(ThreadPoolConfig config) {
+    public GrizzlyExecutorService reconfigure(ThreadPoolConfig config) {
         synchronized (statelock) {
             //TODO: only create new pool if old one cant be runtime config
             // for the needed state change(s).
             final ExtendedThreadPool oldpool = this.pool;
+            if (config.getQueue() == oldpool.getQueue()) {
+                config.setQueue(null);
+            }
+            
             setImpl(config);
             AbstractThreadPool.drain(oldpool.getQueue(), this.pool.getQueue());
             oldpool.shutdown();
@@ -135,7 +155,7 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         return pool.isTerminated();
     }
 
-    public final void execute(Runnable r) {
+    public void execute(Runnable r) {
         pool.execute(r);
     }
 
@@ -144,106 +164,191 @@ public class GrizzlyExecutorService extends AbstractExecutorService
         return pool.awaitTermination(timeout, unit);
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#getConfiguration()}
+     * to check thread pool configuration settings.
+     */
     @Deprecated
     public Queue<Runnable> getQueue() {
-        return pool.getQueue();
+        return config.getQueue();
     }
 
+    /**
+     * @deprecated please use {@link ThreadPoolMonitoringProbe}s to intercept
+     * thread pool events and build statistics.
+     */
     @Deprecated
     public int getActiveCount() {
         return pool.getActiveCount();
     }
 
+    /**
+     * @deprecated please use {@link ThreadPoolMonitoringProbe}s to intercept
+     * thread pool events and build statistics.
+     */
     @Deprecated
     public int getTaskCount() {
         return pool.getTaskCount();
     }
 
+    /**
+     * @deprecated please use {@link ThreadPoolMonitoringProbe}s to intercept
+     * thread pool events and build statistics.
+     */
     @Deprecated
     public long getCompletedTaskCount() {
         return pool.getCompletedTaskCount();
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#getConfiguration()}
+     * to check thread pool configuration settings.
+     */
     @Deprecated
     public int getCorePoolSize() {
-        return pool.getCorePoolSize();
+        return config.getCorePoolSize();
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#reconfigure(com.sun.grizzly.util.ThreadPoolConfig)}
+     * to change thread pool configuration settings.
+     */
     @Deprecated
     public void setCorePoolSize(int corePoolSize) {
-        reconfigure(config.clone().setCorePoolSize(corePoolSize));
+        reconfigure(getConfiguration().setCorePoolSize(corePoolSize));
     }
 
+    /**
+     * @deprecated please use {@link ThreadPoolMonitoringProbe}s to intercept
+     * thread pool events and build statistics.
+     */
     @Deprecated
     public int getLargestPoolSize() {
         return pool.getLargestPoolSize();
     }
 
+    /**
+     * @deprecated please use {@link ThreadPoolMonitoringProbe}s to intercept
+     * thread pool events and build statistics.
+     */
     @Deprecated
     public int getPoolSize() {
         return pool.getPoolSize();
     }
 
+    /**
+     * @deprecated please use {@link ThreadPoolMonitoringProbe}s to intercept
+     * thread pool events and build statistics.
+     */
     @Deprecated
     public int getQueueSize() {
         return pool.getQueueSize();
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#getConfiguration()}
+     * to check thread pool configuration settings.
+     */
     @Deprecated
     public long getKeepAliveTime(TimeUnit unit) {
-        return pool.getKeepAliveTime(unit);
+        return config.getKeepAliveTime(unit);
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#reconfigure(com.sun.grizzly.util.ThreadPoolConfig)}
+     * to change thread pool configuration settings.
+     */
     @Deprecated
     public void setKeepAliveTime(long time, TimeUnit unit) {
-        reconfigure(config.clone().setKeepAliveTime(time, unit));
+        reconfigure(getConfiguration().setKeepAliveTime(time, unit));
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#getConfiguration()}
+     * to check thread pool configuration settings.
+     */
     @Deprecated
     public int getMaximumPoolSize() {
-        return pool.getMaximumPoolSize();
+        return config.getMaxPoolSize();
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#reconfigure(com.sun.grizzly.util.ThreadPoolConfig)}
+     * to change thread pool configuration settings.
+     */
     @Deprecated
     public void setMaximumPoolSize(int maximumPoolSize) {
-        reconfigure(config.clone().setMaxPoolSize(maximumPoolSize));
+        reconfigure(getConfiguration().setMaxPoolSize(maximumPoolSize));
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#getConfiguration()}
+     * to check thread pool configuration settings.
+     */
     @Deprecated
     public int getMaxQueuedTasksCount() {
         return config.getQueueLimit();
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#reconfigure(com.sun.grizzly.util.ThreadPoolConfig)}
+     * to change thread pool configuration settings.
+     */
     @Deprecated
     public void setMaxQueuedTasksCount(int maxTasksCount) {
-        reconfigure(config.clone().setQueueLimit(maxTasksCount));
+        reconfigure(getConfiguration().setQueueLimit(maxTasksCount));
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#getConfiguration()}
+     * to check thread pool configuration settings.
+     */
     @Deprecated
     public String getName() {
-        return pool.getName();
+        return config.getPoolName();
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#reconfigure(com.sun.grizzly.util.ThreadPoolConfig)}
+     * to change thread pool configuration settings.
+     */
     @Deprecated
     public void setName(String name) {
-        reconfigure(config.clone().setPoolName(name));
+        reconfigure(getConfiguration().setPoolName(name));
     }
 
-    public int getPriority() {
-        return pool.getPriority();
-    }
-
-    public void setPriority(int priority) {
-        reconfigure(config.clone().setPriority(priority));
-    }
-
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#getConfiguration()}
+     * to check thread pool configuration settings.
+     */
     @Deprecated
-    public void setThreadFactory(ThreadFactory threadFactory) {
-        reconfigure(config.clone().setThreadFactory(threadFactory));
+    public int getPriority() {
+        return config.getPriority();
     }
 
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#reconfigure(com.sun.grizzly.util.ThreadPoolConfig)}
+     * to change thread pool configuration settings.
+     */
+    public void setPriority(int priority) {
+        reconfigure(getConfiguration().setPriority(priority));
+    }
+
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#getConfiguration()}
+     * to check thread pool configuration settings.
+     */
     @Deprecated
     public ThreadFactory getThreadFactory() {
-        return pool.getThreadFactory();
+        return config.getThreadFactory();
+    }
+
+    /**
+     * @deprecated please use {@link GrizzlyExecutorService#reconfigure(com.sun.grizzly.util.ThreadPoolConfig)}
+     * to change thread pool configuration settings.
+     */
+    @Deprecated
+    public void setThreadFactory(ThreadFactory threadFactory) {
+        reconfigure(getConfiguration().setThreadFactory(threadFactory));
     }
 }

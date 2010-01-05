@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.SocketException;
-import java.util.concurrent.RejectedExecutionException;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;

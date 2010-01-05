@@ -38,7 +38,6 @@
 package com.sun.grizzly.util;
 
 import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
@@ -47,14 +46,20 @@ import java.util.concurrent.TimeUnit;
  * @author gustav trede
  */
 public class ThreadPoolConfig {
+    public static final ThreadPoolConfig DEFAULT = new ThreadPoolConfig(
+            "Grizzly", AbstractThreadPool.DEFAULT_MIN_THREAD_COUNT,
+            AbstractThreadPool.DEFAULT_MAX_THREAD_COUNT,
+            null, -1,
+            AbstractThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
+            TimeUnit.MILLISECONDS,
+            null, Thread.MAX_PRIORITY, null);
 
     protected String poolName;
     protected int corePoolSize;
     protected int maxPoolSize;
     protected Queue<Runnable> queue;
-    protected int queueLimit;
-    protected long keepAliveTime;
-    protected TimeUnit timeUnit;
+    protected int queueLimit = -1;
+    protected long keepAliveTimeMillis;
     protected ThreadFactory threadFactory;
     protected int priority;
     protected ThreadPoolMonitoringProbe monitoringProbe;
@@ -71,8 +76,13 @@ public class ThreadPoolConfig {
         this.maxPoolSize     = maxPoolSize;
         this.queue           = queue;
         this.queueLimit      = queueLimit;
-        this.keepAliveTime   = keepAliveTime;
-        this.timeUnit        = timeUnit;
+        if (keepAliveTime > 0) {
+            this.keepAliveTimeMillis =
+                    TimeUnit.MILLISECONDS.convert(keepAliveTime, timeUnit);
+        } else {
+            keepAliveTimeMillis = keepAliveTime;
+        }
+        
         this.threadFactory   = threadFactory;
         this.priority        = priority;
         this.monitoringProbe = monitoringProbe;
@@ -86,8 +96,7 @@ public class ThreadPoolConfig {
         this.maxPoolSize     = cfg.maxPoolSize;
         this.queueLimit      = cfg.queueLimit;
         this.corePoolSize    = cfg.corePoolSize;
-        this.keepAliveTime   = cfg.keepAliveTime;
-        this.timeUnit        = cfg.timeUnit;
+        this.keepAliveTimeMillis   = cfg.keepAliveTimeMillis;
         this.monitoringProbe = cfg.monitoringProbe;
     }
 
@@ -98,9 +107,7 @@ public class ThreadPoolConfig {
 
     @SuppressWarnings("deprecation")
     protected ThreadPoolConfig updateFrom(ExtendedThreadPool ep) {
-        Queue q = ep.getQueue();
-        this.queue = ((q instanceof BlockingQueue)
-                ? (BlockingQueue<Runnable>) q : null);
+        this.queue = ep.getQueue();
         this.threadFactory = ep.getThreadFactory();
         this.poolName = ep.getName();
         this.maxPoolSize = ep.getMaximumPoolSize();
@@ -232,23 +239,15 @@ public class ThreadPoolConfig {
      * @return
      */
     public ThreadPoolConfig setKeepAliveTime(long time, TimeUnit unit) {
-        this.keepAliveTime = time;
-        this.timeUnit = unit;
+        this.keepAliveTimeMillis = TimeUnit.MILLISECONDS.convert(time, unit);
         return this;
-    }
-
-    /**
-     * @return the timeUnit
-     */
-    public TimeUnit getTimeUnit() {
-        return timeUnit;
     }
 
     /**
      * @return the keepAliveTime
      */
-    public long getKeepAliveTime() {
-        return keepAliveTime;
+    public long getKeepAliveTime(TimeUnit timeUnit) {
+        return timeUnit.convert(keepAliveTimeMillis, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -276,8 +275,7 @@ public class ThreadPoolConfig {
                 + "  maxPoolSize: " + maxPoolSize + "\r\n"
                 + "  queue: " + queue.getClass() + "\r\n"
                 + "  queueLimit: " + queueLimit + "\r\n"
-                + "  keepAliveTime: " + keepAliveTime + "\r\n"
-                + "  timeUnit: " + timeUnit + "\r\n"
+                + "  keepAliveTime (millis): " + keepAliveTimeMillis + "\r\n"
                 + "  threadFactory: " + threadFactory + "\r\n"
                 + "  priority: " + priority + "\r\n"
                 + "  monitoringProbe: " + monitoringProbe + "\r\n";

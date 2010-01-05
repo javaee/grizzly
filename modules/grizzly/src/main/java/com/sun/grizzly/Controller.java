@@ -37,18 +37,21 @@
  */
 package com.sun.grizzly;
 
+import com.sun.corba.se.pept.transport.ReaderThread;
 import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.DefaultThreadPool;
-import com.sun.grizzly.util.FixedThreadPool;
+import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.Grizzly;
+import com.sun.grizzly.util.GrizzlyExecutorService;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
 import com.sun.grizzly.util.SupportStateHolder;
+import com.sun.grizzly.util.ThreadPoolConfig;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.WorkerThreadFactory;
 import com.sun.grizzly.util.WorkerThreadImpl;
@@ -61,7 +64,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -258,7 +260,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     static final boolean isLinux =
             System.getProperty("os.name").equalsIgnoreCase("linux") &&
-                !System.getProperty("java.version").startsWith("1.7");;
+                !System.getProperty("java.version").startsWith("1.7");
     
     /**
      * Allow {@link Context} caching.
@@ -328,15 +330,26 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     private void ensureAppropriatePoolSize( ExecutorService threadPool ) {
         if( threadPool == null )
             return;
-        if( threadPool instanceof FixedThreadPool ) {
-            FixedThreadPool fixedThreadPool = (FixedThreadPool)threadPool;
-            if( fixedThreadPool.getCorePoolSize() < requiredThreadsCount ) {
-                if( fixedThreadPool.getMaximumPoolSize() < requiredThreadsCount )
-                    fixedThreadPool.setMaximumPoolSize( requiredThreadsCount );
-                fixedThreadPool.setCorePoolSize( requiredThreadsCount );
+        if( threadPool instanceof GrizzlyExecutorService ) {
+            final GrizzlyExecutorService grizzlyExecutorService =
+                    (GrizzlyExecutorService) threadPool;
+            final ThreadPoolConfig config = grizzlyExecutorService.getConfiguration();
+            
+            if( config.getCorePoolSize() < requiredThreadsCount ) {
+                if( config.getMaxPoolSize() < requiredThreadsCount )
+                    config.setMaxPoolSize( requiredThreadsCount );
+                config.setCorePoolSize( requiredThreadsCount );
+                grizzlyExecutorService.reconfigure(config);
+            }
+        } else if( threadPool instanceof ExtendedThreadPool ) {
+            final ExtendedThreadPool extendedThreadPool = (ExtendedThreadPool)threadPool;
+            if( extendedThreadPool.getCorePoolSize() < requiredThreadsCount ) {
+                if( extendedThreadPool.getMaximumPoolSize() < requiredThreadsCount )
+                    extendedThreadPool.setMaximumPoolSize( requiredThreadsCount );
+                extendedThreadPool.setCorePoolSize( requiredThreadsCount );
             }
         } else if( threadPool instanceof ThreadPoolExecutor ) {
-            ThreadPoolExecutor jdkThreadPool = (ThreadPoolExecutor)threadPool;
+            final ThreadPoolExecutor jdkThreadPool = (ThreadPoolExecutor)threadPool;
             if( jdkThreadPool.getCorePoolSize() < requiredThreadsCount ) {
                 if( jdkThreadPool.getMaximumPoolSize() < requiredThreadsCount )
                     jdkThreadPool.setMaximumPoolSize( requiredThreadsCount );
@@ -782,11 +795,11 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         
         autoConfigureCore();
         if (threadPool == null) {
-            threadPool = new DefaultThreadPool();
+            threadPool = GrizzlyExecutorService.createInstance();
         }
 
         if (threadPool.isShutdown()) {
-            threadPool = new DefaultThreadPool();
+            threadPool = GrizzlyExecutorService.createInstance();
         }
 
         ensureAppropriatePoolSize( threadPool );
