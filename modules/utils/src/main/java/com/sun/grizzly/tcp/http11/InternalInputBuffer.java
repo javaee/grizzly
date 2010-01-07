@@ -304,6 +304,11 @@ public class InternalInputBuffer implements InputBuffer {
         // Recycle Request object
         request.recycle();
 
+        // Recycle filters
+        for (int i = 0; i <= lastActiveFilter; i++) {
+            activeFilters[i].recycle();
+        }
+
         inputStream = null;
         lastValid = 0;
         pos = 0;
