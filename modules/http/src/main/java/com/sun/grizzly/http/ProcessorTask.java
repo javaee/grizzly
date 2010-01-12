@@ -73,6 +73,7 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.tcp.Response.ResponseAttachment;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.InputFilter;
 import com.sun.grizzly.tcp.http11.OutputFilter;
@@ -725,7 +726,9 @@ public class ProcessorTask extends TaskBase implements Processor,
         if (response.isSuspended()){
             WorkerThread wt = (WorkerThread)Thread.currentThread();
             wt.getAttachment().setAttribute(Response.SUSPENDED,Boolean.TRUE);
-            key.attach(response.getResponseAttachment());             
+            final ResponseAttachment ra = response.getResponseAttachment();
+            ra.markAttached(true);
+            key.attach(ra);
             return;
         }      
         finishResponse();

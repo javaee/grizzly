@@ -58,7 +58,6 @@ import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
-import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
@@ -752,12 +751,12 @@ public class Response<A> {
                 throw new IllegalStateException("Not Suspended");
             }
 
-            boolean isReallySuspended = true;
-            if (Thread.currentThread() instanceof WorkerThread){
-                WorkerThread wt = (WorkerThread)Thread.currentThread();
-                // True if the Adapter.service() method have exitted
-                isReallySuspended = (wt.getAttachment().getAttribute(SUSPENDED) != null);
-            }
+            boolean isReallySuspended = ra.isAttached();
+//            if (Thread.currentThread() instanceof WorkerThread){
+//                WorkerThread wt = (WorkerThread)Thread.currentThread();
+//                // True if the Adapter.service() method have exitted
+//                isReallySuspended = (wt.getAttachment().getAttribute(SUSPENDED) != null);
+//            }
 
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
             if (isReallySuspended){
@@ -928,14 +927,23 @@ public class Response<A> {
         private final A attachment;
         private long idletimeoutdelay;
         private final Response response;
+        private volatile boolean isAttached;
         
-        public ResponseAttachment(long idletimeoutdelay,A attachment,
+        protected ResponseAttachment(long idletimeoutdelay,A attachment,
                 CompletionHandler<? super A> completionHandler, Response response){
             this.idletimeoutdelay = idletimeoutdelay;
             this.attachment = attachment;
             this.completionHandler = completionHandler;
             this.response = response;            
             resetTimeout();
+        }
+
+        public boolean isAttached() {
+            return isAttached;
+        }
+
+        public void markAttached(boolean isAttached) {
+            this.isAttached = isAttached;
         }
 
         public A getAttachment() {
