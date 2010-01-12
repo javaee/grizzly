@@ -1,7 +1,7 @@
 /**
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER. *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved. *
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved. *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -102,10 +102,10 @@ public class WebApp {
 	public List<LocaleEncodingMappingList> localeEncodingMappingList = new ArrayList<LocaleEncodingMappingList>(0);
 
 	/**
-	 * <icon>
-	 *	<small-icon>token</small-icon>
-	 *	<large-icon>token</large-icon>
-	 * </icon>
+	 * &lt;icon&gt;
+	 *	&lt;small-icon&gt;token&lt;/small-icon&gt;
+	 *	&lt;large-icon&gt;token&lt;/large-icon&gt;
+	 * &lt;/icon&gt;
 	 */
 	public List<Icon> getIcon() {
 		return icon;
@@ -118,7 +118,7 @@ public class WebApp {
 	}
 	
 	/**
-	 * <display-name>name</display-name> 
+	 * &lt;display-name&gt;name&lt;/display-name&gt; 
 	 */
 	public List<String> getDisplayName() {
 		return displayName;
@@ -131,7 +131,7 @@ public class WebApp {
 	}
 
 	/**
-	 * <description>description</description>
+	 * &lt;description&gt;description&lt;/description&gt;
 	 */
 	public List<String> getDescription() {
 		return description;
@@ -156,7 +156,7 @@ public class WebApp {
 	}
 	
 	/**
-	 * <distributable></distributable>
+	 * &lt;distributable&gt;&lt;/distributable&gt;
 	 */
 	public boolean getDistributable() {
 		return distributable;
@@ -167,11 +167,11 @@ public class WebApp {
 	}
 
 	/**
-	 * <servlet>
-     *  <servlet-name>Hello</servlet-name>
-     *	<servlet-class>ca.sebastiendionne.HelloWorld</servlet-class>
-     *	<load-on-startup>1</load-on-startup>
-  	 * </servlet>
+	 * &lt;servlet&gt;
+     *  &lt;servlet-name&gt;Hello&lt;/servlet-name&gt;
+     *	&lt;servlet-class&gt;ca.sebastiendionne.HelloWorld&lt;/servlet-class&gt;
+     *	&lt;load-on-startup&gt;1&lt;/load-on-startup&gt;
+  	 * &lt;/servlet&gt;
 	 */
 	public List<Servlet> getServlet() {
 		return servlet;
@@ -184,14 +184,14 @@ public class WebApp {
 	}
 
 	/**
-	 * <filter>
-     *   <filter-name>filter</filter-name>
-     *   <filter-class>ca.sebastiendionne.TestFilter</filter-class>
-     *   <init-param>
-     *    <param-name>paramName</param-name>
-     *    <param-value>paramValue</param-value>
-     *   </init-param>
-     *  </filter>
+	 * &lt;filter&gt;
+     *   &lt;filter-name&gt;filter&lt;/filter-name&gt;
+     *   &lt;filter-class&gt;ca.sebastiendionne.TestFilter&lt;/filter-class&gt;
+     *   &lt;init-param&gt;
+     *    &lt;param-name&gt;paramName&lt;/param-name&gt;
+     *    &lt;param-value&gt;paramValue&lt;/param-value&gt;
+     *   &lt;/init-param&gt;
+     *  &lt;/filter&gt;
 	 */
 	public List<Filter> getFilter() {
 		return filter;
@@ -204,11 +204,11 @@ public class WebApp {
 	}
 	
 	/**
-	 * <context-param>
-	 *	<description>description</description>
-	 *	<param-name>token</param-name>
-	 *  <param-value>value</param-value>
-	 * </context-param>
+	 * &lt;context-param&gt;
+	 *	&lt;description&gt;description&lt;/description&gt;
+	 *	&lt;param-name&gt;token&lt;/param-name&gt;
+	 *  &lt;param-value&gt;value&lt;/param-value&gt;
+	 * &lt;/context-param&gt;
 	 */
 	public List<ContextParam> getContextParam() {
 		return contextParam;
@@ -221,19 +221,19 @@ public class WebApp {
 	}
 	
 	/**
-	 * <ejb-local-ref>
-	 *	<description>description</description>
-	 *	<ejb-ref-name>token</ejb-ref-name>
-	 *	<ejb-ref-type>Session</ejb-ref-type>
-	 *	<local-home>token</local-home>
-	 *	<local>token</local>
-	 *	<ejb-link>token</ejb-link>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </ejb-local-ref>
+	 * &lt;ejb-local-ref&gt;
+	 *	&lt;description&gt;description&lt;/description&gt;
+	 *	&lt;ejb-ref-name&gt;token&lt;/ejb-ref-name&gt;
+	 *	&lt;ejb-ref-type&gt;Session&lt;/ejb-ref-type&gt;
+	 *	&lt;local-home&gt;token&lt;/local-home&gt;
+	 *	&lt;local&gt;token&lt;/local&gt;
+	 *	&lt;ejb-link&gt;token&lt;/ejb-link&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/ejb-local-ref&gt;
 	 */
 	public List<EjbLocalRef> getEjbLocalRef() {
 		return ejbLocalRef;
@@ -246,19 +246,19 @@ public class WebApp {
 	}
 
 	/**
-	 * <ejb-ref>
-	 *  <description>description</description>
-	 *	<ejb-ref-name>token</ejb-ref-name>
-	 *	<ejb-ref-type>Session</ejb-ref-type>
-	 *	<home>token</home>
-	 *	<remote>token</remote>
-	 *	<ejb-link>token</ejb-link>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </ejb-ref>
+	 * &lt;ejb-ref&gt;
+	 *  &lt;description&gt;description&lt;/description&gt;
+	 *	&lt;ejb-ref-name&gt;token&lt;/ejb-ref-name&gt;
+	 *	&lt;ejb-ref-type&gt;Session&lt;/ejb-ref-type&gt;
+	 *	&lt;home&gt;token&lt;/home&gt;
+	 *	&lt;remote&gt;token&lt;/remote&gt;
+	 *	&lt;ejb-link&gt;token&lt;/ejb-link&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/ejb-ref&gt;
 	 */
 	public List<EjbRef> getEjbRef() {
 		return ejbRef;
@@ -271,17 +271,17 @@ public class WebApp {
 	}
 	
 	/**
-	 * <env-entry>
-	 *	<description>description</description>
-	 *	<env-entry-name>token</env-entry-name>
-	 *	<env-entry-type>java.lang.Double</env-entry-type>
-	 *	<env-entry-value>string</env-entry-value>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </env-entry>
+	 * &lt;env-entry&gt;
+	 *	&lt;description&gt;description&lt;/description&gt;
+	 *	&lt;env-entry-name&gt;token&lt;/env-entry-name&gt;
+	 *	&lt;env-entry-type&gt;java.lang.Double&lt;/env-entry-type&gt;
+	 *	&lt;env-entry-value&gt;string&lt;/env-entry-value&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/env-entry&gt;
 	 */
 	public List<EnvEntry> getEnvEntry() {
 		return envEntry;
@@ -294,11 +294,11 @@ public class WebApp {
 	}
 	
 	/**
-	 * <error-page>
-	 *	<error-code>404</error-code>
-	 *	<exception-type>token</exception-type>
-	 *	<location>/</location>
-	 * </error-page>
+	 * &lt;error-page&gt;
+	 *	&lt;error-code&gt;404&lt;/error-code&gt;
+	 *	&lt;exception-type&gt;token&lt;/exception-type&gt;
+	 *	&lt;location&gt;/&lt;/location&gt;
+	 * &lt;/error-page&gt;
 	 */
 	public List<ErrorPage> getErrorPage() {
 		return errorPage;
@@ -311,16 +311,16 @@ public class WebApp {
 	}
 	
 	/**
-	 * <filter-mapping>
-	 *	<filter-name/>
-	 *	<url-pattern>string</url-pattern>
-	 *	<servlet-name/>
-	 *	<url-pattern>string</url-pattern>
-	 *	<servlet-name/>
-	 *	<url-pattern>string</url-pattern>
-	 *	<servlet-name/>
-	 *	<dispatcher>ERROR</dispatcher>
-	 * </filter-mapping>
+	 * &lt;filter-mapping&gt;
+	 *	&lt;filter-name/&gt;
+	 *	&lt;url-pattern&gt;string&lt;/url-pattern&gt;
+	 *	&lt;servlet-name/&gt;
+	 *	&lt;url-pattern&gt;string&lt;/url-pattern&gt;
+	 *	&lt;servlet-name/&gt;
+	 *	&lt;url-pattern&gt;string&lt;/url-pattern&gt;
+	 *	&lt;servlet-name/&gt;
+	 *	&lt;dispatcher&gt;ERROR&lt;/dispatcher&gt;
+	 * &lt;/filter-mapping&gt;
 	 */
 	public List<FilterMapping> getFilterMapping() {
 		return filterMapping;
@@ -333,15 +333,15 @@ public class WebApp {
 	}
 
 	/**
-	 * <listener>
-	 *	<description>description</description>
-	 *	<display-name>token</display-name>
-	 *	<icon>
-	 *		<small-icon>token</small-icon>
-	 *		<large-icon>token</large-icon>
-	 *	</icon>
-	 *	<listener-class>token</listener-class>
-	 * </listener>
+	 * &lt;listener&gt;
+	 *	&lt;description&gt;description&lt;/description&gt;
+	 *	&lt;display-name&gt;token&lt;/display-name&gt;
+	 *	&lt;icon&gt;
+	 *		&lt;small-icon&gt;token&lt;/small-icon&gt;
+	 *		&lt;large-icon&gt;token&lt;/large-icon&gt;
+	 *	&lt;/icon&gt;
+	 *	&lt;listener-class&gt;token&lt;/listener-class&gt;
+	 * &lt;/listener&gt;
 	 */
 	public List<Listener> getListener() {
 		return listener;
@@ -354,14 +354,14 @@ public class WebApp {
 	}
 	
 	/**
-	 * <login-config>
-	 *	<auth-method>token</auth-method>
-	 *	<realm-name>token</realm-name>
-	 *	<form-login-config>
-	 *		<form-login-page>/</form-login-page>
-	 *		<form-error-page>/</form-error-page>
-	 *	</form-login-config>
-	 * </login-config>
+	 * &lt;login-config&gt;
+	 *	&lt;auth-method&gt;token&lt;/auth-method&gt;
+	 *	&lt;realm-name&gt;token&lt;/realm-name&gt;
+	 *	&lt;form-login-config&gt;
+	 *		&lt;form-login-page&gt;/&lt;/form-login-page&gt;
+	 *		&lt;form-error-page&gt;/&lt;/form-error-page&gt;
+	 *	&lt;/form-login-config&gt;
+	 * &lt;/login-config&gt;
 	 */
 	public List<LoginConfig> getLoginConfig() {
 		return loginConfig;
@@ -374,10 +374,10 @@ public class WebApp {
 	}
 	
 	/**
-	 * <mime-mapping>
-	 *	<extension>token</extension>
-	 *	<mime-type>!/!</mime-type>
-	 * </mime-mapping>
+	 * &lt;mime-mapping&gt;
+	 *	&lt;extension&gt;token&lt;/extension&gt;
+	 *	&lt;mime-type&gt;!/!&lt;/mime-type&gt;
+	 * &lt;/mime-mapping&gt;
 	 */
 	public List<MimeMapping> getMimeMapping() {
 		return mimeMapping;
@@ -390,16 +390,16 @@ public class WebApp {
 	}
 	
 	/**
-	 * <resource-env-ref>
-	 *	<description>description</description>
-	 *	<resource-env-ref-name>token</resource-env-ref-name>
-	 *	<resource-env-ref-type>token</resource-env-ref-type>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </resource-env-ref>
+	 * &lt;resource-env-ref&gt;
+	 *	&lt;description&gt;description&lt;/description&gt;
+	 *	&lt;resource-env-ref-name&gt;token&lt;/resource-env-ref-name&gt;
+	 *	&lt;resource-env-ref-type&gt;token&lt;/resource-env-ref-type&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/resource-env-ref&gt;
 	 */
 	public List<ResourceEnvRef> getResourceEnvRef() {
 		return resourceEnvRef;
@@ -412,19 +412,19 @@ public class WebApp {
 	}
 	
 	/**
-	 * <security-constraint>
-	 *	<display-name>displayname</display-name>
-	 *	<web-resource-collection>
-	 *		<web-resource-name>token</web-resource-name>
-	 *		<description>description</description>
-	 *		<url-pattern>string</url-pattern>
-	 *		<http-method>t</http-method>
-	 *	</web-resource-collection>
-	 *	<user-data-constraint>
-	 *		<description>description</description>
-	 *		<transport-guarantee>CONFIDENTIAL</transport-guarantee>
-	 *	</user-data-constraint>
-	 * </security-constraint>
+	 * &lt;security-constraint&gt;
+	 *	&lt;display-name&gt;displayname&lt;/display-name&gt;
+	 *	&lt;web-resource-collection&gt;
+	 *		&lt;web-resource-name&gt;token&lt;/web-resource-name&gt;
+	 *		&lt;description&gt;description&lt;/description&gt;
+	 *		&lt;url-pattern&gt;string&lt;/url-pattern&gt;
+	 *		&lt;http-method&gt;t&lt;/http-method&gt;
+	 *	&lt;/web-resource-collection&gt;
+	 *	&lt;user-data-constraint&gt;
+	 *		&lt;description&gt;description&lt;/description&gt;
+	 *		&lt;transport-guarantee&gt;CONFIDENTIAL&lt;/transport-guarantee&gt;
+	 *	&lt;/user-data-constraint&gt;
+	 * &lt;/security-constraint&gt;
 	 */
 	public List<SecurityConstraint> getSecurityConstraint() {
 		return securityConstraint;
@@ -437,10 +437,10 @@ public class WebApp {
 	}
 	
 	/**
-	 * <servlet-mapping>
-	 *	<servlet-name>servletname</servlet-name>
-	 *	<url-pattern>/*.jsp</url-pattern>
-	 * </servlet-mapping>
+	 * &lt;servlet-mapping&gt;
+	 *	&lt;servlet-name&gt;servletname&lt;/servlet-name&gt;
+	 *	&lt;url-pattern&gt;/*.jsp&lt;/url-pattern&gt;
+	 * &lt;/servlet-mapping&gt;
 	 */
 	public List<ServletMapping> getServletMapping() {
 		return servletMapping;
@@ -453,18 +453,18 @@ public class WebApp {
 	}
 	
 	/**
-	 * <session-config>
-	 *	<session-timeout>120</session-timeout>
-	 *	<cookie-config>
-	 *		<name>name</name>
-	 *		<domain>domain</domain>
-	 *		<path>path</path>
-	 *		<comment>comment</comment>
-	 *		<http-only>true</http-only>
-	 *		<secure>true</secure>
-	 *	</cookie-config>
-	 *	<tracking-mode>SSL</tracking-mode>
-	 * </session-config>
+	 * &lt;session-config&gt;
+	 *	&lt;session-timeout&gt;120&lt;/session-timeout&gt;
+	 *	&lt;cookie-config&gt;
+	 *		&lt;name&gt;name&lt;/name&gt;
+	 *		&lt;domain&gt;domain&lt;/domain&gt;
+	 *		&lt;path&gt;path&lt;/path&gt;
+	 *		&lt;comment&gt;comment&lt;/comment&gt;
+	 *		&lt;http-only&gt;true&lt;/http-only&gt;
+	 *		&lt;secure&gt;true&lt;/secure&gt;
+	 *	&lt;/cookie-config&gt;
+	 *	&lt;tracking-mode&gt;SSL&lt;/tracking-mode&gt;
+	 * &lt;/session-config&gt;
 	 */
 	public List<SessionConfig> getSessionConfig() {
 		return sessionConfig;
@@ -477,10 +477,10 @@ public class WebApp {
 	}
 	
 	/**
-	 * <taglib>
-	 *		<taglib-uri>uri</taglib-uri>
-	 *		<taglib-location>location</taglib-location>
-	 *	</taglib>
+	 * &lt;taglib&gt;
+	 *		&lt;taglib-uri&gt;uri&lt;/taglib-uri&gt;
+	 *		&lt;taglib-location&gt;location&lt;/taglib-location&gt;
+	 *	&lt;/taglib&gt;
 	 */
 	public List<Taglib> getTaglib() {
 		return taglib;
@@ -493,10 +493,10 @@ public class WebApp {
 	}
 	
 	/**
-	 * <security-role>
-	 *	<description>description</description>
-	 *	<role-name>token</role-name>
-	 * </security-role>
+	 * &lt;security-role&gt;
+	 *	&lt;description&gt;description&lt;/description&gt;
+	 *	&lt;role-name&gt;token&lt;/role-name&gt;
+	 * &lt;/security-role&gt;
 	 */
 	public List<SecurityRole> getSecurityRole() {
 		return securityRole;
@@ -509,18 +509,18 @@ public class WebApp {
 	}
 
 	/**
-	 * <resource-ref>
-	 *	<description>description</description>
-	 *	<res-ref-name>token</res-ref-name>
-	 *	<res-type>token</res-type>
-	 *	<res-auth>Container</res-auth>
-	 *	<res-sharing-scope>Unshareable</res-sharing-scope>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </resource-ref>
+	 * &lt;resource-ref&gt;
+	 *	&lt;description&gt;description&lt;/description&gt;
+	 *	&lt;res-ref-name&gt;token&lt;/res-ref-name&gt;
+	 *	&lt;res-type&gt;token&lt;/res-type&gt;
+	 *	&lt;res-auth&gt;Container&lt;/res-auth&gt;
+	 *	&lt;res-sharing-scope&gt;Unshareable&lt;/res-sharing-scope&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/resource-ref&gt;
 	 */
 	public List<ResourceRef> getResourceRef() {
 		return resourceRef;
@@ -533,10 +533,10 @@ public class WebApp {
 	}
 	
 	/**
-	 * <welcome-file-list>
-	 *	<welcome-file>index.jsp</welcome-file>
-	 *	<welcome-file>index.html</welcome-file>
-	 * </welcome-file-list>
+	 * &lt;welcome-file-list&gt;
+	 *	&lt;welcome-file&gt;index.jsp&lt;/welcome-file&gt;
+	 *	&lt;welcome-file&gt;index.html&lt;/welcome-file&gt;
+	 * &lt;/welcome-file-list&gt;
 	 */
 	public List<WelcomeFileList> getWelcomeFileList() {
 		return welcomeFileList;
@@ -549,32 +549,32 @@ public class WebApp {
 	}
 	
 	/**
-	 * <jsp-config>
-	 *	<taglib>
-	 *		<taglib-uri>uri</taglib-uri>
-	 *		<taglib-location>localtion</taglib-location>
-	 *	</taglib>
-	 *	<jsp-property-group>
-	 *		<description>description</description>
-	 *		<display-name>displayname</display-name>
-	 *		<icon>
-	 *			<small-icon>token</small-icon>
-	 *			<large-icon>token</large-icon>
-	 *		</icon>
-	 *		<url-pattern>string</url-pattern>
-	 *		<el-ignored>true</el-ignored>
-	 *		<page-encoding>token</page-encoding>
-	 *		<scripting-invalid>true</scripting-invalid>
-	 *		<is-xml>true</is-xml>
-	 *		<include-prelude>token</include-prelude>
-	 *		<include-coda>token</include-coda>
-	 *		<deferred-syntax-allowed-as-literal>true</deferred-syntax-allowed-as-literal>
-	 *		<trim-directive-whitespaces>true</trim-directive-whitespaces>
-	 *		<default-content-type>token</default-content-type>
-	 *		<buffer>token</buffer>
-	 *		<error-on-undeclared-namespace>true</error-on-undeclared-namespace>
-	 *	</jsp-property-group>
-	 * </jsp-config>
+	 * &lt;jsp-config&gt;
+	 *	&lt;taglib&gt;
+	 *		&lt;taglib-uri&gt;uri&lt;/taglib-uri&gt;
+	 *		&lt;taglib-location&gt;localtion&lt;/taglib-location&gt;
+	 *	&lt;/taglib&gt;
+	 *	&lt;jsp-property-group&gt;
+	 *		&lt;description&gt;description&lt;/description&gt;
+	 *		&lt;display-name&gt;displayname&lt;/display-name&gt;
+	 *		&lt;icon&gt;
+	 *			&lt;small-icon&gt;token&lt;/small-icon&gt;
+	 *			&lt;large-icon&gt;token&lt;/large-icon&gt;
+	 *		&lt;/icon&gt;
+	 *		&lt;url-pattern&gt;string&lt;/url-pattern&gt;
+	 *		&lt;el-ignored&gt;true&lt;/el-ignored&gt;
+	 *		&lt;page-encoding&gt;token&lt;/page-encoding&gt;
+	 *		&lt;scripting-invalid&gt;true&lt;/scripting-invalid&gt;
+	 *		&lt;is-xml&gt;true&lt;/is-xml&gt;
+	 *		&lt;include-prelude&gt;token&lt;/include-prelude&gt;
+	 *		&lt;include-coda&gt;token&lt;/include-coda&gt;
+	 *		&lt;deferred-syntax-allowed-as-literal&gt;true&lt;/deferred-syntax-allowed-as-literal&gt;
+	 *		&lt;trim-directive-whitespaces&gt;true&lt;/trim-directive-whitespaces&gt;
+	 *		&lt;default-content-type&gt;token&lt;/default-content-type&gt;
+	 *		&lt;buffer&gt;token&lt;/buffer&gt;
+	 *		&lt;error-on-undeclared-namespace&gt;true&lt;/error-on-undeclared-namespace&gt;
+	 *	&lt;/jsp-property-group&gt;
+	 * &lt;/jsp-config&gt;
 	 */
 	public List<JspConfig> getJspConfig() {
 		return jspConfig;
@@ -587,73 +587,73 @@ public class WebApp {
 	}
 
 	/**
-	 * <service-ref>
-	 *	<description>description</description>
-	 *	<display-name>token</display-name>
-	 *	<icon>
-	 *		<small-icon>token</small-icon>
-	 *		<large-icon>token</large-icon>
-	 *	</icon>
-	 *	<service-ref-name>token</service-ref-name>
-	 *	<service-interface>token</service-interface>
-	 *	<service-ref-type>token</service-ref-type>
-	 *	<wsdl-file> URI</wsdl-file>
-	 *	<jaxrpc-mapping-file>token</jaxrpc-mapping-file>
-	 *	<service-qname>pref:name</service-qname>
-	 *	<port-component-ref>
-	 *		<service-endpoint-interface>token</service-endpoint-interface>
-	 *		<enable-mtom>true</enable-mtom>
-	 *		<port-component-link>token</port-component-link>
-	 *	</port-component-ref>
-	 *	<handler>
-	 *		<description>description</description>
-	 *		<display-name>token</display-name>
-	 *		<icon>
-	 *			<small-icon>token</small-icon>
-	 *			<large-icon>token</large-icon>
-	 *		</icon>
-	 *		<handler-name>token</handler-name>
-	 *		<handler-class>token</handler-class>
-	 *		<init-param>
-	 *			<description>string</description>
-	 *			<param-name>token</param-name>
-	 *			<param-value>string</param-value>
-	 *		</init-param>
-	 *		<soap-header>pref:name</soap-header>
-	 *		<soap-role>token</soap-role>
-	 *		<port-name>token</port-name>
-	 *	</handler>
-	 *	<handler-chains>
-	 *		<handler-chain>
-	 *			<service-name-pattern>*</service-name-pattern>
-	 *			<port-name-pattern>*</port-name-pattern>
-	 *			<protocol-bindings/>
-	 *			<handler>
-	 *				<description>string</description>
-	 *				<display-name>token</display-name>
-	 *				<icon>
-	 *					<small-icon>token</small-icon>
-	 *					<large-icon>token</large-icon>
-	 *				</icon>
-	 *				<handler-name>token</handler-name>
-	 *				<handler-class>token</handler-class>
-	 *				<init-param>
-	 *					<description>string</description>
-	 *					<param-name>token</param-name>
-	 *					<param-value>string</param-value>
-	 *				</init-param>
-	 *				<soap-header>pref:name</soap-header>
-	 *				<soap-role>token</soap-role>
-	 *				<port-name>token</port-name>
-	 *			</handler>
-	 *		</handler-chain>
-	 *	</handler-chains>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </service-ref>
+	 * &lt;service-ref&gt;
+	 *	&lt;description&gt;description&lt;/description&gt;
+	 *	&lt;display-name&gt;token&lt;/display-name&gt;
+	 *	&lt;icon&gt;
+	 *		&lt;small-icon&gt;token&lt;/small-icon&gt;
+	 *		&lt;large-icon&gt;token&lt;/large-icon&gt;
+	 *	&lt;/icon&gt;
+	 *	&lt;service-ref-name&gt;token&lt;/service-ref-name&gt;
+	 *	&lt;service-interface&gt;token&lt;/service-interface&gt;
+	 *	&lt;service-ref-type&gt;token&lt;/service-ref-type&gt;
+	 *	&lt;wsdl-file&gt; URI&lt;/wsdl-file&gt;
+	 *	&lt;jaxrpc-mapping-file&gt;token&lt;/jaxrpc-mapping-file&gt;
+	 *	&lt;service-qname&gt;pref:name&lt;/service-qname&gt;
+	 *	&lt;port-component-ref&gt;
+	 *		&lt;service-endpoint-interface&gt;token&lt;/service-endpoint-interface&gt;
+	 *		&lt;enable-mtom&gt;true&lt;/enable-mtom&gt;
+	 *		&lt;port-component-link&gt;token&lt;/port-component-link&gt;
+	 *	&lt;/port-component-ref&gt;
+	 *	&lt;handler&gt;
+	 *		&lt;description&gt;description&lt;/description&gt;
+	 *		&lt;display-name&gt;token&lt;/display-name&gt;
+	 *		&lt;icon&gt;
+	 *			&lt;small-icon&gt;token&lt;/small-icon&gt;
+	 *			&lt;large-icon&gt;token&lt;/large-icon&gt;
+	 *		&lt;/icon&gt;
+	 *		&lt;handler-name&gt;token&lt;/handler-name&gt;
+	 *		&lt;handler-class&gt;token&lt;/handler-class&gt;
+	 *		&lt;init-param&gt;
+	 *			&lt;description&gt;string&lt;/description&gt;
+	 *			&lt;param-name&gt;token&lt;/param-name&gt;
+	 *			&lt;param-value&gt;string&lt;/param-value&gt;
+	 *		&lt;/init-param&gt;
+	 *		&lt;soap-header&gt;pref:name&lt;/soap-header&gt;
+	 *		&lt;soap-role&gt;token&lt;/soap-role&gt;
+	 *		&lt;port-name&gt;token&lt;/port-name&gt;
+	 *	&lt;/handler&gt;
+	 *	&lt;handler-chains&gt;
+	 *		&lt;handler-chain&gt;
+	 *			&lt;service-name-pattern&gt;*&lt;/service-name-pattern&gt;
+	 *			&lt;port-name-pattern&gt;*&lt;/port-name-pattern&gt;
+	 *			&lt;protocol-bindings/&gt;
+	 *			&lt;handler&gt;
+	 *				&lt;description&gt;string&lt;/description&gt;
+	 *				&lt;display-name&gt;token&lt;/display-name&gt;
+	 *				&lt;icon&gt;
+	 *					&lt;small-icon&gt;token&lt;/small-icon&gt;
+	 *					&lt;large-icon&gt;token&lt;/large-icon&gt;
+	 *				&lt;/icon&gt;
+	 *				&lt;handler-name&gt;token&lt;/handler-name&gt;
+	 *				&lt;handler-class&gt;token&lt;/handler-class&gt;
+	 *				&lt;init-param&gt;
+	 *					&lt;description&gt;string&lt;/description&gt;
+	 *					&lt;param-name&gt;token&lt;/param-name&gt;
+	 *					&lt;param-value&gt;string&lt;/param-value&gt;
+	 *				&lt;/init-param&gt;
+	 *				&lt;soap-header&gt;pref:name&lt;/soap-header&gt;
+	 *				&lt;soap-role&gt;token&lt;/soap-role&gt;
+	 *				&lt;port-name&gt;token&lt;/port-name&gt;
+	 *			&lt;/handler&gt;
+	 *		&lt;/handler-chain&gt;
+	 *	&lt;/handler-chains&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/service-ref&gt;
 	 */
 	public List<ServiceRef> getServiceRef() {
 		return serviceRef;
@@ -666,16 +666,16 @@ public class WebApp {
 	}
 	
 	/**
-	 * <message-destination>
-	 *	<description>string</description>
-	 *	<display-name>token</display-name>
-	 *	<icon>
-	 *		<small-icon>token</small-icon>
-	 *		<large-icon>token</large-icon>
-	 *	</icon>
-	 *	<message-destination-name>token</message-destination-name>
-	 *	<mapped-name>string</mapped-name>
-	 * </message-destination>
+	 * &lt;message-destination&gt;
+	 *	&lt;description&gt;string&lt;/description&gt;
+	 *	&lt;display-name&gt;token&lt;/display-name&gt;
+	 *	&lt;icon&gt;
+	 *		&lt;small-icon&gt;token&lt;/small-icon&gt;
+	 *		&lt;large-icon&gt;token&lt;/large-icon&gt;
+	 *	&lt;/icon&gt;
+	 *	&lt;message-destination-name&gt;token&lt;/message-destination-name&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 * &lt;/message-destination&gt;
 	 */
 	public List<MessageDestination> getMessageDestination() {
 		return messageDestination;
@@ -688,18 +688,18 @@ public class WebApp {
 	}
 
 	/**
-	 * <message-destination-ref>
-	 *	<description>string</description>
-	 *	<message-destination-ref-name>token</message-destination-ref-name>
-	 *	<message-destination-type>token</message-destination-type>
-	 *	<message-destination-usage>ConsumesProduces</message-destination-usage>
-	 *	<message-destination-link>token</message-destination-link>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </message-destination-ref>
+	 * &lt;message-destination-ref&gt;
+	 *	&lt;description&gt;string&lt;/description&gt;
+	 *	&lt;message-destination-ref-name&gt;token&lt;/message-destination-ref-name&gt;
+	 *	&lt;message-destination-type&gt;token&lt;/message-destination-type&gt;
+	 *	&lt;message-destination-usage&gt;ConsumesProduces&lt;/message-destination-usage&gt;
+	 *	&lt;message-destination-link&gt;token&lt;/message-destination-link&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/message-destination-ref&gt;
 	 */
 	public List<MessageDestinationRef> getMessageDestinationRef() {
 		return messageDestinationRef;
@@ -712,21 +712,21 @@ public class WebApp {
 	}
 	
 	/**
-	 * <persistence-context-ref>
-	 *	<description>string</description>
-	 *	<persistence-context-ref-name>token</persistence-context-ref-name>
-	 *	<persistence-unit-name>token</persistence-unit-name>
-	 *	<persistence-context-type>Extended</persistence-context-type>
-	 *	<persistence-property>
-	 *		<name>string</name>
-	 *		<value>string</value>
-	 *	</persistence-property>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </persistence-context-ref>
+	 * &lt;persistence-context-ref&gt;
+	 *	&lt;description&gt;string&lt;/description&gt;
+	 *	&lt;persistence-context-ref-name&gt;token&lt;/persistence-context-ref-name&gt;
+	 *	&lt;persistence-unit-name&gt;token&lt;/persistence-unit-name&gt;
+	 *	&lt;persistence-context-type&gt;Extended&lt;/persistence-context-type&gt;
+	 *	&lt;persistence-property&gt;
+	 *		&lt;name&gt;string&lt;/name&gt;
+	 *		&lt;value&gt;string&lt;/value&gt;
+	 *	&lt;/persistence-property&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/persistence-context-ref&gt;
 	 */
 	public List<PersistenceContextRef> getPersistenceContextRef() {
 		return persistenceContextRef;
@@ -739,16 +739,16 @@ public class WebApp {
 	}
 
 	/**
-	 * <persistence-unit-ref>
-	 *	<description>string</description>
-	 *	<persistence-unit-ref-name>token</persistence-unit-ref-name>
-	 *	<persistence-unit-name>token</persistence-unit-name>
-	 *	<mapped-name>string</mapped-name>
-	 *	<injection-target>
-	 *		<injection-target-class>token</injection-target-class>
-	 *		<injection-target-name>$</injection-target-name>
-	 *	</injection-target>
-	 * </persistence-unit-ref>
+	 * &lt;persistence-unit-ref&gt;
+	 *	&lt;description&gt;string&lt;/description&gt;
+	 *	&lt;persistence-unit-ref-name&gt;token&lt;/persistence-unit-ref-name&gt;
+	 *	&lt;persistence-unit-name&gt;token&lt;/persistence-unit-name&gt;
+	 *	&lt;mapped-name&gt;string&lt;/mapped-name&gt;
+	 *	&lt;injection-target&gt;
+	 *		&lt;injection-target-class&gt;token&lt;/injection-target-class&gt;
+	 *		&lt;injection-target-name&gt;$&lt;/injection-target-name&gt;
+	 *	&lt;/injection-target&gt;
+	 * &lt;/persistence-unit-ref&gt;
 	 */
 	public List<PersistenceUnitRef> getPersistenceUnitRef() {
 		return persistenceUnitRef;
@@ -761,10 +761,10 @@ public class WebApp {
 	}
 	
 	/**
-	 * <post-construct>
-	 *	<lifecycle-callback-class>token</lifecycle-callback-class>
-	 *	<lifecycle-callback-method>$</lifecycle-callback-method>
-	 * </post-construct>
+	 * &lt;post-construct&gt;
+	 *	&lt;lifecycle-callback-class&gt;token&lt;/lifecycle-callback-class&gt;
+	 *	&lt;lifecycle-callback-method&gt;$&lt;/lifecycle-callback-method&gt;
+	 * &lt;/post-construct&gt;
 	 */
 	public List<LifecycleCallback> getPostConstruct() {
 		return postConstruct;
@@ -777,10 +777,10 @@ public class WebApp {
 	}
 	
 	/**
-	 * <pre-destroy>
-	 *	<lifecycle-callback-class>token</lifecycle-callback-class>
-	 *	<lifecycle-callback-method>$</lifecycle-callback-method>
-	 * </pre-destroy>
+	 * &lt;pre-destroy&gt;
+	 *	&lt;lifecycle-callback-class&gt;token&lt;/lifecycle-callback-class&gt;
+	 *	&lt;lifecycle-callback-method&gt;$&lt;/lifecycle-callback-method&gt;
+	 * &lt;/pre-destroy&gt;
 	 */
 	public List<LifecycleCallback> getPreDestroy() {
 		return preDestroy;
@@ -793,12 +793,12 @@ public class WebApp {
 	}
 
 	/**
-	 * <locale-encoding-mapping-list>
-	 *	<locale-encoding-mapping>
-	 *		<locale>st_ri</locale>
-	 *		<encoding>s</encoding>
-	 *	</locale-encoding-mapping>
-	 * </locale-encoding-mapping-list>
+	 * &lt;locale-encoding-mapping-list&gt;
+	 *	&lt;locale-encoding-mapping&gt;
+	 *		&lt;locale&gt;st_ri&lt;/locale&gt;
+	 *		&lt;encoding&gt;s&lt;/encoding&gt;
+	 *	&lt;/locale-encoding-mapping&gt;
+	 * &lt;/locale-encoding-mapping-list&gt;
 	 */
 	public List<LocaleEncodingMappingList> getLocaleEncodingMappingList() {
 		return localeEncodingMappingList;

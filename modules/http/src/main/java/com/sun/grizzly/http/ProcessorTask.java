@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,6 +62,7 @@ import java.io.OutputStream;
 
 import java.net.InetAddress;
 import java.net.Socket;
+import java.nio.BufferOverflowException;
 import java.nio.channels.SocketChannel;
 import java.util.logging.Level;
 
@@ -858,8 +859,18 @@ public class ProcessorTask extends TaskBase implements Processor,
         
         // Parsing the request header
         try { 
-
-            inputBuffer.parseRequestLine();
+            try {
+                inputBuffer.parseRequestLine();
+            } catch (BufferOverflowException boe) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE,
+                               sm.getString("processorTask.requesturitoolarge"),
+                               boe);
+                }
+                error = true;
+                response.setStatus(414);
+                return error;
+            }
             if (selectorThread.isMonitoringEnabled()) {
                 request.getRequestProcessor().setRequestCompletionTime(0);
             }
@@ -868,7 +879,18 @@ public class ProcessorTask extends TaskBase implements Processor,
                 ((InputReader)inputStream).setReadTimeout(uploadTimeout);
             }
 
-            inputBuffer.parseHeaders();
+            try {
+                inputBuffer.parseHeaders();
+            } catch (BufferOverflowException boe) {
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE,
+                               sm.getString("processorTask.requestheadertoolarge"),
+                               boe);
+                }
+                error = true;
+                response.setStatus(400);
+                return error;
+            }
 
             WorkerThread workerThread = (WorkerThread)Thread.currentThread();
             KeepAliveThreadAttachment k =

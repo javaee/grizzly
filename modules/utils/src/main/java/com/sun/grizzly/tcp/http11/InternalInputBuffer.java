@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -65,6 +65,7 @@ import com.sun.grizzly.util.res.StringManager;
 import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.BufferOverflowException;
 
 public class InternalInputBuffer implements InputBuffer {
 
@@ -754,8 +755,7 @@ public class InternalInputBuffer implements InputBuffer {
         if (parsingHeader) {
 
             if (lastValid == buf.length) {
-                throw new IllegalArgumentException
-                    (sm.getString("iib.requestheadertoolarge.error"));
+                throw new BufferOverflowException();
             }
 
             nRead = inputStream.read(buf, pos, buf.length - lastValid);
