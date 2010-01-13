@@ -1818,8 +1818,27 @@ public class SelectorThread extends Thread implements MBeanRegistration{
     }
 
 
+    /**
+     * @return port specified via setPort(int)
+     */
     public int getPort() {
         return port;
+    }
+
+
+    /**
+     * Use the method to get the actual port which is different from the requested
+     * port in case port 0 was requested.
+     *
+     * @return port that the socket is bound to or -1 if there is not serverSocket
+     *          associated with this SelectorThread
+     */
+    public int getPortLowLevel() {
+        if (serverSocket != null){
+            return serverSocket.getLocalPort();
+        } else {
+            return -1;
+        }
     }
 
     public void setPort(int port ) {
