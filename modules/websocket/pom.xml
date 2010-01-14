@@ -44,7 +44,7 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>         
-                    <argLine>-Xms512m -server</argLine>
+                    <argLine>-Xms512m -Xmx768m -server</argLine>
                     <!-- <argLine>-Xmx3g -Xms3g -d64 -XX:CompileThreshold=3000 -Xss224k -XX:BiasedLockingStartupDelay=0 -XX:-DontCompileHugeMethods -XX:+UseOnStackReplacement</argLine> !-->
                 </configuration>
               </plugin>           
