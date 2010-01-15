@@ -700,7 +700,7 @@ public class SelectorThread extends Thread implements MBeanRegistration{
                  * API to handle this scenario.
                  */
                 Object attachment = selectionKey.attachment();
-                selectionKey.attach(-1);
+                selectionKey.attach(-1L);
                 
                 if (processorPipeline.expireKey(selectionKey)){                 
                     cancelKey(selectionKey);

@@ -2310,7 +2310,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
      */
     void configureTransactionTimeout(){
         if (key != null){
-            key.attach(transactionTimeout);
+            key.attach(Long.valueOf(transactionTimeout));
         }
     }
 }
