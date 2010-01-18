@@ -1742,6 +1742,10 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     }
 
     
+    /**
+     * Get main {@link SelectorHandler}
+     * @deprecated use {@link SelectorHandler}, which is usually provided by the current {@link Context}.
+     */
     public TCPSelectorHandler getSelectorHandler() {
         return selectorHandler;
     }
