@@ -39,6 +39,7 @@
 package com.sun.grizzly.arp;
 
 import com.sun.grizzly.Context;
+import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.http.DefaultProtocolFilter;
 import com.sun.grizzly.http.HttpWorkerThread;
 import com.sun.grizzly.http.ProcessorTask;
@@ -183,10 +184,11 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
     public void taskEvent(TaskEvent event){
         if (event.getStatus() == TaskEvent.COMPLETED
                 || event.getStatus() == TaskEvent.ERROR){
-            ProcessorTask processor = (ProcessorTask) event.attachement();
+            final ProcessorTask processor = (ProcessorTask) event.attachement();
+            final SelectionKey processorSelectionKey = processor.getSelectionKey();
             
             // Should never happens.
-            if (processor.getSelectionKey() == null){
+            if (processorSelectionKey == null){
                 logger.log(Level.WARNING,"AsyncProtocolFilter invalid state.");
                 return;
             }          
@@ -195,17 +197,19 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
             is.getByteBuffer().clear();
             byteBufferStreams.offer(is);            
 
-            SelectorThread selectorThread = processor.getSelectorThread();
+            final SelectorThread selectorThread = processor.getSelectorThread();
+            final SelectorHandler selectorHandler = processor.getSelectorHandler();
+            
             boolean cancelkey = processor.getAptCancelKey() || processor.isError()
                     || !processor.isKeepAlive();
-            try{            
+            try {
                 if (!cancelkey){
                     if (processor.getReRegisterSelectionKey()){
-                        setSelectionKeyTimeout(processor.getSelectionKey(), Long.MIN_VALUE);
-                        selectorThread.registerKey(processor.getSelectionKey());
+                        setSelectionKeyTimeout(processorSelectionKey, SelectionKeyAttachment.UNLIMITED_TIMEOUT);
+                        selectorHandler.register(processorSelectionKey, SelectionKey.OP_READ);
                     }
                 }else{
-                    selectorThread.cancelKey(processor.getSelectionKey());
+                    selectorHandler.getSelectionKeyHandler().cancel(processorSelectionKey);
                 }
             } finally{
                 processor.recycle();

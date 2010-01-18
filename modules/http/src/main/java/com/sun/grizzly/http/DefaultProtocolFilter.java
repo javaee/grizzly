@@ -45,6 +45,7 @@ import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.InputReader;
+import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.StreamAlgorithm;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -176,7 +177,7 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             if (ctx.getProtocol() == Controller.Protocol.TCP){
                 ctx.getSelectionKey().attach(null);
             } else {
-                workerThread.getAttachment().setTimeout(Long.MIN_VALUE);
+                workerThread.getAttachment().setTimeout(SelectionKeyAttachment.UNLIMITED_TIMEOUT);
             }
             keepAlive = true;
         }
