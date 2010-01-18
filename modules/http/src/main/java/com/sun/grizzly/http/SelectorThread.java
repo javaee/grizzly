@@ -1728,15 +1728,17 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     // --------------------------------------------------- Low level NIO ----//
     
-   
+
+    /**
+     * Get main {@link Selector}
+     * @deprecated To get the right {@link Selector}, please request context associated <tt>SelectorHandler</tt>: {@link SelectorHandler#getSelector()}
+     */
     public Selector getSelector(){
         if (selector != null) {
             return selector;
         } else {
-            selectorHandler.getSelector();
+            return selectorHandler.getSelector();
         }
-        
-        return null;
     }
 
     
