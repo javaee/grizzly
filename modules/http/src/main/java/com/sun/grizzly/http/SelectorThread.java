@@ -428,7 +428,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Maximum timeout on uploads. 5 minutes as in Apache HTTPD server.
      */
-    protected int uploadTimeout = 30000;    
+    protected int uploadTimeout = 5 * 60 * 1000;
     
     
     /**
