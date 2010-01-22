@@ -636,6 +636,15 @@ public class ServletAdapter extends GrizzlyAdapter {
     }
 
     /**
+     * Remove Servlet listeners that implement {@link EventListener}
+     *
+     * @param listenerName name of a Servlet listener to remove
+     */
+    public boolean removeServletListener(String listenerName) {
+        return listenerName != null && listeners.remove(listenerName);
+    }
+
+    /**
      * Use reflection to configure Object setter.
      *
      * @param object Populate this object with available properties.
