@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -367,10 +367,26 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * @param t the exception that caused termination, or null if
      * execution completed normally.
      */
-    protected void afterExecute(Thread thread,Runnable r, Throwable t) {
+    protected void afterExecute(Thread thread, Runnable r, Throwable t) {
         if (thread instanceof WorkerThreadImpl)
             ((WorkerThreadImpl)thread).reset();
     }
+
+
+    /**
+     * <p>
+     * This method will be invoked when a the specified {@link Runnable} has
+     * completed execution.
+     * </p>
+     *
+     * @param task the unit of work that has completed processing
+     */
+    protected void onTaskCompletedEvent(Runnable task) {
+        if (probe != null) {
+            probe.onTaskCompletedEvent(task);
+        }
+    }
+
 
     /**
      * Method is called by {@link Worker}, when it's starting
@@ -508,6 +524,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                     try {
                         beforeExecute(t_, r); //inside try. to ensure balance
                         r.run();
+                        onTaskCompletedEvent(r);
                     } catch(Throwable throwable) {
                         error = throwable;
                     } finally {
