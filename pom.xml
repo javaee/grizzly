@@ -246,7 +246,7 @@
                         <link>http://java.sun.com/javaee/5/docs/api</link>
                         <link>http://java.sun.com/j2se/1.5.0/docs/api</link>
                     </links>
-                    <excludePackageNames>dojox:org.mortbay:com.sun.enterprise.web</excludePackageNames>
+                    <excludePackageNames>dojox:org.mortbay</excludePackageNames>
                 </configuration>
             </plugin>
             <plugin>
