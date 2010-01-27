@@ -154,7 +154,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 // Wait until the SelectableChannel will be registered on the Selector
                 waitNIOFuture(registerChannelFuture);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             if (completionHandler != null) {
                 completionHandler.failed(null, e);
             }
