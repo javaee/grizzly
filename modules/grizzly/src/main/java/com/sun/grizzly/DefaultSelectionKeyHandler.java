@@ -157,23 +157,8 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
         }
 
         Selector selector = selectorHandler.getSelector();
-        SelectionKey key = channel.keyFor(selector);
         long time = System.currentTimeMillis();
-
-        boolean isKeyValid = true;
-
-        if (key == null || !(isKeyValid = key.isValid())) {
-            if (!isKeyValid) {
-                try {
-                    selector.selectNow();
-                } catch (IOException e) {
-                    throw new CancelledKeyException();
-                }
-            }
-            key = channel.register(selector, ops, time);
-        } else {
-            doRegisterKey(key, ops, time);
-        }
+        channel.register(selector, ops, time);
     }
 
     /**

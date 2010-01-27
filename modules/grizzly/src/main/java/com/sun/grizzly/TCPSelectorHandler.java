@@ -65,6 +65,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
@@ -105,6 +106,9 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     protected final Queue<SelectorHandlerTask> selectorHandlerTasks =
             DataStructures.getCLQinstance(SelectorHandlerTask.class);
+
+    protected final Queue<SelectorHandlerTask> postponedTasks =
+            new LinkedList<SelectorHandlerTask>();
 
     /**
      * True if selector thread should execute the pendingIO events.
@@ -422,13 +426,19 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @param ctx
      * @throws java.io.IOException
      */
-    protected void processPendingOperations(Context ctx) throws IOException {
+    protected void processPendingOperations(final Context ctx) throws IOException {
+        processPendingQueue(ctx, postponedTasks);
+        processPendingQueue(ctx, selectorHandlerTasks);
+    }
+
+    private void processPendingQueue(final Context ctx,
+            final Queue<SelectorHandlerTask> tasks) throws IOException {
         SelectorHandlerTask task;
-        while((task = selectorHandlerTasks.poll()) != null) {
+        while((task = tasks.poll()) != null) {
             if (logger.isLoggable(Level.FINEST)) {
                 logger.finest("Processing pending task: " + task);
             }
-            
+
             task.run(ctx);
         }
     }
@@ -487,7 +497,11 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @return {@link Set} of {@link SelectionKey}
      */
     public Set<SelectionKey> select(Context ctx) throws IOException{
-        selector.select(selectTimeout);
+        if (postponedTasks.isEmpty()) {
+            selector.select(selectTimeout);
+        } else {
+            selector.selectNow();
+        }
         return selector.selectedKeys();
     }
 
@@ -1510,7 +1524,17 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
         public void run(Context context) throws IOException {
             if (channel.isOpen()) {
-                selectionKeyHandler.register(channel, interest);
+                final SelectionKey key = channel.keyFor(selector);
+                
+                boolean isKeyValid = true;
+                if (key == null || (isKeyValid = key.isValid())) {
+                    selectionKeyHandler.register(channel, interest);
+                    return;
+                }
+
+                if (!isKeyValid) {
+                    postponedTasks.add(this);
+                }
             }
         }
     }
