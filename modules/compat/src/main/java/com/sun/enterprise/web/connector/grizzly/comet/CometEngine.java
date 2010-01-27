@@ -38,7 +38,6 @@
 
 package com.sun.enterprise.web.connector.grizzly.comet;
 
-import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 
@@ -162,8 +161,7 @@ public class CometEngine extends com.sun.grizzly.comet.CometEngine {
 
                 task.callInterrupt = true;
                 task.interruptFlushAPT = finishExecution;
-                ((WorkerThreadImpl)Thread.currentThread()).
-                        getPendingIOhandler().addPendingIO(task);
+                task.run();
 
             }else{
                 interrupt0(task, finishExecution);
