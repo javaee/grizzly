@@ -45,7 +45,6 @@ import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.SelectorFactory;
-import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentHashMap;
@@ -401,8 +400,7 @@ public class CometEngine {
                 key.cancel();
                 
                 task.callInterrupt = true;                               
-                ((WorkerThreadImpl)Thread.currentThread()).
-                        getPendingIOhandler().addPendingIO(task);                
+                task.run();
             }else{
                 interrupt0(task, finishExecution);
             }
