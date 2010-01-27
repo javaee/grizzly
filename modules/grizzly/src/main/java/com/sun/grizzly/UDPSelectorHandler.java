@@ -217,7 +217,7 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
      */
     @Override
     protected void onConnectOp(Context ctx, 
-            SelectionKeyOP.ConnectSelectionKeyOP selectionKeyOp) throws IOException {
+            ConnectChannelOperation selectionKeyOp) throws IOException {
         DatagramChannel datagramChannel = (DatagramChannel) selectionKeyOp.getChannel();
         SocketAddress remoteAddress = selectionKeyOp.getRemoteAddress();
         CallbackHandler callbackHandler = selectionKeyOp.getCallbackHandler();

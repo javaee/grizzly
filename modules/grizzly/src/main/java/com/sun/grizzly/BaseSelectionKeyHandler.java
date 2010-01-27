@@ -45,6 +45,7 @@ import com.sun.grizzly.util.SelectionKeyActionAttachment;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -169,7 +170,17 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
         }
         Selector selector = selectorHandler.getSelector();
         SelectionKey key = channel.keyFor(selector);
-        if (key == null) {
+        boolean isKeyValid = true;
+
+        if (key == null || !(isKeyValid = key.isValid())) {
+            if (!isKeyValid) {
+                try {
+                    selector.selectNow();
+                } catch (IOException e) {
+                    throw new CancelledKeyException();
+                }
+            }
+
             channel.register(selector, selectionKeyOps);
         } else {
             doRegisterKey(key, selectionKeyOps);

@@ -40,6 +40,8 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.SelectionKeyAttachment;
+import java.io.IOException;
+import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
@@ -157,8 +159,17 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
         Selector selector = selectorHandler.getSelector();
         SelectionKey key = channel.keyFor(selector);
         long time = System.currentTimeMillis();
-        
-        if (key == null) {
+
+        boolean isKeyValid = true;
+
+        if (key == null || !(isKeyValid = key.isValid())) {
+            if (!isKeyValid) {
+                try {
+                    selector.selectNow();
+                } catch (IOException e) {
+                    throw new CancelledKeyException();
+                }
+            }
             key = channel.register(selector, ops, time);
         } else {
             doRegisterKey(key, ops, time);
