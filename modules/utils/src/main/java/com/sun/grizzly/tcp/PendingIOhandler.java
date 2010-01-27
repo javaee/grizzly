@@ -49,15 +49,13 @@ import java.nio.channels.SelectionKey;
 public interface PendingIOhandler {
 
     /**
-     * Enqueues runnable for later execution.<br>
-     * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
+     * Enqueues runnable to be executed on Selector thread.<br>
      * @param runnable
      */
     public void addPendingIO(Runnable runnable);
 
     /**
-     * Enqueues SelectionKey for later cancel and close .<br>
-     * this is not to be a threadsafe method, must be called from within the same SelectorHandler thread.<br>
+     * Enqueues SelectionKey for later cancel and close on a Selector thread.<br>
      * @param runnable
      */
     public void addPendingKeyCancel(SelectionKey key);

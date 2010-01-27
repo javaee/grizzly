@@ -133,11 +133,6 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
 
     /**
-     * Max number of pendingIO tasks that will be executed per worker thread.
-     */
-//    private int pendingIOlimitPerThread = 100;
-
-    /**
      * True if selector thread should execute the pendingIO events.
      */
     private boolean executePendingIOUsingSelectorThread = false;
@@ -555,9 +550,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     public void postSelect(Context ctx) {
         selectionKeyHandler.expire(keys().iterator());
-        if (executePendingIOUsingSelectorThread) {
-            doExecutePendiongIO();
-        }
+        doExecutePendiongIO();
     }
 
     /**
@@ -586,22 +579,14 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * {@inheritDoc}
      */
     public void addPendingIO(Runnable runnable){
-        if (!executePendingIOUsingSelectorThread){
-            runnable.run();
-        }else{
-            pendingIO.add(runnable);
-        }
+        pendingIO.add(runnable);
     }
 
     /**
      * {@inheritDoc}
      */
     public void addPendingKeyCancel(SelectionKey key){
-        if (!executePendingIOUsingSelectorThread){
-            selectionKeyHandler.cancel(key);
-        }else{
-            pendingIO.add(key);
-        }
+        pendingIO.add(key);
     }
 
 
