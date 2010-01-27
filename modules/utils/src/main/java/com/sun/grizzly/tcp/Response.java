@@ -58,7 +58,6 @@ import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
-import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.io.IOException;
@@ -988,8 +987,7 @@ public class Response<A> {
         @Override
         public boolean timedOut(SelectionKey key) {
             key.attach(null);
-            ((WorkerThreadImpl)Thread.currentThread()).
-                    getPendingIOhandler().addPendingIO(this);
+            run();
             return false;
         }
 
