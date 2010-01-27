@@ -36,25 +36,10 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.memory.ByteBuffersBuffer;
-
 /**
  *
  * @author Alexey Stashok
  */
 public interface Appendable<T> {
-    public static class Utils {
-        public static final Appendable makeAppendable(Object object) {
-            if (object instanceof Buffer && !((Buffer) object).isComposite()) {
-                final Buffer primitiveBuffer = ((Buffer) object);
-                return new ByteBuffersBuffer(null, primitiveBuffer.toByteBuffer());
-            } else if (object instanceof Appendable) {
-                return (Appendable) object;
-            }
-
-            throw new IllegalArgumentException("Can not create appendable");
-        }
-    }
-    
     public T append(T element);
 }

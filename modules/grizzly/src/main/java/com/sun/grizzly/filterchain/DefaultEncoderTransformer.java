@@ -40,6 +40,7 @@ package com.sun.grizzly.filterchain;
 import java.util.List;
 import com.sun.grizzly.Appendable;
 import com.sun.grizzly.AbstractTransformer;
+import com.sun.grizzly.Appender;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
@@ -90,7 +91,7 @@ public class DefaultEncoderTransformer extends AbstractTransformer {
             if ((remainderIndex = findRemainderIndex(filtersState)) >= 0) {
                 // Get a remainder, remove it from filter chain state and
                 // transform a remainder, using just a part of a filterchain
-                final Appendable storedMessage =
+                final Object storedMessage =
                         filtersState.clearState(IOEvent.WRITE, remainderIndex).getState();
 
                 // Transform a remainder
@@ -141,10 +142,16 @@ public class DefaultEncoderTransformer extends AbstractTransformer {
                     final DefaultFilterChain.FilterStateElement filterState;
                     if (filtersState != null &&
                             (filterState = filtersState.clearState(IOEvent.WRITE, i)) != null) {
-                        final Appendable storedMessage = filterState.getState();
+                        Object storedMessage = filterState.getState();
 
                         if (currentMessage != null) {
-                            storedMessage.append(currentMessage);
+                            final Appender appender = filterState.getAppender();
+                            if (appender != null) {
+                                storedMessage = appender.append(storedMessage,
+                                        currentMessage);
+                            } else {
+                                ((Appendable) storedMessage).append(currentMessage);
+                            }
                         }
                         currentMessage = storedMessage;
                     }
@@ -162,9 +169,8 @@ public class DefaultEncoderTransformer extends AbstractTransformer {
 
                                 hasInternalRemainder = true;
                                 filtersState.setState(IOEvent.WRITE, i,
-                                        new DefaultFilterChain.FilterStateElement(
-                                        FILTER_STATE_TYPE.REMAINDER,
-                                        Appendable.Utils.makeAppendable(remainder)));
+                                        DefaultFilterChain.FilterStateElement.create(
+                                        FILTER_STATE_TYPE.REMAINDER, remainder));
                             }
                             currentMessage = encodeResult.getMessage();
                             break;
@@ -179,9 +185,8 @@ public class DefaultEncoderTransformer extends AbstractTransformer {
                                     DefaultFilterChain.FILTERS_STATE_ATTR.set(state, filtersState);
                                 }
                                 filtersState.setState(IOEvent.WRITE, i,
-                                        new DefaultFilterChain.FilterStateElement(
-                                        FILTER_STATE_TYPE.INCOMPLETE,
-                                        Appendable.Utils.makeAppendable(currentMessage)));
+                                        DefaultFilterChain.FilterStateElement.create(
+                                        FILTER_STATE_TYPE.INCOMPLETE, currentMessage));
                             }
 
                             return saveLastResult(state,

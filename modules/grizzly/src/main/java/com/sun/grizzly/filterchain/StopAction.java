@@ -39,8 +39,7 @@
 package com.sun.grizzly.filterchain;
 
 import com.sun.grizzly.Appendable;
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.memory.ByteBuffersBuffer;
+import com.sun.grizzly.Appender;
 
 /**
  * {@link NextAction}, which instructs {@link FilterChain} to stop executing
@@ -51,39 +50,40 @@ import com.sun.grizzly.memory.ByteBuffersBuffer;
 final class StopAction extends AbstractNextAction {
     static final int TYPE = 1;
     
-    private com.sun.grizzly.Appendable appendable;
+    private Appender appender;
+    private Object remainder;
+
 
     StopAction() {
-        this((com.sun.grizzly.Appendable) null);
+        this((Appendable) null);
     }
 
-    StopAction(Buffer buffer) {
-        this(makeAppendable(buffer));
-    }
-
-    StopAction(com.sun.grizzly.Appendable appendable) {
+    StopAction(Object remainder, Appender appender) {
         super(TYPE);
-        this.appendable = appendable;
+        this.remainder = remainder;
+        this.appender = appender;
     }
 
-    public com.sun.grizzly.Appendable getAppendable() {
-        return appendable;
+    StopAction(Appendable appendable) {
+        super(TYPE);
+        this.remainder = appendable;
     }
 
-    public void setBuffer(Buffer buffer) {
-        if (buffer != null) {
-            appendable = makeAppendable(buffer);
-        } else {
-            appendable = null;
-        }
-    }
-    
-    public void setAppendable(Appendable appendable) {
-        this.appendable = appendable;
+    public Object getRemainder() {
+        return remainder;
     }
 
-    private static final Appendable makeAppendable(Buffer buffer) {
-        return buffer.isComposite() ? (com.sun.grizzly.Appendable) buffer :
-            new ByteBuffersBuffer(null, buffer.toByteBuffer());
+    public Appender getAppender() {
+        return appender;
+    }
+
+    public void setRemainder(Appendable appendable) {
+        this.remainder = appendable;
+        appender = null;
+    }
+
+    public <E> void setRemainder(E remainder, Appender<E> appender) {
+        this.remainder = remainder;
+        this.appender = appender;
     }
 }

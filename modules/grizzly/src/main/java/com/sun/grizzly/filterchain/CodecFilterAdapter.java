@@ -78,16 +78,14 @@ public class CodecFilterAdapter<K, L> extends FilterAdapter
                 
                 ctx.setMessage(result.getMessage());
                 if (hasRemaining) {
-                    return ctx.getInvokeAction(
-                            Appendable.Utils.makeAppendable(remainder));
+                    return ctx.getInvokeAction(remainder);
                 } else {
                     return ctx.getInvokeAction();
                 }
             }
             case INCOMPLETED:
             {
-                return ctx.getStopAction(
-                        Appendable.Utils.makeAppendable(message));
+                return ctx.getStopAction(message);
             }
             case ERROR:
             {
@@ -115,16 +113,14 @@ public class CodecFilterAdapter<K, L> extends FilterAdapter
                 final L remainder = result.getExternalRemainder();
                 
                 if (encoder.hasInputRemaining(remainder)) {
-                    return ctx.getInvokeAction(
-                            Appendable.Utils.makeAppendable(remainder));
+                    return ctx.getInvokeAction(remainder);
                 } else {
                     return ctx.getInvokeAction();
                 }
             }
             case INCOMPLETED:
             {
-                return ctx.getStopAction(
-                        Appendable.Utils.makeAppendable(message));
+                return ctx.getStopAction(message);
             }
             case ERROR:
             {

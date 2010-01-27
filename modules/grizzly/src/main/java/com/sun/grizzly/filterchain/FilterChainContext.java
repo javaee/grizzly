@@ -38,10 +38,13 @@
 
 package com.sun.grizzly.filterchain;
 
+import com.sun.grizzly.Appendable;
+import com.sun.grizzly.Appender;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.Transformer;
+import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.utils.ObjectPool;
 
 /**
@@ -185,17 +188,60 @@ public final class FilterChainContext extends Context {
      * Normally, after receiving this instruction from {@link Filter},
      * {@link FilterChain} executes next filter.
      *
+     * @param remainder signals, that there is some data remaining in the source
+     * message, so {@link FilterChain} could be rerun.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     */
+    public NextAction getInvokeAction(Appendable remainder) {
+        cachedInvokeAction.setRemainder(remainder);
+        return cachedInvokeAction;
+    }
+    
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain. Parameter remaining signals, that
+     * there is some data remaining in the source message, so {@link FilterChain}
+     * could be rerun.
+     *
+     * Normally, after receiving this instruction from {@link Filter},
+     * {@link FilterChain} executes next filter.
+     *
      * @param remaining signals, that there is some data remaining in the source
      * message, so {@link FilterChain} could be rerun.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
      * process next {@link Filter} in chain.
      */
-    public NextAction getInvokeAction(com.sun.grizzly.Appendable remaining) {
-        cachedInvokeAction.setRemaining(remaining);
+    public <E> NextAction getInvokeAction(E remainder, Appender<E> appender) {
+        cachedInvokeAction.setRemainder(remainder, appender);
         return cachedInvokeAction;
     }
 
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain. Parameter remaining signals, that
+     * there is some data remaining in the source message, so {@link FilterChain}
+     * could be rerun.
+     *
+     * Normally, after receiving this instruction from {@link Filter},
+     * {@link FilterChain} executes next filter.
+     *
+     * @param remainder signals, that there is some data remaining in the source
+     * message, so {@link FilterChain} could be rerun.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
+     */
+    public NextAction getInvokeAction(Object unknownObject) {
+        if (unknownObject instanceof Buffer) {
+            return getInvokeAction(unknownObject, BufferUtils.BUFFER_APPENDER);
+        }
+
+        return getInvokeAction((Appendable) unknownObject);
+    }
+    
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
      * process next {@link Filter} in chain.
@@ -233,19 +279,22 @@ public final class FilterChainContext extends Context {
         return STOP_ACTION;
     }
 
+
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
      * stop executing phase and start post executing filters.
-     * Passed {@link Buffer} data will be saved and reused during the next
-     * {@link FilterChain} invokation.
+     * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
+     * during the next {@link FilterChain} invokation.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
      * to stop executing phase and start post executing filters.
-     * Passed {@link Buffer} data will be saved and reused during the next
-     * {@link FilterChain} invokation.
+     * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
+     * during the next {@link FilterChain} invokation.
      */
-    public NextAction getStopAction(Buffer buffer) {
-        cachedStopAction.setBuffer(buffer);
+    public <E> NextAction getStopAction(final E remainder,
+            com.sun.grizzly.Appender<E> appender) {
+        
+        cachedStopAction.setRemainder(remainder, appender);
         return cachedStopAction;
     }
 
@@ -261,8 +310,28 @@ public final class FilterChainContext extends Context {
      * during the next {@link FilterChain} invokation.
      */
     public NextAction getStopAction(com.sun.grizzly.Appendable appendable) {
-        cachedStopAction.setAppendable(appendable);
+        cachedStopAction.setRemainder(appendable);
         return cachedStopAction;
+    }
+
+
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
+     * stop executing phase and start post executing filters.
+     * Passed {@link Buffer} data will be saved and reused during the next
+     * {@link FilterChain} invokation.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
+     * to stop executing phase and start post executing filters.
+     * Passed {@link Buffer} data will be saved and reused during the next
+     * {@link FilterChain} invokation.
+     */
+    public NextAction getStopAction(Object unknownObject) {
+        if (unknownObject instanceof Buffer) {
+            return getStopAction(unknownObject, BufferUtils.BUFFER_APPENDER);
+        }
+
+        return getStopAction((Appendable) unknownObject);
     }
     
     /**

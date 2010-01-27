@@ -1,8 +1,7 @@
 /*
- *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2007 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -33,59 +32,14 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
-package com.sun.grizzly.filterchain;
 
-import com.sun.grizzly.Appendable;
-import com.sun.grizzly.Appender;
+package com.sun.grizzly;
 
 /**
- * {@link NextAction} implementation, which instructs {@link FilterChain} to
- * process next {@link Filter} in chain.
  *
- * Normally, after receiving this instruction from {@link Filter},
- * {@link FilterChain} takes {@link Filter} with index:
- * {@link InvokeAction#getNextFilterIdx()} from {@link InvokeAction#getFilters()}
- * chain.
- *
- * So any {@link Filter} implementation is free to change the {@link Filter}
- * execution sequence.
- *
- * @see NextAction
- * 
- * @author Alexey Stashok
+ * @author oleksiys
  */
-final class InvokeAction extends AbstractNextAction {
-    static final int TYPE = 0;
-
-    private Appender appender;
-    private Object remainder;
-
-    InvokeAction() {
-        this(null);
-    }
-
-    public InvokeAction(Appendable remainder) {
-        super(TYPE);
-        this.remainder = remainder;
-    }
-
-    public Object getRemainder() {
-        return remainder;
-    }
-
-    public Appender getAppender() {
-        return appender;
-    }
-
-    public void setRemainder(Appendable appendable) {
-        this.remainder = appendable;
-        appender = null;
-    }
-
-    public <E> void setRemainder(E remainder, Appender<E> appender) {
-        this.remainder = remainder;
-        this.appender = appender;
-    }
+public interface Appender<E> {
+    public E append(E element1, E element2);
 }

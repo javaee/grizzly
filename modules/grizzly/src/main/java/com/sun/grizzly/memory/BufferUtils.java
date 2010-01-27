@@ -36,6 +36,7 @@
 
 package com.sun.grizzly.memory;
 
+import com.sun.grizzly.Appender;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransportFactory;
 import java.nio.ByteBuffer;
@@ -45,6 +46,22 @@ import java.nio.ByteBuffer;
  * @author Alexey Stashok
  */
 public class BufferUtils {
+    public static final Appender BUFFER_APPENDER = new Appender<Buffer>() {
+        @Override
+        public Buffer append(Buffer element1, Buffer element2) {
+            if (element1.isComposite()) {
+                ((CompositeBuffer) element1).append(element2);
+                return element1;
+            }
+
+            final CompositeBuffer compositeBuffer =
+                    new ByteBuffersBuffer((MemoryManager) null,
+                    element1.toByteBuffer());
+            compositeBuffer.append(element2);
+            return compositeBuffer;
+        }
+
+    };
     public static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
     public static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
     

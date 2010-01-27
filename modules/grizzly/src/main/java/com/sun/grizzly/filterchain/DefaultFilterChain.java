@@ -44,12 +44,14 @@ import com.sun.grizzly.ProcessorResult;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Appendable;
+import com.sun.grizzly.Appender;
 import com.sun.grizzly.Codec;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ProcessorResult.Status;
 import com.sun.grizzly.attributes.Attribute;
+import com.sun.grizzly.memory.BufferUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -266,11 +268,16 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final FilterStateElement filterState;
             if (filtersState != null && 
                     (filterState = filtersState.clearState(ioEvent, i)) != null) {
-                final Appendable storedMessage = filterState.getState();
-                
+                Object storedMessage = filterState.getState();
                 final Object currentMessage = ctx.getMessage();
                 if (currentMessage != null) {
-                    storedMessage.append(currentMessage);
+                    final Appender appender = filterState.getAppender();
+                    if (appender != null) {
+                        storedMessage =
+                                appender.append(storedMessage, currentMessage);
+                    } else {
+                        ((Appendable) storedMessage).append(currentMessage);
+                    }
                 }
                 
                 ctx.setMessage(storedMessage);
@@ -293,31 +300,33 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
             final int nextNextActionType = nextNextAction.type();
             if (nextNextActionType == InvokeAction.TYPE) {
-                final Appendable remaining = ((InvokeAction) nextNextAction).getRemaining();
-                if (remaining != null) {
+                final Object remainder = ((InvokeAction) nextNextAction).getRemainder();
+                if (remainder != null) {
                     if (filtersState == null) {
                         filtersState = new FiltersState(size);
                         FILTERS_STATE_ATTR.set(connection, filtersState);
                     }
 
+                    final Appender appender = ((InvokeAction) nextNextAction).getAppender();
                     filtersState.setState(ioEvent, i,
                             new FilterStateElement(FILTER_STATE_TYPE.REMAINDER,
-                            remaining));
+                            remainder, appender));
                 }
             } else {
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
-                Appendable messageToStore;
+                Object messageToStore;
                 if (nextNextActionType == StopAction.TYPE &&
                         (messageToStore =
-                        ((StopAction) nextNextAction).getAppendable()) != null) {
+                        ((StopAction) nextNextAction).getRemainder()) != null) {
                     if (filtersState == null) {
                         filtersState = new FiltersState(size);
                         FILTERS_STATE_ATTR.set(connection, filtersState);
                     }
 
+                    final Appender appender = ((StopAction) nextNextAction).getAppender();
                     filtersState.setState(ioEvent, i,
                             new FilterStateElement(FILTER_STATE_TYPE.INCOMPLETE,
-                            messageToStore));
+                            messageToStore, appender));
                     return true;
                 }
                 
@@ -526,20 +535,54 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     }
 
     public static final class FilterStateElement {
-        private final FILTER_STATE_TYPE type;
-        private final Appendable state;
-
-        public FilterStateElement(FILTER_STATE_TYPE type, Appendable state) {
-            this.type = type;
-            this.state = state;
+        public static final FilterStateElement create(
+                final FILTER_STATE_TYPE type,
+                final Object remainder) {
+            if (remainder instanceof Buffer) {
+                return create(type, (Buffer) remainder,
+                        BufferUtils.BUFFER_APPENDER);
+            } else {
+                return create(type, (Appendable) remainder);
+            }
         }
 
-        public FILTER_STATE_TYPE getType() {
+        public static final FilterStateElement create(
+                final FILTER_STATE_TYPE type, final Appendable state) {
+            return new FilterStateElement(type, state);
+        }
+
+        public static final <E> FilterStateElement create(
+                final FILTER_STATE_TYPE type,
+                final E state, final Appender<E> appender) {
+            return new FilterStateElement(type, state, appender);
+        }
+
+        private final FILTER_STATE_TYPE type;
+        private final Object state;
+        private final Appender appender;
+
+        private FilterStateElement(FILTER_STATE_TYPE type, Appendable state) {
+            this.type = type;
+            this.state = state;
+            appender = null;
+        }
+
+        private <E> FilterStateElement(FILTER_STATE_TYPE type, E state, Appender<E> appender) {
+            this.type = type;
+            this.state = state;
+            this.appender = appender;
+        }
+
+        private FILTER_STATE_TYPE getType() {
             return type;
         }
 
-        public Appendable getState() {
+        public Object getState() {
             return state;
+        }
+
+        public Appender getAppender() {
+            return appender;
         }
     }
 }
