@@ -59,15 +59,4 @@ public interface AttributeStorage {
      * initialized yet.
      */
     public AttributeHolder getAttributes();
-
-    /**
-     * Get associated {@link AttributeHolder}.
-     * Unlike {@link AttributeStorage#getAttributes()} - method never
-     * returns <tt>null</tt>.
-     *
-     * @return associated {@link AttributeHolder}.
-     * Unlike {@link AttributeStorage#getAttributes()} - method never
-     * returns <tt>null</tt>.
-     */
-    public AttributeHolder obtainAttributes();
 }

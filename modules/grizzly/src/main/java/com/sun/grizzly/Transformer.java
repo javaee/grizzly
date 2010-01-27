@@ -38,7 +38,6 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.AttributeStorage;
 
 /**
@@ -56,6 +55,14 @@ import com.sun.grizzly.attributes.AttributeStorage;
  */
 public interface Transformer<K, L> {
     /**
+     * Get the <tt>Transformer</tt> name. The name is used to store
+     * <tt>Transformer</tt> associated data.
+     * 
+     * @return The <tt>Transformer</tt> name.
+     */
+    public String getName();
+
+    /**
      * Transforms an input data to some custom representation.
      * Input and output are not passed implicitly, which means that
      * <tt>Transformer</tt> is able to retrieve input and output from its
@@ -67,50 +74,8 @@ public interface Transformer<K, L> {
      * 
      * @throws com.sun.grizzly.TransformationException
      */
-    public TransformationResult<L> transform(AttributeStorage storage)
+    public TransformationResult<K, L> transform(AttributeStorage storage, K input)
             throws TransformationException;
-
-    /**
-     * Transforms an input data to some custom representation.
-     *
-     * @param storage the external state storage, where <tt>Transformer</tt>
-     *        could retrieve or store its state.
-     * @return the result {@link TransformationResult}
-     *
-     * @throws com.sun.grizzly.TransformationException
-     */
-    public TransformationResult<L> transform(AttributeStorage storage,
-            K input, L output) throws TransformationException;
-
-    /**
-     * Gets the input data, which <tt>Transformer</tt> will work with.
-     * Very often <tt>Transformer</tt>s are used together with I/O operations.
-     * When <tt>Transformer</tt> is used with read operation, this method may
-     * return a {@link Buffer}, where "reader" will read the data to. But note,
-     * the returned Buffer should always represent READY data.In other words,
-     * if there is no data to be transformed - the Buffer should have 0
-     * remaining bytes.
-     * 
-     * @param storage the external state storage, where <tt>Transformer</tt>
-     *        could retrieve or store its state.
-     * @return the <tt>Transformer</tt> input.
-     */
-    public K getInput(AttributeStorage storage);
-
-    /**
-     * Sets the input data, which <tt>Transformer</tt> will work with.
-     * Very often <tt>Transformer</tt>s are used together with I/O operations.
-     * When <tt>Transformer</tt> is used with read operation, the input
-     * {@link Buffer} will be used by "reader" to read the data to. But note,
-     * the input Buffer should always represent READY data.In other words,
-     * if there is no data to be transformed - the Buffer should have 0
-     * remaining bytes.
-     *
-     * @param input Input data
-     * @param storage the external state storage, where <tt>Transformer</tt>
-     *        could retrieve or store its state.
-     */
-    public void setInput(AttributeStorage storage, K input);
 
     /**
      * Gets the output, which <tt>Transformer</tt> will use for transformed data.
@@ -145,29 +110,7 @@ public interface Transformer<K, L> {
      *        could retrieve or store its state.
      * @return the last returned <tt>Transformer</tt> result.
      */
-    public TransformationResult<L> getLastResult(AttributeStorage storage);
-
-    /**
-     * Gets the property storage, using which it's possible to read or
-     * update <tt>Transformer</tt> properties.
-     *
-     * @param storage the external state storage, where <tt>Transformer</tt>
-     *        could retrieve or store its state.
-     * @return the property storage.
-     */
-    public AttributeHolder getProperties(AttributeStorage storage);
-
-    /**
-     * Method could be called by framework to let <tt>Transformer</tt> know,
-     * that transformation will be postponed and probably continued in separate
-     * <tt>Thread</tt>, so all resources, which are associated with the current
-     * <tt>Thread</tt> should be detached and stored internally or in the
-     * external storage.
-     *
-     * @param storage the external state storage, where <tt>Transformer</tt>
-     *        could retrieve or store its state.
-     */
-    public void hibernate(AttributeStorage storage);
+    public TransformationResult<K, L> getLastResult(AttributeStorage storage);
 
     /**
      * The <tt>Transformer</tt> has done its work and can release all
@@ -177,4 +120,6 @@ public interface Transformer<K, L> {
      *        could retrieve or store its state.
      */
     public void release(AttributeStorage storage);
+
+    public boolean hasInputRemaining(K input);
 }

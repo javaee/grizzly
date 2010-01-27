@@ -38,33 +38,28 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.TransformationResult.Status;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.attributes.AttributeBuilder;
-import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.attributes.AttributeStorage;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
-    protected static TransformationResult incompletedResult =
-            new TransformationResult(Status.INCOMPLED);
-
     protected AttributeBuilder attributeBuilder =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
 
     protected Attribute<K> inputBufferAttribute;
     protected Attribute<L> outputBufferAttribute;
 
-    protected Attribute<TransformationResult<L>> lastResultAttribute;
+    protected Attribute<TransformationResult<K, L>> lastResultAttribute;
 
     private MemoryManager memoryManager;
 
     public AbstractTransformer() {
-        String namePrefix = getClass().getName();
+        String namePrefix = getNamePrefix();
 
         inputBufferAttribute = attributeBuilder.createAttribute(namePrefix +
                 ".inputBuffer");
@@ -74,45 +69,31 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
                 ".lastResult");
     }
 
-    @Override
-    public TransformationResult<L> transform(AttributeStorage storage)
-            throws TransformationException {
-
-        return transform(storage, getInput(storage), getOutput(storage));
+    protected String getNamePrefix() {
+        return getClass().getName();
     }
 
     @Override
-    public K getInput(AttributeStorage storage) {
-        return inputBufferAttribute.get(storage);
-    }
-
-    @Override
-    public void setInput(AttributeStorage storage, K input) {
-        inputBufferAttribute.set(storage, input);
-    }
-
-    @Override
-    public L getOutput(AttributeStorage storage) {
+    public final L getOutput(AttributeStorage storage) {
         return outputBufferAttribute.get(storage);
     }
 
     @Override
-    public void setOutput(AttributeStorage storage, L output) {
+    public final void setOutput(AttributeStorage storage, L output) {
         outputBufferAttribute.set(storage, output);
     }
 
     @Override
-    public TransformationResult<L> getLastResult(AttributeStorage storage) {
+    public final TransformationResult<K, L> getLastResult(
+            final AttributeStorage storage) {
         return lastResultAttribute.get(storage);
     }
 
-    @Override
-    public AttributeHolder getProperties(AttributeStorage storage) {
-        return storage.getAttributes();
-    }
-
-    @Override
-    public void hibernate(AttributeStorage storage) {
+    protected final TransformationResult<K, L> saveLastResult(
+            final AttributeStorage storage,
+            final TransformationResult<K, L> result) {
+        lastResultAttribute.set(storage, result);
+        return result;
     }
 
     @Override
@@ -133,7 +114,7 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
             return connection.getTransport().getMemoryManager();
         }
 
-        return null;
+        return TransportFactory.getInstance().getDefaultMemoryManager();
     }
     
     public MemoryManager getMemoryManager() {

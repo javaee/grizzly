@@ -38,22 +38,34 @@
 
 package com.sun.grizzly.asyncqueue;
 
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
+import com.sun.grizzly.Transformer;
+import java.util.concurrent.Future;
 
 /**
  * {@link AsyncQueue} read element unit
  * 
  * @author Alexey Stashok
  */
-public class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
-    private Runnable postProcesser;
-
-    public Runnable getPostProcesser() {
-        return postProcesser;
+public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
+    private Buffer remainderBuffer;
+    
+    public AsyncReadQueueRecord(Object message, Future future,
+            ReadResult currentResult, CompletionHandler completionHandler,
+            Transformer transformer, Interceptor<ReadResult> interceptor) {
+        
+        super(message, future, currentResult, completionHandler, transformer, interceptor);
     }
 
-    public void setPostProcesser(Runnable postProcesser) {
-        this.postProcesser = postProcesser;
+    public Buffer getRemainderBuffer() {
+        return remainderBuffer;
+    }
+
+    public void setRemainderBuffer(Buffer remainderBuffer) {
+        this.remainderBuffer = remainderBuffer;
     }
 }
 

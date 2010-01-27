@@ -52,6 +52,7 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public class StandaloneProcessor extends AbstractProcessor {
+    public static final StandaloneProcessor INSTANCE = new StandaloneProcessor();
 
     /**
      * This method should never be called, because

@@ -35,34 +35,30 @@
  */
 package com.sun.grizzly;
 
+import com.sun.grizzly.impl.FutureImpl;
 import java.util.List;
 import java.util.ArrayList;
 
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Queue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.Assert;
 import junit.framework.TestCase;
-import com.sun.grizzly.filterchain.FilterAdapter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.memory.slab.SlabMemoryManagerFactory;
+import com.sun.grizzly.nio.transport.TCPNIOServerConnection;
 import com.sun.grizzly.streams.AbstractStreamReader;
+import com.sun.grizzly.streams.BufferedInput;
 import com.sun.grizzly.utils.LinkedTransferQueue;
 import com.sun.grizzly.utils.conditions.Condition;
+import java.util.concurrent.BlockingQueue;
 
 /**
  * Basic idea:
@@ -80,12 +76,12 @@ import com.sun.grizzly.utils.conditions.Condition;
 public class ByteBufferStreamsTest extends TestCase {
 
     public static final int PORT = 7778;
-    private static Logger logger = Grizzly.logger;
-    private final CountDownLatch poisonLatch = new CountDownLatch(1);
+    private static Logger logger = Grizzly.logger(ByteBufferStreamsTest.class);
+    private final FutureImpl<Boolean> poisonFuture = new FutureImpl<Boolean>();
     private Connection clientconnection = null;
     private TCPNIOTransport servertransport = null;
     private StreamWriter clientWriter = null;
-    private final Queue<Checker> checkerQueue = new LinkedTransferQueue();
+    private final BlockingQueue<Checker> checkerQueue = new LinkedTransferQueue();
     private TCPNIOTransport clienttransport;
 
     interface Checker {
@@ -139,6 +135,7 @@ public class ByteBufferStreamsTest extends TestCase {
             }
         }
 
+        @Override
         public long operations() {
             return 1;
         }
@@ -148,6 +145,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private List<Checker> checkers;
 
+        @Override
         public String value() {
             StringBuilder sb = new StringBuilder();
             boolean first = true;
@@ -175,6 +173,7 @@ public class ByteBufferStreamsTest extends TestCase {
             checkers.add(ch);
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             Checker ch = null;
@@ -193,6 +192,7 @@ public class ByteBufferStreamsTest extends TestCase {
             }
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             Checker ch = null;
@@ -221,6 +221,7 @@ public class ByteBufferStreamsTest extends TestCase {
             return sum;
         }
 
+        @Override
         public long byteSize() {
             long sum = 0;
             for (Checker ch : checkers) {
@@ -236,6 +237,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private int count;
         private Checker checker;
 
+        @Override
         public String value() {
             return count + " " + checker.toString();
         }
@@ -245,6 +247,7 @@ public class ByteBufferStreamsTest extends TestCase {
             this.checker = checker;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             int ctr = 0;
@@ -262,6 +265,7 @@ public class ByteBufferStreamsTest extends TestCase {
             }
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             int ctr = 0;
@@ -284,6 +288,7 @@ public class ByteBufferStreamsTest extends TestCase {
             return count * checker.operations();
         }
 
+        @Override
         public long byteSize() {
             return count * checker.byteSize();
         }
@@ -293,6 +298,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private byte data;
 
+        @Override
         public String value() {
             return "" + data;
         }
@@ -301,17 +307,20 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeByte(data);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             byte value = reader.readByte();
-            Assert.assertEquals(value, data);
+            Assert.assertEquals(data, value);
         }
 
+        @Override
         public long byteSize() {
             return 1;
         }
@@ -321,6 +330,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private boolean data;
 
+        @Override
         public String value() {
             return "" + data;
         }
@@ -329,17 +339,20 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeBoolean(data);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             boolean value = reader.readBoolean();
             Assert.assertTrue(value == data);
         }
 
+        @Override
         public long byteSize() {
             return 1;
         }
@@ -349,6 +362,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private char data;
 
+        @Override
         public String value() {
             return "" + data;
         }
@@ -357,17 +371,20 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeChar(data);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             char value = reader.readChar();
-            Assert.assertEquals(value, data);
+            Assert.assertEquals(data, value);
         }
 
+        @Override
         public long byteSize() {
             return 2;
         }
@@ -377,6 +394,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private short data;
 
+        @Override
         public String value() {
             return "" + data;
         }
@@ -385,17 +403,20 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeShort(data);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             short value = reader.readShort();
-            Assert.assertEquals(value, data);
+            Assert.assertEquals(data, value);
         }
 
+        @Override
         public long byteSize() {
             return 2;
         }
@@ -405,6 +426,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private int data;
 
+        @Override
         public String value() {
             return "" + data;
         }
@@ -413,17 +435,20 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeInt(data);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             int value = reader.readInt();
-            Assert.assertEquals(value, data);
+            Assert.assertEquals(data, value);
         }
 
+        @Override
         public long byteSize() {
             return 4;
         }
@@ -433,6 +458,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private long data;
 
+        @Override
         public String value() {
             return "" + data;
         }
@@ -441,17 +467,20 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeLong(data);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             long value = reader.readLong();
-            Assert.assertEquals(value, data);
+            Assert.assertEquals(data, value);
         }
 
+        @Override
         public long byteSize() {
             return 8;
         }
@@ -461,6 +490,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private float data;
 
+        @Override
         public String value() {
             return "" + data;
         }
@@ -469,17 +499,20 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeFloat(data);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             float value = reader.readFloat();
-            Assert.assertEquals(value, data);
+            Assert.assertEquals(data, value);
         }
 
+        @Override
         public long byteSize() {
             return 4;
         }
@@ -489,6 +522,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private double data;
 
+        @Override
         public String value() {
             return "" + data;
         }
@@ -497,18 +531,21 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeDouble(data);
 
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             double value = reader.readDouble();
-            Assert.assertEquals(value, data);
+            Assert.assertEquals(data, value);
         }
 
+        @Override
         public long byteSize() {
             return 8;
         }
@@ -519,6 +556,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private boolean data;
         private int size;
 
+        @Override
         public String value() {
             return size + ":" + data;
         }
@@ -528,6 +566,7 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             boolean[] value = new boolean[size];
@@ -537,6 +576,7 @@ public class ByteBufferStreamsTest extends TestCase {
             writer.writeBooleanArray(value);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             boolean[] value = new boolean[size];
@@ -546,6 +586,7 @@ public class ByteBufferStreamsTest extends TestCase {
             }
         }
 
+        @Override
         public long byteSize() {
             return size;
         }
@@ -556,6 +597,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private byte data;
         private int size;
 
+        @Override
         public String value() {
             return size + ":" + data;
         }
@@ -565,6 +607,7 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             byte[] value = new byte[size];
@@ -574,15 +617,25 @@ public class ByteBufferStreamsTest extends TestCase {
             writer.writeByteArray(value);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             byte[] value = new byte[size];
             reader.readByteArray(value);
-            for (int ctr = 0; ctr < size; ctr++) {
-                Assert.assertEquals(value[ctr], data);
+            try {
+                for (int ctr = 0; ctr < size; ctr++) {
+                    Assert.assertEquals(data, value[ctr]);
+                }
+            } catch (Error err) {
+                rerrMsg(size, err);
+                throw err;
+            } catch (RuntimeException exc) {
+                rerrMsg(size, exc);
+                throw exc;
             }
         }
 
+        @Override
         public long byteSize() {
             return size;
         }
@@ -593,6 +646,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private char data;
         private int size;
 
+        @Override
         public String value() {
             return size + ":" + data;
         }
@@ -602,6 +656,7 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             char[] value = new char[size];
@@ -611,15 +666,25 @@ public class ByteBufferStreamsTest extends TestCase {
             writer.writeCharArray(value);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             char[] value = new char[size];
             reader.readCharArray(value);
-            for (int ctr = 0; ctr < size; ctr++) {
-                Assert.assertEquals(value[ctr], data);
+            try {
+                for (int ctr = 0; ctr < size; ctr++) {
+                    Assert.assertEquals(data, value[ctr]);
+                }
+            } catch (Error err) {
+                rerrMsg(size, err);
+                throw err;
+            } catch (RuntimeException exc) {
+                rerrMsg(size, exc);
+                throw exc;
             }
         }
 
+        @Override
         public long byteSize() {
             return 2 * size;
         }
@@ -630,6 +695,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private short data;
         private int size;
 
+        @Override
         public String value() {
             return size + ":" + data;
         }
@@ -639,6 +705,7 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             short[] value = new short[size];
@@ -648,15 +715,25 @@ public class ByteBufferStreamsTest extends TestCase {
             writer.writeShortArray(value);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             short[] value = new short[size];
             reader.readShortArray(value);
-            for (int ctr = 0; ctr < size; ctr++) {
-                Assert.assertEquals(value[ctr], data);
+            try {
+                for (int ctr = 0; ctr < size; ctr++) {
+                    Assert.assertEquals(data, value[ctr]);
+                }
+            } catch (Error err) {
+                rerrMsg(size, err);
+                throw err;
+            } catch (RuntimeException exc) {
+                rerrMsg(size, exc);
+                throw exc;
             }
         }
 
+        @Override
         public long byteSize() {
             return 2 * size;
         }
@@ -667,6 +744,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private int data;
         private int size;
 
+        @Override
         public String value() {
             return size + ":" + data;
         }
@@ -676,6 +754,7 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             int[] value = new int[size];
@@ -685,15 +764,25 @@ public class ByteBufferStreamsTest extends TestCase {
             writer.writeIntArray(value);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             int[] value = new int[size];
             reader.readIntArray(value);
-            for (int ctr = 0; ctr < size; ctr++) {
-                Assert.assertEquals(value[ctr], data);
+            try {
+                for (int ctr = 0; ctr < size; ctr++) {
+                    Assert.assertEquals(data, value[ctr]);
+                }
+            } catch (Error err) {
+                rerrMsg(size, err);
+                throw err;
+            } catch (RuntimeException exc) {
+                rerrMsg(size, exc);
+                throw exc;
             }
         }
 
+        @Override
         public long byteSize() {
             return 4 * size;
         }
@@ -704,6 +793,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private long data;
         private int size;
 
+        @Override
         public String value() {
             return size + ":" + data;
         }
@@ -713,6 +803,7 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             long[] value = new long[size];
@@ -731,24 +822,27 @@ public class ByteBufferStreamsTest extends TestCase {
             }
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             long[] value = new long[size];
             reader.readLongArray(value);
 
+            int ctr = 0;
             try {
-                for (int ctr = 0; ctr < size; ctr++) {
-                    Assert.assertEquals(value[ctr], data);
+                for (; ctr < size; ctr++) {
+                    Assert.assertEquals(data, value[ctr]);
                 }
             } catch (Error err) {
-                rerrMsg(size, err);
+                rerrMsg(ctr, err);
                 throw err;
             } catch (RuntimeException exc) {
-                rerrMsg(size, exc);
+                rerrMsg(ctr, exc);
                 throw exc;
             }
         }
 
+        @Override
         public long byteSize() {
             return 8 * size;
         }
@@ -759,6 +853,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private float data;
         private int size;
 
+        @Override
         public String value() {
             return size + ":" + data;
         }
@@ -768,6 +863,7 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             float[] value = new float[size];
@@ -777,15 +873,25 @@ public class ByteBufferStreamsTest extends TestCase {
             writer.writeFloatArray(value);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             float[] value = new float[size];
             reader.readFloatArray(value);
-            for (int ctr = 0; ctr < size; ctr++) {
-                Assert.assertEquals(value[ctr], data);
+            try {
+                for (int ctr = 0; ctr < size; ctr++) {
+                    Assert.assertEquals(data, value[ctr]);
+                }
+            } catch (Error err) {
+                rerrMsg(size, err);
+                throw err;
+            } catch (RuntimeException exc) {
+                rerrMsg(size, exc);
+                throw exc;
             }
         }
 
+        @Override
         public long byteSize() {
             return 4 * size;
         }
@@ -796,6 +902,7 @@ public class ByteBufferStreamsTest extends TestCase {
         private double data;
         private int size;
 
+        @Override
         public String value() {
             return size + ":" + data;
         }
@@ -805,6 +912,7 @@ public class ByteBufferStreamsTest extends TestCase {
             data = arg;
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             double[] value = new double[size];
@@ -814,19 +922,30 @@ public class ByteBufferStreamsTest extends TestCase {
             writer.writeDoubleArray(value);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) throws IOException {
             rmsg();
             double[] value = new double[size];
             reader.readDoubleArray(value);
-            for (int ctr = 0; ctr < size; ctr++) {
-                Assert.assertEquals(value[ctr], data);
+            try {
+                for (int ctr = 0; ctr < size; ctr++) {
+                    Assert.assertEquals(data, value[ctr]);
+                }
+            } catch (Error err) {
+                rerrMsg(size, err);
+                throw err;
+            } catch (RuntimeException exc) {
+                rerrMsg(size, exc);
+                throw exc;
             }
         }
 
+        @Override
         public long byteSize() {
             return 8 * size;
         }
     }
+
     /**
      * Used to mark end of checking.
      *
@@ -835,23 +954,26 @@ public class ByteBufferStreamsTest extends TestCase {
 
         private byte data = 1;
 
+        @Override
         public String value() {
             return "Poison";
         }
 
+        @Override
         public void write(StreamWriter writer) throws IOException {
             wmsg();
             writer.writeByte(data);
         }
 
+        @Override
         public void readAndCheck(StreamReader reader) {
         }
 
+        @Override
         public long byteSize() {
             return 1;
         }
     }
-
 
     // How best to construct checkers for running tests?
     //
@@ -943,7 +1065,7 @@ public class ByteBufferStreamsTest extends TestCase {
     public void testStreaming() throws IOException {
         // comment this test out until threading bug is found.
         //
-     
+
         //testPrimitives
         int REPEAT_COUNT = 4;
         Checker ch =
@@ -956,7 +1078,7 @@ public class ByteBufferStreamsTest extends TestCase {
                 rep(30, l(7483848374L)), rep(101, l(0))));
 
         send(ch);
-       
+
         // testByte
         ch = rep(REPEAT_COUNT, b((byte) 23));
         send(ch);
@@ -973,9 +1095,8 @@ public class ByteBufferStreamsTest extends TestCase {
         send(ch);
         ch = rep(REPEAT_COUNT, z(false));
         send(ch);
-      
 
-       ch = rep(REPEAT_COUNT, comp(
+        ch = rep(REPEAT_COUNT, comp(
                 la(913, 1234567879123456789L),
                 ba(5531, (byte) 39),
                 ca(5792, 'A'),
@@ -987,83 +1108,73 @@ public class ByteBufferStreamsTest extends TestCase {
 
 
         send(ch);
+
         // end
         send(new PoisonChecker());
         // test streaming
-        MemoryManager alloc = SlabMemoryManagerFactory.makeAllocator(10000,false) ;
-        byte[] testdata = new byte[500] ;
+        MemoryManager alloc = SlabMemoryManagerFactory.makeAllocator(10000, false);
+        byte[] testdata = new byte[500];
 
 
-        for (int ctr=0; ctr<testdata.length; ctr++)
-            testdata[ctr] = (byte)((ctr + 10) & 255) ;
+        for (int ctr = 0; ctr < testdata.length; ctr++) {
+            testdata[ctr] = (byte) ((ctr + 10) & 255);
+        }
 
-        AbstractStreamReader reader=new AbstractStreamReader() {
+        final BufferedInput source = new BufferedInput() {
+            @Override
+            protected void onOpenInputSource() throws IOException {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
 
+            @Override
+            protected void onCloseInputSource() throws IOException {
+                throw new UnsupportedOperationException("Not supported yet.");
+            }
+        };
+
+        AbstractStreamReader reader = new AbstractStreamReader(null, source) {
+
+            @Override
             public Future notifyCondition(Condition condition, CompletionHandler completionHandler) {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
-
-            @Override
-            protected Buffer read0() throws IOException {
-                throw new UnsupportedOperationException("Not supported yet.");
-            }
-
-            @Override
-            protected Object wrap(Buffer buffer) {
-                return buffer;
-            }
-
-            @Override
-            protected Buffer unwrap(Object data) {
-                return (Buffer) data;
-            }
-
         };
 
-        Buffer<ByteBuffer> buffer1 = alloc.allocate(125) ;
-        buffer1.put(testdata, 0,125);
-        Buffer<ByteBuffer> buffer2 = alloc.allocate(125) ;
-        buffer2.put(testdata, 125,125);
-        Buffer<ByteBuffer> buffer3 = alloc.allocate(125) ;
-        buffer3.put(testdata, 250,125);
-        Buffer<ByteBuffer> buffer4 = alloc.allocate(125) ;
-        buffer4.put(testdata, 375,125);
-        reader.appendBuffer((ByteBufferWrapper)buffer1.flip());
-        reader.appendBuffer((ByteBufferWrapper)buffer2.flip());
-        reader.appendBuffer((ByteBufferWrapper)buffer3.flip());
-        reader.appendBuffer((ByteBufferWrapper)buffer4.flip());
+        Buffer buffer1 = alloc.allocate(125);
+        buffer1.put(testdata, 0, 125);
+        Buffer buffer2 = alloc.allocate(125);
+        buffer2.put(testdata, 125, 125);
+        Buffer buffer3 = alloc.allocate(125);
+        buffer3.put(testdata, 250, 125);
+        Buffer buffer4 = alloc.allocate(125);
+        buffer4.put(testdata, 375, 125);
+
+        source.append(buffer1.flip());
+        source.append(buffer2.flip());
+        source.append(buffer3.flip());
+        source.append(buffer4.flip());
 
         byte[] checkArray = new byte[500];
         try {
-          reader.readByteArray(checkArray, 0, 500);
-        }catch(Exception e) {
-            logger.log(Level.SEVERE, "Data generate error",e);
+            reader.readByteArray(checkArray, 0, 500);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Data generate error", e);
         }
 
-        Assert.assertEquals( true,Arrays.equals(checkArray, testdata) ) ;
-
-        
-
-
+        Assert.assertEquals(true, Arrays.equals(checkArray, testdata));
     }
 
     @Override
     public void setUp() {
         setupServer();
         setupClient();
-
     }
 
     @Override
     public void tearDown() {
 
         try {
-
-            poisonLatch.await(10, TimeUnit.SECONDS);
-            //give filterchain some time to finisch
-            synchronized(Thread.currentThread()) {
-              Thread.currentThread().wait(100);
-            }
+            poisonFuture.get(20, TimeUnit.SECONDS);
             clientWriter.close();
             clientconnection.close();
             servertransport.stop();
@@ -1078,55 +1189,14 @@ public class ByteBufferStreamsTest extends TestCase {
     public void setupServer() {
         servertransport = TransportFactory.getInstance().createTCPTransport();
         // no use for default memorymanager
-//        servertransport.setMemoryManager(null);
-        servertransport.getFilterChain().add(new TransportFilter());
-        servertransport.getFilterChain().add(new FilterAdapter() {
-
-            @Override
-            public NextAction handleRead(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
-                StreamReader reader = (StreamReader) ctx.getStreamReader();
-                Checker checker;
-                //must use a loop since StreamReader may contain data
-                // of several checkers...
-                while ((checker = checkerQueue.peek()) != null) {
-                    if (checker instanceof PoisonChecker) {
-                        poisonLatch.countDown();
-                        return nextAction;
-                    }
-
-                    if (logger.isLoggable(Level.FINEST)) {
-                        logger.log(Level.FINEST, "reader.availableDataSize():"
-                                + reader.availableDataSize() + ","
-                                + checker.byteSize());
-                    }
-
-                    Future f = reader.notifyAvailable((int) checker.byteSize());
-                    try {
-                        f.get(10, TimeUnit.SECONDS);
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        poisonLatch.countDown();
-                    }
-
-                    assertTrue(f.isDone());
-
-                    if (reader.availableDataSize() < checker.byteSize()) {
-                        return ctx.getStopAction();
-                    }
-                    checker.readAndCheck(reader);
-                    checkerQueue.remove();
-                }
-                return nextAction;
-            }
-        });
-
+        servertransport.configureStandalone(true);
 
         try {
-            servertransport.bind(PORT);
-            servertransport.configureBlocking(false);
+            final TCPNIOServerConnection serverConnection = servertransport.bind(PORT);
             servertransport.start();
 
+            // Start echo server thread
+            startEchoServerThread(servertransport, serverConnection);
 
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Server start error", ex);
@@ -1134,10 +1204,11 @@ public class ByteBufferStreamsTest extends TestCase {
 
     }
 
-    private void send(final Checker checker) throws IOException {
+    private Future<Integer> send(final Checker checker) throws IOException {
         checkerQueue.add(checker);
         checker.write(clientWriter);
-        clientWriter.flush();
+        final Future<Integer> result = clientWriter.flush();
+        return result;
     }
 
     public void setupClient() {
@@ -1153,12 +1224,72 @@ public class ByteBufferStreamsTest extends TestCase {
             assertTrue(clientconnection != null);
 
 
-            clientWriter = clientconnection.getStreamWriter();
+            clientWriter = clienttransport.getStreamWriter(clientconnection);
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Client start error", ex);
         }
+    }
 
+    private void startEchoServerThread(final TCPNIOTransport transport,
+            final TCPNIOServerConnection serverConnection) {
+        new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                while (!transport.isStopped()) {
+                    try {
+                        Future<Connection> acceptFuture = serverConnection.accept();
+                        Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
+                        assertTrue(acceptFuture.isDone());
+
+                        StreamReader reader = transport.getStreamReader(connection);
+                        try {
+                            Checker checker;
+                            while ((checker = checkerQueue.poll(30, TimeUnit.SECONDS)) != null) {
+                                if (checker instanceof PoisonChecker) {
+                                    poisonFuture.result(Boolean.TRUE);
+                                    return;
+                                }
+
+                                if (logger.isLoggable(Level.FINEST)) {
+                                    logger.log(Level.FINEST, "reader.availableDataSize():"
+                                            + reader.available() + ","
+                                            + checker.byteSize());
+                                }
+
+                                Future f = reader.notifyAvailable((int) checker.byteSize());
+                                try {
+                                    f.get(10, TimeUnit.SECONDS);
+                                } catch (Exception e) {
+                                    poisonFuture.failure(
+                                            new Exception("Exception waiting on checker: " +
+                                            checker + " size: " + checker.byteSize(), e));
+                                }
+
+                                assertTrue(f.isDone());
+
+                                checker.readAndCheck(reader);
+                            }
+
+
+
+
+                        } catch (Throwable e) {
+                            logger.log(Level.WARNING,
+                                    "Error working with accepted connection", e);
+                        } finally {
+                            connection.close();
+                        }
+
+                    } catch (Exception e) {
+                        if (!transport.isStopped()) {
+                            logger.log(Level.WARNING,
+                                    "Error accepting connection", e);
+                            assertTrue("Error accepting connection", false);
+                        }
+                    }
+                }
+            }
+        }).start();
     }
 }
-
-

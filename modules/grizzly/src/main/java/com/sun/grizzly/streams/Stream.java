@@ -36,6 +36,7 @@
 
 package com.sun.grizzly.streams;
 
+import com.sun.grizzly.Connection;
 import java.io.Closeable;
 
 /**
@@ -48,4 +49,10 @@ import java.io.Closeable;
  */
 public interface Stream extends Closeable {
 
+    /**
+     * Get the {@link Connection} this <tt>StreamReader</tt> belongs to.
+     *
+     * @return the {@link Connection} this <tt>StreamReader</tt> belongs to.
+     */
+    Connection getConnection();
 }

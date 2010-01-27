@@ -96,24 +96,27 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
                 MESSAGE_PROCESSING_TREE_ATTR_NAME);
     }
 
+    @Override
+    public String getName() {
+        return SmartEncoderTransformer.class.getName();
+    }
+
     public Class<E> getMessageClass() {
         return messageClass;
     }
 
     @Override
-    public TransformationResult<Buffer> transform(AttributeStorage storage,
-            E input, Buffer output) throws TransformationException {
+    public TransformationResult<E, Buffer> transform(AttributeStorage storage,
+            E input) throws TransformationException {
+
+        Buffer output = getOutput(storage);
 
         MemoryManager memoryManager = null;
-        boolean isAllocated = false;
-        if (output == null) {
+        final boolean isAllocated = (output == null);
+        
+        if (isAllocated) {
             memoryManager = obtainMemoryManager(storage);
-            if (memoryManager != null) {
-                output = memoryManager.allocate(1024);
-                isAllocated = true;
-            } else {
-                throw new TransformationException("Output Buffer is null and there is no way to allocate one");
-            }
+            output = memoryManager.allocate(1024);
         }
 
         int currentElementIndex = 0;
@@ -123,8 +126,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
         if (processingTree == null) {
             processingTree = new ArrayList();
             processingTree.add(input);
-            messageProcessingTreeAttribute.set(storage.obtainAttributes(),
-                    processingTree);
+            messageProcessingTreeAttribute.set(storage, processingTree);
             currentElementIndex = 0;
         } else {
             currentElementIndex = currentTransformerIdxAttribute.get(storage);
@@ -136,10 +138,10 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
 
             switch(sequenceUnit.getType()) {
                 case TRANSFORM:
-                    TransformUnit transformerUnit =
+                    final TransformUnit transformerUnit =
                             (TransformUnit) sequenceUnit;
 
-                    Transformer transformer = transformerUnit.transformer;
+                    final Transformer transformer = transformerUnit.transformer;
 
                     Object processingObject =
                             processingTree.get(processingTree.size() - 1);
@@ -150,23 +152,25 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
                         throw new TransformationException(e);
                     }
 
-                    TransformationResult result =
-                            transformer.transform(storage, fieldValue, output);
+                    transformer.setOutput(storage, output);
+
+                    final TransformationResult result =
+                            transformer.transform(storage, fieldValue);
 
                     Status status = result.getStatus();
                     if (status == Status.COMPLETED) {
                         transformer.release(storage);
                         currentElementIndex++;
-                    } else if (status == Status.INCOMPLED) {
+                    } else if (status == Status.INCOMPLETED) {
                         if (isAllocated) {
                             output = memoryManager.reallocate(output,
                                     output.capacity() * 2);
                             continue;
                         }
 
-                        saveStatus(storage, processingTree, currentElementIndex,
-                                incompletedResult);
-                        return incompletedResult;
+                        return saveStatus(storage, processingTree, currentElementIndex,
+                                TransformationResult.<E, Buffer>createIncompletedResult(
+                                null, false));
                     } else {
                         transformer.release(storage);
                         return result;
@@ -192,10 +196,13 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
             }
         }
 
-        TransformationResult<Buffer> result = new TransformationResult<Buffer>(
-                Status.COMPLETED, output.duplicate().flip());
-        saveStatus(storage, processingTree, currentElementIndex, result);
-        return result;
+        if (isAllocated) {
+            output.flip();
+        }
+        
+        return saveStatus(storage, processingTree, currentElementIndex,
+                TransformationResult.<E, Buffer>createCompletedResult(
+                                output, null, false));
     }
 
     @Override
@@ -207,6 +214,11 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
         }
 
         super.release(storage);
+    }
+
+    @Override
+    public boolean hasInputRemaining(E input) {
+        return input != null;
     }
 
     public Map<Class, Class<? extends Transformer>> getPredefinedTransformers() {
@@ -299,12 +311,12 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
         predefinedTransformers.put(Array.class, ArrayEncoder.class);
     }
 
-    private void saveStatus(AttributeStorage storage,
+    private TransformationResult<E, Buffer> saveStatus(AttributeStorage storage,
             List messageProcessingTree, int index,
-            TransformationResult<Buffer> lastResult) {
+            TransformationResult<E, Buffer> lastResult) {
         currentTransformerIdxAttribute.set(storage, index);
         messageProcessingTreeAttribute.set(storage, messageProcessingTree);
-        lastResultAttribute.set(storage, lastResult);
+        return saveLastResult(storage, lastResult);
     }
 
     protected Class<? extends Transformer> getTransformer(Class clazz) {

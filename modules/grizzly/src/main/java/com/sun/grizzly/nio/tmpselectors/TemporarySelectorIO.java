@@ -46,12 +46,15 @@ import java.util.logging.Level;
 import com.sun.grizzly.Reader;
 import com.sun.grizzly.Writer;
 import com.sun.grizzly.nio.SelectorFactory;
+import java.util.logging.Logger;
 
 /**
  *
  * @author oleksiys
  */
 public class TemporarySelectorIO {
+    private static Logger logger = Grizzly.logger(TemporarySelectorIO.class);
+
     protected TemporarySelectorPool selectorPool;
 
     private final Reader reader;
@@ -91,7 +94,7 @@ public class TemporarySelectorIO {
             try {
                 selectionKey.cancel();
             } catch (Exception e) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "Unexpected exception, when canceling the SelectionKey: " +
                         selectionKey, e);
             }
@@ -102,12 +105,12 @@ public class TemporarySelectorIO {
                 selector.selectNow();
                 selectorPool.offer(selector);
             } catch (IOException e) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "Temporary Selector failure. Creating new one", e);
                 try {
                     selectorPool.offer(SelectorFactory.instance().create());
                 } catch (IOException ee) {
-                    Grizzly.logger.log(Level.WARNING,
+                    logger.log(Level.WARNING,
                             "Error creating new Selector", ee);
                 }
             }

@@ -252,7 +252,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                         completionHandler.completed(null, result);
                     }
                     if (future != null) {
-                        future.setResult(result);
+                        future.result(result);
                     }
                 } else {
                     Throwable error = new ClosedChannelException();

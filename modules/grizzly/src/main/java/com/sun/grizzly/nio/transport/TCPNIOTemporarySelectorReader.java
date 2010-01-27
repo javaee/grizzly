@@ -42,12 +42,13 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorReader;
+import java.net.SocketAddress;
 
 /**
  *
  * @author oleksiys
  */
-public class TCPNIOTemporarySelectorReader extends TemporarySelectorReader {
+public final class TCPNIOTemporarySelectorReader extends TemporarySelectorReader {
     public TCPNIOTemporarySelectorReader(TCPNIOTransport transport) {
         super(transport);
     }
@@ -55,7 +56,17 @@ public class TCPNIOTemporarySelectorReader extends TemporarySelectorReader {
     @Override
     protected int readNow0(Connection connection, Buffer buffer,
             ReadResult currentResult) throws IOException {
-        return ((TCPNIOTransport) transport).read(connection, buffer,
-                currentResult);
+        final int oldPosition = buffer != null ? buffer.position() : 0;
+        
+        if ((buffer = ((TCPNIOTransport) transport).read(connection, buffer)) != null) {
+            final int readBytes = buffer.position() - oldPosition;
+            currentResult.setMessage(buffer);
+            currentResult.setReadSize(currentResult.getReadSize() + readBytes);
+            currentResult.setSrcAddress((SocketAddress) connection.getPeerAddress());
+
+            return readBytes;
+        }
+
+        return 0;
     }
 }

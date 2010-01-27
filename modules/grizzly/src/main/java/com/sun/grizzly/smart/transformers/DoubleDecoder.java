@@ -48,6 +48,11 @@ public class DoubleDecoder extends PrimitiveDecoder<Double> {
     private static final int SIZE = Double.SIZE / 8;
 
     @Override
+    public String getName() {
+        return DoubleDecoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

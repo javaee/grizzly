@@ -49,6 +49,7 @@ import java.nio.channels.SelectionKey;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Interceptor;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.impl.FutureImpl;
@@ -60,25 +61,37 @@ import com.sun.grizzly.nio.NIOConnection;
  *
  * @author Alexey Stashok
  */
-public class TCPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
+public final class TCPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
     public TCPNIOAsyncQueueReader(NIOTransport transport) {
         super(transport);
     }
 
     @Override
-    protected int read0(Connection connection, Buffer buffer,
-            ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
-        return ((TCPNIOTransport) transport).read(connection, buffer, currentResult);
+    protected int read0(final Connection connection, Buffer buffer,
+            final ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
+
+        final int oldPosition = buffer != null ? buffer.position() : 0;
+        if ((buffer = ((TCPNIOTransport) transport).read(connection, buffer)) != null) {
+            final int readBytes = buffer.position() - oldPosition;
+            currentResult.setMessage(buffer);
+            currentResult.setReadSize(currentResult.getReadSize() + readBytes);
+            currentResult.setSrcAddress((SocketAddress) connection.getPeerAddress());
+
+            return readBytes;
+        }
+
+        return 0;
     }
 
     protected void addRecord(Connection connection,
             Buffer buffer,
             CompletionHandler completionHandler,
+            Transformer transformer,
             Interceptor<ReadResult> interceptor) {
-        AsyncReadQueueRecord record = new AsyncReadQueueRecord();
-        record.set(buffer, new FutureImpl(),
+        final AsyncReadQueueRecord record = new AsyncReadQueueRecord(
+                buffer, new FutureImpl(),
                 new ReadResult(connection),
-                completionHandler, interceptor);
+                completionHandler, transformer, interceptor);
         ((TCPNIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
     }
 

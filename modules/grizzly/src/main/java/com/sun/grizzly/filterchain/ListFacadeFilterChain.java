@@ -67,7 +67,13 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean add(Filter filter) {
-        return filters.add(filter);
+        if (filters.add(filter)) {
+            filter.onAdded(this);
+            notifyChangedExcept(filter);
+            return true;
+        }
+
+        return false;
     }
         
     /**
@@ -76,6 +82,8 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
     @Override
     public void add(int index, Filter filter){
         filters.add(index, filter);
+        filter.onAdded(this);
+        notifyChangedExcept(filter);
     }
     
     /**
@@ -83,7 +91,14 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean addAll(Collection<? extends Filter> c) {
-        return filters.addAll(c);
+        for(Filter filter : c) {
+            filters.add(filter);
+            filter.onAdded(this);
+        }
+
+        notifyChangedExcept(null);
+        
+        return true;
     }
 
     /**
@@ -91,7 +106,15 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean addAll(int index, Collection<? extends Filter> c) {
-        return filters.addAll(index, c);
+        int i = 0;
+        for(Filter filter : c) {
+            filters.add(index + (i++), filter);
+            filter.onAdded(this);
+        }
+
+        notifyChangedExcept(null);
+
+        return true;
     }
 
     /**
@@ -99,7 +122,17 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public Filter set(final int index, final Filter filter) {
-        return filters.set(index, filter);
+        final Filter oldFilter = filters.set(index, filter);
+        if (oldFilter != filter) {
+            filter.onAdded(this);
+            if (oldFilter != null) {
+                oldFilter.onRemoved(this);
+            }
+
+            notifyChangedExcept(filter);
+        }
+
+        return oldFilter;
     }
     
     /**
@@ -163,7 +196,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean retainAll(Collection<?> c) {
-        return filters.retainAll(c);
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -171,7 +204,15 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean remove(Object object) {
-        return filters.remove((Filter) object);
+        final Filter filter = (Filter) object;
+
+        if (filters.remove(filter)) {
+            filter.onRemoved(this);
+            notifyChangedExcept(filter);
+            return true;
+        }
+
+        return false;
     }
            
     /**
@@ -179,7 +220,14 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public Filter remove(int index) {
-        return filters.remove(index);
+        final Filter filter = filters.remove(index);
+        if (filter != null) {
+            filter.onRemoved(this);
+            notifyChangedExcept(filter);
+            return filter;
+        }
+
+        return null;
     }
 
     /**
@@ -187,7 +235,7 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public boolean removeAll(Collection<?> c) {
-        return filters.removeAll(c);
+        throw new UnsupportedOperationException();
     }
 
     /**
@@ -211,7 +259,12 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
      */
     @Override
     public void clear() {
+        final Object[] localFilters = filters.toArray();
         filters.clear();
+        
+        for (Object filter : localFilters) {
+            ((Filter) filter).onRemoved(this);
+        }
     }
 
     /**
@@ -238,11 +291,11 @@ public abstract class ListFacadeFilterChain extends AbstractFilterChain {
         return filters.listIterator(index);
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<Filter> subList(int fromIndex, int toIndex) {
-        return filters.subList(fromIndex, toIndex);
+    protected void notifyChangedExcept(Filter filter) {
+        for(Filter currentFilter : filters) {
+            if (currentFilter != filter) {
+                currentFilter.onFilterChainChanged(this);
+            }
+        }
     }
 }

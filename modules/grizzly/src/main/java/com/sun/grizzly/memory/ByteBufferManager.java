@@ -54,7 +54,7 @@ import java.nio.charset.Charset;
  * @author Alexey Stashok
  */
 public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
-        WrapperAware<ByteBufferWrapper> {
+        WrapperAware<ByteBufferWrapper>, ByteBufferAware {
     /**
      * Is direct ByteBuffer should be used?
      */
@@ -69,25 +69,11 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     }
 
     /**
-     * Allocates {@link ByteBuffer} of required size.
-     * 
-     * @param size {@link ByteBuffer} size.
-     * @return allocated {@link ByteBuffer}.
-     */
-    protected ByteBuffer allocate0(int size) {
-        if (isDirect) {
-            return ByteBuffer.allocateDirect(size);
-        } else {
-            return ByteBuffer.allocate(size);
-        }
-    }
-
-    /**
      * {@inheritDoc}
      */
     @Override
     public ByteBufferWrapper allocate(final int size) {
-        return wrap(allocate0(size));
+        return wrap(allocateByteBuffer(size));
     }
 
     /**
@@ -96,10 +82,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     @Override
     public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
             int newSize) {
-        ByteBufferWrapper newBuffer = allocate(newSize);
-        oldBuffer.flip();
-        newBuffer.put(oldBuffer);
-        return newBuffer;
+        return wrap(reallocateByteBuffer(oldBuffer.underlying(), newSize));
     }
 
     /**
@@ -107,6 +90,7 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     @Override
     public void release(ByteBufferWrapper buffer) {
+        releaseByteBuffer(buffer.underlying());
     }
 
     /**
@@ -174,5 +158,31 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
     @Override
     public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
         return new ByteBufferWrapper(this, byteBuffer);
+    }
+
+    /**
+     * Allocates {@link ByteBuffer} of required size.
+     *
+     * @param size {@link ByteBuffer} size.
+     * @return allocated {@link ByteBuffer}.
+     */
+    @Override
+    public ByteBuffer allocateByteBuffer(int size) {
+        if (isDirect) {
+            return ByteBuffer.allocateDirect(size);
+        } else {
+            return ByteBuffer.allocate(size);
+        }
+    }
+
+    @Override
+    public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
+        ByteBuffer newByteBuffer = allocateByteBuffer(newSize);
+        oldByteBuffer.flip();
+        return newByteBuffer.put(oldByteBuffer);
+    }
+
+    @Override
+    public void releaseByteBuffer(ByteBuffer byteBuffer) {
     }
 }

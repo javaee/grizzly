@@ -40,6 +40,8 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.streams.StreamReader;
+import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.ExceptionHandler;
 import com.sun.grizzly.utils.StateHolder;
 import java.io.IOException;
@@ -101,6 +103,10 @@ public interface Transport extends ExceptionHandler {
      * <tt>false</tt> otherwise.
      */
     public void configureBlocking(boolean isBlocking);
+
+    public void configureStandalone(boolean isStandalone);
+
+    public boolean isStandalone();
 
     /**
      * Gets the default {@link Processor}, which will process {@link Connection}
@@ -400,4 +406,22 @@ public interface Transport extends ExceptionHandler {
      *         <tt>false</tt> otherwise.
      */
     public boolean isStopped();
+
+    /**
+     * Get the {@link Connection} {@link StreamReader}, to read data from the
+     * {@link Connection}.
+     *
+     * @return the {@link Connection} {@link StreamReader}, to read data from the
+     * {@link Connection}.
+     */
+    public StreamReader getStreamReader(Connection connection);
+
+    /**
+     * Get the {@link Connection} {@link StreamWriter}, to write data to the
+     * {@link Connection}.
+     *
+     * @return the {@link Connection} {@link StreamWriter}, to write data to the
+     * {@link Connection}.
+     */
+    public StreamWriter getStreamWriter(Connection connection);
 }

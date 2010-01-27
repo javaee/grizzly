@@ -37,14 +37,20 @@
  */
 package com.sun.grizzly.ssl;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.concurrent.Future;
-import javax.net.ssl.SSLEngine;
-import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Connection;
+import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.memory.BufferUtils;
+import com.sun.grizzly.streams.StreamReader;
+import com.sun.grizzly.streams.TransformerStreamWriter;
 import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.streams.StreamWriterDecorator;
+import com.sun.grizzly.utils.CompletionHandlerWrapper;
+import com.sun.grizzly.utils.conditions.Condition;
+import java.io.IOException;
+import java.util.concurrent.Future;
+import java.util.logging.Level;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 
 /**
  * SSL aware {@link StreamWriter} implementation, which work like a wrapper over
@@ -54,95 +60,172 @@ import com.sun.grizzly.streams.StreamWriterDecorator;
  *
  * @author Alexey Stashok
  */
-public class SSLStreamWriter extends StreamWriterDecorator {
-
-    public SSLStreamWriter() {
-        this(null);
-    }
+public class SSLStreamWriter extends TransformerStreamWriter {
 
     public SSLStreamWriter(StreamWriter underlyingWriter) {
-        super(underlyingWriter);
-        setUnderlyingWriter(underlyingWriter);
+        super(underlyingWriter, new SSLEncoderTransformer());
     }
 
-    @Override
-    public void setUnderlyingWriter(StreamWriter underlyingWriter) {
-        super.setUnderlyingWriter(underlyingWriter);
-
-        try {
-            checkBuffers();
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    public SSLEngine getSSLEngine() {
-        SSLResourcesAccessor resourceAccessor =
-                SSLResourcesAccessor.getInstance();
-        return resourceAccessor.getSSLEngine(getConnection());
-    }
-
-    Future<Integer> handshakeWrap(CompletionHandler completionHandler)
+    public Future<SSLEngine> handshake(final SSLStreamReader sslStreamReader,
+            final SSLEngineConfigurator configurator)
             throws IOException {
-        overflow();
-        return flush0(
-                getConnection().getTransport().getMemoryManager().allocate(0),
-                completionHandler);
+        return handshake(sslStreamReader, configurator, null);
     }
 
-    private void checkBuffers() throws IOException {
-        SSLEngine sslEngine = getSSLEngine();
+    public Future<SSLEngine> handshake(final SSLStreamReader sslStreamReader,
+            final SSLEngineConfigurator configurator,
+            final CompletionHandler<SSLEngine> completionHandler)
+            throws IOException {
 
-        if (sslEngine != null) {
-            if (underlyingWriter != null) {
-                int underlyingBufferSize = sslEngine.getSession().getPacketBufferSize();
-                if (underlyingWriter.getBufferSize() < underlyingBufferSize) {
-                    underlyingWriter.setBufferSize(underlyingBufferSize);
-                }
+        final Connection connection = getConnection();
+
+        SSLEngine sslEngine = SSLUtils.getSSLEngine(getConnection());
+
+        if (sslEngine == null) {
+            sslEngine = configurator.createSSLEngine();
+            SSLUtils.setSSLEngine(connection, sslEngine);
+            checkBuffers(connection, sslEngine);
+        }
+
+        final boolean isLoggingFinest = logger.isLoggable(Level.FINEST);
+
+        if (isLoggingFinest) {
+            logger.finest("connection=" + connection + " engine=" + sslEngine
+                    + " handshakeStatus=" + sslEngine.getHandshakeStatus());
+        }
+
+        HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
+
+        if (handshakeStatus == HandshakeStatus.NOT_HANDSHAKING) {
+            sslEngine.beginHandshake();
+            handshakeStatus = sslEngine.getHandshakeStatus();
+        }
+
+        final FutureImpl<SSLEngine> future = new FutureImpl();
+
+        final HandshakeCompletionHandler hsCompletionHandler =
+                new HandshakeCompletionHandler(future, completionHandler);
+
+        hsCompletionHandler.setResult(sslEngine);
+        
+        sslStreamReader.notifyCondition(new SSLHandshakeCondition(sslStreamReader,
+                this, configurator, sslEngine, hsCompletionHandler),
+                hsCompletionHandler);
+
+        return future;
+    }
+
+    private static void checkBuffers(Connection connection, SSLEngine sslEngine) {
+        final int packetBufferSize = sslEngine.getSession().getPacketBufferSize();
+        if (connection.getReadBufferSize() < packetBufferSize) {
+            connection.setReadBufferSize(packetBufferSize);
+        }
+
+        if (connection.getWriteBufferSize() < packetBufferSize) {
+            connection.setWriteBufferSize(packetBufferSize);
+        }
+    }
+
+    protected class SSLHandshakeCondition implements Condition {
+
+        private final SSLEngineConfigurator configurator;
+        private final Connection connection;
+        private final SSLEngine sslEngine;
+        private final StreamReader streamReader;
+        private final StreamWriter streamWriter;
+        private final HandshakeCompletionHandler completionHandler;
+
+        public SSLHandshakeCondition(StreamReader streamReader,
+                StreamWriter streamWriter,
+                SSLEngineConfigurator configurator, SSLEngine sslEngine,
+                HandshakeCompletionHandler completionHandler) {
+
+            this.connection = streamReader.getConnection();
+            this.configurator = configurator;
+            this.sslEngine = sslEngine;
+            this.completionHandler = completionHandler;
+
+            this.streamReader = streamReader;
+            this.streamWriter = streamWriter;
+        }
+
+        @Override
+        public boolean check() {
+            try {
+                return doHandshakeStep();
+            } catch (IOException e) {
+                completionHandler.failed(connection, e);
+                throw new RuntimeException("Unexpected handshake exception");
+            }
+        }
+
+        public boolean doHandshakeStep() throws IOException {
+
+            final boolean isLoggingFinest = logger.isLoggable(Level.FINEST);
+
+            HandshakeStatus handshakeStatus = sslEngine.getHandshakeStatus();
+
+            if (handshakeStatus == HandshakeStatus.FINISHED
+                    || handshakeStatus == HandshakeStatus.NOT_HANDSHAKING) {
+                return true;
             }
 
-            int appBufferSize = sslEngine.getSession().getApplicationBufferSize();
-            if (bufferSize < appBufferSize) {
-                bufferSize = appBufferSize;
+            while (true) {
+
+                if (isLoggingFinest) {
+                    logger.finest("Loop Engine: " + sslEngine
+                            + " handshakeStatus=" + sslEngine.getHandshakeStatus());
+                }
+
+                switch (handshakeStatus) {
+                    case NEED_UNWRAP: {
+
+                        if (isLoggingFinest) {
+                            logger.finest("NEED_UNWRAP Engine: " + sslEngine);
+                        }
+
+                        return false;
+                    }
+
+                    case NEED_WRAP: {
+                        if (isLoggingFinest) {
+                            logger.finest("NEED_WRAP Engine: " + sslEngine);
+                        }
+
+                        streamWriter.writeBuffer(BufferUtils.EMPTY_BUFFER);
+                        streamWriter.flush();
+                        handshakeStatus = sslEngine.getHandshakeStatus();
+
+                        break;
+                    }
+
+                    case NEED_TASK: {
+                        if (isLoggingFinest) {
+                            logger.finest("NEED_TASK Engine: " + sslEngine);
+                        }
+                        SSLUtils.executeDelegatedTask(sslEngine);
+                        handshakeStatus = sslEngine.getHandshakeStatus();
+                        break;
+                    }
+                    default: {
+                        throw new RuntimeException("Invalid Handshaking State"
+                                + handshakeStatus);
+                    }
+                }
+
+                if (handshakeStatus == HandshakeStatus.FINISHED) {
+                    return true;
+                }
             }
         }
     }
 
-    @Override
-    protected Future<Integer> flush0(Buffer buffer,
-            CompletionHandler<Integer> completionHandler) throws IOException {
+    protected final class HandshakeCompletionHandler extends
+            CompletionHandlerWrapper<SSLEngine, Integer> {
 
-        Future lastWriterFuture = null;
-        SSLEngine sslEngine = getSSLEngine();
-
-        checkBuffers();
-
-        if (buffer != null) {
-            buffer.flip();
-            if (buffer.remaining() > 0 && SSLUtils.isHandshaking(sslEngine)) {
-                throw new IllegalStateException("Handshake was not completed");
-            }
-
-            ByteBuffer byteBuffer = (ByteBuffer) buffer.underlying();
-            do {
-                Buffer underlyingBuffer = underlyingWriter.getBuffer();
-
-                if (underlyingBuffer == null ||
-                        underlyingBuffer.remaining() < sslEngine.getSession().getPacketBufferSize()) {
-                    underlyingWriter.flush();
-                    underlyingBuffer = underlyingWriter.getBuffer();
-                }
-
-                ByteBuffer underlyingByteBuffer = (ByteBuffer) underlyingBuffer.underlying();
-                sslEngine.wrap(byteBuffer, underlyingByteBuffer);
-                lastWriterFuture = underlyingWriter.flush();
-            } while (buffer.hasRemaining());
-
-            buffer.clear();
-        } else if (this.buffer == null) {
-            this.buffer = newBuffer(bufferSize);
+        public HandshakeCompletionHandler(FutureImpl<SSLEngine> future,
+                CompletionHandler<SSLEngine> completionHandler) {
+            super(future, completionHandler);
         }
-
-        return lastWriterFuture;
     }
 }

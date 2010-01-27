@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.nio;
 
+import com.sun.grizzly.Transformer;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.Future;
@@ -52,14 +53,16 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ProcessorResult;
+import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.asyncqueue.AsyncQueue;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.asyncqueue.MessageCloner;
 import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.utils.LinkedTransferQueue;
 import com.sun.grizzly.utils.ObjectPool;
+import java.io.EOFException;
+import java.util.Queue;
 
 /**
  * The {@link AsyncQueueWriter} implementation, based on the Java NIO
@@ -72,7 +75,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     protected NIOTransport transport;
 
-    private final static Logger logger = Grizzly.logger;
+    private final static Logger logger = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
     public AbstractNIOAsyncQueueWriter(NIOTransport transport) {
         this.transport = transport;
@@ -82,25 +85,27 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+    public <M> Future<WriteResult<M, SocketAddress>> write(
+            Connection connection,
+            SocketAddress dstAddress, M message,
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            Transformer<M, Buffer> transformer,
             Interceptor<WriteResult> interceptor) throws IOException {
-        return write(connection, dstAddress, buffer, completionHandler,
-                interceptor, null);
+        return write(connection, dstAddress, message, completionHandler,
+                transformer, interceptor, null);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(
+    public <M> Future<WriteResult<M, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+            M message,
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            Transformer<M, Buffer> transformer,
             Interceptor<WriteResult> interceptor,
-            MessageCloner<Buffer> cloner) throws IOException {
+            MessageCloner<M> cloner) throws IOException {
 
         if (connection == null) {
             throw new IOException("Connection is null");
@@ -109,27 +114,28 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
 
         // Create future
-        FutureImpl future = new FutureImpl();
-        WriteResult currentResult = new WriteResult(connection);
-        currentResult.setMessage(buffer);
+        final FutureImpl future = new FutureImpl();
+        final WriteResult currentResult = new WriteResult(connection);
+        currentResult.setMessage(message);
         currentResult.setDstAddress(dstAddress);
         currentResult.setWrittenSize(0);
 
         // Get connection async write queue
-        AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
+        final AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
-        LinkedTransferQueue<AsyncWriteQueueRecord> queue =
-                connectionQueue.getQueue();
-        AtomicReference<AsyncWriteQueueRecord> currentElement =
+        final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
+        final AtomicReference<AsyncWriteQueueRecord> currentElement =
                 connectionQueue.getCurrentElement();
-        ReentrantLock lock = connectionQueue.getQueuedActionLock();
+        final ReentrantLock lock = connectionQueue.getQueuedActionLock();
         boolean isLockedByMe = false;
 
         // create and initialize the write queue record
-        AsyncWriteQueueRecord queueRecord = new AsyncWriteQueueRecord();
-        queueRecord.set(buffer, future, currentResult, completionHandler,
-                interceptor, dstAddress);
+        final AsyncWriteQueueRecord queueRecord = new AsyncWriteQueueRecord(
+                message, future, currentResult, completionHandler,
+                transformer, interceptor, dstAddress,
+                transformer == null ? (Buffer) message : null,
+                false);
 
         // If AsyncQueue is empty - try to write Buffer here
         try {
@@ -139,15 +145,14 @@ public abstract class AbstractNIOAsyncQueueWriter
                 isLockedByMe = true;
                 // Strong comparison for null, because we're in locked region
                 if (currentElement.compareAndSet(null, queueRecord)) {
-                    doWrite(connection, currentResult, completionHandler,
-                            (SocketAddress) dstAddress, buffer);
+                    doWrite(connection, queueRecord);
                 } else {
                     isLockedByMe = false;
                     lock.unlock();
                 }
             }
 
-            if (isLockedByMe && isFinished(connection, buffer)) {
+            if (isLockedByMe && isFinished(connection, queueRecord)) {
                 // If buffer was written directly - set next queue element as current
                 // Notify callback handler
                 onWriteCompleted(connection, queueRecord);
@@ -169,8 +174,13 @@ public abstract class AbstractNIOAsyncQueueWriter
             } else { // If there are no bytes available for writing
                 if (cloner != null) {
                     // clone message
-                    buffer = cloner.clone(connection, buffer);
-                    queueRecord.setBuffer(buffer);
+                    message = cloner.clone(connection, message);
+                    queueRecord.setMessage(message);
+
+                    if (transformer == null) {
+                        queueRecord.setOutputBuffer((Buffer) message);
+                    }
+                    
                     queueRecord.setCloned(true);
                 }
 
@@ -228,11 +238,10 @@ public abstract class AbstractNIOAsyncQueueWriter
         AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
-        LinkedTransferQueue<AsyncWriteQueueRecord> queue =
-                connectionQueue.getQueue();
-        AtomicReference<AsyncWriteQueueRecord> currentElement =
+        final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
+        final AtomicReference<AsyncWriteQueueRecord> currentElement =
                 connectionQueue.getCurrentElement();
-        ReentrantLock lock = connectionQueue.getQueuedActionLock();
+        final ReentrantLock lock = connectionQueue.getQueuedActionLock();
         boolean isLockedByMe = false;
 
         if (currentElement.get() == null) {
@@ -255,14 +264,10 @@ public abstract class AbstractNIOAsyncQueueWriter
             while (currentElement.get() != null) {
                 queueRecord = currentElement.get();
 
-                WriteResult currentResult = queueRecord.getCurrentResult();
-                Buffer buffer = queueRecord.getBuffer();
-                doWrite(connection, currentResult, queueRecord.getCompletionHandler(),
-                        (SocketAddress) queueRecord.getDstAddress(),
-                        buffer);
+                doWrite(connection, queueRecord);
 
                 // check if buffer was completely written
-                if (isFinished(connection, buffer)) {
+                if (isFinished(connection, queueRecord)) {
                     currentElement.set(queue.poll());
 
                     onWriteCompleted(connection, queueRecord);
@@ -323,7 +328,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 Throwable error = new IOException("Connection closed");
                 failWriteRecord(connection, record, error);
 
-                LinkedTransferQueue<AsyncWriteQueueRecord> recordsQueue =
+                Queue<AsyncWriteQueueRecord> recordsQueue =
                         writeQueue.getQueue();
                 if (recordsQueue != null) {
                     while (!recordsQueue.isEmpty()) {
@@ -386,22 +391,90 @@ public abstract class AbstractNIOAsyncQueueWriter
      * @param writePreProcessor write post-processor
      * @throws java.io.IOException
      */
-    protected <E> void doWrite(Connection connection, WriteResult currentResult,
-            CompletionHandler completionHandler,
-            SocketAddress dstAddress, Buffer buffer)
-            throws IOException {
+    protected final <E> void doWrite(final Connection connection,
+            final AsyncWriteQueueRecord<SocketAddress> queueRecord) throws IOException {
+        final Transformer transformer = queueRecord.getTransformer();
+        if (transformer == null) {
+            final Buffer outputBuffer = queueRecord.getOutputBuffer();
+            final SocketAddress dstAddress = queueRecord.getDstAddress();
+            final WriteResult currentResult = queueRecord.getCurrentResult();
+            final int bytesWritten = write0(connection, dstAddress,
+                    outputBuffer, currentResult);
 
-        write0(connection, dstAddress, buffer, currentResult);
+            if (bytesWritten == -1) {
+                throw new EOFException();
+            }
+            
+        } else {
+            final WriteResult writeResult = new WriteResult(connection);
+            do {
+                final Object message = queueRecord.getMessage();
+                final Buffer outputBuffer = queueRecord.getOutputBuffer();
+
+                if (outputBuffer != null && outputBuffer.hasRemaining()) {
+
+                    final SocketAddress dstAddress = queueRecord.getDstAddress();
+                    final WriteResult currentResult = queueRecord.getCurrentResult();
+                    writeResult.setMessage(null);
+                    writeResult.setWrittenSize(0);
+                    
+                    final int bytesWritten = write0(connection, dstAddress,
+                            outputBuffer, writeResult);
+                    if (bytesWritten == -1) {
+                        throw new EOFException();
+                    }
+
+                    currentResult.setWrittenSize(
+                            currentResult.getWrittenSize() + bytesWritten);
+
+                    if (!outputBuffer.hasRemaining()) {
+                        if (queueRecord.getOriginalMessage() != outputBuffer) {
+                            outputBuffer.dispose();
+                        }
+                        
+                        queueRecord.setOutputBuffer(null);
+                    } else {
+                        return;
+                    }
+                }
+
+                TransformationResult tResult = transformer.getLastResult(connection);
+                if (tResult != null &&
+                        tResult.getStatus() == TransformationResult.Status.COMPLETED &&
+                        !tResult.hasInternalRemainder() &&
+                        !transformer.hasInputRemaining(message)) {
+                    return;
+                }
+
+                tResult = transformer.transform(connection, message);
+
+                if (tResult.getStatus() == TransformationResult.Status.COMPLETED) {
+                    queueRecord.setOutputBuffer((Buffer) tResult.getMessage());
+                    queueRecord.setMessage(tResult.getExternalRemainder());
+                } else if (tResult.getStatus() == TransformationResult.Status.INCOMPLETED) {
+                    throw new IOException("Transformation exception: provided message is incompleted");
+                } else {
+                    throw new IOException("Transformation error (" +
+                            tResult.getErrorCode() + "): " +
+                            tResult.getErrorDescription());
+                }                
+            } while (true);
+        }
     }
 
     protected void onWriteCompleted(Connection connection,
             AsyncWriteQueueRecord<?> record)
             throws IOException {
 
-        FutureImpl future = (FutureImpl) record.getFuture();
-        WriteResult currentResult = record.getCurrentResult();
-        future.setResult(currentResult);
-        CompletionHandler<WriteResult> completionHandler =
+        final Transformer transformer = record.getTransformer();
+        if (transformer != null) {
+            transformer.release(connection);
+        }
+        
+        final FutureImpl future = (FutureImpl) record.getFuture();
+        final WriteResult currentResult = record.getCurrentResult();
+        future.result(currentResult);
+        final CompletionHandler<WriteResult> completionHandler =
                 record.getCompletionHandler();
 
         if (completionHandler != null) {
@@ -451,8 +524,19 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    private boolean isFinished(Connection connection, Buffer originalBuffer) {
-        return !originalBuffer.hasRemaining();
+    private boolean isFinished(final Connection connection,
+            final AsyncWriteQueueRecord queueRecord) {
+        final Transformer trasformer = queueRecord.getTransformer();
+        final Buffer buffer = queueRecord.getOutputBuffer();
+        
+        if (trasformer == null) {
+            return !buffer.hasRemaining();
+        } else {
+            final TransformationResult tResult =
+                    trasformer.getLastResult(connection);
+            return buffer == null && tResult != null &&
+                    tResult.getStatus() == TransformationResult.Status.COMPLETED;
+        }
     }
 
     protected abstract int write0(Connection connection,

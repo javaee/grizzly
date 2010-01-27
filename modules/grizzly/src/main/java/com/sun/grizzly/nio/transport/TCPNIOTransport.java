@@ -61,6 +61,8 @@ import com.sun.grizzly.filterchain.FilterChainEnabledTransport;
 import com.sun.grizzly.filterchain.FilterChainFactory;
 import com.sun.grizzly.filterchain.PatternFilterChainFactory;
 import com.sun.grizzly.filterchain.SingletonFilterChainFactory;
+import com.sun.grizzly.streams.StreamReader;
+import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.threadpool.DefaultThreadPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
@@ -69,13 +71,10 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
@@ -90,13 +89,16 @@ import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.ProcessorResult.Status;
 import com.sun.grizzly.ProcessorRunnable;
 import com.sun.grizzly.ProcessorSelector;
-import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.SocketBinder;
 import com.sun.grizzly.SocketConnectorHandler;
+import com.sun.grizzly.StandaloneProcessor;
+import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.threadpool.ExtendedThreadPool;
+import java.io.EOFException;
+import java.nio.ByteBuffer;
 
 /**
  * TCP Transport NIO implementation
@@ -104,14 +106,14 @@ import com.sun.grizzly.threadpool.ExtendedThreadPool;
  * @author Alexey Stashok
  * @author Jean-Francois Arcand
  */
-public class TCPNIOTransport extends AbstractNIOTransport implements
+public final class TCPNIOTransport extends AbstractNIOTransport implements
         SocketBinder, SocketConnectorHandler,
         AsyncQueueEnabledTransport, FilterChainEnabledTransport,
         TemporarySelectorsEnabledTransport {
 
-    private Logger logger = Grizzly.logger;
-    
-    private static final int DEFAULT_READ_BUFFER_SIZE = 65536;
+    private static Logger logger = Grizzly.logger(TCPNIOTransport.class);
+
+    private static final int DEFAULT_READ_BUFFER_SIZE = 8192;
     private static final int DEFAULT_WRITE_BUFFER_SIZE = 4096;
     
     private static final String DEFAULT_TRANSPORT_NAME = "TCPNIOTransport";
@@ -193,7 +195,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
         filterChainFactory = patternFactory;
 
-
+        attributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
         defaultTransportFilter = new TCPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<TCPNIOServerConnection>();
     }
@@ -204,7 +206,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         try {
             State currentState = state.getState(false);
             if (currentState != State.STOP) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "Transport is not in STOP or BOUND state!");
             }
 
@@ -314,7 +316,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
         try {
             if (state.getState(false) != State.START) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "Transport is not in START state!");
             }
             state.setState(State.PAUSE);
@@ -329,7 +331,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
 
         try {
             if (state.getState(false) != State.PAUSE) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "Transport is not in PAUSE state!");
             }
             state.setState(State.START);
@@ -484,7 +486,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                     socket.shutdownInput();
                 }
             } catch (IOException e) {
-                Grizzly.logger.log(Level.FINE,
+                logger.log(Level.FINE,
                         "TCPNIOTransport.closeChannel exception", e);
             }
 
@@ -493,14 +495,14 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                     socket.shutdownOutput();
                 }
             } catch (IOException e) {
-                Grizzly.logger.log(Level.FINE,
+                logger.log(Level.FINE,
                         "TCPNIOTransport.closeChannel exception", e);
             }
 
             try {
                 socket.close();
             } catch (IOException e) {
-                Grizzly.logger.log(Level.FINE,
+                logger.log(Level.FINE,
                         "TCPNIOTransport.closeChannel exception", e);
             }
         }
@@ -509,7 +511,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             try {
                 nioChannel.close();
             } catch (IOException e) {
-                Grizzly.logger.log(Level.FINE,
+                logger.log(Level.FINE,
                         "TCPNIOTransport.closeChannel exception", e);
             }
         }
@@ -560,6 +562,20 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     @Override
     public AsyncQueueIO getAsyncQueueIO() {
         return asyncQueueIO;
+    }
+
+    @Override
+    public synchronized void configureStandalone(boolean isStandalone) {
+        if (this.isStandalone != isStandalone) {
+            this.isStandalone = isStandalone;
+            if (isStandalone) {
+                processor = StandaloneProcessor.INSTANCE;
+                processorSelector = StandaloneProcessorSelector.INSTANCE;
+            } else {
+                processor = getFilterChainFactory().create();
+                processorSelector = null;
+            }
+        }
     }
 
     public int getLinger() {
@@ -635,14 +651,8 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @Override
-    public Filter getStreamTransportFilter() {
+    public Filter getTransportFilter() {
         return defaultTransportFilter;
-    }
-
-    @Override
-    public Filter getMessageTransportFilter() {
-        throw new UnsupportedOperationException("FilterChain 'message' mode is" +
-                " not supported for TCP NIO transport ");
     }
 
     @Override
@@ -702,6 +712,14 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             Processor processor, ProcessorExecutor executor,
             PostProcessor postProcessor, Object strategyContext)
             throws IOException {
+
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.log(Level.FINEST, "executeProcessor connection (" + 
+                    connection + "). IOEvent=" + ioEvent +
+                    " processor=" + processor + " executor=" + executor +
+                    " postProcessor=" + postProcessor +
+                    " strategy=" + strategyContext);
+        }
 
         ProcessorRunnable processorRunnable = new ProcessorRunnable(ioEvent,
                 connection, processor, postProcessor);
@@ -765,47 +783,64 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
         return conProcessor;
     }
 
-    public int read(final Connection connection, final Buffer buffer)
+    public Buffer read(final Connection connection, Buffer buffer)
             throws IOException {
-        return read(connection, buffer, null);
-    }
 
-    public int read(final Connection connection, Buffer buffer,
-            final ReadResult currentResult) throws IOException {
+        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
 
         int read = 0;
 
-        boolean isAllocated = false;
-        if (buffer == null && currentResult != null) {
+        final boolean isAllocate = (buffer == null);
+        if (isAllocate) {
+            buffer = memoryManager.allocate(connection.getReadBufferSize());
+            try {
+                read = ((SocketChannel) tcpConnection.getChannel()).read(
+                        buffer.toByteBuffer());
+            } catch (Exception e) {
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
+                }
+                read = -1;
+            }
 
-            buffer = memoryManager.allocate(
-                    connection.getReadBufferSize());
-            isAllocated = true;
-        }
-
-        if (buffer.hasRemaining()) {
-            TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-            read = ((ReadableByteChannel) tcpConnection.getChannel()).read(
-                    (ByteBuffer) buffer.underlying());
-        }
-
-        if (isAllocated) {
-            if (read > 0) {
-                buffer.trim();
-                buffer.position(buffer.limit());
-            } else {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read " + read + " bytes");
+            }
+            
+            if (read <= 0) {
                 buffer.dispose();
                 buffer = null;
+                
+                if (read < 0) {
+                    throw new EOFException();
+                }
+            }
+        } else {
+            if (buffer.hasRemaining()) {
+                if (buffer.isComposite()) {
+                    final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
+                    read = (int) ((SocketChannel) tcpConnection.getChannel()).read(byteBuffers);
+
+                    if (read > 0) {
+                        resetByteBuffers(byteBuffers, read);
+                        buffer.position(buffer.position() + read);
+                    }
+                } else {
+                    read = (int) ((SocketChannel) tcpConnection.getChannel()).read(
+                            buffer.toByteBuffer());
+                }
+
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (nonallocated) read " + read + " bytes");
+                }
+                
+                if (read < 0) {
+                    throw new EOFException();
+                }
             }
         }
 
-        if (currentResult != null && read >= 0) {
-            currentResult.setMessage(buffer);
-            currentResult.setReadSize(currentResult.getReadSize() + read);
-            currentResult.setSrcAddress(connection.getPeerAddress());
-        }
-
-        return read;
+        return buffer;
     }
 
     public int write(Connection connection, Buffer buffer) throws IOException {
@@ -816,17 +851,59 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
             WriteResult currentResult) throws IOException {
 
         TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-        int written = ((WritableByteChannel) tcpConnection.getChannel()).write(
-                (ByteBuffer) buffer.underlying());
-        if (currentResult != null) {
-            currentResult.setMessage(buffer);
-            currentResult.setWrittenSize(currentResult.getWrittenSize() +
-                    written);
-            currentResult.setDstAddress(
-                    connection.getPeerAddress());
+        int written;
+        if (buffer.isComposite()) {
+            final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
+            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffers);
+
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (composite) write " + written + " bytes");
+            }
+
+            if (written > 0) {
+                resetByteBuffers(byteBuffers, written);
+                buffer.position(buffer.position() + written);
+            }
+        } else {
+            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(
+                buffer.toByteBuffer());
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (plain) write " + written + " bytes");
+            }
+        }
+
+        if (written >= 0) {
+            if (currentResult != null) {
+                currentResult.setMessage(buffer);
+                currentResult.setWrittenSize(currentResult.getWrittenSize()
+                        + written);
+                currentResult.setDstAddress(
+                        connection.getPeerAddress());
+            }
+        } else {
+            throw new IOException("Error writing to peer");
         }
 
         return written;
+    }
+
+    @Override
+    public StreamReader getStreamReader(Connection connection) {
+        return new TCPNIOStreamReader((TCPNIOConnection) connection);
+    }
+
+    @Override
+    public StreamWriter getStreamWriter(Connection connection) {
+        return new TCPNIOStreamWriter((TCPNIOConnection) connection);
+    }
+
+    private void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
+        int index = 0;
+        while(processed > 0) {
+            final ByteBuffer byteBuffer = byteBuffers[index++];
+            byteBuffer.position(0);
+            processed -= byteBuffer.remaining();
+        }
     }
 
     public class EnableInterestPostProcessor implements PostProcessor {
@@ -860,7 +937,7 @@ public class TCPNIOTransport extends AbstractNIOTransport implements
                     connection.resetAddresses();
                 }
             } catch (Exception e) {
-                Grizzly.logger.log(Level.FINE, "Exception happened, when " +
+                logger.log(Level.FINE, "Exception happened, when " +
                         "trying to register the channel", e);
             }
         }

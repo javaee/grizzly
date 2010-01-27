@@ -56,7 +56,7 @@ import com.sun.grizzly.nio.NIOConnection;
  *
  * @author Alexey Stashok
  */
-public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
+public final class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     public UDPNIOAsyncQueueWriter(NIOTransport transport) {
         super(transport);
@@ -67,8 +67,8 @@ public class UDPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
             Buffer buffer,
             WriteResult<Buffer, SocketAddress> currentResult)
             throws IOException {
-        return ((UDPNIOTransport) transport).write(connection, dstAddress,
-                buffer, currentResult);
+        return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
+                dstAddress, buffer, currentResult);
     }
 
     @Override

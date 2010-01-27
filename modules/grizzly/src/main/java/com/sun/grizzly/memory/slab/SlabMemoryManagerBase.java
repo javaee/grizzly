@@ -40,7 +40,6 @@ import java.nio.ByteBuffer;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.memory.ByteBufferManager;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.threadpool.WorkerThread;
@@ -226,8 +225,7 @@ public abstract class SlabMemoryManagerBase extends ByteBufferManager {
         @Override
         public void associate(Slab slab) {
             WorkerThread thread = (WorkerThread) Thread.currentThread();
-            AttributeHolder workerThreadAttributes = thread.obtainAttributes();
-            threadAssociatedSlab.set(workerThreadAttributes, slab);
+            threadAssociatedSlab.set(thread, slab);
         }
     }
 }

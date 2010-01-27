@@ -48,7 +48,7 @@ import com.sun.grizzly.nio.tmpselectors.TemporarySelectorWriter;
  *
  * @author oleksiys
  */
-public class UDPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
+public final class UDPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
     public UDPNIOTemporarySelectorWriter(UDPNIOTransport transport) {
         super(transport);
     }
@@ -57,7 +57,7 @@ public class UDPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
     protected int writeNow0(Connection connection, SocketAddress dstAddress,
             Buffer buffer, WriteResult currentResult) throws IOException {
 
-        return ((UDPNIOTransport) transport).write(connection, dstAddress,
-                buffer, currentResult);
+        return ((UDPNIOTransport) transport).write((UDPNIOConnection) connection,
+                dstAddress, buffer, currentResult);
     }
 }

@@ -41,7 +41,6 @@ package com.sun.grizzly;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.concurrent.Future;
-import com.sun.grizzly.utils.conditions.Condition;
 
 /**
  * Implementatios of this interface are able to read data from internal source
@@ -91,15 +90,36 @@ public interface Readable<L> extends Closeable {
      * @param buffer the buffer, where data will be read
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when read will be completed
-     * @param condition {@link Condition}, which will be checked
-     *        each time new portion of a data was read to a <tt>buffer</tt>.
-     *        The <tt>condition</tt> can decide, whether asynchronous read is
-     *        completed or not.
+     * @param interceptor {@link Interceptor}, which will be able to intercept
+     *        control each time new portion of a data was read to a
+     *        <tt>buffer</tt>.
+     *        The <tt>interceptor</tt> can decide, whether asynchronous read is
+     *        completed or not, or provide other processing instructions.
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public Future<ReadResult<Buffer, L>> read(Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, L>> completionHandler,
-            Condition<ReadResult<Buffer, L>> condition)
+    public <M> Future<ReadResult<M, L>> read(M message,
+            CompletionHandler<ReadResult<M, L>> completionHandler,
+            Transformer<Buffer, M> transformer)
+            throws IOException;
+
+    /**
+     * Method reads data to the <tt>buffer</tt>.
+     *
+     * @param buffer the buffer, where data will be read
+     * @param completionHandler {@link CompletionHandler},
+     *        which will get notified, when read will be completed
+     * @param interceptor {@link Interceptor}, which will be able to intercept
+     *        control each time new portion of a data was read to a
+     *        <tt>buffer</tt>.
+     *        The <tt>interceptor</tt> can decide, whether asynchronous read is
+     *        completed or not, or provide other processing instructions.
+     * @return {@link Future}, using which it's possible to check the result
+     * @throws java.io.IOException
+     */
+    public <M> Future<ReadResult<M, L>> read(M message,
+            CompletionHandler<ReadResult<M, L>> completionHandler,
+            Transformer<Buffer, M> transformer,
+            Interceptor<ReadResult> interceptor)
             throws IOException;
 }

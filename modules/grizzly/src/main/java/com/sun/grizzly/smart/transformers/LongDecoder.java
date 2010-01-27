@@ -48,6 +48,11 @@ public class LongDecoder extends PrimitiveDecoder<Long> {
     private static final int SIZE = Long.SIZE / 8;
 
     @Override
+    public String getName() {
+        return LongDecoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

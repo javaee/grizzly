@@ -38,150 +38,189 @@
 package com.sun.grizzly.filterchain;
 
 import java.util.List;
-import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.AbstractTransformer;
+import com.sun.grizzly.Appendable;
+import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
 import com.sun.grizzly.Transformer;
-import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.attributes.AttributeBuilder;
-import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.AttributeStorage;
+import com.sun.grizzly.filterchain.DefaultFilterChain.FILTER_STATE_TYPE;
 
 /**
  *
  * @author Alexey Stashok
  */
-public class DefaultDecoderTransformer implements Transformer {
+public class DefaultDecoderTransformer extends AbstractTransformer {
     private final DefaultFilterChain filterChain;
 
-    private final Attribute<FilterChainContext> contextAttribute;
-    private final Attribute inputAttribute;
-    private final Attribute outputAttribute;
-    private final Attribute<TransformationResult> lastResultAttribute;
-
+    private final int limit;
+    
     protected DefaultDecoderTransformer(final DefaultFilterChain filterChain) {
-        this(filterChain, Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+        this(filterChain, filterChain.size());
     }
 
     protected DefaultDecoderTransformer(final DefaultFilterChain filterChain,
-            final AttributeBuilder attributeBuilder) {
+            int limit) {
         this.filterChain = filterChain;
+        this.limit = limit;
+    }
 
-        contextAttribute = attributeBuilder.createAttribute("ddt_context");
-        inputAttribute = attributeBuilder.createAttribute("ddt_input");
-        outputAttribute = attributeBuilder.createAttribute("ddt_output");
-        lastResultAttribute = attributeBuilder.createAttribute("ddt_last_result");
+    @Override
+    public String getName() {
+        return DefaultDecoderTransformer.class.getName();
     }
 
     public DefaultFilterChain getFilterChain() {
         return filterChain;
     }
 
-    public FilterChainContext getContext(AttributeStorage state) {
-        return contextAttribute.get(state);
-    }
-
-    public void setContext(AttributeStorage state, FilterChainContext context) {
-        contextAttribute.set(state, context);
-    }
-
-    @Override
-    public TransformationResult transform(final AttributeStorage state)
-            throws TransformationException {
-        return transform(state, getInput(state), getOutput(state));
-    }
-
     @Override
     public TransformationResult transform(final AttributeStorage state,
-            Object originalMessage, Object targetMessage)
-            throws TransformationException {
-        if (originalMessage == null) {
-            originalMessage = getInput(state);
-        }
+            final Object originalMessage) throws TransformationException {
+        Object currentMessage;
+        currentMessage = originalMessage;
 
+        final DefaultFilterChain.FiltersState filtersState =
+                DefaultFilterChain.FILTERS_STATE_ATTR.get(state);
+
+        if (filtersState != null) {
+            int remainingIndex;
+            if ((remainingIndex =
+                    filtersState.lastIndexOf(IOEvent.READ, FILTER_STATE_TYPE.REMAINDER, limit)) >= 0) {
+                final Appendable storedMessage =
+                        filtersState.clearState(IOEvent.READ, remainingIndex).getState();
+
+                TransformationResult result =
+                        processFilterChain(state, storedMessage, remainingIndex);
+                
+                return result;
+            }
+        }
+        
+        return processFilterChain(state, currentMessage, 0);
+    }
+
+    private TransformationResult processFilterChain(
+            final AttributeStorage state,
+            Object currentMessage,
+            int startIndex)
+            throws TransformationException {
+        
+        boolean hasInternalRemainder = false;
+
+        TransformationResult decodeResult = null;
+        
         final List<Filter> filters = getFilters(state);
 
-        Object currentMessage;
-        TransformationResult decodeResult = new TransformationResult(
-                Status.COMPLETED, originalMessage);
-
-        currentMessage = null;
-
-        currentMessage = originalMessage;
-        for (Filter filter : filters) {
+        DefaultFilterChain.FiltersState filtersState =
+                DefaultFilterChain.FILTERS_STATE_ATTR.get(state);
+        
+        for (int i = startIndex; i < limit; i++) {
+            final Filter filter = filters.get(i);
             if (filter instanceof CodecFilter) {
                 final CodecFilter codecFilter = (CodecFilter) filter;
                 final Transformer decoder = codecFilter.getDecoder();
                 if (decoder != null) {
-                    decodeResult = decoder.transform(state,
-                            currentMessage, null);
-                    if (decodeResult.getStatus() == Status.COMPLETED) {
-                        currentMessage = decodeResult.getMessage();
-                    } else {
-                        break;
+
+                    final DefaultFilterChain.FilterStateElement filterState;
+                    if (filtersState != null &&
+                            (filterState = filtersState.clearState(IOEvent.READ, i)) != null) {
+                        final Appendable storedMessage = filterState.getState();
+
+                        if (currentMessage != null) {
+                            storedMessage.append(currentMessage);
+                        }
+                        currentMessage = storedMessage;
+                    }
+                    decodeResult = decoder.transform(state, currentMessage);
+                    switch (decodeResult.getStatus()) {
+                        case COMPLETED:
+                        {
+                            final Object remainder = decodeResult.getExternalRemainder();
+
+                            if (decoder.hasInputRemaining(remainder)) {
+                                if (filtersState == null) {
+                                    filtersState = new DefaultFilterChain.FiltersState(filters.size());
+                                    DefaultFilterChain.FILTERS_STATE_ATTR.set(state, filtersState);
+                                }
+
+                                hasInternalRemainder = true;
+                                filtersState.setState(IOEvent.READ, i,
+                                        new DefaultFilterChain.FilterStateElement(
+                                        FILTER_STATE_TYPE.REMAINDER,
+                                        Appendable.Utils.makeAppendable(remainder)));
+                            }
+                            currentMessage = decodeResult.getMessage();
+                            break;
+                        }
+                        case INCOMPLETED:
+                        {
+                            final Object remainder = decodeResult.getExternalRemainder();
+
+                            if (decoder.hasInputRemaining(remainder)) {
+                            if (filtersState == null) {
+                                filtersState = new DefaultFilterChain.FiltersState(filters.size());
+                                DefaultFilterChain.FILTERS_STATE_ATTR.set(state, filtersState);
+                            }
+                            filtersState.setState(IOEvent.READ, i,
+                                    new DefaultFilterChain.FilterStateElement(
+                                    FILTER_STATE_TYPE.INCOMPLETE,
+                                    Appendable.Utils.makeAppendable(remainder)));
+                            }
+
+                            return saveLastResult(state,
+                                    TransformationResult.createIncompletedResult(
+                                    null, hasInternalRemainder));
+                        }
+                        case ERROR:
+                        {
+                            throw new TransformationException(
+                                    filter.getClass().getName() +
+                                    " transformation error: (" +
+                                    decodeResult.getErrorCode() + ") " +
+                                    decodeResult.getErrorDescription());
+                        }
                     }
                 }
             }
         }
+        
+        if (decodeResult == null) {
+            return saveLastResult(state,
+                    TransformationResult.createCompletedResult(currentMessage,
+                    null, false));
+        }
 
-        setLastResult(state, decodeResult);
-
-        return decodeResult;
+        return saveLastResult(state,
+                TransformationResult.createCompletedResult(
+                decodeResult.getMessage(),
+                null, hasInternalRemainder));
     }
+
 
     @Override
-    public Object getInput(AttributeStorage state) {
-        return inputAttribute.get(state);
-    }
+    public boolean hasInputRemaining(Object input) {
+        for (int i = 0; i < limit; i++) {
+            final Filter filter = filterChain.get(i);
+            if (filter instanceof CodecFilter) {
+                return ((CodecFilter) filter).getEncoder().hasInputRemaining(input);
+            }
+        }
 
-    @Override
-    public void setInput(AttributeStorage state, Object input) {
-        inputAttribute.set(state, input);
-    }
-
-    @Override
-    public Object getOutput(AttributeStorage state) {
-        return outputAttribute.get(state);
-    }
-
-    @Override
-    public void setOutput(AttributeStorage state, Object outputTarget) {
-        outputAttribute.set(state, outputTarget);
-    }
-
-    @Override
-    public TransformationResult getLastResult(AttributeStorage state) {
-        return lastResultAttribute.get(state);
-    }
-
-    private void setLastResult(AttributeStorage state,
-            TransformationResult lastResult) {
-        lastResultAttribute.set(state, lastResult);
-    }
-
-    @Override
-    public AttributeHolder getProperties(AttributeStorage state) {
-        return state.getAttributes();
-    }
-
-    @Override
-    public void hibernate(AttributeStorage state) {
+        return input != null;
     }
 
     @Override
     public void release(AttributeStorage state) {
         releaseFilterTransformers(state);
-        contextAttribute.remove(state);
-        lastResultAttribute.remove(state);
-        inputAttribute.remove(state);
-        outputAttribute.remove(state);
+        super.release(state);
     }
 
     private void releaseFilterTransformers(final AttributeStorage state) {
         final List<Filter> filters = getFilters(state);
-
-        for(Filter filter : filters) {
+        for (int i = 0; i < limit; i++) {
+            final Filter filter = filters.get(i);
             if (filter instanceof CodecFilter) {
                 final Transformer decoder = ((CodecFilter) filter).getDecoder();
                 if (decoder != null) {
@@ -192,12 +231,6 @@ public class DefaultDecoderTransformer implements Transformer {
     }
 
     private List<Filter> getFilters(final AttributeStorage state) {
-        final FilterChainContext context = getContext(state);
-
-        if (context != null) {
-            return context.getExecutedFilters();
-        } else {
-            return filterChain;
-        }
+        return filterChain;
     }
 }

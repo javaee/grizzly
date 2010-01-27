@@ -70,6 +70,11 @@ import com.sun.grizzly.attributes.Attribute;
  * @author Alexey Stashok
  */
 public interface Filter {
+    public void onAdded(FilterChain filterChain);
+    
+    public void onRemoved(FilterChain filterChain);
+
+    public void onFilterChainChanged(FilterChain filterChain);
     
     /**
      * Execute a unit of processing work to be performed, when channel will

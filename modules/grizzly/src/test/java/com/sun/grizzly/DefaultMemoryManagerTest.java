@@ -41,6 +41,7 @@ package com.sun.grizzly;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.threadpool.DefaultThreadPool;
 
@@ -52,15 +53,24 @@ public class DefaultMemoryManagerTest extends TestCase {
     public void testDispose() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
         Runnable r = new Runnable() {
+            @Override
             public void run() {
-                Buffer buffer = mm.allocate(16384);
+                final int allocSize = 16384;
+
+                // Initialize memory manager
+                mm.allocate(0);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+                
+                Buffer buffer = mm.allocate(allocSize);
+
                 assertEquals(
-                        0,
+                        initialSize - allocSize,
                         mm.getReadyThreadBufferSize());
 
                 buffer.dispose();
 
-                assertEquals(16384,
+                assertEquals(initialSize,
                         mm.getReadyThreadBufferSize());
             }
         };
@@ -71,21 +81,29 @@ public class DefaultMemoryManagerTest extends TestCase {
     public void testTrimDispose() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
         Runnable r = new Runnable() {
+            @Override
             public void run() {
-                Buffer buffer = mm.allocate(16384);
+                final int allocSize = 16384;
+
+                // Initialize memory manager
+                mm.allocate(0);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+
+                Buffer buffer = mm.allocate(allocSize);
                 assertEquals(
-                        0,
+                        initialSize - allocSize,
                         mm.getReadyThreadBufferSize());
 
-                buffer.position(8192);
+                buffer.position(allocSize / 2);
                 buffer.trim();
 
-                assertEquals(8192,
+                assertEquals(initialSize - allocSize / 2,
                         mm.getReadyThreadBufferSize());
 
                 buffer.dispose();
 
-                assertEquals(16384,
+                assertEquals(initialSize,
                         mm.getReadyThreadBufferSize());
             }
         };
@@ -96,30 +114,42 @@ public class DefaultMemoryManagerTest extends TestCase {
     public void testReallocate() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
         Runnable r = new Runnable() {
+            @Override
             public void run() {
-                Buffer buffer = mm.allocate(16384);
+                final int allocSize = 16384;
+
+                // Initialize memory manager
+                mm.allocate(0);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+
+                ByteBufferWrapper buffer = mm.allocate(allocSize);
                 assertEquals(
-                        0,
+                        initialSize - allocSize,
                         mm.getReadyThreadBufferSize());
 
-                buffer.position(8192);
+                buffer.position(allocSize / 2);
                 buffer.trim();
 
-                assertEquals(8192,
+                assertEquals(initialSize - allocSize / 2,
                         mm.getReadyThreadBufferSize());
 
                 buffer.dispose();
 
-                assertEquals(16384,
+                assertEquals(initialSize,
                         mm.getReadyThreadBufferSize());
 
-                buffer = mm.allocate(8192);
-                assertEquals(0,
+                buffer = mm.allocate(allocSize / 2);
+                assertEquals(initialSize - allocSize / 2,
+                        mm.getReadyThreadBufferSize());
+
+                buffer = mm.reallocate(buffer, allocSize);
+                assertEquals(initialSize - allocSize,
                         mm.getReadyThreadBufferSize());
 
                 buffer.dispose();
 
-                assertEquals(16384,
+                assertEquals(initialSize,
                         mm.getReadyThreadBufferSize());
             }
         };
@@ -132,10 +162,11 @@ public class DefaultMemoryManagerTest extends TestCase {
 
         DefaultThreadPool threadPool = new DefaultThreadPool();
         threadPool.execute(new Runnable() {
+            @Override
             public void run() {
                 try {
                     task.run();
-                    future.setResult(Boolean.TRUE);
+                    future.result(Boolean.TRUE);
                 } catch (Throwable e) {
                     future.failure(e);
                 }

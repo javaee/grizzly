@@ -44,7 +44,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.filterchain.TransportFilter.Mode;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.nio.transport.UDPNIOConnection;
 import com.sun.grizzly.nio.transport.UDPNIOStreamReader;
@@ -119,7 +118,7 @@ public class UDPNIOTransportTest extends TestCase {
 
             connection.configureBlocking(true);
             connection.setProcessor(null);
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             byte[] sendingBytes = "Hello".getBytes();
             writer.writeByteArray(sendingBytes);
             Future<Integer> writeFuture = writer.flush();
@@ -160,7 +159,7 @@ public class UDPNIOTransportTest extends TestCase {
             connection.setProcessor(null);
 
             byte[] originalMessage = "Hello".getBytes();
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             writer.writeByteArray(originalMessage);
             Future<Integer> writeFuture = writer.flush();
 
@@ -168,7 +167,7 @@ public class UDPNIOTransportTest extends TestCase {
             assertEquals(originalMessage.length, (int) writeFuture.get());
 
 
-            reader = connection.getStreamReader();
+            reader = transport.getStreamReader(connection);
             Future readFuture = reader.notifyAvailable(originalMessage.length);
             assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
 
@@ -204,8 +203,8 @@ public class UDPNIOTransportTest extends TestCase {
 
             connection.setProcessor(null);
 
-            reader = connection.getStreamReader();
-            writer = connection.getStreamWriter();
+            reader = transport.getStreamReader(connection);
+            writer = transport.getStreamWriter(connection);
 
             for (int i = 0; i < 100; i++) {
                 byte[] originalMessage = new String("Hello world #" + i).getBytes();
@@ -251,7 +250,7 @@ public class UDPNIOTransportTest extends TestCase {
             connection.setProcessor(null);
 
             byte[] originalMessage = "Hello".getBytes();
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             writer.writeByteArray(originalMessage);
             Future<Integer> writeFuture = writer.flush();
 
@@ -259,7 +258,7 @@ public class UDPNIOTransportTest extends TestCase {
             assertEquals(originalMessage.length, (int) writtenBytes);
 
 
-            reader = connection.getStreamReader();
+            reader = transport.getStreamReader(connection);
             Future readFuture = reader.notifyAvailable(originalMessage.length);
             assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
 
@@ -284,7 +283,7 @@ public class UDPNIOTransportTest extends TestCase {
         UDPNIOStreamReader reader = null;
         StreamWriter writer = null;
         UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
-        transport.getFilterChain().add(new TransportFilter(Mode.Message));
+        transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(new EchoFilter());
 
         try {
@@ -300,8 +299,8 @@ public class UDPNIOTransportTest extends TestCase {
             assertTrue(connection != null);
 
             connection.setProcessor(null);
-            reader = (UDPNIOStreamReader) connection.getStreamReader();
-            writer = connection.getStreamWriter();
+            reader = (UDPNIOStreamReader) transport.getStreamReader(connection);
+            writer = transport.getStreamWriter(connection);
 
             for (int i = 0; i < packetsNumber; i++) {
                 final byte[] message = new byte[packetSize];
@@ -318,7 +317,7 @@ public class UDPNIOTransportTest extends TestCase {
 
                 assertTrue("Message is corrupted!",
                         Arrays.equals(rcvMessage, message));
-                
+
             }
         } finally {
             if (connection != null) {

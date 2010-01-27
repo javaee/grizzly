@@ -44,6 +44,7 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Interceptor;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.Writer;
 
@@ -75,10 +76,11 @@ public interface AsyncQueueWriter<L>
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(
+    public <M> Future<WriteResult<M, L>> write(
             Connection connection, L dstAddress,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, L>> completionHandler,
+            M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler,
+            Transformer<M, Buffer> transformer,
             Interceptor<WriteResult> interceptor,
-            MessageCloner<Buffer> cloner) throws IOException;
+            MessageCloner<M> cloner) throws IOException;
 }

@@ -48,6 +48,11 @@ public class CharEncoder extends PrimitiveEncoder<Character> {
     private static final int SIZE = Character.SIZE / 8;
 
     @Override
+    public String getName() {
+        return CharEncoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

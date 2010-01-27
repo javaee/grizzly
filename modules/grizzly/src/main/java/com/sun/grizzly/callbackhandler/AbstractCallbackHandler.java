@@ -48,6 +48,7 @@ import com.sun.grizzly.AbstractProcessor;
 import com.sun.grizzly.utils.ArrayIOEventMask;
 import java.io.IOException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Base {@link CallbackHandler} implementation, which delegates
@@ -61,6 +62,8 @@ import java.util.logging.Level;
 public abstract class AbstractCallbackHandler extends AbstractProcessor
         implements CallbackHandler {
 
+    private final Logger logger = Grizzly.logger(AbstractCallbackHandler.class);
+    
     // By default interested in all client connection events
     protected IOEventMask interestedIoEventsMask = new ArrayIOEventMask(
             IOEventMask.CLIENT_EVENTS_MASK);
@@ -106,7 +109,7 @@ public abstract class AbstractCallbackHandler extends AbstractProcessor
                 onClose(context);
                 break;
             default:
-                Grizzly.logger.log(Level.WARNING, 
+                logger.log(Level.WARNING, 
                         "Unexpected SelectionKey operation: " + 
                         context.getIoEvent());
         }

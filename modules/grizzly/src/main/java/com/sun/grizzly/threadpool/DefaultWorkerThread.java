@@ -80,11 +80,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         return attributes;
     }
 
-    @Override
-    public AttributeHolder obtainAttributes() {
-        return attributes;
-    }
-
     public BufferInfo getAssociatedBuffer() {
         return associatedBuffer;
     }

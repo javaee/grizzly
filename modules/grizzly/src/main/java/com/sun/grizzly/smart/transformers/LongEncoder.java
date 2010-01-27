@@ -48,6 +48,11 @@ public class LongEncoder extends PrimitiveEncoder<Long> {
     private static final int SIZE = Long.SIZE / 8;
 
     @Override
+    public String getName() {
+        return LongEncoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

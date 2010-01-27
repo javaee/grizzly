@@ -77,30 +77,13 @@ public interface FilterChainEnabledTransport {
      * Get transport {@link Filter}, which is aware of {@link Transport}
      * specifics; knows how to read/write from/to {@link Transport}
      * specific {@link Connection} streams.
-     * This {@link Filter} is used, if {@link FilterChain} supposed to work
-     * in stream mode.
      * 
-     * Each {@link Transport} should provide stream transport {@link Filter}
-     * implementation.
-     *
-     * @return transport {@link Filter}, which is aware of {@link Transport}
-     * specifics; knows how to read/write from/to {@link Transport}
-     * specific {@link Connection} streams.
-     */
-    public Filter getStreamTransportFilter();
-
-    /**
-     * Get transport {@link Filter}, which is aware of {@link Transport}
-     * specifics; knows how to read/write from/to {@link Transport}.
-     * This {@link Filter} is used, if {@link FilterChain} supposed to work
-     * in message mode.
-     *
-     * Each {@link Transport} should provide stream transport {@link Filter}
+     * Each {@link Transport} should provide transport {@link Filter}
      * implementation.
      *
      * @return transport {@link Filter}, which is aware of {@link Transport}
      * specifics; knows how to read/write from/to {@link Transport}
      * specific {@link Connection}s.
      */
-    public Filter getMessageTransportFilter();
+    public Filter getTransportFilter();
 }

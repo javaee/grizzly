@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.nio.tmpselectors;
 
+import com.sun.grizzly.Transformer;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketAddress;
@@ -55,8 +56,11 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.Reader;
+import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.memory.ByteBuffersBuffer;
+import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.utils.conditions.Condition;
 
@@ -71,7 +75,7 @@ public abstract class TemporarySelectorReader
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
     protected final TemporarySelectorsEnabledTransport transport;
-    private Logger logger = Grizzly.logger;
+    private Logger logger = Grizzly.logger(TemporarySelectorReader.class);
     private int timeoutMillis = DEFAULT_TIMEOUT;
 
     public TemporarySelectorReader(
@@ -87,15 +91,14 @@ public abstract class TemporarySelectorReader
         this.timeoutMillis = timeout;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
-    public Future<ReadResult<Buffer, SocketAddress>> read(Connection connection,
-            Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
+    public <M> Future<ReadResult<M, SocketAddress>> read(
+            Connection connection, M message,
+            CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
+            Transformer<Buffer, M> transformer,
             Interceptor<ReadResult> interceptor) throws IOException {
-        return read(connection, buffer, completionHandler, interceptor,
+        return read(connection, message, completionHandler,
+                transformer, interceptor,
                 timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
@@ -115,51 +118,142 @@ public abstract class TemporarySelectorReader
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public Future<ReadResult<Buffer, SocketAddress>> read(Connection connection,
-            Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<ReadResult> interceptor,
-            long timeout, TimeUnit timeunit) throws IOException {
+    public <M> Future<ReadResult<M, SocketAddress>> read(
+            final Connection connection, final M message,
+            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
+            final Transformer<Buffer, M> transformer,
+            final Interceptor<ReadResult> interceptor,
+            final long timeout, final TimeUnit timeunit) throws IOException {
 
         if (connection == null || !(connection instanceof NIOConnection)) {
             throw new IllegalStateException(
                     "Connection should be NIOConnection and cannot be null.");
         }
 
-        ReadResult<Buffer, SocketAddress> currentResult =
-                new ReadResult<Buffer, SocketAddress>(connection, buffer, null, 0);
-        ReadyFutureImpl<ReadResult<Buffer, SocketAddress>> currentFuture =
-                new ReadyFutureImpl<ReadResult<Buffer, SocketAddress>>(currentResult);
+        final ExtendedReadResult<M, SocketAddress> currentResult =
+                new ExtendedReadResult<M, SocketAddress>(connection, message, null, 0);
 
-        if (buffer == null) {
-            buffer = acquireBuffer(connection);
-        }
-
+        boolean isTimeout = false;
+        
         boolean isCompleted = false;
         while (!isCompleted) {
             isCompleted = true;
-            int readBytes = read0(connection, currentResult, buffer,
-                    timeout, timeunit);
+            final int readBytes;
+            if (transformer == null) {
+                readBytes = read0(connection, currentResult,
+                        (Buffer) message, timeout, timeunit);
+            } else {
+                readBytes = readWithTransformer(connection, transformer,
+                        currentResult, message, timeout, timeunit);
+            }
+
             if (readBytes <= 0) {
-                currentFuture.failure(new TimeoutException());
-            } else if (interceptor != null) {
-                isCompleted = (interceptor.intercept(Reader.READ_EVENT,
-                        null, currentResult) & Interceptor.COMPLETED) != 0;
+                isTimeout = true;
+                break;
+            } else {
+                if (interceptor != null) {
+                    isCompleted = (interceptor.intercept(Reader.READ_EVENT,
+                            null, currentResult) & Interceptor.COMPLETED) != 0;
+                } else if (transformer != null) {
+                    final TransformationResult tResult = transformer.getLastResult(connection);
+                    final TransformationResult.Status status = tResult.getStatus();
+                    isCompleted = (status == TransformationResult.Status.COMPLETED);
+                }
             }
         }
 
-        if (completionHandler != null) {
-            completionHandler.completed(connection, currentResult);
-        }
+        if (!isTimeout) {
+            if (transformer != null) {
+                transformer.release(connection);
+            }
+            
+            if (completionHandler != null) {
+                completionHandler.completed(connection, currentResult);
+            }
 
-        if (interceptor != null) {
-            interceptor.intercept(timeoutMillis, connection, currentResult);
-        }
+            if (interceptor != null) {
+                interceptor.intercept(timeoutMillis, connection, currentResult);
+            }
 
-        return currentFuture;
+            return new ReadyFutureImpl<ReadResult<M, SocketAddress>>(currentResult);
+        } else {
+            return new ReadyFutureImpl<ReadResult<M, SocketAddress>>(new TimeoutException());
+        }
     }
 
-    protected int read0(Connection connection, ReadResult currentResult,
+    private final int readWithTransformer(final Connection connection,
+            final Transformer transformer,
+            final ExtendedReadResult currentResult, final Object message,
+            final long timeout, final TimeUnit timeunit) throws IOException {
+
+        final ReadResult readResult = new ReadResult(connection);
+
+        final int readBytes = read0(connection, readResult, null,
+                timeout, timeunit);
+
+        if (readBytes > 0) {
+            currentResult.setReadSize(currentResult.getReadSize() + readBytes);
+
+            Buffer buffer = (Buffer) readResult.getMessage();
+            buffer.trim();
+            
+            transformer.setOutput(connection, message);
+
+            final Buffer remainderBuffer = currentResult.getRemainderBuffer();
+            if (remainderBuffer != null) {
+                currentResult.setRemainderBuffer(null);
+                
+                if (remainderBuffer.isComposite()) {
+                    ((CompositeBuffer) remainderBuffer).append(buffer);
+                    buffer = remainderBuffer;
+                } else {
+                    final CompositeBuffer compositeBuffer =
+                            new ByteBuffersBuffer(
+                            ((Transport) transport).getMemoryManager(),
+                            remainderBuffer.toByteBuffer(),
+                            buffer.toByteBuffer());
+                    compositeBuffer.allowBufferDispose(true);
+                    
+                    buffer = compositeBuffer;
+                }
+            }
+
+            do {
+                final TransformationResult tResult = transformer.transform(
+                        connection, buffer);
+
+                final Buffer remainder = (Buffer) tResult.getExternalRemainder();
+                final boolean hasRemaining = transformer.hasInputRemaining(remainder);
+                if (buffer != null && !hasRemaining && !tResult.hasInternalRemainder()) {
+                    buffer.dispose();
+                }
+
+                if (tResult.getStatus() == TransformationResult.Status.COMPLETED) {
+                    currentResult.setMessage(tResult.getMessage());
+                    break;
+                } else if (tResult.getStatus() == TransformationResult.Status.INCOMPLETED) {
+                    if (hasRemaining) {
+                        currentResult.setRemainderBuffer(remainder);
+                        buffer = remainder;
+                    }
+
+                    if (!tResult.hasInternalRemainder()) {
+                        break;
+                    }
+                } else if (tResult.getStatus() == TransformationResult.Status.ERROR) {
+                    throw new IOException("Transformation exception ("
+                            + tResult.getErrorCode() + "): "
+                            + tResult.getErrorDescription());
+                }
+            } while (true);
+        } else if (readBytes == -1) {
+            throw new EOFException();
+        }
+
+        return readBytes;
+    }
+
+    protected final int read0(Connection connection, ReadResult currentResult,
             Buffer buffer, long timeout, TimeUnit timeunit)
             throws IOException {
 
@@ -215,13 +309,29 @@ public abstract class TemporarySelectorReader
                 allocate(defaultBufferSize);
     }
 
-    private void releaseBuffer(Connection connection,
-            Buffer inputBuffer) {
-        Transport connectionTransport = connection.getTransport();
-        connectionTransport.getMemoryManager().release(inputBuffer);
-    }
-
     public TemporarySelectorsEnabledTransport getTransport() {
         return transport;
+    }
+
+    private final static class ExtendedReadResult<K, L> extends ReadResult<K, L> {
+        private Buffer remainderBuffer;
+        
+        public ExtendedReadResult(Connection connection) {
+            super(connection);
+        }
+        
+        public ExtendedReadResult(Connection connection, K message,
+                L srcAddress, int readSize) {
+
+            super(connection, message, srcAddress, readSize);
+        }
+
+        public Buffer getRemainderBuffer() {
+            return remainderBuffer;
+        }
+
+        public void setRemainderBuffer(Buffer remainderBuffer) {
+            this.remainderBuffer = remainderBuffer;
+        }
     }
 }

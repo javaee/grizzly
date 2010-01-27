@@ -36,6 +36,8 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -55,6 +57,9 @@ import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.EchoFilter;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -63,17 +68,29 @@ import com.sun.grizzly.utils.EchoFilter;
 public class AsyncWriteQueueTest extends TestCase {
     public static final int PORT = 7781;
 
+    private static Logger logger = Grizzly.logger(AsyncWriteQueueTest.class);
+
     public void testAsyncWriteQueueEcho() throws Exception {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
-        
+
         final int packetNumber = 20;
         final int packetSize = 1024;
 
+        final AtomicInteger serverRcvdBytes = new AtomicInteger();
+
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.getFilterChain().add(new EchoFilter() {
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx,
+                    NextAction nextAction) throws IOException {
+                serverRcvdBytes.addAndGet(((Buffer) ctx.getMessage()).remaining());
+                return super.handleRead(ctx, nextAction);
+            }
+        });
 
         try {
             transport.bind(PORT);
@@ -84,14 +101,14 @@ public class AsyncWriteQueueTest extends TestCase {
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.setProcessor(null);
-            
-            reader = connection.getStreamReader();
+            connection.configureStandalone(true);
+
+            reader = transport.getStreamReader(connection);
 
             final Writer asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
-            
+
             final CountDownLatch latch = new CountDownLatch(packetNumber);
 
             final CompletionHandler completionHandler =
@@ -101,12 +118,13 @@ public class AsyncWriteQueueTest extends TestCase {
                     latch.countDown();
                 }
             };
-            
+
             Collection<Callable<Object>> sendTasks =
                     new ArrayList<Callable<Object>>(packetNumber + 1);
             for (int i = 0; i < packetNumber; i++) {
                 final byte b = (byte) i;
                 sendTasks.add(new Callable() {
+                    @Override
                     public Object call() throws Exception {
                         byte[] originalMessage = new byte[packetSize];
                         Arrays.fill(originalMessage, b);
@@ -132,10 +150,19 @@ public class AsyncWriteQueueTest extends TestCase {
                 executorService.shutdown();
             }
 
-
             int responseSize = packetNumber * packetSize;
-            Future readFuture = reader.notifyAvailable(responseSize);
-            assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
+            Future<Integer> readFuture = reader.notifyAvailable(responseSize);
+            Integer available = null;
+            
+            try {
+                available = readFuture.get(10, TimeUnit.SECONDS);
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "read error", e);
+            }
+
+            assertTrue("Read timeout. Server received: " +serverRcvdBytes.get() +
+                    " bytes. Expected: " + packetNumber * packetSize,
+                     available != null);
 
             byte[] echoMessage = new byte[responseSize];
             reader.readByteArray(echoMessage);

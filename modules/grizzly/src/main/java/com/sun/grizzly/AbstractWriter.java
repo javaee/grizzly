@@ -53,50 +53,77 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
+    public final Future<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer) throws IOException {
-        return write(connection, null, buffer);
+        return write(connection, null, buffer, null, null, null);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
+    public final Future<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException {
-        return write(connection, null, buffer, completionHandler);
+        return write(connection, null, buffer, completionHandler, null, null);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, L>> completionHandler,
+    public final <M> Future<WriteResult<M, L>> write(Connection connection,
+            M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler,
+            Transformer<M, Buffer> transformer) throws IOException {
+        return write(connection, null, message, completionHandler,
+                transformer, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final <M> Future<WriteResult<M, L>> write(Connection connection,
+            M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler,
+            Transformer<M, Buffer> transformer,
             Interceptor<WriteResult> interceptor) throws IOException {
-        return write(connection, null, buffer, completionHandler, interceptor);
+        return write(connection, null, message, completionHandler, transformer,
+                interceptor);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
+    public final Future<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer) throws IOException {
-        return write(connection, dstAddress, buffer, null);
+        return write(connection, dstAddress, buffer, null, null, null);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
+    public final Future<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException {
-        return write(connection, dstAddress, buffer, completionHandler, null);
+        return write(connection, dstAddress, buffer, completionHandler, null, null);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final <M> Future<WriteResult<M, L>> write(Connection connection,
+            L dstAddress, M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler,
+            Transformer<M, Buffer> transformer) throws IOException {
+        return write(connection, dstAddress, message, completionHandler,
+                transformer, null);
+    }
+
 }

@@ -53,8 +53,6 @@ import com.sun.grizzly.Transformer;
  * @author Alexey Stashok
  */
 public class SSLCodec implements Codec<Buffer, Buffer> {
-    private SSLHandshaker sslHandshaker;
-
     private final SSLContext sslContext;
 
     private final SSLEngineConfigurator serverSSLEngineConfig;
@@ -77,8 +75,6 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
                 false, false);
         clientSSLEngineConfig = new SSLEngineConfigurator(sslContext, true,
                 false, false);
-        
-        sslHandshaker = new BlockingSSLHandshaker();
     }
 
     /**
@@ -103,14 +99,6 @@ public class SSLCodec implements Codec<Buffer, Buffer> {
 
     public SSLEngineConfigurator getServerSSLEngineConfig() {
         return serverSSLEngineConfig;
-    }
-
-    public SSLHandshaker getSslHandshaker() {
-        return sslHandshaker;
-    }
-
-    public void setSslHandshaker(SSLHandshaker sslHandshaker) {
-        this.sslHandshaker = sslHandshaker;
     }
 
     public Future<SSLEngine> handshake(Connection connection)

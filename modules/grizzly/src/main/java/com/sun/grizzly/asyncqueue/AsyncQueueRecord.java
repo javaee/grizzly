@@ -40,8 +40,8 @@ package com.sun.grizzly.asyncqueue;
 
 import com.sun.grizzly.Interceptor;
 import java.util.concurrent.Future;
-import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Transformer;
 
 /**
  * {@link AsyncQueue} element unit
@@ -49,61 +49,56 @@ import com.sun.grizzly.CompletionHandler;
  * @author Alexey Stashok
  */
 public class AsyncQueueRecord<R> {
-    protected Buffer buffer;
-    protected Future future;
-    protected R currentResult;
-    protected CompletionHandler completionHandler;
-    protected Interceptor<R> interceptor;
+    protected final Object originalMessage;
+    protected Object message;
+    protected final Future future;
+    protected final R currentResult;
+    protected final CompletionHandler completionHandler;
+    protected final Transformer transformer;
+    protected final Interceptor<R> interceptor;
 
-    public void set(Buffer buffer, Future future,
-            R currentResult,
-            CompletionHandler completionHandler,
-            Interceptor<R> interceptor) {
-        this.buffer = buffer;
+    public AsyncQueueRecord(Object originalMessage, Future future,
+            R currentResult, CompletionHandler completionHandler,
+            Transformer transformer, Interceptor<R> interceptor) {
+
+        this.originalMessage = originalMessage;
+        this.message = originalMessage;
         this.future = future;
         this.currentResult = currentResult;
         this.completionHandler = completionHandler;
+        this.transformer = transformer;
         this.interceptor = interceptor;
     }
 
-    public Buffer getBuffer() {
-        return buffer;
+    public Object getOriginalMessage() {
+        return originalMessage;
     }
 
-    public void setBuffer(Buffer buffer) {
-        this.buffer = buffer;
+    public final Object getMessage() {
+        return message;
     }
 
-    public Future getFuture() {
+    public final void setMessage(Object message) {
+        this.message = message;
+    }
+
+    public final Future getFuture() {
         return future;
     }
 
-    public void setFuture(Future future) {
-        this.future = future;
-    }
-
-    public R getCurrentResult() {
+    public final R getCurrentResult() {
         return currentResult;
     }
 
-    public void setCurrentResult(R currentResult) {
-        this.currentResult = currentResult;
-    }
-
-    public CompletionHandler getCompletionHandler() {
+    public final CompletionHandler getCompletionHandler() {
         return completionHandler;
     }
 
-    public void setCompletionHandler(
-            CompletionHandler completionHandler) {
-        this.completionHandler = completionHandler;
+    public final Transformer getTransformer() {
+        return transformer;
     }
 
-    public Interceptor<R> getInterceptor() {
+    public final Interceptor<R> getInterceptor() {
         return interceptor;
-    }
-
-    public void setInterceptor(Interceptor<R> interceptor) {
-        this.interceptor = interceptor;
     }
 }

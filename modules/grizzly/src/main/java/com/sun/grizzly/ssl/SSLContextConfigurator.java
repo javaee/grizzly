@@ -88,7 +88,7 @@ public class SSLContextConfigurator {
     /**
      * Default Logger.
      */
-    private static Logger logger = Grizzly.logger;
+    private static Logger logger = Grizzly.logger(SSLContextConfigurator.class);
 
     /**
      * Default SSL configuration. If you have changed any of

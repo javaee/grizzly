@@ -38,14 +38,10 @@
 
 package com.sun.grizzly.filterchain;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Context;
-import com.sun.grizzly.ssl.SSLFilter;
-import com.sun.grizzly.ssl.SSLStreamReader;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.utils.MessageHolder;
+import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.utils.ObjectPool;
 
 /**
@@ -56,7 +52,9 @@ import com.sun.grizzly.utils.ObjectPool;
  * 
  * @author Alexey Stashok
  */
-public class FilterChainContext extends Context {
+public final class FilterChainContext extends Context {
+    public static final int NO_FILTER_INDEX = -1;
+
     /**
      * Cached {@link NextAction} instance for "Invoke action" implementation
      */
@@ -75,112 +73,50 @@ public class FilterChainContext extends Context {
     private static final NextAction SUSPEND_ACTION = new SuspendAction();
 
     /**
-     * Cached InvokeAction, used by {@link DefaultFilterChain}, to avoid
-     * creating it each time.
+     * Context associated message
      */
-    private InvokeAction cachedInvokeAction;
+    private Object message;
 
     /**
-     * Current processing {@link Filter}
+     * Context associated source address
      */
-    private Filter currentFilter;
-
-    /**
-     * {@link MessageHolder}, containing information about processing message
-     */
-    private MessageHolder messageHolder;
-
-    /**
-     * Current context {@link StreamReader}
-     */
-    private StreamReader streamReader;
-    /**
-     * Current context {@link StreamWriter}
-     */
-    private StreamWriter streamWriter;
-
-    /**
-     * List of {@link Filter}s, which have been executed already
-     */
-    private List<Filter> executedFilters;
+    private Object address;
 
     /**
      * Index of the currently executing {@link Filter} in
      * the {@link FilterChainContext#filters} list.
      */
-    private int currentFilterIdx;
+    private int lastExecutedFilterIdx;
 
-    /**
-     * List of {@link Filter}s.
-     */
-    private List<Filter> filters;
+    private final StopAction cachedStopAction = new StopAction();
 
-    private Filter defaultTransportFilter;
-    
+    private final InvokeAction cachedInvokeAction = new InvokeAction();
+
     public FilterChainContext(ObjectPool parentPool) {
         super(parentPool);
-        messageHolder = new MessageHolder();
-        executedFilters = new ArrayList<Filter>();
-        currentFilterIdx = 0;
-    }
-
-    
-    /**
-     * Get {@link List} of executed {@link Filter}s.
-     * 
-     * @return {@link List} of executed {@link Filter}s.
-     */
-    public List<Filter> getExecutedFilters() {
-        return executedFilters;
+        lastExecutedFilterIdx = NO_FILTER_INDEX;
     }
 
     /**
-     * Set {@link List} of executed {@link Filter}s.
-     *
-     * @param executedFilters {@link List} of executed {@link Filter}s.
-     */
-    protected void setExecutedFilters(List<Filter> executedFilters) {
-        this.executedFilters = executedFilters;
-    }
-
-    /**
-     * Get {@link List} of {@link Filter}s.
-     *
-     * @return {@link List} of {@link Filter}s.
-     */
-    public List<Filter> getFilters() {
-        return filters;
-    }
-
-    /**
-     * Set {@link List} of {@link Filter}s.
-     *
-     * @param filters {@link List} of {@link Filter}s.
-     */
-    public void setFilters(List<Filter> filters) {
-        this.filters = filters;
-    }
-
-    /**
-     * Get index of the currently executing {@link Filter} in
+     * Get index of the last executed {@link Filter} in
      * the {@link FilterChainContext#filters} list.
      *
-     * @return index of the currently executing {@link Filter} in
+     * @return index of the last executed {@link Filter} in
      * the {@link FilterChainContext#filters} list.
      */
-    public int getCurrentFilterIdx() {
-        return currentFilterIdx;
+    public int getLastExecutedFilterIdx() {
+        return lastExecutedFilterIdx;
     }
 
     /**
-     * Set index of the currently executing {@link Filter} in
+     * Set index of the last executed {@link Filter} in
      * the {@link FilterChainContext#filters} list.
      *
-     * @param currentFilterIdx index of the currently executing {@link Filter}
+     * @param currentFilterIdx index of the last executed {@link Filter}
      * in the {@link FilterChainContext#filters} list.
      */
-    public void setCurrentFilterIdx(int currentFilterIdx) {
-        this.currentFilterIdx = currentFilterIdx;
+    protected void setLastExecutedFilterIdx(int lastExecutedFilterIdx) {
+        this.lastExecutedFilterIdx = lastExecutedFilterIdx;
     }
 
     /**
@@ -193,24 +129,6 @@ public class FilterChainContext extends Context {
     }
 
     /**
-     * Get {@link Filter}, which is currently running.
-     * 
-     * @return {@link Filter}, which is currently running.
-     */
-    public Filter getCurrentFilter() {
-        return currentFilter;
-    }
-
-    /**
-     * Set {@link Filter}, which is currently running.
-     *
-     * @param currentFilter {@link Filter}, which is currently running.
-     */
-    protected void setCurrentFilter(Filter currentFilter) {
-        this.currentFilter = currentFilter;
-    }
-
-    /**
      * Get message object, associated with the current processing.
      * 
      * Usually {@link FilterChain} represents sequence of parser and process
@@ -220,7 +138,7 @@ public class FilterChainContext extends Context {
      * @return message object, associated with the current processing.
      */
     public Object getMessage() {
-        return messageHolder.getMessage();
+        return message;
     }
 
     /**
@@ -233,7 +151,7 @@ public class FilterChainContext extends Context {
      * @param message message object, associated with the current processing.
      */
     public void setMessage(Object message) {
-        messageHolder.setMessage(message);
+        this.message = message;
     }
 
     /**
@@ -244,7 +162,7 @@ public class FilterChainContext extends Context {
      * @return address, associated with the current {@link IOEvent} processing.
      */
     public Object getAddress() {
-        return messageHolder.getAddress();
+        return address;
     }
 
     /**
@@ -255,57 +173,27 @@ public class FilterChainContext extends Context {
      * @param address address, associated with the current {@link IOEvent} processing.
      */
     public void setAddress(Object address) {
-        messageHolder.setAddress(address);
+        this.address = address;
     }
 
     /**
-     * Get the {@link StreamReader}, associated with processing.
-     * {@link Filter}s are allowed to change context associated
-     * {@link StreamReader}. For example {@link SSLFilter} wraps original
-     * <tt>FilterChainContext</tt>'s {@link StreamReader} with
-     * {@link SSLStreamReader} and next filter on chain will work with
-     * SSL-enabled {@link StreamReader}.
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain. Parameter remaining signals, that
+     * there is some data remaining in the source message, so {@link FilterChain}
+     * could be rerun.
      *
-     * @return the {@link StreamReader}, associated with processing.
-     */
-    public StreamReader getStreamReader() {
-        return streamReader;
-    }
-
-    /**
-     * Set the {@link StreamReader}, associated with processing.
-     * {@link Filter}s are allowed to change context associated
-     * {@link StreamReader}. For example {@link SSLFilter} wraps original
-     * <tt>FilterChainContext</tt>'s {@link StreamReader} with
-     * {@link SSLStreamReader} and next filter on chain will work with
-     * SSL-enabled {@link StreamReader}.
+     * Normally, after receiving this instruction from {@link Filter},
+     * {@link FilterChain} executes next filter.
      *
-     * @param streamReader the {@link StreamReader}, associated with processing.
-     */
-    public void setStreamReader(StreamReader streamReader) {
-        this.streamReader = streamReader;
-    }
-
-    /**
-     * Get the {@link StreamWriter}, associated with processing.
-     * {@link Filter}s are allowed to change context associated
-     * {@link StreamWriter}.
+     * @param remaining signals, that there is some data remaining in the source
+     * message, so {@link FilterChain} could be rerun.
      *
-     * @return the {@link StreamWriter}, associated with processing.
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
+     * process next {@link Filter} in chain.
      */
-    public StreamWriter getStreamWriter() {
-        return streamWriter;
-    }
-
-    /**
-     * Set the {@link StreamWriter}, associated with processing.
-     * {@link Filter}s are allowed to change context associated
-     * {@link StreamWriter}.
-     *
-     * @param streamWriter the {@link StreamWriter}, associated with processing.
-     */
-    public void setStreamWriter(StreamWriter streamWriter) {
-        this.streamWriter = streamWriter;
+    public NextAction getInvokeAction(com.sun.grizzly.Appendable remaining) {
+        cachedInvokeAction.setRemaining(remaining);
+        return cachedInvokeAction;
     }
 
     /**
@@ -313,71 +201,13 @@ public class FilterChainContext extends Context {
      * process next {@link Filter} in chain.
      *
      * Normally, after receiving this instruction from {@link Filter},
-     * {@link FilterChain} takes {@link Filter} with index:
-     * {@link InvokeAction#getNextFilterIdx()} from {@link InvokeAction#getFilters()}
-     * chain.
-     *
-     * Any {@link Filter} implementation is free to change the {@link Filter}
-     * execution sequence.
+     * {@link FilterChain} executes next filter.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
      * process next {@link Filter} in chain.
-     *
-     * @see #getInvokeAction(java.util.List)
-     * @see #getInvokeAction(java.util.List, int) 
      */
     public NextAction getInvokeAction() {
         return INVOKE_ACTION;
-    }
-
-    /**
-     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain.
-     *
-     * Normally, after receiving this instruction from {@link Filter},
-     * {@link FilterChain} takes {@link Filter} with index:
-     * {@link InvokeAction#getNextFilterIdx()} from {@link InvokeAction#getFilters()}
-     * chain.
-     *
-     * Any {@link Filter} implementation is free to change the {@link Filter}
-     * execution sequence.
-     *
-     * @param filters new list of the filters to be invoked in the chain processing
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain.
-     *
-     * @see #getInvokeAction()
-     * @see #getInvokeAction(java.util.List, int)
-     */
-    public NextAction getInvokeAction(List<Filter> filters) {
-        return new InvokeAction(new ArrayList<Filter>(filters));
-    }
-
-    /**
-     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain.
-     *
-     * Normally, after receiving this instruction from {@link Filter},
-     * {@link FilterChain} takes {@link Filter} with index:
-     * {@link InvokeAction#getNextFilterIdx()} from {@link InvokeAction#getFilters()}
-     * chain.
-     *
-     * Any {@link Filter} implementation is free to change the {@link Filter}
-     * execution sequence.
-     *
-     * @param filters new list of the filters to be invoked in the chain processing
-     * @param nextFilterIdx new index of the {@link Filter} in {@link NextAction#getFilters()}
-     * list, which should be executed next.
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain.
-     *
-     * @see #getInvokeAction()
-     * @see #getInvokeAction(java.util.List)
-     */
-    public NextAction getInvokeAction(List<Filter> filters, int nextFilterIdx) {
-        return new InvokeAction(new ArrayList<Filter>(filters), nextFilterIdx);
     }
 
     /**
@@ -404,6 +234,38 @@ public class FilterChainContext extends Context {
     }
 
     /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
+     * stop executing phase and start post executing filters.
+     * Passed {@link Buffer} data will be saved and reused during the next
+     * {@link FilterChain} invokation.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
+     * to stop executing phase and start post executing filters.
+     * Passed {@link Buffer} data will be saved and reused during the next
+     * {@link FilterChain} invokation.
+     */
+    public NextAction getStopAction(Buffer buffer) {
+        cachedStopAction.setBuffer(buffer);
+        return cachedStopAction;
+    }
+
+    /**
+     * Get {@link NextAction} implementation, which instructs {@link FilterChain}
+     * stop executing phase and start post executing filters.
+     * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
+     * during the next {@link FilterChain} invokation.
+     *
+     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
+     * to stop executing phase and start post executing filters.
+     * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
+     * during the next {@link FilterChain} invokation.
+     */
+    public NextAction getStopAction(com.sun.grizzly.Appendable appendable) {
+        cachedStopAction.setAppendable(appendable);
+        return cachedStopAction;
+    }
+    
+    /**
      * Get {@link NextAction}, which instructs {@link FilterChain} to suspend filter
      * chain execution, both execute and post-execute phases.
      *
@@ -414,35 +276,23 @@ public class FilterChainContext extends Context {
         return SUSPEND_ACTION;
     }
 
-    Filter getDefaultTransportFilter() {
-        return defaultTransportFilter;
+    public Transformer<?, Buffer> getEncoder() {
+        return getFilterChain().getCodec(lastExecutedFilterIdx + 1).getEncoder();
     }
 
-    void setDefaultTransportFilter(final Filter defaultTransportFilter) {
-        this.defaultTransportFilter = defaultTransportFilter;
+    public Transformer<Buffer, ?> getDecoder() {
+        return getFilterChain().getCodec(lastExecutedFilterIdx + 1).getDecoder();
     }
 
-    final InvokeAction getCachedInvokeAction() {
-        return cachedInvokeAction;
-    }
-
-    final void setCachedInvokeAction(InvokeAction cachedInvokeAction) {
-        this.cachedInvokeAction = cachedInvokeAction;
-    }
 
     /**
      * Release the context associated resources.
      */
     @Override
     public void release() {
-        currentFilter = null;
-        messageHolder.setAddress(null);
-        messageHolder.setMessage(null);
-        streamReader = null;
-        streamWriter = null;
-        filters = null;
-        executedFilters.clear();
-        defaultTransportFilter = null;
+        message = null;
+        address = null;
+        lastExecutedFilterIdx = NO_FILTER_INDEX;
         super.release();
     }
 
@@ -453,7 +303,6 @@ public class FilterChainContext extends Context {
         sb.append("connection=").append(getConnection());
         sb.append(", message=").append(getMessage());
         sb.append(", address=").append(getAddress());
-        sb.append(", executedFilters=").append(executedFilters);
         sb.append(']');
 
         return sb.toString();

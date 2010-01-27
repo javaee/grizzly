@@ -57,6 +57,7 @@ import com.sun.grizzly.nio.transport.TCPNIOStreamReader;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.EchoFilter;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Unit test for {@link TCPNIOTransport}
@@ -201,7 +202,7 @@ public class TCPNIOTransportTest extends TestCase {
 
             connection.configureBlocking(true);
             connection.setProcessor(null);
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             byte[] sendingBytes = "Hello".getBytes();
             writer.writeByteArray(sendingBytes);
             Future<Integer> writeFuture = writer.flush();
@@ -242,7 +243,7 @@ public class TCPNIOTransportTest extends TestCase {
             connection.setProcessor(null);
 
             byte[] originalMessage = "Hello".getBytes();
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             writer.writeByteArray(originalMessage);
             Future<Integer> writeFuture = writer.flush();
 
@@ -250,7 +251,7 @@ public class TCPNIOTransportTest extends TestCase {
             assertEquals(originalMessage.length, (int) writeFuture.get());
 
 
-            reader = connection.getStreamReader();
+            reader = transport.getStreamReader(connection);
             Future readFuture = reader.notifyAvailable(originalMessage.length);
             assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
 
@@ -286,8 +287,8 @@ public class TCPNIOTransportTest extends TestCase {
 
             connection.setProcessor(null);
             
-            reader = connection.getStreamReader();
-            writer = connection.getStreamWriter();
+            reader = transport.getStreamReader(connection);
+            writer = transport.getStreamWriter(connection);
 
             for (int i = 0; i < 100; i++) {
                 byte[] originalMessage = new String("Hello world #" + i).getBytes();
@@ -333,7 +334,7 @@ public class TCPNIOTransportTest extends TestCase {
             connection.setProcessor(null);
 
             byte[] originalMessage = "Hello".getBytes();
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             writer.writeByteArray(originalMessage);
             Future<Integer> writeFuture = writer.flush();
 
@@ -341,7 +342,7 @@ public class TCPNIOTransportTest extends TestCase {
             assertEquals(originalMessage.length, (int) writtenBytes);
 
 
-            reader = connection.getStreamReader();
+            reader = transport.getStreamReader(connection);
             Future readFuture = reader.notifyAvailable(originalMessage.length);
             assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
 
@@ -361,13 +362,21 @@ public class TCPNIOTransportTest extends TestCase {
     public void testSeveralPacketsAsyncReadWriteEcho() throws Exception {
         int packetsNumber = 20;
         final int packetSize = 17644;
-
+        final AtomicInteger serverBytesCounter = new AtomicInteger();
+        
         Connection connection = null;
         TCPNIOStreamReader reader = null;
         StreamWriter writer = null;
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.getFilterChain().add(new EchoFilter() {
+
+            @Override
+            public NextAction handleRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
+                serverBytesCounter.addAndGet(((Buffer) ctx.getMessage()).remaining());
+                return super.handleRead(ctx, nextAction);
+            }
+        });
 
         try {
             transport.bind(PORT);
@@ -378,8 +387,8 @@ public class TCPNIOTransportTest extends TestCase {
             assertTrue(connection != null);
 
             connection.setProcessor(null);
-            reader = (TCPNIOStreamReader) connection.getStreamReader();
-            writer = connection.getStreamWriter();
+            reader = (TCPNIOStreamReader) transport.getStreamReader(connection);
+            writer = transport.getStreamWriter(connection);
 
             final CountDownLatch sendLatch = new CountDownLatch(packetsNumber);
 
@@ -409,7 +418,12 @@ public class TCPNIOTransportTest extends TestCase {
 
                 byte[] message = new byte[packetSize];
                 Future future = reader.notifyAvailable(packetSize);
-                future.get(10, TimeUnit.SECONDS);
+                try {
+                    future.get(10, TimeUnit.SECONDS);
+                } catch (TimeoutException e) {
+                    assertTrue("Timeout. Server processed " +
+                            serverBytesCounter.get() + " bytes", false);
+                }
                 assertTrue(future.isDone());
                 reader.readByteArray(message);
                 assertTrue(Arrays.equals(pattern, message));
@@ -440,17 +454,13 @@ public class TCPNIOTransportTest extends TestCase {
             @Override
             public NextAction handleRead(FilterChainContext ctx,
                     NextAction nextAction) throws IOException {
-                StreamReader reader = ctx.getStreamReader();
-                resultFuture = reader.notifyAvailable(size);
-                try {
-                    resultFuture.get(10, TimeUnit.SECONDS);
-                } catch (Exception e) {
-                    return ctx.getStopAction();
-                } finally {
+                final Buffer buffer = (Buffer) ctx.getMessage();
+                if (buffer.remaining() >= size) {
                     latch.countDown();
+                    return nextAction;
                 }
 
-                return nextAction;
+                return ctx.getStopAction(buffer);
             }
 
         }
@@ -474,11 +484,11 @@ public class TCPNIOTransportTest extends TestCase {
             connection = (TCPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.setProcessor(null);
+            connection.configureStandalone(true);
 
             byte[] firstChunk = new byte[fullMessageSize / 5];
             Arrays.fill(firstChunk, (byte) 1);
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             writer.writeByteArray(firstChunk);
             Future writeFuture = writer.flush();
             assertTrue("First chunk write timeout", writeFuture.isDone());
@@ -487,12 +497,11 @@ public class TCPNIOTransportTest extends TestCase {
             
             byte[] secondChunk = new byte[fullMessageSize - firstChunk.length];
             Arrays.fill(secondChunk, (byte) 2);
-            writer = connection.getStreamWriter();
             writer.writeByteArray(secondChunk);
             writeFuture = writer.flush();
             assertTrue("Second chunk write timeout", writeFuture.isDone());
 
-            reader = connection.getStreamReader();
+            reader = transport.getStreamReader(connection);
             Future readFuture = reader.notifyAvailable(fullMessageSize);
             try {
                 assertTrue("Read timeout. CheckSizeFilter latch: " +

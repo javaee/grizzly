@@ -48,6 +48,11 @@ public class FloatEncoder extends PrimitiveEncoder<Float> {
     private static final int SIZE = Float.SIZE / 8;
 
     @Override
+    public String getName() {
+        return FloatEncoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

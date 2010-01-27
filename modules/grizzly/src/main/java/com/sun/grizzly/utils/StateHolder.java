@@ -38,15 +38,14 @@
 
 package com.sun.grizzly.utils;
 
-import com.sun.grizzly.utils.conditions.DefaultConditionListener;
-import com.sun.grizzly.utils.conditions.ConditionListener;
+import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.utils.conditions.Condition;
-import com.sun.grizzly.utils.conditions.EqualCondition;
-import com.sun.grizzly.utils.conditions.NotEqualCondition;
-import com.sun.grizzly.utils.conditions.OneTimeConditionListener;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -58,14 +57,14 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public class StateHolder<E> {
-    private static Logger _logger = Grizzly.logger;
+    private static Logger _logger = Grizzly.logger(StateHolder.class);
     
     private volatile E state;
     
     private final ReentrantReadWriteLock readWriteLock;
     private final boolean isLockEnabled;
     
-    private Collection<ConditionListener<E, ?>> conditionListeners;
+    private Collection<ConditionElement> conditionListeners;
     
     /**
      * Constructs <code>StateHolder</code>.
@@ -80,9 +79,7 @@ public class StateHolder<E> {
      * @param isLockEnabled locking mode
      */
     public StateHolder(boolean isLockEnabled) {
-        readWriteLock = new ReentrantReadWriteLock();
-        conditionListeners = new LinkedTransferQueue<ConditionListener<E, ?>>();
-        this.isLockEnabled = isLockEnabled;
+        this(isLockEnabled, null);
     }
 
     /**
@@ -92,7 +89,7 @@ public class StateHolder<E> {
     public StateHolder(boolean isLockEnabled, E initialState) {
         state = initialState;
         readWriteLock = new ReentrantReadWriteLock();
-        conditionListeners = new LinkedTransferQueue<ConditionListener<E, ?>>();
+        conditionListeners = new LinkedTransferQueue<ConditionElement>();
         this.isLockEnabled = isLockEnabled;
     }
 
@@ -150,7 +147,7 @@ public class StateHolder<E> {
             readWriteLock.writeLock().unlock();
         }
         
-        notifyConditionListeners(state);
+        notifyConditionListeners();
 
         if (locked) {
             readWriteLock.readLock().unlock();
@@ -185,27 +182,16 @@ public class StateHolder<E> {
      *          and listener was registered, null if current state is equal to required.
      *          In both cases listener will be notified
      */
-    public ConditionListener<E, Object> notifyWhenStateIsEqual(E state, Object notificationObject) {
-        boolean isLockEnabledLocal = isLockEnabled;
-        if (isLockEnabledLocal) {
-            getStateLocker().writeLock().lock();
-        }
-        
-        ConditionListener<E, Object> conditionListener = null;
+    public Future<E> notifyWhenStateIsEqual(final E state,
+            final CompletionHandler<E> completionHandler) {
+        return notifyWhenConditionMatchState(new Condition() {
 
-        if (this.state.equals(state)) {
-            DefaultConditionListener.notifyListenerObject(notificationObject);
-        } else {
-            conditionListener = new OneTimeConditionListener<E>();
-            conditionListener.set(new EqualCondition<E>(state), notificationObject);
-            conditionListeners.add(conditionListener);
-        }
-        
-        if (isLockEnabledLocal) {
-            getStateLocker().writeLock().unlock();
-        }
-        
-        return conditionListener;
+                @Override
+                public boolean check() {
+                    return state == StateHolder.this.state;
+                }
+
+            }, completionHandler);
     }
     
     /**
@@ -220,27 +206,16 @@ public class StateHolder<E> {
      *          and listener was registered, null if current state is not equal to required.
      *          In both cases listener will be notified
      */
-    public ConditionListener<E, Object> notifyWhenStateIsNotEqual(E state, Object notificationObject) {
-        boolean isLockEnabledLocal = isLockEnabled;
-        if (isLockEnabledLocal) {
-            getStateLocker().writeLock().lock();
-        }
-        
-        ConditionListener<E, Object> conditionListener = null;
+    public Future<E> notifyWhenStateIsNotEqual(final E state,
+            final CompletionHandler<E> completionHandler) {
+        return notifyWhenConditionMatchState(new Condition() {
 
-        if (!this.state.equals(state)) {
-            DefaultConditionListener.notifyListenerObject(notificationObject);
-        } else {
-            conditionListener = new OneTimeConditionListener<E>();
-            conditionListener.set(new NotEqualCondition<E>(state), notificationObject);
-            conditionListeners.add(conditionListener);
-        }
-        
-        if (isLockEnabledLocal) {
-            getStateLocker().writeLock().unlock();
-        }
-        
-        return conditionListener;
+                @Override
+                public boolean check() {
+                    return state != StateHolder.this.state;
+                }
+
+            }, completionHandler);
     }
     
     /**
@@ -255,72 +230,79 @@ public class StateHolder<E> {
      *          and listener was registered, null if current state matches the condition.
      *          In both cases listener will be notified
      */
-    public ConditionListener notifyWhenConditionMatchState(Condition<E> condition, Object notificationObject) {
+    public Future<E> notifyWhenConditionMatchState(Condition condition,
+            CompletionHandler<E> completionHandler) {
         boolean isLockEnabledLocal = isLockEnabled;
-        if (isLockEnabledLocal) {
-            getStateLocker().writeLock().lock();
-        }
-        
-        ConditionListener<E, Object> conditionListener = null;
+        Future<E> resultFuture;
 
-        if (condition.check(state)) {
-            DefaultConditionListener.notifyListenerObject(notificationObject);
-        } else {
-            conditionListener = new OneTimeConditionListener<E>();
-            conditionListener.set(condition, notificationObject);
-            conditionListeners.add(conditionListener);
-        }
-        
-        if (isLockEnabledLocal) {
-            getStateLocker().writeLock().unlock();
-        }
-        
-        return conditionListener;
-    }
-    
-    /**
-     * Add new <code>ConditionListener</code> to listen this <code>StateHolder</code>'s
-     * state changes.
-     * 
-     * @param conditionListener
-     */
-    public void addConditionListener(ConditionListener<E, ?> conditionListener) {
-        boolean isLockEnabledLocal = isLockEnabled;
         if (isLockEnabledLocal) {
             getStateLocker().writeLock().lock();
         }
-        
-        if (conditionListener.checkConditionAndNotify(state)) {
-            if (conditionListener.isKeepAlive()) {
-                conditionListeners.add(conditionListener);
+
+        if (condition.check()) {
+            if (completionHandler != null) {
+                completionHandler.completed(null, state);
             }
+
+            resultFuture = new ReadyFutureImpl<E>(state);
         } else {
-            conditionListeners.add(conditionListener);
+            final FutureImpl<E> future = new FutureImpl<E>();
+            final ConditionElement elem = new ConditionElement(
+                    condition, future, completionHandler);
+
+            conditionListeners.add(elem);
+            resultFuture = future;
         }
-        
+
         if (isLockEnabledLocal) {
             getStateLocker().writeLock().unlock();
         }
+
+        return resultFuture;
     }
     
-    public void removeConditionListener(ConditionListener<E, ?> conditionListener) {
-        if (conditionListener == null) return;
-        
-        conditionListeners.remove(conditionListener);
-    }
-    
-    protected void notifyConditionListeners(E state) {
-        Iterator<ConditionListener<E, ?>> it = conditionListeners.iterator();
+    protected void notifyConditionListeners() {
+        Iterator<ConditionElement> it = conditionListeners.iterator();
         while(it.hasNext()) {
-            ConditionListener<E, ?> listener = it.next();
+            ConditionElement element = it.next();
             try {
-                if (listener.checkConditionAndNotify(state) &&
-                        !listener.isKeepAlive()) {
+                if (element.condition.check()) {
                     it.remove();
+                    if (element.completionHandler != null) {
+                        element.completionHandler.completed(null, state);
+                    }
+
+                    element.future.result(state);
                 }
             } catch(Exception e) {
                 _logger.log(Level.WARNING, "Error calling ConditionListener", e);
             }
+        }
+    }
+
+    protected final class ConditionElement {
+        private final Condition condition;
+        private final FutureImpl future;
+        private final CompletionHandler completionHandler;
+        
+        public ConditionElement(Condition condition, FutureImpl future,
+                CompletionHandler completionHandler) {
+            this.condition = condition;
+            this.future = future;
+            this.completionHandler = completionHandler;
+        }
+
+
+        public CompletionHandler getCompletionHandler() {
+            return completionHandler;
+        }
+
+        public Condition getCondition() {
+            return condition;
+        }
+
+        public FutureImpl getFuture() {
+            return future;
         }
     }
 }

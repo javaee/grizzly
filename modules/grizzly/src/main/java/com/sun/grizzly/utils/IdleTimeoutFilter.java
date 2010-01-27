@@ -50,12 +50,15 @@ import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
+import java.util.logging.Logger;
 
 /**
  *
  * @author oleksiys
  */
 public class IdleTimeoutFilter extends FilterAdapter {
+    private static Logger logger = Grizzly.logger(IdleTimeoutFilter.class);
+    
     public static final long UNLIMITED_TIMEOUT = -1;
     public static final long UNSET_TIMEOUT = 0;
     
@@ -266,7 +269,7 @@ public class IdleTimeoutFilter extends FilterAdapter {
                         try {
                             connection.close();
                         } catch (IOException e) {
-                            Grizzly.logger.log(Level.FINE, "IdleTimeoutFilter:" +
+                            logger.log(Level.FINE, "IdleTimeoutFilter:" +
                                     "unexpected exception, when trying " +
                                     "to close connection", e);
                         } finally {
@@ -280,7 +283,7 @@ public class IdleTimeoutFilter extends FilterAdapter {
                     }
                 }
             } catch (Exception e) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "IdleTimeoutFilter: unexpected exception", e);
             } finally {
                 if (this == checker) {

@@ -39,6 +39,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.attributes.AttributeHolder;
+import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.utils.ObjectPool;
 import com.sun.grizzly.utils.PoolableObject;
@@ -48,7 +49,7 @@ import com.sun.grizzly.utils.PoolableObject;
  *
  * @author Alexey Stashok
  */
-public class Context implements PoolableObject {
+public class Context implements PoolableObject, AttributeStorage {
     public enum State {
         RUNNING, SUSPEND;
     };
@@ -76,7 +77,7 @@ public class Context implements PoolableObject {
     /**
      * Attributes, associated with the processing Context
      */
-    private AttributeHolder attributes;
+    private final AttributeHolder attributes;
     
     /**
      * Processing task, executed on processorExecutor
@@ -96,6 +97,8 @@ public class Context implements PoolableObject {
 
     public Context(ObjectPool parentPool) {
         this.parentPool = parentPool;
+        attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+        prepare();
     }
     
     /**
@@ -228,43 +231,10 @@ public class Context implements PoolableObject {
      * @return attributes ({@link AttributeHolder}), associated with the processing
      * {@link Context}. 
      */
+    @Override
     public AttributeHolder getAttributes() {
         return attributes;
     }
-
-    /**
-     * Get attributes ({@link AttributeHolder}), associated with the processing
-     * {@link Context}. {@link AttributeHolder} is cleared after each I/O event
-     * processing.
-     * Method will always returns <tt>non-null</tt> {@link AttributeHolder}.
-     *
-     * @return attributes ({@link AttributeHolder}), associated with the processing
-     * {@link Context}.
-     */
-    public AttributeHolder obtainAttributes() {
-        if (attributes == null) {
-            if (connection == null) {
-                throw new IllegalStateException(
-                        "Can not obtain an attributes. " +
-                        "Connection is not set for this context object!");
-            }
-
-            attributes = initializeAttributeHolder();
-        }
-
-
-        return attributes;
-    }
-
-    protected AttributeHolder initializeAttributeHolder() {
-        return new IndexedAttributeHolder(
-                connection.getTransport().getAttributeBuilder());
-    }
-
-    protected void setAttributes(AttributeHolder attributes) {
-        this.attributes = attributes;
-    }
-
     /**
      * If implementation uses {@link ObjectPool} to store and reuse
      * {@link Context} instances - this method will be called before
@@ -272,10 +242,6 @@ public class Context implements PoolableObject {
      */
     @Override
     public void prepare() {
-        if (attributes == null) {
-            attributes = 
-                    new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
-        }
     }
 
     /**
@@ -285,9 +251,7 @@ public class Context implements PoolableObject {
      */
     @Override
     public void release() {
-        if (attributes != null) {
-            attributes.clear();
-        }
+        attributes.clear();
         
         state = State.RUNNING;
         processor = null;

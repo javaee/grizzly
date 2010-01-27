@@ -183,7 +183,7 @@ public interface ExtendedThreadPool {
     public String getName();
 
     public void setName(String name);
-
+    
     public AttributeBuilder getAttributeBuilder();
 
     public void setAttributeBuilder(AttributeBuilder attributeBuilder);

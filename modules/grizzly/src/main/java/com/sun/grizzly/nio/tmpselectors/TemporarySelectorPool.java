@@ -53,6 +53,8 @@ import java.util.logging.Logger;
  * @author oleksiys
  */
 public class TemporarySelectorPool {
+    private static Logger logger = Grizzly.logger(TemporarySelectorPool.class);
+    
     public static final int DEFAULT_SELECTORS_COUNT = 20;
     
     /**
@@ -216,7 +218,6 @@ public class TemporarySelectorPool {
         try {
             selector.close();
         } catch (IOException e) {
-            Logger logger = Grizzly.logger;
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "TemporarySelectorFactory: error " +
                         "occurred when trying to close the Selector", e);

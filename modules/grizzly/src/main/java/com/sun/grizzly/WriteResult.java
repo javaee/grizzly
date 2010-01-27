@@ -38,8 +38,6 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.utils.MessageHolder;
-
 /**
  * Result of write operation, retuned by {@link Writable}.
  *
@@ -52,9 +50,15 @@ public class WriteResult<K, L> implements Result {
     private final Connection connection;
 
     /**
-     * Holder of message data and source address.
+     * message data
      */
-    private final MessageHolder<K, L> messageHolder;
+    private K message;
+
+    /**
+     *  Destination address.
+     */
+
+    private L dstAddress;
 
     /**
      * Number of bytes written.
@@ -68,7 +72,8 @@ public class WriteResult<K, L> implements Result {
     public WriteResult(Connection connection, K message, L dstAddress,
             int writeSize) {
         this.connection = connection;
-        messageHolder = new MessageHolder<K, L>(message, dstAddress);
+        this.message = message;
+        this.dstAddress = dstAddress;
         this.writtenSize = writeSize;
     }
 
@@ -78,7 +83,7 @@ public class WriteResult<K, L> implements Result {
      * @return the {@link Connection} data were read from.
      */
     @Override
-    public Connection getConnection() {
+    public final Connection getConnection() {
         return connection;
     }
 
@@ -87,8 +92,8 @@ public class WriteResult<K, L> implements Result {
      *
      * @return the message, which was read.
      */
-    public K getMessage() {
-        return messageHolder.getMessage();
+    public final K getMessage() {
+        return message;
     }
 
     /**
@@ -96,8 +101,8 @@ public class WriteResult<K, L> implements Result {
      *
      * @param message the message, which was read.
      */
-    public void setMessage(K message) {
-        messageHolder.setMessage(message);
+    public final void setMessage(K message) {
+        this.message = message;
     }
 
     /**
@@ -105,8 +110,8 @@ public class WriteResult<K, L> implements Result {
      *
      * @return the destination address, the message was written to.
      */
-    public L getDstAddress() {
-        return messageHolder.getAddress();
+    public final L getDstAddress() {
+        return dstAddress;
     }
 
     /**
@@ -114,8 +119,8 @@ public class WriteResult<K, L> implements Result {
      *
      * @param dstAddress the destination address, the message was written to.
      */
-    public void setDstAddress(L dstAddress) {
-        messageHolder.setAddress(dstAddress);
+    public final void setDstAddress(L dstAddress) {
+        this.dstAddress = dstAddress;
     }
 
     /**
@@ -123,7 +128,7 @@ public class WriteResult<K, L> implements Result {
      *
      * @return the number of bytes, which were written.
      */
-    public int getWrittenSize() {
+    public final int getWrittenSize() {
         return writtenSize;
     }
 
@@ -132,7 +137,7 @@ public class WriteResult<K, L> implements Result {
      *
      * @param writeSize the number of bytes, which were written.
      */
-    public void setWrittenSize(int writeSize) {
+    public final void setWrittenSize(int writeSize) {
         this.writtenSize = writeSize;
     }
 }

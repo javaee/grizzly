@@ -33,24 +33,20 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  */
-
 package com.sun.grizzly;
 
-import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.filterchain.FilterAdapter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.memory.MemoryUtils;
+import com.sun.grizzly.nio.transport.TCPNIOServerConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.utils.CompositeBuffer;
 import com.sun.grizzly.utils.Pair;
-import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import junit.framework.TestCase;
 
 /**
@@ -59,7 +55,9 @@ import junit.framework.TestCase;
  * @author Alexey Stashok
  */
 public class CompositeBufferInStreamTest extends TestCase {
+
     public static final int PORT = 7783;
+    private static Logger logger = Grizzly.logger(CompositeBufferInStreamTest.class);
 
     public void testCompositeBuffer() throws Exception {
         Connection connection = null;
@@ -80,22 +78,26 @@ public class CompositeBufferInStreamTest extends TestCase {
         };
 
         try {
-            transport.bind(PORT);
-            transport.getFilterChain().add(new TransportFilter());
-            transport.getFilterChain().add(new StepsFilter(portions));
-            
+            // Start listen on specific port
+            final TCPNIOServerConnection serverConnection = transport.bind(PORT);
+
+            transport.configureStandalone(true);
+
             transport.start();
+
+            // Start echo server thread
+            startEchoServerThread(transport, serverConnection, portions);
 
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            final StreamWriter writer = connection.getStreamWriter();
+            final StreamWriter writer = transport.getStreamWriter(connection);
 
-            for(Pair<Buffer, FutureImpl> portion : portions) {
-                final Buffer buffer = portion.getFirst();
+            for (Pair<Buffer, FutureImpl> portion : portions) {
+                final Buffer buffer = portion.getFirst().duplicate();
                 final Future locker = portion.getSecond();
-                
+
                 writer.writeBuffer(buffer);
                 final Future writeFuture = writer.flush();
                 writeFuture.get(5000, TimeUnit.MILLISECONDS);
@@ -104,7 +106,7 @@ public class CompositeBufferInStreamTest extends TestCase {
             }
 
             assertTrue(true);
-            
+
         } finally {
             if (connection != null) {
                 connection.close();
@@ -115,51 +117,74 @@ public class CompositeBufferInStreamTest extends TestCase {
         }
     }
 
-    public class StepsFilter extends FilterAdapter {
-        private final Attribute<Integer> indexAttribute =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("index", 0);
-        
-        private final Pair<Buffer, FutureImpl>[] portions;
+    private void startEchoServerThread(final TCPNIOTransport transport,
+            final TCPNIOServerConnection serverConnection,
+            final Pair<Buffer, FutureImpl>[] portions) {
+        new Thread(new Runnable() {
 
-        public StepsFilter(Pair<Buffer, FutureImpl>... portions) {
-            this.portions = portions;
-        }
+            @Override
+            public void run() {
+                while (!transport.isStopped()) {
+                    try {
+                        Future<Connection> acceptFuture = serverConnection.accept();
+                        Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
+                        assertTrue(acceptFuture.isDone());
 
-        @Override
-        public NextAction handleRead(FilterChainContext ctx,
-                NextAction nextAction) throws IOException {
+                        int availableExp = 0;
+                        
+                        StreamReader reader = transport.getStreamReader(connection);
+                        int i = 0;
+                        try {
+                            for (; i < portions.length; i++) {
+                                final Pair<Buffer, FutureImpl> portion = portions[i];
+                                final FutureImpl currentLocker = portion.getSecond();
 
-            final Connection connection = ctx.getConnection();
-            final StreamReader reader = ctx.getStreamReader();
-            final Buffer compositeBuffer = reader.asReadOnlyBufferWindow();
+                                availableExp += portion.getFirst().remaining();
+                                Future readFuture = reader.notifyAvailable(availableExp);
+                                readFuture.get(30, TimeUnit.SECONDS);
 
-            int index = indexAttribute.get(connection);
-            final FutureImpl currentLocker = portions[index].getSecond();
+                                if (readFuture.isDone()) {
+                                    final Buffer compositeBuffer = reader.getBufferWindow();
+                                    int counter = 0;
+                                    for (int j = 0; j <= i; j++) {
+                                        final Buffer currentBuffer = portions[j].getFirst();
+                                        for (int k = 0; k < currentBuffer.limit(); k++) {
+                                            final byte found = compositeBuffer.get(counter++);
+                                            final byte expected = currentBuffer.get(k);
+                                            if (found != expected) {
+                                                currentLocker.failure(new IllegalStateException(
+                                                        "CompositeBuffer content is broken. Offset: "
+                                                        + compositeBuffer.position() + " found: " + found
+                                                        + " expected: " + expected));
+                                                return;
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    currentLocker.failure(new IllegalStateException("Error reading content portion: " + i));
+                                    return;
+                                }
 
-            for(int i=0; i<index; i++) {
-                final Buffer currentBuffer = portions[i].getFirst();
-                for(int j=0; j<currentBuffer.limit(); j++) {
-                    if (!compositeBuffer.hasRemaining()) {
-                        return ctx.getStopAction();
-                    }
+                                currentLocker.result(i);
+                            }
+                            // Read until whole buffer will be filled out
+                        } catch (Throwable e) {
+                            portions[i].getSecond().failure(e);
+                            logger.log(Level.WARNING,
+                                    "Error working with accepted connection on step: " + i, e);
+                        } finally {
+                            connection.close();
+                        }
 
-                    final byte found = compositeBuffer.get();
-                    final byte expected = currentBuffer.get(j);
-                    if (found != expected) {
-                        currentLocker.failure(new IllegalStateException(
-                                "CompositeBuffer content is broken. Offset: " +
-                                compositeBuffer.position() + " found: " + found +
-                                " expected: " + expected));
-                        return ctx.getStopAction();
+                    } catch (Exception e) {
+                        if (!transport.isStopped()) {
+                            logger.log(Level.WARNING,
+                                    "Error accepting connection", e);
+                            assertTrue("Error accepting connection", false);
+                        }
                     }
                 }
             }
-
-            currentLocker.setResult(index);
-            indexAttribute.set(connection, index + 1);
-            
-            return nextAction;
-        }
-
+        }).start();
     }
 }

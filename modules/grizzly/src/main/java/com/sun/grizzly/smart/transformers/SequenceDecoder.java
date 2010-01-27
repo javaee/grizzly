@@ -148,8 +148,8 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
     }
 
     @Override
-    public TransformationResult<E> transform(AttributeStorage storage,
-            Buffer input, E output) throws TransformationException {
+    public TransformationResult<Buffer, E> transform(AttributeStorage storage,
+            Buffer input) throws TransformationException {
         if (input == null) {
             throw new TransformationException("Input should not be null");
         }
@@ -161,24 +161,24 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
         }
 
         while(next(storage, sequence)) {
-            TransformationResult<E> result = componentDecoder.transform(storage,
-                    input, null);
+            TransformationResult<Buffer, E> result = componentDecoder.transform(
+                    storage, input);
             Status status = result.getStatus();
             if (status == Status.COMPLETED) {
                 componentDecoder.release(storage);
                 set(storage, sequence, result.getMessage());
-            } else if (status == Status.INCOMPLED) {
-                saveState(storage, sequence, incompletedResult);
-                return incompletedResult;
+            } else if (status == Status.INCOMPLETED) {
+                return saveState(storage, sequence,
+                        TransformationResult.<Buffer,E>createIncompletedResult(
+                        input, false));
             } else {
                 return result;
             }
         }
 
-        TransformationResult<E> result = new TransformationResult<E>(
-                Status.COMPLETED, sequence);
-        saveState(storage, sequence, result);
-        return result;
+        return saveState(storage, sequence,
+                TransformationResult.<Buffer, E>createCompletedResult(
+                sequence, input, false));
     }
 
     @Override
@@ -187,6 +187,10 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
         super.release(storage);
     }
 
+    @Override
+    public boolean hasInputRemaining(Buffer input) {
+        return input != null && input.hasRemaining();
+    }
 
     public Class getComponentType() {
         return componentType;
@@ -217,10 +221,11 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
      * Save the transformer state.
      * @param storage attribute storage
      */
-    protected void saveState(AttributeStorage storage,
-            E sequence, TransformationResult<E> lastResult) {
+    protected TransformationResult<Buffer, E> saveState(
+            AttributeStorage storage,
+            E sequence, TransformationResult<Buffer, E> lastResult) {
         sequenceAttribute.set(storage, sequence);
-        lastResultAttribute.set(storage, lastResult);
+        return saveLastResult(storage, lastResult);
     }
 
     /**

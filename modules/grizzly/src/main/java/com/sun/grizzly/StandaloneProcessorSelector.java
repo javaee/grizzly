@@ -52,6 +52,8 @@ package com.sun.grizzly;
  * @author Alexey Stashok
  */
 public class StandaloneProcessorSelector implements ProcessorSelector {
+    public static final StandaloneProcessorSelector INSTANCE =
+            new StandaloneProcessorSelector();
 
     /**
      * Always return null, which means no {@link Processor} was found to process

@@ -48,7 +48,7 @@ import com.sun.grizzly.nio.tmpselectors.TemporarySelectorWriter;
  *
  * @author oleksiys
  */
-public class TCPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
+public final class TCPNIOTemporarySelectorWriter extends TemporarySelectorWriter {
     public TCPNIOTemporarySelectorWriter(TCPNIOTransport transport) {
         super(transport);
     }

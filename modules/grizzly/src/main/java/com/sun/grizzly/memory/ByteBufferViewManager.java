@@ -87,44 +87,18 @@ public class ByteBufferViewManager extends ByteBufferManager {
     /**
      * Allocates {@link Buffer} of required size, which is actually sliced from
      * large preallocated {@link ByteBuffer} pool.
-     * 
-     * @param size size of the {@link Buffer} to be allocated.
-     * 
-     * @return {@link Buffer} of required size, which is actualled sliced from
+     *
+     * @param size size of the {@link ByteBuffer} to be allocated.
+     *
+     * @return {@link ByteBuffer} of required size, which is actualled sliced from
      * large preallocated {@link ByteBuffer} pool.
      */
     @Override
-    public synchronized ByteBufferWrapper allocate(int size) {
+    public synchronized ByteBuffer allocateByteBuffer(int size) {
         if (largeByteBuffer == null || largeByteBuffer.remaining() < size) {
-            largeByteBuffer = allocate0(capacity);
+            largeByteBuffer = super.allocateByteBuffer(capacity);
         }
 
-        return wrap(slice(largeByteBuffer, size));
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public synchronized ByteBufferWrapper reallocate(
-            ByteBufferWrapper oldBuffer, int newSize) {
-        return super.reallocate(oldBuffer, newSize);
-    }
-
-    /**
-     * Slice {@link ByteBuffer} of required size from big chunk.
-     *
-     * @param chunk big {@link ByteBuffer} pool.
-     * @param size required slice size.
-     *
-     * @return sliced {@link ByteBuffer} of required size.
-     */
-    protected static ByteBuffer slice(ByteBuffer chunk, int size) {
-        chunk.limit(chunk.position() + size);
-        ByteBuffer view = chunk.slice();
-        chunk.position(chunk.limit());
-        chunk.limit(chunk.capacity());
-        
-        return view;
+        return BufferUtils.slice(largeByteBuffer, size);
     }
 }

@@ -47,7 +47,7 @@ import com.sun.grizzly.nio.tmpselectors.TemporarySelectorReader;
  *
  * @author oleksiys
  */
-public class UDPNIOTemporarySelectorReader extends TemporarySelectorReader {
+public final class UDPNIOTemporarySelectorReader extends TemporarySelectorReader {
     public UDPNIOTemporarySelectorReader(UDPNIOTransport transport) {
         super(transport);
     }
@@ -55,7 +55,7 @@ public class UDPNIOTemporarySelectorReader extends TemporarySelectorReader {
     @Override
     protected int readNow0(Connection connection, Buffer buffer,
             ReadResult currentResult) throws IOException {
-        return ((UDPNIOTransport) transport).read(connection, buffer,
-                currentResult);
+        return ((UDPNIOTransport) transport).read((UDPNIOConnection) connection,
+                buffer, currentResult);
     }
 }

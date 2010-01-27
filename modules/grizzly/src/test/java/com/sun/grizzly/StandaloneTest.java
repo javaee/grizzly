@@ -55,7 +55,7 @@ import com.sun.grizzly.streams.StreamWriter;
  * @author Alexey Stashok
  */
 public class StandaloneTest extends TestCase {
-    private static Logger logger = Grizzly.logger;
+    private static Logger logger = Grizzly.logger(StandaloneTest.class);
     
     public static int PORT = 7780;
     
@@ -70,7 +70,7 @@ public class StandaloneTest extends TestCase {
 
         try {
             // Enable standalone mode
-            transport.setProcessorSelector(new StandaloneProcessorSelector());
+            transport.configureStandalone(true);
 
             // Start listen on specific port
             final TCPNIOServerConnection serverConnection = transport.bind(PORT);
@@ -91,11 +91,11 @@ public class StandaloneTest extends TestCase {
                 buffer[i] = (byte) (i % 128);
             }
             // write buffer
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             writer.writeByteArray(buffer);
             writer.flush();
 
-            reader = connection.getStreamReader();
+            reader = transport.getStreamReader(connection);
             
             // prepare receiving buffer
             byte[] receiveBuffer = new byte[messageSize];
@@ -126,6 +126,7 @@ public class StandaloneTest extends TestCase {
             final TCPNIOServerConnection serverConnection,
             final int messageSize) {
         new Thread(new Runnable() {
+            @Override
             public void run() {
                 while(!transport.isStopped()) {
                     try {
@@ -133,8 +134,8 @@ public class StandaloneTest extends TestCase {
                         Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
                         assertTrue(acceptFuture.isDone());
 
-                        StreamReader reader = connection.getStreamReader();
-                        StreamWriter writer = connection.getStreamWriter();
+                        StreamReader reader = transport.getStreamReader(connection);
+                        StreamWriter writer = transport.getStreamWriter(connection);
                         try {
 
                             Future readFuture = reader.notifyAvailable(messageSize);

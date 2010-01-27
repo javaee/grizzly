@@ -60,7 +60,7 @@ import com.sun.grizzly.nio.RegisterChannelResult;
  * 
  * @author Alexey Stashok
  */
-public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
+public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     
     protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
     

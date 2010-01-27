@@ -48,6 +48,11 @@ public class IntegerEncoder extends PrimitiveEncoder<Integer> {
     private static final int SIZE = Integer.SIZE / 8;
 
     @Override
+    public String getName() {
+        return IntegerEncoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

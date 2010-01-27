@@ -38,8 +38,6 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.utils.MessageHolder;
-
 /**
  * Result of read operation, retuned by {@link Readable}.
  * 
@@ -52,10 +50,16 @@ public class ReadResult<K, L> implements Result {
     private final Connection connection;
 
     /**
-     * Holder of message data and source address.
+     * message data
      */
-    private final MessageHolder<K, L> messageHolder;
-    
+    private K message;
+
+    /**
+     *  Source address.
+     */
+
+    private L srcAddress;
+
     /**
      * Number of bytes read.
      */
@@ -68,7 +72,8 @@ public class ReadResult<K, L> implements Result {
     public ReadResult(Connection connection, K message, L srcAddress,
             int readSize) {
         this.connection = connection;
-        messageHolder = new MessageHolder<K, L>(message, srcAddress);
+        this.message = message;
+        this.srcAddress = srcAddress;
         this.readSize = readSize;
     }
 
@@ -78,7 +83,7 @@ public class ReadResult<K, L> implements Result {
      * @return the {@link Connection} data were read from.
      */
     @Override
-    public Connection getConnection() {
+    public final Connection getConnection() {
         return connection;
     }
 
@@ -87,8 +92,8 @@ public class ReadResult<K, L> implements Result {
      * 
      * @return the message, which was read.
      */
-    public K getMessage() {
-        return messageHolder.getMessage();
+    public final K getMessage() {
+        return message;
     }
 
     /**
@@ -96,8 +101,8 @@ public class ReadResult<K, L> implements Result {
      *
      * @param message the message, which was read.
      */
-    public void setMessage(K message) {
-        messageHolder.setMessage(message);
+    public final void setMessage(K message) {
+        this.message = message;
     }
 
     /**
@@ -105,8 +110,8 @@ public class ReadResult<K, L> implements Result {
      *
      * @return the source address, the message was read from.
      */
-    public L getSrcAddress() {
-        return messageHolder.getAddress();
+    public final L getSrcAddress() {
+        return srcAddress;
     }
 
     /**
@@ -114,8 +119,8 @@ public class ReadResult<K, L> implements Result {
      *
      * @param srcAddress the source address, the message was read from.
      */
-    public void setSrcAddress(L srcAddress) {
-        messageHolder.setAddress(srcAddress);
+    public final void setSrcAddress(L srcAddress) {
+        this.srcAddress = srcAddress;
     }
 
     /**
@@ -123,7 +128,7 @@ public class ReadResult<K, L> implements Result {
      *
      * @return the number of bytes, which were read.
      */
-    public int getReadSize() {
+    public final int getReadSize() {
         return readSize;
     }
 
@@ -132,7 +137,7 @@ public class ReadResult<K, L> implements Result {
      *
      * @param readSize the number of bytes, which were read.
      */
-    public void setReadSize(int readSize) {
+    public final void setReadSize(int readSize) {
         this.readSize = readSize;
     }
 }

@@ -51,7 +51,22 @@ import com.sun.grizzly.Context;
 public class FilterAdapter implements Filter {
 
     private int index;
-    
+
+    @Override
+    public void onAdded(FilterChain filterChain) {
+        index = filterChain.indexOf(this);
+    }
+
+    @Override
+    public void onFilterChainChanged(FilterChain filterChain) {
+        index = filterChain.indexOf(this);
+    }
+
+    @Override
+    public void onRemoved(FilterChain filterChain) {
+        index = filterChain.indexOf(this);
+    }
+
     /**
      * Execute a unit of processing work to be performed, when channel will 
      * become available for reading. 
@@ -261,7 +276,7 @@ public class FilterAdapter implements Filter {
     @Override
     public void exceptionOccurred(FilterChainContext ctx, Throwable error) {
     }
-
+    
     /**
      * Returns the {@link FilterChain}, which is executing this {@link Filter}
      * on the current thread. Because {@link Filter} could be shared among
@@ -289,12 +304,5 @@ public class FilterAdapter implements Filter {
      */
     public int getIndex() {
         return index;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public void setIndex(int index) {
-        this.index = index;
     }
 }

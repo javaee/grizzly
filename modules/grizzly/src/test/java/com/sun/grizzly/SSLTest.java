@@ -37,195 +37,161 @@
  */
 package com.sun.grizzly;
 
+import com.sun.grizzly.attributes.Attribute;
+import com.sun.grizzly.filterchain.CodecFilterAdapter;
+import com.sun.grizzly.filterchain.Filter;
+import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
-import com.sun.grizzly.TransformationResult.Status;
-import com.sun.grizzly.filterchain.FilterAdapter;
-import com.sun.grizzly.filterchain.FilterChain;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.FilterChainEnabledTransport;
-import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.ssl.BlockingSSLHandshaker;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
-import com.sun.grizzly.ssl.SSLHandshaker;
 import com.sun.grizzly.ssl.SSLStreamReader;
 import com.sun.grizzly.ssl.SSLStreamWriter;
-import com.sun.grizzly.streams.StreamReader;
+import com.sun.grizzly.util.ChunkingFilter;
 import com.sun.grizzly.utils.EchoFilter;
+import com.sun.grizzly.utils.StringDecoder;
+import com.sun.grizzly.utils.StringEncoder;
+import java.util.Arrays;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Logger;
+import javax.net.ssl.SSLEngine;
 
 /**
- *
- * @author oleksiys
+ * Set of SSL tests
+ * 
+ * @author Alexey Stashok
  */
 public class SSLTest extends TestCase {
-
+    private final static Logger logger = Grizzly.logger(SSLTest.class);
+    
     public static final int PORT = 7779;
 
     public void testSimpleSyncSSL() throws Exception {
-        Connection connection = null;
-        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
-        SSLEngineConfigurator clientSSLEngineConfigurator = null;
-        if (sslContextConfigurator.validateConfiguration(true)) {
-            clientSSLEngineConfigurator =
-                new SSLEngineConfigurator(
-                sslContextConfigurator.createSSLContext());
-        } else {
-            fail("Failed to validate SSLContextConfiguration.");
-        }
-        TCPNIOTransport transport =
-                TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new SSLFilter(
-                new SSLEngineConfigurator(
-                sslContextConfigurator.createSSLContext(), false, false, false)));
-        transport.getFilterChain().add(new EchoFilter());
-
-        SSLStreamReader reader = null;
-        SSLStreamWriter writer = null;
-
-        try {
-            transport.bind(PORT);
-            transport.start();
-
-            transport.configureBlocking(true);
-
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
-
-            connection.setProcessor(null);
-
-            reader = new SSLStreamReader(connection.getStreamReader());
-            writer = new SSLStreamWriter(connection.getStreamWriter());
-
-            reader.setBlocking(true);
-            writer.setBlocking(true);
-
-            SSLHandshaker handshaker = new BlockingSSLHandshaker();
-
-            Future handshakeFuture = handshaker.handshake(reader, writer,
-                    clientSSLEngineConfigurator);
-
-            assertTrue(handshakeFuture.isDone());
-            handshakeFuture.get();
-            
-            byte[] sentMessage = "Hello world!".getBytes();
-
-            // aquire read lock to not allow incoming data to be processed by Processor
-            writer.writeByteArray(sentMessage);
-            Future<Integer> writeFuture = writer.flush();
-            
-            assertTrue("Write timeout", writeFuture.isDone());
-            writeFuture.get();
-
-            byte[] receivedMessage = new byte[sentMessage.length];
-
-            Future readFuture = reader.notifyAvailable(receivedMessage.length);
-            assertTrue(readFuture.isDone());
-            readFuture.get();
-
-            reader.readByteArray(receivedMessage);
-            
-            String sentString = new String(sentMessage);
-            String receivedString = new String(receivedMessage);
-            assertEquals(sentString, receivedString);
-        }  finally {
-            if (reader != null) {
-                reader.close();
-            }
-
-            if (writer != null) {
-                writer.close();
-            }
-            if (connection != null) {
-                connection.close();
-            }
-
-            transport.stop();
-            TransportFactory.getInstance().close();
-        }
+        doTestSSL(true, 1, 1, 0);
     }
 
     public void testSimpleAsyncSSL() throws Exception {
+        doTestSSL(false, 1, 1, 0);
+    }
+
+    public void test5PacketsOn1ConnectionSyncSSL() throws Exception {
+        doTestSSL(true, 1, 5, 0);
+    }
+
+    public void test5PacketsOn1ConnectionAsyncSSL() throws Exception {
+        doTestSSL(false, 1, 5, 0);
+    }
+
+    public void test5PacketsOn5ConnectionsSyncSSL() throws Exception {
+        doTestSSL(true, 5, 5, 0);
+    }
+
+    public void test5PacketsOn5ConnectionsAsyncSSL() throws Exception {
+        doTestSSL(false, 5, 5, 0);
+    }
+
+    public void testSimpleSyncSSLChunkedBefore() throws Exception {
+        doTestSSL(true, 1, 1, 1, new ChunkingFilter(1));
+    }
+
+    public void testSimpleAsyncSSLChunkedBefore() throws Exception {
+        doTestSSL(false, 1, 1, 1, new ChunkingFilter(1));
+    }
+
+    public void testSimpleSyncSSLChunkedAfter() throws Exception {
+        doTestSSL(true, 1, 1, 2, new ChunkingFilter(1));
+    }
+
+    public void testSimpleAsyncSSLChunkedAfter() throws Exception {
+        doTestSSL(false, 1, 1, 2, new ChunkingFilter(1));
+    }
+
+    public void testPingPongFilterChainSync() throws Exception {
+        doTestPingPongFilterChain(true, 5, 0);
+    }
+
+    public void testPingPongFilterChainAsync() throws Exception {
+        doTestPingPongFilterChain(false, 5, 0);
+    }
+
+    public void testPingPongFilterChainSyncChunked() throws Exception {
+        doTestPingPongFilterChain(true, 5, 1, new ChunkingFilter(1));
+    }
+
+    public void testPingPongFilterChainAsyncChunked() throws Exception {
+        doTestPingPongFilterChain(false, 5, 1, new ChunkingFilter(1));
+    }
+
+    protected void doTestPingPongFilterChain(boolean isBlocking,
+            int turnAroundsNum, int filterIndex, Filter... filters)
+            throws Exception {
+
+        final Integer pingPongTurnArounds = turnAroundsNum;
+        
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
-
         SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        SSLEngineConfigurator serverSSLEngineConfigurator = null;
+
         if (sslContextConfigurator.validateConfiguration(true)) {
-        clientSSLEngineConfigurator =
-                new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+            clientSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+            serverSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                    false, false, false);
         } else {
             fail("Failed to validate SSLContextConfiguration.");
         }
+        final SSLFilter sslFilter = new SSLFilter(serverSSLEngineConfigurator,
+                clientSSLEngineConfigurator);
+        final SSLPingPongFilter pingPongFilter = new SSLPingPongFilter(
+                sslFilter, pingPongTurnArounds);
+        
         TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new SSLFilter(
-                new SSLEngineConfigurator(
-                sslContextConfigurator.createSSLContext(), false, false, false)));
-        transport.getFilterChain().add(new EchoFilter());
+        transport.getFilterChain().add(sslFilter);
+        transport.getFilterChain().add(new CodecFilterAdapter(
+                new StringDecoder(), new StringEncoder()));
+        transport.getFilterChain().add(pingPongFilter);
 
-        SSLStreamReader reader = null;
-        SSLStreamWriter writer = null;
+        transport.getFilterChain().addAll(filterIndex, Arrays.asList(filters));
 
         try {
             transport.bind(PORT);
             transport.start();
 
-            transport.configureBlocking(true);
+            transport.configureBlocking(isBlocking);
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10000, TimeUnit.SECONDS);
+            
             assertTrue(connection != null);
 
-            connection.setProcessor(null);
-
-            reader = new SSLStreamReader(connection.getStreamReader());
-            writer = new SSLStreamWriter(connection.getStreamWriter());
-
-            SSLHandshaker handshaker = new BlockingSSLHandshaker();
-
-            Future handshakeFuture = handshaker.handshake(reader, writer,
-                    clientSSLEngineConfigurator);
-
-            handshakeFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(handshakeFuture.isDone());
-
-            byte[] sentMessage = "Hello world!".getBytes();
-
-            // aquire read lock to not allow incoming data to be processed by Processor
-            writer.writeByteArray(sentMessage);
-            Future writeFuture = writer.flush();
-
-            writeFuture.get(10, TimeUnit.SECONDS);
-            assertTrue("Write timeout", writeFuture.isDone());
-
-            byte[] receivedMessage = new byte[sentMessage.length];
-
-            Future readFuture = reader.notifyAvailable(receivedMessage.length);
-            readFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(readFuture.isDone());
-
-            reader.readByteArray(receivedMessage);
-
-            String sentString = new String(sentMessage);
-            String receivedString = new String(receivedMessage);
-            assertEquals(sentString, receivedString);
-        }  finally {
-            if (reader != null) {
-                reader.close();
+            try {
+                assertEquals(pingPongTurnArounds,
+                        pingPongFilter.getServerCompletedFeature().get(
+                        100000, TimeUnit.SECONDS));
+            } catch (TimeoutException e) {
+                logger.severe("Server timeout");
             }
 
-            if (writer != null) {
-                writer.close();
-            }
+            assertEquals(pingPongTurnArounds,
+                    pingPongFilter.getClientCompletedFeature().get(
+                    10, TimeUnit.SECONDS));
+            
+            connection.close();
+            connection = null;
+        } finally {
             if (connection != null) {
                 connection.close();
             }
@@ -233,26 +199,34 @@ public class SSLTest extends TestCase {
             transport.stop();
             TransportFactory.getInstance().close();
         }
-    }
 
-    public void testSSLCodec() throws Exception {
+    }
+    
+    public void doTestSSL(boolean isBlocking, int connectionsNum,
+            int packetsNumber, int filterIndex, Filter... filters) throws Exception {
         Connection connection = null;
         SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
-
         SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        SSLEngineConfigurator serverSSLEngineConfigurator = null;
+
         if (sslContextConfigurator.validateConfiguration(true)) {
-        clientSSLEngineConfigurator =
-                new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+            clientSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+            serverSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                    false, false, false);
         } else {
             fail("Failed to validate SSLContextConfiguration.");
         }
-        final TCPNIOTransport transport =
+
+        TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new SSLFilter(
-                new SSLEngineConfigurator(
-                sslContextConfigurator.createSSLContext(), false, false, false)));
-        transport.getFilterChain().add(new MyEchoFilter());
+        transport.getFilterChain().add(new SSLFilter(serverSSLEngineConfigurator,
+                clientSSLEngineConfigurator));
+        transport.getFilterChain().add(new EchoFilter());
+
+        transport.getFilterChain().addAll(filterIndex, Arrays.asList(filters));
 
         SSLStreamReader reader = null;
         SSLStreamWriter writer = null;
@@ -261,46 +235,58 @@ public class SSLTest extends TestCase {
             transport.bind(PORT);
             transport.start();
 
-            transport.configureBlocking(true);
+            transport.configureBlocking(isBlocking);
 
-            Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10, TimeUnit.SECONDS);
-            assertTrue(connection != null);
+            for (int i = 0; i < connectionsNum; i++) {
+                Future<Connection> future = transport.connect("localhost", PORT);
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue(connection != null);
 
-            connection.setProcessor(null);
+                connection.configureStandalone(true);
+                connection.setReadTimeout(10, TimeUnit.DAYS);
 
-            reader = new SSLStreamReader(connection.getStreamReader());
-            writer = new SSLStreamWriter(connection.getStreamWriter());
+                reader = new SSLStreamReader(transport.getStreamReader(connection));
+                writer = new SSLStreamWriter(transport.getStreamWriter(connection));
 
-            SSLHandshaker handshaker = new BlockingSSLHandshaker();
+                final Future handshakeFuture = writer.handshake(reader,
+                        clientSSLEngineConfigurator);
 
-            Future handshakeFuture = handshaker.handshake(reader, writer,
-                    clientSSLEngineConfigurator);
+                handshakeFuture.get(10, TimeUnit.SECONDS);
+                assertTrue(handshakeFuture.isDone());
 
-            handshakeFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(handshakeFuture.isDone());
+                for (int j = 0; j < packetsNumber; j++) {
+                    byte[] sentMessage = ("Hello world! Connection#" + i + " Packet#" + j).getBytes();
 
-            byte[] sentMessage = "Hello world!".getBytes();
+                    // aquire read lock to not allow incoming data to be processed by Processor
+                    writer.writeByteArray(sentMessage);
+                    Future writeFuture = writer.flush();
 
-            // aquire read lock to not allow incoming data to be processed by Processor
-            writer.writeByteArray(sentMessage);
-            Future writeFuture = writer.flush();
+                    writeFuture.get(10, TimeUnit.SECONDS);
+                    assertTrue("Write timeout", writeFuture.isDone());
 
-            writeFuture.get(10, TimeUnit.SECONDS);
-            assertTrue("Write timeout", writeFuture.isDone());
+                    byte[] receivedMessage = new byte[sentMessage.length];
 
-            byte[] receivedMessage = new byte[sentMessage.length];
+                    Future readFuture = reader.notifyAvailable(receivedMessage.length);
+                    readFuture.get(10, TimeUnit.SECONDS);
+                    assertTrue(readFuture.isDone());
 
-            Future readFuture = reader.notifyAvailable(receivedMessage.length);
-            readFuture.get(10, TimeUnit.SECONDS);
-            assertTrue(readFuture.isDone());
+                    reader.readByteArray(receivedMessage);
 
-            reader.readByteArray(receivedMessage);
-
-            String sentString = new String(sentMessage);
-            String receivedString = new String(receivedMessage);
-            assertEquals(sentString, receivedString);
-        }  finally {
+                    String sentString = new String(sentMessage);
+                    String receivedString = new String(receivedMessage);
+                    assertEquals(sentString, receivedString);
+                }
+                
+                reader.close();
+                reader = null;
+                
+                writer.close();
+                writer = null;
+                
+                connection.close();
+                connection = null;
+            }
+        } finally {
             if (reader != null) {
                 reader.close();
             }
@@ -338,30 +324,98 @@ public class SSLTest extends TestCase {
         return sslContextConfigurator;
     }
 
-    private static final class MyEchoFilter extends FilterAdapter {
+    private class SSLPingPongFilter extends FilterAdapter {
+        private final Attribute<Integer> turnAroundAttr =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("TurnAroundAttr");
 
-            @Override
-            public NextAction handleRead(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
-                final Connection connection = ctx.getConnection();
-                final Transport transport = connection.getTransport();
-                final StreamReader reader = ctx.getStreamReader();
-                final FilterChain filterChain = ((FilterChainEnabledTransport) transport).getFilterChain();
-                final Transformer encoder = filterChain.getCodec().getEncoder();
+        private final int turnAroundNum;
+        private final SSLFilter sslFilter;
 
-                while(reader.hasAvailableData()) {
-                    Buffer inBuffer = reader.readBuffer();
-                    TransformationResult result =
-                            encoder.transform(connection, inBuffer, null);
-                    if (result.getStatus() == Status.COMPLETED) {
-                        Buffer outBuffer = (Buffer) result.getMessage();
-                        connection.write(outBuffer);
-                        encoder.release(connection);
+        private final FutureImpl<Integer> serverCompletedFeature =
+                new FutureImpl<Integer>();
+        private final FutureImpl<Integer> clientCompletedFeature =
+                new FutureImpl<Integer>();
+
+        public SSLPingPongFilter(SSLFilter sslFilter, int turnaroundNum) {
+            this.sslFilter = sslFilter;
+            this.turnAroundNum = turnaroundNum;
+        }
+
+        @Override
+        public NextAction handleConnect(final FilterChainContext ctx,
+                final NextAction nextAction) throws IOException {
+
+            final Connection connection = ctx.getConnection();
+            final Transformer encoder = ctx.getEncoder();
+            
+            try {
+                sslFilter.handshake(connection, new CompletionHandlerAdapter<SSLEngine>() {
+
+                    @Override
+                    public void completed(Connection connection, SSLEngine result) {
+                        try {
+                            connection.write("ping", null, encoder);
+                            turnAroundAttr.set(connection, 1);
+                        } catch (IOException e) {
+                            clientCompletedFeature.failure(e);
+                        }
                     }
-                }
+                });
+            } catch (Exception e) {
+                clientCompletedFeature.failure(e);
+            }
+            return nextAction;
+        }
 
-                return nextAction;
+
+        @Override
+        public NextAction handleRead(final FilterChainContext ctx,
+                final NextAction nextAction) throws IOException {
+
+            final Connection connection = ctx.getConnection();
+            
+            Integer currentTurnAround = turnAroundAttr.get(connection);
+            if (currentTurnAround == null) {
+                currentTurnAround = 1;
+            } else {
+                currentTurnAround++;
+            }
+            
+            final String message = (String) ctx.getMessage();
+            if (message.equals("ping")) {
+                try {
+                    connection.write("pong", null, ctx.getEncoder());
+                    turnAroundAttr.set(connection, currentTurnAround);
+                    if (currentTurnAround >= turnAroundNum) {
+                        serverCompletedFeature.result(turnAroundNum);
+                    }
+                } catch (Exception e) {
+                    serverCompletedFeature.failure(e);
+                }
+            } else if (message.equals("pong")) {
+                try {
+                    if (currentTurnAround > turnAroundNum) {
+                        clientCompletedFeature.result(turnAroundNum);
+                        return nextAction;
+                    }
+
+                    connection.write("ping", null, ctx.getEncoder());
+                    turnAroundAttr.set(connection, currentTurnAround);
+                } catch (Exception e) {
+                    clientCompletedFeature.failure(e);
+                }
+                
             }
 
+            return nextAction;
         }
+
+        public Future<Integer> getClientCompletedFeature() {
+            return clientCompletedFeature;
+        }
+
+        public Future<Integer> getServerCompletedFeature() {
+            return serverCompletedFeature;
+        }
+    }
 }

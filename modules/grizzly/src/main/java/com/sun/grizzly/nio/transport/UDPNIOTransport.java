@@ -70,6 +70,8 @@ import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.SocketBinder;
 import com.sun.grizzly.SocketConnectorHandler;
+import com.sun.grizzly.StandaloneProcessor;
+import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import com.sun.grizzly.asyncqueue.AsyncQueueIO;
@@ -92,6 +94,8 @@ import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import com.sun.grizzly.strategies.WorkerThreadStrategy;
+import com.sun.grizzly.streams.StreamReader;
+import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.threadpool.DefaultThreadPool;
 import com.sun.grizzly.threadpool.ExtendedThreadPool;
 
@@ -100,12 +104,12 @@ import com.sun.grizzly.threadpool.ExtendedThreadPool;
  * 
  * @author Alexey Stashok
  */
-public class UDPNIOTransport extends AbstractNIOTransport
+public final class UDPNIOTransport extends AbstractNIOTransport
         implements SocketBinder, SocketConnectorHandler,
         AsyncQueueEnabledTransport, FilterChainEnabledTransport,
         TemporarySelectorsEnabledTransport  {
     
-    private Logger logger = Grizzly.logger;
+    private Logger logger = Grizzly.logger(UDPNIOTransport.class);
 
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
     /**
@@ -143,8 +147,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
      * Server socket backlog.
      */
     protected TemporarySelectorIO temporarySelectorIO;
-    private final Filter streamTransportFilter;
-    private final Filter messageTransportFilter;
+    private final Filter transportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
     private final EnableInterestPostProcessor enablingInterestPostProcessor;
 
@@ -175,8 +178,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
         filterChainFactory = patternFactory;
 
-        streamTransportFilter = new UDPNIOStreamTransportFilter(this);
-        messageTransportFilter = new UDPNIOMessageTransportFilter(this);
+        transportFilter = new UDPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<UDPNIOServerConnection>();
     }
 
@@ -334,7 +336,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
             try {
                 nioChannel.close();
             } catch (IOException e) {
-                Grizzly.logger.log(Level.FINE,
+                logger.log(Level.FINE,
                         "TCPNIOTransport.closeChannel exception", e);
             }
         }
@@ -359,7 +361,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
         try {
             State currentState = state.getState(false);
             if (currentState != State.STOP) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "Transport is not in STOP or BOUND state!");
             }
 
@@ -469,7 +471,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
         try {
             if (state.getState(false) != State.START) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "Transport is not in START state!");
             }
             state.setState(State.PAUSE);
@@ -484,12 +486,26 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
         try {
             if (state.getState(false) != State.PAUSE) {
-                Grizzly.logger.log(Level.WARNING,
+                logger.log(Level.WARNING,
                         "Transport is not in PAUSE state!");
             }
             state.setState(State.START);
         } finally {
             state.getStateLocker().writeLock().unlock();
+        }
+    }
+
+    @Override
+    public synchronized void configureStandalone(boolean isStandalone) {
+        if (this.isStandalone != isStandalone) {
+            this.isStandalone = isStandalone;
+            if (isStandalone) {
+                processor = StandaloneProcessor.INSTANCE;
+                processorSelector = StandaloneProcessorSelector.INSTANCE;
+            } else {
+                processor = getFilterChainFactory().create();
+                processorSelector = null;
+            }
         }
     }
     
@@ -518,13 +534,8 @@ public class UDPNIOTransport extends AbstractNIOTransport
     }
 
     @Override
-    public Filter getStreamTransportFilter() {
-        return streamTransportFilter;
-    }
-
-    @Override
-    public Filter getMessageTransportFilter() {
-        return messageTransportFilter;
+    public Filter getTransportFilter() {
+        return transportFilter;
     }
 
     protected NIOConnection obtainNIOConnection(DatagramChannel channel) {
@@ -671,83 +682,152 @@ public class UDPNIOTransport extends AbstractNIOTransport
 
         return conProcessor;
     }
-    
-    public int read(final Connection connection, final Buffer buffer)
-            throws IOException {
-        return read(connection, buffer, null);
-    }
 
-    public int read(final Connection connection, Buffer buffer,
+    private int readConnected(final UDPNIOConnection connection, Buffer buffer,
             final ReadResult currentResult) throws IOException {
+        final SocketAddress peerAddress = connection.getPeerAddress();
 
-        int read = 0;
-
-        boolean isAllocated = false;
-        if (buffer == null && currentResult != null) {
-
-            buffer = memoryManager.allocate(
-                    connection.getReadBufferSize());
-            isAllocated = true;
-        }
-
-        final int initialPos = buffer.position();
-        SocketAddress srcAddress = null;
+        final int read;
         
-        if (buffer.hasRemaining()) {
-            UDPNIOConnection udpConnection = (UDPNIOConnection) connection;
-            srcAddress = ((DatagramChannel) udpConnection.getChannel()).receive(
-                    (ByteBuffer) buffer.underlying());
-            read = buffer.position() - initialPos;
-        }
+        if (buffer.isComposite()) {
+            final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
+            read = (int) ((DatagramChannel) connection.getChannel()).read(byteBuffers);
 
-        if (isAllocated) {
             if (read > 0) {
-                buffer.trim();
-                buffer.position(buffer.limit());
-            } else {
-                buffer.dispose();
-                buffer = null;
+                resetByteBuffers(byteBuffers, read);
+                buffer.position(buffer.position() + read);
             }
+        } else {
+            read = (int) ((DatagramChannel) connection.getChannel()).read(
+                    buffer.toByteBuffer());
         }
 
-        if (currentResult != null && read >= 0) {
+        if (currentResult != null && read > 0) {
             currentResult.setMessage(buffer);
             currentResult.setReadSize(currentResult.getReadSize() + read);
-            currentResult.setSrcAddress(srcAddress);
+            currentResult.setSrcAddress(peerAddress);
+        }
+
+        return read;
+    }
+    
+    private int readNonConnected(final UDPNIOConnection connection, Buffer buffer,
+            final ReadResult currentResult) throws IOException {
+        final SocketAddress peerAddress;
+
+        final int read;
+
+        if (!buffer.isComposite()) {
+            final ByteBuffer underlyingBB = buffer.toByteBuffer();
+            final int initialBufferPos = underlyingBB.position();
+            peerAddress = ((DatagramChannel) connection.getChannel()).receive(
+                    underlyingBB);
+            read = underlyingBB.position() - initialBufferPos;
+        } else {
+            throw new IllegalStateException("Can not read from "
+                    + "non-connection UDP connection into CompositeBuffer");
+        }
+
+        if (currentResult != null && read > 0) {
+            currentResult.setMessage(buffer);
+            currentResult.setReadSize(currentResult.getReadSize() + read);
+            currentResult.setSrcAddress(peerAddress);
         }
 
         return read;
     }
 
-    public int write(final Connection connection,
+    public int read(final UDPNIOConnection connection, final Buffer buffer)
+            throws IOException {
+        return read(connection, buffer, null);
+    }
+
+    public int read(final UDPNIOConnection connection, Buffer buffer,
+            final ReadResult currentResult) throws IOException {
+
+        int read = 0;
+
+        final boolean isAllocate = (buffer == null && currentResult != null);
+
+        if (isAllocate) {
+            buffer = memoryManager.allocate(connection.getReadBufferSize());
+        }
+
+        try {
+            if (connection.isConnected()) {
+                read = readConnected(connection, buffer, currentResult);
+            } else {
+                read = readNonConnected(connection, buffer, currentResult);
+            }
+        } finally {
+            if (isAllocate && read <= 0) {
+                buffer.dispose();
+                buffer = null;
+            }
+        }
+
+        return read;
+    }
+
+    public int write(final UDPNIOConnection connection,
             final SocketAddress dstAddress, final Buffer buffer)
             throws IOException {
         return write(connection, dstAddress, buffer, null);
     }
 
-    public int write(final Connection connection, final SocketAddress dstAddress,
+    public int write(final UDPNIOConnection connection, final SocketAddress dstAddress,
             final Buffer buffer, final WriteResult currentResult)
             throws IOException {
 
-        final UDPNIOConnection udpConnection = (UDPNIOConnection) connection;
         final int written;
+
         if (dstAddress != null) {
-            written = ((DatagramChannel) udpConnection.getChannel()).send(
-                    (ByteBuffer) buffer.underlying(), dstAddress);
+            written = ((DatagramChannel) connection.getChannel()).send(
+                    buffer.toByteBuffer(), dstAddress);
         } else {
-            written = ((DatagramChannel) udpConnection.getChannel()).write(
-                    (ByteBuffer) buffer.underlying());
+
+            if (buffer.isComposite()) {
+                final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
+                written = (int) ((DatagramChannel) connection.getChannel()).write(byteBuffers);
+
+                if (written > 0) {
+                    resetByteBuffers(byteBuffers, written);
+                    buffer.position(buffer.position() + written);
+                }
+            } else {
+                written = (int) ((DatagramChannel) connection.getChannel()).write(
+                        buffer.toByteBuffer());
+            }
         }
 
         if (currentResult != null) {
             currentResult.setMessage(buffer);
-            currentResult.setWrittenSize(currentResult.getWrittenSize() +
-                    written);
+            currentResult.setWrittenSize(currentResult.getWrittenSize()
+                    + written);
             currentResult.setDstAddress(
                     connection.getPeerAddress());
         }
 
         return written;
+    }
+
+    @Override
+    public StreamReader getStreamReader(Connection connection) {
+        return new UDPNIOStreamReader((UDPNIOConnection) connection);
+    }
+
+    @Override
+    public StreamWriter getStreamWriter(Connection connection) {
+        return new UDPNIOStreamWriter((UDPNIOConnection) connection);
+    }
+
+    private void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
+        int index = 0;
+        while(processed > 0) {
+            final ByteBuffer byteBuffer = byteBuffers[index++];
+            byteBuffer.position(0);
+            processed -= byteBuffer.remaining();
+        }
     }
 
     public class EnableInterestPostProcessor
@@ -782,7 +862,7 @@ public class UDPNIOTransport extends AbstractNIOTransport
                     connection.setSelectorRunner(selectorRunner);
                 }
             } catch (Exception e) {
-                Grizzly.logger.log(Level.FINE, "Exception happened, when " +
+                logger.log(Level.FINE, "Exception happened, when " +
                         "trying to register the channel", e);
             }
         }

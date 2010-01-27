@@ -48,6 +48,11 @@ public class CharDecoder extends PrimitiveDecoder<Character> {
     private static final int SIZE = Character.SIZE / 8;
 
     @Override
+    public String getName() {
+        return CharDecoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

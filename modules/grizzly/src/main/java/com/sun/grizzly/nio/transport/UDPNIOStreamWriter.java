@@ -40,169 +40,85 @@ package com.sun.grizzly.nio.transport;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.nio.tmpselectors.TemporarySelectorWriter;
+import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.streams.AbstractStreamWriter;
-import com.sun.grizzly.streams.AddressableStreamWriter;
+import com.sun.grizzly.streams.BufferedOutput;
 
 /**
  *
  * @author Alexey Stashok
  */
-public class UDPNIOStreamWriter extends AbstractStreamWriter
-        implements AddressableStreamWriter<SocketAddress> {
-
-    private SocketAddress peerAddress;
-    
-    private int sentBytesCounter;
+public class UDPNIOStreamWriter extends AbstractStreamWriter {
 
     public UDPNIOStreamWriter(UDPNIOConnection connection) {
-        super(connection);
-    }
-
-    @Override
-    public Future<Integer> flush(SocketAddress peerAddress,
-            CompletionHandler<Integer> completionHandler) throws IOException {
-        setPeerAddress(peerAddress);
-        return flush(completionHandler);
+        super(connection, new UDPNIOOutput(connection));
     }
 
     @Override
     public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
             throws IOException {
-        return super.flush(new ResetCounterCompletionHandler(completionHandler));
+        return super.flush(new ResetCounterCompletionHandler(
+                (UDPNIOOutput) output, completionHandler));
     }
-    
-    @Override
-    protected Future<Integer> flush0(Buffer current,
-            CompletionHandler<Integer> completionHandler) throws IOException {
-        current.flip();
-        final UDPNIOConnection connection = (UDPNIOConnection) getConnection();
-        final UDPNIOTransport transport =
-                (UDPNIOTransport) connection.getTransport();
 
-        if (isBlocking()) {
-            TemporarySelectorWriter writer =
-                    (TemporarySelectorWriter)
-                    transport.getTemporarySelectorIO().getWriter();
+    public final static class UDPNIOOutput extends BufferedOutput {
+        private final UDPNIOConnection connection;
+        private int sentBytesCounter;
 
-            Future<WriteResult<Buffer, SocketAddress>> future =
-                    writer.write(connection, peerAddress, current,
-                    new CompletionHandlerAdapter(null, completionHandler),
-                    null,
-                    getTimeout(TimeUnit.MILLISECONDS),
-                    TimeUnit.MILLISECONDS);
+        public UDPNIOOutput(UDPNIOConnection connection) {
+            super(connection.getWriteBufferSize());
+            this.connection = connection;
+        }
 
-            try {
-                return new ReadyFutureImpl<Integer>(future.get().getWrittenSize());
-            } catch (Exception e) {
-                throw new IOException(
-                        "UDPNIOStreamWriter.flush0(): unexpected exception. " +
-                        e.getMessage());
+
+        @Override
+        protected Future<Integer> flush0(Buffer buffer,
+                final CompletionHandler<Integer> completionHandler)
+                throws IOException {
+
+            final FutureImpl<Integer> future = new FutureImpl<Integer>();
+
+            if (buffer == null) {
+                buffer = BufferUtils.EMPTY_BUFFER;
             }
-        } else {
-            FutureImpl<Integer> future = new FutureImpl<Integer>();
 
-            transport.getAsyncQueueIO().getWriter().write(
-                    connection, peerAddress, current,
-                    new CompletionHandlerAdapter(future, completionHandler));
-
+            connection.write(buffer,
+                    new CompletionHandlerAdapter(this, future, completionHandler));
             return future;
         }
-    }
 
-    @Override
-    protected Future<Integer> close0(
-            final CompletionHandler<Integer> completionHandler)
-            throws IOException {
-        
-        if (buffer != null && buffer.position() > 0) {
-            final FutureImpl<Integer> future =
-                    new FutureImpl<Integer>();
+        @Override
+        protected Buffer newBuffer(int size) {
+            return connection.getTransport().getMemoryManager().allocate(size);
+        }
 
-            try {
-                overflow(new CompletionHandler<Integer>() {
+        @Override
+        protected Buffer reallocateBuffer(Buffer oldBuffer, int size) {
+            return connection.getTransport().getMemoryManager().reallocate(oldBuffer, size);
+        }
 
-                    @Override
-                    public void cancelled(Connection connection) {
-                        close(ZERO);
-                    }
-
-                    @Override
-                    public void failed(Connection connection, Throwable throwable) {
-                        close(ZERO);
-                    }
-
-                    @Override
-                    public void completed(Connection connection, Integer result) {
-                        close(result);
-                    }
-
-                    @Override
-                    public void updated(Connection connection, Integer result) {
-                    }
-
-                    public void close(Integer result) {
-                        try {
-                            getConnection().close();
-                        } catch (IOException e) {
-                        } finally {
-                            if (completionHandler != null) {
-                                completionHandler.completed(null, result);
-                            }
-                            
-                            future.setResult(result);
-                        }
-                    }
-                });
-            } catch (IOException e) {
-            }
-
-            return future;
-        } else {
-            if (completionHandler != null) {
-                completionHandler.completed(null, ZERO);
-            }
-
-            return new ReadyFutureImpl(ZERO);
+        @Override
+        protected void onClosed() throws IOException {
+            connection.close();
         }
     }
 
-    @Override
-    public SocketAddress getPeerAddress() {
-        final UDPNIOConnection connection = (UDPNIOConnection) getConnection();
-        if (connection.isConnected()) {
-            return (SocketAddress) connection.getPeerAddress();
-        } else {
-            return peerAddress;
-        }
-    }
-
-    @Override
-    public void setPeerAddress(final SocketAddress peerAddress) {
-        final UDPNIOConnection connection = (UDPNIOConnection) getConnection();
-        if (!connection.isConnected()) {
-            this.peerAddress = peerAddress;
-        } else {
-            throw new IllegalStateException(
-                    "UDP connection is already connected!");
-        }
-    }
-
-    private final class CompletionHandlerAdapter
+    private final static class CompletionHandlerAdapter
             implements CompletionHandler<WriteResult<Buffer, SocketAddress>> {
 
+        private final UDPNIOOutput output;
         private final FutureImpl<Integer> future;
         private final CompletionHandler<Integer> completionHandler;
 
-        public CompletionHandlerAdapter(FutureImpl<Integer> future,
+        public CompletionHandlerAdapter(UDPNIOOutput output,
+                FutureImpl<Integer> future,
                 CompletionHandler<Integer> completionHandler) {
+            this.output = output;
             this.future = future;
             this.completionHandler = completionHandler;
         }
@@ -231,39 +147,41 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter
 
         @Override
         public void completed(Connection connection, WriteResult result) {
-            sentBytesCounter += result.getWrittenSize();
-            int totalSentBytes = sentBytesCounter;
+            output.sentBytesCounter += result.getWrittenSize();
+            int totalSentBytes = output.sentBytesCounter;
 
             if (completionHandler != null) {
                 completionHandler.completed(connection, totalSentBytes);
             }
 
             if (future != null) {
-                future.setResult(totalSentBytes);
+                future.result(totalSentBytes);
             }
         }
 
         @Override
         public void updated(Connection connection, WriteResult result) {
             if (completionHandler != null) {
-                completionHandler.updated(connection, sentBytesCounter +
-                        result.getWrittenSize());
+                completionHandler.updated(connection, output.sentBytesCounter
+                        + result.getWrittenSize());
             }
         }
     }
 
-    private final class ResetCounterCompletionHandler
+    private final static class ResetCounterCompletionHandler
             implements CompletionHandler<Integer> {
 
+        private final UDPNIOOutput output;
         private final CompletionHandler<Integer> parentCompletionHandler;
 
-        public ResetCounterCompletionHandler(CompletionHandler<Integer> parentCompletionHandler) {
+        public ResetCounterCompletionHandler(UDPNIOOutput output,
+                CompletionHandler<Integer> parentCompletionHandler) {
+            this.output = output;
             this.parentCompletionHandler = parentCompletionHandler;
         }
 
         @Override
         public void cancelled(Connection connection) {
-            peerAddress = null;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.cancelled(connection);
             }
@@ -271,7 +189,6 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter
 
         @Override
         public void failed(Connection connection, Throwable throwable) {
-            peerAddress = null;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.failed(connection, throwable);
             }
@@ -279,8 +196,7 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter
 
         @Override
         public void completed(Connection connection, Integer result) {
-            sentBytesCounter = 0;
-            peerAddress = null;
+            output.sentBytesCounter = 0;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.completed(connection, result);
             }
@@ -288,11 +204,9 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter
 
         @Override
         public void updated(Connection connection, Integer result) {
-            peerAddress = null;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.updated(connection, result);
             }
         }
-
     }
 }

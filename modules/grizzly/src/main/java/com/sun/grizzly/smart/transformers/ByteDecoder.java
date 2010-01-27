@@ -48,6 +48,11 @@ public class ByteDecoder extends PrimitiveDecoder<Byte> {
     private static final int SIZE = Byte.SIZE / 8;
     
     @Override
+    public String getName() {
+        return ByteDecoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

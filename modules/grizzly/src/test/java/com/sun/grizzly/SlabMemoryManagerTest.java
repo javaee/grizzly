@@ -60,7 +60,7 @@ public class SlabMemoryManagerTest extends TestCase {
     public static final int PORT = 7778;
     private static final int SLAB_SIZE = 90000;
     private Slab testSlab;
-    private static Logger logger = Grizzly.logger;
+    private static Logger logger = Grizzly.logger(SlabMemoryManagerTest.class);
 
     @Override
     protected void setUp() {
@@ -162,11 +162,11 @@ public class SlabMemoryManagerTest extends TestCase {
 
         MemoryManager alloc1 =
                 SlabMemoryManagerFactory.makeAllocator(10000, false);
-        Buffer<ByteBuffer> eb1 = alloc1.allocate(data2.length);
-        eb1.underlying().put(data2);
+        Buffer eb1 = alloc1.allocate(data2.length);
+        eb1.put(data2);
         eb1.flip();
         byte[] result1 = new byte[data2.length];
-        eb1.underlying().get(result1);
+        eb1.get(result1);
         eb1.flip();
 
         Assert.assertEquals(true, Arrays.equals(result1, data2));

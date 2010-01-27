@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.nio.tmpselectors;
 
+import com.sun.grizzly.Transformer;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
@@ -52,9 +53,11 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Interceptor;
+import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.nio.NIOConnection;
+import java.io.EOFException;
 
 /**
  *
@@ -65,7 +68,7 @@ public abstract class TemporarySelectorWriter
 
     private static final int DEFAULT_TIMEOUT = 30000;
 
-    private Logger logger = Grizzly.logger;
+    private Logger logger = Grizzly.logger(TemporarySelectorWriter.class);
 
     protected final TemporarySelectorsEnabledTransport transport;
 
@@ -88,14 +91,14 @@ public abstract class TemporarySelectorWriter
      * {@inheritDoc}
      */
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
-            Interceptor<WriteResult> interceptor)
-            throws IOException {
-        return write(connection, dstAddress, buffer, completionHandler,
-                interceptor, timeoutMillis, TimeUnit.MILLISECONDS);
+    public <M> Future<WriteResult<M, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, M message,
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            Transformer<M, Buffer> transformer,
+            Interceptor<WriteResult> interceptor) throws IOException {
+        
+        return write(connection, dstAddress, message, completionHandler,
+                transformer, interceptor, timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
 
@@ -112,14 +115,14 @@ public abstract class TemporarySelectorWriter
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+    public <M> Future<WriteResult<M, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, M message,
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            Transformer<M, Buffer> transformer,
             Interceptor<WriteResult> interceptor,
             long timeout, TimeUnit timeunit) throws IOException {
 
-        if (buffer == null) {
+        if (message == null) {
             throw new IllegalStateException("Message cannot be null.");
         }
 
@@ -128,14 +131,18 @@ public abstract class TemporarySelectorWriter
                     "Connection should be NIOConnection and cannot be null.");
         }
 
-        WriteResult writeResult =
-                new WriteResult(connection, buffer,dstAddress, 0);
+        final WriteResult writeResult =
+                new WriteResult(connection, message, dstAddress, 0);
 
-        write0(connection, dstAddress, buffer, writeResult,
-                timeout, timeunit);
+        if (transformer == null) {
+            write0(connection, dstAddress, (Buffer) message, writeResult,
+                    timeout, timeunit);
+        } else {
+            writeWithTransformer(connection, dstAddress, transformer,
+                    writeResult, message, timeout, timeunit);
+        }
 
-        writeResult.setMessage(buffer);
-        Future<WriteResult<Buffer, SocketAddress>> writeFuture =
+        final Future<WriteResult<M, SocketAddress>> writeFuture =
                 new ReadyFutureImpl(writeResult);
         
         if (completionHandler != null) {
@@ -145,6 +152,55 @@ public abstract class TemporarySelectorWriter
         return writeFuture;
     }
 
+    private final int writeWithTransformer(final Connection connection,
+            final SocketAddress dstAddress,
+            final Transformer transformer,
+            final WriteResult currentResult, final Object message,
+            final long timeout, final TimeUnit timeunit) throws IOException {
+
+        final WriteResult writeResult = new WriteResult(connection);
+
+        do {
+            writeResult.setWrittenSize(0);
+            
+            final TransformationResult tResult = transformer.transform(
+                    connection, message);
+
+            if (tResult.getStatus() == TransformationResult.Status.COMPLETED) {
+                final Buffer buffer = (Buffer) tResult.getMessage();
+                try {
+                    final int writtenBytes = write0(connection, dstAddress,
+                            buffer, writeResult, timeout, timeunit);
+
+                    if (writtenBytes > 0) {
+                        currentResult.setWrittenSize(
+                                currentResult.getWrittenSize() + writtenBytes);
+                    } else if (writtenBytes == -1) {
+                        throw new EOFException();
+                    }
+                } finally {
+                    if (buffer != message) {
+                        buffer.dispose();
+                    }
+                }
+
+                final Object remainder = tResult.getExternalRemainder();
+                if (!tResult.hasInternalRemainder() &&
+                        (remainder == null || !transformer.hasInputRemaining(remainder))) {
+                    transformer.release(connection);
+                    return currentResult.getWrittenSize();
+                }
+            } else if (tResult.getStatus() == TransformationResult.Status.INCOMPLETED) {
+                throw new IOException("Transformation exception: provided message is incompleted");
+            } else if (tResult.getStatus() == TransformationResult.Status.ERROR) {
+                throw new IOException("Transformation exception ("
+                        + tResult.getErrorCode() + "): "
+                        + tResult.getErrorDescription());
+            }
+        } while (true);
+    }
+
+    
     /**
      * Flush the buffer by looping until the {@link Buffer} is empty
      * @param channel {@link SelectableChannel}
@@ -152,13 +208,14 @@ public abstract class TemporarySelectorWriter
      * @return The number of bytes written
      * @throws java.io.IOException
      */
-    protected int write0(Connection connection,
-            SocketAddress dstAddress, Buffer buffer, WriteResult currentResult,
-            long timeout, TimeUnit timeunit) throws IOException {
+    protected int write0(final Connection connection,
+            final SocketAddress dstAddress, final Buffer buffer,
+            final WriteResult currentResult,
+            final long timeout, final TimeUnit timeunit) throws IOException {
 
-        NIOConnection nioConnection = (NIOConnection) connection;
-        SelectableChannel channel = nioConnection.getChannel();
-        long writeTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
+        final NIOConnection nioConnection = (NIOConnection) connection;
+        final SelectableChannel channel = nioConnection.getChannel();
+        final long writeTimeout = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
 
         SelectionKey key = null;
         Selector writeSelector = null;

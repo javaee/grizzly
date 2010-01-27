@@ -38,9 +38,11 @@
 
 package com.sun.grizzly.attributes;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.ArrayList;
 
 /**
  * {@link AttributeHolder}, which supports indexed access to stored
@@ -52,8 +54,9 @@ import java.util.ArrayList;
  *
  * @author Alexey Stashok
  */
-public class IndexedAttributeHolder implements AttributeHolder {
-    
+public final class IndexedAttributeHolder implements AttributeHolder {
+    private static final Object[] ZERO_ARRAY = new Object[0];
+
     protected final ArrayList<Object> attributeValues;
     protected final DefaultAttributeBuilder attributeBuilder;
     
@@ -160,7 +163,7 @@ public class IndexedAttributeHolder implements AttributeHolder {
     /**
      * {@link IndexedAttributeAccessor} implementation.
      */
-    protected class IndexedAttributeAccessorImpl implements IndexedAttributeAccessor {
+    protected final class IndexedAttributeAccessorImpl implements IndexedAttributeAccessor {
         /**
          * {@inheritDoc}
          */
@@ -178,17 +181,15 @@ public class IndexedAttributeHolder implements AttributeHolder {
          */
         @Override
         public void setAttribute(int index, Object value) {
-            int attrCount = attributeValues.size();
-            if (attrCount <= index) {
-                // increase the size of the attributeValues collection
-                // Number of 'fake' null elements to add to the attributeValues
-                int fakeElementsToAdd = index - attrCount + 1;
-                for (int i = 0; i < fakeElementsToAdd; i++) {
-                    attributeValues.add(null);
-                }
-            }
-
+            ensureSize(index + 1);
             attributeValues.set(index, value);
+        }
+        private void ensureSize(int size) {
+            final int delta = size - attributeValues.size();
+            if (delta > 0) {
+                Collections.addAll(attributeValues,
+                        Arrays.copyOf(ZERO_ARRAY, delta));
+            }
         }
     }
 }

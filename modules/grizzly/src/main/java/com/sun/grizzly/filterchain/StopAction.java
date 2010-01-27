@@ -38,6 +38,10 @@
 
 package com.sun.grizzly.filterchain;
 
+import com.sun.grizzly.Appendable;
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.memory.ByteBuffersBuffer;
+
 /**
  * {@link NextAction}, which instructs {@link FilterChain} to stop executing
  * phase and start post executing filters.
@@ -46,8 +50,40 @@ package com.sun.grizzly.filterchain;
  */
 final class StopAction extends AbstractNextAction {
     static final int TYPE = 1;
+    
+    private com.sun.grizzly.Appendable appendable;
 
     StopAction() {
+        this((com.sun.grizzly.Appendable) null);
+    }
+
+    StopAction(Buffer buffer) {
+        this(makeAppendable(buffer));
+    }
+
+    StopAction(com.sun.grizzly.Appendable appendable) {
         super(TYPE);
+        this.appendable = appendable;
+    }
+
+    public com.sun.grizzly.Appendable getAppendable() {
+        return appendable;
+    }
+
+    public void setBuffer(Buffer buffer) {
+        if (buffer != null) {
+            appendable = makeAppendable(buffer);
+        } else {
+            appendable = null;
+        }
+    }
+    
+    public void setAppendable(Appendable appendable) {
+        this.appendable = appendable;
+    }
+
+    private static final Appendable makeAppendable(Buffer buffer) {
+        return buffer.isComposite() ? (com.sun.grizzly.Appendable) buffer :
+            new ByteBuffersBuffer(null, buffer.toByteBuffer());
     }
 }

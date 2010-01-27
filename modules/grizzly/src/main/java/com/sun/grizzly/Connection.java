@@ -43,6 +43,7 @@ import java.io.IOException;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.attributes.AttributeStorage;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Common interface, which represents any kind of connection.
@@ -87,6 +88,9 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      */
     public boolean isBlocking();
 
+    public void configureStandalone(boolean isStandalone);
+
+    public boolean isStandalone();
     /**
      * Gets the default {@link Processor}, which will process {@link Connection}
      * I/O events.
@@ -164,24 +168,6 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
     public void close() throws IOException;
 
     /**
-     * Get the {@link Connection} {@link StreamReader}, to read data from the
-     * {@link Connection}.
-     * 
-     * @return the {@link Connection} {@link StreamReader}, to read data from the
-     * {@link Connection}.
-     */
-    public StreamReader getStreamReader();
-
-    /**
-     * Get the {@link Connection} {@link StreamWriter}, to write data to the
-     * {@link Connection}.
-     *
-     * @return the {@link Connection} {@link StreamWriter}, to write data to the
-     * {@link Connection}.
-     */
-    public StreamWriter getStreamWriter();
-
-    /**
      * Get the default size of {@link Buffer}s, which will be allocated for
      * reading data from {@link Connection}.
      *
@@ -216,4 +202,12 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      * be allocated for writing data to {@link Connection}.
      */
     public void setWriteBufferSize(int writeBufferSize);
+
+    public long getReadTimeout(TimeUnit timeUnit);
+
+    public void setReadTimeout(long timeout, TimeUnit timeUnit);
+
+    public long getWriteTimeout(TimeUnit timeUnit);
+
+    public void setWriteTimeout(long timeout, TimeUnit timeUnit);
 }

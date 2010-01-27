@@ -38,22 +38,8 @@
 
 package com.sun.grizzly.ssl;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.concurrent.Future;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.SSLEngineResult;
-import javax.net.ssl.SSLEngineResult.Status;
-import javax.net.ssl.SSLException;
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.attributes.Attribute;
+import com.sun.grizzly.streams.TransformerStreamReader;
 import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamReaderDecorator;
-import com.sun.grizzly.utils.conditions.Condition;
 
 /**
  * SSL aware {@link StreamReader} implementation, which work like a wrapper over
@@ -63,144 +49,8 @@ import com.sun.grizzly.utils.conditions.Condition;
  * 
  * @author Alexey Stashok
  */
-public class SSLStreamReader extends StreamReaderDecorator {
-    public static Attribute<LinkedList> sslAttribute =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("SSL_REMAINDER");
-    
-    public SSLStreamReader() {
-        this(null);
-    }
-
+public class SSLStreamReader extends TransformerStreamReader {
     public SSLStreamReader(StreamReader underlyingReader) {
-        super(underlyingReader);
-    }
-
-    @Override
-    public void setUnderlyingReader(StreamReader underlyingReader) {
-        super.setUnderlyingReader(underlyingReader);
-        
-        if (underlyingReader != null) {
-            checkBuffers();
-            attach();
-        }
-    }
-
-    @Override
-    public boolean appendBuffer(Buffer buffer) {
-        if (buffer == null) return false;
-        
-        checkBuffers();
-        boolean wasAdded = true;
-        SSLEngine sslEngine = getSSLEngine();
-        while(wasAdded && buffer.hasRemaining()) {
-            ByteBuffer underlyingByteBuffer = (ByteBuffer) buffer.underlying();
-
-            Buffer newBuffer = newBuffer(bufferSize);
-            ByteBuffer appByteBuffer = (ByteBuffer) newBuffer.underlying();
-            SSLEngineResult result;
-            try {
-                result = sslEngine.unwrap(underlyingByteBuffer, appByteBuffer);
-            } catch (SSLException e) {
-                newBuffer.dispose();
-                throw new IllegalStateException(e);
-            }
-
-            if (result.getStatus() == Status.OK ||
-                    result.getStatus() == Status.CLOSED) {
-                if (result.bytesProduced() > 0 || result.bytesConsumed() > 0) {
-                    newBuffer.trim();
-                    wasAdded = super.appendBuffer(newBuffer);
-                } else {
-                    wasAdded = false;
-                    newBuffer.dispose();
-                }
-            } else {
-                newBuffer.dispose();
-                wasAdded = false;
-            }
-        }
-
-        if (wasAdded) {
-            buffer.dispose();
-        }
-
-        return wasAdded;
-    }
-
-
-    public SSLEngine getSSLEngine() {
-        SSLResourcesAccessor resourceAccessor =
-                SSLResourcesAccessor.getInstance();
-        return resourceAccessor.getSSLEngine(getConnection());
-    }
-
-
-    /**
-     * Attach state, saved in {@link Connection} to this {@link SSLStreamReader}.
-     */
-    protected void attach() {
-        Connection connection = getConnection();
-        if (connection == null || connection.getAttributes() == null) {
-            return;
-        }
-        
-        LinkedList<Buffer> attachedBuffers = sslAttribute.remove(connection.getAttributes());
-        if (attachedBuffers != null) {
-            dataRecords = attachedBuffers;
-        } else if (dataRecords == null) {
-            dataRecords = new LinkedList<Buffer>();
-        }
-    }
-
-    /**
-     * Save state of this {@link SSLStreamReader} into {@link Connection}.
-     */
-    protected void detach() {
-        if (dataRecords != null && !dataRecords.isEmpty()) {
-            sslAttribute.set(getConnection().obtainAttributes(), dataRecords);
-            dataRecords = null;
-        }
-    }
-
-    Future handshakeUnwrap(CompletionHandler completionHandler) throws IOException {
-        return notifyCondition(new Condition<StreamReader>() {
-
-            @Override
-            public boolean check(StreamReader state) {
-                return getSSLEngine().getHandshakeStatus() !=
-                        SSLEngineResult.HandshakeStatus.NEED_UNWRAP;
-            }
-        }, completionHandler);
-    }
-
-    @Override
-    protected Buffer read0() throws IOException {
-        return underlyingReader.readBuffer();
-    }
-
-    private void checkBuffers() {
-        SSLEngine sslEngine = getSSLEngine();
-
-        if (sslEngine != null) {
-            int underlyingBufferSize = sslEngine.getSession().getPacketBufferSize();
-            if (underlyingReader.getBufferSize() < underlyingBufferSize) {
-                underlyingReader.setBufferSize(underlyingBufferSize);
-            }
-
-            int appBufferSize = sslEngine.getSession().getApplicationBufferSize();
-            if (bufferSize < appBufferSize) {
-                bufferSize = appBufferSize;
-            }
-        }
-    }
-
-    @Override
-    protected final Object wrap(Buffer buffer) {
-        return buffer;
-    }
-
-    @Override
-    protected Buffer unwrap(Object data) {
-        return (Buffer) data;
+        super(underlyingReader, new SSLDecoderTransformer());
     }
 }

@@ -45,38 +45,39 @@ import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Filter;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.attributes.Attribute;
 
 /**
  * The {@link TCPNIOTransport}'s transport {@link Filter} implementation
  * 
  * @author Alexey Stashok
  */
-public class TCPNIOTransportFilter extends FilterAdapter {
+public final class TCPNIOTransportFilter extends FilterAdapter {
 
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final TCPNIOTransport transport;
+    private final Attribute<Buffer> compositeBufferAttr;
 
     TCPNIOTransportFilter(final TCPNIOTransport transport) {
         this.transport = transport;
+        compositeBufferAttr = transport.getAttributeBuilder().createAttribute(
+                getClass().getName() + hashCode());
     }
 
     @Override
     public NextAction handleRead(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
-        final TCPNIOConnection connection =
-                (TCPNIOConnection) ctx.getConnection();
+        final TCPNIOConnection connection = (TCPNIOConnection) ctx.getConnection();
 
+        Buffer buffer = transport.read(connection, null);
 
-        final TCPNIOStreamReader reader =
-                (TCPNIOStreamReader) connection.getStreamReader();
-        final Buffer buffer = reader.read0();
-        reader.appendBuffer(buffer);
-
-        if (reader.hasAvailableData()) {
-            ctx.setStreamReader(connection.getStreamReader());
-            ctx.setStreamWriter(connection.getStreamWriter());
-        } else {
+        if (buffer == null) {
             return ctx.getStopAction();
+        } else {
+            buffer.trim();
+            
+            ctx.setMessage(buffer);
+            ctx.setAddress(connection.getPeerAddress());
         }
 
         return nextAction;
@@ -88,7 +89,7 @@ public class TCPNIOTransportFilter extends FilterAdapter {
         final Object message = ctx.getMessage();
         if (message != null) {
             final Connection connection = ctx.getConnection();
-            connection.getStreamWriter().writeBuffer((Buffer) message);
+            transport.write(connection, (Buffer) message);
         }
 
         return nextAction;

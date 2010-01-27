@@ -38,9 +38,6 @@
 
 package com.sun.grizzly.filterchain;
 
-import java.util.Collections;
-import java.util.List;
-
 /**
  * Base implementation of {@link NextAction}
  *
@@ -51,9 +48,6 @@ import java.util.List;
 abstract class AbstractNextAction implements NextAction {
 
     protected int type;
-    protected List<Filter> filters;
-    private List<Filter> unmodifiableFiltersView;
-    protected int nextFilterIdx;
 
     protected AbstractNextAction(int type) {
         this.type = type;
@@ -65,42 +59,5 @@ abstract class AbstractNextAction implements NextAction {
     @Override
     public int type() {
         return type;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public List<Filter> getFilters() {
-        return unmodifiableFiltersView;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getNextFilterIdx() {
-        return nextFilterIdx;
-    }
-
-    /**
-     * Set the {@link Filter} list.
-     * 
-     * @param nextFilters the {@link Filter} list.
-     */
-    void setFilters(List<Filter> filters) {
-        this.filters = filters;
-        this.unmodifiableFiltersView = (filters != null) ? Collections.unmodifiableList(filters) : null;
-    }
-    
-    /**
-     * Sets index of the {@link Filter} in
-     * {@link NextAction#getFilters()} list, which should be executed next.
-     *
-     * @param nextFilterIdx index of the {@link Filter} in
-     * {@link NextAction#getFilters()} list, which should be executed next.
-     */
-    void setNextFilterIdx(int nextFilterIdx) {
-        this.nextFilterIdx = nextFilterIdx;
     }
 }

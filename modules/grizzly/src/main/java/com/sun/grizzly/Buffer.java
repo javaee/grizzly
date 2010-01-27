@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly;
 
+import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 
@@ -48,7 +49,9 @@ import java.nio.charset.Charset;
  *
  * @author Alexey Stashok
  */
-public interface Buffer<K> extends Comparable<Buffer<K>> {
+public interface Buffer extends Comparable<Buffer> {
+
+    public boolean isComposite();
 
     /**
      * Prepend data from header.position() to header.limit() to the
@@ -56,7 +59,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws IllegalArgumentException if header.limit() - header.position()
      * is greater than headerSize.
      */
-     public Buffer<K> prepend(final Buffer header);
+    public Buffer prepend(final Buffer header);
 
     /**
      * Trim the buffer by reducing capacity to position, if possible.
@@ -66,6 +69,15 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
     public void trim();
 
     /**
+     * Trim the buffer by current position/limit values, if possible.
+     * May return without changing capacity.
+     * After trimByWindows is called, postion/limit/capacity values may have
+     * different values, than before, by still point to the same <tt>Buffer</tt>
+     * elements.
+     */
+    public void trimRegion();
+
+    /**
      * Notify the allocator that the space for this <tt>Buffer</tt> is no
      * longer needed. All calls to methods on a <tt>Buffer</tt>
      * will fail after a call to dispose().
@@ -73,11 +85,11 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
     public void dispose();
 
     /**
-     * Return the JDK underlying buffer
+     * Return the underlying buffer
      * 
-     * @return the JDK underlying buffer
+     * @return the underlying buffer
      */
-    public K underlying();
+    public Object underlying();
 
     /**
      * Returns this buffer's capacity. </p>
@@ -106,7 +118,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  IllegalArgumentException
      *          If the preconditions on <tt>newPosition</tt> do not hold
      */
-    public Buffer<K> position(int newPosition);
+    public Buffer position(int newPosition);
 
     /**
      * Returns this buffer's limit. </p>
@@ -129,14 +141,14 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  IllegalArgumentException
      *          If the preconditions on <tt>newLimit</tt> do not hold
      */
-    public Buffer<K> limit(int newLimit);
+    public Buffer limit(int newLimit);
 
     /**
      * Sets this buffer's mark at its position. </p>
      *
      * @return  This buffer
      */
-    public Buffer<K> mark();
+    public Buffer mark();
 
     /**
      * Resets this buffer's position to the previously-marked position.
@@ -149,7 +161,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  InvalidMarkException
      *          If the mark has not been set
      */
-    public Buffer<K> reset();
+    public Buffer reset();
 
     /**
      * Clears this buffer.  The position is set to zero, the limit is set to
@@ -168,7 +180,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *
      * @return  This buffer
      */
-    public Buffer<K> clear();
+    public Buffer clear();
 
     /**
      * Flips this buffer.  The limit is set to the current position and then
@@ -191,7 +203,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *
      * @return  This buffer
      */
-    public Buffer<K> flip();
+    public Buffer flip();
 
     /**
      * Rewinds this buffer.  The position is set to zero and the mark is
@@ -208,7 +220,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *
      * @return  This buffer
      */
-    public Buffer<K> rewind();
+    public Buffer rewind();
 
     /**
      * Returns the number of elements between the current position and the
@@ -251,7 +263,27 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *
      * @return  The new byte buffer
      */
-    public Buffer<K> slice();
+    public Buffer slice();
+
+    /**
+     * Creates a new byte buffer whose content is a shared subsequence of
+     * this buffer's content.
+     *
+     * <p> The content of the new buffer will start at passed position and end
+     * at passed limit.
+     * Changes to this buffer's content will be visible in the new
+     * buffer, and vice versa; the two buffers' position, limit, and mark
+     * values will be independent.
+     *
+     * <p> The new buffer's position will be zero, its capacity and its limit
+     * will be the number of bytes remaining in this buffer, and its mark
+     * will be undefined.  The new buffer will be direct if, and only if, this
+     * buffer is direct, and it will be read-only if, and only if, this buffer
+     * is read-only.  </p>
+     *
+     * @return  The new byte buffer
+     */
+    public Buffer slice(int position, int limit);
 
     /**
      * Creates a new byte buffer that shares this buffer's content.
@@ -268,7 +300,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *
      * @return  The new byte buffer
      */
-    public Buffer<K> duplicate();
+    public Buffer duplicate();
 
     /**
      * Creates a new, read-only byte buffer that shares this buffer's
@@ -288,7 +320,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *
      * @return  The new, read-only byte buffer
      */
-    public Buffer<K> asReadOnlyBuffer();
+    public Buffer asReadOnlyBuffer();
 
     // -- Singleton get/put methods --
     /**
@@ -319,7 +351,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> put(byte b);
+    public Buffer put(byte b);
 
     /**
      * Absolute <i>get</i> method.  Reads the byte at the given
@@ -357,7 +389,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> put(int index, byte b);
+    public Buffer put(int index, byte b);
 
     // -- Bulk get operations --
     /**
@@ -409,7 +441,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *          If the preconditions on the <tt>offset</tt> and <tt>length</tt>
      *          parameters do not hold
      */
-    public Buffer<K> get(byte[] dst, int offset, int length);
+    public Buffer get(byte[] dst, int offset, int length);
 
     /**
      * Relative bulk <i>get</i> method.
@@ -427,7 +459,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *          If there are fewer than <tt>length</tt> bytes
      *          remaining in this buffer
      */
-    public Buffer<K> get(byte[] dst);
+    public Buffer get(byte[] dst);
 
     // -- Bulk put operations --
     /**
@@ -471,7 +503,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> put(Buffer src);
+    public Buffer put(Buffer src);
 
     /**
      * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
@@ -523,7 +555,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> put(byte[] src, int offset, int length);
+    public Buffer put(byte[] src, int offset, int length);
 
     /**
      * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
@@ -544,7 +576,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> put(byte[] src);
+    public Buffer put(byte[] src);
 
     /**
      * Compacts this buffer&nbsp;&nbsp;<i>(optional operation)</i>.
@@ -587,7 +619,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> compact();
+    public Buffer compact();
 
     /**
      * Retrieves this buffer's byte order.
@@ -611,7 +643,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *
      * @return  This buffer
      */
-    public Buffer<K> order(ByteOrder bo);
+    public Buffer order(ByteOrder bo);
 
     /**
      * Relative <i>get</i> method for reading a char value.
@@ -648,7 +680,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putChar(char value);
+    public Buffer putChar(char value);
 
     /**
      * Absolute <i>get</i> method for reading a char value.
@@ -691,7 +723,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putChar(int index, char value);
+    public Buffer putChar(int index, char value);
 
     /**
      * Relative <i>get</i> method for reading a short value.
@@ -728,7 +760,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putShort(short value);
+    public Buffer putShort(short value);
 
     /**
      * Absolute <i>get</i> method for reading a short value.
@@ -771,7 +803,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putShort(int index, short value);
+    public Buffer putShort(int index, short value);
 
     /**
      * Relative <i>get</i> method for reading an int value.
@@ -808,7 +840,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putInt(int value);
+    public Buffer putInt(int value);
 
     /**
      * Absolute <i>get</i> method for reading an int value.
@@ -851,7 +883,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putInt(int index, int value);
+    public Buffer putInt(int index, int value);
 
     /**
      * Relative <i>get</i> method for reading a long value.
@@ -888,7 +920,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putLong(long value);
+    public Buffer putLong(long value);
 
     /**
      * Absolute <i>get</i> method for reading a long value.
@@ -931,7 +963,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putLong(int index, long value);
+    public Buffer putLong(int index, long value);
 
     /**
      * Relative <i>get</i> method for reading a float value.
@@ -968,7 +1000,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putFloat(float value);
+    public Buffer putFloat(float value);
 
     /**
      * Absolute <i>get</i> method for reading a float value.
@@ -1011,7 +1043,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putFloat(int index, float value);
+    public Buffer putFloat(int index, float value);
 
     /**
      * Relative <i>get</i> method for reading a double value.
@@ -1048,7 +1080,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putDouble(double value);
+    public Buffer putDouble(double value);
 
     /**
      * Absolute <i>get</i> method for reading a double value.
@@ -1091,7 +1123,7 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      * @throws  ReadOnlyBufferException
      *          If this buffer is read-only
      */
-    public Buffer<K> putDouble(int index, double value);
+    public Buffer putDouble(int index, double value);
 
     /**
      * Returns {@link Buffer} content as {@link String}
@@ -1100,5 +1132,13 @@ public interface Buffer<K> extends Comparable<Buffer<K>> {
      *
      * @return {@link String} representation of this {@link Buffer} content.
      */
-    public String contentAsString(Charset charset);
+    public String toString(Charset charset);
+
+    public ByteBuffer toByteBuffer();
+
+    public ByteBuffer toByteBuffer(int position, int limit);
+
+    public ByteBuffer[] toByteBufferArray();
+
+    public ByteBuffer[] toByteBufferArray(int position, int limit);
 }

@@ -63,41 +63,11 @@ import com.sun.grizzly.Connection;
  * @author Alexey Stashok
  */
 public class TransportFilter extends FilterAdapter {
-    public enum Mode {Stream, Message};
-    
     public static final String WORKER_THREAD_BUFFER_NAME = "thread-buffer";
-
-    private final Mode mode;
-
     /**
-     * Create <tt>TransportFilter</tt>, which will operate in
-     * {@link Mode#Stream} mode.
+     * Create <tt>TransportFilter</tt>.
      */
     public TransportFilter() {
-        this(Mode.Stream);
-    }
-
-    /**
-     * Create <tt>TransportFilter</tt>, which will operate in defined mode.
-     * @param mode
-     */
-    public TransportFilter(Mode mode) {
-        this.mode = mode;
-    }
-
-    /**
-     * Get the <tt>TransportFilter</tt> mode.
-     * <tt>TransportFilter</tt> could work in 2 modes: {@link Mode#Stream}
-     * or {@link Mode#Message}. In the {@link Mode#Stream} mode,
-     * <tt>TransportFilter</tt> produces/consumes {@link Connection} data using
-     * {@link FilterChainContext#getStreamReader()}, {@link FilterChainContext#getStreamWriter()}.
-     * In the {@link Mode#Message} mode, <tt>TransportFilter</tt> represents {@link Connection}
-     * data as {@link Buffer}, using {@link FilterChainContext#getMessage(}},
-     * {@link FilterChainContext#setMessage()}.
-     * @return the <tt>TransportFilter</tt> mode.
-     */
-    public Mode getMode() {
-        return mode;
     }
 
     /**
@@ -108,13 +78,10 @@ public class TransportFilter extends FilterAdapter {
     public NextAction handleAccept(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        initializeContext(ctx);
-
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            ctx.setDefaultTransportFilter(transportFilter0);
             return transportFilter0.handleAccept(ctx, nextAction);
         }
 
@@ -129,13 +96,10 @@ public class TransportFilter extends FilterAdapter {
     public NextAction handleConnect(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        initializeContext(ctx);
-
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            ctx.setDefaultTransportFilter(transportFilter0);
             return transportFilter0.handleConnect(ctx, nextAction);
         }
 
@@ -150,13 +114,10 @@ public class TransportFilter extends FilterAdapter {
     public NextAction handleRead(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        initializeContext(ctx);
-
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            ctx.setDefaultTransportFilter(transportFilter0);
             return transportFilter0.handleRead(ctx, nextAction);
         }
         
@@ -171,13 +132,10 @@ public class TransportFilter extends FilterAdapter {
     public NextAction handleWrite(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        initializeContext(ctx);
-
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            ctx.setDefaultTransportFilter(transportFilter0);
             return transportFilter0.handleWrite(ctx, nextAction);
         }
 
@@ -192,13 +150,10 @@ public class TransportFilter extends FilterAdapter {
     public NextAction handleClose(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        initializeContext(ctx);
-
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            ctx.setDefaultTransportFilter(transportFilter0);
             return transportFilter0.handleClose(ctx, nextAction);
         }
 
@@ -213,7 +168,8 @@ public class TransportFilter extends FilterAdapter {
     public NextAction postAccept(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        final Filter transportFilter0 = ctx.getDefaultTransportFilter();
+        final Filter transportFilter0 = getTransportFilter0(
+                ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
             return transportFilter0.postAccept(ctx, nextAction);
@@ -230,7 +186,8 @@ public class TransportFilter extends FilterAdapter {
     public NextAction postConnect(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        final Filter transportFilter0 = ctx.getDefaultTransportFilter();
+        final Filter transportFilter0 = getTransportFilter0(
+                ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
             return transportFilter0.postRead(ctx, nextAction);
@@ -247,7 +204,8 @@ public class TransportFilter extends FilterAdapter {
     public NextAction postRead(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        final Filter transportFilter0 = ctx.getDefaultTransportFilter();
+        final Filter transportFilter0 = getTransportFilter0(
+                ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
             return transportFilter0.postConnect(ctx, nextAction);
@@ -264,7 +222,8 @@ public class TransportFilter extends FilterAdapter {
     public NextAction postWrite(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        final Filter transportFilter0 = ctx.getDefaultTransportFilter();
+        final Filter transportFilter0 = getTransportFilter0(
+                ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
             return transportFilter0.postWrite(ctx, nextAction);
@@ -281,7 +240,8 @@ public class TransportFilter extends FilterAdapter {
     public NextAction postClose(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
 
-        final Filter transportFilter0 = ctx.getDefaultTransportFilter();
+        final Filter transportFilter0 = getTransportFilter0(
+                ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
             return transportFilter0.postClose(ctx, nextAction);
@@ -299,21 +259,9 @@ public class TransportFilter extends FilterAdapter {
      */
     protected Filter getTransportFilter0(final Transport transport) {
         if (transport instanceof FilterChainEnabledTransport) {
-            if (mode == Mode.Stream) {
-                return ((FilterChainEnabledTransport) transport).
-                        getStreamTransportFilter();
-            } else {
-                return ((FilterChainEnabledTransport) transport).
-                        getMessageTransportFilter();
-            }
+            return ((FilterChainEnabledTransport) transport).getTransportFilter();
         }
         
         return null;
-    }
-
-    private static final void initializeContext(final FilterChainContext ctx) {
-        final Connection connection = ctx.getConnection();
-        ctx.setStreamReader(connection.getStreamReader());
-        ctx.setStreamWriter(connection.getStreamWriter());
     }
 }

@@ -48,6 +48,11 @@ public class ShortDecoder extends PrimitiveDecoder<Short> {
     private static final int SIZE = Short.SIZE / 8;
 
     @Override
+    public String getName() {
+        return ShortDecoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

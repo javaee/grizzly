@@ -39,10 +39,8 @@ package com.sun.grizzly.smart.transformers;
 
 import java.lang.reflect.Array;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.attributes.AttributeStorage;
@@ -62,25 +60,28 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
     }
 
     @Override
-    public TransformationResult<Buffer> transform(AttributeStorage storage,
-            Object input, Buffer output) throws TransformationException {
+    public String getName() {
+        return ArrayEncoder.class.getName();
+    }
+
+    @Override
+    public TransformationResult<Object, Buffer> transform(
+            AttributeStorage storage, Object input)
+            throws TransformationException {
 
         if (input == null) {
             throw new TransformationException("Input should not be null");
         }
-
+        
         // Optimize for transforming array of bytes
         if (componentType.isPrimitive() && componentType.equals(byte.class)) {
+            Buffer output = getOutput(storage);
 
             MemoryManager memoryManager = null;
-            if (output == null) {
-                if (storage instanceof Connection) {
-                    Connection connection = (Connection) storage;
-                    memoryManager = connection.getTransport().getMemoryManager();
-                    output = memoryManager.allocate(size(storage, input));
-                } else {
-                    throw new TransformationException("Output Buffer is null and there is no way to allocate one");
-                }
+            final boolean isAllocated = (output == null);
+            if (isAllocated) {
+                memoryManager = obtainMemoryManager(storage);
+                output = memoryManager.allocate(size(storage, input));
             }
 
             int currentElementIdx = getValue(storage, currentElementIdxAttribute, 0);
@@ -91,16 +92,20 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
             currentElementIdx += bytesToCopy;
 
             if (currentElementIdx < size) {
-                saveState(storage, currentElementIdx, incompletedResult);
-                return incompletedResult;
+                return saveLastResult(storage,
+                        TransformationResult.<Object, Buffer>createIncompletedResult(
+                        null, false));
+            }
+
+            if (isAllocated) {
+                output.flip();
             }
             
-            TransformationResult<Buffer> result = new TransformationResult<Buffer>(
-                    Status.COMPLETED, output.duplicate().flip());
-            saveState(storage, result);
-            return result;
+            return saveLastResult(storage,
+                    TransformationResult.<Object, Buffer>createCompletedResult(
+                    output, null, false));
         } else {
-            return super.transform(storage, input, output);
+            return super.transform(storage, input);
         }
     }
 
@@ -141,11 +146,5 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
     @Override
     protected int size(AttributeStorage storage, Object sequence) {
         return Array.getLength(sequence);
-    }
-
-    protected void saveState(AttributeStorage storage, int currentElementIdx,
-            TransformationResult<Buffer> lastResult) {
-        currentElementIdxAttribute.set(storage, currentElementIdx);
-        super.saveState(storage, lastResult);
     }
 }

@@ -37,8 +37,6 @@
  */
 package com.sun.grizzly.filterchain;
 
-import java.util.List;
-
 /**
  * {@link NextAction} implementation, which instructs {@link FilterChain} to
  * process next {@link Filter} in chain.
@@ -57,18 +55,23 @@ import java.util.List;
  */
 final class InvokeAction extends AbstractNextAction {
     static final int TYPE = 0;
-    
+
+    private com.sun.grizzly.Appendable remaining;
+
     InvokeAction() {
         this(null);
     }
 
-    InvokeAction(List<Filter> filters) {
-        this(filters, 0);
+    public InvokeAction(com.sun.grizzly.Appendable remaining) {
+        super(TYPE);
+        this.remaining = remaining;
     }
 
-    InvokeAction(List<Filter> filters, int nextFilterIdx) {
-        super(TYPE);
-        setFilters(filters);
-        setNextFilterIdx(nextFilterIdx);
+    public com.sun.grizzly.Appendable getRemaining() {
+        return remaining;
+    }
+
+    public void setRemaining(com.sun.grizzly.Appendable remaining) {
+        this.remaining = remaining;
     }
 }

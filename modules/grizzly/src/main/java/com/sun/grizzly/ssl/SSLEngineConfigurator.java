@@ -91,6 +91,19 @@ public class SSLEngineConfigurator {
         this.wantClientAuth = wantClientAuth;
     }
 
+    public SSLEngineConfigurator(SSLEngineConfigurator pattern) {
+        this.sslContext = pattern.sslContext;
+        this.clientMode = pattern.clientMode;
+        this.needClientAuth = pattern.needClientAuth;
+        this.wantClientAuth = pattern.wantClientAuth;
+
+        this.enabledCipherSuites = pattern.enabledCipherSuites;
+        this.enabledProtocols = pattern.enabledProtocols;
+
+        this.isCipherConfigured = pattern.isCipherConfigured;
+        this.isProtocolConfigured = pattern.isProtocolConfigured;
+    }
+
     /**
      * Create and configure {@link SSLEngine}, basing on current settings.
      * 
@@ -107,8 +120,9 @@ public class SSLEngineConfigurator {
      * Configure passed {@link SSLEngine}, using current configurator settings
      * 
      * @param sslEngine {@link SSLEngine} to configure.
+     * @return configured {@link SSLEngine}.
      */
-    public void configure(SSLEngine sslEngine) {
+    public SSLEngine configure(SSLEngine sslEngine) {
         if (enabledCipherSuites != null) {
             if (!isCipherConfigured) {
                 enabledCipherSuites = configureEnabledCiphers(sslEngine,
@@ -130,6 +144,8 @@ public class SSLEngineConfigurator {
         sslEngine.setUseClientMode(clientMode);
         sslEngine.setWantClientAuth(wantClientAuth);
         sslEngine.setNeedClientAuth(needClientAuth);
+
+        return sslEngine;
     }
     
     /**
@@ -149,8 +165,9 @@ public class SSLEngineConfigurator {
      * to work in <tt>client</tt> mode, or <tt>false</tt> for <tt>server</tt>
      * mode.
      */
-    public void setClientMode(boolean clientMode) {
+    public SSLEngineConfigurator setClientMode(boolean clientMode) {
         this.clientMode = clientMode;
+        return this;
     }
 
 
@@ -158,48 +175,54 @@ public class SSLEngineConfigurator {
         return needClientAuth;
     }
 
-    public void setNeedClientAuth(boolean needClientAuth) {
+    public SSLEngineConfigurator setNeedClientAuth(boolean needClientAuth) {
         this.needClientAuth = needClientAuth;
+        return this;
     }
 
     public boolean isWantClientAuth() {
         return wantClientAuth;
     }
 
-    public void setWantClientAuth(boolean wantClientAuth) {
+    public SSLEngineConfigurator setWantClientAuth(boolean wantClientAuth) {
         this.wantClientAuth = wantClientAuth;
+        return this;
     }
 
     public String[] getEnabledCipherSuites() {
         return enabledCipherSuites;
     }
 
-    public void setEnabledCipherSuites(String[] enabledCipherSuites) {
+    public SSLEngineConfigurator setEnabledCipherSuites(String[] enabledCipherSuites) {
         this.enabledCipherSuites = enabledCipherSuites;
+        return this;
     }
 
     public String[] getEnabledProtocols() {
         return enabledProtocols;
     }
 
-    public void setEnabledProtocols(String[] enabledProtocols) {
+    public SSLEngineConfigurator setEnabledProtocols(String[] enabledProtocols) {
         this.enabledProtocols = enabledProtocols;
+        return this;
     }
 
     public boolean isCipherConfigured() {
         return isCipherConfigured;
     }
 
-    public void setCipherConfigured(boolean isCipherConfigured) {
+    public SSLEngineConfigurator setCipherConfigured(boolean isCipherConfigured) {
         this.isCipherConfigured = isCipherConfigured;
+        return this;
     }
 
     public boolean isProtocolConfigured() {
         return isProtocolConfigured;
     }
 
-    public void setProtocolConfigured(boolean isProtocolConfigured) {
+    public SSLEngineConfigurator setProtocolConfigured(boolean isProtocolConfigured) {
         this.isProtocolConfigured = isProtocolConfigured;
+        return this;
     }
 
     public SSLContext getSslContext() {
@@ -292,5 +315,8 @@ public class SSLEngineConfigurator {
         return sb.toString();
     }
 
-
+    @Override
+    public SSLEngineConfigurator clone() {
+        return new SSLEngineConfigurator(this);
+    }
 }

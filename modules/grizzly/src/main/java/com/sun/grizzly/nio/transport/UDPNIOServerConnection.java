@@ -44,6 +44,7 @@ import java.util.logging.Level;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.ProcessorSelector;
+import java.util.logging.Logger;
 
 /**
  * Server {@link com.sun.grizzly.Connection} implementation
@@ -52,6 +53,7 @@ import com.sun.grizzly.ProcessorSelector;
  * @author Alexey Stashok
  */
 public class UDPNIOServerConnection extends UDPNIOConnection {
+    private static Logger logger = Grizzly.logger(UDPNIOServerConnection.class);
 
     public UDPNIOServerConnection(UDPNIOTransport transport, DatagramChannel channel) {
         super(transport, channel);
@@ -80,7 +82,7 @@ public class UDPNIOServerConnection extends UDPNIOConnection {
         try {
             ((UDPNIOTransport) transport).unbind(this);
         } catch (IOException e) {
-            Grizzly.logger.log(Level.FINE,
+            logger.log(Level.FINE,
                     "Exception occurred, when unbind connection: " + this, e);
         }
 

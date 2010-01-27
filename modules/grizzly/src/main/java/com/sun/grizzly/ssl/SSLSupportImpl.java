@@ -53,6 +53,7 @@
  */
 package com.sun.grizzly.ssl;
 
+import com.sun.grizzly.Connection;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.cert.CertificateFactory;
@@ -68,27 +69,22 @@ import com.sun.grizzly.Grizzly;
  * @author oleksiys
  */
 public class SSLSupportImpl implements SSLSupport {
-    private static Logger logger = Grizzly.logger;
+    private static Logger logger = Grizzly.logger(SSLSupportImpl.class);
     
     public static final String KEY_SIZE_KEY = "SSL_KEY_SIZE";
-    private SSLEngine engine;
-    private SSLSession session;
+    private final SSLEngine engine;
+    private volatile SSLSession session;
 
-    private SSLEngineConfigurator engineConfigurator;
-    private SSLHandshaker handshaker;
-    private SSLStreamReader reader;
-    private SSLStreamWriter writer;
+    private final SSLEngineConfigurator engineConfigurator;
+//    private final SSLHandshaker handshaker;
+    private final Connection connection;
 
-    public SSLSupportImpl(SSLEngineConfigurator engineConfigurator,
-            SSLHandshaker handshaker, SSLStreamReader reader,
-            SSLStreamWriter writer) {
+    public SSLSupportImpl(Connection connection,
+            SSLEngineConfigurator engineConfigurator) {
         
         this.engineConfigurator = engineConfigurator;
-        this.handshaker = handshaker;
-        this.reader = reader;
-        this.writer = writer;
-        engine = SSLResourcesAccessor.getInstance().getSSLEngine(
-                reader.getConnection());
+        this.connection = connection;
+        engine = SSLUtils.getSSLEngine(connection);
         session = engine.getSession();
     }
 
@@ -171,7 +167,7 @@ public class SSLSupportImpl implements SSLSupport {
         }
         if (jsseCerts.length <= 0 && force) {
             session.invalidate();
-            handshaker.handshake(reader, writer, engineConfigurator);
+//            handshaker.handshake(connection, engineConfigurator);
             /* SJSAS 6439313
             session = ssl.getSession();
              */

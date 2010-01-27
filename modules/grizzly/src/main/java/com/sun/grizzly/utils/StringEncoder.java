@@ -42,10 +42,9 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import com.sun.grizzly.AbstractTransformer;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
+import com.sun.grizzly.TransportFactory;
 
 /**
  * String decoder, which decodes {@link Buffer} to {@link String}
@@ -76,12 +75,19 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
     }
 
     @Override
-    public TransformationResult<Buffer> transform(AttributeStorage storage,
-            String input, Buffer output) throws TransformationException {
+    public String getName() {
+        return "StringEncoder";
+    }
+
+    @Override
+    public TransformationResult<String, Buffer> transform(AttributeStorage storage,
+            String input) throws TransformationException {
 
         if (input == null) {
             throw new TransformationException("Input could not be null");
         }
+
+        Buffer output = getOutput(storage);
 
         byte[] byteRepresentation;
         try {
@@ -95,15 +101,10 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
                     charset.name() + " is not supported", e);
         }
 
-        if (output == null) {
-            if (storage instanceof Connection) {
-                output = ((Connection) storage).getTransport().
-                        getMemoryManager().allocate(
-                        byteRepresentation.length + 2);
-            } else {
-                saveState(storage, incompletedResult);
-                return incompletedResult;
-            }
+        final boolean isAllocated = (output == null);
+        if (isAllocated) {
+            output = TransportFactory.getInstance().getDefaultMemoryManager().
+                    allocate(byteRepresentation.length + 2);
         }
 
         if (stringTerminator == null) {
@@ -112,11 +113,20 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
 
         output.put(byteRepresentation);
 
-        TransformationResult result = new TransformationResult(
-                Status.COMPLETED,
-                output.duplicate().flip());
-        saveState(storage, result);
+        if (isAllocated) {
+            output.flip();
+        }
+
+        final TransformationResult<String, Buffer> result =
+                TransformationResult.<String, Buffer>createCompletedResult(
+                output, null, false);
+        lastResultAttribute.set(storage, result);
         return result;
+    }
+
+    @Override
+    public boolean hasInputRemaining(String input) {
+        return input != null;
     }
 
     public Charset getCharset() {
@@ -125,10 +135,5 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
 
     public void setCharset(Charset charset) {
         this.charset = charset;
-    }
-
-    protected void saveState(AttributeStorage storage,
-            TransformationResult<Buffer> result) {
-        lastResultAttribute.set(storage, result);
     }
 }

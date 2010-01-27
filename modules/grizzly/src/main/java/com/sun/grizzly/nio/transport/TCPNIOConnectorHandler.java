@@ -258,7 +258,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                     completionHandler.completed(connection, connection);
                 }
 
-                connectFuture.setResult(connection);
+                connectFuture.result(connection);
             } catch (Exception e) {
                 if (completionHandler != null) {
                     completionHandler.failed(null, e);

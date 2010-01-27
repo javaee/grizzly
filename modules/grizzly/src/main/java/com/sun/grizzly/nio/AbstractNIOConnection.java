@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.nio;
 
+import com.sun.grizzly.Transformer;
 import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
@@ -49,17 +50,18 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ReadResult;
+import com.sun.grizzly.StandaloneProcessor;
+import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.asyncqueue.AsyncQueue;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
@@ -69,24 +71,29 @@ import com.sun.grizzly.streams.StreamWriter;
 public abstract class AbstractNIOConnection implements NIOConnection {
     protected final NIOTransport transport;
 
-    protected int readBufferSize;
-    protected int writeBufferSize;
+    protected volatile int readBufferSize;
+    protected volatile int writeBufferSize;
+
+    protected volatile long readTimeoutMillis = 30000;
+    protected volatile long writeTimeoutMillis = 30000;
 
     protected SelectorRunner selectorRunner;
     protected SelectableChannel channel;
     protected SelectionKey selectionKey;
     
-    protected Processor processor;
-    protected ProcessorSelector processorSelector;
+    protected volatile Processor processor;
+    protected volatile ProcessorSelector processorSelector;
     
     protected final AttributeHolder attributes;
 
     protected final AsyncQueue<AsyncReadQueueRecord> asyncReadQueue;
     protected final AsyncQueue<AsyncWriteQueueRecord> asyncWriteQueue;
     
-    protected AtomicBoolean isClosed = new AtomicBoolean(false);
+    protected final AtomicBoolean isClosed = new AtomicBoolean(false);
 
-    protected boolean isBlocking;
+    protected volatile boolean isBlocking;
+
+    protected volatile boolean isStandalone;
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;
@@ -104,6 +111,25 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     @Override
     public boolean isBlocking() {
         return isBlocking;
+    }
+
+    @Override
+    public synchronized void configureStandalone(boolean isStandalone) {
+        if (this.isStandalone != isStandalone) {
+            this.isStandalone = isStandalone;
+            if (isStandalone) {
+                processor = StandaloneProcessor.INSTANCE;
+                processorSelector = StandaloneProcessorSelector.INSTANCE;
+            } else {
+                processor = transport.getProcessor();
+                processorSelector = transport.getProcessorSelector();
+            }
+        }
+    }
+
+    @Override
+    public boolean isStandalone() {
+        return isStandalone;
     }
 
     @Override
@@ -129,6 +155,26 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     @Override
     public void setWriteBufferSize(int writeBufferSize) {
         this.writeBufferSize = writeBufferSize;
+    }
+
+    @Override
+    public long getReadTimeout(TimeUnit timeUnit) {
+        return timeUnit.convert(readTimeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void setReadTimeout(long timeout, TimeUnit timeUnit) {
+        readTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
+    }
+
+    @Override
+    public long getWriteTimeout(TimeUnit timeUnit) {
+        return timeUnit.convert(writeTimeoutMillis, TimeUnit.MILLISECONDS);
+    }
+
+    @Override
+    public void setWriteTimeout(long timeout, TimeUnit timeUnit) {
+        writeTimeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeUnit);
     }
 
     @Override
@@ -196,46 +242,66 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     }
 
     @Override
-    public AttributeHolder obtainAttributes() {
-        return attributes;
-    }
-
-    @Override
     public Future<ReadResult<Buffer, SocketAddress>> read() throws IOException {
-        return read(null);
+        return read(null, null, null, null);
     }
 
     @Override
     public Future<ReadResult<Buffer, SocketAddress>> read(Buffer buffer)
             throws IOException {
-        return read(buffer, null);
+        return read(buffer, null, null, null);
     }
 
     @Override
     public Future<ReadResult<Buffer, SocketAddress>> read(Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler)
-            throws IOException {
-        return read(buffer, completionHandler, null);
+            CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler) throws IOException {
+        return read(buffer, completionHandler, null, null);
+    }
+
+    @Override
+    public <M> Future<ReadResult<M, SocketAddress>> read(M message,
+            CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
+            Transformer<Buffer, M> transformer) throws IOException {
+        
+        return read(message, completionHandler, transformer, null);
     }
 
     @Override
     public Future<WriteResult<Buffer, SocketAddress>> write(Buffer buffer)
             throws IOException {
-        return write(null, buffer);
+        return write(null, buffer, null, null);
     }
 
     @Override
     public Future<WriteResult<Buffer, SocketAddress>> write(Buffer buffer,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler)
             throws IOException {
-        return write((SocketAddress) null, buffer, completionHandler);
+        return write(null, buffer, completionHandler, null);
     }
+
+    @Override
+    public <M> Future<WriteResult<M, SocketAddress>> write(M message,
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            Transformer<M, Buffer> transformer) throws IOException {
+
+        return write(null, message, completionHandler, transformer);
+    }
+
+
 
     @Override
     public Future<WriteResult<Buffer, SocketAddress>> write(
             SocketAddress dstAddress, Buffer buffer) throws IOException {
-        return write(dstAddress, buffer, null);
-    }    
+        return write(dstAddress, buffer, null, null);
+    }
+
+    @Override
+    public Future<WriteResult<Buffer, SocketAddress>> write(SocketAddress dstAddress,
+            Buffer buffer,
+            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler) throws IOException {
+        return write(dstAddress, buffer, completionHandler, null);
+    }
+
 
     @Override
     public boolean isOpen() {
@@ -246,16 +312,6 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     public void close() throws IOException {
         if (!isClosed.getAndSet(true)) {
             preClose();
-            StreamWriter writer = getStreamWriter();
-            if (writer != null) {
-                writer.close();
-            }
-
-            StreamReader reader = getStreamReader();
-            if (reader != null) {
-                reader.close();
-            }
-            
             ((AbstractNIOTransport) transport).closeConnection(this);
         }
     }

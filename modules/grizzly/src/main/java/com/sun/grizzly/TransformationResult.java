@@ -43,29 +43,49 @@ package com.sun.grizzly;
  * 
  * @author Alexey Stashok
  */
-public class TransformationResult<T> {
+public class TransformationResult<I, O> {
 
-    public enum Status {
-        COMPLETED, INCOMPLED, ERROR;
+    public static <I, O> TransformationResult<I, O> createErrorResult(
+            int errorCode, String errorDescription) {
+        return new TransformationResult<I, O>(errorCode, errorDescription);
     }
 
-    private T message;
+    public static <I, O> TransformationResult<I, O> createCompletedResult(
+            O message, I externalRemainder, boolean hasInternalRemainder) {
+        return new TransformationResult<I, O>(Status.COMPLETED, message,
+                externalRemainder, hasInternalRemainder);
+    }
+
+    public static <I, O> TransformationResult<I, O> createIncompletedResult(
+            I externalRemainder, boolean hasInternalRemainder) {
+        return new TransformationResult<I, O>(Status.INCOMPLETED, null,
+                externalRemainder, hasInternalRemainder);
+    }
+
+    public enum Status {
+        COMPLETED, INCOMPLETED, ERROR;
+    }
+
+    private O message;
     private Status status;
 
     private int errorCode;
     private String errorDescription;
 
+    private I externalRemainder;
+
+    private boolean hasInternalRemainder;
+
     public TransformationResult() {
-        this(Status.COMPLETED);
+        this(Status.COMPLETED, null, null, false);
     }
 
-    public TransformationResult(Status status) {
-        this(status, null);
-    }
-
-    public TransformationResult(Status status, T message) {
+    public TransformationResult(Status status, O message, I externalRemainder,
+            boolean hasInternalRemainder) {
         this.status = status;
         this.message = message;
+        this.externalRemainder = externalRemainder;
+        this.hasInternalRemainder = hasInternalRemainder;
     }
 
     /**
@@ -80,14 +100,30 @@ public class TransformationResult<T> {
         this.errorDescription = errorDescription;
     }
 
-    public T getMessage() {
+    public O getMessage() {
         return message;
     }
 
-    public void setMessage(T message) {
+    public void setMessage(O message) {
         this.message = message;
     }
 
+    public I getExternalRemainder() {
+        return externalRemainder;
+    }
+
+    public void setExternalRemainder(I externalRemainder) {
+        this.externalRemainder = externalRemainder;
+    }
+
+    public boolean hasInternalRemainder() {
+        return hasInternalRemainder;
+    }
+
+    public void setInternalRemainder(boolean hasInternalRemainder) {
+        this.hasInternalRemainder = hasInternalRemainder;
+    }
+   
     public Status getStatus() {
         return status;
     }

@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.nio.transport;
 
+import com.sun.grizzly.Transformer;
 import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
@@ -56,10 +57,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.utils.conditions.Condition;
+import com.sun.grizzly.Interceptor;
+import com.sun.grizzly.Reader;
+import com.sun.grizzly.Writer;
+import com.sun.grizzly.nio.tmpselectors.TemporarySelectorReader;
+import com.sun.grizzly.nio.tmpselectors.TemporarySelectorWriter;
+import java.io.EOFException;
+import java.util.concurrent.TimeUnit;
 
 /**
  * {@link com.sun.grizzly.Connection} implementation
@@ -68,11 +72,7 @@ import com.sun.grizzly.utils.conditions.Condition;
  * @author Alexey Stashok
  */
 public class TCPNIOConnection extends AbstractNIOConnection {
-    private Logger logger = Grizzly.logger;
-
-    private final TCPNIOStreamReader streamReader;
-
-    private final TCPNIOStreamWriter streamWriter;
+    private static Logger logger = Grizzly.logger(TCPNIOConnection.class);
 
     private SocketAddress localSocketAddress;
     private SocketAddress peerSocketAddress;
@@ -86,9 +86,6 @@ public class TCPNIOConnection extends AbstractNIOConnection {
         writeBufferSize = transport.getWriteBufferSize();
 
         resetAddresses();
-        
-        streamReader = new TCPNIOStreamReader(this);
-        streamWriter = new TCPNIOStreamWriter(this);
     }
 
     @Override
@@ -102,21 +99,11 @@ public class TCPNIOConnection extends AbstractNIOConnection {
     }
 
     @Override
-    public StreamReader getStreamReader() {
-        return streamReader;
-    }
-
-    @Override
-    public StreamWriter getStreamWriter() {
-        return streamWriter;
-    }
-
-    @Override
     protected void preClose() {
         try {
             transport.fireIOEvent(IOEvent.CLOSED, this);
         } catch (IOException e) {
-            Grizzly.logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
+            logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
                     "when firing CLOSE event");
         }
     }
@@ -159,106 +146,69 @@ public class TCPNIOConnection extends AbstractNIOConnection {
     }
 
     @Override
-    public Future<ReadResult<Buffer, SocketAddress>> read(final Buffer buffer,
-            final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
-            final Condition<ReadResult<Buffer, SocketAddress>> condition)
-            throws IOException {
-        final FutureImpl<ReadResult<Buffer, SocketAddress>> future =
-                new FutureImpl<ReadResult<Buffer, SocketAddress>>();
-        final ReadResult<Buffer, SocketAddress> readResult =
-                new ReadResult<Buffer, SocketAddress>(TCPNIOConnection.this,
-                buffer, getPeerAddress(), 0);
+    public <M> Future<ReadResult<M, SocketAddress>> read(
+            final M message,
+            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
+            final Transformer<Buffer, M> transformer,
+            final Interceptor<ReadResult> interceptor) throws IOException {
         
-        streamReader.notifyCondition(new Condition<StreamReader>() {
-            @Override
-            public boolean check(final StreamReader streamReader) {
-                if (condition == null) {
-                    return streamReader.hasAvailableData();
-                } else {
-                    readResult.setReadSize(streamReader.availableDataSize());
-                    return condition.check(readResult);
-                }
+        final TCPNIOTransport tcpNioTransport = (TCPNIOTransport) transport;
+
+        if (isBlocking) {
+            try {
+                final TemporarySelectorReader reader =
+                        (TemporarySelectorReader) tcpNioTransport.getTemporarySelectorIO().getReader();
+                final Future future = reader.read(this, message,
+                        completionHandler, transformer, interceptor,
+                        readTimeoutMillis, TimeUnit.MILLISECONDS);
+                return future;
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Error occured during TemporarySelector.read", e);
+                throw new EOFException();
             }
-        }, new CompletionHandler<Integer>() {
-
-
-            @Override
-            public void cancelled(Connection connection) {
-                completionHandler.cancelled(connection);
-                future.cancel(false);
+        } else {
+            try {
+                final Reader reader = tcpNioTransport.getAsyncQueueIO().getReader();
+                final Future future = reader.read(this, message,
+                        completionHandler, transformer, interceptor);
+                return future;
+            } catch (IOException e) {
+                throw e;
             }
-
-            @Override
-            public void failed(Connection connection, Throwable throwable) {
-                completionHandler.failed(connection, throwable);
-                future.failure(throwable);
-            }
-
-            @Override
-            public void completed(Connection connection, Integer result) {
-                readResult.setReadSize(result);
-                if (completionHandler != null) {
-                    completionHandler.completed(connection, readResult);
-                }
-
-                future.setResult(readResult);            }
-
-            @Override
-            public void updated(Connection connection, Integer result) {
-                readResult.setReadSize(result);
-                completionHandler.updated(connection, readResult);
-            }
-
-        });
-
-        return future;
+        }
     }
 
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(
-            final SocketAddress dstAddress, final Buffer buffer,
-            final CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler)
-            throws IOException {
-        final FutureImpl<WriteResult<Buffer, SocketAddress>> future =
-                new FutureImpl<WriteResult<Buffer, SocketAddress>>();
+    public <M> Future<WriteResult<M, SocketAddress>> write(
+            SocketAddress dstAddress, M message,
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            Transformer<M, Buffer> transformer) throws IOException {
 
-        streamWriter.writeBuffer(buffer);
-        streamWriter.flush(new CompletionHandler<Integer>() {
-            private final WriteResult<Buffer, SocketAddress> writeResult =
-                    new WriteResult<Buffer, SocketAddress>(TCPNIOConnection.this,
-                    buffer, getPeerAddress(), 0);
-            
-            @Override
-            public void cancelled(Connection connection) {
-                completionHandler.cancelled(connection);
-                future.cancel(false);
+        final TCPNIOTransport tcpNioTransport = (TCPNIOTransport) transport;
+
+        if (isBlocking) {
+            try {
+                final TemporarySelectorWriter writer =
+                        (TemporarySelectorWriter) tcpNioTransport.getTemporarySelectorIO().getWriter();
+                final Future future = writer.write(this, dstAddress, message,
+                        completionHandler, transformer, null,
+                        writeTimeoutMillis, TimeUnit.MILLISECONDS);
+                return future;
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error writing to channel", e);
+                throw new EOFException("Cause: " + e.getClass().getName() +
+                        " \"" + e.getMessage() + "\"");
             }
-
-            @Override
-            public void failed(Connection connection, Throwable throwable) {
-                completionHandler.failed(connection, throwable);
-                future.failure(throwable);
+        } else {
+            try {
+                final Writer writer = tcpNioTransport.getAsyncQueueIO().getWriter();
+                final Future future = writer.write(this, null, message,
+                        completionHandler, transformer, null);
+                return future;
+            } catch (IOException e) {
+                throw e;
             }
-
-            @Override
-            public void completed(Connection connection, Integer result) {
-                writeResult.setWrittenSize(result);
-                if (completionHandler != null) {
-                    completionHandler.completed(connection, writeResult);
-                }
-                
-                future.setResult(writeResult);
-            }
-
-            @Override
-            public void updated(Connection connection, Integer result) {
-                writeResult.setWrittenSize(result);
-                completionHandler.updated(connection, writeResult);
-            }
-
-        });
-
-        return future;
+        }
     }
 }
     

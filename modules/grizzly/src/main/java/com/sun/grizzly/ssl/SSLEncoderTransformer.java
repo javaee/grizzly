@@ -35,9 +35,9 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.ssl;
 
+import com.sun.grizzly.AbstractTransformer;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -48,12 +48,10 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
-import com.sun.grizzly.Transformer;
-import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.attributes.AttributeHolder;
-import com.sun.grizzly.threadpool.WorkerThread;
+import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.attributes.AttributeStorage;
+import com.sun.grizzly.memory.BufferUtils;
+import com.sun.grizzly.memory.MemoryManager;
 
 /**
  * <tt>Transformer</tt>, which encrypts plain data, contained in the
@@ -61,187 +59,132 @@ import com.sun.grizzly.attributes.AttributeStorage;
  *
  * @author Alexey Stashok
  */
-public class SSLEncoderTransformer implements Transformer<Buffer, Buffer> {
+public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buffer> {
+
     public static final int NEED_HANDSHAKE_ERROR = 1;
     public static final int BUFFER_UNDERFLOW_ERROR = 2;
     public static final int BUFFER_OVERFLOW_ERROR = 3;
 
-    private static Attribute<TransformationResult<Buffer>> lastResultAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            "SSLEncoderTransformer.lastResult");
+    private Logger logger = Grizzly.logger(SSLEncoderTransformer.class);
     
-    private Logger logger = Grizzly.logger;
+    private static final TransformationResult<Buffer, Buffer> HANDSHAKE_NOT_EXECUTED_RESULT =
+            TransformationResult.<Buffer, Buffer>createErrorResult(
+            NEED_HANDSHAKE_ERROR, "Handshake was not executed");
     
-    @Override
-    public TransformationResult<Buffer> transform(AttributeStorage state)
-            throws TransformationException {
-        return transform(state, getInput(state), getOutput(state));
+    private final MemoryManager<Buffer> memoryManager;
+
+    public SSLEncoderTransformer() {
+        this(TransportFactory.getInstance().getDefaultMemoryManager());
+    }
+
+    public SSLEncoderTransformer(MemoryManager<Buffer> memoryManager) {
+        this.memoryManager = memoryManager;
     }
 
     @Override
-    public TransformationResult<Buffer> transform(AttributeStorage state,
-            Buffer originalMessage, Buffer targetMessage)
+    public String getName() {
+        return SSLEncoderTransformer.class.getName();
+    }
+
+    @Override
+    public TransformationResult<Buffer, Buffer> transform(AttributeStorage state,
+            Buffer originalMessage)
             throws TransformationException {
 
-        SSLResourcesAccessor resourceAccessor =
-                SSLResourcesAccessor.getInstance();
-        SSLEngine sslEngine =
-                resourceAccessor.getSSLEngine(state);
-
+        final SSLEngine sslEngine = SSLUtils.getSSLEngine(state);
         if (sslEngine == null) {
-            // There is no SSLEngine associated with the connection yet
-            throw new IllegalStateException("There is no SSLEngine associated!" +
-                    " May be handshake phase was not executed?");
+            return saveLastResult(state, HANDSHAKE_NOT_EXECUTED_RESULT);
         }
 
-        if (originalMessage == null) {
-            originalMessage = getInput(state);
+        Buffer targetBuffer = getOutput(state);
+        final boolean isAllocated = (targetBuffer == null);
+        if (isAllocated) {
+            targetBuffer = memoryManager.allocate(
+                    sslEngine.getSession().getPacketBufferSize());
+        } else if (targetBuffer.isComposite()) {
+            throw new IllegalArgumentException("output buffer could not be composite");
         }
 
-        if (targetMessage == null) {
-            targetMessage = getOutput(state);
-        }
-        
-        TransformationResult<Buffer> transformationResult = null;
-        SSLEngineResult sslEngineResult = null;
-        
-        do {
-            try {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("SSLEncoder engine: " + sslEngine + " input: " +
-                            originalMessage + " output: " + targetMessage);
-                }
+        TransformationResult<Buffer, Buffer> transformationResult = null;
 
-                sslEngineResult =
-                        sslEngine.wrap((ByteBuffer) originalMessage.underlying(),
-                        (ByteBuffer) targetMessage.underlying());
-
-                SSLEngineResult.Status status = sslEngineResult.getStatus();
-
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("SSLEncoder done engine: " + sslEngine +
-                            " result: " + sslEngineResult +
-                            " input: " + originalMessage +
-                            " output: " + targetMessage);
-                }
-            } catch (SSLException e) {
-                throw new TransformationException(e);
+        try {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine("SSLEncoder engine: " + sslEngine + " input: "
+                        + originalMessage + " output: " + targetBuffer);
             }
-        } while (originalMessage.hasRemaining() &&
-                sslEngineResult.getStatus() == SSLEngineResult.Status.OK);
 
-        SSLEngineResult.Status sslEngineStatus = sslEngineResult.getStatus();
-        switch (sslEngineStatus) {
-            case OK:
-                if (originalMessage.hasRemaining()) {
-                    throw new IllegalStateException(
-                            "Status is OK, but still have something to process? Buffer: " +
-                            originalMessage);
+            final SSLEngineResult sslEngineResult;
+            if (!originalMessage.isComposite()) {
+                sslEngineResult = sslEngine.wrap(originalMessage.toByteBuffer(),
+                        targetBuffer.toByteBuffer());
+            } else {
+                final int appBufferSize = sslEngine.getSession().getApplicationBufferSize();
+                final int pos = originalMessage.position();
+                final ByteBuffer originalByteBuffer =
+                        originalMessage.toByteBuffer(pos,
+                        pos + Math.min(appBufferSize, originalMessage.remaining()));
+
+                sslEngineResult = sslEngine.wrap(originalByteBuffer,
+                        targetBuffer.toByteBuffer());
+
+                originalMessage.position(pos + sslEngineResult.bytesConsumed());
+            }
+
+            final SSLEngineResult.Status status = sslEngineResult.getStatus();
+
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine("SSLEncoder done engine: " + sslEngine
+                        + " result: " + sslEngineResult
+                        + " input: " + originalMessage
+                        + " output: " + targetBuffer);
+            }
+            
+            if (status == SSLEngineResult.Status.OK) {
+                if (isAllocated) {
+                    targetBuffer.trim();
                 }
-            case CLOSED:
-                transformationResult = new TransformationResult<Buffer>(
-                        Status.COMPLETED,
-                        targetMessage.duplicate().flip());
-                break;
-            case BUFFER_UNDERFLOW:
-                transformationResult = new TransformationResult<Buffer>(
-                        BUFFER_UNDERFLOW_ERROR,
-                        "Buffer underflow during wrap operation");
-                break;
-            case BUFFER_OVERFLOW:
-                Buffer resultBuffer = targetMessage.duplicate().flip();
-                if (resultBuffer.hasRemaining()) {
-                    targetMessage.clear();
+                
+                transformationResult =
+                        TransformationResult.<Buffer, Buffer>createCompletedResult(
+                        targetBuffer, originalMessage, false);
+            } else if (status == SSLEngineResult.Status.CLOSED) {
+                if (isAllocated) {
+                    targetBuffer.dispose();
+                }
+                
+                transformationResult =
+                        TransformationResult.<Buffer, Buffer>createCompletedResult(
+                        BufferUtils.EMPTY_BUFFER, originalMessage, false);
+            } else {
+                if (isAllocated) {
+                    targetBuffer.dispose();
+                }
+
+                if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                     transformationResult =
-                            new TransformationResult<Buffer>(
-                            Status.INCOMPLED, resultBuffer);
-                } else {
-                    transformationResult = new TransformationResult<Buffer>(
+                            TransformationResult.<Buffer, Buffer>createErrorResult(
+                            BUFFER_UNDERFLOW_ERROR,
+                            "Buffer underflow during wrap operation");
+                } else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW) {
+                    transformationResult =
+                            TransformationResult.<Buffer, Buffer>createErrorResult(
                             BUFFER_OVERFLOW_ERROR,
                             "Buffer overflow during wrap operation");
                 }
-                break;
-            default:
-                throw new IllegalStateException(
-                        "Unexpected SSLEngine state: " + sslEngineStatus);
-        }
-
-
-        lastResultAttr.set(state.obtainAttributes(), transformationResult);
-        
-        return transformationResult;
-    }
-
-    @Override
-    public Buffer getInput(AttributeStorage state) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        return accessor.obtainAppBuffer(state);
-    }
-
-    @Override
-    public void setInput(AttributeStorage state, Buffer input) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        accessor.setAppBuffer(state, input);
-    }
-
-    @Override
-    public Buffer getOutput(AttributeStorage state) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        return accessor.obtainSecuredOutBuffer(state);
-    }
-
-    @Override
-    public void setOutput(AttributeStorage state, Buffer outputTarget) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        accessor.setSecuredOutBuffer(state, outputTarget);
-    }
-
-    @Override
-    public TransformationResult<Buffer> getLastResult(AttributeStorage state) {
-        return lastResultAttr.get(state);
-    }
-
-    @Override
-    public AttributeHolder getProperties(AttributeStorage state) {
-        return state.getAttributes();
-    }
-
-    @Override
-    public void hibernate(AttributeStorage state) {
-        TransformationResult<Buffer> lastResult = getLastResult(state);
-        if (lastResult != null) {
-            Buffer lastResultMessage = lastResult.getMessage();
-            if (lastResultMessage != null && lastResultMessage.hasRemaining()) {
-                Buffer outputBuffer = getOutput(state);
-                if (detachOutputFromWorkerThread(outputBuffer)) {
-                    setOutput(state, outputBuffer);
-                }
             }
+        } catch (SSLException e) {
+            if (isAllocated) {
+                targetBuffer.dispose();
+            }
+            
+            throw new TransformationException(e);
         }
+
+        return saveLastResult(state, transformationResult);
     }
 
     @Override
-    public void release(AttributeStorage state) {
-        AttributeHolder holder = state.getAttributes();
-        if (holder != null) {
-            lastResultAttr.remove(holder);
-        }
-
-        Buffer output = getOutput(state);
-        output.clear();
-    }
-
-    private boolean detachOutputFromWorkerThread(Buffer output) {
-        Thread thread = Thread.currentThread();
-        if (thread instanceof WorkerThread) {
-            WorkerThread workerThread = (WorkerThread) thread;
-            SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-            if (accessor.getSecuredOutBuffer(workerThread) == output) {
-                accessor.setSecuredOutBuffer(workerThread, null);
-                return true;
-            }
-        }
-        
-        return false;
+    public boolean hasInputRemaining(Buffer input) {
+        return input != null && input.hasRemaining();
     }
 }

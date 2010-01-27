@@ -37,10 +37,10 @@ package com.sun.grizzly.streams;
 
 import java.io.IOException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.utils.conditions.Condition;
 
 /**
@@ -59,23 +59,6 @@ import com.sun.grizzly.utils.conditions.Condition;
  * @author Alexey Stashok
  */
 public interface StreamReader extends Stream {
-
-    /**
-     * Returns the {@link StreamReader} mode.
-     * <tt>true</tt>, if {@link StreamReader} is operating in blocking mode, or
-     * <tt>false</tt> otherwise.
-     *
-     * @return the {@link StreamReader} mode.
-     */
-    public boolean isBlocking();
-
-    /**
-     * Sets the {@link StreamReader} mode.
-     *
-     * @param isBlocking <tt>true</tt>, if {@link StreamReader} is operating in
-     * blocking mode, or <tt>false</tt> otherwise.
-     */
-    public void setBlocking(boolean isBlocking);
 
     /**
      * Method returns {@link Future}, using which it's possible check if
@@ -116,7 +99,7 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> meets the required {@link Condition}.
      */
-    public Future<Integer> notifyCondition(Condition<StreamReader> condition);
+    public Future<Integer> notifyCondition(Condition condition);
 
     /**
      * Method returns {@link Future}, using which it's possible check if
@@ -131,22 +114,8 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> meets the required {@link Condition}.
      */
-    public Future<Integer> notifyCondition(Condition<StreamReader> condition,
+    public Future<Integer> notifyCondition(Condition condition,
             CompletionHandler<Integer> completionHandler);
-    
-    /**
-     * Add more data to the beginning of the stream.
-     * @return true, if buffer was prepended to the {@link StreamReader},
-     * or false otherwise
-     */
-    boolean prependBuffer(Buffer buffer);
-
-    /**
-     * Add more data to the end of the stream.
-     * @return true, if buffer was appended to the {@link StreamReader},
-     * or false otherwise
-     */
-    boolean appendBuffer(Buffer buffer);
 
     /**
      * Return <tt>true</tt> if <tt>StreamReader</tt> has available data, which
@@ -155,14 +124,14 @@ public interface StreamReader extends Stream {
      * @return <tt>true</tt> if <tt>StreamReader</tt> has available data, which
      * could be read, or <tt>false</tt> otherwise.
      */
-    boolean hasAvailableData();
+    public boolean hasAvailable();
 
     /**
      * Return the number of bytes available for get calls.  An attempt to
      * get more data than is present in the stream will either result in 
      * blocking (if isBlocking() returns true) or a BufferUnderflowException.
      */
-    int availableDataSize();
+    public int available();
 
     /**
      * Get the next boolean in the stream.  Requires 1 byte.
@@ -172,57 +141,57 @@ public interface StreamReader extends Stream {
     /**
      * Get the next byte in the stream.  Requires 1 byte.
      */
-    byte readByte() throws IOException;
+    public byte readByte() throws IOException;
 
     /**
      * Get the next character in the stream.  Requires 2 bytes.
      */
-    char readChar() throws IOException;
+    public char readChar() throws IOException;
 
     /** Get the next short in the stream.  Requires 2 bytes.
      */
-    short readShort() throws IOException;
+    public short readShort() throws IOException;
 
     /**
      * Get the next int in the stream.  Requires 4 bytes.
      */
-    int readInt() throws IOException;
+    public int readInt() throws IOException;
 
     /**
      * Get the next long in the stream.  Requires 8 bytes.
      */
-    long readLong() throws IOException;
+    public long readLong() throws IOException;
 
     /**
      * Get the next float in the stream.  Requires 4 bytes.
      */
-    float readFloat() throws IOException;
+    public float readFloat() throws IOException;
 
     /**
      * Get the next double in the stream.  Requires 8 bytes.
      */
-    double readDouble() throws IOException;
+    public double readDouble() throws IOException;
 
     /**
      * Fill data with booleans (byte 1=true, 0=false) from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
-    void readBooleanArray(boolean[] data) throws IOException;
+    public void readBooleanArray(boolean[] data) throws IOException;
 
     /**
      * Fill data with bytes from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
-    void readByteArray(byte[] data) throws IOException;
+    public void readByteArray(byte[] data) throws IOException;
 
     /**
      * Fill data with bytes from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires data.length bytes.
      */
-    void readByteArray(byte[] data, int offset, int length) throws IOException;
+    public void readByteArray(byte[] data, int offset, int length) throws IOException;
 
     /**
      * Fill the buffer with data from the stream (that is, copy data
@@ -231,49 +200,72 @@ public interface StreamReader extends Stream {
      * from one stream and then added to another stream for
      * further processing.
      */
-    void readBytes(Buffer buffer) throws IOException;
+    public void readBytes(Buffer buffer) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 2*data.length bytes.
      */
-    void readCharArray(char[] data) throws IOException;
+    public void readCharArray(char[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 2*data.length bytes.
      */
-    void readShortArray(short[] data) throws IOException;
+    public void readShortArray(short[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 4*data.length bytes.
      */
-    void readIntArray(int[] data) throws IOException;
+    public void readIntArray(int[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 8*data.length bytes.
      */
-    void readLongArray(long[] data) throws IOException;
+    public void readLongArray(long[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 4*data.length bytes.
      */
-    void readFloatArray(float[] data) throws IOException;
+    public void readFloatArray(float[] data) throws IOException;
 
     /**
      * Fill data with characters from the stream.
      * If this method returns normally, data has been filled completely.
      * Requires 8*data.length bytes.
      */
-    void readDoubleArray(double[] data) throws IOException;
+    public void readDoubleArray(double[] data) throws IOException;
+
+    public void skip(int length);
+    
+    /**
+     * Read and decode data from the <tt>StreamReader</tt>
+     * 
+     * @param <E> decoded data tyoe
+     * @param decoder {@link Transformer}
+     * @return {@link Future}, which will hold the decoding state.
+     */
+    public <E> Future<E> decode(Transformer<Stream, E> decoder);
+    
+    /**
+     * Read and decode data from the <tt>StreamReader</tt>
+     *
+     * @param <E> decoded data tyoe
+     * @param decoder {@link Transformer}
+     * @param completionHandler {@link CompletionHandler}, which will be
+     *                          notified, when decoder will become ready.
+     * @return {@link Future}, which will hold the decoding state.
+     */
+    public <E> Future<E> decode(Transformer<Stream, E> decoder,
+            CompletionHandler<E> completionHandler);
 
     /**
      * Returns <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
@@ -282,73 +274,12 @@ public interface StreamReader extends Stream {
      * @return <tt>true</tt>, if <tt>StreamReader</tt> has been closed,
      * or <tt>false</tt> otherwise.
      */
-    boolean isClosed();
+    public boolean isClosed();
 
-    /**
-     * Returns the current <tt>StreamReader</tt>'s source {@link Buffer} and
-     * makes next available {@link Buffer} current.
-     * 
-     * @return the current <tt>StreamReader</tt>'s source {@link Buffer}
-     * @throws java.io.IOException
-     */
-    Buffer readBuffer() throws IOException;
-    
-    /**
-     * Return the current <tt>StreamReader</tt>'s source {@link Buffer}.
-     * Unlike {@link StreamReader#readBuffer()}, this method doesn't
-     * make any internal updates of current {@link Buffer}.
-     *
-     * @return the current <tt>StreamReader</tt>'s source {@link Buffer}.
-     */
-    Buffer getBuffer();
+    public boolean isSupportBufferWindow();
 
-    /**
-     * Finishes processing of the current <tt>StreamReader</tt>'s source
-     * {@link Buffer}. This method doesn't call {@link Buffer#dispose()}.
-     */
-    void finishBuffer();
+    public Buffer getBufferWindow();
 
-    Buffer asReadOnlyBufferWindow();
-
-    /**
-     * Get the {@link Connection} this <tt>StreamReader</tt> belongs to.
-     * 
-     * @return the {@link Connection} this <tt>StreamReader</tt> belongs to.
-     */
-    Connection getConnection();
-
-    /**
-     * Get the preferred {@link Buffer} size to be used for <tt>StreamReader</tt>
-     * read operations.
-     * 
-     * @return the preferred {@link Buffer} size to be used for <tt>StreamReader</tt>
-     * read operations.
-     */
-    int getBufferSize();
-
-    /**
-     * Set the preferred {@link Buffer} size to be used for <tt>StreamReader</tt>
-     * read operations.
-     *
-     * @param size the preferred {@link Buffer} size to be used for
-     * <tt>StreamReader</tt> read operations.
-     */
-    void setBufferSize(int size);
-
-    /**
-     * Get the timeout for <tt>StreamReader</tt> I/O operations.
-     * 
-     * @param timeunit timeout unit {@link TimeUnit}.
-     * @return the timeout for <tt>StreamReader</tt> I/O operations.
-     */
-    long getTimeout(TimeUnit timeunit);
-
-    /**
-     * Set the timeout for <tt>StreamReader</tt> I/O operations.
-     * 
-     * @param timeout the timeout for <tt>StreamReader</tt> I/O operations.
-     * @param timeunit timeout unit {@link TimeUnit}.
-     */
-    void setTimeout(long timeout, TimeUnit timeunit);
+    public Buffer takeBufferWindow();
 }
 

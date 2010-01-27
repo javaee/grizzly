@@ -52,17 +52,22 @@ public class DefaultFilterChainCodec implements Codec {
     private final DefaultEncoderTransformer encoder;
     
     public DefaultFilterChainCodec(final DefaultFilterChain filterChain) {
-        decoder = new DefaultDecoderTransformer(filterChain);
-        encoder = new DefaultEncoderTransformer(filterChain);
+        this(filterChain, filterChain.size());
+    }
+
+    public DefaultFilterChainCodec(final DefaultFilterChain filterChain,
+            final int limit) {
+        decoder = new DefaultDecoderTransformer(filterChain, limit);
+        encoder = new DefaultEncoderTransformer(filterChain, limit);
     }
 
     @Override
-    public DefaultDecoderTransformer getDecoder() {
+    public final DefaultDecoderTransformer getDecoder() {
         return decoder;
     }
 
     @Override
-    public DefaultEncoderTransformer getEncoder() {
+    public final DefaultEncoderTransformer getEncoder() {
         return encoder;
     }
 

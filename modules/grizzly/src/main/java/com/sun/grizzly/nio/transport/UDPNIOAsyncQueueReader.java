@@ -50,6 +50,7 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.NIOConnection;
 
@@ -59,7 +60,7 @@ import com.sun.grizzly.nio.NIOConnection;
  *
  * @author Alexey Stashok
  */
-public class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
+public final class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
     public UDPNIOAsyncQueueReader(NIOTransport transport) {
         super(transport);
     }
@@ -67,19 +68,21 @@ public class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
     @Override
     protected int read0(Connection connection, Buffer buffer,
             ReadResult<Buffer, SocketAddress> currentResult) throws IOException {
-        return ((UDPNIOTransport) transport).read(connection, buffer,
-                currentResult);
+        return ((UDPNIOTransport) transport).read((UDPNIOConnection) connection,
+                buffer, currentResult);
     }
 
     protected void addRecord(Connection connection,
             Buffer buffer,
             CompletionHandler completionHandler,
+            Transformer transformer,
             Interceptor<ReadResult> interceptor) {
-        AsyncReadQueueRecord record = new AsyncReadQueueRecord();
-        record.set(buffer, new FutureImpl(),
+        
+        final AsyncReadQueueRecord record = new AsyncReadQueueRecord(
+                buffer, new FutureImpl(),
                 new ReadResult(connection),
-                completionHandler, interceptor);
-        ((TCPNIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
+                completionHandler, transformer, interceptor);
+        ((UDPNIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
     }
 
     @Override

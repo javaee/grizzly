@@ -45,7 +45,6 @@ import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.Transport.State;
 import com.sun.grizzly.utils.ExceptionHandler.Severity;
 import com.sun.grizzly.utils.StateHolder;
-import com.sun.grizzly.utils.conditions.ConditionListener;
 import java.io.IOException;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedSelectorException;
@@ -58,6 +57,9 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.utils.LinkedTransferQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Class is responsible for processing certain (single) {@link SelectorHandler}
@@ -65,7 +67,7 @@ import com.sun.grizzly.utils.LinkedTransferQueue;
  * @author Alexey Stashok
  */
 public class SelectorRunner implements Runnable {
-    private final static Logger logger = Grizzly.logger;
+    private final static Logger logger = Grizzly.logger(SelectorRunner.class);
 
     private final NIOTransport transport;
     private final StateHolder<State> stateHolder;
@@ -115,7 +117,7 @@ public class SelectorRunner implements Runnable {
 
     public void start() {
         if (stateHolder.getState() != State.STOP) {
-            Grizzly.logger.log(Level.WARNING,
+            logger.log(Level.WARNING,
                     "SelectorRunner is not in the stopped state!");
         }
         
@@ -127,7 +129,13 @@ public class SelectorRunner implements Runnable {
     
     public void startBlocking(int timeout) throws TimeoutException {
         start();
-        waitUntilStateNotEqual(stateHolder, State.START, timeout);
+        final Future<State> future = stateHolder.notifyWhenStateIsEqual(
+                State.START, null);
+        try {
+            future.get(5000, TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+        } catch (InterruptedException e) {
+        }
     }
 
     public void stop() {
@@ -163,7 +171,13 @@ public class SelectorRunner implements Runnable {
         
     public void stopBlocking(int timeout) throws TimeoutException {
         stop();
-        waitUntilStateNotEqual(stateHolder, State.STOP, timeout);
+        final Future<State> future = stateHolder.notifyWhenStateIsEqual(
+                State.STOP, null);
+        try {
+            future.get(5000, TimeUnit.MILLISECONDS);
+        } catch (ExecutionException e) {
+        } catch (InterruptedException e) {
+        }
     }
     
     public void wakeupSelector() {
@@ -191,9 +205,11 @@ public class SelectorRunner implements Runnable {
                     isSkipping = !doSelect();
                 } else {
                     try {
-                        waitUntilStateEqual(transportStateHolder, State.PAUSE,
-                                5000);
-                    } catch (TimeoutException e) {
+                        Future<State> future =
+                                transportStateHolder.notifyWhenStateIsNotEqual(
+                                State.PAUSE, null);
+                        future.get(5000, TimeUnit.MILLISECONDS);
+                    } catch (Exception e) {
                     }
                 }
             }
@@ -406,56 +422,6 @@ public class SelectorRunner implements Runnable {
     private boolean isRunning(boolean isBlockingCompare) {
         return stateHolder.getState(isBlockingCompare) == State.START &&
                 transport.getState().getState(isBlockingCompare) == State.START;
-    }
-    
-    private static void waitUntilStateNotEqual(StateHolder<State> stateHolder, 
-            State patternState, int timeout) throws TimeoutException {
-
-        Object locker = new Object();
-        ConditionListener<State, Object> listener =
-                stateHolder.notifyWhenStateIsEqual(patternState, locker);
-
-        if (listener != null) {
-            synchronized (locker) {
-                try {
-                    if (stateHolder.getState(false) != patternState) {
-                        locker.wait(timeout);
-                    }
-                } catch (InterruptedException e) {
-                } finally {
-                    stateHolder.removeConditionListener(listener);
-                }
-            }
-        }
-
-        if (stateHolder.getState(false) != patternState) {
-            throw new TimeoutException();
-        }
-    }
-    
-    private static void waitUntilStateEqual(StateHolder<State> stateHolder, 
-            State patternState, int timeout) throws TimeoutException {
-
-        Object locker = new Object();
-        ConditionListener<State, Object> listener =
-                stateHolder.notifyWhenStateIsNotEqual(patternState, locker);
-
-        if (listener != null) {
-            synchronized (locker) {
-                try {
-                    if (stateHolder.getState(false) == patternState) {
-                        locker.wait(timeout);
-                    }
-                } catch (InterruptedException e) {
-                } finally {
-                    stateHolder.removeConditionListener(listener);
-                }
-            }
-        }
-
-        if (stateHolder.getState(false) == patternState) {
-            throw new TimeoutException();
-        }
     }
 
     /**

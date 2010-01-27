@@ -46,7 +46,8 @@ import com.sun.grizzly.Grizzly;
  */
 public class Slab {
 
-    private static Logger logger = Grizzly.logger;
+    private static Logger logger = Grizzly.logger(Slab.class);
+    
     private static boolean FINE_DEBUG;
     static {
         FINE_DEBUG = logger.isLoggable(Level.FINEST);

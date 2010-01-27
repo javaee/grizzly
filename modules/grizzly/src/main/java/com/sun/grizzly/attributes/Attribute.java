@@ -48,23 +48,23 @@ package com.sun.grizzly.attributes;
  *      2) Access to <tt>Attribute</tt> value, if used with
  *         {@link IndexedAttributeHolder}, could be as fast as access to array.
  */
-public class Attribute<T> {
+public final class Attribute<T> {
     /**
      * AttributeBuilder, which was used to create this attribute
      */
-    private AttributeBuilder builder;
+    private final AttributeBuilder builder;
     /**
      * Attribute name
      */
-    private String name;
+    private final String name;
     /**
      * Attribute initializer, which will be called, if attribute is not set.
      */
-    private NullaryFunction<T> initializer;
+    private final NullaryFunction<T> initializer;
     /**
      * Attribute default value, which will be used, if attribute is not set.
      */
-    private T defaultValue;
+    private final T defaultValue;
     /**
      * Attribute index in AttributeBuilder
      */
@@ -164,7 +164,7 @@ public class Attribute<T> {
      * @param value attribute value to set.
      */
     public void set(AttributeStorage storage, T value) {
-        set(storage.obtainAttributes(), value);
+        set(storage.getAttributes(), value);
     }
 
     /**
@@ -190,7 +190,7 @@ public class Attribute<T> {
     public T remove(AttributeStorage storage) {
         AttributeHolder holder = storage.getAttributes();
         if (holder != null) {
-            remove(holder);
+            return remove(holder);
         }
 
         return null;

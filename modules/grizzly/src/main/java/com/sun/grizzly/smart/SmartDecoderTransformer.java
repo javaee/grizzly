@@ -100,17 +100,24 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
                 MESSAGE_PROCESSING_TREE_ATTR_NAME);
     }
 
+    @Override
+    public String getName() {
+        return SmartDecoderTransformer.class.getName();
+    }
+
     public Class<E> getMessageClass() {
         return messageClass;
     }
 
     @Override
-    public TransformationResult<E> transform(AttributeStorage storage,
-            Buffer input, E output) throws TransformationException {
+    public TransformationResult<Buffer, E> transform(AttributeStorage storage,
+            Buffer input) throws TransformationException {
         int currentElementIndex = 0;
 
         List processingTree = messageProcessingTreeAttribute.get(storage);
-        
+
+        final E output = getOutput(storage);
+
         if (processingTree == null) {
             E rootMessage;
             if (output == null) {
@@ -121,8 +128,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
 
             processingTree = new ArrayList();
             processingTree.add(rootMessage);
-            messageProcessingTreeAttribute.set(storage.obtainAttributes(),
-                    processingTree);
+            messageProcessingTreeAttribute.set(storage, processingTree);
             currentElementIndex = 0;
         } else {
             currentElementIndex = currentTransformerIdxAttribute.get(storage);
@@ -139,7 +145,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
                     
                     Transformer transformer = transformerUnit.transformer;
                     TransformationResult result =
-                            transformer.transform(storage, input, null);
+                            transformer.transform(storage, input);
 
                     Status status = result.getStatus();
                     if (status == Status.COMPLETED) {
@@ -155,10 +161,11 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
                         }
                         
                         currentElementIndex++;
-                    } else if (status == Status.INCOMPLED) {
-                        saveStatus(storage, processingTree, currentElementIndex,
-                                incompletedResult);
-                        return incompletedResult;
+                    } else if (status == Status.INCOMPLETED) {
+                        return saveState(storage, processingTree,
+                                currentElementIndex,
+                                TransformationResult.<Buffer, E>createIncompletedResult(
+                                input, false));
                     } else {
                         transformer.release(storage);
                         return result;
@@ -198,10 +205,9 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
             }
         }
 
-        TransformationResult<E> result = new TransformationResult<E>(
-                Status.COMPLETED, (E) processingTree.get(0));
-        saveStatus(storage, processingTree, currentElementIndex ,result);
-        return result;
+        return saveState(storage, processingTree, currentElementIndex,
+        TransformationResult.<Buffer, E>createCompletedResult(
+                (E) processingTree.get(0), input, false));
     }
 
     @Override
@@ -213,6 +219,11 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
         }
 
         super.release(storage);
+    }
+
+    @Override
+    public boolean hasInputRemaining(Buffer input) {
+        return input != null && input.hasRemaining();
     }
 
     public Map<Class, Class<? extends Transformer>> getPredefinedTransformers() {
@@ -306,11 +317,12 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
         predefinedTransformers.put(Array.class, ArrayDecoder.class);
     }
 
-    private void saveStatus(AttributeStorage storage,
-            List messageProcessingTree, int index, TransformationResult<E> lastResult) {
+    private TransformationResult<Buffer, E> saveState(AttributeStorage storage,
+            List messageProcessingTree, int index,
+            TransformationResult<Buffer, E> lastResult) {
         currentTransformerIdxAttribute.set(storage, index);
         messageProcessingTreeAttribute.set(storage, messageProcessingTree);
-        lastResultAttribute.set(storage, lastResult);
+        return saveLastResult(storage, lastResult);
     }
     
     protected Class<? extends Transformer> getTransformer(Class clazz) {

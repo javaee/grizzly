@@ -41,7 +41,6 @@ package com.sun.grizzly.smart.transformers;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
 import com.sun.grizzly.attributes.AttributeStorage;
 
 /**
@@ -50,23 +49,30 @@ import com.sun.grizzly.attributes.AttributeStorage;
  */
 public abstract class PrimitiveEncoder<E> extends AbstractSmartMemberEncoder<E> {
     @Override
-    public TransformationResult<Buffer> transform(AttributeStorage storage,
-            E input, Buffer output) throws TransformationException {
+    public TransformationResult<E, Buffer> transform(AttributeStorage storage,
+            E input) throws TransformationException {
         
         if (input == null) {
             throw new TransformationException("Input could not be null");
         }
         
-        TransformationResult<Buffer> result;
+        final Buffer output = getOutput(storage);
+        
+        final TransformationResult<E, Buffer> result;
 
         if (output.remaining() < sizeOf()) {
-            result = incompletedResult;
+            result = TransformationResult.<E, Buffer>createIncompletedResult(input, false);
         } else {
-            result = new TransformationResult<Buffer>(Status.COMPLETED,
-                    put(output, input).duplicate().flip());
+            result = TransformationResult.<E, Buffer>createCompletedResult(
+                    put(output, input), input, false);
         }
 
         return result;
+    }
+
+    @Override
+    public boolean hasInputRemaining(E input) {
+        return input != null;
     }
 
     public abstract int sizeOf();

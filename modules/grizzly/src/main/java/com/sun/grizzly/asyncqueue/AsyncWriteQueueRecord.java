@@ -38,9 +38,10 @@
 
 package com.sun.grizzly.asyncqueue;
 
-import com.sun.grizzly.Interceptor;
-import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Interceptor;
+import com.sun.grizzly.Transformer;
+import java.util.concurrent.Future;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.WriteResult;
 
@@ -49,36 +50,42 @@ import com.sun.grizzly.WriteResult;
  * 
  * @author Alexey Stashok
  */
-public class AsyncWriteQueueRecord<A> extends AsyncQueueRecord<WriteResult> {
-    protected A dstAddress;
-    protected boolean isCloned;
+public final class AsyncWriteQueueRecord<A> extends AsyncQueueRecord<WriteResult> {
+    private final A dstAddress;
+    private boolean isCloned;
+    private Buffer outputBuffer;
 
-    public void set(Buffer buffer, Future future,
-            WriteResult currentResult,
-            CompletionHandler completionHandler,
-            Interceptor<WriteResult> interceptor,
-            A dstAddress) {
-        this.buffer = buffer;
-        this.future = future;
-        this.currentResult = currentResult;
-        this.completionHandler = completionHandler;
-        this.interceptor = interceptor;
+    public AsyncWriteQueueRecord(Object message, Future future,
+            WriteResult currentResult, CompletionHandler completionHandler,
+            Transformer transformer,
+            Interceptor<WriteResult> interceptor, A dstAddress,
+            Buffer outputBuffer,
+            boolean isCloned) {
+        
+        super(message, future, currentResult, completionHandler, transformer,
+                interceptor);
         this.dstAddress = dstAddress;
-    }
-
-    public boolean isCloned() {
-        return isCloned;
-    }
-
-    public void setCloned(boolean isCloned) {
+        this.outputBuffer = outputBuffer;
         this.isCloned = isCloned;
     }
 
-    public A getDstAddress() {
+    public final boolean isCloned() {
+        return isCloned;
+    }
+
+    public final void setCloned(boolean isCloned) {
+        this.isCloned = isCloned;
+    }
+
+    public final A getDstAddress() {
         return dstAddress;
     }
 
-    public void setDstAddress(A dstAddress) {
-        this.dstAddress = dstAddress;
+    public Buffer getOutputBuffer() {
+        return outputBuffer;
+    }
+
+    public void setOutputBuffer(Buffer outputBuffer) {
+        this.outputBuffer = outputBuffer;
     }
 }

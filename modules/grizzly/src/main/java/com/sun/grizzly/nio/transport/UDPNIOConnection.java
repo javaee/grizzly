@@ -41,6 +41,7 @@ package com.sun.grizzly.nio.transport;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.ReadResult;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.IOEvent;
@@ -56,12 +57,6 @@ import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Interceptor;
-import com.sun.grizzly.Reader;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.AbstractStreamReader;
-import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.streams.AbstractStreamWriter;
-import com.sun.grizzly.utils.conditions.Condition;
 
 /**
  * {@link com.sun.grizzly.Connection} implementation
@@ -70,12 +65,8 @@ import com.sun.grizzly.utils.conditions.Condition;
  * @author Alexey Stashok
  */
 public class UDPNIOConnection extends AbstractNIOConnection {
-    private Logger logger = Grizzly.logger;
+    private static Logger logger = Grizzly.logger(UDPNIOConnection.class);
 
-    private final AbstractStreamReader streamReader;
-
-    private final AbstractStreamWriter streamWriter;
-    
     public UDPNIOConnection(UDPNIOTransport transport,
             DatagramChannel channel) {
         super(transport);
@@ -84,9 +75,6 @@ public class UDPNIOConnection extends AbstractNIOConnection {
 
         setReadBufferSize(transport.getReadBufferSize());
         setWriteBufferSize(transport.getWriteBufferSize());
-        
-        streamReader = new UDPNIOStreamReader(this);
-        streamWriter = new UDPNIOStreamWriter(this);
     }
 
     public boolean isConnected() {
@@ -110,21 +98,11 @@ public class UDPNIOConnection extends AbstractNIOConnection {
     }
 
     @Override
-    public StreamReader getStreamReader() {
-        return streamReader;
-    }
-
-    @Override
-    public StreamWriter getStreamWriter() {
-        return streamWriter;
-    }
-
-    @Override
     protected void preClose() {
         try {
             transport.fireIOEvent(IOEvent.CLOSED, this);
         } catch (IOException e) {
-            Grizzly.logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
+            logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
                     "when firing CLOSE event");
         }
     }
@@ -198,54 +176,37 @@ public class UDPNIOConnection extends AbstractNIOConnection {
     }
 
     @Override
-    public Future<ReadResult<Buffer, SocketAddress>> read(final Buffer buffer,
-            final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
-            final Condition<ReadResult<Buffer, SocketAddress>> condition)
-            throws IOException {
+    public <M> Future<ReadResult<M, SocketAddress>> read(
+            final M message,
+            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
+            final Transformer<Buffer, M> transformer,
+            final Interceptor<ReadResult> interceptor) throws IOException {
+        
         final UDPNIOTransport udpTransport = (UDPNIOTransport) transport;
-        Interceptor<ReadResult<Buffer, SocketAddress>> interceptor = null;
-
-        if (condition != null) {
-            interceptor = new Interceptor<ReadResult<Buffer, SocketAddress>>() {
-
-                @Override
-                public int intercept(int event, Object context,
-                        ReadResult<Buffer, SocketAddress> result) {
-                    if (event == Reader.READ_EVENT) {
-                        if (condition.check(result)) {
-                            return Interceptor.COMPLETED;
-                        }
-
-                        return Interceptor.INCOMPLETED;
-                    }
-
-                    return Interceptor.DEFAULT;
-                }
-            };
-        }
 
         if (isBlocking) {
             return udpTransport.getTemporarySelectorIO().getReader().read(this,
-                    buffer, completionHandler, interceptor);
+                    message, completionHandler, transformer, interceptor);
         } else {
             return udpTransport.getAsyncQueueIO().getReader().read(this,
-                    buffer, completionHandler, interceptor);
+                    message, completionHandler, transformer, interceptor);
         }
     }
 
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(
-            SocketAddress dstAddress, Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler)
-            throws IOException {
+    public <M> Future<WriteResult<M, SocketAddress>> write(
+            final SocketAddress dstAddress,
+            final M message,
+            final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
+            final Transformer<M, Buffer> transformer) throws IOException {
         final UDPNIOTransport udpTransport = (UDPNIOTransport) transport;
         
         if (isBlocking) {
             return udpTransport.getTemporarySelectorIO().getWriter().write(this,
-                    dstAddress, buffer, completionHandler);
+                    dstAddress, message, completionHandler, transformer);
         } else {
             return udpTransport.getAsyncQueueIO().getWriter().write(this,
-                    dstAddress, buffer, completionHandler);
+                    dstAddress, message, completionHandler, transformer);
         }
     }
 }

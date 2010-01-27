@@ -95,9 +95,31 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, L>> completionHandler,
+    public <M> Future<WriteResult<M, L>> write(Connection connection,
+            M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler,
+            Transformer<M, Buffer> transformer) throws IOException;
+
+    /**
+     * Method writes the <tt>buffer</tt>.
+     *
+     * @param connection the {@link Connection} to write to
+     * @param buffer the buffer, from which the data will be written
+     * @param completionHandler {@link CompletionHandler},
+     *        which will get notified, when write will be completed
+     * @param interceptor {@link Interceptor}, which will be able to intercept
+     *        control each time new portion of a data was written from a
+     *        <tt>buffer</tt>.
+     *        The <tt>interceptor</tt> can decide, whether asynchronous write is
+     *        completed or not, or provide other processing instructions.
+     * @return {@link Future}, using which it's possible to check the
+     *         result
+     * @throws java.io.IOException
+     */
+    public <M> Future<WriteResult<M, L>> write(Connection connection,
+            M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler,
+            Transformer<M, Buffer> transformer,
             Interceptor<WriteResult> interceptor) throws IOException;
 
     /**
@@ -127,8 +149,8 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Connection connection, L dstAddress,
-            Buffer buffer,
+    public Future<WriteResult<Buffer, L>> write(Connection connection,
+            L dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException;
 
@@ -150,8 +172,32 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Connection connection, L dstAddress,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, L>> completionHandler,
+    public <M> Future<WriteResult<M, L>> write(Connection connection,
+            L dstAddress, M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler,
+            Transformer<M, Buffer> transformer) throws IOException;
+
+    /**
+     * Method writes the <tt>buffer</tt> to the specific address.
+     *
+     * @param connection the {@link Connection} to write to
+     * @param dstAddress the destination address the <tt>buffer</tt> will be
+     *        sent to
+     * @param buffer the buffer, from which the data will be written
+     * @param completionHandler {@link CompletionHandler},
+     *        which will get notified, when write will be completed
+     * @param interceptor {@link Interceptor}, which will be able to intercept
+     *        control each time new portion of a data was written from a
+     *        <tt>buffer</tt>.
+     *        The <tt>interceptor</tt> can decide, whether asynchronous write is
+     *        completed or not, or provide other processing instructions.
+     * @return {@link Future}, using which it's possible to check the
+     *         result
+     * @throws java.io.IOException
+     */
+    public <M> Future<WriteResult<M, L>> write(Connection connection,
+            L dstAddress, M message,
+            CompletionHandler<WriteResult<M, L>> completionHandler,
+            Transformer<M, Buffer> transformer,
             Interceptor<WriteResult> interceptor) throws IOException;
 }

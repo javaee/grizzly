@@ -54,13 +54,16 @@ import java.util.regex.Pattern;
  */
 public class Grizzly {
     private static final Pattern versionPattern = Pattern.compile("((\\d+)\\.(\\d+)\\.(\\d+)){1}(?:-(.+))?");
-    public static final Logger logger = Logger.getLogger("com.sun.grizzly");
     
     public static final AttributeBuilder DEFAULT_ATTRIBUTE_BUILDER = new DefaultAttributeBuilder();
     
     private static final String dotedVersion;
     private static final int major;
     private static final int minor;
+
+    public static Logger logger(Class clazz) {
+        return Logger.getLogger(clazz.getName());
+    }
 
     /** Reads version from properties and parses it. */
     static {

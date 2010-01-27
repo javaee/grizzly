@@ -43,6 +43,9 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.attributes.Attribute;
+import com.sun.grizzly.attributes.AttributeStorage;
 
 /**
  * Utility class, which implements the set of useful SSL related operations.
@@ -50,7 +53,20 @@ import com.sun.grizzly.Buffer;
  * @author Alexey Stashok
  */
 public class SSLUtils {
+    public static final String SSL_ENGINE_ATTR_NAME = "SSLEngineAttr";
 
+    public static final Attribute<SSLEngine> sslEngineAttribute =
+            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(SSL_ENGINE_ATTR_NAME);
+
+    public static final SSLEngine getSSLEngine(AttributeStorage storage) {
+        return sslEngineAttribute.get(storage);
+    }
+
+    public static final void setSSLEngine(AttributeStorage storage,
+            SSLEngine sslEngine) {
+        sslEngineAttribute.set(storage, sslEngine);
+    }
+    
     public static SSLEngineResult unwrap(SSLEngine sslEngine,
             Buffer securedInBuffer, Buffer plainBuffer) throws IOException {
         return sslEngine.unwrap((ByteBuffer) securedInBuffer.underlying(),

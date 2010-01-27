@@ -39,7 +39,6 @@
 package com.sun.grizzly.threadpool;
 
 import java.util.concurrent.TimeUnit;
-import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.AttributeStorage;
 
 /**
@@ -56,12 +55,6 @@ public interface WorkerThread extends Runnable, AttributeStorage {
     
     public String getName();
     public Thread getThread();
-
-    @Override
-    public AttributeHolder getAttributes();
-
-    @Override
-    public AttributeHolder obtainAttributes();
 
     public long getTransactionTimeout(TimeUnit timeunit);
     public void setTransactionTimeout(long timeout, TimeUnit timeunit);

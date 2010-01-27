@@ -41,6 +41,7 @@ import com.sun.grizzly.ProcessorResult.Status;
 import com.sun.grizzly.Transport.State;
 import java.io.IOException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link Runnable} task, which encapsulates {@link Processor} execution
@@ -53,6 +54,8 @@ import java.util.logging.Level;
  * @author Alexey Stashok
  */
 public class ProcessorRunnable implements Runnable {
+
+    private static final Logger logger = Grizzly.logger(ProcessorRunnable.class);
 
     /**
      * {@link Processor} execution {@link Context}.
@@ -294,11 +297,11 @@ public class ProcessorRunnable implements Runnable {
                 getState().getState(false);
 
         if (transportState != State.STOPPING && transportState != State.STOP) {
-            Grizzly.logger.log(Level.WARNING,
+            logger.log(Level.WARNING,
                     "Processor execution exception. Processor: " +
                     processor + " Context: " + context, e);
         } else {
-            Grizzly.logger.log(Level.FINE,
+            logger.log(Level.FINE,
                     "Processor execution exception, " +
                     "however transport was in the stopping phase: " + transportState +
                     " Processor: " +

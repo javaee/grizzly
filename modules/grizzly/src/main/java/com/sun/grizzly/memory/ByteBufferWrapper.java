@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.memory;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
@@ -55,8 +54,8 @@ import com.sun.grizzly.Buffer;
  * @author John Vieten
  * @author Alexey Stashok
  */
-public class ByteBufferWrapper implements Buffer<ByteBuffer> {
-    public static boolean DEBUG_MODE = false;
+public class ByteBufferWrapper implements Buffer {
+    public static boolean DEBUG_MODE = true;
 
     protected final ByteBufferManager memoryManager;
     
@@ -73,7 +72,12 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
         this.memoryManager = memoryManager;
         visible = underlyingByteBuffer;
     }
-    
+
+    @Override
+    public final boolean isComposite() {
+        return false;
+    }
+
     @Override
     public ByteBufferWrapper prepend(final Buffer header) {
         checkDispose();
@@ -84,6 +88,11 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
     public void trim() {
         checkDispose() ;
         flip();
+    }
+
+    @Override
+    public void trimRegion() {
+        checkDispose();
     }
 
     @Override
@@ -111,22 +120,26 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
 
     @Override
     public int position() {
+        checkDispose();
         return visible.position();
     }
 
     @Override
     public ByteBufferWrapper position(int newPosition) {
+        checkDispose();
         visible.position(newPosition);
         return this;
     }
 
     @Override
     public int limit() {
+        checkDispose();
         return visible.limit();
     }
 
     @Override
     public ByteBufferWrapper limit(int newLimit) {
+        checkDispose();
         visible.limit(newLimit);
         return this;
     }
@@ -178,13 +191,28 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
 
     @Override
     public ByteBufferWrapper slice() {
-        ByteBuffer slice = visible.slice();
-        return memoryManager.wrap(slice);
+        return slice(position(), limit());
     }
 
     @Override
+    public ByteBufferWrapper slice(int position, int limit) {
+        final int oldPosition = position();
+        final int oldLimit = limit();
+
+        try {
+            BufferUtils.setPositionLimit(visible, position, limit);
+
+            ByteBuffer slice = visible.slice();
+            return memoryManager.wrap(slice);
+        } finally {
+            BufferUtils.setPositionLimit(visible, oldPosition, oldLimit);
+        }
+    }
+
+
+    @Override
     public ByteBufferWrapper duplicate() {
-        ByteBuffer duplicate = visible.duplicate();
+        final ByteBuffer duplicate = visible.duplicate();
         return memoryManager.wrap(duplicate);
     }
 
@@ -230,7 +258,18 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
 
     @Override
     public ByteBufferWrapper put(Buffer src) {
-        visible.put((ByteBuffer) src.underlying());
+        if (!src.isComposite()) {
+            visible.put((ByteBuffer) src.underlying());
+        } else {
+            final ByteBuffer[] bbs = src.toByteBufferArray();
+            for(ByteBuffer bb : bbs) {
+                final int pos = bb.position();
+                visible.put(bb);
+                bb.position(pos);
+            }
+
+            src.position(src.limit());
+        }
         return this;
     }
 
@@ -397,7 +436,8 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("ByteBufferWrapper " + super.hashCode() + "[");
+        StringBuilder sb = new StringBuilder("ByteBufferWrapper (" +
+                System.identityHashCode(this) + ") [");
         sb.append("visible=[").append(visible).append(']');
         sb.append(']');
         return sb.toString();
@@ -418,8 +458,22 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
     }
 
     @Override
-    public int compareTo(Buffer<ByteBuffer> o) {
-        return visible.compareTo(o.underlying());
+    public int compareTo(Buffer o) {
+        // taken from ByteBuffer#compareTo(...)
+	int n = position() + Math.min(remaining(), o.remaining());
+	for (int i = this.position(), j = o.position(); i < n; i++, j++) {
+	    byte v1 = this.get(i);
+	    byte v2 = o.get(j);
+	    if (v1 == v2)
+		continue;
+	    if ((v1 != v1) && (v2 != v2)) 	// For float and double
+		continue;
+	    if (v1 < v2)
+		return -1;
+	    return +1;
+	}
+
+        return remaining() - o.remaining();
     }
 
     private void checkDispose() {
@@ -431,25 +485,56 @@ public class ByteBufferWrapper implements Buffer<ByteBuffer> {
     }
 
     @Override
-    public String contentAsString(Charset charset) {
+    public String toString(Charset charset) {
         checkDispose();
-        
-        // Working with charset name to support JDK1.5
-        String charsetName = charset.name();
-        try {
-            if (visible.hasArray()) {
-                return new String(visible.array(),
-                        visible.position() + visible.arrayOffset(),
-                        visible.remaining(), charsetName);
-            } else {
-                int oldPosition = visible.position();
-                byte[] tmpBuffer = new byte[visible.remaining()];
-                visible.get(tmpBuffer);
-                visible.position(oldPosition);
-                return new String(tmpBuffer, charsetName);
-            }
-        } catch (UnsupportedEncodingException e) {
-            throw new IllegalStateException("Unexpected exception", e);
+
+        if (charset == null) {
+            charset = Charset.defaultCharset();
         }
+        
+        if (visible.hasArray()) {
+            return new String(visible.array(),
+                    visible.position() + visible.arrayOffset(),
+                    visible.remaining(), charset);
+        } else {
+            int oldPosition = visible.position();
+            byte[] tmpBuffer = new byte[visible.remaining()];
+            visible.get(tmpBuffer);
+            visible.position(oldPosition);
+            return new String(tmpBuffer, charset);
+        }
+    }
+
+    @Override
+    public ByteBuffer toByteBuffer() {
+        return visible;
+    }
+
+    @Override
+    public ByteBuffer toByteBuffer(int position, int limit) {
+        final int currentPosition = visible.position();
+        final int currentLimit = visible.limit();
+
+        if (position == currentPosition && limit == currentLimit) {
+            return toByteBuffer();
+        }
+
+        BufferUtils.setPositionLimit(visible, position, limit);
+
+        final ByteBuffer resultBuffer = visible.slice();
+
+        BufferUtils.setPositionLimit(visible, currentPosition, currentLimit);
+
+        return resultBuffer;
+    }
+
+    @Override
+    public ByteBuffer[] toByteBufferArray() {
+        return new ByteBuffer[] {toByteBuffer()};
+    }
+
+    @Override
+    public ByteBuffer[] toByteBufferArray(int position, int limit) {
+        return new ByteBuffer[] {toByteBuffer(position, limit)};
     }
 }

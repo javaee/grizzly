@@ -51,7 +51,7 @@ import java.util.logging.Logger;
  */
 public class DefaultSelectionKeyHandler implements SelectionKeyHandler {
     
-    private static Logger logger = Grizzly.logger;
+    private static Logger logger = Grizzly.logger(DefaultSelectionKeyHandler.class);
 
     private static final int[] ioEvent2SelectionKeyInterest = {0,
         SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, SelectionKey.OP_READ,

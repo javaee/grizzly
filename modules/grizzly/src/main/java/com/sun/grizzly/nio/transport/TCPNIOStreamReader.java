@@ -35,81 +35,43 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.nio.transport;
 
-import java.io.EOFException;
 import java.io.IOException;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.Reader;
-import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.nio.tmpselectors.TemporarySelectorReader;
 import com.sun.grizzly.streams.AbstractStreamReader;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.utils.conditions.Condition;
-
+import com.sun.grizzly.streams.BufferedInput;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
-public class TCPNIOStreamReader extends AbstractStreamReader {
+public final class TCPNIOStreamReader extends AbstractStreamReader {
+
     public TCPNIOStreamReader(TCPNIOConnection connection) {
-        super(connection);
+        super(connection, new TCPNIOInput());
+        ((TCPNIOInput) input).parentStreamReader = this;
     }
 
-    @Override
-    public Future<Integer> notifyCondition(Condition<StreamReader> condition,
-            CompletionHandler<Integer> completionHandler) {
-
-        if (notifyObject != null) {
-            throw new IllegalStateException("Only one available listener allowed!");
-        }
-
-        if (isClosed()) {
-            EOFException exception = new EOFException();
-            if (completionHandler != null) {
-                completionHandler.failed(getConnection(), exception);
-            }
-
-            return new ReadyFutureImpl<Integer>(exception);
-        }
-
-        final int availableDataSize = availableDataSize();
-        if (condition.check(this)) {
-            if (completionHandler != null) {
-                completionHandler.completed(getConnection(), availableDataSize);
-            }
-
-            return new ReadyFutureImpl<Integer>(availableDataSize);
-        } else {
-            if (isBlocking()) {
-                return notifyConditionBlocking(condition, completionHandler);
-            } else {
-                return notifyConditionNonBlocking(condition, completionHandler);
-            }
-        }
+    public TCPNIOInput getSource() {
+        return (TCPNIOInput) input;
     }
-    
 
-    private Future<Integer> notifyConditionNonBlocking(
-            final Condition<StreamReader> condition,
-            CompletionHandler<Integer> completionHandler) {
+    public static final class TCPNIOInput extends BufferedInput {
 
-        final FutureImpl<Integer> future = new FutureImpl<Integer>();
-        try {
-            notifyObject = new NotifyObject(future, completionHandler, condition);
+        private TCPNIOStreamReader parentStreamReader;
+        private boolean isDone;
 
-            Connection connection = getConnection();
-            TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-            transport.getAsyncQueueIO().getReader().read(connection, null, null,
+        @Override
+        protected void onOpenInputSource() throws IOException {
+            isDone = false;
+            final Connection connection = parentStreamReader.getConnection();
+            connection.read(null, null, null,
                     new Interceptor() {
 
                         @Override
@@ -123,102 +85,39 @@ public class TCPNIOStreamReader extends AbstractStreamReader {
                                     return Interceptor.INCOMPLETED;
                                 }
 
-                                buffer.flip();
+                                buffer.trim();
                                 append(buffer);
-
-                                if (future.isDone()) {
+                                if (isDone) {
                                     return Interceptor.COMPLETED;
                                 }
 
-                                return Interceptor.INCOMPLETED |
-                                        Interceptor.RESET;
+                                return Interceptor.INCOMPLETED
+                                        | Interceptor.RESET;
                             }
 
                             return Interceptor.DEFAULT;
                         }
                     });
-        } catch (IOException e) {
-            future.failure(e);
-        }
-        
-        return future;
-    }
-
-    private Future<Integer> notifyConditionBlocking(
-            Condition<StreamReader> condition,
-            CompletionHandler<Integer> completionHandler) {
-
-        FutureImpl<Integer> future = new FutureImpl<Integer>();
-        notifyObject = new NotifyObject(future, completionHandler, condition);
-
-        try {
-            while (!future.isDone()) {
-                final Buffer buffer = read0();
-                append(buffer);
-            }
-        } catch (Exception e) {
-            future.failure(e);
         }
 
-        return future;
-    }
-    
-    @Override
-    protected Buffer read0() throws IOException {
-        final Connection connection = getConnection();
-        
-        if (isBlocking()) {
-            TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-            Buffer buffer = newBuffer(bufferSize);
-
-            try {
-                TemporarySelectorReader reader =
-                        (TemporarySelectorReader)
-                        transport.getTemporarySelectorIO().getReader();
-                Future future = reader.read(connection, buffer, null, null,
-                        timeoutMillis, TimeUnit.MILLISECONDS);
-                future.get();
-                buffer.trim();
-            } catch (Exception e) {
-                buffer.dispose();
-                throw new EOFException();
-            }
-
-            return buffer;
-            
-        } else {
-            TCPNIOTransport transport = (TCPNIOTransport) connection.getTransport();
-            Buffer buffer = newBuffer(bufferSize);
-
-            try {
-                int readBytes = transport.read(connection, buffer);
-                if (readBytes <= 0) {
-                    if (readBytes == -1) {
-                        throw new EOFException();
-                    }
-
-                    buffer.dispose();
-                    buffer = null;
-                } else {
-                    buffer.trim();
-                }
-            } catch (IOException e) {
-                buffer.dispose();
-                buffer = null;
-                throw e;
-            }
-
-            return buffer;
+        @Override
+        protected void onCloseInputSource() throws IOException {
+            isDone = true;
         }
-    }
 
-    @Override
-    protected final Object wrap(Buffer buffer) {
-        return buffer;
-    }
+        @Override
+        protected void notifyCompleted(final CompletionHandler<Integer> completionHandler) {
+            if (completionHandler != null) {
+                completionHandler.completed(parentStreamReader.getConnection(), compositeBuffer.remaining());
+            }
+        }
 
-    @Override
-    protected final Buffer unwrap(Object data) {
-        return (Buffer) data;
+        @Override
+        protected void notifyFailure(final CompletionHandler<Integer> completionHandler,
+                final Throwable failure) {
+            if (completionHandler != null) {
+                completionHandler.failed(parentStreamReader.getConnection(), failure);
+            }
+        }
     }
 }

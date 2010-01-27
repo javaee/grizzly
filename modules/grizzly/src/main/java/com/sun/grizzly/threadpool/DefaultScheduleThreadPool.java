@@ -44,6 +44,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Thread Pool implementation, based on {@link ScheduledThreadPoolExecutor}
@@ -52,6 +53,8 @@ import java.util.logging.Level;
  */
 public class DefaultScheduleThreadPool extends ScheduledThreadPoolExecutor
         implements ExtendedThreadPool, Thread.UncaughtExceptionHandler {
+    private static Logger logger = Grizzly.logger(DefaultScheduleThreadPool.class);
+
     // Min number of worker threads in a pool
     private static int DEFAULT_MIN_THREAD_COUNT = 1;
     
@@ -121,7 +124,7 @@ public class DefaultScheduleThreadPool extends ScheduledThreadPoolExecutor
 
     @Override
     public void uncaughtException(Thread thread, Throwable throwable) {
-        Grizzly.logger.log(Level.WARNING,
+        logger.log(Level.WARNING,
                 "Uncaught thread exception. Thread: " + thread, throwable);
     }
 

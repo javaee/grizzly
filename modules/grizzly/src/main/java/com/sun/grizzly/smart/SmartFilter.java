@@ -38,29 +38,21 @@
 
 package com.sun.grizzly.smart;
 
-import java.io.IOException;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.attributes.AttributeBuilder;
-import com.sun.grizzly.attributes.AttributeHolder;
-import com.sun.grizzly.filterchain.CodecFilter;
-import com.sun.grizzly.filterchain.FilterAdapter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.filterchain.CodecFilterAdapter;
 
 /**
  *
  * @author oleksiys
  */
-public class SmartFilter<K> extends FilterAdapter
-        implements CodecFilter<Buffer, K> {
+public class SmartFilter<K> extends CodecFilterAdapter<Buffer, K> {
 
-    private AttributeBuilder attributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
-    private Attribute<Buffer> remainderAttribute;
+    private final AttributeBuilder attributeBuilder;
+    private final Attribute<Buffer> remainderAttribute;
 
     private SmartCodec<K> smartCodec;
 
@@ -69,78 +61,83 @@ public class SmartFilter<K> extends FilterAdapter
     }
 
     public SmartFilter(SmartCodec<K> smartCodec) {
-        this.smartCodec = smartCodec;
-        remainderAttribute = attributeBuilder.createAttribute(
-                "UTFStringFilter.remainder");
+        this(smartCodec, null);
     }
 
     public SmartFilter(SmartCodec<K> smartCodec, AttributeBuilder attrBuilder) {
+        super(smartCodec.getDecoder(), smartCodec.getEncoder());
+        
+        if (attrBuilder != null) {
+            attributeBuilder = attrBuilder;
+        } else {
+            attributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
+        }
+        
         this.smartCodec = smartCodec;
-        this.attributeBuilder = attrBuilder;
         remainderAttribute = attributeBuilder.createAttribute(
                 "SmartFilter.remainder");
     }
 
-    @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        Buffer message = (Buffer) ctx.getMessage();
-        Connection connection = ctx.getConnection();
-
-        Transformer<Buffer, K> decoder = getDecoder();
-        TransformationResult<K> result = decoder.transform(connection,
-                message, null);
-        switch (result.getStatus()) {
-            case COMPLETED:
-                decoder.release(connection);
-                ctx.setMessage(result.getMessage());
-                
-                // Important. If message has remaining - we will need to
-                // reinvoke the chain in postExecute phase
-                if (message.hasRemaining()) {
-                    remainderAttribute.set(ctx.obtainAttributes(), message);
-                }
-
-                return nextAction;
-
-            case INCOMPLED:
-                return ctx.getStopAction();
-
-            default:
-                decoder.release(connection);
-                throw new IllegalStateException(result.getErrorCode() + ": " +
-                        result.getErrorDescription());
-        }
-    }
-
-    @Override
-    public NextAction postRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        AttributeHolder holder = ctx.getAttributes();
-        if (holder != null) {
-            Buffer remainder = remainderAttribute.remove(holder);
-            if (remainder != null) {
-                ctx.setMessage(remainder);
-                nextAction = ctx.getRerunChainAction();
-            }
-        }
-
-        return nextAction;
-    }
-
-    @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        TransformationResult result;
-        Connection connection = ctx.getConnection();
-
-        Transformer<K, Buffer> encoder = getEncoder();
-        result = encoder.transform(connection, (K) ctx.getMessage(), null);
-
-        ctx.setMessage(result.getMessage());
-        encoder.release(connection);
-        return nextAction;
-    }
+//    @Override
+//    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
+//            throws IOException {
+//        Buffer message = (Buffer) ctx.getMessage();
+//        Connection connection = ctx.getConnection();
+//
+//        Transformer<Buffer, K> decoder = getDecoder();
+//        TransformationResult<K> result = decoder.transform(connection,
+//                message, null);
+//        switch (result.getStatus()) {
+//            case COMPLETED:
+//                decoder.release(connection);
+//                ctx.setMessage(result.getMessage());
+//
+//                // Important. If message has remaining - we will need to
+//                // reinvoke the chain in postExecute phase
+//                if (message.hasRemaining()) {
+//                    remainderAttribute.set(ctx, message);
+//                }
+//
+//                return nextAction;
+//
+//            case INCOMPLETED:
+//                return ctx.getStopAction();
+//
+//            default:
+//                decoder.release(connection);
+//                throw new IllegalStateException(result.getErrorCode() + ": " +
+//                        result.getErrorDescription());
+//        }
+//    }
+//
+//    @Override
+//    public NextAction postRead(FilterChainContext ctx,
+//            NextAction nextAction) throws IOException {
+//        AttributeHolder holder = ctx.getAttributes();
+//        if (holder != null) {
+//            Buffer remainder = remainderAttribute.remove(holder);
+//            if (remainder != null) {
+//                ctx.setMessage(remainder);
+//                nextAction = ctx.getRerunChainAction();
+//            }
+//        }
+//
+//        return nextAction;
+//    }
+//
+//    @Override
+//    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
+//            throws IOException {
+//        TransformationResult result;
+//        Connection connection = ctx.getConnection();
+//
+//        Transformer<K, Buffer> encoder = getEncoder();
+//        result = encoder.transform(connection, (K) ctx.getMessage(), null);
+//
+//        ctx.setMessage(result.getMessage());
+//        encoder.release(connection);
+//        return nextAction;
+//    }
 
     @Override
     public Transformer<Buffer, K> getDecoder() {

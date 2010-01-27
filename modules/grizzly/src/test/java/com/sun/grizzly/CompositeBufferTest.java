@@ -35,10 +35,12 @@
  */
 package com.sun.grizzly;
 
+import com.sun.grizzly.memory.BuffersBuffer;
+import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
-import com.sun.grizzly.utils.CompositeBuffer;
+import com.sun.grizzly.memory.CompositeBuffer;
 import junit.framework.TestCase;
 
 /**
@@ -48,11 +50,21 @@ import junit.framework.TestCase;
  */
 public class CompositeBufferTest extends TestCase {
 
+    enum CompositeBufferType {
+
+        BUFFERS, BYTE_BUFFERS;
+    }
+
     public void testSingleBuffer() {
+        doTestSingleBuffer(CompositeBufferType.BUFFERS);
+        doTestSingleBuffer(CompositeBufferType.BYTE_BUFFERS);
+    }
+
+    private void doTestSingleBuffer(CompositeBufferType type) {
         MemoryManager manager = new DefaultMemoryManager();
 
         Buffer buffer = manager.allocate(1 + 2 + 2 + 4 + 8 + 4 + 8);
-        CompositeBuffer compositeBuffer = new CompositeBuffer(buffer);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffer);
 
         byte v1 = (byte) 127;
         char v2 = 'c';
@@ -82,10 +94,15 @@ public class CompositeBufferTest extends TestCase {
     }
 
     public void testSingleBufferIndexedAccess() {
+        doTestSingleBufferIndexedAccess(CompositeBufferType.BUFFERS);
+        doTestSingleBufferIndexedAccess(CompositeBufferType.BYTE_BUFFERS);
+    }
+
+    private void doTestSingleBufferIndexedAccess(CompositeBufferType type) {
         MemoryManager manager = new DefaultMemoryManager();
 
         Buffer buffer = manager.allocate(1 + 2 + 2 + 4 + 8 + 4 + 8);
-        CompositeBuffer compositeBuffer = new CompositeBuffer(buffer);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffer);
 
         byte v1 = (byte) 127;
         char v2 = 'c';
@@ -113,277 +130,310 @@ public class CompositeBufferTest extends TestCase {
     }
 
     public void testBytes() {
-        doTest(new Byte[]{-1, 0, 127, -127}, 4, 1,
-                new Put<Byte>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTest(type, new Byte[]{-1, 0, 127, -127}, 4, 1,
+                    new Put<Byte>() {
 
-                    @Override
-                    public void put(CompositeBuffer buffer, Byte value) {
-                        buffer.put(value);
-                    }
-                },
-                new Get<Byte>() {
+                        @Override
+                        public void put(CompositeBuffer buffer, Byte value) {
+                            buffer.put(value);
+                        }
+                    },
+                    new Get<Byte>() {
 
-                    @Override
-                    public Byte get(CompositeBuffer buffer) {
-                        return buffer.get();
-                    }
-                });
+                        @Override
+                        public Byte get(CompositeBuffer buffer) {
+                            return buffer.get();
+                        }
+                    });
+        }
     }
 
     public void testBytesIndexed() {
-        doTestIndexed(new Byte[]{-1, 0, 127, -127}, 4, 1,
-                new Put<Byte>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTestIndexed(type, new Byte[]{-1, 0, 127, -127}, 4, 1,
+                    new Put<Byte>() {
 
-                    @Override
-                    public void putIndexed(CompositeBuffer buffer, int index, Byte value) {
-                        buffer.put(index, value);
-                    }
-                },
-                new Get<Byte>() {
+                        @Override
+                        public void putIndexed(CompositeBuffer buffer, int index, Byte value) {
+                            buffer.put(index, value);
+                        }
+                    },
+                    new Get<Byte>() {
 
-                    @Override
-                    public Byte getIndexed(CompositeBuffer buffer, int index) {
-                        return buffer.get(index);
-                    }
-                }, 1);
+                        @Override
+                        public Byte getIndexed(CompositeBuffer buffer, int index) {
+                            return buffer.get(index);
+                        }
+                    }, 1);
+        }
     }
 
     public void testChars() {
-        doTest(new Character[]{'a', 'b', 'c', 'd'}, 3, 3,
-                new Put<Character>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTest(type, new Character[]{'a', 'b', 'c', 'd'}, 3, 3,
+                    new Put<Character>() {
 
-                    @Override
-                    public void put(CompositeBuffer buffer, Character value) {
-                        buffer.putChar(value);
-                    }
-                },
-                new Get<Character>() {
+                        @Override
+                        public void put(CompositeBuffer buffer, Character value) {
+                            buffer.putChar(value);
+                        }
+                    },
+                    new Get<Character>() {
 
-                    @Override
-                    public Character get(CompositeBuffer buffer) {
-                        return buffer.getChar();
-                    }
-                });
+                        @Override
+                        public Character get(CompositeBuffer buffer) {
+                            return buffer.getChar();
+                        }
+                    });
+        }
     }
 
     public void testCharsIndexed() {
-        doTestIndexed(new Character[]{'a', 'b', 'c', 'd'}, 3, 3,
-                new Put<Character>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTestIndexed(type, new Character[]{'a', 'b', 'c', 'd'}, 3, 3,
+                    new Put<Character>() {
 
-                    @Override
-                    public void putIndexed(CompositeBuffer buffer, int index, Character value) {
-                        buffer.putChar(index, value);
-                    }
-                },
-                new Get<Character>() {
+                        @Override
+                        public void putIndexed(CompositeBuffer buffer, int index, Character value) {
+                            buffer.putChar(index, value);
+                        }
+                    },
+                    new Get<Character>() {
 
-                    @Override
-                    public Character getIndexed(CompositeBuffer buffer, int index) {
-                        return buffer.getChar(index);
-                    }
-                }, 2);
+                        @Override
+                        public Character getIndexed(CompositeBuffer buffer, int index) {
+                            return buffer.getChar(index);
+                        }
+                    }, 2);
+        }
     }
 
     public void testShort() {
-        doTest(new Short[]{Short.MIN_VALUE, -1}, 3, 3,
-                new Put<Short>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTest(type, new Short[]{Short.MIN_VALUE, -1}, 3, 3,
+                    new Put<Short>() {
 
-                    @Override
-                    public void put(CompositeBuffer buffer, Short value) {
-                        buffer.putShort(value);
-                    }
-                },
-                new Get<Short>() {
+                        @Override
+                        public void put(CompositeBuffer buffer, Short value) {
+                            buffer.putShort(value);
+                        }
+                    },
+                    new Get<Short>() {
 
-                    @Override
-                    public Short get(CompositeBuffer buffer) {
-                        return buffer.getShort();
-                    }
-                });
+                        @Override
+                        public Short get(CompositeBuffer buffer) {
+                            return buffer.getShort();
+                        }
+                    });
+        }
     }
 
     public void testShortIndexed() {
-        doTestIndexed(new Short[]{Short.MIN_VALUE, -1}, 3, 3,
-                new Put<Short>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTestIndexed(type, new Short[]{Short.MIN_VALUE, -1}, 3, 3,
+                    new Put<Short>() {
 
-                    @Override
-                    public void putIndexed(CompositeBuffer buffer, int index, Short value) {
-                        buffer.putShort(index, value);
-                    }
-                },
-                new Get<Short>() {
+                        @Override
+                        public void putIndexed(CompositeBuffer buffer, int index, Short value) {
+                            buffer.putShort(index, value);
+                        }
+                    },
+                    new Get<Short>() {
 
-                    @Override
-                    public Short getIndexed(CompositeBuffer buffer, int index) {
-                        return buffer.getShort(index);
-                    }
-                }, 2);
+                        @Override
+                        public Short getIndexed(CompositeBuffer buffer, int index) {
+                            return buffer.getShort(index);
+                        }
+                    }, 2);
+        }
     }
 
     public void testInt() {
-        doTest(new Integer[]{Integer.MIN_VALUE, -1, Integer.MAX_VALUE, 0}, 4, 5,
-                new Put<Integer>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTest(type, new Integer[]{Integer.MIN_VALUE, -1, Integer.MAX_VALUE, 0}, 4, 5,
+                    new Put<Integer>() {
 
-                    @Override
-                    public void put(CompositeBuffer buffer, Integer value) {
-                        buffer.putInt(value);
-                    }
-                },
-                new Get<Integer>() {
+                        @Override
+                        public void put(CompositeBuffer buffer, Integer value) {
+                            buffer.putInt(value);
+                        }
+                    },
+                    new Get<Integer>() {
 
-                    @Override
-                    public Integer get(CompositeBuffer buffer) {
-                        return buffer.getInt();
-                    }
-                });
+                        @Override
+                        public Integer get(CompositeBuffer buffer) {
+                            return buffer.getInt();
+                        }
+                    });
+        }
     }
 
     public void testIntIndexed() {
-        doTestIndexed(new Integer[]{Integer.MIN_VALUE, -1, Integer.MAX_VALUE, 0}, 4, 5,
-                new Put<Integer>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTestIndexed(type, new Integer[]{Integer.MIN_VALUE, -1, Integer.MAX_VALUE, 0}, 4, 5,
+                    new Put<Integer>() {
 
-                    @Override
-                    public void putIndexed(CompositeBuffer buffer, int index, Integer value) {
-                        buffer.putInt(index, value);
-                    }
-                },
-                new Get<Integer>() {
+                        @Override
+                        public void putIndexed(CompositeBuffer buffer, int index, Integer value) {
+                            buffer.putInt(index, value);
+                        }
+                    },
+                    new Get<Integer>() {
 
-                    @Override
-                    public Integer getIndexed(CompositeBuffer buffer, int index) {
-                        return buffer.getInt(index);
-                    }
-                }, 4);
+                        @Override
+                        public Integer getIndexed(CompositeBuffer buffer, int index) {
+                            return buffer.getInt(index);
+                        }
+                    }, 4);
+        }
     }
 
     public void testLong() {
-        doTest(new Long[]{Long.MIN_VALUE, -1L, Long.MAX_VALUE, 0L}, 4, 9,
-                new Put<Long>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTest(type, new Long[]{Long.MIN_VALUE, -1L, Long.MAX_VALUE, 0L}, 4, 9,
+                    new Put<Long>() {
 
-                    @Override
-                    public void put(CompositeBuffer buffer, Long value) {
-                        buffer.putLong(value);
-                    }
-                },
-                new Get<Long>() {
+                        @Override
+                        public void put(CompositeBuffer buffer, Long value) {
+                            buffer.putLong(value);
+                        }
+                    },
+                    new Get<Long>() {
 
-                    @Override
-                    public Long get(CompositeBuffer buffer) {
-                        return buffer.getLong();
-                    }
-                });
+                        @Override
+                        public Long get(CompositeBuffer buffer) {
+                            return buffer.getLong();
+                        }
+                    });
+        }
     }
 
     public void testLongIndexed() {
-        doTestIndexed(new Long[]{Long.MIN_VALUE, -1L, Long.MAX_VALUE, 0L}, 4, 9,
-                new Put<Long>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTestIndexed(type, new Long[]{Long.MIN_VALUE, -1L, Long.MAX_VALUE, 0L}, 4, 9,
+                    new Put<Long>() {
 
-                    @Override
-                    public void putIndexed(CompositeBuffer buffer, int index, Long value) {
-                        buffer.putLong(index, value);
-                    }
-                },
-                new Get<Long>() {
+                        @Override
+                        public void putIndexed(CompositeBuffer buffer, int index, Long value) {
+                            buffer.putLong(index, value);
+                        }
+                    },
+                    new Get<Long>() {
 
-                    @Override
-                    public Long getIndexed(CompositeBuffer buffer, int index) {
-                        return buffer.getLong(index);
-                    }
-                }, 8);
+                        @Override
+                        public Long getIndexed(CompositeBuffer buffer, int index) {
+                            return buffer.getLong(index);
+                        }
+                    }, 8);
+        }
     }
 
     public void testFloat() {
-        doTest(new Float[]{Float.MIN_VALUE, -1f, Float.MAX_VALUE, 0f}, 4, 5,
-                new Put<Float>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTest(type, new Float[]{Float.MIN_VALUE, -1f, Float.MAX_VALUE, 0f}, 4, 5,
+                    new Put<Float>() {
 
-                    @Override
-                    public void put(CompositeBuffer buffer, Float value) {
-                        buffer.putFloat(value);
-                    }
-                },
-                new Get<Float>() {
+                        @Override
+                        public void put(CompositeBuffer buffer, Float value) {
+                            buffer.putFloat(value);
+                        }
+                    },
+                    new Get<Float>() {
 
-                    @Override
-                    public Float get(CompositeBuffer buffer) {
-                        return buffer.getFloat();
-                    }
-                });
+                        @Override
+                        public Float get(CompositeBuffer buffer) {
+                            return buffer.getFloat();
+                        }
+                    });
+        }
     }
 
     public void testFloatIndexed() {
-        doTestIndexed(new Float[]{Float.MIN_VALUE, -1f, Float.MAX_VALUE, 0f}, 4, 5,
-                new Put<Float>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTestIndexed(type, new Float[]{Float.MIN_VALUE, -1f, Float.MAX_VALUE, 0f}, 4, 5,
+                    new Put<Float>() {
 
-                    @Override
-                    public void putIndexed(CompositeBuffer buffer, int index, Float value) {
-                        buffer.putFloat(index, value);
-                    }
-                },
-                new Get<Float>() {
+                        @Override
+                        public void putIndexed(CompositeBuffer buffer, int index, Float value) {
+                            buffer.putFloat(index, value);
+                        }
+                    },
+                    new Get<Float>() {
 
-                    @Override
-                    public Float getIndexed(CompositeBuffer buffer, int index) {
-                        return buffer.getFloat(index);
-                    }
-                }, 4);
+                        @Override
+                        public Float getIndexed(CompositeBuffer buffer, int index) {
+                            return buffer.getFloat(index);
+                        }
+                    }, 4);
+        }
     }
 
     public void testDouble() {
-        doTest(new Double[]{Double.MIN_VALUE, -1.0, Double.MAX_VALUE, 0.0}, 4, 9,
-                new Put<Double>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTest(type, new Double[]{Double.MIN_VALUE, -1.0, Double.MAX_VALUE, 0.0}, 4, 9,
+                    new Put<Double>() {
 
-                    @Override
-                    public void put(CompositeBuffer buffer, Double value) {
-                        buffer.putDouble(value);
-                    }
-                },
-                new Get<Double>() {
+                        @Override
+                        public void put(CompositeBuffer buffer, Double value) {
+                            buffer.putDouble(value);
+                        }
+                    },
+                    new Get<Double>() {
 
-                    @Override
-                    public Double get(CompositeBuffer buffer) {
-                        return buffer.getDouble();
-                    }
-                });
+                        @Override
+                        public Double get(CompositeBuffer buffer) {
+                            return buffer.getDouble();
+                        }
+                    });
+        }
     }
 
     public void testDoubleIndexed() {
-        doTestIndexed(new Double[]{Double.MIN_VALUE, -1.0, Double.MAX_VALUE, 0.0}, 4, 9,
-                new Put<Double>() {
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTestIndexed(type, new Double[]{Double.MIN_VALUE, -1.0, Double.MAX_VALUE, 0.0}, 4, 9,
+                    new Put<Double>() {
 
-                    @Override
-                    public void putIndexed(CompositeBuffer buffer, int index, Double value) {
-                        buffer.putDouble(index, value);
-                    }
-                },
-                new Get<Double>() {
+                        @Override
+                        public void putIndexed(CompositeBuffer buffer, int index, Double value) {
+                            buffer.putDouble(index, value);
+                        }
+                    },
+                    new Get<Double>() {
 
-                    @Override
-                    public Double getIndexed(CompositeBuffer buffer, int index) {
-                        return buffer.getDouble(index);
-                    }
-                }, 8);
+                        @Override
+                        public Double getIndexed(CompositeBuffer buffer, int index) {
+                            return buffer.getDouble(index);
+                        }
+                    }, 8);
+        }
     }
 
     public void testBuffers() {
+        doTestBuffers(CompositeBufferType.BUFFERS);
+        doTestBuffers(CompositeBufferType.BYTE_BUFFERS);
+    }
+
+    private void doTestBuffers(CompositeBufferType type) {
         MemoryManager manager = new DefaultMemoryManager();
 
-        Buffer sampleBuffer = MemoryUtils.wrap(manager, new byte[] {-1, 0, 1, 1, 2, 3, 4});
+        Buffer sampleBuffer = MemoryUtils.wrap(manager, new byte[]{-1, 0, 1, 1, 2, 3, 4});
 
         Buffer b1 = manager.allocate(3);
         Buffer b2 = manager.allocate(4);
 
-        CompositeBuffer compositeBuffer = new CompositeBuffer(b1, b2);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(type, b1, b2);
         compositeBuffer.put(sampleBuffer);
         compositeBuffer.flip();
         sampleBuffer.flip();
 
-        while(sampleBuffer.hasRemaining()) {
+        while (sampleBuffer.hasRemaining()) {
             assertEquals(sampleBuffer.get(), compositeBuffer.get());
         }
     }
 
-    private <E> void doTest(E[] testData, int buffersNum, int bufferSize,
-            Put<E> put, Get<E> get) {
+    private <E> void doTest(CompositeBufferType type, E[] testData,
+            int buffersNum, int bufferSize, Put<E> put, Get<E> get) {
 
         MemoryManager manager = new DefaultMemoryManager();
 
@@ -392,7 +442,7 @@ public class CompositeBufferTest extends TestCase {
             buffers[i] = manager.allocate(bufferSize);
         }
 
-        CompositeBuffer compositeBuffer = new CompositeBuffer(buffers);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffers);
 
         for (int i = 0; i < testData.length; i++) {
             put.put(compositeBuffer, testData[i]);
@@ -405,8 +455,9 @@ public class CompositeBufferTest extends TestCase {
         }
     }
 
-    private <E> void doTestIndexed(E[] testData, int buffersNum, int bufferSize,
-            Put<E> put, Get<E> get, int eSizeInBytes) {
+    private <E> void doTestIndexed(CompositeBufferType type, E[] testData,
+            int buffersNum, int bufferSize, Put<E> put, Get<E> get,
+            int eSizeInBytes) {
 
         MemoryManager manager = new DefaultMemoryManager();
 
@@ -415,7 +466,7 @@ public class CompositeBufferTest extends TestCase {
             buffers[i] = manager.allocate(bufferSize);
         }
 
-        CompositeBuffer compositeBuffer = new CompositeBuffer(buffers);
+        CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffers);
 
         for (int i = 0; i < testData.length; i++) {
             put.putIndexed(compositeBuffer, i * eSizeInBytes, testData[i]);
@@ -444,5 +495,19 @@ public class CompositeBufferTest extends TestCase {
         public E getIndexed(CompositeBuffer buffer, int index) {
             return null;
         }
+    }
+
+    private CompositeBuffer createCompositeBuffer(CompositeBufferType type,
+            Buffer... buffers) {
+        switch(type) {
+            case BUFFERS:
+                return new BuffersBuffer(TransportFactory.getInstance().getDefaultMemoryManager(), buffers);
+            case BYTE_BUFFERS:
+                CompositeBuffer cb = new ByteBuffersBuffer(TransportFactory.getInstance().getDefaultMemoryManager());
+                for(Buffer buffer : buffers) cb.append(buffer);
+                return cb;
+        }
+
+        return null;
     }
 }

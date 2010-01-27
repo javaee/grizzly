@@ -42,7 +42,6 @@ import java.lang.reflect.Array;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.attributes.AttributeStorage;
 
@@ -61,8 +60,13 @@ public class ArrayDecoder extends SequenceDecoder<Object> {
     }
 
     @Override
-    public TransformationResult<Object> transform(AttributeStorage storage,
-            Buffer input, Object output) throws TransformationException {
+    public String getName() {
+        return ArrayDecoder.class.getName();
+    }
+
+    @Override
+    public TransformationResult<Buffer, Object> transform(AttributeStorage storage,
+            Buffer input) throws TransformationException {
         
         if (input == null) {
             throw new TransformationException("Input should not be null");
@@ -81,25 +85,25 @@ public class ArrayDecoder extends SequenceDecoder<Object> {
 
             byte[] byteArray = (byte[]) sequence;
             if (input.remaining() < byteArray.length) {
-                saveState(storage, byteArray, currentElementIdx,
-                        incompletedResult);
-                return incompletedResult;
+                return saveState(storage, byteArray, currentElementIdx,
+                        TransformationResult.<Buffer, Object>createIncompletedResult(
+                        input, false));
             }
 
             input.get(byteArray);
-            TransformationResult<Object> result =
-                    new TransformationResult<Object>(Status.COMPLETED, sequence);
-            saveState(storage, byteArray, byteArray.length, result);
-            return result;
+            return saveState(storage, byteArray, byteArray.length,
+                    TransformationResult.<Buffer, Object>createCompletedResult(
+                        sequence, input, false));
         }
 
-        return super.transform(storage, input, output);
+        return super.transform(storage, input);
     }
 
-    private void saveState(AttributeStorage storage, Object array,
-            int currentElementIdx, TransformationResult<Object> lastResult) {
+    private TransformationResult<Buffer, Object> saveState(
+            AttributeStorage storage, Object array,
+            int currentElementIdx, TransformationResult<Buffer, Object> lastResult) {
         currentElementIdxAttribute.set(storage, currentElementIdx);
-        super.saveState(storage, array, lastResult);
+        return super.saveState(storage, array, lastResult);
     }
 
     @Override

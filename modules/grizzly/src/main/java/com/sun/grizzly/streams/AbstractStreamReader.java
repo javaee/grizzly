@@ -38,21 +38,19 @@ package com.sun.grizzly.streams;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
-
-import java.util.LinkedList;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.utils.CompositeBuffer;
+import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.utils.CompletionHandlerWrapper;
 import com.sun.grizzly.utils.conditions.Condition;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Each method reads data from the current ByteBuffer.  If not enough data
@@ -73,14 +71,13 @@ import java.util.ArrayList;
 public abstract class AbstractStreamReader implements StreamReader {
 
     private static final boolean DEBUG = false;
-    private static Logger logger = Grizzly.logger;
+    private static Logger logger = Grizzly.logger(AbstractStreamReader.class);
 
-    private boolean isBlocking;
+    protected final Connection connection;
 
-    private Connection connection;
-    protected int bufferSize;
+    protected final Input input;
 
-    protected long timeoutMillis = 30000;
+    protected final AtomicBoolean isClosed = new AtomicBoolean(false);
     
     private static void msg(final String msg) {
         logger.info("READERSTREAM:DEBUG:" + msg);
@@ -108,15 +105,6 @@ public abstract class AbstractStreamReader implements StreamReader {
     // since we just need to ensure the visibility of the value of current to
     // all threads.
     //
-    protected LinkedList dataRecords;
-    private volatile int queueSize;
-    private volatile Object current;
-    private volatile boolean closed;
-    protected volatile NotifyObject notifyObject;
-
-    public AbstractStreamReader() {
-        this(null);
-    }
 
     /**
      * Create a new ByteBufferReader.
@@ -124,240 +112,9 @@ public abstract class AbstractStreamReader implements StreamReader {
      * never block.
      * @throws TimeoutException when a read operation times out waiting for more data.
      */
-    protected AbstractStreamReader(Connection connection) {
-        setConnection(connection);
-        dataRecords = new LinkedList();
-        queueSize = 0;
-        current = null;
-        closed = false;
-        if (timeoutMillis < 0) {
-            throw new IllegalArgumentException(
-                    "Timeout must not be negative.");
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isBlocking() {
-        return isBlocking;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setBlocking(boolean isBlocking) {
-        this.isBlocking = isBlocking;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean prependBuffer(final Buffer buffer) {
-        return prepend(wrap(buffer));
-    }
-
-    protected boolean prepend(final Object data) {
-        if (data == null) {
-            return false;
-        }
-
-        final Buffer buffer = unwrap(data);
-
-        if (closed) {
-            buffer.dispose();
-        } else {
-            if (buffer.hasRemaining()) {
-                if (current == null) {
-                    current = data;
-                } else {
-                    dataRecords.addFirst(data);
-                    queueSize += buffer.remaining();
-                }
-            }
-
-            notifyCondition();
-        }
-
-        return true;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean appendBuffer(final Buffer buffer) {
-        return append(wrap(buffer));
-    }
-
-    protected boolean append(final Object data) {
-        if (data == null) {
-            return false;
-        }
-
-        final Buffer buffer = unwrap(data);
-
-        if (closed) {
-            buffer.dispose();
-        } else {
-            if (buffer.hasRemaining()) {
-                if (current == null) {
-                    current = data;
-                } else {
-                    dataRecords.addLast(data);
-                    queueSize += buffer.remaining();
-                }
-            }
-
-            notifyCondition();
-        }
-
-        return true;
-    }
-
-    private void notifyCondition() {
-        if (notifyObject != null && notifyObject.condition.check(this)) {
-            final NotifyObject localNotifyAvailObject = notifyObject;
-            notifyObject = null;
-            notifySuccess(localNotifyAvailObject.future,
-                    localNotifyAvailObject.completionHandler,
-                    availableDataSize());
-        }
-    }
-
-    /**
-     * Closes the <tt>StreamReader</tt> and causes all subsequent method calls
-     * on this object to throw IllegalStateException.
-     */
-    @Override
-    public void close() {
-        closed = true;
-
-        if (current != null) {
-            unwrap(current).dispose();
-            current = null;
-        }
-
-        if (dataRecords != null) {
-            for (Object record : dataRecords) {
-                unwrap(record).dispose();
-            }
-            dataRecords = null;
-        }
-        queueSize = 0;
-
-        if (notifyObject != null) {
-            NotifyObject localNotifyAvailObject = notifyObject;
-            notifyObject = null;
-            notifyFailure(localNotifyAvailObject.future,
-                    localNotifyAvailObject.completionHandler,
-                    new EOFException());
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isClosed() {
-        return closed;
-    }
-
-    private int currentAvailable() {
-        if (current == null) {
-            return 0;
-        } else {
-            return unwrap(current).remaining();
-        }
-    }
-
-    private boolean checkRemaining(int size) throws IOException {
-        if (current == null || !unwrap(current).hasRemaining()) {
-            ensureRead();
-        }
-        return unwrap(current).remaining() >= size;
-    }
-
-    // After this call, current must contain at least size bytes.
-    // This call may block until more data is available.
-    protected void ensureRead() throws IOException {
-        ensureRead(true);
-    }
-
-    // After this call, current must contain at least size bytes.
-    // This call may block until more data is available.
-    protected void ensureRead(boolean readIfEmpty) throws IOException {
-        if (closed) {
-            throw new IllegalStateException("ByteBufferReader is closed");
-        }
-
-
-        if (current != null) {
-            unwrap(current).dispose();
-            current = null;
-        }
-        
-        // First ensure that there is enough space
-        Object next = poll();
-
-        if (next == null) {
-            if (readIfEmpty) {
-                Object data = read0();
-                if (data != null) {
-                    append(data);
-                }
-
-                if (current == null && (current = poll()) == null) {
-                    throw new BufferUnderflowException();
-                }
-            }
-        } else {
-            current = next;
-        }
-
-        if (DEBUG) {
-            displayBuffer("current", unwrap(current));
-        }
-    }
-
-    protected Buffer pollBuffer() {
-        if (!dataRecords.isEmpty()) {
-            Object data = dataRecords.removeFirst();
-            final Buffer buffer = unwrap(data);
-            queueSize -= buffer.remaining();
-            return buffer;
-        }
-
-        return null;
-    }
-
-    protected Object poll() {
-        if (!dataRecords.isEmpty()) {
-            Object data = dataRecords.removeFirst();
-            queueSize -= unwrap(data).remaining();
-            return data;
-        }
-
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final boolean hasAvailableData() {
-       return availableDataSize() > 0;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int availableDataSize() {
-        return queueSize + currentAvailable();
+    protected AbstractStreamReader(Connection connection, Input streamInput) {
+        this.input = streamInput;
+        this.connection = connection;
     }
 
     /**
@@ -365,14 +122,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public boolean readBoolean() throws IOException {
-        if (!checkRemaining(1)) {
-            ensureRead();
-        }
-        final Buffer currentBuffer = unwrap(current);
-        final boolean result = currentBuffer.get() == 1;
-
-        current = tryReleaseCurrent(current, currentBuffer);
-        return result;
+        return readByte() == 1;
     }
 
     /**
@@ -380,14 +130,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public byte readByte() throws IOException {
-        if (!checkRemaining(1)) {
-            ensureRead();
-        }
-        final Buffer currentBuffer = unwrap(current);
-        final byte result = currentBuffer.get();
-        
-        current = tryReleaseCurrent(current, currentBuffer);
-        return result;
+        return input.read();
     }
 
     /**
@@ -395,12 +138,15 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public char readChar()  throws IOException {
-        if (checkRemaining(2)) {
-            final Buffer currentBuffer = unwrap(current);
-            final char result = currentBuffer.getChar();
-            current = tryReleaseCurrent(current, currentBuffer);
-            return result;
+        if (input.isBuffered()) {
+            final Buffer buffer = input.getBuffer();
+            if (buffer != null && buffer.remaining() >= 2) {
+                final char result = buffer.getChar();
+                buffer.trimRegion();
+                return result;
+            }
         }
+
         return (char) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
 
@@ -409,12 +155,15 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public short readShort() throws IOException {
-        if (checkRemaining(2)) {
-            final Buffer currentBuffer = unwrap(current);
-            final short result = currentBuffer.getShort();
-            current = tryReleaseCurrent(current, currentBuffer);
-            return result;
+        if (input.isBuffered()) {
+            final Buffer buffer = input.getBuffer();
+            if (buffer != null && buffer.remaining() >= 2) {
+                final short result = buffer.getShort();
+                buffer.trimRegion();
+                return result;
+            }
         }
+        
         return (short) ((readByte() & 0xff) << 8 | readByte() & 0xff);
     }
 
@@ -423,12 +172,15 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public int readInt() throws IOException {
-        if (checkRemaining(4)) {
-            final Buffer currentBuffer = unwrap(current);
-            final int result = currentBuffer.getInt();
-            current = tryReleaseCurrent(current, currentBuffer);
-            return result;
+        if (input.isBuffered()) {
+            final Buffer buffer = input.getBuffer();
+            if (buffer != null && buffer.remaining() >= 4) {
+                final int result = buffer.getInt();
+                buffer.trimRegion();
+                return result;
+            }
         }
+        
         return (readShort() & 0xffff) << 16 | readShort() & 0xffff;
     }
 
@@ -437,12 +189,15 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public long readLong() throws IOException {
-        if (checkRemaining(8)) {
-            final Buffer currentBuffer = unwrap(current);
-            final long result = currentBuffer.getLong();
-            current = tryReleaseCurrent(current, currentBuffer);
-            return result;
+        if (input.isBuffered()) {
+            final Buffer buffer = input.getBuffer();
+            if (buffer != null && buffer.remaining() >= 8) {
+                final long result = buffer.getLong();
+                buffer.trimRegion();
+                return result;
+            }
         }
+        
         return (readInt() & 0xffffffffL) << 32 | readInt() & 0xffffffffL;
     }
 
@@ -451,11 +206,13 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     final public float readFloat() throws IOException {
-        if (checkRemaining(4)) {
-            final Buffer currentBuffer = unwrap(current);
-            final float result = currentBuffer.getFloat();
-            current = tryReleaseCurrent(current, currentBuffer);
-            return result;
+        if (input.isBuffered()) {
+            final Buffer buffer = input.getBuffer();
+            if (buffer != null && buffer.remaining() >= 4) {
+                final float result = buffer.getFloat();
+                buffer.trimRegion();
+                return result;
+            }
         }
 
         return Float.intBitsToFloat(readInt());
@@ -466,17 +223,20 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     final public double readDouble() throws IOException {
-        if (checkRemaining(8)) {
-            final Buffer currentBuffer = unwrap(current);
-            final double result = currentBuffer.getDouble();
-            current = tryReleaseCurrent(current, currentBuffer);
-            return result;
+        if (input.isBuffered()) {
+            final Buffer buffer = input.getBuffer();
+            if (buffer != null && buffer.remaining() >= 8) {
+                final double result = buffer.getDouble();
+                buffer.trimRegion();
+                return result;
+            }
         }
+        
         return Double.longBitsToDouble(readLong());
     }
 
     private void arraySizeCheck(final int sizeInBytes) {
-        if (!isBlocking && timeoutMillis == 0 && (sizeInBytes > availableDataSize())) {
+        if (sizeInBytes > available()) {
             throw new BufferUnderflowException();
         }
     }
@@ -506,25 +266,16 @@ public abstract class AbstractStreamReader implements StreamReader {
     @Override
     public void readByteArray(byte[] data, int offset, int length) throws IOException {
         arraySizeCheck(length);
-        while (true) {
-            checkRemaining(1);
-            final Buffer typedBuffer = unwrap(current);
-            int dataSizeToRead = length;
-            if (dataSizeToRead < typedBuffer.remaining()) {
-                typedBuffer.get(data, offset, dataSizeToRead);
-            } else {
-                dataSizeToRead = typedBuffer.remaining();
-                typedBuffer.get(data, offset, dataSizeToRead);
-                current = tryReleaseCurrent(current, typedBuffer);
-            }
-
-            offset += dataSizeToRead;
-            length -= dataSizeToRead;
-
-            if (length == 0) {
-                break;
+        if (input.isBuffered()) {
+            final Buffer buffer = input.getBuffer();
+            buffer.get(data, offset, length);
+            buffer.trimRegion();
+        } else {
+            for(int i = offset; i < length; i++) {
+                data[i] = input.read();
             }
         }
+
     }
 
     /**
@@ -532,23 +283,28 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public void readBytes(final Buffer buffer) throws IOException {
-        buffer.reset();
+        if (!buffer.hasRemaining()) {
+            return;
+        }
+        
         arraySizeCheck(buffer.remaining());
-        while (true) {
-            checkRemaining(1);
-            final Buffer typedBuffer = unwrap(current);
-            if (buffer.remaining() > typedBuffer.remaining()) {
-                buffer.put(typedBuffer);
-                current = tryReleaseCurrent(current, typedBuffer);
+        if (input.isBuffered()) {
+            final Buffer inputBuffer = input.getBuffer();
+            final int diff = buffer.remaining() - inputBuffer.remaining();
+            if (diff >= 0) {
+                buffer.put(inputBuffer);
             } else {
-                final int save = typedBuffer.limit();
-                typedBuffer.limit(buffer.remaining());
-                final Buffer tail = typedBuffer.slice();
-                typedBuffer.limit(save);
-                buffer.put(tail);
-                break;
+                final int save = inputBuffer.limit();
+                inputBuffer.limit(save + diff);
+                buffer.put(inputBuffer);
+                inputBuffer.limit(save);
             }
-
+            
+            inputBuffer.trimRegion();
+        } else {
+            while(buffer.hasRemaining()) {
+                buffer.put(input.read());
+            }
         }
     }
 
@@ -619,6 +375,36 @@ public abstract class AbstractStreamReader implements StreamReader {
 
     }
 
+    @Override
+    public void skip(int length) {
+        input.skip(length);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <E> Future<E> decode(Transformer<Stream, E> decoder) {
+        return decode(decoder, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public <E> Future<E> decode(Transformer<Stream, E> decoder, CompletionHandler<E> completionHandler) {
+        final FutureImpl<E> future = new FutureImpl<E>();
+
+        final CompletionHandlerWrapper completionHandlerWrapper =
+                new CompletionHandlerWrapper(future, completionHandler);
+
+        notifyCondition(
+                new StreamDecodeCondition(this, decoder, completionHandlerWrapper),
+                completionHandlerWrapper);
+        
+        return future;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -633,10 +419,10 @@ public abstract class AbstractStreamReader implements StreamReader {
     @Override
     public Future<Integer> notifyAvailable(final int size,
             CompletionHandler<Integer> completionHandler) {
-        return notifyCondition(new Condition<StreamReader>() {
+        return notifyCondition(new Condition() {
             @Override
-            public boolean check(StreamReader reader) {
-                return reader.availableDataSize() >= size;
+            public boolean check() {
+                return available() >= size;
             }
         }, completionHandler);
     }
@@ -645,89 +431,92 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     @Override
-    public Future<Integer> notifyCondition(Condition<StreamReader> condition) {
+    public Future<Integer> notifyCondition(Condition condition) {
         return notifyCondition(condition, null);
     }
 
-    private void notifySuccess(FutureImpl<Integer> future,
-            CompletionHandler<Integer> completionHandler, int size) {
-        if (completionHandler != null) {
-            completionHandler.completed(getConnection(), size);
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public synchronized Future<Integer> notifyCondition(
+            final Condition condition,
+            final CompletionHandler<Integer> completionHandler) {
+        if (isClosed()) {
+            EOFException exception = new EOFException();
+            if (completionHandler != null) {
+                completionHandler.failed(getConnection(), exception);
+            }
+
+            return new ReadyFutureImpl<Integer>(exception);
         }
 
-        future.setResult(size);
+        return input.notifyCondition(condition, completionHandler);
     }
-
-    private void notifyFailure(FutureImpl<Integer> future,
-            CompletionHandler<Integer> completionHandler, Throwable e) {
-        if (completionHandler != null) {
-            completionHandler.failed(getConnection(), e);
-        }
-
-        future.failure(e);
-    }
-
+    
     /**
-     * {@inheritDoc}
+     * Closes the <tt>StreamReader</tt> and causes all subsequent method calls
+     * on this object to throw IllegalStateException.
      */
     @Override
-    public Buffer readBuffer() throws IOException {
-        checkRemaining(1);
-        final Buffer retBuffer = unwrap(current);
-        current = null;
-        return retBuffer;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Buffer getBuffer() {
-        return unwrap(current());
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Buffer asReadOnlyBufferWindow() {
-        List<Buffer> buffers = new ArrayList();
-
-        if (current != null) {
-            buffers.add(unwrap(current));
-            if (dataRecords != null) {
-                for (Object record : dataRecords) {
-                    buffers.add(unwrap(record));
+    public void close() {
+        if (isClosed.compareAndSet(false, true)) {
+            if (input != null) {
+                try {
+                    input.close();
+                } catch (IOException e) {
                 }
             }
         }
-
-        return new CompositeBuffer(buffers, true);
-    }
-
-    protected Object current() {
-        if (current == null) {
-            try {
-                ensureRead(false);
-            } catch (IOException e) {
-                throw new IllegalStateException("Unexpected exception");
-            }
-        }
-
-        return current;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void finishBuffer() {
-        Object next = poll();
-        if (next != null) {
-            queueSize -= unwrap(next).remaining();
-        }
-        
-        current = next;
+    public boolean isClosed() {
+        return isClosed.get();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public final boolean hasAvailable() {
+       return available() > 0;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int available() {
+        return input.size();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isSupportBufferWindow() {
+        return input.isBuffered();
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Buffer getBufferWindow() {
+        return input.getBuffer();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Buffer takeBufferWindow() {
+        return input.takeBuffer();
     }
 
     /**
@@ -737,81 +526,5 @@ public abstract class AbstractStreamReader implements StreamReader {
     public Connection getConnection() {
         return connection;
     }
-
-    public void setConnection(Connection connection) {
-        if (connection != null) {
-            bufferSize = connection.getReadBufferSize();
-            isBlocking = connection.isBlocking();
-        }
-        
-        this.connection = connection;
-    }
-
-    protected Buffer newBuffer(int size) {
-        return getConnection().getTransport().getMemoryManager().allocate(size);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int getBufferSize() {
-        return bufferSize;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setBufferSize(int size) {
-        this.bufferSize = size;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public long getTimeout(TimeUnit timeunit) {
-        return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setTimeout(long timeout, TimeUnit timeunit) {
-        timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-    }
-
-    private static final Object tryReleaseCurrent(final Object current,
-            final Buffer currentBuffer) {
-        if (currentBuffer != null && !currentBuffer.hasRemaining()) {
-            currentBuffer.dispose();
-            return null;
-        }
-
-        return current;
-    }
-
-    protected static class NotifyObject {
-
-        private FutureImpl<Integer> future;
-        private CompletionHandler<Integer> completionHandler;
-        private Condition<StreamReader> condition;
-
-        public NotifyObject(FutureImpl<Integer> future,
-                CompletionHandler<Integer> completionHandler,
-                Condition<StreamReader> condition) {
-            this.future = future;
-            this.completionHandler = completionHandler;
-            this.condition = condition;
-        }
-    }
-
-    protected abstract Object read0() throws IOException;
-
-    protected abstract Object wrap(Buffer buffer);
-
-    protected abstract Buffer unwrap(Object data);
 }
 

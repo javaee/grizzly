@@ -41,6 +41,7 @@ package com.sun.grizzly.utils;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.filterchain.Filter;
+import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
@@ -61,7 +62,7 @@ public class LogFilter implements Filter {
     private Level level;
 
     public LogFilter() {
-        this(Grizzly.logger);
+        this(Grizzly.logger(LogFilter.class));
     }
 
     public LogFilter(Logger logger) {
@@ -89,6 +90,20 @@ public class LogFilter implements Filter {
         this.level = level;
     }
 
+    @Override
+    public void onAdded(FilterChain filterChain) {
+        logger.log(level, "LogFilter onAdded");
+    }
+
+    @Override
+    public void onRemoved(FilterChain filterChain) {
+        logger.log(level, "LogFilter onRemoved");
+    }
+
+    @Override
+    public void onFilterChainChanged(FilterChain filterChain) {
+        logger.log(level, "LogFilter onFilterChainChanged");
+    }
 
     @Override
     public NextAction handleRead(FilterChainContext ctx,

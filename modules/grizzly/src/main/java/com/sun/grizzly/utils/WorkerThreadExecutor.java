@@ -43,6 +43,7 @@ import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.Transport;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * WorkerThreadExecutor implementation, which executes {@link Runnable} in
@@ -51,6 +52,8 @@ import java.util.logging.Level;
  * @author Alexey Stashok
  */
 public class WorkerThreadExecutor implements ProcessorExecutor {
+    private static Logger logger = Grizzly.logger(WorkerThreadExecutor.class);
+
     private Transport transport;
 
     public WorkerThreadExecutor(Transport transport) {
@@ -63,10 +66,10 @@ public class WorkerThreadExecutor implements ProcessorExecutor {
             transport.getWorkerThreadPool().submit(task);
         } catch (RejectedExecutionException e) {
             if (!transport.isStopped()) {
-                Grizzly.logger.log(Level.WARNING, "Task " + task +
+                logger.log(Level.WARNING, "Task " + task +
                         " was rejected by ThreadPool. Reason: ", e);
             } else {
-                Grizzly.logger.log(Level.FINE, "Task " + task +
+                logger.log(Level.FINE, "Task " + task +
                         " was rejected by ThreadPool. Reason: ", e);
             }
         }

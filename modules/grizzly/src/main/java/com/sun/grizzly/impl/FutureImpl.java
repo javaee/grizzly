@@ -87,7 +87,7 @@ public class FutureImpl<R> implements Future<R> {
      * 
      * @param result the result value
      */
-    public void setResult(R result) {
+    public void result(R result) {
         synchronized(sync) {
             this.result = result;
             notifyHaveResult();

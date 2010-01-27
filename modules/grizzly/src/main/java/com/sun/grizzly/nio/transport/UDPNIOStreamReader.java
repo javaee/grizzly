@@ -35,220 +35,89 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.nio.transport;
 
-import java.io.EOFException;
 import java.io.IOException;
-import java.net.SocketAddress;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.Reader;
-import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.nio.tmpselectors.TemporarySelectorReader;
 import com.sun.grizzly.streams.AbstractStreamReader;
-import com.sun.grizzly.streams.AddressableStreamReader;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.utils.conditions.Condition;
-
+import com.sun.grizzly.streams.BufferedInput;
 
 /**
  *
  * @author oleksiys
  */
-public class UDPNIOStreamReader extends AbstractStreamReader
-        implements AddressableStreamReader<SocketAddress> {
-    
+public class UDPNIOStreamReader extends AbstractStreamReader {
+
     public UDPNIOStreamReader(UDPNIOConnection connection) {
-        super(connection);
+        super(connection, new UDPNIOInput());
+        ((UDPNIOInput) input).parentStreamReader = this;
     }
 
-    @Override
-    public Future<Integer> notifyCondition(Condition<StreamReader> condition,
-            CompletionHandler<Integer> completionHandler) {
-
-        if (notifyObject != null) {
-            throw new IllegalStateException("Only one available listener allowed!");
-        }
-
-        if (isClosed()) {
-            EOFException exception = new EOFException();
-            if (completionHandler != null) {
-                completionHandler.failed(null, exception);
-            }
-
-            return new ReadyFutureImpl<Integer>(exception);
-        }
-
-        final int availableDataSize = availableDataSize();
-        if (condition.check(this)) {
-            if (completionHandler != null) {
-                completionHandler.completed(null, availableDataSize);
-            }
-
-            return new ReadyFutureImpl<Integer>(availableDataSize);
-        } else {
-            if (isBlocking()) {
-                return notifyConditionBlocking(condition, completionHandler);
-            } else {
-                return notifyConditionNonBlocking(condition, completionHandler);
-            }
-        }
+    public UDPNIOInput getSource() {
+        return (UDPNIOInput) input;
     }
-    
-    private Future<Integer> notifyConditionNonBlocking(
-            final Condition<StreamReader> condition,
-            CompletionHandler<Integer> completionHandler) {
 
-        final FutureImpl<Integer> future = new FutureImpl<Integer>();
-        try {
-            notifyObject = new NotifyObject(future, completionHandler, condition);
+    public static final class UDPNIOInput extends BufferedInput {
 
-            Connection connection = getConnection();
-            UDPNIOTransport transport = (UDPNIOTransport) connection.getTransport();
-            transport.getAsyncQueueIO().getReader().read(connection, null, null,
+        private UDPNIOStreamReader parentStreamReader;
+        private boolean isDone;
+
+        @Override
+        protected void onOpenInputSource() throws IOException {
+            isDone = false;
+            final Connection connection = parentStreamReader.getConnection();
+            connection.read(null, null, null,
                     new Interceptor() {
 
                         @Override
-                        public int intercept(final int event,
-                                final Object context, final Object result) {
-
+                        public int intercept(int event, Object context, Object result) {
                             if (event == Reader.READ_EVENT) {
                                 final ReadResult readResult = (ReadResult) result;
                                 final Buffer buffer = (Buffer) readResult.getMessage();
+                                readResult.setMessage(null);
 
                                 if (buffer == null) {
                                     return Interceptor.INCOMPLETED;
                                 }
 
-                                buffer.flip();
-                                append(readResult);
-
-                                if (future.isDone()) {
+                                buffer.trim();
+                                append(buffer);
+                                if (isDone) {
                                     return Interceptor.COMPLETED;
                                 }
 
-                                return Interceptor.INCOMPLETED |
-                                        Interceptor.RESET;
+                                return Interceptor.INCOMPLETED
+                                        | Interceptor.RESET;
                             }
 
                             return Interceptor.DEFAULT;
                         }
                     });
-        } catch (IOException e) {
-            future.failure(e);
         }
-        
-        return future;
-    }
 
-    private Future<Integer> notifyConditionBlocking(
-            Condition<StreamReader> condition,
-            CompletionHandler<Integer> completionHandler) {
+        @Override
+        protected void onCloseInputSource() throws IOException {
+            isDone = true;
+        }
 
-        FutureImpl<Integer> future = new FutureImpl<Integer>();
-        notifyObject = new NotifyObject(future, completionHandler, condition);
-
-        try {
-            while (!future.isDone()) {
-                Object data = read0();
-                append(data);
+        @Override
+        protected void notifyCompleted(final CompletionHandler<Integer> completionHandler) {
+            if (completionHandler != null) {
+                completionHandler.completed(parentStreamReader.getConnection(), compositeBuffer.remaining());
             }
-        } catch (Exception e) {
-            future.failure(e);
         }
 
-        return future;
-    }
-    
-    @Override
-    protected ReadResult read0() throws IOException {
-        final Connection connection = getConnection();
-        final UDPNIOTransport transport =
-                (UDPNIOTransport) connection.getTransport();
-        final Buffer buffer = newBuffer(bufferSize);
-
-        if (isBlocking()) {
-
-            ReadResult<Buffer, SocketAddress> result;
-            try {
-                TemporarySelectorReader reader =
-                        (TemporarySelectorReader)
-                        transport.getTemporarySelectorIO().getReader();
-                Future<ReadResult<Buffer, SocketAddress>> future = reader.read(
-                        connection, buffer, null, null,
-                        timeoutMillis, TimeUnit.MILLISECONDS);
-                result = future.get();
-                buffer.trim();
-            } catch (Exception e) {
-                buffer.dispose();
-                throw new EOFException();
+        @Override
+        protected void notifyFailure(final CompletionHandler<Integer> completionHandler,
+                final Throwable failure) {
+            if (completionHandler != null) {
+                completionHandler.failed(parentStreamReader.getConnection(), failure);
             }
-
-            return result;
-
-        } else {
-            final ReadResult<Buffer, SocketAddress> result =
-                    new ReadResult<Buffer, SocketAddress>(connection);
-            
-            try {
-                int readBytes = transport.read(connection, buffer, result);
-                if (readBytes <= 0) {
-                    if (readBytes == -1) {
-                        throw new EOFException();
-                    }
-
-                    buffer.dispose();
-                    return null;
-                } else {
-                    buffer.trim();
-                }
-            } catch (IOException e) {
-                buffer.dispose();
-                throw e;
-            }
-
-            return result;
         }
-    }
-
-    @Override
-    public SocketAddress getPeerAddress() {
-        final UDPNIOConnection connection = (UDPNIOConnection) getConnection();
-        if (connection.isConnected()) {
-            return connection.getPeerAddress();
-        }
-        
-        final ReadResult current = (ReadResult) current();
-        if (current != null) {
-            return (SocketAddress) current.getSrcAddress();
-        }
-
-        return null;
-    }
-
-    @Override
-    protected final boolean append(Object data) {
-        return super.append(data);
-    }
-
-    @Override
-    protected Object wrap(final Buffer buffer) {
-        if (buffer == null) return null;
-
-        return new ReadResult(getConnection(), buffer, null, buffer.remaining());
-    }
-
-    @Override
-    protected Buffer unwrap(final Object record) {
-        if (record == null) return null;
-
-        return ((ReadResult<Buffer, SocketAddress>) record).getMessage();
     }
 }

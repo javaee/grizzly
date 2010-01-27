@@ -48,6 +48,11 @@ public class FloatDecoder extends PrimitiveDecoder<Float> {
     private static final int SIZE = Float.SIZE / 8;
 
     @Override
+    public String getName() {
+        return FloatDecoder.class.getName();
+    }
+
+    @Override
     public int sizeOf() {
         return SIZE;
     }

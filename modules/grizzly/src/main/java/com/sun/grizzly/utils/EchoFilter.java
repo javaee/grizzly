@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.utils;
 
 import com.sun.grizzly.filterchain.FilterAdapter;
@@ -44,15 +43,8 @@ import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Filter;
 import java.util.logging.Logger;
-import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.Transformer;
-import com.sun.grizzly.streams.AddressableStreamReader;
-import com.sun.grizzly.streams.AddressableStreamWriter;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 
 /**
  * Echo {@link Filter} implementation
@@ -60,43 +52,17 @@ import com.sun.grizzly.streams.StreamWriter;
  * @author Alexey Stashok
  */
 public class EchoFilter extends FilterAdapter {
-    private static final Logger logger = Grizzly.logger;
-    
+
+    private static final Logger logger = Grizzly.logger(EchoFilter.class);
+
     @Override
     public NextAction handleRead(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
         final Object message = ctx.getMessage();
+        final Connection connection = ctx.getConnection();
+        final Object address = ctx.getAddress();
 
-        if (message != null) {
-            final Connection connection = ctx.getConnection();
-            final Transformer encoder = ctx.getFilterChain().getCodec().getEncoder();
-            final TransformationResult<Buffer> result =
-                    encoder.transform(connection, message, null);
-            encoder.release(connection);
-            final Buffer buffer = result.getMessage();
-            final Object address = ctx.getAddress();
-            connection.write(address, buffer);
-        } else {
-            final StreamReader reader = ctx.getStreamReader();
-            final StreamWriter writer = ctx.getStreamWriter();
-
-            if (writer instanceof AddressableStreamWriter) {
-                final AddressableStreamReader addressableReader =
-                        (AddressableStreamReader) reader;
-                // pull the buffer, if it wasn't
-                addressableReader.getBuffer();
-
-                final Object peerAddress = addressableReader.getPeerAddress();
-                final AddressableStreamWriter addressableWriter =
-                        (AddressableStreamWriter) writer;
-                if (addressableWriter.getPeerAddress() == null) {
-                    addressableWriter.setPeerAddress(peerAddress);
-                }
-            }
-            writer.writeStream(reader);
-            writer.flush();
-        }
-
+        connection.write(address, message, null, ctx.getEncoder());
         return nextAction;
     }
 }

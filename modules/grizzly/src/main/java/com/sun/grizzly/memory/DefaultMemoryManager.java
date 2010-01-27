@@ -47,20 +47,20 @@ import com.sun.grizzly.threadpool.DefaultWorkerThread;
  *
  * @author Alexey Stashok
  */
-public class DefaultMemoryManager extends ByteBufferViewManager {
+public class DefaultMemoryManager extends ByteBufferManager {
     public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
     
     /**
      * Max size of memory pool for one thread.
      */
-    private int maxThreadBufferSize = DEFAULT_MAX_BUFFER_SIZE;
+    private volatile int maxThreadBufferSize = DEFAULT_MAX_BUFFER_SIZE;
 
     private boolean isMonitoring;
 
     /**
      * Real amount of bytes, which was allocated.
      */
-    private AtomicLong totalBytesAllocated = new AtomicLong();
+    private final AtomicLong totalBytesAllocated = new AtomicLong();
     
     /**
      * Get the maximum size of memory pool for one thread.
@@ -112,86 +112,101 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
     }
 
     /**
-     * Allocates {@link Buffer} of required size.
+     * Allocates {@link ByteBuffer} of required size.
      * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
      * memory pool. If it's not possible - it delegates allocation to 
      * {@link ByteBufferViewManager}.
      * 
      * @param size number of bytes to be allocated.
      * 
-     * @return allocated {@link ByteBufferWrapper}.
+     * @return allocated {@link ByteBuffer}.
      */
     @Override
-    public ByteBufferWrapper allocate(int size) {
+    public ByteBuffer allocateByteBuffer(int size) {
+        if (size > maxThreadBufferSize) {
+            // Don't use pool
+            return incAllocated(super.allocateByteBuffer(size));
+        }
+
         if (isDefaultWorkerThread()) {
             BufferInfo bufferInfo = getThreadBuffer();
 
             if (bufferInfo == null || bufferInfo.buffer == null) {
-                return incAllocated(super.allocate(size));
+                bufferInfo = reallocatePoolBuffer();
+                return allocateFromPool(bufferInfo, size);
             }
 
-            ByteBufferWrapper allocatedFromPool = allocateFromPool(bufferInfo, size);
+            final ByteBuffer allocatedFromPool = allocateFromPool(bufferInfo, size);
 
             if (allocatedFromPool != null) {
                 return allocatedFromPool;
             } else {
-                return incAllocated(super.allocate(size));
+                bufferInfo = reallocatePoolBuffer();
+                return allocateFromPool(bufferInfo, size);
             }
 
         } else {
-            return incAllocated(super.allocate(size));
+            return incAllocated(super.allocateByteBuffer(size));
         }
     }
 
+    private BufferInfo reallocatePoolBuffer() {
+        final ByteBuffer byteBuffer = incAllocated(
+                super.allocateByteBuffer(maxThreadBufferSize));
+
+        final BufferInfo bufferInfo = new BufferInfo();
+
+        bufferInfo.buffer = byteBuffer;
+        bufferInfo.lastAllocatedBuffer = null;
+        setThreadBuffer(bufferInfo);
+        return bufferInfo;
+    }
+
     /**
-     * Reallocate {@link Buffer} to a required size.
+     * Reallocate {@link ByteBuffer} to a required size.
      * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
      * memory pool. If it's not possible - it delegates reallocation to
      * {@link ByteBufferViewManager}.
      *
-     * @param oldBuffer old {@link Buffer} we want to reallocate.
+     * @param oldBuffer old {@link ByteBuffer} we want to reallocate.
      * @param newSize {@link Buffer} required size.
      *
-     * @return reallocated {@link Buffer}.
+     * @return reallocated {@link ByteBuffer}.
      */
-
     @Override
-    public ByteBufferWrapper reallocate(ByteBufferWrapper oldBuffer,
-            int newSize) {
-        if (oldBuffer.capacity() >= newSize) return oldBuffer.clear();
-        
+    public ByteBuffer reallocateByteBuffer(ByteBuffer oldByteBuffer, int newSize) {
+        if (oldByteBuffer.capacity() >= newSize) return (ByteBuffer) oldByteBuffer;
+
         if (isDefaultWorkerThread()) {
             final BufferInfo bufferInfo = getThreadBuffer();
             if (bufferInfo != null &&
                     bufferInfo.buffer != null &&
-                    bufferInfo.lastAllocatedBuffer == oldBuffer.visible &&
-                    bufferInfo.buffer.remaining() + oldBuffer.capacity() >= newSize) {
+                    bufferInfo.lastAllocatedBuffer == oldByteBuffer &&
+                    bufferInfo.buffer.remaining() + oldByteBuffer.capacity() >= newSize) {
                 final ByteBuffer bufferPool = bufferInfo.buffer;
-                bufferPool.position(bufferPool.position() - oldBuffer.capacity());
+                bufferPool.position(bufferPool.position() - oldByteBuffer.capacity());
 
-                return allocateFromPool(bufferInfo, newSize);
+                final ByteBuffer newByteBuffer =
+                        allocateFromPool(bufferInfo, newSize);
+                newByteBuffer.position(oldByteBuffer.position());
+                return newByteBuffer;
             }
         }
 
-        return incAllocated(super.reallocate(oldBuffer, newSize));
+        return incAllocated(super.reallocateByteBuffer(oldByteBuffer, newSize));
     }
 
-    private ByteBufferWrapper allocateFromPool(final BufferInfo bufferInfo,
+
+    private ByteBuffer allocateFromPool(final BufferInfo bufferInfo,
             final int size) {
         if (bufferInfo == null || bufferInfo.buffer == null) return null;
         final ByteBuffer bufferPool = bufferInfo.buffer;
         if (bufferPool.remaining() >= size) {
-            ByteBuffer allocatedByteBuffer;
-
-            if (bufferPool.position() == 0) {
-                allocatedByteBuffer = bufferPool;
-                bufferInfo.buffer = null;
-            } else {
-                allocatedByteBuffer = slice(bufferPool, size);
-            }
+            final ByteBuffer allocatedByteBuffer =
+                    BufferUtils.slice(bufferPool, size);
 
             bufferInfo.lastAllocatedBuffer = allocatedByteBuffer;
-            return wrap(allocatedByteBuffer);
+            return allocatedByteBuffer;
         }
 
         return null;
@@ -199,25 +214,23 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
 
     /**
-     * Release {@link Buffer}.
+     * Release {@link ByteBuffer}.
      * <tt>DefaultMemoryManager</tt> will checks if it's possible to return
      * the buffer to thread local pool. If not - let's garbage collector utilize
      * the memory.
      *
-     * @param buffer {@link Buffer} to be released.
+     * @param buffer {@link ByteBuffer} to be released.
      */
     @Override
-    public void release(ByteBufferWrapper buffer) {
+    public void releaseByteBuffer(ByteBuffer byteBuffer) {
         if (isDefaultWorkerThread()) {
-            ByteBuffer underlyingBuffer = buffer.underlying();
-            
             BufferInfo bufferInfo = getThreadBuffer();
 
-            if (prepend(bufferInfo, underlyingBuffer)) return;
+            if (prepend(bufferInfo, byteBuffer)) return;
 
             if (bufferInfo == null || bufferInfo.buffer == null ||
-                    (bufferInfo.buffer.capacity() <= underlyingBuffer.capacity() &&
-                    underlyingBuffer.capacity() <= maxThreadBufferSize)) {
+                    (bufferInfo.buffer.capacity() <= byteBuffer.capacity() &&
+                    byteBuffer.capacity() <= maxThreadBufferSize)) {
 
                 boolean isNewBufferInfo = false;
                 if (bufferInfo == null) {
@@ -225,8 +238,8 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
                     isNewBufferInfo = true;
                 }
                 
-                underlyingBuffer.clear();
-                bufferInfo.buffer = underlyingBuffer;
+                byteBuffer.clear();
+                bufferInfo.buffer = byteBuffer;
                 bufferInfo.lastAllocatedBuffer = null;
 
                 if (isNewBufferInfo) {
@@ -237,8 +250,10 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
             }
 
         }
-        super.release(buffer);
+        super.releaseByteBuffer(byteBuffer);
     }
+
+
 
     /**
      * Get the size of local thread memory pool.
@@ -287,7 +302,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
     /**
      * Counts total allocated memory size.
      */
-    private ByteBufferWrapper incAllocated(ByteBufferWrapper allocated) {
+    private ByteBuffer incAllocated(ByteBuffer allocated) {
         if (isMonitoring) {
             totalBytesAllocated.addAndGet(allocated.capacity());
         }
@@ -353,7 +368,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
      * other words it's possible to return unused {@link Buffer} space to
      * pool.
      */
-    public class TrimAwareWrapper extends ByteBufferWrapper {
+    public final class TrimAwareWrapper extends ByteBufferWrapper {
 
         public TrimAwareWrapper(ByteBufferManager memoryManager,
                 ByteBuffer underlyingByteBuffer) {
@@ -362,7 +377,7 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
 
         @Override
         public void trim() {
-            int sizeToReturn = visible.capacity() - visible.position();
+            final int sizeToReturn = visible.capacity() - visible.position();
 
             BufferInfo bufferInfo;
             
@@ -395,6 +410,11 @@ public class DefaultMemoryManager extends ByteBufferViewManager {
             } else {
                 super.trim();
             }
+        }
+
+        @Override
+        public void trimRegion() {
+            super.trimRegion();
         }
     }
 }

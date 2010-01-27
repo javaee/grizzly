@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.filterchain;
 
+import com.sun.grizzly.Buffer;
 import java.util.List;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.Codec;
@@ -78,15 +79,28 @@ import com.sun.grizzly.Codec;
  * </p>
  *
  * @see Filter
+ * @see Codec
  *
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */
 public interface FilterChain extends Processor, List<Filter> {
     /**
-     * Get the {@link FilterChain} {@link Codec}.
+     * Get the <tt>FilterChain</tt> {@link Codec}.
      *
-     * @return the {@link FilterChain} {@link Codec}.
+     * @return the <tt>FilterChain</tt> {@link Codec}.
      */
-    public Codec getCodec();
+    public Codec<Buffer, Object> getCodec();
+
+    /**
+     * Get the {@link Codec} for the part of <tt>FilterChain</tt> part, starting
+     * from a {@link Filter} with index 0, ending with Filter with index
+     * (<tt>limit</tt> - 1)
+     *
+     * @return the {@link Codec} for the part of <tt>FilterChain</tt> part,
+     * starting from a {@link Filter} with index 0, ending with Filter with index
+     * (<tt>limit</tt> - 1)
+     */
+    public Codec<Buffer, Object> getCodec(int limit);
+
 }

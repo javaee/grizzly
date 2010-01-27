@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.ssl;
 
+import com.sun.grizzly.AbstractTransformer;
 import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -46,11 +47,11 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
-import com.sun.grizzly.Transformer;
-import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.attributes.AttributeHolder;
+import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.attributes.AttributeStorage;
+import com.sun.grizzly.memory.BufferUtils;
+import com.sun.grizzly.memory.MemoryManager;
+import javax.net.ssl.SSLException;
 
 /**
  * <tt>Transformer</tt>, which decodes SSL encrypted data, contained in the
@@ -58,183 +59,130 @@ import com.sun.grizzly.attributes.AttributeStorage;
  * 
  * @author Alexey Stashok
  */
-public class SSLDecoderTransformer implements Transformer<Buffer, Buffer> {
+public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buffer> {
     public static final int NEED_HANDSHAKE_ERROR = 1;
     public static final int BUFFER_UNDERFLOW_ERROR = 2;
     public static final int BUFFER_OVERFLOW_ERROR = 3;
 
+    private static final TransformationResult<Buffer, Buffer> HANDSHAKE_NOT_EXECUTED_RESULT =
+            TransformationResult.<Buffer, Buffer>createErrorResult(
+            NEED_HANDSHAKE_ERROR, "Handshake was not executed");
 
-    private Logger logger = Grizzly.logger;
+    private Logger logger = Grizzly.logger(SSLDecoderTransformer.class);
 
-    private static Attribute<TransformationResult<Buffer>> lastResultAttr =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-            "SSLDecoderTransformer.lastResult");
+    private final MemoryManager<Buffer> memoryManager;
 
-    @Override
-    public TransformationResult<Buffer> transform(AttributeStorage state)
-            throws TransformationException {
-        return transform(state, getInput(state), getOutput(state));
+    public SSLDecoderTransformer() {
+        this(TransportFactory.getInstance().getDefaultMemoryManager());
+    }
+
+    public SSLDecoderTransformer(MemoryManager<Buffer> memoryManager) {
+        this.memoryManager = memoryManager;
     }
 
     @Override
-    public TransformationResult<Buffer> transform(AttributeStorage state,
-            Buffer originalMessage, Buffer targetMessage)
+    public String getName() {
+        return SSLDecoderTransformer.class.getName();
+    }
+
+    @Override
+    public TransformationResult<Buffer, Buffer> transform(AttributeStorage state,
+            Buffer originalMessage)
             throws TransformationException {
 
-        SSLResourcesAccessor resourceAccessor =
-                SSLResourcesAccessor.getInstance();
-
-        SSLEngine sslEngine = resourceAccessor.getSSLEngine(state);
-
+        final SSLEngine sslEngine = SSLUtils.getSSLEngine(state);
         if (sslEngine == null) {
-            // There is no SSLEngine associated with the connection yet
-            throw new IllegalStateException("There is no SSLEngine associated!" +
-                    " May be handshake phase was not executed?");
+            return saveLastResult(state, HANDSHAKE_NOT_EXECUTED_RESULT);
         }
 
-        if (originalMessage == null) {
-            originalMessage = getInput(state);
+        Buffer targetBuffer = getOutput(state);
+        final boolean isAllocated = (targetBuffer == null);
+        if (isAllocated) {
+            targetBuffer = memoryManager.allocate(
+                    sslEngine.getSession().getApplicationBufferSize());
+        } else if (targetBuffer.isComposite()) {
+            throw new IllegalArgumentException("output buffer could not be composite");
         }
-        
-        if (targetMessage == null) {
-            targetMessage = getOutput(state);
-        }
-        
-        TransformationResult<Buffer> transformationResult = null;
 
-        SSLEngineResult sslEngineResult = null;
+        TransformationResult<Buffer, Buffer> transformationResult = null;
 
-        int totalConsumed = 0;
-        int totalProduced = 0;
-        
-        do {
-            try {
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("SSLDecoder engine: " + sslEngine +
-                            " input: " + originalMessage +
-                            " output: " + targetMessage);
-                }
-
-                sslEngineResult = sslEngine.unwrap(
-                        (ByteBuffer) originalMessage.underlying(),
-                        (ByteBuffer) targetMessage.underlying());
-
-                totalConsumed += sslEngineResult.bytesConsumed();
-                totalProduced += sslEngineResult.bytesProduced();
-                
-                if (logger.isLoggable(Level.FINE)) {
-                    logger.fine("SSLDecoder done engine: " + sslEngine +
-                            " result: " + sslEngineResult +
-                            " input: " + originalMessage +
-                            " output: " + targetMessage);
-                }
-            } catch (Exception e) {
-                if (logger.isLoggable(Level.WARNING)) {
-                    logger.log(Level.WARNING, "SSLDecoder done engine: " +
-                            sslEngine +
-                            " result: " + sslEngineResult +
-                            " input: " + originalMessage +
-                            " output: " + targetMessage,
-                            e);
-                }
-
-                throw new TransformationException(e);
+        try {
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine("SSLDecoder engine: " + sslEngine + " input: "
+                        + originalMessage + " output: " + targetBuffer);
             }
-        } while(originalMessage.hasRemaining() &&
-                sslEngineResult.getStatus() == SSLEngineResult.Status.OK);
-            
-        SSLEngineResult.Status sslEngineStatus = sslEngineResult.getStatus();
-        switch (sslEngineStatus) {
-            case OK:
-                if (originalMessage.hasRemaining()) {
-                    transformationResult = new TransformationResult<Buffer>(
-                            Status.INCOMPLED, targetMessage.duplicate().flip());
-                    break;
+
+            final SSLEngineResult sslEngineResult;
+            if (!originalMessage.isComposite()) {
+                sslEngineResult = sslEngine.unwrap(originalMessage.toByteBuffer(),
+                        targetBuffer.toByteBuffer());
+            } else {
+                final int packetBufferSize = sslEngine.getSession().getPacketBufferSize();
+                final int pos = originalMessage.position();
+                final ByteBuffer originalByteBuffer =
+                        originalMessage.toByteBuffer(pos,
+                        pos + Math.min(packetBufferSize, originalMessage.remaining()));
+
+                sslEngineResult = sslEngine.unwrap(originalByteBuffer,
+                        targetBuffer.toByteBuffer());
+
+                originalMessage.position(pos + sslEngineResult.bytesConsumed());
+            }
+
+            final SSLEngineResult.Status status = sslEngineResult.getStatus();
+
+            if (logger.isLoggable(Level.FINE)) {
+                logger.fine("SSLDecoderr done engine: " + sslEngine
+                        + " result: " + sslEngineResult
+                        + " input: " + originalMessage
+                        + " output: " + targetBuffer);
+            }
+
+            if (status == SSLEngineResult.Status.OK) {
+                if (isAllocated) {
+                    targetBuffer.trim();
                 }
-            case CLOSED:
-                transformationResult = new TransformationResult<Buffer>(
-                        Status.COMPLETED, targetMessage.duplicate().flip());
-                break;
-            case BUFFER_UNDERFLOW:
-                transformationResult =
-                        new TransformationResult<Buffer>(Status.INCOMPLED,
-                        targetMessage.duplicate().flip());
-                break;
-            case BUFFER_OVERFLOW:
-                Buffer resultBuffer = targetMessage.duplicate().flip();
-                if (totalConsumed > 0 || totalProduced > 0) {
-                    targetMessage.clear();
+
+                return saveLastResult(state,
+                        TransformationResult.<Buffer, Buffer>createCompletedResult(
+                        targetBuffer, originalMessage, false));
+            } else if (status == SSLEngineResult.Status.CLOSED) {
+                if (isAllocated) {
+                    targetBuffer.dispose();
+                }
+
+                return saveLastResult(state,
+                        TransformationResult.<Buffer, Buffer>createCompletedResult(
+                        BufferUtils.EMPTY_BUFFER, originalMessage, false));
+            } else {
+                if (isAllocated) {
+                    targetBuffer.dispose();
+                }
+
+                if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                     transformationResult =
-                            new TransformationResult<Buffer>(
-                            Status.INCOMPLED, resultBuffer);
-                } else {
-                    transformationResult = new TransformationResult<Buffer>(
+                            TransformationResult.<Buffer, Buffer>createIncompletedResult(
+                            originalMessage, false);
+                } else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW) {
+                    transformationResult =
+                            TransformationResult.<Buffer, Buffer>createErrorResult(
                             BUFFER_OVERFLOW_ERROR,
-                            "Buffer overflow during unwrap operation");
+                            "Buffer overflow during wrap operation");
                 }
-                break;
-            default:
-                throw new IllegalStateException(
-                        "Unexpected SSLEngine status: " +
-                        sslEngineStatus);
+            }
+        } catch (SSLException e) {
+            if (isAllocated) {
+                targetBuffer.dispose();
+            }
+
+            throw new TransformationException(e);
         }
 
-        lastResultAttr.set(state.obtainAttributes(), transformationResult);
-
-        return transformationResult;
+        return saveLastResult(state, transformationResult);
     }
 
     @Override
-    public Buffer getInput(AttributeStorage state) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        return accessor.obtainSecuredInBuffer(state);
-    }
-
-    @Override
-    public void setInput(AttributeStorage state, Buffer input) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        accessor.setSecuredInBuffer(state, input);
-    }
-
-    @Override
-    public Buffer getOutput(AttributeStorage state) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        return accessor.obtainAppBuffer(state);
-    }
-
-    @Override
-    public void setOutput(AttributeStorage state, Buffer output) {
-        SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-        accessor.setAppBuffer(state, output);
-    }
-
-    @Override
-    public TransformationResult<Buffer> getLastResult(AttributeStorage state) {
-        AttributeHolder holder = state.getAttributes();
-        if (holder != null) {
-            return lastResultAttr.get(holder);
-        }
-
-        return null;
-    }
-
-    @Override
-    public AttributeHolder getProperties(AttributeStorage state) {
-        return state.getAttributes();
-    }
-
-    @Override
-    public void hibernate(AttributeStorage state) {
-    }
-
-    @Override
-    public void release(AttributeStorage state) {
-        AttributeHolder holder = state.getAttributes();
-        if (holder != null) {
-            SSLResourcesAccessor accessor = SSLResourcesAccessor.getInstance();
-            accessor.setSecuredInBuffer(state, null);
-            accessor.setAppBuffer(state, null);
-            lastResultAttr.remove(holder);
-        }
+    public boolean hasInputRemaining(Buffer input) {
+        return input != null && input.hasRemaining();
     }
 }

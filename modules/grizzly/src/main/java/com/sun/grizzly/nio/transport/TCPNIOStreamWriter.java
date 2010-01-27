@@ -40,140 +40,85 @@ package com.sun.grizzly.nio.transport;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.nio.tmpselectors.TemporarySelectorWriter;
+import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.streams.AbstractStreamWriter;
+import com.sun.grizzly.streams.BufferedOutput;
 
 /**
  *
  * @author Alexey Stashok
  */
-public class TCPNIOStreamWriter extends AbstractStreamWriter {
-    private int sentBytesCounter;
-
+public final class TCPNIOStreamWriter extends AbstractStreamWriter {
     public TCPNIOStreamWriter(TCPNIOConnection connection) {
-        super(connection);
+        super(connection, new TCPNIOOutput(connection));
     }
 
     @Override
     public Future<Integer> flush(
             final CompletionHandler<Integer> completionHandler)
             throws IOException {
-        return super.flush(new ResetCounterCompletionHandler(completionHandler));
+        return super.flush(new ResetCounterCompletionHandler(
+                (TCPNIOOutput) output, completionHandler));
     }
-    
 
-    @Override
-    protected Future<Integer> flush0(final Buffer current,
-            final CompletionHandler<Integer> completionHandler)
-            throws IOException {
-        
-        current.flip();
-        final TCPNIOConnection connection = (TCPNIOConnection) getConnection();
-        final TCPNIOTransport transport =
-                (TCPNIOTransport) connection.getTransport();
-        
-        if (isBlocking()) {
-            TemporarySelectorWriter writer =
-                    (TemporarySelectorWriter)
-                    transport.getTemporarySelectorIO().getWriter();
+    public final static class TCPNIOOutput extends BufferedOutput {
+        private final TCPNIOConnection connection;
+        private int sentBytesCounter;
 
-            Future<WriteResult<Buffer, SocketAddress>> future =
-                    writer.write(connection, null, current,
-                    new CompletionHandlerAdapter(null, completionHandler),
-                    null,
-                    getTimeout(TimeUnit.MILLISECONDS),
-                    TimeUnit.MILLISECONDS);
+        public TCPNIOOutput(TCPNIOConnection connection) {
+            super(connection.getWriteBufferSize());
+            this.connection = connection;
+        }
 
-            try {
-                return new ReadyFutureImpl<Integer>(future.get().getWrittenSize());
-            } catch (Exception e) {
-                throw new IOException(
-                        "TCPNIOStreamWriter.flush0(): unexpected exception. " +
-                        e.getMessage());
+
+        @Override
+        protected Future<Integer> flush0(Buffer buffer,
+                final CompletionHandler<Integer> completionHandler)
+                throws IOException {
+            
+            final FutureImpl<Integer> future = new FutureImpl<Integer>();
+            
+            if (buffer == null) {
+                buffer = BufferUtils.EMPTY_BUFFER;
             }
-        } else {
-            FutureImpl<Integer> future = new FutureImpl<Integer>();
 
-            transport.getAsyncQueueIO().getWriter().write(
-                    connection, current,
-                    new CompletionHandlerAdapter(future, completionHandler));
-
+            connection.write(buffer,
+                    new CompletionHandlerAdapter(this, future, completionHandler));
             return future;
+        }
+
+        @Override
+        protected Buffer newBuffer(int size) {
+            return connection.getTransport().getMemoryManager().allocate(size);
+        }
+
+        @Override
+        protected Buffer reallocateBuffer(Buffer oldBuffer, int size) {
+            return connection.getTransport().getMemoryManager().reallocate(oldBuffer, size);
+        }
+
+        @Override
+        protected void onClosed() throws IOException {
+            connection.close();
         }
     }
 
-    @Override
-    protected Future<Integer> close0(
-            final CompletionHandler<Integer> completionHandler)
-            throws IOException {
-        
-        if (buffer != null && buffer.position() > 0) {
-            final FutureImpl<Integer> future =
-                    new FutureImpl<Integer>();
-
-            try {
-                overflow(new CompletionHandler<Integer>() {
-
-                    @Override
-                    public void cancelled(Connection connection) {
-                        close(ZERO);
-                    }
-
-                    @Override
-                    public void failed(Connection connection, Throwable throwable) {
-                        close(ZERO);
-                    }
-
-                    @Override
-                    public void completed(Connection connection, Integer result) {
-                        close(result);
-                    }
-
-                    @Override
-                    public void updated(Connection connection, Integer result) {
-                    }
-
-                    public void close(Integer result) {
-                        try {
-                            getConnection().close();
-                        } catch (IOException e) {
-                        } finally {
-                            if (completionHandler != null) {
-                                completionHandler.completed(null, result);
-                            }
-                            
-                            future.setResult(result);
-                        }
-                    }
-                });
-            } catch (IOException e) {
-            }
-
-            return future;
-        } else {
-            if (completionHandler != null) {
-                completionHandler.completed(null, ZERO);
-            }
-
-            return new ReadyFutureImpl(ZERO);
-        }
-    }
-
-    private final class CompletionHandlerAdapter
+    private final static class CompletionHandlerAdapter
             implements CompletionHandler<WriteResult<Buffer, SocketAddress>> {
 
+        private final TCPNIOOutput output;
         private final FutureImpl<Integer> future;
         private final CompletionHandler<Integer> completionHandler;
 
-        public CompletionHandlerAdapter(FutureImpl<Integer> future,
+        public CompletionHandlerAdapter(TCPNIOOutput output,
+                FutureImpl<Integer> future,
                 CompletionHandler<Integer> completionHandler) {
+            this.output = output;
             this.future = future;
             this.completionHandler = completionHandler;
         }
@@ -202,33 +147,36 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
 
         @Override
         public void completed(Connection connection, WriteResult result) {
-            sentBytesCounter += result.getWrittenSize();
-            int totalSentBytes = sentBytesCounter;
+            output.sentBytesCounter += result.getWrittenSize();
+            int totalSentBytes = output.sentBytesCounter;
 
             if (completionHandler != null) {
                 completionHandler.completed(connection, totalSentBytes);
             }
 
             if (future != null) {
-                future.setResult(totalSentBytes);
+                future.result(totalSentBytes);
             }
         }
 
         @Override
         public void updated(Connection connection, WriteResult result) {
             if (completionHandler != null) {
-                completionHandler.updated(connection, sentBytesCounter +
-                        result.getWrittenSize());
+                completionHandler.updated(connection, output.sentBytesCounter
+                        + result.getWrittenSize());
             }
         }
     }
 
-    private final class ResetCounterCompletionHandler
+    private final static class ResetCounterCompletionHandler
             implements CompletionHandler<Integer> {
 
+        private final TCPNIOOutput output;
         private final CompletionHandler<Integer> parentCompletionHandler;
 
-        public ResetCounterCompletionHandler(CompletionHandler<Integer> parentCompletionHandler) {
+        public ResetCounterCompletionHandler(TCPNIOOutput output,
+                CompletionHandler<Integer> parentCompletionHandler) {
+            this.output = output;
             this.parentCompletionHandler = parentCompletionHandler;
         }
 
@@ -248,7 +196,7 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
 
         @Override
         public void completed(Connection connection, Integer result) {
-            sentBytesCounter = 0;
+            output.sentBytesCounter = 0;
             if (parentCompletionHandler != null) {
                 parentCompletionHandler.completed(connection, result);
             }
@@ -260,6 +208,5 @@ public class TCPNIOStreamWriter extends AbstractStreamWriter {
                 parentCompletionHandler.updated(connection, result);
             }
         }
-
     }
 }

@@ -38,8 +38,6 @@
 
 package com.sun.grizzly.filterchain;
 
-import java.util.List;
-
 /**
  * The interface defines the instruction for a {@link FilterChain},
  * how it should continue filter chain execution.
@@ -55,19 +53,4 @@ public interface NextAction {
      * @return <tt>NextAction</tt> type
      */
     public int type();
-
-    /**
-     * Get <b>unmodifiable view</b> of the list of {@link Filter}s.
-     * @return unmodifiable view of the list of {@link Filter}s.
-     */
-    public List<Filter> getFilters();
-
-    /**
-     * Gets index of the {@link Filter} in
-     * {@link NextAction#getFilters()} list, which should be executed next.
-     *
-     * @return index of the {@link Filter} in
-     * {@link NextAction#getFilters()} list, which should be executed next.
-     */
-    public int getNextFilterIdx();
 }

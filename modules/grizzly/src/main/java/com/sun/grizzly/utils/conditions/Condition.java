@@ -42,6 +42,6 @@ package com.sun.grizzly.utils.conditions;
  *
  * @author oleksiys
  */
-public interface Condition<E> {
-    public boolean check(E state);
+public interface Condition {
+    public boolean check();
 }

@@ -58,12 +58,14 @@ import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
 import com.sun.grizzly.nio.SelectionKeyHandler;
+import java.util.logging.Logger;
 
 /**
  *
  * @author oleksiys
  */
 public class TCPNIOServerConnection extends TCPNIOConnection {
+    private static Logger logger = Grizzly.logger(TCPNIOServerConnection.class);
 
     private volatile FutureImpl acceptListener;
     
@@ -170,7 +172,7 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         try {
             ((TCPNIOTransport) transport).unbind(this);
         } catch (IOException e) {
-            Grizzly.logger.log(Level.FINE,
+            logger.log(Level.FINE,
                     "Exception occurred, when unbind connection: " + this, e);
         }
 
@@ -263,12 +265,12 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
                         acceptedConnectionKey);
 
                 if (listener != null) {
-                    listener.setResult(connection);
+                    listener.result(connection);
                 }
 
                 transport.fireIOEvent(IOEvent.ACCEPTED, connection);
             } catch (Exception e) {
-                Grizzly.logger.log(Level.FINE, "Exception happened, when " +
+                logger.log(Level.FINE, "Exception happened, when " +
                         "trying to accept the connection", e);
             }
         }
