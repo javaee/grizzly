@@ -955,6 +955,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
             if(session != null) {
                 httpSession.setSession(session);
                 httpSession.access();
+            } else {
+                return null;
             }
         }
         return httpSession;

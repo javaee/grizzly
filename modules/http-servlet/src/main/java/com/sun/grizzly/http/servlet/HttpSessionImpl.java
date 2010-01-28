@@ -166,14 +166,14 @@ public class HttpSessionImpl implements HttpSession {
      * {@inheritDoc}
      */
     public Enumeration getAttributeNames() {
-        return session.atttibutes().keys();
+        return session.attributes().keys();
     }
 
     /**
      * {@inheritDoc}
      */
     public String[] getValueNames() {
-        return session.atttibutes().entrySet().toArray(new String[0]);
+        return session.attributes().entrySet().toArray(new String[0]);
     }
 
     /**
@@ -298,7 +298,9 @@ public class HttpSessionImpl implements HttpSession {
      * {@inheritDoc}
      */
     public synchronized void invalidate() {
-        session.atttibutes().clear();
+        session.setIsValid(false);
+        session.attributes().clear();
+
         creationTime = 0L;
         isNew = true;
 

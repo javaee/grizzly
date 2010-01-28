@@ -163,7 +163,7 @@ public class GrizzlySession {
      * Return a {@link ConcurrentHashMap} of attibutes.
      * @return
      */
-    public ConcurrentHashMap<String,Object> atttibutes(){
+    public ConcurrentHashMap<String,Object> attributes(){
         return attributes;
     }
 

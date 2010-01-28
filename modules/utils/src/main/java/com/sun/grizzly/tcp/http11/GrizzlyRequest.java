@@ -59,7 +59,6 @@ import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.util.buf.B2CConverter;
 import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.Cookie;
 import com.sun.grizzly.util.http.Cookies;
@@ -108,6 +107,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 
 public class GrizzlyRequest{
+    private static final Random random = new Random();
 
     // ----------------------------------------------------------- Constructors
 
@@ -2203,11 +2203,16 @@ public class GrizzlyRequest{
 
         if (requestedSessionId != null) {
             session = sessions.get(requestedSessionId);
-            if ((session != null) && !session.isValid())
+            if ((session != null) && !session.isValid()) {
                 session = null;
+                sessions.remove(requestedSessionId);
+            }
+
             if (session != null) {
                 return (session);
             }
+
+            requestedSessionId = null;
         }
 
         // Create a new session if requested and the response is not committed
@@ -2218,8 +2223,7 @@ public class GrizzlyRequest{
             session = new GrizzlySession(requestedSessionId);
             
         } else {
-            Random r = new Random();
-            requestedSessionId = String.valueOf(Math.abs(r.nextLong()));
+            requestedSessionId = String.valueOf(Math.abs(random.nextLong()));
             session = new GrizzlySession(requestedSessionId);
         }
         sessions.put(requestedSessionId,session);
