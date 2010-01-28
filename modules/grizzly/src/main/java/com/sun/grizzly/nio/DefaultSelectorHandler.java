@@ -273,24 +273,41 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (future == null || !future.isCancelled()) {
             try {
                 if (channel.isOpen()) {
-                    final SelectionKey registeredSelectionKey =
-                            channel.register(selectorRunner.getSelector(),
-                            interest,
-                            attachment);
 
-                    selectorRunner.getTransport().
-                            getSelectionKeyHandler().
-                            onKeyRegistered(registeredSelectionKey);
+                    final Selector selector = selectorRunner.getSelector();
+                    
+                    final SelectionKey key = channel.keyFor(selector);
 
-                    final RegisterChannelResult result =
-                            new RegisterChannelResult(selectorRunner,
-                            registeredSelectionKey, channel);
+                    // Check whether the channel has been registered on a selector
+                    boolean isKeyValid = true;
+                    if (key == null || (isKeyValid = key.isValid())) {
+                        // If channel is not registered or key is valid
+                        final SelectionKey registeredSelectionKey =
+                                channel.register(selector, interest, attachment);
 
-                    if (completionHandler != null) {
-                        completionHandler.completed(null, result);
+                        selectorRunner.getTransport().
+                                getSelectionKeyHandler().
+                                onKeyRegistered(registeredSelectionKey);
+
+                        final RegisterChannelResult result =
+                                new RegisterChannelResult(selectorRunner,
+                                registeredSelectionKey, channel);
+
+                        if (completionHandler != null) {
+                            completionHandler.completed(null, result);
+                        }
+                        if (future != null) {
+                            future.result(result);
+                        }
+                        return;
                     }
-                    if (future != null) {
-                        future.result(result);
+
+                    if (!isKeyValid) {
+                        // Channel has been registered already,
+                        // but the key is not valid
+                        selectorRunner.getPostponedTasks().add(
+                                new RegisterChannelOperation(channel, interest,
+                                attachment, future, completionHandler));
                     }
                 } else {
                     Throwable error = new ClosedChannelException();
@@ -423,21 +440,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
         @Override
         public void run(final SelectorRunner selectorRunner) throws IOException {
-            if (channel.isOpen()) {
-                final SelectionKey key =
-                        channel.keyFor(selectorRunner.getSelector());
-
-                boolean isKeyValid = true;
-                if (key == null || (isKeyValid = key.isValid())) {
-                    registerChannel0(selectorRunner, channel, interest,
-                            attachment, completionHandler, future);
-                    return;
-                }
-
-                if (!isKeyValid) {
-                    selectorRunner.getPostponedTasks().add(this);
-                }
-            }
+            registerChannel0(selectorRunner, channel, interest,
+                    attachment, completionHandler, future);
         }
     }
 
