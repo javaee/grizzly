@@ -48,8 +48,7 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.util.ChunkingFilter;
-import com.sun.grizzly.utils.StringDecoder;
-import com.sun.grizzly.utils.StringEncoder;
+import com.sun.grizzly.utils.StringFilter;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -136,8 +135,7 @@ public class ProtocolChainCodecTest extends TestCase {
         for (Filter filter : filters) {
             transport.getFilterChain().add(filter);
         }
-        transport.getFilterChain().add(new CodecFilterAdapter(
-                new StringDecoder(), new StringEncoder()));
+        transport.getFilterChain().add(new StringFilter());
         transport.getFilterChain().add(new FilterAdapter() {
             volatile int counter;
             @Override

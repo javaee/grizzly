@@ -38,7 +38,6 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.filterchain.CodecFilterAdapter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChainContext;
@@ -58,8 +57,7 @@ import com.sun.grizzly.ssl.SSLStreamReader;
 import com.sun.grizzly.ssl.SSLStreamWriter;
 import com.sun.grizzly.util.ChunkingFilter;
 import com.sun.grizzly.utils.EchoFilter;
-import com.sun.grizzly.utils.StringDecoder;
-import com.sun.grizzly.utils.StringEncoder;
+import com.sun.grizzly.utils.StringFilter;
 import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
@@ -160,8 +158,7 @@ public class SSLTest extends TestCase {
                 TransportFactory.getInstance().createTCPTransport();
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(sslFilter);
-        transport.getFilterChain().add(new CodecFilterAdapter(
-                new StringDecoder(), new StringEncoder()));
+        transport.getFilterChain().add(new StringFilter());
         transport.getFilterChain().add(pingPongFilter);
 
         transport.getFilterChain().addAll(filterIndex, Arrays.asList(filters));
