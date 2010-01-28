@@ -38,7 +38,6 @@ package com.sun.grizzly.memory;
 
 import com.sun.grizzly.Appendable;
 import com.sun.grizzly.Buffer;
-import java.nio.ByteBuffer;
 
 /**
  *
