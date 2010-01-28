@@ -170,14 +170,14 @@ public class SSLTest extends TestCase {
             transport.configureBlocking(isBlocking);
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = future.get(10000, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             
             assertTrue(connection != null);
 
             try {
                 assertEquals(pingPongTurnArounds,
                         pingPongFilter.getServerCompletedFeature().get(
-                        100000, TimeUnit.SECONDS));
+                        10, TimeUnit.SECONDS));
             } catch (TimeoutException e) {
                 logger.severe("Server timeout");
             }
@@ -240,7 +240,7 @@ public class SSLTest extends TestCase {
                 assertTrue(connection != null);
 
                 connection.configureStandalone(true);
-                connection.setReadTimeout(10, TimeUnit.DAYS);
+                connection.setReadTimeout(10, TimeUnit.SECONDS);
 
                 reader = new SSLStreamReader(transport.getStreamReader(connection));
                 writer = new SSLStreamWriter(transport.getStreamWriter(connection));
