@@ -62,7 +62,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
     }
 
     public StringEncoder(String stringTerminator) {
-        this(Charset.forName("UTF-8"), null);
+        this(null, null);
     }
 
     public StringEncoder(Charset charset) {
@@ -70,7 +70,12 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
     }
 
     public StringEncoder(Charset charset, String stringTerminator) {
-        this.charset = charset;
+        if (charset != null) {
+            this.charset = charset;
+        } else {
+            this.charset = Charset.defaultCharset();
+        }
+
         this.stringTerminator = stringTerminator;
     }
 

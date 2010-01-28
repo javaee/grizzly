@@ -60,7 +60,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
     protected byte[] stringTerminateBytes = null;
 
     public StringDecoder() {
-        this((String) null);
+        this(null, null);
     }
 
     public StringDecoder(String stringTerminator) {
@@ -72,7 +72,12 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
     }
 
     public StringDecoder(Charset charset, String stringTerminator) {
-        this.charset = charset;
+        if (charset != null) {
+            this.charset = charset;
+        } else {
+            this.charset = Charset.defaultCharset();
+        }
+        
         if (stringTerminator != null) {
             try {
                 this.stringTerminateBytes = stringTerminator.getBytes(
