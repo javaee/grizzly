@@ -35,110 +35,19 @@
  * holder.
  *
  */
-package com.sun.grizzly.utils;
+package com.sun.grizzly.util;
 
-import java.io.IOException;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.Transformer;
-import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.attributes.AttributeBuilder;
-import com.sun.grizzly.attributes.AttributeHolder;
-import com.sun.grizzly.filterchain.FilterAdapter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
-import com.sun.grizzly.filterchain.CodecFilter;
-import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.filterchain.CodecFilterAdapter;
+import com.sun.grizzly.utils.StringDecoder;
+import com.sun.grizzly.utils.StringEncoder;
 
 /**
  *
  * @author Alexey Stashok
  */
-public class UTFStringFilter extends FilterAdapter implements CodecFilter {
-
-    private AttributeBuilder attributeBuilder;
-    private Attribute<Buffer> remainderAttribute;
-    
-    private MemoryManager<Buffer> memoryManager;
-    private Transformer<Buffer, String> decoder;
-    private Transformer<String, Buffer> encoder;
-
-    public UTFStringFilter(MemoryManager<Buffer> memoryManager) {
-        this(memoryManager, Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
-    }
-
-    public UTFStringFilter(MemoryManager<Buffer> memoryManager,
-            AttributeBuilder attributeBuilder) {
-        this.memoryManager = memoryManager;
-        this.attributeBuilder = attributeBuilder;
-        remainderAttribute = attributeBuilder.createAttribute(
-                "UTFStringFilter.remainder");
-        decoder = new StringDecoder();
-        encoder = new StringEncoder();
-    }
-
-    public Transformer getDecoder() {
-        return decoder;
-    }
-
-    public Transformer getEncoder() {
-        return encoder;
-    }
-
-    @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        TransformationResult result;
-        Buffer message = (Buffer) ctx.getMessage();
-        Connection connection = ctx.getConnection();
-        
-        result = decoder.transform(connection, message, null);
-
-        if (result.getStatus() == Status.COMPLETED) {
-            decoder.release(connection);
-            ctx.setMessage(result.getMessage());
-
-            // Important. If message has remaining - we will need to
-            // reinvoke the chain in postExecute phase
-            if (message.hasRemaining()) {
-                remainderAttribute.set(ctx.obtainAttributes(), message);
-            }
-        } else {
-            nextAction = ctx.getStopAction();
-        }
-
-        return nextAction;
-    }
-
-    @Override
-    public NextAction postRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        AttributeHolder holder = ctx.getAttributes();
-        if (holder != null) {
-            Buffer remainder = remainderAttribute.remove(holder);
-            if (remainder != null) {
-                ctx.setMessage(remainder);
-                nextAction = ctx.getRerunChainAction();
-            }
-        }
-
-        return nextAction;
-    }
-
-
-    @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        TransformationResult result;
-        Connection connection = ctx.getConnection();
-
-        result = encoder.transform(connection, (String) ctx.getMessage(), null);
-
-        ctx.setMessage(result.getMessage());
-        encoder.release(connection);
-        return nextAction;
+public class UTFStringFilter extends CodecFilterAdapter<Buffer, String> {
+    public UTFStringFilter() {
+        super(new StringDecoder(), new StringEncoder());
     }
 }
