@@ -161,6 +161,14 @@ public interface SelectorHandler extends Handler, Copyable,
     public void register(SelectableChannel channel,int ops);
 
     /**
+     * Register the {@link SelectableChannel} on the {@link Selector}.
+     * @param key
+     * @param ops interested operations
+     * @param attachment
+     */
+    public void register(SelectableChannel channel, int ops, Object attachment);
+
+    /**
      * Register the SelectionKey on the Selector.
      * @param key 
      * @param ops interested operations

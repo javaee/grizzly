@@ -171,6 +171,15 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
         channel.register(selector, selectionKeyOps);
     }
 
+    public void register(SelectableChannel channel, int selectionKeyOps,
+            Object attachment) throws ClosedChannelException {
+        if (!channel.isOpen()) {
+            return;
+        }
+        Selector selector = selectorHandler.getSelector();
+        channel.register(selector, selectionKeyOps, attachment);
+    }
+
 
     /**
      * {@inheritDoc}

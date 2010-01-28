@@ -89,6 +89,7 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaround {
+    private static final Object NULL_ATTACHMENT = new Object();
 
     private int maxAcceptRetries = 5;
 
@@ -549,11 +550,15 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     }
 
     public void register(SelectableChannel channel, int ops) {
+        register(channel, ops, NULL_ATTACHMENT);
+    }
+
+    public void register(SelectableChannel channel, int ops, Object attachment) {
         if (channel == null) {
             throw new NullPointerException("SelectableChannel parameter is null");
         }
 
-        selectorHandlerTasks.offer(new RegisterChannelOperation(channel, ops));
+        selectorHandlerTasks.offer(new RegisterChannelOperation(channel, ops, attachment));
         wakeUp();
     }
 
@@ -1516,10 +1521,13 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     protected final class RegisterChannelOperation implements SelectorHandlerTask {
         private final SelectableChannel channel;
         private final int interest;
+        private final Object attachment;
 
-        public RegisterChannelOperation(SelectableChannel channel, int interest) {
+        public RegisterChannelOperation(SelectableChannel channel,
+                int interest, Object attachment) {
             this.channel = channel;
             this.interest = interest;
+            this.attachment = attachment;
         }
 
         public void run(Context context) throws IOException {
@@ -1528,7 +1536,11 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 
                 boolean isKeyValid = true;
                 if (key == null || (isKeyValid = key.isValid())) {
-                    selectionKeyHandler.register(channel, interest);
+                    if (attachment == NULL_ATTACHMENT) {
+                        selectionKeyHandler.register(channel, interest);
+                    } else {
+                        selectionKeyHandler.register(channel, interest, attachment);
+                    }
                     return;
                 }
 
