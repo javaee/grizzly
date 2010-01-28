@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.samples.filterchain;
 
+import com.sun.grizzly.Buffer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Connection;
@@ -74,8 +75,8 @@ public class GIOPClient {
             connection = future.get(10, TimeUnit.SECONDS);
 
             // Initialize reader and writer
-            reader = connection.getStreamReader();
-            writer = connection.getStreamWriter();
+            reader = transport.getStreamReader(connection);
+            writer = transport.getStreamWriter(connection);
 
             // Enable standalone mode for this connection
             // (don't use Filter chains or other I/O event processors)
@@ -89,7 +90,12 @@ public class GIOPClient {
             final GIOPEncoder encoder = new GIOPEncoder();
             final GIOPDecoder decoder = new GIOPDecoder();
 
-            encoder.transform(connection, sentMessage, writer);
+            final TransformationResult<GIOPMessage, Buffer> tOutResult =
+                    encoder.transform(connection, sentMessage);
+            final Buffer outputBuffer = tOutResult.getMessage();
+            encoder.release(connection);
+            
+            writer.writeBuffer(outputBuffer);
             Future<Integer> writeFuture = writer.flush();
 
             int size = writeFuture.get(10, TimeUnit.SECONDS);
@@ -97,13 +103,15 @@ public class GIOPClient {
             Future messageAvailFuture = reader.notifyAvailable(size);
             messageAvailFuture.get(10, TimeUnit.SECONDS);
 
-            TransformationResult<GIOPMessage> result =
-                    decoder.transform(connection, reader, null);
+            final Buffer inBuffer = reader.takeBufferWindow();
+            TransformationResult<Buffer, GIOPMessage> tInResult =
+                    decoder.transform(connection, inBuffer);
 
-            assert result != null;
-            assert result.getStatus() == Status.COMPLETED;
+            assert tInResult != null;
+            assert tInResult.getStatus() == Status.COMPLETED;
 
-            GIOPMessage rcvMessage = result.getMessage();
+            GIOPMessage rcvMessage = tInResult.getMessage();
+            decoder.release(connection);
             
             // Check if echo returned message equal to original one
             if (sentMessage.equals(rcvMessage)) {

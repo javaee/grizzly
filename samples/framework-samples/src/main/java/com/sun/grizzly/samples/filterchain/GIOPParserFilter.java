@@ -37,17 +37,8 @@
  */
 package com.sun.grizzly.samples.filterchain;
 
-import com.sun.grizzly.Transformer;
-import java.io.IOException;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
-import com.sun.grizzly.filterchain.CodecFilter;
-import com.sun.grizzly.filterchain.FilterAdapter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.streams.Stream;
-import com.sun.grizzly.streams.StreamReader;
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.filterchain.CodecFilterAdapter;
 import java.util.logging.Filter;
 
 /**
@@ -55,57 +46,10 @@ import java.util.logging.Filter;
  *
  * @author Alexey Stashok
  */
-public class GIOPParserFilter extends FilterAdapter
-        implements CodecFilter<Stream, GIOPMessage> {
+public final class GIOPParserFilter extends CodecFilterAdapter<Buffer, GIOPMessage>{
 
-    private static final GIOPDecoder decoder = new GIOPDecoder();
-    private static final GIOPEncoder encoder = new GIOPEncoder();
-
-    @Override
-    public NextAction handleRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        final Connection connection = ctx.getConnection();
-        final StreamReader input = ctx.getStreamReader();
-
-        TransformationResult<GIOPMessage> result =
-                decoder.transform(connection, input, null);
-        if (result != null && result.getStatus() == Status.COMPLETED) {
-            ctx.setMessage(result.getMessage());
-            return nextAction;
-        }
-
-        return ctx.getStopAction();
+    public GIOPParserFilter() {
+        super(new GIOPDecoder(), new GIOPEncoder());
     }
 
-    /**
-     * Post read is called to let FilterChain cleanup resources.
-     *
-     * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction} next step instruction for the {@link FilterChain}
-     * @return {@link NextAction} next step instruction for the {@link FilterChain}
-     * @throws IOException
-     */
-    @Override
-    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-
-        final StreamReader reader = ctx.getStreamReader();
-        // Check, if there is some data remaining in the input stream
-        if (reader.hasAvailableData()) {
-            // if yes - rerun the parser filter to parse next message
-            return ctx.getRerunChainAction();
-        }
-
-        return nextAction;
-    }
-
-    @Override
-    public Transformer<Stream, GIOPMessage> getDecoder() {
-        return decoder;
-    }
-
-    @Override
-    public Transformer<GIOPMessage, Stream> getEncoder() {
-        return encoder;
-    }
 }

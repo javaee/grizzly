@@ -38,53 +38,60 @@
 package com.sun.grizzly.samples.filterchain;
 
 import com.sun.grizzly.AbstractTransformer;
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.streams.Stream;
-import com.sun.grizzly.streams.StreamWriter;
-import java.io.IOException;
 
 /**
- * {@link Transformer}, which serializes {@link GIOPMessage} into specific
- * {@link Stream}.
+ * {@link Transformer}, which serializes {@link GIOPMessage} into a {@link Buffer}.
  *
  * @author Alexey Stashok
  */
-public class GIOPEncoder extends AbstractTransformer<GIOPMessage, Stream> {
+public class GIOPEncoder extends AbstractTransformer<GIOPMessage, Buffer> {
 
     @Override
-    public TransformationResult<Stream> transform(AttributeStorage storage,
-            GIOPMessage input, Stream output) throws TransformationException {
+    public TransformationResult<GIOPMessage, Buffer> transform(
+            final AttributeStorage storage,
+            final GIOPMessage input) throws TransformationException {
 
-        try {
-            StreamWriter writer = (StreamWriter) output;
+        final int size = 4 + 1 + 1 + 1 + 1 + 4 + input.getBodyLength();
+        final Buffer output = obtainMemoryManager(storage).allocate(size);
 
-            // GIOP header
-            writer.writeByteArray(input.getGIOPHeader());
+        // GIOP header
+        output.put(input.getGIOPHeader());
 
-            // Major version
-            writer.writeByte(input.getMajor());
+        // Major version
+        output.put(input.getMajor());
 
-            // Minor version
-            writer.writeByte(input.getMinor());
+        // Minor version
+        output.put(input.getMinor());
 
-            // Flags
-            writer.writeByte(input.getFlags());
+        // Flags
+        output.put(input.getFlags());
 
-            // Value
-            writer.writeByte(input.getValue());
+        // Value
+        output.put(input.getValue());
 
-            // Body length
-            writer.writeInt(input.getBodyLength());
+        // Body length
+        output.putInt(input.getBodyLength());
 
-            // Body
-            writer.writeByteArray(input.getBody());
-        } catch (IOException e) {
-            throw new TransformationException(e);
-        }
+        // Body
+        output.put(input.getBody());
 
-        return new TransformationResult<Stream>(Status.COMPLETED, output);
+        return saveLastResult(storage,
+                TransformationResult.<GIOPMessage, Buffer>createCompletedResult(
+                output.flip(), null, false));
+    }
+
+    @Override
+    public String getName() {
+        return "GIOPEncoder";
+    }
+
+    @Override
+    public boolean hasInputRemaining(GIOPMessage input) {
+        return false;
     }
 }

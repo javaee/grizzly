@@ -41,6 +41,7 @@ package com.sun.grizzly.samples.filterchain;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import com.sun.grizzly.samples.echo.EchoFilter;
 
 /**
  * Simple GIOP echo server
@@ -58,7 +59,7 @@ public class GIOPServer {
         // Add filters to the chain
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(new GIOPParserFilter());
-        transport.getFilterChain().add(new EchoGIOPMessageFilter());
+        transport.getFilterChain().add(new EchoFilter());
 
 
         try {

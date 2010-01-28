@@ -71,7 +71,10 @@ public class SSLEchoServer {
         transport.getFilterChain().add(new TransportFilter());
         
         // Initialize and add SSLFilter
-        transport.getFilterChain().add(new SSLFilter(initializeSSL()));
+        final SSLEngineConfigurator serverConfig = initializeSSL();
+        final SSLEngineConfigurator clientConfig = serverConfig.clone().setClientMode(true);
+        
+        transport.getFilterChain().add(new SSLFilter(serverConfig, clientConfig));
 
         // Use the plain EchoFilter
         transport.getFilterChain().add(new EchoFilter());
@@ -110,12 +113,14 @@ public class SSLEchoServer {
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
         if (cacertsUrl != null) {
             sslContextConfig.setTrustStoreFile(cacertsUrl.getFile());
+            sslContextConfig.setTrustStorePass("changeit");
         }
 
         // Set trust store
         URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
         if (keystoreUrl != null) {
             sslContextConfig.setKeyStoreFile(keystoreUrl.getFile());
+            sslContextConfig.setKeyStorePass("changeit");
         }
 
 

@@ -81,7 +81,7 @@ public class EchoClient {
 
             assert connection != null;
 
-            writer = connection.getStreamWriter();
+            writer = transport.getStreamWriter(connection);
             String message = "Echo test";
             byte[] sendBytes = message.getBytes();
 
@@ -93,7 +93,7 @@ public class EchoClient {
 
             assert writeFuture.isDone();
 
-            reader = connection.getStreamReader();
+            reader = transport.getStreamReader(connection);
             // allocate the buffer for receiving bytes
             byte[] receiveBytes = new byte[sendBytes.length];
             Future readFuture = reader.notifyAvailable(receiveBytes.length);

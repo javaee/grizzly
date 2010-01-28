@@ -38,23 +38,21 @@
 package com.sun.grizzly.samples.filterchain;
 
 import com.sun.grizzly.AbstractTransformer;
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.streams.Stream;
-import com.sun.grizzly.streams.StreamReader;
-import java.io.IOException;
 
 /**
- * {@link Transformer}, which transforms data, taken from {@link Stream} to
+ * {@link Transformer}, which transforms data, taken from {@link Buffer} to
  * {@link GIOPMessage}.
  * 
  * @author Alexey Stashok
  */
-public class GIOPDecoder extends AbstractTransformer<Stream, GIOPMessage> {
+public class GIOPDecoder extends AbstractTransformer<Buffer, GIOPMessage> {
 
     private static final Attribute<Integer> stateAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("GIOPParseState");
@@ -62,8 +60,9 @@ public class GIOPDecoder extends AbstractTransformer<Stream, GIOPMessage> {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("PreparsedGIOPMessage");
 
     @Override
-    public TransformationResult<GIOPMessage> transform(AttributeStorage storage,
-            Stream input, GIOPMessage output) throws TransformationException {
+    public TransformationResult<Buffer, GIOPMessage> transform(
+            AttributeStorage storage,
+            Buffer input) throws TransformationException {
 
         // check if we are in the middle of message parsing
         GIOPMessage message = preparsedMessageAttr.get(storage);
@@ -76,87 +75,80 @@ public class GIOPDecoder extends AbstractTransformer<Stream, GIOPMessage> {
             parseState = new Integer(0);
         }
 
-        StreamReader reader = (StreamReader) input;
-
         boolean isParsing = true;
-        try {
-            while (isParsing) {
-                switch (parseState) {
-                    case 0: // GIOP 4 byte header
-                    {
-                        if (reader.availableDataSize() >= 4) {
-                            message.setGIOPHeader(reader.readByte(),
-                                    reader.readByte(), reader.readByte(),
-                                    reader.readByte());
-                            parseState++;
-                        } else {
-                            isParsing = false;
-                            break;
-                        }
-                    }
-
-                    case 1: // major, minor
-                    {
-                        if (reader.availableDataSize() >= 2) {
-                            message.setMajor(reader.readByte());
-                            message.setMinor(reader.readByte());
-                            parseState++;
-                        } else {
-                            isParsing = false;
-                            break;
-                        }
-                    }
-
-                    case 2: // flags
-                    {
-                        if (reader.availableDataSize() >= 1) {
-                            message.setFlags(reader.readByte());
-                            parseState++;
-                        } else {
-                            isParsing = false;
-                            break;
-                        }
-                    }
-
-                    case 3: // value
-                    {
-                        if (reader.availableDataSize() >= 1) {
-                            message.setValue(reader.readByte());
-                            parseState++;
-                        } else {
-                            isParsing = false;
-                            break;
-                        }
-                    }
-
-                    case 4: // body length
-                    {
-                        if (reader.availableDataSize() >= 4) {
-                            message.setBodyLength(reader.readInt());
-                            parseState++;
-                        } else {
-                            isParsing = false;
-                            break;
-                        }
-                    }
-
-                    case 5: // body
-                    {
-                        int bodyLength = message.getBodyLength();
-                        if (reader.availableDataSize() >= bodyLength) {
-                            byte[] body = new byte[bodyLength];
-                            reader.readByteArray(body);
-                            message.setBody(body);
-                            parseState++;
-                        }
-
+        while (isParsing) {
+            switch (parseState) {
+                case 0: // GIOP 4 byte header
+                {
+                    if (input.remaining() >= 4) {
+                        message.setGIOPHeader(input.get(), input.get(),
+                                input.get(), input.get());
+                        parseState++;
+                    } else {
                         isParsing = false;
                         break;
                     }
                 }
+
+                case 1: // major, minor
+                {
+                    if (input.remaining() >= 2) {
+                        message.setMajor(input.get());
+                        message.setMinor(input.get());
+                        parseState++;
+                    } else {
+                        isParsing = false;
+                        break;
+                    }
+                }
+
+                case 2: // flags
+                {
+                    if (input.remaining() >= 1) {
+                        message.setFlags(input.get());
+                        parseState++;
+                    } else {
+                        isParsing = false;
+                        break;
+                    }
+                }
+
+                case 3: // value
+                {
+                    if (input.remaining() >= 1) {
+                        message.setValue(input.get());
+                        parseState++;
+                    } else {
+                        isParsing = false;
+                        break;
+                    }
+                }
+
+                case 4: // body length
+                {
+                    if (input.remaining() >= 4) {
+                        message.setBodyLength(input.getInt());
+                        parseState++;
+                    } else {
+                        isParsing = false;
+                        break;
+                    }
+                }
+
+                case 5: // body
+                {
+                    int bodyLength = message.getBodyLength();
+                    if (input.remaining() >= bodyLength) {
+                        final byte[] body = new byte[bodyLength];
+                        input.get(body);
+                        message.setBody(body);
+                        parseState++;
+                    }
+
+                    isParsing = false;
+                    break;
+                }
             }
-        } catch (IOException e) {
-            throw new TransformationException(e);
         }
 
         if (parseState < 6) {  // Not enough data to parse whole message
@@ -165,13 +157,25 @@ public class GIOPDecoder extends AbstractTransformer<Stream, GIOPMessage> {
             stateAttr.set(storage, parseState);
 
             // Stop the filterchain execution until more data available
-            return incompletedResult;
+            return saveLastResult(storage,
+                    TransformationResult.<Buffer, GIOPMessage>createIncompletedResult(input, false));
         } else {
             // Remove intermediate parsing state
             preparsedMessageAttr.remove(storage);
             stateAttr.remove(storage);
 
-            return new TransformationResult<GIOPMessage>(Status.COMPLETED, message);
+            return saveLastResult(storage,
+                    TransformationResult.<Buffer, GIOPMessage>createCompletedResult(message, input, false));
         }
+    }
+
+    @Override
+    public String getName() {
+        return "GIOPDecoder";
+    }
+
+    @Override
+    public boolean hasInputRemaining(Buffer input) {
+        return input != null && input.hasRemaining();
     }
 }

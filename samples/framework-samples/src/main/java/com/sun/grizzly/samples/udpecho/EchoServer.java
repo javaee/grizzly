@@ -42,8 +42,8 @@ import java.io.IOException;
 import java.util.logging.Logger;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.filterchain.TransportFilter.Mode;
 import com.sun.grizzly.nio.transport.UDPNIOTransport;
+import com.sun.grizzly.samples.echo.EchoFilter;
 
 /**
  * Class initializes and starts the UDP echo server, based on Grizzly 2.0
@@ -60,9 +60,9 @@ public class EchoServer {
         // Create UDP transport
         UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
 
-        // Add TransportFilter, which will work in message mode and
-        // will be responsible for reading and writing data to the connection
-        transport.getFilterChain().add(new TransportFilter(Mode.Message));
+        // Add TransportFilter, which will be responsible for reading and
+        // writing data to the connection
+        transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(new EchoFilter());
 
         try {

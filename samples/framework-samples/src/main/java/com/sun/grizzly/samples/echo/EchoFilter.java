@@ -38,19 +38,17 @@
 
 package com.sun.grizzly.samples.echo;
 
+import com.sun.grizzly.Connection;
 import java.io.IOException;
 import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
+import java.util.logging.Filter;
 
 /**
  * Implementation of {@link FilterChain} filter, which replies with the request
  * message.
- * In TCP {@link EchoServer} sample, we initialize {@link TransportFilter} to
- * operate in stream mode, which fits better for TCP transport, so
- * <tt>EchoFilter</tt>, unlike in UDP transport example, should operate with
- * context streams, not messages.
  * 
  * @author Alexey Stashok
  */
@@ -69,8 +67,14 @@ public class EchoFilter extends FilterAdapter {
     @Override
     public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
-        // Redirect Input to Output
-        ctx.getStreamWriter().writeStream(ctx.getStreamReader());
+        final Connection connection = ctx.getConnection();
+
+        // Peer address is used for non-connected UDP Connection :)
+        final Object peerAddress = ctx.getAddress();
+
+        final Object message = ctx.getMessage();
+
+        connection.write(peerAddress, message, null, ctx.getEncoder());
 
         return nextAction;
     }

@@ -48,10 +48,8 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.ssl.BlockingSSLHandshaker;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
-import com.sun.grizzly.ssl.SSLHandshaker;
 import com.sun.grizzly.ssl.SSLStreamReader;
 import com.sun.grizzly.ssl.SSLStreamWriter;
 
@@ -93,15 +91,11 @@ public class SSLEchoClient {
             assert connection != null;
 
             // Initialize SSLReader and SSLWriter
-            reader = new SSLStreamReader(connection.getStreamReader());
-            writer = new SSLStreamWriter(connection.getStreamWriter());
-
-            // Initialize SSL handshaker
-            SSLHandshaker handshaker = new BlockingSSLHandshaker();
+            reader = new SSLStreamReader(transport.getStreamReader(connection));
+            writer = new SSLStreamWriter(transport.getStreamWriter(connection));
 
             // Perform SSL handshake
-            Future handshakeFuture = handshaker.handshake(reader, writer,
-                    initializeSSL());
+            Future handshakeFuture = writer.handshake(reader, initializeSSL());
 
             handshakeFuture.get(10, TimeUnit.SECONDS);
 
@@ -126,6 +120,8 @@ public class SSLEchoClient {
 
             // check the result
             assert Arrays.equals(sendBytes, receiveBytes);
+
+            System.out.println("Echo is DONE successfully");
         } finally {
             // close the client connection
             if (connection != null) {
@@ -153,12 +149,14 @@ public class SSLEchoClient {
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
         if (cacertsUrl != null) {
             sslContextConfig.setTrustStoreFile(cacertsUrl.getFile());
+            sslContextConfig.setTrustStorePass("changeit");
         }
 
         // Set trust store
         URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
         if (keystoreUrl != null) {
             sslContextConfig.setKeyStoreFile(keystoreUrl.getFile());
+            sslContextConfig.setKeyStorePass("changeit");
         }
 
 

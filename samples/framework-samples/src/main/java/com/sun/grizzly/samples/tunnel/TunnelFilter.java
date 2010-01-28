@@ -42,12 +42,12 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.SocketConnectorHandler;
+import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -106,7 +106,7 @@ public class TunnelFilter extends FilterAdapter {
         }
 
         // if peer connection is already created - just forward data to peer
-        redirectToPeer(connection, peerConnection);
+        redirectToPeer(ctx, peerConnection);
 
         return nextAction;
     }
@@ -135,13 +135,13 @@ public class TunnelFilter extends FilterAdapter {
      * @param peerConnection peer {@link Connection}
      * @throws IOException
      */
-    private static void redirectToPeer(final Connection connection,
+    private static void redirectToPeer(final FilterChainContext context,
             final Connection peerConnection) throws IOException {
-        final StreamReader reader = connection.getStreamReader();
-        final StreamWriter peerWriter = peerConnection.getStreamWriter();
 
-        peerWriter.writeStream(reader);
-        peerWriter.flush();        
+        final Object message = context.getMessage();
+        final Transformer encoder = context.getEncoder();
+        
+        peerConnection.write(message, null, encoder);
     }
     
     /**
