@@ -47,7 +47,7 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.util.ChunkingFilter;
+import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.StringFilter;
 import java.io.IOException;
 import java.util.concurrent.Future;

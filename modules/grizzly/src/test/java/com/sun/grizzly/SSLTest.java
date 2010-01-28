@@ -55,7 +55,7 @@ import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.ssl.SSLStreamReader;
 import com.sun.grizzly.ssl.SSLStreamWriter;
-import com.sun.grizzly.util.ChunkingFilter;
+import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.EchoFilter;
 import com.sun.grizzly.utils.StringFilter;
 import java.util.Arrays;

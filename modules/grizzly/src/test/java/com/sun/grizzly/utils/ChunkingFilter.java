@@ -36,7 +36,7 @@
  *
  */
 
-package com.sun.grizzly.util;
+package com.sun.grizzly.utils;
 
 import com.sun.grizzly.AbstractTransformer;
 import com.sun.grizzly.Buffer;
