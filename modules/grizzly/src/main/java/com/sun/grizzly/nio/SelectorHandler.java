@@ -78,4 +78,10 @@ public interface SelectorHandler {
             int interest, Object attachment, 
             CompletionHandler<RegisterChannelResult> completionHandler)
             throws IOException;
+
+    public Future<Runnable> executeInSelectorThread(
+            final SelectorRunner selectorRunner, final Runnable runnableTask,
+            final CompletionHandler<Runnable> completionHandler);
+
+    public boolean onSelectorClosed(SelectorRunner selectorRunner);
 }

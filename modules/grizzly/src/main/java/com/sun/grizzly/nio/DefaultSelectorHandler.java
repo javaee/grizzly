@@ -38,6 +38,7 @@
 package com.sun.grizzly.nio;
 
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Grizzly;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
@@ -47,7 +48,12 @@ import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.utils.LinkedTransferQueue;
+import com.sun.grizzly.impl.ReadyFutureImpl;
+import java.util.Map;
+import java.util.Queue;
+import java.util.WeakHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Default implementation of NIO <code>SelectorHandler</code>
@@ -55,11 +61,31 @@ import com.sun.grizzly.utils.LinkedTransferQueue;
  * @author Alexey Stashok
  */
 public class DefaultSelectorHandler implements SelectorHandler {
-    protected enum OpType {NONE, REG_CHANNEL, REG_KEY, UNREG_KEY};
+    private static final Logger logger = Grizzly.logger(DefaultSelectorHandler.class);
 
-    protected long selectTimeout;
+    public static final boolean IS_WORKAROUND_SELECTOR_SPIN =
+            System.getProperty("os.name").equalsIgnoreCase("linux") &&
+                !System.getProperty("java.version").startsWith("1.7");
+    
+    protected volatile long selectTimeout;
+
+    // Selector spin workaround artifacts
+
+    /**
+     * The threshold for detecting selector.select spin on linux,
+     * used for enabling workaround to prevent server from hanging.
+     */
+    private final int spinRateTreshold = 2000;
+
+    private long lastSpinTimestamp;
+    private int emptySpinCounter;
+    private final Map<Selector, Long> spinnedSelectorsHistory;
+    private final Object spinSync;
+    // ----------------
 
     public DefaultSelectorHandler() {
+        spinnedSelectorsHistory = new WeakHashMap<Selector, Long>();
+        spinSync = new Object();
     }
 
     @Override
@@ -74,16 +100,33 @@ public class DefaultSelectorHandler implements SelectorHandler {
 
     @Override
     public void preSelect(SelectorRunner selectorRunner) throws IOException {
-        processPendingOperations(selectorRunner);
+        processPendingTasks(selectorRunner);
     }
 
     @Override
-    public Set<SelectionKey> select(SelectorRunner selectorRunner)
+    public Set<SelectionKey> select(final SelectorRunner selectorRunner)
             throws IOException {
-        Selector selector = selectorRunner.getSelector();
+        final Selector selector = selectorRunner.getSelector();
+        if (selectorRunner.getPostponedTasks().isEmpty()) {
+            selector.select(selectTimeout);
+        } else {
+            selector.selectNow();
+        }
 
-        selector.select(selectTimeout);
-        return selector.selectedKeys();
+        final Set<SelectionKey> selectedKeys = selector.selectedKeys();
+        
+        if (IS_WORKAROUND_SELECTOR_SPIN) {
+            if (!selectedKeys.isEmpty()) {
+                resetSpinCounter();
+            } else {
+                long sr = getSpinRate();
+                if (sr > spinRateTreshold) {
+                    workaroundSelectorSpin(selectorRunner);
+                }
+            }
+        }
+
+        return selectedKeys;
     }
 
     @Override
@@ -96,11 +139,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             registerKey0(key, interest);
         } else {
-            SelectionKeyOperation operation = new SelectionKeyOperation();
-            operation.setOpType(OpType.REG_KEY);
-            operation.setSelectionKey(key);
-            operation.setInterest(interest);
-            addPendingOperation(selectorRunner, operation);
+            final SelectorHandlerTask task = new RegisterKeyTask(key, interest);
+            addPendingTask(selectorRunner, task);
         }
     }
 
@@ -110,11 +150,8 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             unregisterKey0(key, interest);
         } else {
-            SelectionKeyOperation operation = new SelectionKeyOperation();
-            operation.setOpType(OpType.UNREG_KEY);
-            operation.setSelectionKey(key);
-            operation.setInterest(interest);
-            addPendingOperation(selectorRunner, operation);
+            final SelectorHandlerTask task = new UnRegisterKeyTask(key, interest);
+            addPendingTask(selectorRunner, task);
         }
     }
 
@@ -123,7 +160,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             SelectableChannel channel, int interest, Object attachment)
             throws IOException {
         
-        Future<RegisterChannelResult> future =
+        final Future<RegisterChannelResult> future =
                 registerChannelAsync(selectorRunner, channel, interest,
                 attachment, null);
         try {
@@ -140,72 +177,73 @@ public class DefaultSelectorHandler implements SelectorHandler {
             CompletionHandler<RegisterChannelResult> completionHandler)
             throws IOException {
 
-        FutureImpl<RegisterChannelResult> future =
+        final FutureImpl<RegisterChannelResult> future =
                 new FutureImpl<RegisterChannelResult>();
 
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             registerChannel0(selectorRunner, channel, interest, attachment,
                     completionHandler, future);
         } else {
-            SelectionKeyOperation operation = new SelectionKeyOperation();
-            operation.setOpType(OpType.REG_CHANNEL);
-            operation.setChannel(channel);
-            operation.setInterest(interest);
-            operation.setAttachment(attachment);
+            final SelectorHandlerTask task = new RegisterChannelOperation(
+                    channel, interest, attachment, future, completionHandler);
 
-            operation.setFuture(future);
-
-            operation.setCompletionHandler(completionHandler);
-
-            addPendingOperation(selectorRunner, operation);
+            addPendingTask(selectorRunner, task);
         }
 
         return future;
     }
 
-    protected void addPendingOperation(SelectorRunner selectorRunner,
-            SelectionKeyOperation operation) {
-        LinkedTransferQueue<SelectionKeyOperation> pendingSelectorOps =
-                selectorRunner.getPendingOperations();
-        pendingSelectorOps.offer(operation);
+    @Override
+    public Future<Runnable> executeInSelectorThread(
+            final SelectorRunner selectorRunner, final Runnable runnableTask,
+            final CompletionHandler<Runnable> completionHandler) {
+        if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
+            try {
+                runnableTask.run();
+            } catch (Exception e) {
+                if (completionHandler != null) {
+                    completionHandler.failed(null, e);
+                }
+                
+                return new ReadyFutureImpl<Runnable>(e);
+            }
+            if (completionHandler != null) {
+                completionHandler.completed(null, runnableTask);
+            }
+            
+            return new ReadyFutureImpl<Runnable>(runnableTask);
+        } else {
+            final FutureImpl<Runnable> future = new FutureImpl<Runnable>();
+
+            final SelectorHandlerTask task = new RunnableTask(runnableTask,
+                    future, completionHandler);
+            addPendingTask(selectorRunner, task);
+            return future;
+        }
+    }
+
+    private void addPendingTask(final SelectorRunner selectorRunner,
+            final SelectorHandlerTask task) {
+        final Queue<SelectorHandlerTask> pendingTasks =
+                selectorRunner.getPendingTasks();
+        pendingTasks.offer(task);
 
         selectorRunner.wakeupSelector();
     }
 
-    protected void processPendingOperations(SelectorRunner selectorRunner)
+    private void processPendingTasks(final SelectorRunner selectorRunner)
             throws IOException {
 
-        LinkedTransferQueue<SelectionKeyOperation> pendingSelectorOps =
-                selectorRunner.getPendingOperations();
-
-        SelectionKeyOperation pendingOperation;
-        while((pendingOperation = pendingSelectorOps.poll()) != null) {
-            processPendingOperation(selectorRunner, pendingOperation);
-        }
+        processPendingTaskQueue(selectorRunner, selectorRunner.getPostponedTasks());
+        processPendingTaskQueue(selectorRunner, selectorRunner.getPendingTasks());
     }
 
-    protected void processPendingOperation(SelectorRunner selectorRunner,
-            SelectionKeyOperation operation) throws IOException {
-        OpType opType = operation.getOpType();
-        int interest = operation.getInterest();
-
-        switch (opType) {
-            case REG_CHANNEL:
-                registerChannel0(selectorRunner, operation.getChannel(),
-                        interest,
-                        operation.getAttachment(), 
-                        operation.getCompletionHandler(),
-                        operation.getFuture());
-                break;
-            case REG_KEY:
-                registerKey0(operation.getSelectionKey(), interest);
-                break;
-            case UNREG_KEY:
-                unregisterKey0(operation.getSelectionKey(), interest);
-                break;
-            default:
-                throw new IllegalStateException("Unknown operation type: " +
-                        opType);
+    private void processPendingTaskQueue(final SelectorRunner selectorRunner,
+            final Queue<SelectorHandlerTask> selectorHandlerTasks)
+            throws IOException {
+        SelectorHandlerTask selectorHandlerTask;
+        while((selectorHandlerTask = selectorHandlerTasks.poll()) != null) {
+            selectorHandlerTask.run(selectorRunner);
         }
     }
 
@@ -235,7 +273,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
         if (future == null || !future.isCancelled()) {
             try {
                 if (channel.isOpen()) {
-                    SelectionKey registeredSelectionKey =
+                    final SelectionKey registeredSelectionKey =
                             channel.register(selectorRunner.getSelector(),
                             interest,
                             attachment);
@@ -244,7 +282,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                             getSelectionKeyHandler().
                             onKeyRegistered(registeredSelectionKey);
 
-                    RegisterChannelResult result =
+                    final RegisterChannelResult result =
                             new RegisterChannelResult(selectorRunner,
                             registeredSelectionKey, channel);
 
@@ -277,69 +315,160 @@ public class DefaultSelectorHandler implements SelectorHandler {
         }
     }
 
-    protected static class SelectionKeyOperation {
-        private OpType opType;
-        private SelectionKey selectionKey;
-        private SelectableChannel channel;
-        private int interest;
-        private Object attachment;
-        private FutureImpl<RegisterChannelResult> future;
-        private CompletionHandler completionHandler;
+    @Override
+    public boolean onSelectorClosed(SelectorRunner selectorRunner) {
+        try {
+            workaroundSelectorSpin(selectorRunner);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
 
-        public OpType getOpType() {
-            return opType;
+    private void resetSpinCounter(){
+        emptySpinCounter  = 0;
+    }
+
+    private int getSpinRate(){
+        if (emptySpinCounter++ == 0){
+            lastSpinTimestamp = System.nanoTime();
+        } else if (emptySpinCounter == 1000) {
+            long deltatime = System.nanoTime() - lastSpinTimestamp;
+            int contspinspersec = (int) (1000 * 1000000000L / deltatime);
+            emptySpinCounter  = 0;
+            return contspinspersec;
+        }
+        return 0;
+    }
+
+    private SelectionKey checkIfSpinnedKey(final SelectorRunner selectorRunner,
+            final SelectionKey key) {
+        if (!key.isValid() && key.channel().isOpen() &&
+                spinnedSelectorsHistory.containsKey(key.selector())) {
+            final SelectionKey newKey = key.channel().keyFor(
+                    selectorRunner.getSelector());
+            newKey.attach(key.attachment());
+            return newKey;
         }
 
-        public void setOpType(OpType opType) {
-            this.opType = opType;
-        }
+        return key;
+    }
 
-        public SelectionKey getSelectionKey() {
-            return selectionKey;
+    private void workaroundSelectorSpin(final SelectorRunner selectorRunner)
+            throws IOException {
+        synchronized(spinSync) {
+            spinnedSelectorsHistory.put(selectorRunner.getSelector(),
+                    System.currentTimeMillis());
+            selectorRunner.switchToNewSelector();
         }
+    }
 
-        public void setSelectionKey(SelectionKey selectionKey) {
+    protected final class RegisterKeyTask implements SelectorHandlerTask {
+        private final SelectionKey selectionKey;
+        private final int interest;
+
+        public RegisterKeyTask(SelectionKey selectionKey, int interest) {
             this.selectionKey = selectionKey;
-        }
-
-        public SelectableChannel getChannel() {
-            return channel;
-        }
-
-        public void setChannel(SelectableChannel channel) {
-            this.channel = channel;
-        }
-
-        public int getInterest() {
-            return interest;
-        }
-
-        public void setInterest(int interest) {
             this.interest = interest;
         }
 
-        public Object getAttachment() {
-            return attachment;
+        @Override
+        public void run(final SelectorRunner selectorRunner) throws IOException {
+            SelectionKey localSelectionKey = selectionKey;
+            if (IS_WORKAROUND_SELECTOR_SPIN) {
+                localSelectionKey = checkIfSpinnedKey(selectorRunner, selectionKey);
+            }
+
+            registerKey0(localSelectionKey, interest);
+        }
+    }
+
+    protected final class UnRegisterKeyTask implements SelectorHandlerTask {
+        private final SelectionKey selectionKey;
+        private final int interest;
+
+        public UnRegisterKeyTask(SelectionKey selectionKey, int interest) {
+            this.selectionKey = selectionKey;
+            this.interest = interest;
         }
 
-        public void setAttachment(Object attachment) {
+        @Override
+        public void run(final SelectorRunner selectorRunner) throws IOException {
+            SelectionKey localSelectionKey = selectionKey;
+            if (IS_WORKAROUND_SELECTOR_SPIN) {
+                localSelectionKey = checkIfSpinnedKey(selectorRunner, selectionKey);
+            }
+
+            unregisterKey0(localSelectionKey, interest);
+        }
+    }
+
+    protected final class RegisterChannelOperation implements SelectorHandlerTask {
+        private final SelectableChannel channel;
+        private final int interest;
+        private final Object attachment;
+        private final FutureImpl<RegisterChannelResult> future;
+        private final CompletionHandler<RegisterChannelResult> completionHandler;
+
+        private RegisterChannelOperation(SelectableChannel channel,
+                int interest, Object attachment,
+                FutureImpl<RegisterChannelResult> future,
+                CompletionHandler<RegisterChannelResult> completionHandler) {
+            this.channel = channel;
+            this.interest = interest;
             this.attachment = attachment;
-        }
-
-        public FutureImpl<RegisterChannelResult> getFuture() {
-            return future;
-        }
-
-        public void setFuture(FutureImpl<RegisterChannelResult> future) {
             this.future = future;
-        }
-
-        public CompletionHandler getCompletionHandler() {
-            return completionHandler;
-        }
-
-        public void setCompletionHandler(CompletionHandler completionHandler) {
             this.completionHandler = completionHandler;
+        }
+
+        @Override
+        public void run(final SelectorRunner selectorRunner) throws IOException {
+            if (channel.isOpen()) {
+                final SelectionKey key =
+                        channel.keyFor(selectorRunner.getSelector());
+
+                boolean isKeyValid = true;
+                if (key == null || (isKeyValid = key.isValid())) {
+                    registerChannel0(selectorRunner, channel, interest,
+                            attachment, completionHandler, future);
+                    return;
+                }
+
+                if (!isKeyValid) {
+                    selectorRunner.getPostponedTasks().add(this);
+                }
+            }
+        }
+    }
+
+    protected final class RunnableTask implements SelectorHandlerTask {
+        private final Runnable task;
+        private final FutureImpl<Runnable> future;
+        private final CompletionHandler<Runnable> completionHandler;
+
+        private RunnableTask(Runnable runnableTask, FutureImpl<Runnable> future,
+                CompletionHandler<Runnable> completionHandler) {
+            throw new UnsupportedOperationException("Not yet implemented");
+        }
+
+        @Override
+        public void run(final SelectorRunner selectorRunner) throws IOException {
+            try {
+                task.run();
+                if (completionHandler != null) {
+                    completionHandler.completed(null, task);
+                }
+
+                future.result(task);
+            } catch (Throwable t) {
+                logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
+                
+                if (completionHandler != null) {
+                    completionHandler.completed(null, task);
+                }
+
+                future.failure(t);
+            }
         }
     }
 }

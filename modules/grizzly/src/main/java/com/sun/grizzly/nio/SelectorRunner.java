@@ -57,6 +57,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.utils.LinkedTransferQueue;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -66,15 +68,17 @@ import java.util.concurrent.TimeUnit;
  * 
  * @author Alexey Stashok
  */
-public class SelectorRunner implements Runnable {
+public final class SelectorRunner implements Runnable {
     private final static Logger logger = Grizzly.logger(SelectorRunner.class);
 
     private final NIOTransport transport;
     private final StateHolder<State> stateHolder;
     
-    private LinkedTransferQueue pendingOperations;
-    private Selector selector;
-    private Thread selectorRunnerThread;
+    private final Queue<SelectorHandlerTask> pendingTasks;
+    private final Queue<SelectorHandlerTask> postponedTasks;
+
+    private volatile Selector selector;
+    private volatile Thread selectorRunnerThread;
 
     public SelectorRunner(NIOTransport transport) {
         this(transport, null);
@@ -84,6 +88,9 @@ public class SelectorRunner implements Runnable {
         this.transport = transport;
         this.selector = selector;
         stateHolder = new StateHolder<State>(false, State.STOP);
+
+        pendingTasks = new LinkedTransferQueue<SelectorHandlerTask>();
+        postponedTasks = new LinkedList<SelectorHandlerTask>();
     }
 
     public NIOTransport getTransport() {
@@ -115,13 +122,11 @@ public class SelectorRunner implements Runnable {
         isResume = true;
     }
 
-    public void start() {
+    public synchronized void start() {
         if (stateHolder.getState() != State.STOP) {
             logger.log(Level.WARNING,
                     "SelectorRunner is not in the stopped state!");
         }
-        
-        pendingOperations = new LinkedTransferQueue();
         
         stateHolder.setState(State.STARTING);
         transport.getInternalThreadPool().execute(this);
@@ -138,11 +143,14 @@ public class SelectorRunner implements Runnable {
         }
     }
 
-    public void stop() {
+    public synchronized void stop() {
         stateHolder.setState(State.STOPPING);
         
         wakeupSelector();
 
+        pendingTasks.clear();
+        postponedTasks.clear();
+        
         if (selector != null) {
             try {
                 boolean isContinue = true;
@@ -278,6 +286,12 @@ public class SelectorRunner implements Runnable {
 
             selectorHandler.postSelect(this);
         } catch (ClosedSelectorException e) {
+            if (isRunning(false)) {
+                if (selectorHandler.onSelectorClosed(this)) {
+                    return true;
+                }
+            }
+            
             notifyConnectionException(key,
                     "Selector was unexpectedly closed", e,
                     Severity.TRANSPORT, Level.SEVERE, Level.FINE);
@@ -403,8 +417,12 @@ public class SelectorRunner implements Runnable {
         return !strategy.isTerminateThread(context);
     }
 
-    public LinkedTransferQueue getPendingOperations() {
-        return pendingOperations;
+    public Queue<SelectorHandlerTask> getPendingTasks() {
+        return pendingTasks;
+    }
+
+    public Queue<SelectorHandlerTask> getPostponedTasks() {
+        return postponedTasks;
     }
 
     private boolean isStop(boolean isBlockingCompare) {
@@ -464,5 +482,27 @@ public class SelectorRunner implements Runnable {
      */
     public int getLastSelectedKeysCount() {
         return lastSelectedKeysCount;
+    }
+
+    protected final void switchToNewSelector() throws IOException {
+        final Selector oldSelector = selector;
+        final Selector newSelector = SelectorFactory.instance().create();
+
+        final Set<SelectionKey> keys = oldSelector.keys();
+        for (final SelectionKey selectionKey : keys) {
+            try {
+                selectionKey.channel().register(newSelector,
+                        selectionKey.interestOps(), selectionKey.attachment());
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Error switching channel to a new selector", e);
+            }
+        }
+
+        selector = newSelector;
+
+        try {
+            oldSelector.close();
+        } catch (Exception e) {
+        }
     }
 }

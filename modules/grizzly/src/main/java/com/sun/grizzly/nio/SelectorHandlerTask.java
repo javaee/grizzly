@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -39,50 +39,13 @@
 package com.sun.grizzly.nio;
 
 import java.io.IOException;
-import java.nio.channels.Selector;
 
 /**
+ * Task, which may be registered on {@link SelectorHandler} and executed in a
+ * <tt>Selector</tt> thread.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
-public abstract class SelectorFactory {
-    private static volatile SelectorFactory instance;
-    
-    public static SelectorFactory instance() {
-        if (instance == null) {
-            synchronized(SelectorFactory.class) {
-                if (instance == null) {
-                    instance = new DefaultSelectorFactory();
-                }
-            }
-        }
-        return instance;
-    }
-
-    public static void setInstance(SelectorFactory instance) {
-        SelectorFactory.instance = instance;
-    }
-    
-    public abstract Selector create() throws IOException;
-    
-    public static class DefaultSelectorFactory extends SelectorFactory {
-        @Override
-        public Selector create() throws IOException {
-            try {
-                return Selector.open();
-            } catch (NullPointerException e) {
-                // This is a JDK issue http://bugs.sun.com/view_bug.do?bug_id=6427854
-                // Try 5 times and abort
-                for (int i = 0; i < 5; i++) {
-                    try {
-                        return Selector.open();
-                    } catch (NullPointerException e2) {
-                    }
-                }
-
-                String msg = e.getMessage();
-                throw new IOException("Can not open Selector" + (msg == null ? "" : msg));
-            }
-        }
-    }
+public interface SelectorHandlerTask {
+    public void run(SelectorRunner selectorRunner) throws IOException;
 }
