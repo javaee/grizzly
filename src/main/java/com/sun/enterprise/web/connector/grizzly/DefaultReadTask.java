@@ -163,7 +163,7 @@ public class DefaultReadTask extends TaskBase implements ReadTask {
         processorTask.setSocket(((SocketChannel)key.channel()).socket());
         processorTask.setHandler(algorithm.getHandler());
         processorTask.setDropConnection(
-                selectorThread.getKeepAlivePipeline().dropConnection());
+                selectorThread.getKeepAlivePipeline().dropConnection(key));
     }  
     
       

@@ -434,6 +434,19 @@ public class KeepAlivePipeline{
                     || firstReadTimeout == 0 || maxKeepAliveRequests == 0);
     }
        
+    /**
+     * Return <code>true</code> if we need to close the connection after
+     * processing current request.
+     */
+    public boolean dropConnection(final SelectionKey selectionKey) {
+        Integer count;
+        
+        return (keepAliveTimeoutInSeconds == 0
+                    || firstReadTimeout == 0 || maxKeepAliveRequests == 0 ||
+                    (maxKeepAliveRequests > 0 &&
+                    (count = keepAliveCounts.get(selectionKey)) != null &&
+                    count >= maxKeepAliveRequests));
+    }
     
     
     /**
