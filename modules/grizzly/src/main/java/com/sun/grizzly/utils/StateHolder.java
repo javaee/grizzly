@@ -241,7 +241,7 @@ public class StateHolder<E> {
 
         if (condition.check()) {
             if (completionHandler != null) {
-                completionHandler.completed(null, state);
+                completionHandler.completed(state);
             }
 
             resultFuture = new ReadyFutureImpl<E>(state);
@@ -269,7 +269,7 @@ public class StateHolder<E> {
                 if (element.condition.check()) {
                     it.remove();
                     if (element.completionHandler != null) {
-                        element.completionHandler.completed(null, state);
+                        element.completionHandler.completed(state);
                     }
 
                     element.future.result(state);

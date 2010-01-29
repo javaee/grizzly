@@ -50,27 +50,27 @@ public class CompletionHandlerAdapter<E> implements CompletionHandler<E> {
      * {@inheritDoc}
      */
     @Override
-    public void cancelled(Connection connection) {
+    public void cancelled() {
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void failed(Connection connection, Throwable throwable) {
+    public void failed(Throwable throwable) {
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void completed(Connection connection, E result) {
+    public void completed(E result) {
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void updated(Connection connection, E result) {
+    public void updated(E result) {
     }
 }

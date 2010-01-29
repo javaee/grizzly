@@ -353,7 +353,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         if (status == Status.COMPLETED) {
             output.write(result.getMessage());
             if (completionHandler != null) {
-                completionHandler.completed(connection, this);
+                completionHandler.completed(this);
             }
             return new ReadyFutureImpl<Stream>(this);
         } else if (status == Status.INCOMPLETED) {
@@ -402,22 +402,22 @@ public abstract class AbstractStreamWriter implements StreamWriter {
         }
         
         @Override
-        public void cancelled(Connection connection) {
+        public void cancelled() {
             disposeBuffer();
         }
 
         @Override
-        public void failed(Connection connection, Throwable throwable) {
+        public void failed(Throwable throwable) {
             disposeBuffer();
         }
 
         @Override
-        public void completed(Connection connection, Object result) {
+        public void completed(Object result) {
             disposeBuffer();
         }
 
         @Override
-        public void updated(Connection connection, Object result) {
+        public void updated(Object result) {
         }
 
         protected void disposeBuffer() {

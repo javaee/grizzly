@@ -349,7 +349,7 @@ public class SSLTest extends TestCase {
                 sslFilter.handshake(connection, new CompletionHandlerAdapter<SSLEngine>() {
 
                     @Override
-                    public void completed(Connection connection, SSLEngine result) {
+                    public void completed(SSLEngine result) {
                         try {
                             connection.write("ping", null, encoder);
                             turnAroundAttr.set(connection, 1);

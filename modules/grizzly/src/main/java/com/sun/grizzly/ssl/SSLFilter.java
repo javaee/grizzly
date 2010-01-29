@@ -394,7 +394,7 @@ public final class SSLFilter extends CodecFilterAdapter<Buffer, Buffer> {
         final CompletionHandler<SSLEngine> completionHandler =
                 handshakeCompletionHandlerAttr.get(connection);
         if (completionHandler != null) {
-            completionHandler.completed(connection, sslEngine);
+            completionHandler.completed(sslEngine);
         }
     }
     

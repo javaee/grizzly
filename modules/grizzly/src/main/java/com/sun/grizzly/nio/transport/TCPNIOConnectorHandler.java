@@ -142,7 +142,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 RegisterChannelResult result = waitNIOFuture(registerChannelFuture);
 
                 // make sure completion handler is called
-                nioTransport.registerChannelCompletionHandler.completed(null, result);
+                nioTransport.registerChannelCompletionHandler.completed(result);
 
                 transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
             } else {
@@ -156,7 +156,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             }
         } catch (Exception e) {
             if (completionHandler != null) {
-                completionHandler.failed(null, e);
+                completionHandler.failed(e);
             }
             
             return new ReadyFutureImpl(e);
@@ -255,13 +255,13 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                         SelectionKey.OP_READ);
 
                 if (completionHandler != null) {
-                    completionHandler.completed(connection, connection);
+                    completionHandler.completed(connection);
                 }
 
                 connectFuture.result(connection);
             } catch (Exception e) {
                 if (completionHandler != null) {
-                    completionHandler.failed(null, e);
+                    completionHandler.failed(e);
                 }
                 
                 connectFuture.failure(e);

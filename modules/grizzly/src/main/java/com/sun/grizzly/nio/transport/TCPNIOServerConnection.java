@@ -250,12 +250,11 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         }
 
         @Override
-        public void completed(Connection c, RegisterChannelResult result) {
+        public void completed(RegisterChannelResult result) {
             try {
                 TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
 
-                nioTransport.registerChannelCompletionHandler.completed(c,
-                        result);
+                nioTransport.registerChannelCompletionHandler.completed(result);
 
                 SelectionKeyHandler selectionKeyHandler =
                         nioTransport.getSelectionKeyHandler();

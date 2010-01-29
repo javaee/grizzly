@@ -108,7 +108,7 @@ public final class TCPNIOStreamReader extends AbstractStreamReader {
         @Override
         protected void notifyCompleted(final CompletionHandler<Integer> completionHandler) {
             if (completionHandler != null) {
-                completionHandler.completed(parentStreamReader.getConnection(), compositeBuffer.remaining());
+                completionHandler.completed(compositeBuffer.remaining());
             }
         }
 
@@ -116,7 +116,7 @@ public final class TCPNIOStreamReader extends AbstractStreamReader {
         protected void notifyFailure(final CompletionHandler<Integer> completionHandler,
                 final Throwable failure) {
             if (completionHandler != null) {
-                completionHandler.failed(parentStreamReader.getConnection(), failure);
+                completionHandler.failed(failure);
             }
         }
     }

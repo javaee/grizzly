@@ -190,12 +190,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      */
     private Logger logger = Grizzly.logger(DefaultFilterChain.class);
 
-    public DefaultFilterChain(FilterChainFactory factory) {
-        this(factory, new ArrayList<Filter>());
+    public DefaultFilterChain() {
+        this(new ArrayList<Filter>());
     }
     
-    public DefaultFilterChain(FilterChainFactory factory,
-            Collection<Filter> initialFilters) {
+    public DefaultFilterChain(Collection<Filter> initialFilters) {
         super(new ArrayList<Filter>(initialFilters));
 
         filterChaincodecLibrary = new DefaultFilterChainCodec[0];
@@ -433,7 +432,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
     @Override
     public DefaultFilterChain subList(int fromIndex, int toIndex) {
-        return new DefaultFilterChain(null, filters.subList(fromIndex, toIndex));
+        return new DefaultFilterChain(filters.subList(fromIndex, toIndex));
     }
 
     @Override

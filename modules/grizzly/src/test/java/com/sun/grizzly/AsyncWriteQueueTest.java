@@ -114,7 +114,7 @@ public class AsyncWriteQueueTest extends TestCase {
             final CompletionHandler completionHandler =
                     new CompletionHandlerAdapter() {
                 @Override
-                public void completed(Connection connection, Object result) {
+                public void completed(Object result) {
                     latch.countDown();
                 }
             };

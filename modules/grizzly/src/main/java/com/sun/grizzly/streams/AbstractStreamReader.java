@@ -445,7 +445,7 @@ public abstract class AbstractStreamReader implements StreamReader {
         if (isClosed()) {
             EOFException exception = new EOFException();
             if (completionHandler != null) {
-                completionHandler.failed(getConnection(), exception);
+                completionHandler.failed(exception);
             }
 
             return new ReadyFutureImpl<Integer>(exception);

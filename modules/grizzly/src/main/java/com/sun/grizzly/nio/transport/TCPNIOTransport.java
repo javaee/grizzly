@@ -188,12 +188,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 new TCPNIOTemporarySelectorReader(this),
                 new TCPNIOTemporarySelectorWriter(this));
 
-        PatternFilterChainFactory patternFactory =
-                new SingletonFilterChainFactory();
-        FilterChain filterChain = new DefaultFilterChain(patternFactory);
-        patternFactory.setFilterChainPattern(filterChain);
-
-        filterChainFactory = patternFactory;
+        filterChainFactory = new SingletonFilterChainFactory(
+                new DefaultFilterChain());
 
         attributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
         defaultTransportFilter = new TCPNIOTransportFilter(this);
@@ -922,7 +918,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             extends CompletionHandlerAdapter<RegisterChannelResult> {
 
         @Override
-        public void completed(Connection c, RegisterChannelResult result) {
+        public void completed(RegisterChannelResult result) {
             try {
                 SelectionKey selectionKey = result.getSelectionKey();
 

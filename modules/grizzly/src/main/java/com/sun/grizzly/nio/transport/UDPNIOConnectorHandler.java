@@ -142,12 +142,12 @@ public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler
         RegisterChannelResult result = waitNIOFuture(registerChannelFuture);
 
         // make sure completion handler is called
-        nioTransport.registerChannelCompletionHandler.completed(null, result);
+        nioTransport.registerChannelCompletionHandler.completed(result);
         
         transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
         
         if (completionHandler != null) {
-            completionHandler.completed(newConnection, newConnection);
+            completionHandler.completed(newConnection);
         }
         
         return new ReadyFutureImpl(newConnection);

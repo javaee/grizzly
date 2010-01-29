@@ -400,13 +400,13 @@ public class TCPNIOTransportTest extends TestCase {
                 writer.flush(new CompletionHandlerAdapter<Integer>() {
 
                     @Override
-                    public void completed(Connection connection, Integer result) {
+                    public void completed(Integer result) {
                         assertEquals(message.length, (int) result);
                         sendLatch.countDown();
                     }
 
                     @Override
-                    public void failed(Connection connection, Throwable throwable) {
+                    public void failed(Throwable throwable) {
                         throwable.printStackTrace();
                     }
                 });

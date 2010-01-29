@@ -154,7 +154,7 @@ public class SSLStreamWriter extends TransformerStreamWriter {
             try {
                 return doHandshakeStep();
             } catch (IOException e) {
-                completionHandler.failed(connection, e);
+                completionHandler.failed(e);
                 throw new RuntimeException("Unexpected handshake exception");
             }
         }

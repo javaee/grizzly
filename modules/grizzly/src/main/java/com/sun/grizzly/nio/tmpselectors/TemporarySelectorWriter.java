@@ -146,7 +146,7 @@ public abstract class TemporarySelectorWriter
                 new ReadyFutureImpl(writeResult);
         
         if (completionHandler != null) {
-            completionHandler.completed(connection, writeResult);
+            completionHandler.completed(writeResult);
         }
 
         return writeFuture;

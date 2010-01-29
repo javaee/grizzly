@@ -39,7 +39,6 @@
 package com.sun.grizzly.utils;
 
 import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.impl.FutureImpl;
 
 /**
@@ -80,33 +79,33 @@ public class CompletionHandlerWrapper<R, W>
     }
 
     @Override
-    public void cancelled(Connection connection) {
+    public void cancelled() {
         future.cancel(false);
         if (completionHandler != null) {
-            completionHandler.cancelled(connection);
+            completionHandler.cancelled();
         }
     }
 
     @Override
-    public void failed(Connection connection, Throwable throwable) {
+    public void failed(Throwable throwable) {
         future.failure(throwable);
         if (completionHandler != null) {
-            completionHandler.failed(connection, throwable);
+            completionHandler.failed(throwable);
         }
     }
 
     @Override
-    public void completed(Connection connection, W result) {
+    public void completed(W result) {
         future.result(this.result);
         if (completionHandler != null) {
-            completionHandler.completed(connection, this.result);
+            completionHandler.completed(this.result);
         }
     }
 
     @Override
-    public void updated(Connection connection, W result) {
+    public void updated(W result) {
         if (completionHandler != null) {
-            completionHandler.updated(connection, this.result);
+            completionHandler.updated(this.result);
         }
     }
 

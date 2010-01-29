@@ -542,7 +542,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 record.getCompletionHandler();
 
         if (completionHandler != null) {
-            completionHandler.completed(connection, currentResult);
+            completionHandler.completed(currentResult);
         }
     }
 
@@ -555,7 +555,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 record.getCompletionHandler();
 
         if (completionHandler != null) {
-            completionHandler.updated(connection, currentResult);
+            completionHandler.updated(currentResult);
         }
     }
 
@@ -579,7 +579,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     record.getCompletionHandler();
 
             if (completionHandler != null) {
-                completionHandler.failed(connection, e);
+                completionHandler.failed(e);
             }
 
             future.failure(e);

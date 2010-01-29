@@ -202,13 +202,13 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 runnableTask.run();
             } catch (Exception e) {
                 if (completionHandler != null) {
-                    completionHandler.failed(null, e);
+                    completionHandler.failed(e);
                 }
                 
                 return new ReadyFutureImpl<Runnable>(e);
             }
             if (completionHandler != null) {
-                completionHandler.completed(null, runnableTask);
+                completionHandler.completed(runnableTask);
             }
             
             return new ReadyFutureImpl<Runnable>(runnableTask);
@@ -294,7 +294,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                                 registeredSelectionKey, channel);
 
                         if (completionHandler != null) {
-                            completionHandler.completed(null, result);
+                            completionHandler.completed(result);
                         }
                         if (future != null) {
                             future.result(result);
@@ -312,7 +312,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 } else {
                     Throwable error = new ClosedChannelException();
                     if (completionHandler != null) {
-                        completionHandler.failed(null, error);
+                        completionHandler.failed(error);
                     }
                     
                     if (future != null) {
@@ -321,7 +321,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 }
             } catch (IOException e) {
                 if (completionHandler != null) {
-                    completionHandler.failed(null, e);
+                    completionHandler.failed(e);
                 }
                 
                 if (future != null) {
@@ -460,7 +460,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             try {
                 task.run();
                 if (completionHandler != null) {
-                    completionHandler.completed(null, task);
+                    completionHandler.completed(task);
                 }
 
                 future.result(task);
@@ -468,7 +468,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
                 logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
                 
                 if (completionHandler != null) {
-                    completionHandler.completed(null, task);
+                    completionHandler.completed(task);
                 }
 
                 future.failure(t);

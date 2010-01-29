@@ -244,14 +244,14 @@ public abstract class BufferedInput implements Input {
 
     protected void notifyCompleted(final CompletionHandler<Integer> completionHandler) {
         if (completionHandler != null) {
-            completionHandler.completed(null, compositeBuffer.remaining());
+            completionHandler.completed(compositeBuffer.remaining());
         }
     }
 
     protected void notifyFailure(final CompletionHandler<Integer> completionHandler,
             final Throwable failure) {
         if (completionHandler != null) {
-            completionHandler.failed(null, failure);
+            completionHandler.failed(failure);
         }
     }
 }

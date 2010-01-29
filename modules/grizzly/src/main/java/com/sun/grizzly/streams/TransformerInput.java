@@ -96,7 +96,7 @@ public final class TransformerInput extends BufferedInput {
             extends CompletionHandlerAdapter<Integer> {
         
         @Override
-        public void failed(Connection connection, Throwable throwable) {
+        public void failed(Throwable throwable) {
             notifyFailure(completionHandler, throwable);
             future.failure(throwable);
         }

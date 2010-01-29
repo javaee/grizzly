@@ -171,12 +171,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 new UDPNIOTemporarySelectorReader(this),
                 new UDPNIOTemporarySelectorWriter(this));
 
-        PatternFilterChainFactory patternFactory =
-                new SingletonFilterChainFactory();
-        FilterChain filterChain = new DefaultFilterChain(patternFactory);
-        patternFactory.setFilterChainPattern(filterChain);
-
-        filterChainFactory = patternFactory;
+        filterChainFactory = new SingletonFilterChainFactory(
+                new DefaultFilterChain());
 
         transportFilter = new UDPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<UDPNIOServerConnection>();
@@ -847,8 +843,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             extends CompletionHandlerAdapter<RegisterChannelResult> {
 
         @Override
-        public void completed(final Connection c,
-                final RegisterChannelResult result) {
+        public void completed(final RegisterChannelResult result) {
             try {
                 final SelectionKey selectionKey = result.getSelectionKey();
 

@@ -46,30 +46,30 @@ package com.sun.grizzly;
  */
 public interface CompletionHandler<E> {
     /**
-     * The I/O operation on the {@link Connection} was cancelled.
+     * The operation was cancelled.
      * @param context
      */
-    public void cancelled(Connection connection);
+    public void cancelled();
 
     /**
-     * The I/O operation on the {@link Connection} was failed.
+     * The operation was failed.
      * @param context
-     * @param throwable error, which occurred during I/O operation execution
+     * @param throwable error, which occurred during operation execution
      */
-    public void failed(Connection connection, Throwable throwable);
+    public void failed(Throwable throwable);
 
     /**
-     * The I/O operation on the {@link Connection} was completed.
+     * The operation was completed.
      * @param context
-     * @param result the I/O operation result
+     * @param result the operation result
      */
-    public void completed(Connection connection, E result);
+    public void completed(E result);
 
     /**
-     * The callback method may be called, when there is some progress in I/O
+     * The callback method may be called, when there is some progress in
      * operation execution, but it is still not completed
      * @param context
      * @param result the current result
      */
-    public void updated(Connection connection, E result);
+    public void updated(E result);
 }

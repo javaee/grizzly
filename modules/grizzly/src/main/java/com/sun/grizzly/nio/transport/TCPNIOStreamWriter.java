@@ -42,7 +42,6 @@ import java.net.SocketAddress;
 import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
@@ -124,9 +123,9 @@ public final class TCPNIOStreamWriter extends AbstractStreamWriter {
         }
 
         @Override
-        public void cancelled(Connection connection) {
+        public void cancelled() {
             if (completionHandler != null) {
-                completionHandler.cancelled(connection);
+                completionHandler.cancelled();
             }
 
             if (future != null) {
@@ -135,9 +134,9 @@ public final class TCPNIOStreamWriter extends AbstractStreamWriter {
         }
 
         @Override
-        public void failed(Connection connection, Throwable throwable) {
+        public void failed(Throwable throwable) {
             if (completionHandler != null) {
-                completionHandler.failed(connection, throwable);
+                completionHandler.failed(throwable);
             }
 
             if (future != null) {
@@ -146,12 +145,12 @@ public final class TCPNIOStreamWriter extends AbstractStreamWriter {
         }
 
         @Override
-        public void completed(Connection connection, WriteResult result) {
+        public void completed(WriteResult result) {
             output.sentBytesCounter += result.getWrittenSize();
             int totalSentBytes = output.sentBytesCounter;
 
             if (completionHandler != null) {
-                completionHandler.completed(connection, totalSentBytes);
+                completionHandler.completed(totalSentBytes);
             }
 
             if (future != null) {
@@ -160,9 +159,9 @@ public final class TCPNIOStreamWriter extends AbstractStreamWriter {
         }
 
         @Override
-        public void updated(Connection connection, WriteResult result) {
+        public void updated(WriteResult result) {
             if (completionHandler != null) {
-                completionHandler.updated(connection, output.sentBytesCounter
+                completionHandler.updated(output.sentBytesCounter
                         + result.getWrittenSize());
             }
         }
@@ -181,31 +180,31 @@ public final class TCPNIOStreamWriter extends AbstractStreamWriter {
         }
 
         @Override
-        public void cancelled(Connection connection) {
+        public void cancelled() {
             if (parentCompletionHandler != null) {
-                parentCompletionHandler.cancelled(connection);
+                parentCompletionHandler.cancelled();
             }
         }
 
         @Override
-        public void failed(Connection connection, Throwable throwable) {
+        public void failed(Throwable throwable) {
             if (parentCompletionHandler != null) {
-                parentCompletionHandler.failed(connection, throwable);
+                parentCompletionHandler.failed(throwable);
             }
         }
 
         @Override
-        public void completed(Connection connection, Integer result) {
+        public void completed(Integer result) {
             output.sentBytesCounter = 0;
             if (parentCompletionHandler != null) {
-                parentCompletionHandler.completed(connection, result);
+                parentCompletionHandler.completed(result);
             }
         }
 
         @Override
-        public void updated(Connection connection, Integer result) {
+        public void updated(Integer result) {
             if (parentCompletionHandler != null) {
-                parentCompletionHandler.updated(connection, result);
+                parentCompletionHandler.updated(result);
             }
         }
     }

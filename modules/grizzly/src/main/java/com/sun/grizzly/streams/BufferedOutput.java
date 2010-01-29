@@ -37,7 +37,6 @@ package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -204,22 +203,22 @@ public abstract class BufferedOutput implements Output {
                 overflow(new CompletionHandler<Integer>() {
 
                     @Override
-                    public void cancelled(Connection connection) {
+                    public void cancelled() {
                         close(ZERO);
                     }
 
                     @Override
-                    public void failed(Connection connection, Throwable throwable) {
+                    public void failed(Throwable throwable) {
                         close(ZERO);
                     }
 
                     @Override
-                    public void completed(Connection connection, Integer result) {
+                    public void completed(Integer result) {
                         close(result);
                     }
 
                     @Override
-                    public void updated(Connection connection, Integer result) {
+                    public void updated(Integer result) {
                     }
 
                     public void close(Integer result) {
@@ -228,7 +227,7 @@ public abstract class BufferedOutput implements Output {
                         } catch (IOException e) {
                         } finally {
                             if (completionHandler != null) {
-                                completionHandler.completed(null, result);
+                                completionHandler.completed(result);
                             }
 
                             future.result(result);
@@ -241,7 +240,7 @@ public abstract class BufferedOutput implements Output {
             return future;
         } else {
             if (completionHandler != null) {
-                completionHandler.completed(null, ZERO);
+                completionHandler.completed(ZERO);
             }
 
             return new ReadyFutureImpl(ZERO);

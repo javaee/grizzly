@@ -168,7 +168,7 @@ public abstract class TemporarySelectorReader
             }
             
             if (completionHandler != null) {
-                completionHandler.completed(connection, currentResult);
+                completionHandler.completed(currentResult);
             }
 
             if (interceptor != null) {
