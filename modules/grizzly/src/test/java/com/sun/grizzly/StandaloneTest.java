@@ -38,6 +38,7 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.impl.FutureImpl;
 import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -78,7 +79,11 @@ public class StandaloneTest extends TestCase {
             transport.start();
 
             // Start echo server thread
-            startEchoServerThread(transport, serverConnection, messageSize);
+            final Future<Runnable> startThreadFuture = startEchoServerThread(
+                    transport, serverConnection, messageSize);
+            startThreadFuture.get(10, TimeUnit.SECONDS);
+            assertTrue(startThreadFuture.isDone());
+
 
             // Connect to the server
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
@@ -122,15 +127,19 @@ public class StandaloneTest extends TestCase {
 
     }
 
-    private void startEchoServerThread(final TCPNIOTransport transport,
+    private Future<Runnable> startEchoServerThread(final TCPNIOTransport transport,
             final TCPNIOServerConnection serverConnection,
             final int messageSize) {
+        final FutureImpl<Runnable> startThreadFuture = new FutureImpl<Runnable>();
+        
         new Thread(new Runnable() {
             @Override
             public void run() {
                 while(!transport.isStopped()) {
                     try {
                         Future<Connection> acceptFuture = serverConnection.accept();
+                        startThreadFuture.result(this);
+                        
                         Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
                         assertTrue(acceptFuture.isDone());
 
@@ -171,5 +180,7 @@ public class StandaloneTest extends TestCase {
                 }
             }
         }).start();
+
+        return startThreadFuture;
     }
 }
