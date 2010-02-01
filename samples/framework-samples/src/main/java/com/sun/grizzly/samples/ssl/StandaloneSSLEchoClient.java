@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,18 +54,17 @@ import com.sun.grizzly.ssl.SSLStreamReader;
 import com.sun.grizzly.ssl.SSLStreamWriter;
 
 /**
- * The simple SSL client, which sends a message to the echo server and waits for
- * response.
+ * The simple standalone SSL client, which sends a message to the echo server
+ * and waits for response.
  *
  * @see SSLStreamReader
  * @see SSLStreamWriter
- * @see SSLHandshaker
  * @see SSLContextConfigurator
  * @see SSLEngineConfigurator
  * 
  * @author Alexey Stashok
  */
-public class SSLEchoClient {
+public class StandaloneSSLEchoClient {
 
     public static void main(String[] args) throws IOException,
             ExecutionException, InterruptedException, TimeoutException {

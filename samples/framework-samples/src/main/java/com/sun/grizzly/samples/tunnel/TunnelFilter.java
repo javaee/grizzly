@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -147,7 +147,7 @@ public class TunnelFilter extends FilterAdapter {
     /**
      * Peer connect {@link CompletionHandler}
      */
-    private class ConnectCompletionHandler implements CompletionHandler {
+    private class ConnectCompletionHandler implements CompletionHandler<Connection> {
         private final FilterChainContext context;
         
         private ConnectCompletionHandler(FilterChainContext context) {
@@ -155,13 +155,13 @@ public class TunnelFilter extends FilterAdapter {
         }
 
         @Override
-        public void cancelled(Connection connection) {
+        public void cancelled() {
             close(context.getConnection());
             resumeContext();
         }
 
         @Override
-        public void failed(Connection connection, Throwable throwable) {
+        public void failed(Throwable throwable) {
             close(context.getConnection());
             resumeContext();
         }
@@ -170,8 +170,8 @@ public class TunnelFilter extends FilterAdapter {
          * If peer was successfully connected - map both connections to each other.
          */
         @Override
-        public void completed(Connection connection, Object result) {
-            final Connection peerConnection = context.getConnection();
+        public void completed(Connection peerConnection) {
+            final Connection connection = context.getConnection();
 
             // Map connections
             peerConnectionAttribute.set(connection, peerConnection);
@@ -182,7 +182,7 @@ public class TunnelFilter extends FilterAdapter {
         }
 
         @Override
-        public void updated(Connection connection, Object result) {
+        public void updated(Connection peerConnection) {
         }
 
         /**
