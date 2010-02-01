@@ -58,20 +58,23 @@ import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
 import com.sun.grizzly.nio.SelectionKeyHandler;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
  *
  * @author oleksiys
  */
-public class TCPNIOServerConnection extends TCPNIOConnection {
+public final class TCPNIOServerConnection extends TCPNIOConnection {
     private static Logger logger = Grizzly.logger(TCPNIOServerConnection.class);
 
-    private volatile FutureImpl<Connection> acceptListener;
+    private FutureImpl<Connection> acceptListener;
     
     private final RegisterAcceptedChannelCompletionHandler defaultCompletionHandler;
 
     private final AcceptorEventProcessorSelector acceptorSelector;
+
+    private final Object acceptSync = new Object();
     
     public TCPNIOServerConnection(TCPNIOTransport transport, 
             ServerSocketChannel serverSocketChannel) {
@@ -82,25 +85,48 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
     }
 
     public void listen() throws IOException {
-        transport.getNioChannelDistributor().registerChannelAsync(
-                channel, SelectionKey.OP_ACCEPT, this,
-                ((TCPNIOTransport) transport).registerChannelCompletionHandler);
+        final CompletionHandler registerCompletionHandler =
+                ((TCPNIOTransport) transport).registerChannelCompletionHandler;
+        
+        final Future future =
+                transport.getNioChannelDistributor().registerChannelAsync(
+                channel, SelectionKey.OP_ACCEPT, this, registerCompletionHandler);
+        try {
+            future.get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new IOException("Error registering server channel key", e);
+        }
     }
-    
+
+    @Override
+    public boolean isBlocking() {
+        return transport.isBlocking();
+    }
+
+    @Override
+    public boolean isStandalone() {
+        return transport.isStandalone();
+    }
+
     @Override
     public ProcessorSelector getProcessorSelector() {
         return acceptorSelector;
     }
 
     /**
-     * Accept a {@link Connection}
+     * Accept a {@link Connection}. Could be used only in standalone mode. See {@link Connection#configureStandalone(boolean)}.
      *
      * @return {@link Future}
      * @throws java.io.IOException
      */
     public Future<Connection> accept() throws IOException {
+        if (!isStandalone()) {
+            throw new IllegalStateException("Accept could be used in standlone mode only");
+        }
+
         final Future<Connection> future = acceptAsync();
-        if (isBlocking) {
+        
+        if (isBlocking()) {
             try {
                 future.get();
             } catch(Exception e) {
@@ -118,17 +144,20 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
      */
     protected Future<Connection> acceptAsync() throws IOException {
         if (!isOpen()) throw new IOException("Connection is closed");
-        
-        final FutureImpl future = new FutureImpl();
-        final SocketChannel acceptedChannel = doAccept();
-        if (acceptedChannel != null) {
-            configureAcceptedChannel(acceptedChannel);
-            registerAcceptedChannel(acceptedChannel, future);
-        } else {
-            acceptListener = future;
-        }
 
-        return future;
+        synchronized (acceptSync) {
+            final FutureImpl future = new FutureImpl();
+            final SocketChannel acceptedChannel = doAccept();
+            if (acceptedChannel != null) {
+                configureAcceptedChannel(acceptedChannel);
+                registerAcceptedChannel(acceptedChannel, future);
+            } else {
+                acceptListener = future;
+                enableIOEvent(IOEvent.SERVER_ACCEPT);
+            }
+            
+            return future;
+        }
     }
 
     private SocketChannel doAccept() throws IOException {
@@ -210,15 +239,33 @@ public class TCPNIOServerConnection extends TCPNIOConnection {
         @Override
         public ProcessorResult process(Context context)
                 throws IOException {
-            final SocketChannel acceptedChannel = doAccept();
-            if (acceptedChannel == null) {
-                return null;
+
+            if (!isStandalone()) {
+                final SocketChannel acceptedChannel = doAccept();
+                if (acceptedChannel == null) {
+                    return null;
+                }
+
+                configureAcceptedChannel(acceptedChannel);
+                registerAcceptedChannel(acceptedChannel, acceptListener);
+            } else {
+                synchronized(acceptSync) {
+                    if (acceptListener == null) {
+                        TCPNIOServerConnection.this.disableIOEvent(
+                                IOEvent.SERVER_ACCEPT);
+                        return null;
+                    }
+                    
+                    final SocketChannel acceptedChannel = doAccept();
+                    if (acceptedChannel == null) {
+                        return null;
+                    }
+                    
+                    configureAcceptedChannel(acceptedChannel);
+                    registerAcceptedChannel(acceptedChannel, acceptListener);
+                    acceptListener = null;
+                }
             }
-
-            configureAcceptedChannel(acceptedChannel);
-            registerAcceptedChannel(acceptedChannel, acceptListener);
-
-            acceptListener = null;
 
             return null;
         }
