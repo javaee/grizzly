@@ -126,7 +126,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncWriteQueueRecord> currentElement =
-                connectionQueue.getCurrentElement();
+                connectionQueue.getCurrentElementAtomic();
         final ReentrantLock lock = connectionQueue.getQueuedActionLock();
         boolean isLockedByMe = false;
 
@@ -225,7 +225,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
         return connectionQueue != null &&
-                (connectionQueue.getCurrentElement().get() != null ||
+                (connectionQueue.getCurrentElement() != null ||
                 (connectionQueue.getQueue() != null &&
                 !connectionQueue.getQueue().isEmpty()));
     }
@@ -235,12 +235,12 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public void processAsync(Connection connection) throws IOException {
-        AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
+        final AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
         final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncWriteQueueRecord> currentElement =
-                connectionQueue.getCurrentElement();
+                connectionQueue.getCurrentElementAtomic();
         final ReentrantLock lock = connectionQueue.getQueuedActionLock();
         boolean isLockedByMe = false;
 
@@ -315,15 +315,15 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public void onClose(Connection connection) {
-        AbstractNIOConnection nioConnection =
+        final AbstractNIOConnection nioConnection =
                 (AbstractNIOConnection) connection;
-        AsyncQueue<AsyncWriteQueueRecord> writeQueue =
+        final AsyncQueue<AsyncWriteQueueRecord> writeQueue =
                 nioConnection.getAsyncWriteQueue();
         if (writeQueue != null) {
             writeQueue.getQueuedActionLock().lock();
             try {
                 AsyncWriteQueueRecord record =
-                        writeQueue.getCurrentElement().getAndSet(null);
+                        writeQueue.getCurrentElementAtomic().getAndSet(null);
 
                 Throwable error = new IOException("Connection closed");
                 failWriteRecord(connection, record, error);

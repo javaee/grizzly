@@ -37,9 +37,10 @@
  */
 package com.sun.grizzly.asyncqueue;
 
+import com.sun.grizzly.utils.LinkedTransferQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
-import com.sun.grizzly.utils.LinkedTransferQueue;
+import java.util.LinkedList;
 import java.util.Queue;
 
 /**
@@ -47,24 +48,71 @@ import java.util.Queue;
  *
  * @author Alexey Stashok
  */
-public class AsyncQueue<E> {
+public abstract class AsyncQueue<E> {
+    public static final <E> AsyncQueue<E> createSafeAsyncQueue() {
+        return new SafeAsyncQueue<E>();
+    }
+    
+    public static final <E> AsyncQueue<E> createUnSafeAsyncQueue() {
+        return new UnSafeAsyncQueue<E>();
+    }
 
+    /**
+     * Thread safe <tt>AsyncQueue</tt> implementation.
+     * @param <E> queue element type.
+     */
+    public final static class SafeAsyncQueue<E> extends AsyncQueue<E> {
+        final AtomicReference<E> currentElement;
+        
+        protected SafeAsyncQueue() {
+            super(new LinkedTransferQueue<E>());
+            currentElement = new AtomicReference<E>();
+        }
+
+        @Override
+        public E getCurrentElement() {
+            return currentElement.get();
+        }
+
+        @Override
+        public AtomicReference<E> getCurrentElementAtomic() {
+            return currentElement;
+        }
+    }
+
+    /**
+     * Non thread safe <tt>AsyncQueue</tt> implementation.
+     * @param <E> queue element type.
+     */
+    public final static class UnSafeAsyncQueue<E> extends AsyncQueue<E> {
+        private E currentElement;
+
+        protected UnSafeAsyncQueue() {
+            super(new LinkedList<E>());
+        }
+
+        @Override
+        public E getCurrentElement() {
+            return currentElement;
+        }
+
+        @Override
+        public AtomicReference<E> getCurrentElementAtomic() {
+            throw new UnsupportedOperationException("Is not supported for unsafe queue");
+        }
+    }
+    
     /**
      * The queue of tasks, which will be processed asynchrounously
      */
     protected final Queue<E> queue;
     /**
-     * Current processing task
-     */
-    protected final AtomicReference<E> currentElement;
-    /**
      * Locker object, which could be used by a queue processors
      */
     protected final ReentrantLock queuedActionLock;
 
-    public AsyncQueue() {
-        queue = new LinkedTransferQueue<E>();
-        currentElement = new AtomicReference<E>();
+    protected AsyncQueue(Queue<E> queue) {
+        this.queue = queue;
         queuedActionLock = new ReentrantLock();
     }
 
@@ -72,10 +120,14 @@ public class AsyncQueue<E> {
      * Get the current processing task
      * @return the current processing task
      */
-    public AtomicReference<E> getCurrentElement() {
-        return currentElement;
-    }
+    public abstract E getCurrentElement();
 
+    /**
+     * Get the wrapped current processing task, to perform atomic operations.
+     * @return the wrapped current processing task, to perform atomic operations.
+     */
+    public abstract AtomicReference<E> getCurrentElementAtomic();
+    
     /**
      * Get the queue of tasks, which will be processed asynchrounously
      * @return the queue of tasks, which will be processed asynchrounously

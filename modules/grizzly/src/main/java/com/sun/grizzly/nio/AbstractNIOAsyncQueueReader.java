@@ -121,7 +121,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
         final Queue<AsyncReadQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncReadQueueRecord> currentElement =
-                connectionQueue.getCurrentElement();
+                connectionQueue.getCurrentElementAtomic();
         final ReentrantLock lock = connectionQueue.getQueuedActionLock();
         boolean isLockedByMe = false;
 
@@ -231,7 +231,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
         return connectionQueue != null &&
-                (connectionQueue.getCurrentElement().get() != null ||
+                (connectionQueue.getCurrentElement() != null ||
                 (connectionQueue.getQueue() != null &&
                 !connectionQueue.getQueue().isEmpty()));
     }
@@ -241,13 +241,13 @@ public abstract class AbstractNIOAsyncQueueReader
      */
     @Override
     public void processAsync(final Connection connection) throws IOException {
-        final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
+        final AsyncQueue connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
         final Queue<AsyncReadQueueRecord> queue =
                 connectionQueue.getQueue();
         final AtomicReference<AsyncReadQueueRecord> currentElement =
-                connectionQueue.getCurrentElement();
+                connectionQueue.getCurrentElementAtomic();
         final ReentrantLock lock = connectionQueue.getQueuedActionLock();
         boolean isLockedByMe = false;
 
@@ -358,14 +358,15 @@ public abstract class AbstractNIOAsyncQueueReader
      */
     @Override
     public void onClose(Connection connection) {
-        AbstractNIOConnection nioConnection = (AbstractNIOConnection) connection;
-        AsyncQueue<AsyncReadQueueRecord> readQueue =
+        final AbstractNIOConnection nioConnection = (AbstractNIOConnection) connection;
+        final AsyncQueue<AsyncReadQueueRecord> readQueue =
                 nioConnection.getAsyncReadQueue();
+
         if (readQueue != null) {
             readQueue.getQueuedActionLock().lock();
             try {
                 AsyncReadQueueRecord record =
-                        readQueue.getCurrentElement().getAndSet(null);
+                        readQueue.getCurrentElementAtomic().getAndSet(null);
 
                 failReadRecord(connection, record,
                         new IOException("Connection closed"));

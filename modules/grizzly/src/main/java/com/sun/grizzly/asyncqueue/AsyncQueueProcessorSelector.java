@@ -52,7 +52,7 @@ import com.sun.grizzly.ProcessorSelector;
  */
 public class AsyncQueueProcessorSelector implements ProcessorSelector {
 
-    protected AsyncQueueEnabledTransport transport;
+    protected final AsyncQueueEnabledTransport transport;
 
     public AsyncQueueProcessorSelector(AsyncQueueEnabledTransport transport) {
         this.transport = transport;

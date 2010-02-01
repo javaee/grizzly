@@ -97,8 +97,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;
-        asyncReadQueue = new AsyncQueue<AsyncReadQueueRecord>();
-        asyncWriteQueue = new AsyncQueue<AsyncWriteQueueRecord>();
+        asyncReadQueue = AsyncQueue.<AsyncReadQueueRecord>createSafeAsyncQueue();
+        asyncWriteQueue = AsyncQueue.<AsyncWriteQueueRecord>createSafeAsyncQueue();
         
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
