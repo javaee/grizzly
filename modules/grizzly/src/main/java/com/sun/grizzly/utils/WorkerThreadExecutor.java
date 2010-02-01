@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,7 @@ package com.sun.grizzly.utils;
 
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ProcessorExecutor;
-import com.sun.grizzly.Transport;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,24 +54,19 @@ import java.util.logging.Logger;
 public class WorkerThreadExecutor implements ProcessorExecutor {
     private static Logger logger = Grizzly.logger(WorkerThreadExecutor.class);
 
-    private Transport transport;
+    private final ExecutorService workerThreadPool;
 
-    public WorkerThreadExecutor(Transport transport) {
-        this.transport = transport;
+    public WorkerThreadExecutor(ExecutorService workerThreadPool) {
+        this.workerThreadPool = workerThreadPool;
     }
 
     @Override
     public void execute(Runnable task) {
         try {
-            transport.getWorkerThreadPool().submit(task);
+            workerThreadPool.submit(task);
         } catch (RejectedExecutionException e) {
-            if (!transport.isStopped()) {
-                logger.log(Level.WARNING, "Task " + task +
-                        " was rejected by ThreadPool. Reason: ", e);
-            } else {
-                logger.log(Level.FINE, "Task " + task +
-                        " was rejected by ThreadPool. Reason: ", e);
-            }
+            logger.log(Level.FINE, "Task " + task
+                    + " was rejected by ThreadPool. Reason: ", e);
         }
     }
 

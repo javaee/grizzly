@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -93,7 +93,7 @@ import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
-import com.sun.grizzly.strategies.WorkerThreadStrategy;
+import com.sun.grizzly.strategies.SameThreadStrategy;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.threadpool.DefaultThreadPool;
@@ -112,10 +112,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     private Logger logger = Grizzly.logger(UDPNIOTransport.class);
 
     private static final String DEFAULT_TRANSPORT_NAME = "UDPNIOTransport";
-    /**
-     * Default SelectorRunners count
-     */
-    private static final int DEFAULT_SELECTOR_RUNNERS_COUNT = 2;
 
     /**
      * The server socket time out
@@ -376,7 +372,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             }
 
             if (selectorRunnersCount <= 0) {
-                selectorRunnersCount = DEFAULT_SELECTOR_RUNNERS_COUNT;
+                selectorRunnersCount = Runtime.getRuntime().availableProcessors();
             }
 
             if (nioChannelDistributor == null) {
@@ -384,25 +380,21 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             }
 
             if (strategy == null) {
-                strategy = new WorkerThreadStrategy(this);
+                strategy = new SameThreadStrategy();
             }
 
-            if (internalThreadPool == null) {
-                internalThreadPool = new DefaultThreadPool(
+            if (threadPool == null) {
+                threadPool = new DefaultThreadPool(
                         selectorRunnersCount * 2,
                         selectorRunnersCount * 4, 1, 5, TimeUnit.SECONDS);
-            }
-
-            if (workerThreadPool == null) {
-                workerThreadPool = new DefaultThreadPool();
             }
 
             /* By default TemporarySelector pool size should be equal
             to the number of processing threads */
             int selectorPoolSize =
                     TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
-            if (workerThreadPool instanceof ExtendedThreadPool) {
-                selectorPoolSize =((ExtendedThreadPool) workerThreadPool).
+            if (threadPool instanceof ExtendedThreadPool) {
+                selectorPoolSize =((ExtendedThreadPool) threadPool).
                         getMaximumPoolSize();
             }
             temporarySelectorIO.setSelectorPool(
@@ -436,9 +428,9 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             state.setState(State.STOP);
             stopSelectorRunners();
 
-            if (internalThreadPool != null) {
-                internalThreadPool.shutdown();
-                internalThreadPool = null;
+            if (threadPool != null) {
+                threadPool.shutdown();
+                threadPool = null;
             }
 
             stopServerConnections();

@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -272,38 +272,20 @@ public interface Transport extends ExceptionHandler {
     public void setWriteBufferSize(int writeBufferSize);
 
     /**
-     * Get a worker thread pool, which could be chosen to process occurred I/O
-     * operations. Custom {@link Processor}s could be executed by this
-     * thread pool.
-     * 
-     * @return {@link ExecutorService} worker thread pool.
-     */
-    public ExecutorService getWorkerThreadPool();
-
-    /**
-     * Set a worker thread pool, which could be chosen to process occurred I/O
-     * operations. Custom {@link Processor} could be executed by this
-     * thread pool.
-     *
-     * @param workerThreadPool  {@link ExecutorService} worker thread pool.
-     */
-    public void setWorkerThreadPool(ExecutorService workerThreadPool);
-
-    /**
      * Get a thread pool, which will process transport internal tasks like
      * NIO {@link Selector} polling etc.
      *
-     * @return {@link ExecutorService} internal thread pool.
+     * @return {@link ExecutorService} transport thread pool.
      */
-    public ExecutorService getInternalThreadPool();
+    public ExecutorService getThreadPool();
 
     /**
      * Set a thread pool, which will process transport internal tasks like
      * NIO {@link Selector} polling etc.
      *
-     * @param internalThreadPool  {@link ExecutorService} internal thread pool.
+     * @param threadPool {@link ExecutorService} transport thread pool.
      */
-    public void setInternalThreadPool(ExecutorService internalThreadPool);
+    public void setThreadPool(ExecutorService threadPool);
 
     /**
      * Get {@link Transport} associated {@link AttributeBuilder}, which will

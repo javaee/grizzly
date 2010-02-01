@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,10 +44,10 @@ import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ProcessorRunnable;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.nio.NIOConnection;
-import com.sun.grizzly.nio.NIOTransport;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
 import com.sun.grizzly.utils.WorkerThreadExecutor;
+import java.util.concurrent.ExecutorService;
 
 /**
  * {@link Strategy}, which executes {@link Processor}s in a current threads, and
@@ -59,8 +59,9 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
     private Executor sameThreadProcessorExecutor;
     private Executor workerThreadProcessorExecutor;
 
-    public LeaderFollowerStrategy(NIOTransport transport) {
-        this(new CurrentThreadExecutor(), new WorkerThreadExecutor(transport));
+    public LeaderFollowerStrategy(final ExecutorService workerThreadPool) {
+        this(new CurrentThreadExecutor(),
+                new WorkerThreadExecutor(workerThreadPool));
     }
 
     public LeaderFollowerStrategy(Executor sameThreadProcessorExecutor,
@@ -90,7 +91,7 @@ public class LeaderFollowerStrategy implements Strategy<Boolean> {
                     (NIOConnection) processorRunnable.getConnection();
             SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
-            nioConnection.getTransport().getWorkerThreadPool().execute(runner);
+            nioConnection.getTransport().getThreadPool().execute(runner);
         }
 
         Executor executor = getProcessorExecutor(strategyContext);

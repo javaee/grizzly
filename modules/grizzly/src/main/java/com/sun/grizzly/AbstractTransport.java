@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -91,14 +91,9 @@ public abstract class AbstractTransport implements Transport {
     protected MemoryManager memoryManager;
 
     /**
-     * Transport worker thread pool
+     * Transport thread pool
      */
-    protected ExecutorService workerThreadPool;
-
-    /**
-     * Transport internal thread pool
-     */
-    protected ExecutorService internalThreadPool;
+    protected ExecutorService threadPool;
 
     /**
      * Transport AttributeBuilder, which will be used to create Attributes
@@ -280,32 +275,16 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
-    public ExecutorService getWorkerThreadPool() {
-        return workerThreadPool;
+    public ExecutorService getThreadPool() {
+        return threadPool;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void setWorkerThreadPool(ExecutorService workerThreadPool) {
-        this.workerThreadPool = workerThreadPool;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ExecutorService getInternalThreadPool() {
-        return internalThreadPool;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void setInternalThreadPool(ExecutorService internalThreadPool) {
-        this.internalThreadPool = internalThreadPool;
+    public void setThreadPool(ExecutorService threadPool) {
+        this.threadPool = threadPool;
     }
 
     /**

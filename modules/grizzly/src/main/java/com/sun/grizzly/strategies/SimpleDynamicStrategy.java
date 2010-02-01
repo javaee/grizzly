@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -45,10 +45,10 @@ import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ProcessorRunnable;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.nio.NIOConnection;
-import com.sun.grizzly.nio.NIOTransport;
 import com.sun.grizzly.strategies.SimpleDynamicStrategy.DynamicStrategyContext;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
 import com.sun.grizzly.utils.WorkerThreadExecutor;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Simple dynamic strategy, which switches I/O processing strategies, basing
@@ -68,15 +68,16 @@ import com.sun.grizzly.utils.WorkerThreadExecutor;
  * @author Alexey Stashok
  */
 public class SimpleDynamicStrategy implements Strategy<DynamicStrategyContext> {
-    private SameThreadStrategy sameThreadStrategy;
-    private LeaderFollowerStrategy leaderFollowerStrategy;
-    private WorkerThreadStrategy workerThreadStrategy;
+    private final SameThreadStrategy sameThreadStrategy;
+    private final LeaderFollowerStrategy leaderFollowerStrategy;
+    private final WorkerThreadStrategy workerThreadStrategy;
 
     private int leaderFollowerThreshold = 1;
     private int workerThreadThreshold = 32;
 
-    public SimpleDynamicStrategy(final NIOTransport transport) {
-        this(new CurrentThreadExecutor(), new WorkerThreadExecutor(transport));
+    public SimpleDynamicStrategy(final ExecutorService workerThreadPool) {
+        this(new CurrentThreadExecutor(),
+                new WorkerThreadExecutor(workerThreadPool));
     }
 
     public SimpleDynamicStrategy(final Executor sameThreadProcessorExecutor,

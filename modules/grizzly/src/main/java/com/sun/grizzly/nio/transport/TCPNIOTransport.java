@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,7 +38,6 @@
 package com.sun.grizzly.nio.transport;
 
 import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.strategies.WorkerThreadStrategy;
 import com.sun.grizzly.asyncqueue.AsyncQueueIO;
 import com.sun.grizzly.nio.RegisterChannelResult;
 import com.sun.grizzly.nio.RoundRobinConnectionDistributor;
@@ -96,6 +95,7 @@ import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
+import com.sun.grizzly.strategies.SameThreadStrategy;
 import com.sun.grizzly.threadpool.ExtendedThreadPool;
 import java.io.EOFException;
 import java.nio.ByteBuffer;
@@ -117,10 +117,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     private static final int DEFAULT_WRITE_BUFFER_SIZE = 4096;
     
     private static final String DEFAULT_TRANSPORT_NAME = "TCPNIOTransport";
-    /**
-     * Default SelectorRunners count
-     */
-    private static final int DEFAULT_SELECTOR_RUNNERS_COUNT = 2;
     /**
      * The Server connections.
      */
@@ -221,7 +217,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
 
             if (selectorRunnersCount <= 0) {
-                selectorRunnersCount = DEFAULT_SELECTOR_RUNNERS_COUNT;
+                selectorRunnersCount = Runtime.getRuntime().availableProcessors();
             }
 
             if (nioChannelDistributor == null) {
@@ -229,25 +225,21 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
 
             if (strategy == null) {
-                strategy = new WorkerThreadStrategy(this);
+                strategy = new SameThreadStrategy();
             }
             
-            if (internalThreadPool == null) {
-                internalThreadPool = new DefaultThreadPool(
+            if (threadPool == null) {
+                threadPool = new DefaultThreadPool(
                         selectorRunnersCount * 2,
                         selectorRunnersCount * 4, 1, 5, TimeUnit.SECONDS);
-            }
-
-            if (workerThreadPool == null) {
-                workerThreadPool = new DefaultThreadPool();
             }
 
             /* By default TemporarySelector pool size should be equal
             to the number of processing threads */
             int selectorPoolSize =
                     TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
-            if (workerThreadPool instanceof ExtendedThreadPool) {
-                selectorPoolSize =((ExtendedThreadPool) workerThreadPool).
+            if (threadPool instanceof ExtendedThreadPool) {
+                selectorPoolSize =((ExtendedThreadPool) threadPool).
                         getMaximumPoolSize();
             }
             temporarySelectorIO.setSelectorPool(
@@ -281,9 +273,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             state.setState(State.STOP);
             stopSelectorRunners();
 
-            if (internalThreadPool != null) {
-                internalThreadPool.shutdown();
-                internalThreadPool = null;
+            if (threadPool != null) {
+                threadPool.shutdown();
+                threadPool = null;
             }
 
             stopServerConnections();
