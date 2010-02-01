@@ -40,6 +40,7 @@ package com.sun.grizzly.asyncqueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import com.sun.grizzly.utils.LinkedTransferQueue;
+import java.util.Queue;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
@@ -51,15 +52,15 @@ public class AsyncQueue<E> {
     /**
      * The queue of tasks, which will be processed asynchrounously
      */
-    protected LinkedTransferQueue<E> queue;
+    protected final Queue<E> queue;
     /**
      * Current processing task
      */
-    protected AtomicReference<E> currentElement;
+    protected final AtomicReference<E> currentElement;
     /**
      * Locker object, which could be used by a queue processors
      */
-    protected ReentrantLock queuedActionLock;
+    protected final ReentrantLock queuedActionLock;
 
     public AsyncQueue() {
         queue = new LinkedTransferQueue<E>();
@@ -76,27 +77,11 @@ public class AsyncQueue<E> {
     }
 
     /**
-     * Set the current processing task
-     * @param currentElement the current processing task
-     */
-    public void setCurrentElement(AtomicReference<E> currentElement) {
-        this.currentElement = currentElement;
-    }
-
-    /**
      * Get the queue of tasks, which will be processed asynchrounously
      * @return the queue of tasks, which will be processed asynchrounously
      */
-    public LinkedTransferQueue<E> getQueue() {
+    public Queue<E> getQueue() {
         return queue;
-    }
-
-    /**
-     * Set the queue of tasks, which will be processed asynchrounously
-     * @param queue the queue of tasks, which will be processed asynchrounously
-     */
-    public void setQueue(LinkedTransferQueue<E> queue) {
-        this.queue = queue;
     }
 
     /**
@@ -105,14 +90,5 @@ public class AsyncQueue<E> {
      */
     public ReentrantLock getQueuedActionLock() {
         return queuedActionLock;
-    }
-
-    /**
-     * Set the locker object, which could be used by a queue processors
-     * @param queuedActionLock the locker object, which could be used by a
-     *        queue processors
-     */
-    public void setQueuedActionLock(ReentrantLock queuedActionLock) {
-        this.queuedActionLock = queuedActionLock;
     }
 }

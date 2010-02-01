@@ -66,7 +66,6 @@ import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
-import com.sun.grizzly.utils.LinkedTransferQueue;
 import com.sun.grizzly.utils.ObjectPool;
 import java.util.Queue;
 
@@ -245,7 +244,7 @@ public abstract class AbstractNIOAsyncQueueReader
         final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
-        final LinkedTransferQueue<AsyncReadQueueRecord> queue =
+        final Queue<AsyncReadQueueRecord> queue =
                 connectionQueue.getQueue();
         final AtomicReference<AsyncReadQueueRecord> currentElement =
                 connectionQueue.getCurrentElement();
@@ -371,13 +370,11 @@ public abstract class AbstractNIOAsyncQueueReader
                 failReadRecord(connection, record,
                         new IOException("Connection closed"));
 
-                LinkedTransferQueue<AsyncReadQueueRecord> recordsQueue =
+                final Queue<AsyncReadQueueRecord> recordsQueue =
                         readQueue.getQueue();
-                if (recordsQueue != null) {
-                    while(!recordsQueue.isEmpty()) {
-                        failReadRecord(connection, recordsQueue.poll(),
-                                new IOException("Connection closed"));
-                    }
+                while (!recordsQueue.isEmpty()) {
+                    failReadRecord(connection, recordsQueue.poll(),
+                            new IOException("Connection closed"));
                 }
             } finally {
                 readQueue.getQueuedActionLock().unlock();
