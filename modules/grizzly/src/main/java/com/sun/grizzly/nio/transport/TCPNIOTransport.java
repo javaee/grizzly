@@ -666,12 +666,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 processWriteIoEvent(ioEvent, (TCPNIOConnection) connection,
                         strategyContext);
             } else {
-//                if (ioEvent == IOEvent.SERVER_ACCEPT &&
-//                        ((TCPNIOServerConnection) connection).tryAccept()) {
-//                    return;
-//                }
-
-                Processor conProcessor = getConnectionProcessor(connection, ioEvent);
+                final Processor conProcessor =
+                        getConnectionProcessor(connection, ioEvent);
 
                 if (conProcessor != null) {
                     executeProcessor(ioEvent, connection, conProcessor,
@@ -758,14 +754,14 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    Processor getConnectionProcessor(Connection connection, IOEvent ioEvent) {
-        Processor conProcessor = connection.getProcessor();
-        ProcessorSelector conProcessorSelector =
+    final Processor getConnectionProcessor(Connection connection, IOEvent ioEvent) {
+        final Processor conProcessor = connection.getProcessor();
+        final ProcessorSelector conProcessorSelector =
                 connection.getProcessorSelector();
 
         if ((conProcessor == null || !conProcessor.isInterested(ioEvent)) &&
                 conProcessorSelector != null) {
-            conProcessor = conProcessorSelector.select(ioEvent, connection);
+            return conProcessorSelector.select(ioEvent, connection);
         }
 
         return conProcessor;
