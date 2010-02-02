@@ -123,17 +123,16 @@ public abstract class AbstractNIOAsyncQueueReader
 
         final boolean isLocked = currentElement.compareAndSet(null, LOCK_RECORD);
 
-        // If AsyncQueue is empty - try to read Buffer here
         try {
 
-            if (isLocked) {
+            if (isLocked) { // If AsyncQueue is empty - try to read Buffer here
                 doRead(connection, queueRecord);
 
                 final int interceptInstructions = intercept(connection,
                         Reader.READ_EVENT, queueRecord, currentResult);
 
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
-                        || (interceptor == null && isFinished(connection, queueRecord))) {
+                        || (interceptor == null && isFinished(connection, queueRecord))) { // if direct read is completed
 
                     // Notify callback handler
                     onReadCompleted(connection, queueRecord);
@@ -156,7 +155,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     intercept(connection, COMPLETE_EVENT, queueRecord, null);
                     return new ReadyFutureImpl<ReadResult<M, SocketAddress>>(
                             currentResult);
-                } else { // If read is not finished
+                } else { // If direct read is not finished
                 // Create future
                     if ((interceptInstructions & Interceptor.RESET) != 0) {
                         currentResult.setMessage(null);
@@ -176,14 +175,15 @@ public abstract class AbstractNIOAsyncQueueReader
                     return future;
                 }
 
-            } else {
+            } else { // Read queue is not empty - add new element to a queue
                 // Create future
                 final FutureImpl future = new FutureImpl();
                 queueRecord.setFuture(future);
 
                 connectionQueue.getQueue().offer(queueRecord);
 
-                if (currentElement.compareAndSet(null, queueRecord)) {
+                if (currentElement.compareAndSet(null, queueRecord)) { // if queue become empty
+                    // set this element as current and remove it from a queue
                     queue.remove(queueRecord);
                     onReadyToRead(connection);
                 }

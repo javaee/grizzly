@@ -142,7 +142,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 doWrite(connection, queueRecord);
             }
 
-            if (isLocked && isFinished(connection, queueRecord)) {
+            if (isLocked && isFinished(connection, queueRecord)) { // if direct write was completed
                 // If buffer was written directly - set next queue element as current
                 // Notify callback handler
                 onWriteCompleted(connection, queueRecord);
