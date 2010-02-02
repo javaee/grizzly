@@ -41,7 +41,7 @@ package com.sun.grizzly.nio;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
-import com.sun.grizzly.threadpool.ExtendedThreadPool;
+import com.sun.grizzly.threadpool.AbstractThreadPool;
 
 /**
  *
@@ -87,9 +87,9 @@ public abstract class NIOTransportFactory extends TransportFactory {
         /* By default TemporarySelector pool size should be equal
         to the number of processing threads */
         int selectorPoolSize = TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
-        if (defaultWorkerThreadPool instanceof ExtendedThreadPool) {
-            selectorPoolSize = ((ExtendedThreadPool) defaultWorkerThreadPool).
-                    getMaximumPoolSize();
+        if (defaultWorkerThreadPool instanceof AbstractThreadPool) {
+            selectorPoolSize = ((AbstractThreadPool) defaultWorkerThreadPool).
+                    getConfig().getMaxPoolSize();
         }
         defaultTemporarySelectorPool = 
                 new TemporarySelectorPool(selectorPoolSize);

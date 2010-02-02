@@ -62,7 +62,6 @@ import com.sun.grizzly.filterchain.PatternFilterChainFactory;
 import com.sun.grizzly.filterchain.SingletonFilterChainFactory;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.threadpool.DefaultThreadPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import java.io.IOException;
@@ -77,7 +76,6 @@ import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
@@ -96,7 +94,9 @@ import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.strategies.SameThreadStrategy;
-import com.sun.grizzly.threadpool.ExtendedThreadPool;
+import com.sun.grizzly.threadpool.AbstractThreadPool;
+import com.sun.grizzly.threadpool.GrizzlyExecutorService;
+import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import java.io.EOFException;
 import java.nio.ByteBuffer;
 
@@ -229,18 +229,19 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
             
             if (threadPool == null) {
-                threadPool = new DefaultThreadPool(
-                        selectorRunnersCount * 2,
-                        selectorRunnersCount * 4, 1, 5, TimeUnit.SECONDS);
+                threadPool = GrizzlyExecutorService.createInstance(
+                        ThreadPoolConfig.DEFAULT.clone().
+                        setCorePoolSize(selectorRunnersCount * 2).
+                        setMaxPoolSize(selectorRunnersCount * 2));
             }
 
             /* By default TemporarySelector pool size should be equal
             to the number of processing threads */
             int selectorPoolSize =
                     TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
-            if (threadPool instanceof ExtendedThreadPool) {
-                selectorPoolSize =((ExtendedThreadPool) threadPool).
-                        getMaximumPoolSize();
+            if (threadPool instanceof AbstractThreadPool) {
+                selectorPoolSize =((AbstractThreadPool) threadPool).
+                        getConfig().getMaxPoolSize();
             }
             temporarySelectorIO.setSelectorPool(
                     new TemporarySelectorPool(selectorPoolSize));

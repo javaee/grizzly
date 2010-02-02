@@ -46,8 +46,7 @@ import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.memory.MemoryManager;
-import com.sun.grizzly.threadpool.DefaultScheduleThreadPool;
-import com.sun.grizzly.threadpool.DefaultThreadPool;
+import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
  * Factory, responsible for creating and initializing Grizzly {@link Transport}s.
@@ -111,10 +110,6 @@ public abstract class TransportFactory {
      * Default worker thread pool, used by all {@link Transport}s.
      */
     protected ExecutorService defaultWorkerThreadPool;
-    /**
-     * Default scheduled thread pool, used by all {@link Transport}s.
-     */
-    protected ScheduledExecutorService defaultScheduledThreadPool;
 
     protected TransportFactory() {
         initialize();
@@ -176,26 +171,6 @@ public abstract class TransportFactory {
     public void setDefaultWorkerThreadPool(ExecutorService defaultThreadPool) {
         this.defaultWorkerThreadPool = defaultThreadPool;
     }
-
-    /**
-     * Get default scheduled thread pool, used by all {@link Transport}s.
-     *
-     * @return default scheduled thread pool, used by all {@link Transport}s.
-     */
-    public ScheduledExecutorService getDefaultScheduledThreadPool() {
-        return defaultScheduledThreadPool;
-    }
-
-    /**
-     * Set default scheduled thread pool, used by all {@link Transport}s.
-     *
-     * @param defaultScheduledThreadPool default scheduled thread pool,
-     * used by all {@link Transport}s.
-     */
-    public void setDefaultScheduledThreadPool(
-            ScheduledExecutorService defaultScheduledThreadPool) {
-        this.defaultScheduledThreadPool = defaultScheduledThreadPool;
-    }
     
     /**
      * Initialize default factory settings.
@@ -203,8 +178,7 @@ public abstract class TransportFactory {
     public void initialize() {
         defaultAttributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
         defaultMemoryManager = new DefaultMemoryManager();
-        defaultWorkerThreadPool = new DefaultThreadPool();
-        defaultScheduledThreadPool = new DefaultScheduleThreadPool();
+        defaultWorkerThreadPool = GrizzlyExecutorService.createInstance();
     }
 
     /**
@@ -216,11 +190,6 @@ public abstract class TransportFactory {
             if (defaultWorkerThreadPool != null) {
                 defaultWorkerThreadPool.shutdown();
                 defaultWorkerThreadPool = null;
-            }
-
-            if (defaultScheduledThreadPool != null) {
-                defaultScheduledThreadPool.shutdown();
-                defaultScheduledThreadPool = null;
             }
         }
     }

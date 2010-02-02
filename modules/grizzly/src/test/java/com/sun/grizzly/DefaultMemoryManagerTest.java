@@ -43,7 +43,9 @@ import junit.framework.TestCase;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.DefaultMemoryManager;
-import com.sun.grizzly.threadpool.DefaultThreadPool;
+import com.sun.grizzly.threadpool.FixedThreadPool;
+import com.sun.grizzly.threadpool.ThreadPoolConfig;
+import java.util.concurrent.ExecutorService;
 
 /**
  *
@@ -160,7 +162,7 @@ public class DefaultMemoryManagerTest extends TestCase {
     private void testInWorkerThread(final Runnable task) throws Exception {
         final FutureImpl<Boolean> future = new FutureImpl<Boolean>();
 
-        DefaultThreadPool threadPool = new DefaultThreadPool();
+        ExecutorService threadPool = new FixedThreadPool(ThreadPoolConfig.DEFAULT);
         threadPool.execute(new Runnable() {
             @Override
             public void run() {

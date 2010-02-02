@@ -45,11 +45,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
+import java.util.Queue;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 /**
@@ -72,12 +73,11 @@ public class IdleTimeoutFilter extends FilterAdapter {
     private volatile ScheduledFuture scheduledFuture;
     private long timeoutMillis;
     private ScheduledExecutorService scheduledThreadPool;
-    private LinkedTransferQueue<Connection> connections;
+    private final Queue<Connection> connections;
     private volatile TimeoutChecker checker;
 
     public IdleTimeoutFilter(long timeout, TimeUnit timeunit) {
-        this(timeout, timeunit,
-                TransportFactory.getInstance().getDefaultScheduledThreadPool());
+        this(timeout, timeunit, Executors.newScheduledThreadPool(1));
     }
 
     public IdleTimeoutFilter(long timeout, TimeUnit timeunit,
