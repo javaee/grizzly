@@ -86,9 +86,14 @@ public abstract class AsyncQueue<E> {
      */
     public final static class UnSafeAsyncQueue<E> extends AsyncQueue<E> {
         private E currentElement;
+        /**
+         * Locker object, which could be used by a queue processors
+         */
+        protected final ReentrantLock queuedActionLock;
 
         protected UnSafeAsyncQueue() {
             super(new LinkedList<E>());
+            queuedActionLock = new ReentrantLock();
         }
 
         @Override
@@ -100,20 +105,23 @@ public abstract class AsyncQueue<E> {
         public AtomicReference<E> getCurrentElementAtomic() {
             throw new UnsupportedOperationException("Is not supported for unsafe queue");
         }
+
+        /**
+         * Get the locker object, which could be used by a queue processors
+         * @return the locker object, which could be used by a queue processors
+         */
+        public ReentrantLock getQueuedActionLock() {
+            return queuedActionLock;
+        }
     }
     
     /**
      * The queue of tasks, which will be processed asynchrounously
      */
     protected final Queue<E> queue;
-    /**
-     * Locker object, which could be used by a queue processors
-     */
-    protected final ReentrantLock queuedActionLock;
 
     protected AsyncQueue(Queue<E> queue) {
         this.queue = queue;
-        queuedActionLock = new ReentrantLock();
     }
 
     /**
@@ -134,13 +142,5 @@ public abstract class AsyncQueue<E> {
      */
     public Queue<E> getQueue() {
         return queue;
-    }
-
-    /**
-     * Get the locker object, which could be used by a queue processors
-     * @return the locker object, which could be used by a queue processors
-     */
-    public ReentrantLock getQueuedActionLock() {
-        return queuedActionLock;
     }
 }

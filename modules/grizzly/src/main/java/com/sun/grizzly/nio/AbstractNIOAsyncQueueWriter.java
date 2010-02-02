@@ -42,7 +42,6 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Logger;
 import com.sun.grizzly.AbstractWriter;
 import com.sun.grizzly.Buffer;
@@ -60,8 +59,8 @@ import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.asyncqueue.MessageCloner;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.utils.ObjectPool;
-import java.io.EOFException;
 import java.util.Queue;
 
 /**
@@ -73,7 +72,11 @@ public abstract class AbstractNIOAsyncQueueWriter
         extends AbstractWriter<SocketAddress>
         implements AsyncQueueWriter<SocketAddress> {
 
-    protected NIOTransport transport;
+    private static final AsyncWriteQueueRecord LOCK_RECORD =
+            new AsyncWriteQueueRecord(null, null, null, null, null, null, null,
+            null, false);
+    
+    protected final NIOTransport transport;
 
     private final static Logger logger = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
@@ -113,65 +116,58 @@ public abstract class AbstractNIOAsyncQueueWriter
             throw new IOException("Connection is closed");
         }
 
-        // Create future
-        final FutureImpl future = new FutureImpl();
-        final WriteResult currentResult = new WriteResult(connection);
-        currentResult.setMessage(message);
-        currentResult.setDstAddress(dstAddress);
-        currentResult.setWrittenSize(0);
-
         // Get connection async write queue
         final AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
-        final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
-        final AtomicReference<AsyncWriteQueueRecord> currentElement =
-                connectionQueue.getCurrentElementAtomic();
-        final ReentrantLock lock = connectionQueue.getQueuedActionLock();
-        boolean isLockedByMe = false;
 
+        final WriteResult currentResult = new WriteResult(connection,
+                message, dstAddress, 0);
+        
         // create and initialize the write queue record
         final AsyncWriteQueueRecord queueRecord = new AsyncWriteQueueRecord(
-                message, future, currentResult, completionHandler,
+                message, null, currentResult, completionHandler,
                 transformer, interceptor, dstAddress,
                 transformer == null ? (Buffer) message : null,
                 false);
 
-        // If AsyncQueue is empty - try to write Buffer here
-        try {
+        final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
+        final AtomicReference<AsyncWriteQueueRecord> currentElement =
+                connectionQueue.getCurrentElementAtomic();
 
-            if (currentElement.get() == null && // Weak comparison for null
-                    lock.tryLock()) {
-                isLockedByMe = true;
-                // Strong comparison for null, because we're in locked region
-                if (currentElement.compareAndSet(null, queueRecord)) {
-                    doWrite(connection, queueRecord);
-                } else {
-                    isLockedByMe = false;
-                    lock.unlock();
-                }
+        final boolean isLocked = currentElement.compareAndSet(null, LOCK_RECORD);
+
+        try {
+            if (isLocked) {
+                doWrite(connection, queueRecord);
             }
 
-            if (isLockedByMe && isFinished(connection, queueRecord)) {
+            if (isLocked && isFinished(connection, queueRecord)) {
                 // If buffer was written directly - set next queue element as current
                 // Notify callback handler
                 onWriteCompleted(connection, queueRecord);
-                
+
                 AsyncWriteQueueRecord nextRecord = queue.poll();
                 if (nextRecord != null) { // if there is something in queue
                     currentElement.set(nextRecord);
-                    isLockedByMe = false;
-                    lock.unlock();
                     onReadyToWrite(connection);
                 } else { // if nothing in queue
                     currentElement.set(null);
-                    isLockedByMe = false;
-                    lock.unlock();  // unlock
-                    if (queue.peek() != null) {  // check one more time
+                    // try one more time
+                    nextRecord = queue.peek();
+                    if (nextRecord != null &&
+                            currentElement.compareAndSet(null, nextRecord)) {
                         onReadyToWrite(connection);
                     }
                 }
-            } else { // If there are no bytes available for writing
+
+                return new ReadyFutureImpl<WriteResult<M, SocketAddress>>(currentResult);
+            } else { // If either write is not completed or queue is not empty
+                
+                // Create future
+                final FutureImpl future = new FutureImpl();
+                queueRecord.setFuture(future);
+
                 if (cloner != null) {
                     // clone message
                     message = cloner.clone(connection, message);
@@ -180,47 +176,41 @@ public abstract class AbstractNIOAsyncQueueWriter
                     if (transformer == null) {
                         queueRecord.setOutputBuffer((Buffer) message);
                     }
-                    
+
                     queueRecord.setCloned(true);
                 }
 
-                boolean isRegisterForWriting = false;
-
-                // add new element to the queue, if it's not current
-                if (currentElement.get() != queueRecord) {
-                    queue.offer(queueRecord); // add to queue
-                    if (!lock.isLocked()) {
-                        isRegisterForWriting = true;
-                    }
-                } else {  // if element was written direct (not fully written)
-                    isRegisterForWriting = true;
-                    if (isLockedByMe) {
-                        isLockedByMe = false;
-                        lock.unlock();
-                    }
-                }
-
-                if (isRegisterForWriting) {
+                if (isLocked) { // If write wasn't completed
+                    currentElement.set(queueRecord);
                     onReadyToWrite(connection);
+                } else {  // if queue wasn't empty
+                    connectionQueue.getQueue().offer(queueRecord);
+
+                    if (currentElement.compareAndSet(null, queueRecord)) {
+                        queue.remove(queueRecord);
+                        onReadyToWrite(connection);
+                    }
+
+                    // Check whether connection is still open
+                    if (!connection.isOpen() && queue.remove(queueRecord)) {
+                        onWriteFailure(connection, queueRecord,
+                                new IOException("Connection is closed"));
+                    }
                 }
+
+                return future;
             }
         } catch (IOException e) {
             onWriteFailure(connection, queueRecord, e);
-            throw e;
-        } finally {
-            if (isLockedByMe) {
-                lock.unlock();
-            }
+            return new ReadyFutureImpl(e);
         }
-
-        return future;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean isReady(Connection connection) {
+    public final boolean isReady(Connection connection) {
         AsyncQueue connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
@@ -241,72 +231,40 @@ public abstract class AbstractNIOAsyncQueueWriter
         final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
         final AtomicReference<AsyncWriteQueueRecord> currentElement =
                 connectionQueue.getCurrentElementAtomic();
-        final ReentrantLock lock = connectionQueue.getQueuedActionLock();
-        boolean isLockedByMe = false;
 
-        if (currentElement.get() == null) {
-            AsyncWriteQueueRecord nextRecord = queue.peek();
-            if (nextRecord != null && lock.tryLock()) {
-                if (!queue.isEmpty() &&
-                        currentElement.compareAndSet(null, nextRecord)) {
-                    queue.remove();
-                }
-            } else {
-                return;
-            }
-        } else if (!lock.tryLock()) {
-            return;
-        }
-
-        isLockedByMe = true;
-        AsyncWriteQueueRecord<SocketAddress> queueRecord = null;
+        AsyncWriteQueueRecord<SocketAddress> queueRecord = currentElement.get();
+        if (queueRecord == LOCK_RECORD) return;
+        
         try {
-            while (currentElement.get() != null) {
-                queueRecord = currentElement.get();
+            while (queueRecord != null) {
 
                 doWrite(connection, queueRecord);
 
                 // check if buffer was completely written
                 if (isFinished(connection, queueRecord)) {
-                    currentElement.set(queue.poll());
-
                     onWriteCompleted(connection, queueRecord);
 
-                    // If last element in queue is null - we have to be careful
-                    if (currentElement.get() == null) {
-                        if (isLockedByMe) {
-                            isLockedByMe = false;
-                            lock.unlock();
-                        }
-                        AsyncWriteQueueRecord nextRecord = queue.peek();
-                        if (nextRecord != null && lock.tryLock()) {
-                            isLockedByMe = true;
-                            if (!queue.isEmpty() &&
-                                    currentElement.compareAndSet(null,
-                                    nextRecord)) {
-                                queue.remove();
-                            }
+                    queueRecord = queue.poll();
+                    currentElement.set(queueRecord);
 
-                            continue;
-                        } else {
+                    // If last element in queue is null - we have to be careful
+                    if (queueRecord == null) {
+                        queueRecord = queue.peek();
+                        if (queueRecord != null &&
+                                currentElement.compareAndSet(null, queueRecord)) {
+
+                            queue.remove(queueRecord);
+                        } else { // If there are no elements - return
                             break;
                         }
                     }
                 } else { // if there is still some data in current message
-                    if (isLockedByMe) {
-                        isLockedByMe = false;
-                        lock.unlock();
-                    }
                     onReadyToWrite(connection);
                     break;
                 }
             }
         } catch (IOException e) {
             onWriteFailure(connection, queueRecord, e);
-        } finally {
-            if (isLockedByMe) {
-                connectionQueue.getQueuedActionLock().unlock();
-            }
         }
     }
 
@@ -320,24 +278,21 @@ public abstract class AbstractNIOAsyncQueueWriter
         final AsyncQueue<AsyncWriteQueueRecord> writeQueue =
                 nioConnection.getAsyncWriteQueue();
         if (writeQueue != null) {
-            writeQueue.getQueuedActionLock().lock();
-            try {
-                AsyncWriteQueueRecord record =
-                        writeQueue.getCurrentElementAtomic().getAndSet(null);
+            AsyncWriteQueueRecord record =
+                    writeQueue.getCurrentElementAtomic().getAndSet(LOCK_RECORD);
 
-                Throwable error = new IOException("Connection closed");
+            final Throwable error = new IOException("Connection closed");
+            
+            if (record != LOCK_RECORD) {
                 failWriteRecord(connection, record, error);
+            }
 
-                Queue<AsyncWriteQueueRecord> recordsQueue =
-                        writeQueue.getQueue();
-                if (recordsQueue != null) {
-                    while (!recordsQueue.isEmpty()) {
-                        failWriteRecord(connection, recordsQueue.poll(),
-                                error);
-                    }
+            final Queue<AsyncWriteQueueRecord> recordsQueue =
+                    writeQueue.getQueue();
+            if (recordsQueue != null) {
+                while ((record = recordsQueue.poll()) != null) {
+                    failWriteRecord(connection, record, error);
                 }
-            } finally {
-                writeQueue.getQueuedActionLock().unlock();
             }
         }
     }
@@ -345,7 +300,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     /**
      * {@inheritDoc}
      */
-    public ObjectPool getContextPool() {
+    public final ObjectPool getContextPool() {
         return null;
     }
 
@@ -353,7 +308,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public boolean isInterested(IOEvent ioEvent) {
+    public final boolean isInterested(IOEvent ioEvent) {
         return ioEvent == IOEvent.WRITE;
     }
 
@@ -361,7 +316,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public ProcessorResult process(Context context)
+    public final ProcessorResult process(Context context)
             throws IOException {
         processAsync(context.getConnection());
         return null;
@@ -371,14 +326,14 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public void setInterested(IOEvent ioEvent, boolean isInterested) {
+    public final void setInterested(IOEvent ioEvent, boolean isInterested) {
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public void close() {
+    public final void close() {
     }
 
     /**
@@ -402,7 +357,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     outputBuffer, currentResult);
 
             if (bytesWritten == -1) {
-                throw new EOFException();
+                throw new IOException("Connection is closed");
             }
             
         } else {
@@ -421,7 +376,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     final int bytesWritten = write0(connection, dstAddress,
                             outputBuffer, writeResult);
                     if (bytesWritten == -1) {
-                        throw new EOFException();
+                        throw new IOException("Connection is closed");
                     }
 
                     currentResult.setWrittenSize(
@@ -462,7 +417,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    protected void onWriteCompleted(Connection connection,
+    protected final void onWriteCompleted(Connection connection,
             AsyncWriteQueueRecord<?> record)
             throws IOException {
 
@@ -471,9 +426,13 @@ public abstract class AbstractNIOAsyncQueueWriter
             transformer.release(connection);
         }
         
-        final FutureImpl future = (FutureImpl) record.getFuture();
         final WriteResult currentResult = record.getCurrentResult();
-        future.result(currentResult);
+
+        final FutureImpl future = (FutureImpl) record.getFuture();
+        if (future != null) {
+            future.result(currentResult);
+        }
+        
         final CompletionHandler<WriteResult> completionHandler =
                 record.getCompletionHandler();
 
@@ -482,7 +441,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    protected void onWriteIncompleted(Connection connection,
+    protected final void onWriteIncompleted(Connection connection,
             AsyncWriteQueueRecord<?> record)
             throws IOException {
 
@@ -495,7 +454,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    protected void onWriteFailure(Connection connection,
+    protected final void onWriteFailure(Connection connection,
             AsyncWriteQueueRecord failedRecord, IOException e) {
 
         failWriteRecord(connection, failedRecord, e);
@@ -505,14 +464,16 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
     }
 
-    protected void failWriteRecord(Connection connection,
+    protected final void failWriteRecord(Connection connection,
             AsyncWriteQueueRecord record, Throwable e) {
         if (record == null) {
             return;
         }
 
-        FutureImpl future = (FutureImpl) record.getFuture();
-        if (!future.isDone()) {
+        final FutureImpl future = (FutureImpl) record.getFuture();
+        final boolean hasFuture = (future != null);
+        
+        if (!hasFuture || !future.isDone()) {
             CompletionHandler<WriteResult> completionHandler =
                     record.getCompletionHandler();
 
@@ -520,7 +481,9 @@ public abstract class AbstractNIOAsyncQueueWriter
                 completionHandler.failed(e);
             }
 
-            future.failure(e);
+            if (hasFuture) {
+                future.failure(e);
+            }
         }
     }
 

@@ -48,8 +48,6 @@ import com.sun.grizzly.Processor;
  * @author Alexey Stashok
  */
 public interface AsyncQueueProcessor extends Processor {
-    public static final int NOT_REGISTER_KEY = 64;
-    
     /**
      * Checks whether there is ready data in {@link AsyncQueue},
      * associated with the {@link Connection}.

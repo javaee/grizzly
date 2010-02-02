@@ -51,7 +51,7 @@ import com.sun.grizzly.Transformer;
 public class AsyncQueueRecord<R> {
     protected final Object originalMessage;
     protected Object message;
-    protected final Future future;
+    protected Future future;
     protected final R currentResult;
     protected final CompletionHandler completionHandler;
     protected final Transformer transformer;
@@ -84,6 +84,10 @@ public class AsyncQueueRecord<R> {
 
     public final Future getFuture() {
         return future;
+    }
+
+    public void setFuture(Future future) {
+        this.future = future;
     }
 
     public final R getCurrentResult() {
