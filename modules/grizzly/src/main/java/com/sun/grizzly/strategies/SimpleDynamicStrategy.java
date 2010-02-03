@@ -80,7 +80,7 @@ public class SimpleDynamicStrategy implements Strategy<DynamicStrategyContext> {
                 new WorkerThreadExecutor(workerThreadPool));
     }
 
-    public SimpleDynamicStrategy(final Executor sameThreadProcessorExecutor,
+    protected SimpleDynamicStrategy(final Executor sameThreadProcessorExecutor,
             final Executor workerThreadProcessorExecutor) {
         sameThreadStrategy = new SameThreadStrategy();
         leaderFollowerStrategy = new LeaderFollowerStrategy(

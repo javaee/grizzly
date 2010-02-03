@@ -71,7 +71,7 @@ public class WorkerThreadStrategy implements Strategy {
                 new WorkerThreadExecutor(workerThreadPool));
     }
 
-    public WorkerThreadStrategy(Executor sameThreadProcessorExecutor,
+    protected WorkerThreadStrategy(Executor sameThreadProcessorExecutor,
             Executor workerThreadProcessorExecutor) {
         
         this.sameThreadProcessorExecutor = sameThreadProcessorExecutor;
