@@ -78,7 +78,8 @@ public class StandaloneTest extends TestCase {
             transport.start();
 
             // Start echo server thread
-            startEchoServerThread(transport, serverConnection, messageSize);
+            final Thread serverThread =
+                    startEchoServerThread(transport, serverConnection, messageSize);
 
             // Connect to the server
             Future<Connection> connectFuture = transport.connect("localhost", PORT);
@@ -111,6 +112,8 @@ public class StandaloneTest extends TestCase {
             
             // Check the echo result
             assertTrue(Arrays.equals(buffer, receiveBuffer));
+
+            serverThread.join(10 * 1000);
         } finally {
             if (connection != null) {
                 connection.close();
@@ -122,54 +125,55 @@ public class StandaloneTest extends TestCase {
 
     }
 
-    private void startEchoServerThread(final TCPNIOTransport transport,
+    private Thread startEchoServerThread(final TCPNIOTransport transport,
             final TCPNIOServerConnection serverConnection,
             final int messageSize) {
-        new Thread(new Runnable() {
+        final Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
-                while(!transport.isStopped()) {
+                try {
+                    Future<Connection> acceptFuture = serverConnection.accept();
+                    Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
+                    assertTrue(acceptFuture.isDone());
+
+                    StreamReader reader = transport.getStreamReader(connection);
+                    StreamWriter writer = transport.getStreamWriter(connection);
                     try {
-                        Future<Connection> acceptFuture = serverConnection.accept();
-                        Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
-                        assertTrue(acceptFuture.isDone());
 
-                        StreamReader reader = transport.getStreamReader(connection);
-                        StreamWriter writer = transport.getStreamWriter(connection);
-                        try {
+                        Future readFuture = reader.notifyAvailable(messageSize);
+                        readFuture.get(10, TimeUnit.SECONDS);
+                        // Read until whole buffer will be filled out
 
-                            Future readFuture = reader.notifyAvailable(messageSize);
-                            readFuture.get(10, TimeUnit.SECONDS);
-                            // Read until whole buffer will be filled out
+                        byte[] buffer = new byte[messageSize];
+                        reader.readByteArray(buffer);
 
-                            byte[] buffer = new byte[messageSize];
-                            reader.readByteArray(buffer);
+                        assertTrue(readFuture.isDone());
 
-                            assertTrue(readFuture.isDone());
+                        // Write the echo
+                        writer.writeByteArray(buffer);
+                        Future writeFuture = writer.flush();
+                        writeFuture.get(10, TimeUnit.SECONDS);
 
-                            // Write the echo
-                            writer.writeByteArray(buffer);
-                            Future writeFuture = writer.flush();
-                            writeFuture.get(10, TimeUnit.SECONDS);
+                        assertTrue(writeFuture.isDone());
+                    } catch (Throwable e) {
+                        logger.log(Level.WARNING,
+                                "Error working with accepted connection", e);
+                        assertTrue("Error working with accepted connection", false);
+                    } finally {
+                        connection.close();
+                    }
 
-                            assertTrue(writeFuture.isDone());
-                        } catch (Throwable e) {
-                            logger.log(Level.WARNING,
-                                    "Error working with accepted connection", e);
-                            assertTrue("Error working with accepted connection", false);
-                        } finally {
-                            connection.close();
-                        }
-
-                    } catch (Exception e) {
-                        if (!transport.isStopped()) {
-                            logger.log(Level.WARNING,
-                                    "Error accepting connection", e);
-                            assertTrue("Error accepting connection", false);
-                        }
+                } catch (Exception e) {
+                    if (!transport.isStopped()) {
+                        logger.log(Level.WARNING,
+                                "Error accepting connection", e);
+                        assertTrue("Error accepting connection", false);
                     }
                 }
             }
-        }).start();
+        });
+        thread.start();
+        
+        return thread;
     }
 }
