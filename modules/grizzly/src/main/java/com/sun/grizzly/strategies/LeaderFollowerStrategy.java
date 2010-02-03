@@ -56,17 +56,17 @@ import java.util.concurrent.ExecutorService;
  * @author Alexey Stashok
  */
 public class LeaderFollowerStrategy implements Strategy<Boolean> {
-    private Executor sameThreadProcessorExecutor;
-    private Executor workerThreadProcessorExecutor;
+    private final Executor sameThreadProcessorExecutor;
+    private final Executor workerThreadProcessorExecutor;
 
     public LeaderFollowerStrategy(final ExecutorService workerThreadPool) {
-        this(new CurrentThreadExecutor(),
-                new WorkerThreadExecutor(workerThreadPool));
+        this.workerThreadProcessorExecutor =
+                new WorkerThreadExecutor(workerThreadPool);
+        this.sameThreadProcessorExecutor = new CurrentThreadExecutor();
     }
 
-    public LeaderFollowerStrategy(Executor sameThreadProcessorExecutor,
+    protected LeaderFollowerStrategy(Executor sameThreadProcessorExecutor,
             Executor workerThreadProcessorExecutor) {
-        
         this.sameThreadProcessorExecutor = sameThreadProcessorExecutor;
         this.workerThreadProcessorExecutor = workerThreadProcessorExecutor;
     }
