@@ -226,19 +226,23 @@ public abstract class BufferedInput implements Input {
 
     private void notifyUpdate() {
         if (condition != null && condition.check()) {
-            try {
-                onCloseInputSource();
-                notifyCompleted(completionHandler);
-                future.result(compositeBuffer.remaining());
-            } catch(IOException e) {
-                notifyFailure(completionHandler, e);
-                future.failure(e);
-            }
-
             condition = null;
+            final CompletionHandler<Integer> localCompletionHandler = completionHandler;
             completionHandler = null;
+
+            final FutureImpl<Integer> localFuture = future;
             future = null;
             isCompletionHandlerRegistered = false;
+
+            try {
+                
+                onCloseInputSource();
+                notifyCompleted(localCompletionHandler);
+                localFuture.result(compositeBuffer.remaining());
+            } catch(IOException e) {
+                notifyFailure(localCompletionHandler, e);
+                localFuture.failure(e);
+            }
         }
     }
 
