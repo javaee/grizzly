@@ -40,13 +40,14 @@ package com.sun.grizzly.benchmark;
 
 import java.lang.reflect.Constructor;
 import com.sun.grizzly.Strategy;
-import com.sun.grizzly.Transport;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.threadpool.DefaultThreadPool;
+import com.sun.grizzly.threadpool.GrizzlyExecutorService;
+import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import com.sun.grizzly.utils.EchoFilter;
+import java.util.concurrent.ExecutorService;
 
 /**
  *
@@ -63,19 +64,18 @@ public class TCPEchoServer {
                 transportFactory.getDefaultMemoryManager();
         memoryManager.setMonitoring(false);
 
-        DefaultThreadPool threadPool = (DefaultThreadPool)
-                transportFactory.getDefaultWorkerThreadPool();
         int poolSize = (settings.getWorkerThreads());
 
-        threadPool.setMaximumPoolSize(poolSize);
-        threadPool.setCorePoolSize(poolSize);
+        final ThreadPoolConfig tpc = ThreadPoolConfig.DEFAULT.clone().
+                setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
         TCPNIOTransport transport = transportFactory.createTCPTransport();
+        transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
         transport.setSelectorRunnersCount(settings.getSelectorThreads());
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(new EchoFilter());
 
-        Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
+        Strategy strategy = loadStrategy(settings.getStrategyClass(), tpc);
 
         transport.setStrategy(strategy);
 
@@ -94,15 +94,15 @@ public class TCPEchoServer {
     }
 
     public static Strategy loadStrategy(Class<? extends Strategy> strategy,
-            Transport transport) {
+            ThreadPoolConfig config) {
         try {
             return strategy.newInstance();
         } catch (Exception e) {
             try {
                 Constructor[] cs = strategy.getConstructors();
                 for (Constructor c : cs) {
-                    if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(transport.getClass())) {
-                        return (Strategy) c.newInstance(transport);
+                    if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(ExecutorService.class)) {
+                        return (Strategy) c.newInstance(GrizzlyExecutorService.createInstance(config));
                     }
                 }
 

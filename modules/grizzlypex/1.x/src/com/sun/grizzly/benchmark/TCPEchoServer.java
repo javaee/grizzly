@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.benchmark;
 
+import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.DefaultProtocolChain;
@@ -46,10 +47,10 @@ import com.sun.grizzly.ProtocolChainInstanceHandler;
 import com.sun.grizzly.TCPSelectorHandler;
 import com.sun.grizzly.filter.EchoAsyncWriteQueueFilter;
 import com.sun.grizzly.filter.ReadFilter;
-import com.sun.grizzly.utils.DefaultThreadPool;
+import com.sun.grizzly.util.GrizzlyExecutorService;
+import com.sun.grizzly.util.ThreadPoolConfig;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
 
 /**
  *
@@ -68,13 +69,14 @@ public class TCPEchoServer {
         TCPSelectorHandler selector = new TCPSelectorHandler();
         selector.setPort(settings.getPort());
         selector.setTcpNoDelay(true);
+        selector.setSelectionKeyHandler(new BaseSelectionKeyHandler(selector));
 
         int poolSize = (settings.getWorkerThreads() + settings.getSelectorThreads());
         // TODO Need to write a new pipeline to support nothreadpool mode.
-        ExecutorService threadPool = new DefaultThreadPool(poolSize, poolSize,
-                DefaultThreadPool.DEFAULT_MAX_TASKS_QUEUED,
-                DefaultThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT,
-                TimeUnit.MILLISECONDS);
+        
+        ThreadPoolConfig config = ThreadPoolConfig.DEFAULT.clone()
+                .setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
+        ExecutorService threadPool = GrizzlyExecutorService.createInstance(config);
 
         ProtocolChainInstanceHandler pciHandler =
             new ProtocolChainInstanceHandler() {
@@ -98,6 +100,7 @@ public class TCPEchoServer {
         controller.setHandleReadWriteConcurrently(true);
         controller.setThreadPool(threadPool);
         controller.setProtocolChainInstanceHandler(pciHandler);
+        controller.useLeaderFollowerStrategy(settings.useLeaderFollower());
 
         ProtocolChain protocolChain = pciHandler.poll();
         protocolChain.addFilter(new ReadFilter());

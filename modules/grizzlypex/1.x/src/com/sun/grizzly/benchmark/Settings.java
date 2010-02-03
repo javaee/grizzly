@@ -50,6 +50,8 @@ public class Settings {
     private int workerThreads = 5;
 
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
+    
+    private boolean useLeaderFollower = true;
 
     private Settings() {
     }
@@ -81,6 +83,9 @@ public class Settings {
             } else if ("-selectorThreads".equalsIgnoreCase(param)) {
                 int selectorThreads = Integer.parseInt(value);
                 settings.selectorThreads = selectorThreads;
+            } else if ("-useLeaderFollower".equalsIgnoreCase(param)) {
+                boolean useLeaderFollower = Boolean.parseBoolean(value);
+                settings.useLeaderFollower(useLeaderFollower);
             }
         }
 
@@ -88,7 +93,7 @@ public class Settings {
     }
 
     public static void help() {
-        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER>");
+        System.out.println("Use EchoServer -host=<HOST> -port=<PORT> -workerThreads=<WORKER_THREADS_NUMBER> -selectorThreads=<SELECTOR_THREADS_NUMBER> -useLeaderFollower=<USE_LEADER_FOLLOWER>");
     }
 
     public String getHost() {
@@ -123,6 +128,14 @@ public class Settings {
         this.workerThreads = workerThreads;
     }
 
+    public boolean useLeaderFollower() {
+        return useLeaderFollower;
+    }
+    
+    public void useLeaderFollower(boolean useLeaderFollower) {
+        this.useLeaderFollower = useLeaderFollower;
+    }
+    
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -131,6 +144,7 @@ public class Settings {
         sb.append("\nPort: ").append(port);
         sb.append("\nWorker threads: ").append(workerThreads);
         sb.append("\nSelector threads: ").append(selectorThreads);
+        sb.append("\nuseLeaderFollower: ").append(useLeaderFollower);
 
         return sb.toString();
     }

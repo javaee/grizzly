@@ -39,7 +39,7 @@
 package com.sun.grizzly.benchmark;
 
 import com.sun.grizzly.Strategy;
-import com.sun.grizzly.strategies.WorkerThreadStrategy;
+import com.sun.grizzly.strategies.SameThreadStrategy;
 
 /**
  *
@@ -54,7 +54,7 @@ public class Settings {
 
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
 
-    private Class<? extends Strategy> strategyClass = WorkerThreadStrategy.class;
+    private Class<? extends Strategy> strategyClass = SameThreadStrategy.class;
 
     private Settings() {
     }
