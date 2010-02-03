@@ -49,6 +49,7 @@ import com.sun.grizzly.strategies.LeaderFollowerStrategy;
 import com.sun.grizzly.strategies.SameThreadStrategy;
 import com.sun.grizzly.strategies.SimpleDynamicStrategy;
 import com.sun.grizzly.strategies.WorkerThreadStrategy;
+import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 
 /**
  * Sample shows how easy custom {@link Strategy} could be applied for a
@@ -74,7 +75,8 @@ public class CustomStrategy {
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
 
         // Set the LeaderFollowerStrategy (any strategy could be applied this way)
-        transport.setStrategy(new LeaderFollowerStrategy(transport));
+        transport.setStrategy(new LeaderFollowerStrategy(
+                GrizzlyExecutorService.createInstance()));
         
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
