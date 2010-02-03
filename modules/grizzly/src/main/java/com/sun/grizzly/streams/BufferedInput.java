@@ -59,6 +59,7 @@ public abstract class BufferedInput implements Input {
     protected final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     protected boolean isCompletionHandlerRegistered;
+    protected Exception registrationStackTrace; // used for debugging problems
     
     protected Condition condition;
     protected CompletionHandler<Integer> completionHandler;
@@ -201,6 +202,7 @@ public abstract class BufferedInput implements Input {
                     return new ReadyFutureImpl<Integer>(compositeBuffer.remaining());
                 }
 
+                registrationStackTrace = new Exception();
                 isCompletionHandlerRegistered = true;
                 this.completionHandler = completionHandler;
                 final FutureImpl<Integer> localFuture = new FutureImpl<Integer>();
@@ -216,7 +218,7 @@ public abstract class BufferedInput implements Input {
 
                 return localFuture;
             } else {
-                throw new IllegalStateException("Only one notificator could be registered");
+                throw new IllegalStateException("Only one notificator could be registered. Previous registration came from: ", registrationStackTrace);
             }
         } finally {
             lock.writeLock().unlock();
