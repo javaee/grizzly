@@ -121,16 +121,8 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
 
             BufferUtils.setPositionLimit(input, oldInputPos, oldInputPos + chunk);
             
-            Buffer output = getOutput(storage);
-            if (output == null) {
-                output = input.slice();
-                BufferUtils.setPositionLimit(input, oldInputPos + chunk, oldInputLimit);
-            } else if (output.remaining() >= chunk) {
-                output.put(input);
-                BufferUtils.setPositionLimit(input, oldInputPos + chunk, oldInputLimit);
-            } else {
-                throw new TransformationException("Output buffer overflow");
-            }
+            final Buffer output = input.slice();
+            BufferUtils.setPositionLimit(input, oldInputPos + chunk, oldInputLimit);
 
             return saveLastResult(storage,
                     TransformationResult.<Buffer, Buffer>createCompletedResult(

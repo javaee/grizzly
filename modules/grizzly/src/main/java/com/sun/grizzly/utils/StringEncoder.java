@@ -44,7 +44,6 @@ import com.sun.grizzly.AbstractTransformer;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransportFactory;
 
 /**
  * String decoder, which decodes {@link Buffer} to {@link String}
@@ -92,8 +91,6 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
             throw new TransformationException("Input could not be null");
         }
 
-        Buffer output = getOutput(storage);
-
         byte[] byteRepresentation;
         try {
             if (stringTerminator != null) {
@@ -106,11 +103,8 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
                     charset.name() + " is not supported", e);
         }
 
-        final boolean isAllocated = (output == null);
-        if (isAllocated) {
-            output = TransportFactory.getInstance().getDefaultMemoryManager().
-                    allocate(byteRepresentation.length + 2);
-        }
+        final Buffer output =
+                obtainMemoryManager(storage).allocate(byteRepresentation.length + 2);
 
         if (stringTerminator == null) {
             output.putShort((short) byteRepresentation.length);
@@ -118,9 +112,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
 
         output.put(byteRepresentation);
 
-        if (isAllocated) {
-            output.flip();
-        }
+        output.flip();
 
         final TransformationResult<String, Buffer> result =
                 TransformationResult.<String, Buffer>createCompletedResult(

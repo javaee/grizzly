@@ -197,8 +197,6 @@ public abstract class TemporarySelectorReader
             Buffer buffer = (Buffer) readResult.getMessage();
             buffer.trim();
             
-            transformer.setOutput(connection, message);
-
             final Buffer remainderBuffer = currentResult.getRemainderBuffer();
             if (remainderBuffer != null) {
                 currentResult.setRemainderBuffer(null);

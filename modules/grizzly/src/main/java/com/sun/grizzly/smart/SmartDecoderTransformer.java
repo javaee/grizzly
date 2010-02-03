@@ -116,15 +116,8 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
 
         List processingTree = messageProcessingTreeAttribute.get(storage);
 
-        final E output = getOutput(storage);
-
         if (processingTree == null) {
-            E rootMessage;
-            if (output == null) {
-                rootMessage = newInstance(messageClass);
-            } else {
-                rootMessage = output;
-            }
+            E rootMessage = newInstance(messageClass);
 
             processingTree = new ArrayList();
             processingTree.add(rootMessage);

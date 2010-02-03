@@ -109,15 +109,9 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
     public TransformationResult<E, Buffer> transform(AttributeStorage storage,
             E input) throws TransformationException {
 
-        Buffer output = getOutput(storage);
 
-        MemoryManager memoryManager = null;
-        final boolean isAllocated = (output == null);
-        
-        if (isAllocated) {
-            memoryManager = obtainMemoryManager(storage);
-            output = memoryManager.allocate(1024);
-        }
+        final MemoryManager memoryManager = obtainMemoryManager(storage);
+        Buffer output = memoryManager.allocate(1024);
 
         int currentElementIndex = 0;
 
@@ -152,8 +146,6 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
                         throw new TransformationException(e);
                     }
 
-                    transformer.setOutput(storage, output);
-
                     final TransformationResult result =
                             transformer.transform(storage, fieldValue);
 
@@ -162,15 +154,9 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
                         transformer.release(storage);
                         currentElementIndex++;
                     } else if (status == Status.INCOMPLETED) {
-                        if (isAllocated) {
-                            output = memoryManager.reallocate(output,
-                                    output.capacity() * 2);
-                            continue;
-                        }
-
-                        return saveStatus(storage, processingTree, currentElementIndex,
-                                TransformationResult.<E, Buffer>createIncompletedResult(
-                                null, false));
+                        output = memoryManager.reallocate(output,
+                                output.capacity() * 2);
+                        continue;
                     } else {
                         transformer.release(storage);
                         return result;
@@ -196,9 +182,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
             }
         }
 
-        if (isAllocated) {
-            output.flip();
-        }
+        output.flip();
         
         return saveStatus(storage, processingTree, currentElementIndex,
                 TransformationResult.<E, Buffer>createCompletedResult(

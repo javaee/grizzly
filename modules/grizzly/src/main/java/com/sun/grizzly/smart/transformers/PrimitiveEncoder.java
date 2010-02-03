@@ -56,18 +56,11 @@ public abstract class PrimitiveEncoder<E> extends AbstractSmartMemberEncoder<E> 
             throw new TransformationException("Input could not be null");
         }
         
-        final Buffer output = getOutput(storage);
+        final Buffer output = obtainMemoryManager(storage).allocate(sizeOf());
         
-        final TransformationResult<E, Buffer> result;
-
-        if (output.remaining() < sizeOf()) {
-            result = TransformationResult.<E, Buffer>createIncompletedResult(input, false);
-        } else {
-            result = TransformationResult.<E, Buffer>createCompletedResult(
-                    put(output, input), input, false);
-        }
-
-        return result;
+        return saveLastResult(storage,
+                TransformationResult.<E, Buffer>createCompletedResult(
+                    put(output, input).flip(), input, false));
     }
 
     @Override

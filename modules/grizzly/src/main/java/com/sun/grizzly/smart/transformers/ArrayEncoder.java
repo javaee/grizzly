@@ -75,14 +75,9 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
         
         // Optimize for transforming array of bytes
         if (componentType.isPrimitive() && componentType.equals(byte.class)) {
-            Buffer output = getOutput(storage);
 
-            MemoryManager memoryManager = null;
-            final boolean isAllocated = (output == null);
-            if (isAllocated) {
-                memoryManager = obtainMemoryManager(storage);
-                output = memoryManager.allocate(size(storage, input));
-            }
+            final MemoryManager memoryManager = obtainMemoryManager(storage);
+            Buffer output = memoryManager.allocate(size(storage, input));
 
             int currentElementIdx = getValue(storage, currentElementIdxAttribute, 0);
             int size = size(storage, input);
@@ -97,9 +92,7 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
                         null, false));
             }
 
-            if (isAllocated) {
-                output.flip();
-            }
+            output.flip();
             
             return saveLastResult(storage,
                     TransformationResult.<Object, Buffer>createCompletedResult(

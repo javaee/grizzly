@@ -407,7 +407,6 @@ public abstract class AbstractNIOAsyncQueueReader
                         compositeBuffer.allowBufferDispose(true);
                     }
                 }
-                transformer.setOutput(connection, message);
 
                 do {
                     final TransformationResult tResult = transformer.transform(

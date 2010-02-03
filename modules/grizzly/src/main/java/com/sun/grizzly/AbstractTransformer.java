@@ -51,9 +51,6 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     protected AttributeBuilder attributeBuilder =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
 
-    protected Attribute<K> inputBufferAttribute;
-    protected Attribute<L> outputBufferAttribute;
-
     protected Attribute<TransformationResult<K, L>> lastResultAttribute;
 
     private MemoryManager memoryManager;
@@ -61,26 +58,12 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     public AbstractTransformer() {
         String namePrefix = getNamePrefix();
 
-        inputBufferAttribute = attributeBuilder.createAttribute(namePrefix +
-                ".inputBuffer");
-        outputBufferAttribute = attributeBuilder.createAttribute(namePrefix +
-                ".outputBuffer");
         lastResultAttribute = attributeBuilder.createAttribute(namePrefix +
                 ".lastResult");
     }
 
     protected String getNamePrefix() {
         return getClass().getName();
-    }
-
-    @Override
-    public final L getOutput(AttributeStorage storage) {
-        return outputBufferAttribute.get(storage);
-    }
-
-    @Override
-    public final void setOutput(AttributeStorage storage, L output) {
-        outputBufferAttribute.set(storage, output);
     }
 
     @Override
@@ -98,8 +81,6 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
 
     @Override
     public void release(AttributeStorage storage) {
-        inputBufferAttribute.remove(storage);
-        outputBufferAttribute.remove(storage);
         lastResultAttribute.remove(storage);
     }
 

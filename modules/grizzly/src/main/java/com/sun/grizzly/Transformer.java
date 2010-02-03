@@ -78,30 +78,6 @@ public interface Transformer<K, L> {
             throws TransformationException;
 
     /**
-     * Gets the output, which <tt>Transformer</tt> will use for transformed data.
-     * Although output could be used to get a result of transformation, it is
-     * recommended to return transformation result directly from transform
-     * method within {@link TransformationResult}.
-     *
-     * @param storage the external state storage, where <tt>Transformer</tt>
-     *        could retrieve or store its state.
-     * @return the <tt>Transformer</tt> output.
-     */
-    public L getOutput(AttributeStorage storage);
-
-    /**
-     * Gets the output, which <tt>Transformer</tt> will use for transformed data.
-     * Although output could be used to get a result of transformation, it is
-     * recommended to return transformation result directly from transform
-     * method within {@link TransformationResult}.
-     *
-     * @param output Output
-     * @param storage the external state storage, where <tt>Transformer</tt>
-     *        could retrieve or store its state.
-     */
-    public void setOutput(AttributeStorage storage, L output);
-
-    /**
      * Gets the last returned <tt>Transformer</tt> result.
      * Last result could be either retrieved from internal state, or external
      * storage, which is passed as the parameter.

@@ -148,39 +148,28 @@ public abstract class SequenceEncoder<E> extends AbstractSmartMemberEncoder<E> {
             throw new TransformationException("Input should not be null");
         }
 
-        Buffer output = getOutput(storage);
         
-        MemoryManager memoryManager = null;
-        final boolean isAllocated = (output == null);
-        if (isAllocated) {
-            memoryManager = obtainMemoryManager(storage);
-            output = memoryManager.allocate(1024);
-        }
+        final MemoryManager memoryManager = obtainMemoryManager(storage);
+        Buffer output = memoryManager.allocate(1024);
 
         while(next(storage, input)) {
             Object element = get(storage, input);
-            componentEncoder.setOutput(storage, output);
+//            componentEncoder.setOutput(storage, output);
             TransformationResult<E, Buffer> result = componentEncoder.transform(
                     storage, element);
             Status status = result.getStatus();
             if (status == Status.COMPLETED) {
                 componentEncoder.release(storage);
             } else if (status == Status.INCOMPLETED) {
-                if (isAllocated) {
-                    output = memoryManager.reallocate(output,
-                            output.capacity() * 2);
-                    previous(storage, input);
-                } else {
-                    saveLastResult(storage,
-                            TransformationResult.<E, Buffer>createIncompletedResult(
-                            null, false));
-                }
+                output = memoryManager.reallocate(output,
+                        output.capacity() * 2);
+                previous(storage, input);
             } else {
                 return result;
             }
         }
 
-        if (isAllocated) output.flip();
+        output.flip();
         
         return saveLastResult(storage,
                 TransformationResult.<E, Buffer>createCompletedResult(

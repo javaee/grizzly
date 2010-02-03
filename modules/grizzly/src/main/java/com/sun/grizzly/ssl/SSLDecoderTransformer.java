@@ -95,14 +95,8 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             return saveLastResult(state, HANDSHAKE_NOT_EXECUTED_RESULT);
         }
 
-        Buffer targetBuffer = getOutput(state);
-        final boolean isAllocated = (targetBuffer == null);
-        if (isAllocated) {
-            targetBuffer = memoryManager.allocate(
+        final Buffer targetBuffer = memoryManager.allocate(
                     sslEngine.getSession().getApplicationBufferSize());
-        } else if (targetBuffer.isComposite()) {
-            throw new IllegalArgumentException("output buffer could not be composite");
-        }
 
         TransformationResult<Buffer, Buffer> transformationResult = null;
 
@@ -139,25 +133,19 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             }
 
             if (status == SSLEngineResult.Status.OK) {
-                if (isAllocated) {
-                    targetBuffer.trim();
-                }
+                targetBuffer.trim();
 
                 return saveLastResult(state,
                         TransformationResult.<Buffer, Buffer>createCompletedResult(
                         targetBuffer, originalMessage, false));
             } else if (status == SSLEngineResult.Status.CLOSED) {
-                if (isAllocated) {
-                    targetBuffer.dispose();
-                }
+                targetBuffer.dispose();
 
                 return saveLastResult(state,
                         TransformationResult.<Buffer, Buffer>createCompletedResult(
                         BufferUtils.EMPTY_BUFFER, originalMessage, false));
             } else {
-                if (isAllocated) {
-                    targetBuffer.dispose();
-                }
+                targetBuffer.dispose();
 
                 if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                     transformationResult =
@@ -171,10 +159,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
                 }
             }
         } catch (SSLException e) {
-            if (isAllocated) {
-                targetBuffer.dispose();
-            }
-
+            targetBuffer.dispose();
             throw new TransformationException(e);
         }
 
