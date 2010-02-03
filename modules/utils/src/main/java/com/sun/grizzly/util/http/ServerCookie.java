@@ -109,8 +109,14 @@ public class ServerCookie implements Serializable {
     /**
      * If set to false, then it will quote the value and update cookie version
      * when there is special characters.
+     *
+     * The variable STRICT_SERVLET_COMPLIANCE is from Tomcat with default false.
+     * One use a different environment property with a negated value to avoid user confusion.
+     * By default, com.sun.grizzly.serverCookie.quoteSpecialCharacters = true;
      */
-    private static final boolean STRICT_SERVLET_COMPLIANCE = false;
+    private static final boolean STRICT_SERVLET_COMPLIANCE =
+        !Boolean.valueOf(System.getProperty(
+            "com.sun.grizzly.serverCookie.quoteSpecialCharacters", "true")).booleanValue();
 
     /**
      * If set to false, we don't use the IE6/7 Max-Age/Expires work around
