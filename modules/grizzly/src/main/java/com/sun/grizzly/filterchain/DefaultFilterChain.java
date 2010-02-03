@@ -286,11 +286,11 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 logger.fine("Execute filter. filter=" + currentFilter +
                         " context=" + ctx);
             }
-            ctx.setLastExecutedFilterIdx(i);
-
             // execute the task
             final NextAction nextNextAction = executor.execute(currentFilter,
                     ctx, invokeAction);
+
+            ctx.setLastExecutedFilterIdx(i);
 
             if (logger.isLoggable(Level.FINEST)) {
                 logger.fine("after execute filter. filter=" + currentFilter +
