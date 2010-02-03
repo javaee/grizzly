@@ -60,6 +60,7 @@ import com.sun.grizzly.utils.EchoFilter;
 import com.sun.grizzly.utils.StringFilter;
 import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 
@@ -252,26 +253,31 @@ public class SSLTest extends TestCase {
                 assertTrue(handshakeFuture.isDone());
 
                 for (int j = 0; j < packetsNumber; j++) {
-                    byte[] sentMessage = ("Hello world! Connection#" + i + " Packet#" + j).getBytes();
+                    try {
+                        byte[] sentMessage = ("Hello world! Connection#" + i + " Packet#" + j).getBytes();
 
-                    // aquire read lock to not allow incoming data to be processed by Processor
-                    writer.writeByteArray(sentMessage);
-                    Future writeFuture = writer.flush();
+                        // aquire read lock to not allow incoming data to be processed by Processor
+                        writer.writeByteArray(sentMessage);
+                        Future writeFuture = writer.flush();
 
-                    writeFuture.get(10, TimeUnit.SECONDS);
-                    assertTrue("Write timeout", writeFuture.isDone());
+                        writeFuture.get(10, TimeUnit.SECONDS);
+                        assertTrue("Write timeout", writeFuture.isDone());
 
-                    byte[] receivedMessage = new byte[sentMessage.length];
+                        byte[] receivedMessage = new byte[sentMessage.length];
 
-                    Future readFuture = reader.notifyAvailable(receivedMessage.length);
-                    readFuture.get(10, TimeUnit.SECONDS);
-                    assertTrue(readFuture.isDone());
+                        Future readFuture = reader.notifyAvailable(receivedMessage.length);
+                        readFuture.get(10, TimeUnit.SECONDS);
+                        assertTrue(readFuture.isDone());
 
-                    reader.readByteArray(receivedMessage);
+                        reader.readByteArray(receivedMessage);
 
-                    String sentString = new String(sentMessage);
-                    String receivedString = new String(receivedMessage);
-                    assertEquals(sentString, receivedString);
+                        String sentString = new String(sentMessage);
+                        String receivedString = new String(receivedMessage);
+                        assertEquals(sentString, receivedString);
+                    } catch (Exception e) {
+                        logger.log(Level.WARNING, "Error occurred when testing connection#" + i + " packet#" + j);
+                        throw e;
+                    }
                 }
                 
                 reader.close();
