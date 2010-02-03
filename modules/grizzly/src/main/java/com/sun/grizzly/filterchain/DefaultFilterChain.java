@@ -290,14 +290,19 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final NextAction nextNextAction = executor.execute(currentFilter,
                     ctx, invokeAction);
 
-            ctx.setLastExecutedFilterIdx(i);
-
             if (logger.isLoggable(Level.FINEST)) {
                 logger.fine("after execute filter. filter=" + currentFilter +
                         " context=" + ctx + " nextAction=" + nextNextAction);
             }
 
             final int nextNextActionType = nextNextAction.type();
+            
+            if (nextNextActionType == SuspendAction.TYPE) { // on suspend - return immediatelly
+                return false;
+            }
+
+            ctx.setLastExecutedFilterIdx(i);
+
             if (nextNextActionType == InvokeAction.TYPE) {
                 final Object remainder = ((InvokeAction) nextNextAction).getRemainder();
                 if (remainder != null) {
@@ -329,7 +334,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                     return true;
                 }
                 
-                return nextNextActionType != SuspendAction.TYPE;
+                return true;
             }
         }
 

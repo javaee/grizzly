@@ -21,12 +21,13 @@
  * Copyright 2006 Sun Microsystems, Inc. All rights reserved.
  */
 
-package org.grizzly.grizzly.rcm;
+package com.sun.grizzly.rcm;
 
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Connection;
 import java.io.IOException;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.rcm.ResourceAllocationFilter;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -41,11 +42,9 @@ import junit.framework.TestCase;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.memory.ByteBufferManager;
+import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 
 /**
  * Basic RCM test.
@@ -94,12 +93,13 @@ public class RCMTest extends TestCase {
             public NextAction handleRead(FilterChainContext ctx,
                     NextAction nextAction) throws IOException {
                 try {
-                    StreamReader streamReader = ctx.getStreamReader();
-                    ByteBufferManager memoryManager = (ByteBufferManager)
+                    final Buffer requestBuffer = (Buffer) ctx.getMessage();
+                    final Connection connection = ctx.getConnection();
+                    
+                    final MemoryManager memoryManager =
                             ctx.getConnection().getTransport().getMemoryManager();
 
-                    byte[] requestBytes = new byte[streamReader.availableDataSize()];
-                    streamReader.readByteArray(requestBytes);
+                    requestBuffer.limit(requestBuffer.position());
 
                     reponseBuffer.clear();
                     reponseBuffer.put("HTTP/1.1 200 OK\r\n");
@@ -112,11 +112,8 @@ public class RCMTest extends TestCase {
                     reponseBuffer.flip();
                     ByteBuffer rBuf = encoder.encode(reponseBuffer);
 
-                    StreamWriter writer = ctx.getStreamWriter();
-                    writer.writeBuffer(
-                            MemoryUtils.wrap(memoryManager, rBuf));
-
-                    writer.flush();
+                    final Buffer writeBuffer = MemoryUtils.wrap(memoryManager, rBuf);
+                    connection.write(writeBuffer, null, ctx.getEncoder());
                 } catch (IOException t) {
                     t.printStackTrace();
                     throw t;

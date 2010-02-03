@@ -100,6 +100,12 @@ public final class FilterChainContext extends Context {
         lastExecutedFilterIdx = NO_FILTER_INDEX;
     }
 
+    @Override
+    public void suspend() {
+        super.suspend();
+        lastExecutedFilterIdx++;
+    }
+
     /**
      * Get index of the last executed {@link Filter} in
      * the {@link FilterChainContext#filters} list.

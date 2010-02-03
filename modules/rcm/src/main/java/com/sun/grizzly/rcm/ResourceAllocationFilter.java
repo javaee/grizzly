@@ -52,8 +52,10 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.threadpool.DefaultThreadPool;
+import com.sun.grizzly.memory.BufferUtils;
+import com.sun.grizzly.threadpool.GrizzlyExecutorService;
+import com.sun.grizzly.threadpool.ThreadPoolConfig;
+import java.util.logging.Logger;
 
 /**
  * This ProtocolFilter is an implementation of a Resource Consumption Management
@@ -75,7 +77,8 @@ import com.sun.grizzly.threadpool.DefaultThreadPool;
  * @author Jeanfrancois Arcand
  */
 public class ResourceAllocationFilter extends FilterAdapter {
-
+    private static final Logger logger = Grizzly.logger(ResourceAllocationFilter.class);
+    
     protected final static String RESERVE = "reserve";
     protected final static String CEILING = "ceiling";
 
@@ -128,6 +131,8 @@ public class ResourceAllocationFilter extends FilterAdapter {
      */
     private static long delayValue = 5 * 1000;
 
+    private final int standardThreadPoolSize;
+
     static {
         try{
             if (System.getProperty(RULE_TOKENS) != null){
@@ -150,20 +155,20 @@ public class ResourceAllocationFilter extends FilterAdapter {
                     }
                 }
                 if ( countRatio > 1 ) {
-                    Grizzly.logger.info("Thread ratio too high. The total must be lower or equal to 1");
+                    logger.info("Thread ratio too high. The total must be lower or equal to 1");
                 }  else {
                     leftRatio = 1 - countRatio;
                 }
             }
         } catch (Exception ex){
-            Grizzly.logger.log(Level.SEVERE,"Unable to set the ratio",ex);
+            logger.log(Level.SEVERE,"Unable to set the ratio",ex);
         }
 
         if (System.getProperty(ALLOCATION_MODE) != null){
             allocationPolicy = System.getProperty(ALLOCATION_MODE);
             if ( !allocationPolicy.equals(RESERVE) &&
                     !allocationPolicy.equals(CEILING) ){
-                Grizzly.logger.info("Invalid allocation policy");
+                logger.info("Invalid allocation policy");
                 allocationPolicy = RESERVE;
             }
         }
@@ -171,17 +176,21 @@ public class ResourceAllocationFilter extends FilterAdapter {
 
 
     public ResourceAllocationFilter() {
+        this(5);
+    }
 
+    public ResourceAllocationFilter(int standardThreadPoolSize) {
+        this.standardThreadPoolSize = standardThreadPoolSize;
     }
 
     @Override
     public NextAction handleRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
-        StreamReader reader = ctx.getStreamReader();
+        final Buffer inputMessage = (Buffer) ctx.getMessage();
 
         StringBuilder sb = new StringBuilder(256);
         
-        if (!parse(reader, 0, sb)) {
-            return ctx.getStopAction();
+        if (!parse(inputMessage, 0, sb)) {
+            return ctx.getStopAction(inputMessage);
         }
 
         String token = getContextRoot(sb.toString());
@@ -211,12 +220,10 @@ public class ResourceAllocationFilter extends FilterAdapter {
         // Lazy instanciation
         ExecutorService threadPool = threadPools.get(token);
         if (threadPool == null) {
-            threadPool = filterRequest(token,
-                    ctx.getConnection().getTransport().getWorkerThreadPool());
+            threadPool = filterRequest(token);
             threadPools.put(token, threadPool);
         }
 
-        ctx.setCurrentFilterIdx(ctx.getCurrentFilterIdx() + 1);
         ctx.suspend();
         threadPool.execute(ctx.getProcessorRunnable());
         return ctx.getSuspendAction();
@@ -232,42 +239,38 @@ public class ResourceAllocationFilter extends FilterAdapter {
         try{
             Thread.sleep(delayValue);
         } catch (InterruptedException ex) {
-            Grizzly.logger.log(Level.SEVERE,"Delay exception",ex);
+            logger.log(Level.SEVERE,"Delay exception",ex);
         }
     }
 
+    public int getStandardThreadPoolSize() {
+        return standardThreadPoolSize;
+    }
 
     /**
      * Filter the request and decide which thread pool to use.
      */
-    public ExecutorService filterRequest(String token, ExecutorService p) {
+    public ExecutorService filterRequest(String token) {
         ExecutorService es = null;
-        if (p instanceof ThreadPoolExecutor) {
-            ThreadPoolExecutor threadPool = (ThreadPoolExecutor) p;
-            int maxThreads = threadPool.getMaximumPoolSize();
 
-            // Set the number of dispatcher thread to 1.
-            threadPool.setCorePoolSize(1);
-
-            Double threadRatio = privilegedTokens.get(token);
-            boolean defaultThreadPool = false;
-            if (threadRatio == null) {
-                es = threadPools.get("*");
-                if (es != null){
-                    return es;
-                }
-
-                threadRatio = (leftRatio == 0 ? 0.5 : leftRatio);
-                defaultThreadPool = true;
+        Double threadRatio = privilegedTokens.get(token);
+        boolean defaultThreadPool = false;
+        if (threadRatio == null) {
+            es = threadPools.get("*");
+            if (es != null) {
+                return es;
             }
 
-            int privilegedCount = (threadRatio == 1 ? maxThreads :
-                (int) (maxThreads * threadRatio) + 1);
+            threadRatio = (leftRatio == 0 ? 0.5 : leftRatio);
+            defaultThreadPool = true;
+        }
 
-            es = newThreadPool(privilegedCount, p);
-            if (defaultThreadPool){
-                threadPools.put("*", es);
-            }
+        int privilegedCount = (threadRatio == 1 ? standardThreadPoolSize
+                : (int) (standardThreadPoolSize * threadRatio) + 1);
+
+        es = newThreadPool(privilegedCount);
+        if (defaultThreadPool) {
+            threadPools.put("*", es);
         }
 
         return es;
@@ -277,16 +280,16 @@ public class ResourceAllocationFilter extends FilterAdapter {
     /**
      * Creates a new {@link ExecutorService}
      */
-    protected ExecutorService newThreadPool(int threadCount, ExecutorService p) {
+    protected ExecutorService newThreadPool(int threadCount) {
         if (threadCount == 0){
             return null;
         }
-        DefaultThreadPool threadPool = new DefaultThreadPool();
-        threadPool.setCorePoolSize(1);
-        threadPool.setMaximumPoolSize(threadCount);
-        threadPool.setName("RCM_" + threadCount);
-        threadPool.start();
-        return threadPool;
+        final ThreadPoolConfig tpc = ThreadPoolConfig.DEFAULT
+                .setPoolName("RCM_" + threadCount)
+                .setCorePoolSize(1)
+                .setMaxPoolSize(threadCount);
+
+        return GrizzlyExecutorService.createInstance(tpc);
     }
 
 
@@ -324,44 +327,33 @@ public class ResourceAllocationFilter extends FilterAdapter {
         return token;
     }
 
-    protected boolean parse(StreamReader reader, int state, StringBuilder sb) throws IOException {
+    protected boolean parse(Buffer inputMessage, int state, StringBuilder sb)
+            throws IOException {
 
-        if (findSpace(reader, state, sb) == 2) {
-            return true;
-        }
-
-        int size = reader.availableDataSize();
-        Buffer currentBuffer = reader.getBuffer();
-
-        if (size > currentBuffer.remaining()) {
-            reader.finishBuffer();
-            boolean ret = parse(reader, state, sb);
-            reader.prependBuffer(currentBuffer);
-            return ret;
-        }
-
-        return false;
+        return findSpace(inputMessage, state, sb) == 2;
     }
 
-    private int findSpace(StreamReader reader, int state, StringBuilder sb) {
-        Buffer currentBuffer = reader.getBuffer();
+    private int findSpace(Buffer inputMessage, int state, StringBuilder sb) {
+        final int pos = inputMessage.position();
+        final int lim = inputMessage.limit();
 
-        int pos = currentBuffer.position();
-        int lim = currentBuffer.limit();
+        try {
+            for (int i = pos; i < lim; i++) {
+                char c = (char) inputMessage.get();
 
-        for(int i=pos; i<lim; i++) {
-            char c = (char) currentBuffer.get(i);
-
-            if (c == ' ') {
-                state++;
-                if (state == 2) {
-                    return state;
+                if (c == ' ') {
+                    state++;
+                    if (state == 2) {
+                        return state;
+                    }
+                } else if (state == 1) {
+                    sb.append(c);
                 }
-            } else if (state == 1) {
-                sb.append(c);
             }
-        }
 
-        return state;
+            return state;
+        } finally {
+            BufferUtils.setPositionLimit(inputMessage, pos, lim);
+        }
     }
 }

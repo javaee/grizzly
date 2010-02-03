@@ -134,7 +134,7 @@ public abstract class AbstractFilterChain implements FilterChain {
      * @throws java.io.IOException
      */
     @Override
-    public ProcessorResult process(Context context)
+    public final ProcessorResult process(Context context)
             throws IOException {
         return execute((FilterChainContext) context);
     }
