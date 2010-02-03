@@ -138,11 +138,16 @@ public final class TransformerInput extends BufferedInput {
 
                     if (status == Status.COMPLETED) {
                         final Buffer outputBuffer = result.getMessage();
-                        append(outputBuffer);
+                        lock.writeLock().lock();
+                        try {
+                            append(outputBuffer);
 
-                        if (!isCompletionHandlerRegistered) {
-                            // if !isCompletionHandlerRegistered - it means StreamReader has enough data to continue processing
-                            return true;
+                            if (!isCompletionHandlerRegistered) {
+                                // if !isCompletionHandlerRegistered - it means StreamReader has enough data to continue processing
+                                return true;
+                            }
+                        } finally {
+                            lock.writeLock().unlock();
                         }
                     } else if (status == Status.INCOMPLETED) {
                         if (!hasSavedBuffer) {
