@@ -20,12 +20,13 @@
         <module>rcm</module>
         <module>http</module>
         <module>http-servlet</module>
-        <module>websocket</module>
         <module>comet</module>
         <module>cometd</module>
         <module>http-servlet-deployer</module>
         <module>compat</module>
         <module>bundles</module>
         <module>config</module>        
+        <module>websocket</module>
+        <module>websocket2</module>
     </modules>
 </project>
