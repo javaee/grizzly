@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.utils;
 
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -45,6 +46,7 @@ import java.util.logging.Filter;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import java.util.concurrent.Future;
 
 /**
  * Echo {@link Filter} implementation
@@ -62,7 +64,11 @@ public class EchoFilter extends FilterAdapter {
         final Connection connection = ctx.getConnection();
         final Object address = ctx.getAddress();
 
-        connection.write(address, message, null, ctx.getEncoder());
+        Future f = connection.write(address, message, null, ctx.getEncoder());
+        if (f.isDone() && message instanceof Buffer) {
+            ((Buffer) message).dispose();
+        }
+        
         return nextAction;
     }
 }

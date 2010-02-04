@@ -51,8 +51,8 @@ import com.sun.grizzly.utils.CurrentThreadExecutor;
  *
  * @author Alexey Stashok
  */
-public class SameThreadStrategy implements Strategy {
-    private Executor sameThreadProcessorExecutor;
+public final class SameThreadStrategy implements Strategy {
+    private final Executor sameThreadProcessorExecutor;
 
     public SameThreadStrategy() {
         sameThreadProcessorExecutor = new CurrentThreadExecutor();

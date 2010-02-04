@@ -53,7 +53,7 @@ import java.util.logging.Logger;
  * 
  * @author Alexey Stashok
  */
-public class ProcessorRunnable implements Runnable {
+public final class ProcessorRunnable implements Runnable {
 
     private static final Logger logger = Grizzly.logger(ProcessorRunnable.class);
 

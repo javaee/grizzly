@@ -52,7 +52,7 @@ import com.sun.grizzly.filterchain.DefaultFilterChain.FILTER_STATE_TYPE;
  *
  * @author Alexey Stashok
  */
-public class DefaultDecoderTransformer extends AbstractTransformer {
+public final class DefaultDecoderTransformer extends AbstractTransformer {
     private final DefaultFilterChain filterChain;
 
     private final int limit;

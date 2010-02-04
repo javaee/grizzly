@@ -41,7 +41,6 @@ package com.sun.grizzly.nio;
 import com.sun.grizzly.CompletionHandler;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
-import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -52,7 +51,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 
  * @author Alexey Stashok
  */
-public class RoundRobinConnectionDistributor
+public final class RoundRobinConnectionDistributor
         extends AbstractNIOConnectionDistributor {
     private AtomicInteger counter;
     
@@ -82,13 +81,8 @@ public class RoundRobinConnectionDistributor
     }
     
     private SelectorRunner getSelectorRunner(int interestOps) {
-        SelectorRunner[] runners = getTransportSelectorRunners();
-        int index;
-        if (interestOps == SelectionKey.OP_ACCEPT || runners.length == 1) {
-            index = 0;
-        } else {
-            index = (counter.incrementAndGet() % (runners.length - 1)) + 1;
-        }
+        final SelectorRunner[] runners = getTransportSelectorRunners();
+        final int index = counter.incrementAndGet() % runners.length;
         
         return runners[index];
     }

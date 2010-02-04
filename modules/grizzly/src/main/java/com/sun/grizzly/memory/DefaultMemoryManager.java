@@ -47,7 +47,7 @@ import com.sun.grizzly.threadpool.DefaultWorkerThread;
  *
  * @author Alexey Stashok
  */
-public class DefaultMemoryManager extends ByteBufferManager {
+public final class DefaultMemoryManager extends ByteBufferManager {
     public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
     
     /**

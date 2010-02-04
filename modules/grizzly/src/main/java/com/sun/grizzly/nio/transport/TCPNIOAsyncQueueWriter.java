@@ -44,15 +44,10 @@ import com.sun.grizzly.nio.NIOTransport;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.channels.SelectionKey;
-import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Interceptor;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
-import com.sun.grizzly.asyncqueue.MessageCloner;
 import com.sun.grizzly.nio.NIOConnection;
 
 /**
@@ -61,30 +56,12 @@ import com.sun.grizzly.nio.NIOConnection;
  *
  * @author Alexey Stashok
  */
-public class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
+public final class TCPNIOAsyncQueueWriter extends AbstractNIOAsyncQueueWriter {
 
     public TCPNIOAsyncQueueWriter(NIOTransport transport) {
         super(transport);
     }
 
-//    @Override
-//    public <M> Future<WriteResult<M, SocketAddress>> write(
-//            Connection connection, SocketAddress dstAddress, M message,
-//            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-//            Transformer<M, Buffer> transformer,
-//            Interceptor<WriteResult> interceptor, MessageCloner<M> cloner)
-//            throws IOException {
-//
-//        if (dstAddress != null) {
-//            throw new UnsupportedOperationException(
-//                    "Destination address should be null for TCP!");
-//        }
-//
-//        return super.write(connection, null, message, completionHandler,
-//                transformer, interceptor, cloner);
-//    }
-//
-    
     @Override
     protected int write0(Connection connection, SocketAddress dstAddress,
             Buffer buffer,

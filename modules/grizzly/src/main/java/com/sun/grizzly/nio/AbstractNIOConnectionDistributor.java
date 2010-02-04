@@ -49,37 +49,37 @@ import java.util.concurrent.Future;
 public abstract class AbstractNIOConnectionDistributor 
         implements NIOChannelDistributor {
     
-    protected AbstractNIOTransport transport;
+    protected final AbstractNIOTransport transport;
 
     public AbstractNIOConnectionDistributor(AbstractNIOTransport transport) {
         this.transport = transport;
     }
 
     @Override
-    public void registerChannel(SelectableChannel channel) throws IOException {
-        registerChannel(channel, 0);
+    public final void registerChannel(SelectableChannel channel) throws IOException {
+        registerChannel(channel, 0, null);
     }
 
     @Override
-    public void registerChannel(SelectableChannel channel, int interestOps) 
+    public final void registerChannel(SelectableChannel channel, int interestOps)
             throws IOException {
         registerChannel(channel, interestOps, null);
     }
     
     @Override
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public final Future<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel) throws IOException {
-        return registerChannelAsync(channel, 0);
+        return registerChannelAsync(channel, 0, null, null);
     }
 
     @Override
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public final Future<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps) throws IOException {
-        return registerChannelAsync(channel, interestOps, null);
+        return registerChannelAsync(channel, interestOps, null, null);
     }
 
     @Override
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public final Future<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment)
             throws IOException {
         return registerChannelAsync(channel, interestOps, attachment, null);

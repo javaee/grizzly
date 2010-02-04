@@ -72,10 +72,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
     private DefaultFilterChainCodec[] filterChaincodecLibrary;
 
-//
-//    protected final static Attribute<Deque<Pair>> REMAINING_DATA_ATTR =
-//            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("DefaultFilterChain-RemainingFilterData");
-    
     /**
      * NONE,
      * SERVER_ACCEPT,
@@ -176,15 +172,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         },
     };
 
-    /*
-     * InvokeAction = 0
-     * StopAction = 1
-     * SuspendAction = 2
-     * RerunChainAction = 3
-     */
-//    private static final boolean[] isContinueExecution = new boolean[] {true,
-//                                                    false, false, true};
-    
     /**
      * Logger
      */
