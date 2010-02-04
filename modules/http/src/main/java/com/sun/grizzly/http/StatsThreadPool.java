@@ -217,12 +217,31 @@ public class StatsThreadPool extends GrizzlyExecutorService {
     }
 
     @Override
+    public int getActiveCount() {
+        if (!wasEverStarted) {
+            return 0;
+        }
+
+        return super.getActiveCount();
+    }
+
+
+    @Override
     public int getTaskCount() {
         if (!wasEverStarted) {
             return 0;
         }
 
         return super.getTaskCount();
+    }
+
+    @Override
+    public long getCompletedTaskCount() {
+        if (!wasEverStarted) {
+            return 0;
+        }
+
+        return super.getCompletedTaskCount();
     }
 
     @Override
@@ -241,6 +260,16 @@ public class StatsThreadPool extends GrizzlyExecutorService {
         }
 
         return super.isTerminated();
+    }
+
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit)
+            throws InterruptedException {
+        if (!wasEverStarted) {
+            return true;
+        }
+
+        return super.awaitTermination(timeout, unit);
     }
 
     /**
