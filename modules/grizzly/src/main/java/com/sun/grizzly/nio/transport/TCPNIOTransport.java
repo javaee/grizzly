@@ -778,9 +778,10 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         final boolean isAllocate = (buffer == null);
         if (isAllocate) {
             buffer = memoryManager.allocate(connection.getReadBufferSize());
+            final ByteBuffer byteBuffer = buffer.toByteBuffer();
+            
             try {
-                read = ((SocketChannel) tcpConnection.getChannel()).read(
-                        buffer.toByteBuffer());
+                read = ((SocketChannel) tcpConnection.getChannel()).read(byteBuffer);
             } catch (Exception e) {
                 if (logger.isLoggable(Level.FINE)) {
                     logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
@@ -850,8 +851,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 buffer.position(buffer.position() + written);
             }
         } else {
-            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(
-                buffer.toByteBuffer());
+            final ByteBuffer byteBuffer = buffer.toByteBuffer();
+
+            written = (int) ((SocketChannel) tcpConnection.getChannel()).write(byteBuffer);
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (plain) write " + written + " bytes");
             }

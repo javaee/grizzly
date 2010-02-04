@@ -73,29 +73,30 @@ public abstract class AbstractFilterChain implements FilterChain {
         }
 
         @Override
-        public void offer(FilterChainContext object) {
+        public void offer(FilterChainContext context) {
             Thread thread = Thread.currentThread();
 
             if (thread instanceof DefaultWorkerThread) {
-                object.release();
-                ((DefaultWorkerThread) thread).setCachedContext(object);
+                context.release();
+                ((DefaultWorkerThread) thread).setCachedFilterChainContext(context);
                 return;
             }
 
-            super.offer(object);
+            super.offer(context);
         }
 
         @Override
         public FilterChainContext poll() {
-            Thread thread = Thread.currentThread();
+            final Thread thread = Thread.currentThread();
 
             if (thread instanceof DefaultWorkerThread) {
-                DefaultWorkerThread workerThread = (DefaultWorkerThread) thread;
-                Context context = workerThread.getCachedContext();
-                if (context instanceof FilterChainContext) {
+                final DefaultWorkerThread workerThread = (DefaultWorkerThread) thread;
+                final FilterChainContext context =
+                        workerThread.removeCachedFilterChainContext();
+                
+                if (context != null) {
                     context.prepare();
-                    workerThread.setCachedContext(null);
-                    return (FilterChainContext) context;
+                    return context;
                 }
             }
 

@@ -43,6 +43,7 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
+import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.memory.DefaultMemoryManager.BufferInfo;
 
 /**
@@ -57,6 +58,7 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
 
     private BufferInfo associatedBuffer;
     private Context cachedContext;
+    private FilterChainContext cachedFilterChainContext;
 
     private long transactionTimeoutMillis =
             WorkerThread.UNLIMITED_TRANSACTION_TIMEOUT;
@@ -88,12 +90,33 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         this.associatedBuffer = associatedBuffer;
     }
 
-    public Context getCachedContext() {
+    public final Context getCachedContext() {
         return cachedContext;
     }
 
-    public void setCachedContext(Context cachedContext) {
+    public final Context removeCachedContext() {
+        final Context localContext = cachedContext;
+        cachedContext = null;
+        return localContext;
+    }
+
+    public final void setCachedContext(Context cachedContext) {
         this.cachedContext = cachedContext;
+    }
+
+    public final FilterChainContext getCachedFilterChainContext() {
+        return cachedFilterChainContext;
+    }
+
+    public final FilterChainContext removeCachedFilterChainContext() {
+        final FilterChainContext localContext = cachedFilterChainContext;
+        cachedFilterChainContext = null;
+        return localContext;
+    }
+
+    public final void setCachedFilterChainContext(
+            FilterChainContext cachedFilterChainContext) {
+        this.cachedFilterChainContext = cachedFilterChainContext;
     }
 
     @Override

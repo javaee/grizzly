@@ -585,6 +585,8 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     @Override
     public ByteBuffersBuffer get(byte[] dst, int offset, int length) {
         checkDispose();
+        if (length == 0) return this;
+        
         if (remaining() < length) throw new BufferUnderflowException();
 
         prepareLastBuffer();
@@ -1045,7 +1047,12 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         int oldPosition = position;
         byte[] tmpBuffer = new byte[remaining()];
         get(tmpBuffer);
-        position = oldPosition;
+        setPosLim(oldPosition, limit);
+
+        if (charset == null) {
+            charset = Charset.defaultCharset();
+        }
+        
         return new String(tmpBuffer, charset);
     }
 

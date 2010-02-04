@@ -41,18 +41,22 @@ import java.util.List;
 import com.sun.grizzly.AbstractTransformer;
 import com.sun.grizzly.Appendable;
 import com.sun.grizzly.Appender;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.filterchain.DefaultFilterChain.FILTER_STATE_TYPE;
+import java.util.logging.Logger;
 
 /**
  *
  * @author Alexey Stashok
  */
 public final class DefaultDecoderTransformer extends AbstractTransformer {
+    private static final Logger logger = Grizzly.logger(DefaultDecoderTransformer.class);
+    
     private final DefaultFilterChain filterChain;
 
     private final int limit;
