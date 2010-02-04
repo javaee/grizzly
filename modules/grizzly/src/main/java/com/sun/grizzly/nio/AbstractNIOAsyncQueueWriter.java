@@ -366,30 +366,38 @@ public abstract class AbstractNIOAsyncQueueWriter
                 final Object message = queueRecord.getMessage();
                 final Buffer outputBuffer = queueRecord.getOutputBuffer();
 
-                if (outputBuffer != null && outputBuffer.hasRemaining()) {
+                if (outputBuffer != null) {
+                    if (outputBuffer.hasRemaining()) {
 
-                    final SocketAddress dstAddress = queueRecord.getDstAddress();
-                    final WriteResult currentResult = queueRecord.getCurrentResult();
-                    writeResult.setMessage(null);
-                    writeResult.setWrittenSize(0);
-                    
-                    final int bytesWritten = write0(connection, dstAddress,
-                            outputBuffer, writeResult);
-                    if (bytesWritten == -1) {
-                        throw new IOException("Connection is closed");
-                    }
+                        final SocketAddress dstAddress = queueRecord.getDstAddress();
+                        final WriteResult currentResult = queueRecord.getCurrentResult();
+                        writeResult.setMessage(null);
+                        writeResult.setWrittenSize(0);
 
-                    currentResult.setWrittenSize(
-                            currentResult.getWrittenSize() + bytesWritten);
+                        final int bytesWritten = write0(connection, dstAddress,
+                                outputBuffer, writeResult);
+                        if (bytesWritten == -1) {
+                            throw new IOException("Connection is closed");
+                        }
 
-                    if (!outputBuffer.hasRemaining()) {
+                        currentResult.setWrittenSize(
+                                currentResult.getWrittenSize() + bytesWritten);
+
+                        if (!outputBuffer.hasRemaining()) {
+                            if (queueRecord.getOriginalMessage() != outputBuffer) {
+                                outputBuffer.dispose();
+                            }
+
+                            queueRecord.setOutputBuffer(null);
+                        } else {
+                            return;
+                        }
+                    } else {
                         if (queueRecord.getOriginalMessage() != outputBuffer) {
                             outputBuffer.dispose();
                         }
-                        
+
                         queueRecord.setOutputBuffer(null);
-                    } else {
-                        return;
                     }
                 }
 
