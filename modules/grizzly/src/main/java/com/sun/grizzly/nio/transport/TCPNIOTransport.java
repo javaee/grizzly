@@ -706,8 +706,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                     " strategy=" + strategyContext);
         }
 
-        ProcessorRunnable processorRunnable = new ProcessorRunnable(ioEvent,
-                connection, processor, postProcessor);
+        final ProcessorRunnable processorRunnable =
+                ProcessorRunnable.create(ioEvent, connection, processor,
+                postProcessor);
 
         strategy.executeProcessor(strategyContext, processorRunnable);
     }

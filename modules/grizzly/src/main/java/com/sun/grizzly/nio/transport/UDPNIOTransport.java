@@ -609,7 +609,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             final PostProcessor postProcessor, final Object strategyContext)
             throws IOException {
 
-        final ProcessorRunnable processorRunnable = new ProcessorRunnable(
+        final ProcessorRunnable processorRunnable = ProcessorRunnable.create(
                 ioEvent, connection, processor, postProcessor);
 
         strategy.executeProcessor(strategyContext, processorRunnable);

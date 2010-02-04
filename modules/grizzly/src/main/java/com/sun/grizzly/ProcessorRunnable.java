@@ -39,6 +39,7 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.ProcessorResult.Status;
 import com.sun.grizzly.Transport.State;
+import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,6 +55,32 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public final class ProcessorRunnable implements Runnable {
+
+    public static final ProcessorRunnable create(Context context) {
+        final ProcessorRunnable processorRunnable = takeFromPool();
+        if (processorRunnable != null) {
+            processorRunnable.setContext(context);
+            return processorRunnable;
+        }
+        
+        return new ProcessorRunnable(context);
+    }
+    
+    public static final ProcessorRunnable create(IOEvent ioEvent,
+            Connection connection, Processor processor,
+            PostProcessor postProcessor) {
+        final ProcessorRunnable processorRunnable = takeFromPool();
+        if (processorRunnable != null) {
+            processorRunnable.setIoEvent(ioEvent);
+            processorRunnable.setConnection(connection);
+            processorRunnable.setProcessor(processor);
+            processorRunnable.setPostProcessor(postProcessor);
+            
+            return processorRunnable;
+        }
+
+        return new ProcessorRunnable(ioEvent, connection, processor, postProcessor);
+    }
 
     private static final Logger logger = Grizzly.logger(ProcessorRunnable.class);
 
@@ -83,11 +110,11 @@ public final class ProcessorRunnable implements Runnable {
     private PostProcessor postProcessor;
 
 
-    public ProcessorRunnable(Context context) {
+    private ProcessorRunnable(Context context) {
         this.context = context;
     }
 
-    public ProcessorRunnable(IOEvent ioEvent, Connection connection,
+    private ProcessorRunnable(IOEvent ioEvent, Connection connection,
             Processor processor, PostProcessor postProcessor) {
         this.ioEvent = ioEvent;
         this.connection = connection;
@@ -283,9 +310,28 @@ public final class ProcessorRunnable implements Runnable {
                 logException(context, e);
             }
         }
+        
         context.offerToPool();
+        offerToPool(this);
     }
 
+    protected static final ProcessorRunnable takeFromPool() {
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread instanceof DefaultWorkerThread) {
+            ((DefaultWorkerThread) currentThread).removeCachedProcessorRunnable();
+        }
+
+        return null;
+    }
+
+    protected static final void offerToPool(ProcessorRunnable processorRunnable) {
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread instanceof DefaultWorkerThread) {
+            ((DefaultWorkerThread) currentThread).setCachedProcessorRunnable(
+                    processorRunnable);
+        }
+    }
+    
     /**
      * Logs the exception.
      * 

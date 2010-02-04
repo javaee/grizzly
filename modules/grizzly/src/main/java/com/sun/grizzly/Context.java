@@ -264,7 +264,7 @@ public class Context implements PoolableObject, AttributeStorage {
      * Return this {@link Context} to the {@link ObjectPool} it was
      * taken from.
      */
-    public void offerToPool() {
+    public final void offerToPool() {
         if (parentPool != null) {
             parentPool.offer(this);
         }

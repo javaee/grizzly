@@ -40,6 +40,7 @@ package com.sun.grizzly.threadpool;
 
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Context;
+import com.sun.grizzly.ProcessorRunnable;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
@@ -59,6 +60,7 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     private BufferInfo associatedBuffer;
     private Context cachedContext;
     private FilterChainContext cachedFilterChainContext;
+    private ProcessorRunnable cachedProcessorRunnable;
 
     private long transactionTimeoutMillis =
             WorkerThread.UNLIMITED_TRANSACTION_TIMEOUT;
@@ -90,10 +92,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         this.associatedBuffer = associatedBuffer;
     }
 
-    public final Context getCachedContext() {
-        return cachedContext;
-    }
-
     public final Context removeCachedContext() {
         final Context localContext = cachedContext;
         cachedContext = null;
@@ -102,10 +100,6 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
 
     public final void setCachedContext(Context cachedContext) {
         this.cachedContext = cachedContext;
-    }
-
-    public final FilterChainContext getCachedFilterChainContext() {
-        return cachedFilterChainContext;
     }
 
     public final FilterChainContext removeCachedFilterChainContext() {
@@ -117,6 +111,17 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     public final void setCachedFilterChainContext(
             FilterChainContext cachedFilterChainContext) {
         this.cachedFilterChainContext = cachedFilterChainContext;
+    }
+
+    public final ProcessorRunnable removeCachedProcessorRunnable() {
+        final ProcessorRunnable localProcessorRunnable = cachedProcessorRunnable;
+        cachedProcessorRunnable = null;
+        return localProcessorRunnable;
+    }
+
+    public final void setCachedProcessorRunnable(
+            ProcessorRunnable cachedProcessorRunnable) {
+        this.cachedProcessorRunnable = cachedProcessorRunnable;
     }
 
     @Override
