@@ -67,7 +67,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             System.getProperty("os.name").equalsIgnoreCase("linux") &&
                 !System.getProperty("java.version").startsWith("1.7");
     
-    protected volatile long selectTimeout;
+    protected volatile long selectTimeout = 1000;
 
     // Selector spin workaround artifacts
 

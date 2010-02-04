@@ -542,8 +542,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         try {
             socket.setTcpNoDelay(tcpNoDelay);
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Can not set TcpNoDelay to " + tcpNoDelay,
-                    e);
+            logger.log(Level.WARNING, "Can not set TcpNoDelay to " + tcpNoDelay, e);
         }
         socket.setReuseAddress(reuseAddress);
     }
@@ -749,7 +748,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             throws IOException {
         
         connection.disableIOEvent(ioEvent);
-        Processor conProcessor = getConnectionProcessor(connection, ioEvent);
+        final Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
             executeProcessor(ioEvent, connection, conProcessor, null,
                     enablingInterestPostProcessor, strategyContext);

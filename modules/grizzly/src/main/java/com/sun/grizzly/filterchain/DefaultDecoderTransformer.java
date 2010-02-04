@@ -83,6 +83,12 @@ public final class DefaultDecoderTransformer extends AbstractTransformer {
     @Override
     public TransformationResult transform(final AttributeStorage state,
             final Object originalMessage) throws TransformationException {
+
+        if (!filterChain.hasCodecFilter()) {
+            return saveLastResult(state,
+                    TransformationResult.createCompletedResult(originalMessage, null, false));
+        }
+        
         Object currentMessage;
         currentMessage = originalMessage;
 
@@ -96,7 +102,7 @@ public final class DefaultDecoderTransformer extends AbstractTransformer {
                 final Object storedMessage =
                         filtersState.clearState(IOEvent.READ, remainingIndex).getState();
 
-                TransformationResult result =
+                final TransformationResult result =
                         processFilterChain(state, storedMessage, remainingIndex);
                 
                 return result;

@@ -39,6 +39,7 @@
 package com.sun.grizzly.filterchain;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Transformer;
 import java.io.IOException;
 import com.sun.grizzly.ProcessorResult;
 import java.util.logging.Level;
@@ -70,7 +71,19 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     protected final static Attribute<FiltersState> FILTERS_STATE_ATTR =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("DefaultFilterChain-StoredData");
 
-    private DefaultFilterChainCodec[] filterChaincodecLibrary;
+    private static final Codec NO_CODEC = new Codec() {
+        @Override
+        public Transformer getDecoder() {
+            return null;
+        }
+
+        @Override
+        public Transformer getEncoder() {
+            return null;
+        }
+    };
+
+    private Codec[] filterChainCodecLibrary;
 
     /**
      * NONE,
@@ -177,6 +190,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      */
     private Logger logger = Grizzly.logger(DefaultFilterChain.class);
 
+    private volatile boolean hasCodecFilter;
+
     public DefaultFilterChain() {
         this(new ArrayList<Filter>());
     }
@@ -184,7 +199,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     public DefaultFilterChain(Collection<Filter> initialFilters) {
         super(new ArrayList<Filter>(initialFilters));
 
-        filterChaincodecLibrary = new DefaultFilterChainCodec[0];
+        filterChainCodecLibrary = new DefaultFilterChainCodec[0];
         ensureCodecLibraryCapacity(8);
     }
 
@@ -408,6 +423,10 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
     }
 
+    public boolean hasCodecFilter() {
+        return hasCodecFilter;
+    }
+
     /**
      * Get filter chain codec
      * @return filter chain codec
@@ -419,7 +438,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
     @Override
     public Codec<Buffer, Object> getCodec(int limit) {
-        return filterChaincodecLibrary[limit];
+        if (!hasCodecFilter) return NO_CODEC;
+        
+        return filterChainCodecLibrary[limit];
     }
 
     @Override
@@ -431,20 +452,30 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     protected void notifyChangedExcept(Filter filter) {
         super.notifyChangedExcept(filter);
         ensureCodecLibraryCapacity(size());
+
+        boolean hasCodecFilterLocal = false;
+        for (final Filter currentFilter : filters) {
+            if (currentFilter instanceof CodecFilter) {
+                hasCodecFilterLocal = true;
+                break;
+            }
+        }
+        
+        hasCodecFilter = hasCodecFilterLocal;
     }
 
     private final void ensureCodecLibraryCapacity(int capacity) {
-        final int codecLibrarySize = filterChaincodecLibrary.length;
+        final int codecLibrarySize = filterChainCodecLibrary.length;
         if (codecLibrarySize < capacity) {
-            final DefaultFilterChainCodec[] newLibrary =
-                    Arrays.copyOf(filterChaincodecLibrary, capacity);
+            final Codec[] newLibrary =
+                    Arrays.copyOf(filterChainCodecLibrary, capacity);
             for (int i = 0; i < newLibrary.length; i++) {
                 if (newLibrary[i] == null) {
                     newLibrary[i] = new DefaultFilterChainCodec(this, i);
                 }
             }
 
-            filterChaincodecLibrary = newLibrary;
+            filterChainCodecLibrary = newLibrary;
         }
     }
     
