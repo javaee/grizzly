@@ -67,61 +67,61 @@ public class ProtocolChainCodecTest extends TestCase {
         doTestStringEcho(true, 1);
     }
 
-//    public void testAsyncSingleStringEcho() throws Exception {
-//        doTestStringEcho(false, 1);
-//    }
-//
-//    public void testSync20StringEcho() throws Exception {
-//        doTestStringEcho(true, 20);
-//    }
-//
-//    public void testAsync20SingleStringEcho() throws Exception {
-//        doTestStringEcho(false, 20);
-//    }
-//
-//    public void testSyncSingleChunkedStringEcho() throws Exception {
-//        doTestStringEcho(true, 1, new ChunkingFilter(1));
-//    }
-//
-//    public void testAsyncSingleChunkedStringEcho() throws Exception {
-//        doTestStringEcho(false, 1, new ChunkingFilter(1));
-//    }
-//
-//    public void testSync20ChunkedStringEcho() throws Exception {
-//        doTestStringEcho(true, 20, new ChunkingFilter(1));
-//    }
-//
-//    public void testAsync20ChunkedStringEcho() throws Exception {
-//        doTestStringEcho(false, 20, new ChunkingFilter(1));
-//    }
-//
-//    public void testSyncDelayedSingleChunkedStringEcho() throws Exception {
-//        logger.info("This test execution may take several seconds");
-//        doTestStringEcho(true, 1,
-//                new CodecFilterAdapter(new DelayTransformer(1000),
-//                new DelayTransformer(20)), new ChunkingFilter(1));
-//    }
-//
-//    public void testAsyncDelayedSingleChunkedStringEcho() throws Exception {
-//        logger.info("This test execution may take several seconds");
-//        doTestStringEcho(false, 1,
-//                new CodecFilterAdapter(new DelayTransformer(1000),
-//                new DelayTransformer(20)), new ChunkingFilter(1));
-//    }
-//
-//    public void testSyncDelayed5ChunkedStringEcho() throws Exception {
-//        logger.info("This test execution may take several seconds");
-//        doTestStringEcho(true, 5,
-//                new CodecFilterAdapter(new DelayTransformer(1000),
-//                new DelayTransformer(20)), new ChunkingFilter(1));
-//    }
-//
-//    public void testAsyncDelayed5ChunkedStringEcho() throws Exception {
-//        logger.info("This test execution may take several seconds");
-//        doTestStringEcho(false, 5,
-//                new CodecFilterAdapter(new DelayTransformer(1000),
-//                new DelayTransformer(20)), new ChunkingFilter(1));
-//    }
+    public void testAsyncSingleStringEcho() throws Exception {
+        doTestStringEcho(false, 1);
+    }
+
+    public void testSync20StringEcho() throws Exception {
+        doTestStringEcho(true, 20);
+    }
+
+    public void testAsync20SingleStringEcho() throws Exception {
+        doTestStringEcho(false, 20);
+    }
+
+    public void testSyncSingleChunkedStringEcho() throws Exception {
+        doTestStringEcho(true, 1, new ChunkingFilter(1));
+    }
+
+    public void testAsyncSingleChunkedStringEcho() throws Exception {
+        doTestStringEcho(false, 1, new ChunkingFilter(1));
+    }
+
+    public void testSync20ChunkedStringEcho() throws Exception {
+        doTestStringEcho(true, 20, new ChunkingFilter(1));
+    }
+
+    public void testAsync20ChunkedStringEcho() throws Exception {
+        doTestStringEcho(false, 20, new ChunkingFilter(1));
+    }
+
+    public void testSyncDelayedSingleChunkedStringEcho() throws Exception {
+        logger.info("This test execution may take several seconds");
+        doTestStringEcho(true, 1,
+                new CodecFilterAdapter(new DelayTransformer(1000),
+                new DelayTransformer(20)), new ChunkingFilter(1));
+    }
+
+    public void testAsyncDelayedSingleChunkedStringEcho() throws Exception {
+        logger.info("This test execution may take several seconds");
+        doTestStringEcho(false, 1,
+                new CodecFilterAdapter(new DelayTransformer(1000),
+                new DelayTransformer(20)), new ChunkingFilter(1));
+    }
+
+    public void testSyncDelayed5ChunkedStringEcho() throws Exception {
+        logger.info("This test execution may take several seconds");
+        doTestStringEcho(true, 5,
+                new CodecFilterAdapter(new DelayTransformer(1000),
+                new DelayTransformer(20)), new ChunkingFilter(1));
+    }
+
+    public void testAsyncDelayed5ChunkedStringEcho() throws Exception {
+        logger.info("This test execution may take several seconds");
+        doTestStringEcho(false, 5,
+                new CodecFilterAdapter(new DelayTransformer(1000),
+                new DelayTransformer(20)), new ChunkingFilter(1));
+    }
 
     protected final void doTestStringEcho(boolean blocking,
             int messageNum, Filter... filters) throws Exception {
