@@ -39,7 +39,6 @@
 package com.sun.grizzly;
 
 import java.io.IOException;
-import java.util.concurrent.Future;
 
 /**
  * Abstract class, which provides transitive dependencies for overloaded
@@ -53,7 +52,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final Future<WriteResult<Buffer, L>> write(Connection connection,
+    public final GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer) throws IOException {
         return write(connection, null, buffer, null, null, null);
     }
@@ -62,7 +61,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final Future<WriteResult<Buffer, L>> write(Connection connection,
+    public final GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException {
@@ -73,7 +72,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final <M> Future<WriteResult<M, L>> write(Connection connection,
+    public final <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer) throws IOException {
@@ -85,7 +84,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final <M> Future<WriteResult<M, L>> write(Connection connection,
+    public final <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer,
@@ -98,7 +97,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final Future<WriteResult<Buffer, L>> write(Connection connection,
+    public final GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer) throws IOException {
         return write(connection, dstAddress, buffer, null, null, null);
     }
@@ -107,7 +106,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final Future<WriteResult<Buffer, L>> write(Connection connection,
+    public final GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException {
@@ -118,7 +117,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
      * {@inheritDoc}
      */
     @Override
-    public final <M> Future<WriteResult<M, L>> write(Connection connection,
+    public final <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
             L dstAddress, M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer) throws IOException {

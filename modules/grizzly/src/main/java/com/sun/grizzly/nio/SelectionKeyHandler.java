@@ -51,13 +51,7 @@ import java.nio.channels.SelectionKey;
 public interface SelectionKeyHandler {
     public void onKeyRegistered(SelectionKey key);
     
-    public boolean onAcceptInterest(SelectionKey key) throws IOException;
-
-    public boolean onConnectInterest(SelectionKey key) throws IOException;
-
-    public boolean onReadInterest(SelectionKey key) throws IOException;
-
-    public boolean onWriteInterest(SelectionKey key) throws IOException;
+    public boolean onProcessInterest(SelectionKey key, int interest) throws IOException;
 
     public void cancel(SelectionKey key) throws IOException;
     
@@ -69,4 +63,6 @@ public interface SelectionKeyHandler {
     public int ioEvent2SelectionKeyInterest(IOEvent ioEvent);
     
     public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest);
+
+    public IOEvent[] getIOEvents(int interest);
 }

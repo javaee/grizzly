@@ -39,9 +39,11 @@
 package com.sun.grizzly.asyncqueue;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Cacheable;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.Transformer;
 import java.util.concurrent.Future;
 
@@ -50,14 +52,38 @@ import java.util.concurrent.Future;
  * 
  * @author Alexey Stashok
  */
-public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
+public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult>
+        implements Cacheable {
+    private static final ThreadCache.CachedTypeIndex<AsyncReadQueueRecord> CACHE_IDX =
+            ThreadCache.obtainIndex(AsyncReadQueueRecord.class);
+    
+    public static final AsyncReadQueueRecord create(Object message,
+            Future future,
+            ReadResult currentResult, CompletionHandler completionHandler,
+            Transformer transformer,
+            Interceptor<ReadResult> interceptor) {
+
+        final AsyncReadQueueRecord asyncReadQueueRecord =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        
+        if (asyncReadQueueRecord != null) {
+            asyncReadQueueRecord.set(message, future, currentResult,
+                    completionHandler, transformer, interceptor);
+            return asyncReadQueueRecord;
+        }
+
+        return new AsyncReadQueueRecord(message, future, currentResult,
+                completionHandler, transformer, interceptor);
+    }
+
     private Buffer remainderBuffer;
     
-    public AsyncReadQueueRecord(Object message, Future future,
+    private AsyncReadQueueRecord(Object message, Future future,
             ReadResult currentResult, CompletionHandler completionHandler,
             Transformer transformer, Interceptor<ReadResult> interceptor) {
         
-        super(message, future, currentResult, completionHandler, transformer, interceptor);
+        super(message, future, currentResult, completionHandler, transformer,
+                interceptor);
     }
 
     public Buffer getRemainderBuffer() {
@@ -66,6 +92,17 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
 
     public void setRemainderBuffer(Buffer remainderBuffer) {
         this.remainderBuffer = remainderBuffer;
+    }
+
+    protected final void reset() {
+        set(null, null, null, null, null, null);
+        remainderBuffer = null;
+    }
+
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }
 

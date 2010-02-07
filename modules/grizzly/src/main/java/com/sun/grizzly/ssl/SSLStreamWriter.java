@@ -101,7 +101,7 @@ public class SSLStreamWriter extends TransformerStreamWriter {
             handshakeStatus = sslEngine.getHandshakeStatus();
         }
 
-        final FutureImpl<SSLEngine> future = new FutureImpl();
+        final FutureImpl<SSLEngine> future = FutureImpl.create();
 
         final HandshakeCompletionHandler hsCompletionHandler =
                 new HandshakeCompletionHandler(future, completionHandler);

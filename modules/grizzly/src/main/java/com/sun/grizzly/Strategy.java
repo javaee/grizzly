@@ -48,43 +48,44 @@ import java.io.IOException;
  * 
  * @author Alexey Stashok
  */
-public interface Strategy<E> {
-    /**
-     * Prepare {@link Strategy} for processing {@link IOEvent}, occured on the
-     * {@link Connection}.
-     * At this phase {@link Strategy} may initialize and return context data,
-     * which will be passed further into executeProcessor and isTerminateThread
-     * methods.
-     * 
-     * @param connection {@link Connection}, on which {@link IOEvent} occured.
-     * @param ioEvent {@link IOEvent}.
-     * @return context/state, associated with the {@link IOEvent} processing.
-     */
-    public E prepare(Connection connection, IOEvent ioEvent);
-    
-    /**
-     * Execute {@link ProcessorRunnable} task.
-     * 
-     * @param strategyContext context object, initialized on "prepare" phase.
-     * @param processorRunnable the {@link ProcessorRunnable} task to be executed.
-     * 
-     * @throws java.io.IOException
-     */
-    public void executeProcessor(E strategyContext,
-            ProcessorRunnable processorRunnable) throws IOException;
-
-    /**
-     * This method may be called by runner {@link Thread} after task will be
-     * executed. {@link Strategy} may instruct the caller to release current
-     * thread, after task execution will be completed.
-     * 
-     * @param strategyContext {@link Strategy} context, initialized on "prepare"
-     * phase.
-     * 
-     * @return <tt>true</tt>, to instruct caller to release the current
-     * {@link Thread}, or <tt>false</tt> otherwise.
-     *
-     * @see com.sun.grizzly.strategies.LeaderFollowerStrategy
-     */
-    public boolean isTerminateThread(E strategyContext);
+public interface Strategy {
+    public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException;
+//    /**
+//     * Prepare {@link Strategy} for processing {@link IOEvent}, occured on the
+//     * {@link Connection}.
+//     * At this phase {@link Strategy} may initialize and return context data,
+//     * which will be passed further into executeProcessor and isTerminateThread
+//     * methods.
+//     *
+//     * @param connection {@link Connection}, on which {@link IOEvent} occured.
+//     * @param ioEvent {@link IOEvent}.
+//     * @return context/state, associated with the {@link IOEvent} processing.
+//     */
+//    public E prepare(Connection connection, IOEvent ioEvent);
+//
+//    /**
+//     * Execute {@link ProcessorRunnable} task.
+//     *
+//     * @param strategyContext context object, initialized on "prepare" phase.
+//     * @param processorRunnable the {@link ProcessorRunnable} task to be executed.
+//     *
+//     * @throws java.io.IOException
+//     */
+//    public void executeProcessor(E strategyContext,
+//            ProcessorRunnable processorRunnable) throws IOException;
+//
+//    /**
+//     * This method may be called by runner {@link Thread} after task will be
+//     * executed. {@link Strategy} may instruct the caller to release current
+//     * thread, after task execution will be completed.
+//     *
+//     * @param strategyContext {@link Strategy} context, initialized on "prepare"
+//     * phase.
+//     *
+//     * @return <tt>true</tt>, to instruct caller to release the current
+//     * {@link Thread}, or <tt>false</tt> otherwise.
+//     *
+//     * @see com.sun.grizzly.strategies.LeaderFollowerStrategy
+//     */
+//    public boolean isTerminateThread(E strategyContext);
 }

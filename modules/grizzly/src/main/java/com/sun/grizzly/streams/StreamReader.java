@@ -40,6 +40,7 @@ import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.utils.conditions.Condition;
 
@@ -70,7 +71,7 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> has required amount of bytes available for reading.
      */
-    public Future<Integer> notifyAvailable(int size);
+    public GrizzlyFuture<Integer> notifyAvailable(int size);
 
     /**
      * Method returns {@link Future}, using which it's possible check if
@@ -87,7 +88,7 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> has required amount of bytes available for reading.
      */
-    public Future<Integer> notifyAvailable(int size,
+    public GrizzlyFuture<Integer> notifyAvailable(int size,
             CompletionHandler<Integer> completionHandler);
 
     /**
@@ -99,7 +100,7 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> meets the required {@link Condition}.
      */
-    public Future<Integer> notifyCondition(Condition condition);
+    public GrizzlyFuture<Integer> notifyCondition(Condition condition);
 
     /**
      * Method returns {@link Future}, using which it's possible check if
@@ -114,7 +115,7 @@ public interface StreamReader extends Stream {
      * @return {@link Future}, using which it's possible to check whether
      * <tt>StreamReader</tt> meets the required {@link Condition}.
      */
-    public Future<Integer> notifyCondition(Condition condition,
+    public GrizzlyFuture<Integer> notifyCondition(Condition condition,
             CompletionHandler<Integer> completionHandler);
 
     /**
@@ -253,7 +254,7 @@ public interface StreamReader extends Stream {
      * @param decoder {@link Transformer}
      * @return {@link Future}, which will hold the decoding state.
      */
-    public <E> Future<E> decode(Transformer<Stream, E> decoder);
+    public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder);
     
     /**
      * Read and decode data from the <tt>StreamReader</tt>
@@ -264,7 +265,7 @@ public interface StreamReader extends Stream {
      *                          notified, when decoder will become ready.
      * @return {@link Future}, which will hold the decoding state.
      */
-    public <E> Future<E> decode(Transformer<Stream, E> decoder,
+    public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder,
             CompletionHandler<E> completionHandler);
 
     /**

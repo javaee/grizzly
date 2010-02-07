@@ -331,14 +331,6 @@ public abstract class AbstractTransport implements Transport {
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void fireIOEvent(IOEvent ioEvent, Connection connection) throws IOException {
-        fireIOEvent(ioEvent, connection, null);
-    }    
-
-    /**
      * Close the connection, managed by Transport
      * 
      * @param connection

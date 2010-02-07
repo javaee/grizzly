@@ -39,9 +39,9 @@ package com.sun.grizzly.nio.transport;
 
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
@@ -58,7 +58,7 @@ public final class TCPNIOStreamWriter extends AbstractStreamWriter {
     }
 
     @Override
-    public Future<Integer> flush(
+    public GrizzlyFuture<Integer> flush(
             final CompletionHandler<Integer> completionHandler)
             throws IOException {
         return super.flush(new ResetCounterCompletionHandler(
@@ -76,11 +76,11 @@ public final class TCPNIOStreamWriter extends AbstractStreamWriter {
 
 
         @Override
-        protected Future<Integer> flush0(Buffer buffer,
+        protected GrizzlyFuture<Integer> flush0(Buffer buffer,
                 final CompletionHandler<Integer> completionHandler)
                 throws IOException {
             
-            final FutureImpl<Integer> future = new FutureImpl<Integer>();
+            final FutureImpl<Integer> future = FutureImpl.<Integer>create();
             
             if (buffer == null) {
                 buffer = BufferUtils.EMPTY_BUFFER;

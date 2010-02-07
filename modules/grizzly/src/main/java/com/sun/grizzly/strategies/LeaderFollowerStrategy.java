@@ -41,8 +41,8 @@ import java.io.IOException;
 import java.util.concurrent.Executor;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.ProcessorRunnable;
 import com.sun.grizzly.Strategy;
+import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
@@ -55,63 +55,113 @@ import java.util.concurrent.ExecutorService;
  *
  * @author Alexey Stashok
  */
-public class LeaderFollowerStrategy implements Strategy<Boolean> {
+public final class LeaderFollowerStrategy implements Strategy {
+    /*
+     * NONE,
+     * SERVER_ACCEPT,
+     * ACCEPTED,
+     * CONNECTED,
+     * READ,
+     * WRITE,
+     * CLOSED
+     */
+    private final Executor[] executors;
+    
     private final Executor sameThreadProcessorExecutor;
     private final Executor workerThreadProcessorExecutor;
 
     public LeaderFollowerStrategy(final ExecutorService workerThreadPool) {
-        this.workerThreadProcessorExecutor =
-                new WorkerThreadExecutor(workerThreadPool);
-        this.sameThreadProcessorExecutor = new CurrentThreadExecutor();
+        this(new CurrentThreadExecutor(),
+                new WorkerThreadExecutor(workerThreadPool));
     }
 
     protected LeaderFollowerStrategy(Executor sameThreadProcessorExecutor,
             Executor workerThreadProcessorExecutor) {
         this.sameThreadProcessorExecutor = sameThreadProcessorExecutor;
         this.workerThreadProcessorExecutor = workerThreadProcessorExecutor;
+
+        executors = new Executor[] {null, null, null, null,
+            workerThreadProcessorExecutor, workerThreadProcessorExecutor,
+            workerThreadProcessorExecutor};
     }
 
-   /**
-    * {@inheritDoc}
-    */
     @Override
-    public Boolean prepare(Connection connection, IOEvent ioEvent) {
-        return true;
-    }
+    public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException {
+        final Executor executor = executors[ioEvent.ordinal()];
+        if (executor != null) {
+            final NIOConnection nioConnection = (NIOConnection) connection;
 
-   /**
-    * {@inheritDoc}
-    */
-    @Override
-    public void executeProcessor(Boolean strategyContext,
-            ProcessorRunnable processorRunnable) throws IOException {
+            final boolean disableInterest = (ioEvent == IOEvent.READ ||
+                    ioEvent == IOEvent.WRITE);
 
-        if (strategyContext != null && strategyContext) {
-            NIOConnection nioConnection =
-                    (NIOConnection) processorRunnable.getConnection();
-            SelectorRunner runner = nioConnection.getSelectorRunner();
+            if (disableInterest) nioConnection.disableIOEvent(ioEvent);
+
+            final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
-            nioConnection.getTransport().getThreadPool().execute(runner);
+            executor.execute(runner);
+            final IOEventReg regResult =
+                    connection.getTransport().fireIOEvent(ioEvent, connection);
+            if (disableInterest && regResult == IOEventReg.REGISTER) {
+                nioConnection.enableIOEvent(ioEvent);
+            }
+
+            return false;
+        } else {
+            final IOEventReg regResult =
+                    connection.getTransport().fireIOEvent(ioEvent, connection);
+            if (regResult == IOEventReg.DEREGISTER &&
+                    (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE)) {
+                final NIOConnection nioConnection = (NIOConnection) connection;
+                nioConnection.disableIOEvent(ioEvent);
+            }
+
+            return true;
         }
-
-        Executor executor = getProcessorExecutor(strategyContext);
-
-        executor.execute(processorRunnable);
     }
 
-   /**
-    * {@inheritDoc}
-    */
-    @Override
-    public boolean isTerminateThread(Boolean strategyContext) {
-        return strategyContext;
-    }
 
-    public Executor getProcessorExecutor(Boolean strategyContext) {
-        if (strategyContext != null && strategyContext) {
-            return sameThreadProcessorExecutor;
-        }
 
-        return workerThreadProcessorExecutor;
-    }
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public Boolean prepare(Connection connection, IOEvent ioEvent) {
+//        return true;
+//    }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public void executeProcessor(Boolean strategyContext,
+//            ProcessorRunnable processorRunnable) throws IOException {
+//
+//        if (strategyContext != null && strategyContext) {
+//            NIOConnection nioConnection =
+//                    (NIOConnection) processorRunnable.getConnection();
+//            SelectorRunner runner = nioConnection.getSelectorRunner();
+//            runner.postpone();
+//            nioConnection.getTransport().getThreadPool().execute(runner);
+//        }
+//
+//        Executor executor = getProcessorExecutor(strategyContext);
+//
+//        executor.execute(processorRunnable);
+//    }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public boolean isTerminateThread(Boolean strategyContext) {
+//        return strategyContext;
+//    }
+//
+//    public Executor getProcessorExecutor(Boolean strategyContext) {
+//        if (strategyContext != null && strategyContext) {
+//            return sameThreadProcessorExecutor;
+//        }
+//
+//        return workerThreadProcessorExecutor;
+//    }
 }

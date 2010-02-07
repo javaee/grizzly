@@ -39,7 +39,6 @@
 package com.sun.grizzly.nio;
 
 import com.sun.grizzly.Transformer;
-import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Processor;
@@ -53,6 +52,7 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.StandaloneProcessor;
@@ -242,24 +242,25 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     }
 
     @Override
-    public Future<ReadResult<Buffer, SocketAddress>> read() throws IOException {
+    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read()
+            throws IOException {
         return read(null, null, null, null);
     }
 
     @Override
-    public Future<ReadResult<Buffer, SocketAddress>> read(Buffer buffer)
+    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read(Buffer buffer)
             throws IOException {
         return read(buffer, null, null, null);
     }
 
     @Override
-    public Future<ReadResult<Buffer, SocketAddress>> read(Buffer buffer,
+    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read(Buffer buffer,
             CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler) throws IOException {
         return read(buffer, completionHandler, null, null);
     }
 
     @Override
-    public <M> Future<ReadResult<M, SocketAddress>> read(M message,
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(M message,
             CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
             Transformer<Buffer, M> transformer) throws IOException {
         
@@ -267,20 +268,20 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     }
 
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(Buffer buffer)
+    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(Buffer buffer)
             throws IOException {
         return write(null, buffer, null, null);
     }
 
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(Buffer buffer,
+    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(Buffer buffer,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler)
             throws IOException {
         return write(null, buffer, completionHandler, null);
     }
 
     @Override
-    public <M> Future<WriteResult<M, SocketAddress>> write(M message,
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(M message,
             CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
             Transformer<M, Buffer> transformer) throws IOException {
 
@@ -290,13 +291,13 @@ public abstract class AbstractNIOConnection implements NIOConnection {
 
 
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(
+    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
             SocketAddress dstAddress, Buffer buffer) throws IOException {
         return write(dstAddress, buffer, null, null);
     }
 
     @Override
-    public Future<WriteResult<Buffer, SocketAddress>> write(SocketAddress dstAddress,
+    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(SocketAddress dstAddress,
             Buffer buffer,
             CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler) throws IOException {
         return write(dstAddress, buffer, completionHandler, null);

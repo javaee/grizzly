@@ -58,6 +58,8 @@ import java.util.concurrent.ExecutorService;
 public interface Transport extends ExceptionHandler {
     public enum State {STARTING, START, PAUSE, STOPPING, STOP};
 
+    public enum IOEventReg {REGISTER, DEREGISTER, LEAVE};
+
     /**
      * Gets the {@link Transport} name.
      * 
@@ -368,18 +370,8 @@ public interface Transport extends ExceptionHandler {
      * @param ioEvent I/O event
      * @param connection {@link Connection}, on which we fire the event.
      */
-    public void fireIOEvent(IOEvent ioEvent, Connection connection)
+    public IOEventReg fireIOEvent(IOEvent ioEvent, Connection connection)
             throws IOException;
-
-    /**
-     * Fires specific {@link IOEvent} on the {@link Connection}
-     *
-     * @param ioEvent I/O event
-     * @param connection {@link Connection}, on which we fire the event.
-     * @param strategyContext {@link Strategy} state
-     */
-    public void fireIOEvent(IOEvent ioEvent, Connection connection,
-            Object strategyContext) throws IOException;
 
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,

@@ -39,9 +39,9 @@
 package com.sun.grizzly.nio;
 
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
-import java.util.concurrent.Future;
 
 /**
  *
@@ -57,17 +57,17 @@ public interface NIOChannelDistributor {
     public void registerChannel(SelectableChannel channel,
             int interestOps, Object attachment) throws IOException;
 
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel) throws IOException;
     
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps) throws IOException;
     
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment) 
             throws IOException;
 
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment,
             CompletionHandler completionHandler)
             throws IOException;

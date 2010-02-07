@@ -42,14 +42,16 @@ import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.utils.ObjectPool;
-import com.sun.grizzly.utils.PoolableObject;
 
 /**
  * Object, which is responsible for holding context during I/O event processing.
  *
  * @author Alexey Stashok
  */
-public class Context implements PoolableObject, AttributeStorage {
+public class Context implements AttributeStorage, Cacheable {
+    private static final ThreadCache.CachedTypeIndex<Context> CACHE_IDX =
+            ThreadCache.obtainIndex(Context.class);
+    
     public enum State {
         RUNNING, SUSPEND;
     };
@@ -83,8 +85,6 @@ public class Context implements PoolableObject, AttributeStorage {
      * Processing task, executed on processorExecutor
      */
     private ProcessorRunnable processorRunnable;
-    
-    private final ObjectPool<Context> parentPool;
 
     /**
      * Context task state
@@ -92,13 +92,7 @@ public class Context implements PoolableObject, AttributeStorage {
     private volatile State state;
 
     public Context() {
-        this(null);
-    }
-
-    public Context(ObjectPool parentPool) {
-        this.parentPool = parentPool;
         attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
-        prepare();
     }
     
     /**
@@ -235,22 +229,13 @@ public class Context implements PoolableObject, AttributeStorage {
     public AttributeHolder getAttributes() {
         return attributes;
     }
-    /**
-     * If implementation uses {@link ObjectPool} to store and reuse
-     * {@link Context} instances - this method will be called before
-     * {@link Context} will be polled from pool.
-     */
-    @Override
-    public void prepare() {
-    }
 
     /**
      * If implementation uses {@link ObjectPool} to store and reuse
      * {@link Context} instances - this method will be called before
      * {@link Context} will be offered to pool.
      */
-    @Override
-    public void release() {
+    public void reset() {
         attributes.clear();
         
         state = State.RUNNING;
@@ -261,12 +246,11 @@ public class Context implements PoolableObject, AttributeStorage {
     }
 
     /**
-     * Return this {@link Context} to the {@link ObjectPool} it was
-     * taken from.
+     * Recycle this {@link Context}
      */
-    public final void offerToPool() {
-        if (parentPool != null) {
-            parentPool.offer(this);
-        }
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

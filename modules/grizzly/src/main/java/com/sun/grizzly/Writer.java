@@ -60,7 +60,7 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer) throws IOException;
 
     /**
@@ -74,7 +74,7 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException;
@@ -95,7 +95,7 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public <M> Future<WriteResult<M, L>> write(Connection connection,
+    public <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer) throws IOException;
@@ -116,7 +116,7 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public <M> Future<WriteResult<M, L>> write(Connection connection,
+    public <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer,
@@ -133,7 +133,7 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Connection connection, L dstAddress,
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection, L dstAddress,
             Buffer buffer) throws IOException;
 
     /**
@@ -149,7 +149,7 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Connection connection,
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException;
@@ -172,7 +172,7 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public <M> Future<WriteResult<M, L>> write(Connection connection,
+    public <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
             L dstAddress, M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer) throws IOException;
@@ -195,7 +195,7 @@ public interface Writer<L> {
      *         result
      * @throws java.io.IOException
      */
-    public <M> Future<WriteResult<M, L>> write(Connection connection,
+    public <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
             L dstAddress, M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer,

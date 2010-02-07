@@ -41,7 +41,6 @@ import com.sun.grizzly.Transformer;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -52,6 +51,7 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.ReadResult;
@@ -77,7 +77,7 @@ public abstract class AbstractNIOAsyncQueueReader
         implements AsyncQueueReader<SocketAddress> {
 
     private static final AsyncReadQueueRecord LOCK_RECORD =
-            new AsyncReadQueueRecord(null, null, null, null, null, null);
+            AsyncReadQueueRecord.create(null, null, null, null, null, null);
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     protected int defaultBufferSize = DEFAULT_BUFFER_SIZE;
     protected NIOTransport transport;
@@ -92,7 +92,7 @@ public abstract class AbstractNIOAsyncQueueReader
      * {@inheritDoc}
      */
     @Override
-    public <M> Future<ReadResult<M, SocketAddress>> read(
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
             final Connection connection, M message,
             final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
             final Transformer<Buffer, M> transformer,
@@ -109,11 +109,11 @@ public abstract class AbstractNIOAsyncQueueReader
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
 
-        final ReadResult currentResult = new ReadResult(connection,
+        final ReadResult currentResult = ReadResult.create(connection,
                 message, null, 0);
 
         // create and initialize the read queue record
-        final AsyncReadQueueRecord queueRecord = new AsyncReadQueueRecord(
+        final AsyncReadQueueRecord queueRecord = AsyncReadQueueRecord.create(
                 message, null, currentResult, completionHandler,
                 transformer, interceptor);
 
@@ -153,7 +153,7 @@ public abstract class AbstractNIOAsyncQueueReader
                     }
 
                     intercept(connection, COMPLETE_EVENT, queueRecord, null);
-                    return new ReadyFutureImpl<ReadResult<M, SocketAddress>>(
+                    return ReadyFutureImpl.<ReadResult<M, SocketAddress>>create(
                             currentResult);
                 } else { // If direct read is not finished
                 // Create future
@@ -163,7 +163,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         queueRecord.setMessage(null);
                     }
 
-                    final FutureImpl future = new FutureImpl();
+                    final FutureImpl future = FutureImpl.create();
                     queueRecord.setFuture(future);
                     currentElement.set(queueRecord);
                     
@@ -177,7 +177,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
             } else { // Read queue is not empty - add new element to a queue
                 // Create future
-                final FutureImpl future = new FutureImpl();
+                final FutureImpl future = FutureImpl.create();
                 queueRecord.setFuture(future);
 
                 connectionQueue.getQueue().offer(queueRecord);
@@ -197,7 +197,7 @@ public abstract class AbstractNIOAsyncQueueReader
                 return future;            }
         } catch (IOException e) {
             onReadFailure(connection, queueRecord, e);
-            return new ReadyFutureImpl<ReadResult<M, SocketAddress>>(e);
+            return ReadyFutureImpl.<ReadResult<M, SocketAddress>>create(e);
         }
     }
 
@@ -382,7 +382,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
             return readBytes;
         } else {
-            final ReadResult readResult = new ReadResult(connection);
+            final ReadResult readResult = ReadResult.create(connection);
             final int readBytes = read0(connection, null, readResult);
 
             if (readBytes > 0) {
@@ -391,6 +391,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
                 Buffer buffer = (Buffer) readResult.getMessage();
                 buffer.trim();
+                readResult.recycle();
 
                 final Buffer remainderBuffer = queueRecord.getRemainderBuffer();
                 if (remainderBuffer != null) {
@@ -477,6 +478,8 @@ public abstract class AbstractNIOAsyncQueueReader
         if (completionHandler != null) {
             completionHandler.completed(currentResult);
         }
+
+        record.recycle();
     }
 
     protected final void onReadIncompleted(Connection connection,

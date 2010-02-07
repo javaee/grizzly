@@ -39,13 +39,12 @@
 package com.sun.grizzly.threadpool;
 
 import java.util.concurrent.TimeUnit;
-import com.sun.grizzly.Context;
-import com.sun.grizzly.ProcessorRunnable;
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
-import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.memory.DefaultMemoryManager.BufferInfo;
+import java.util.Arrays;
 
 /**
  * Default Grizzly worker thread implementation
@@ -58,10 +57,9 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     private final AttributeHolder attributes;
 
     private BufferInfo associatedBuffer;
-    private Context cachedContext;
-    private FilterChainContext cachedFilterChainContext;
-    private ProcessorRunnable cachedProcessorRunnable;
-
+    
+    private Object[] objectCache = new Object[16];
+    
     private long transactionTimeoutMillis =
             WorkerThread.UNLIMITED_TRANSACTION_TIMEOUT;
 
@@ -92,36 +90,27 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         this.associatedBuffer = associatedBuffer;
     }
 
-    public final Context removeCachedContext() {
-        final Context localContext = cachedContext;
-        cachedContext = null;
-        return localContext;
+    public final <E> E takeFromCache(ThreadCache.CachedTypeIndex<E> index) {
+        final int idx = index.getIndex();
+        if (idx < objectCache.length) {
+            final E tmpObject = (E) objectCache[idx];
+            objectCache[idx] = null;
+            return tmpObject;
+        }
+
+        return null;
     }
 
-    public final void setCachedContext(Context cachedContext) {
-        this.cachedContext = cachedContext;
-    }
-
-    public final FilterChainContext removeCachedFilterChainContext() {
-        final FilterChainContext localContext = cachedFilterChainContext;
-        cachedFilterChainContext = null;
-        return localContext;
-    }
-
-    public final void setCachedFilterChainContext(
-            FilterChainContext cachedFilterChainContext) {
-        this.cachedFilterChainContext = cachedFilterChainContext;
-    }
-
-    public final ProcessorRunnable removeCachedProcessorRunnable() {
-        final ProcessorRunnable localProcessorRunnable = cachedProcessorRunnable;
-        cachedProcessorRunnable = null;
-        return localProcessorRunnable;
-    }
-
-    public final void setCachedProcessorRunnable(
-            ProcessorRunnable cachedProcessorRunnable) {
-        this.cachedProcessorRunnable = cachedProcessorRunnable;
+    public final <E> void putToCache(ThreadCache.CachedTypeIndex<E> index, E o) {
+        final int idx = index.getIndex();
+        if (idx < objectCache.length) {
+            objectCache[idx] = o;
+        } else {
+            final int newSize = Math.max(idx + 1,
+                    (objectCache.length * 3) / 2 + 1);
+            objectCache = Arrays.copyOf(objectCache, newSize);
+            objectCache[idx] = o;
+        }
     }
 
     @Override

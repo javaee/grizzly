@@ -56,6 +56,7 @@ import com.sun.grizzly.AbstractProcessor;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.AbstractSocketConnectorHandler;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
@@ -80,7 +81,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException {
         
@@ -91,18 +92,19 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         }
     }
 
-    protected Future<Connection> connectSync(SocketAddress remoteAddress,
+    protected GrizzlyFuture<Connection> connectSync(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException {
         
-        Future<Connection> future = connectAsync(remoteAddress, localAddress,
-                completionHandler);
+        GrizzlyFuture<Connection> future = connectAsync(remoteAddress,
+                localAddress, completionHandler);
         waitNIOFuture(future);
 
         return future;
     }
 
-    protected Future<Connection> connectAsync(final SocketAddress remoteAddress,
+    protected GrizzlyFuture<Connection> connectAsync(
+            final SocketAddress remoteAddress,
             final SocketAddress localAddress,
             final CompletionHandler<Connection> completionHandler)
             throws IOException {
@@ -121,7 +123,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         TCPNIOConnection newConnection = (TCPNIOConnection)
                 nioTransport.obtainNIOConnection(socketChannel);
         
-        FutureImpl connectFuture = new FutureImpl();
+        FutureImpl connectFuture = FutureImpl.create();
         
         ConnectorEventProcessor finishConnectProcessor =
                 new ConnectorEventProcessor(connectFuture, completionHandler);
@@ -133,13 +135,14 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             if (isConnected) {
                 // if connected immediately - register channel on selector with
                 // OP_READ interest
-                Future<RegisterChannelResult> registerChannelFuture =
+                final GrizzlyFuture<RegisterChannelResult> registerChannelFuture =
                         nioTransport.getNioChannelDistributor().
                         registerChannelAsync(socketChannel, SelectionKey.OP_READ,
                         newConnection, null);
 
                 // Wait until the SelectableChannel will be registered on the Selector
                 RegisterChannelResult result = waitNIOFuture(registerChannelFuture);
+                registerChannelFuture.recycle();
 
                 // make sure completion handler is called
                 nioTransport.registerChannelCompletionHandler.completed(result);
@@ -159,7 +162,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 completionHandler.failed(e);
             }
             
-            return new ReadyFutureImpl(e);
+            return ReadyFutureImpl.create(e);
         }
         
         return connectFuture;

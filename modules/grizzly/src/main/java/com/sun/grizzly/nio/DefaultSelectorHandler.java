@@ -39,6 +39,7 @@ package com.sun.grizzly.nio;
 
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
@@ -171,14 +172,14 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectorRunner selectorRunner, SelectableChannel channel,
             int interest, Object attachment,
             CompletionHandler<RegisterChannelResult> completionHandler)
             throws IOException {
 
         final FutureImpl<RegisterChannelResult> future =
-                new FutureImpl<RegisterChannelResult>();
+                FutureImpl.<RegisterChannelResult>create();
 
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             registerChannel0(selectorRunner, channel, interest, attachment,
@@ -194,7 +195,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
     }
 
     @Override
-    public Future<Runnable> executeInSelectorThread(
+    public GrizzlyFuture<Runnable> executeInSelectorThread(
             final SelectorRunner selectorRunner, final Runnable runnableTask,
             final CompletionHandler<Runnable> completionHandler) {
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
@@ -205,15 +206,15 @@ public class DefaultSelectorHandler implements SelectorHandler {
                     completionHandler.failed(e);
                 }
                 
-                return new ReadyFutureImpl<Runnable>(e);
+                return ReadyFutureImpl.<Runnable>create(e);
             }
             if (completionHandler != null) {
                 completionHandler.completed(runnableTask);
             }
             
-            return new ReadyFutureImpl<Runnable>(runnableTask);
+            return ReadyFutureImpl.<Runnable>create(runnableTask);
         } else {
-            final FutureImpl<Runnable> future = new FutureImpl<Runnable>();
+            final FutureImpl<Runnable> future = FutureImpl.<Runnable>create();
 
             final SelectorHandlerTask task = new RunnableTask(runnableTask,
                     future, completionHandler);

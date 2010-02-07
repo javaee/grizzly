@@ -42,6 +42,7 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
+import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -49,7 +50,7 @@ import java.util.logging.Logger;
  *
  * @author oleksiys
  */
-public class DefaultSelectionKeyHandler implements SelectionKeyHandler {
+public final class DefaultSelectionKeyHandler implements SelectionKeyHandler {
     
     private static Logger logger = Grizzly.logger(DefaultSelectionKeyHandler.class);
 
@@ -57,6 +58,33 @@ public class DefaultSelectionKeyHandler implements SelectionKeyHandler {
         SelectionKey.OP_ACCEPT, 0, SelectionKey.OP_CONNECT, SelectionKey.OP_READ,
         SelectionKey.OP_WRITE, 0};
     
+    private final static IOEvent[][] ioEventMap;
+
+    static {
+        ioEventMap = new IOEvent[32][];
+        for(int i=0; i<ioEventMap.length; i++) {
+            int idx = 0;
+            IOEvent[] tmpArray = new IOEvent[4];
+            if ((i & SelectionKey.OP_READ) != 0) {
+                tmpArray[idx++] = IOEvent.READ;
+            }
+
+            if ((i & SelectionKey.OP_WRITE) != 0) {
+                tmpArray[idx++] = IOEvent.WRITE;
+            }
+
+            if ((i & SelectionKey.OP_CONNECT) != 0) {
+                tmpArray[idx++] = IOEvent.CONNECTED;
+            }
+
+            if ((i & SelectionKey.OP_ACCEPT) != 0) {
+                tmpArray[idx++] = IOEvent.SERVER_ACCEPT;
+            }
+
+            ioEventMap[i] = Arrays.copyOf(tmpArray, idx);
+        }
+    }
+
     @Override
     public void onKeyRegistered(SelectionKey key) {
         if (logger.isLoggable(Level.FINE)) {
@@ -75,6 +103,11 @@ public class DefaultSelectionKeyHandler implements SelectionKeyHandler {
     }
 
     @Override
+    public IOEvent[] getIOEvents(int interest) {
+        return ioEventMap[interest];
+    }
+
+    @Override
     public IOEvent selectionKeyInterest2IoEvent(int selectionKeyInterest) {
         if ((selectionKeyInterest & SelectionKey.OP_READ) != 0) {
             return IOEvent.READ;
@@ -88,24 +121,10 @@ public class DefaultSelectionKeyHandler implements SelectionKeyHandler {
 
         return IOEvent.NONE;
     }
-    
-    @Override
-    public boolean onAcceptInterest(SelectionKey key) throws IOException {
-        return true;
-    }
 
     @Override
-    public boolean onConnectInterest(SelectionKey key) throws IOException {
-        return true;
-    }
-
-    @Override
-    public boolean onReadInterest(SelectionKey key) throws IOException {
-        return true;
-    }
-    
-    @Override
-    public boolean onWriteInterest(SelectionKey key) throws IOException {
+    public boolean onProcessInterest(SelectionKey key, int interest)
+            throws IOException {
         return true;
     }
 

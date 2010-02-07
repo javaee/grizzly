@@ -39,7 +39,6 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.ProcessorResult.Status;
 import com.sun.grizzly.Transport.State;
-import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -54,10 +53,12 @@ import java.util.logging.Logger;
  * 
  * @author Alexey Stashok
  */
-public final class ProcessorRunnable implements Runnable {
+public final class ProcessorRunnable implements Runnable, Cacheable {
+    private static final ThreadCache.CachedTypeIndex<ProcessorRunnable> CACHE_IDX =
+            ThreadCache.obtainIndex(ProcessorRunnable.class);
 
     public static final ProcessorRunnable create(Context context) {
-        final ProcessorRunnable processorRunnable = takeFromPool();
+        final ProcessorRunnable processorRunnable = ThreadCache.takeFromCache(CACHE_IDX);
         if (processorRunnable != null) {
             processorRunnable.setContext(context);
             return processorRunnable;
@@ -69,7 +70,9 @@ public final class ProcessorRunnable implements Runnable {
     public static final ProcessorRunnable create(IOEvent ioEvent,
             Connection connection, Processor processor,
             PostProcessor postProcessor) {
-        final ProcessorRunnable processorRunnable = takeFromPool();
+        final ProcessorRunnable processorRunnable =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        
         if (processorRunnable != null) {
             processorRunnable.setIoEvent(ioEvent);
             processorRunnable.setConnection(connection);
@@ -226,6 +229,10 @@ public final class ProcessorRunnable implements Runnable {
      */
     @Override
     public void run() {
+        execute();
+    }
+
+    public boolean execute() {
         if (context == null) {
             createContext();
             initContext();
@@ -234,7 +241,7 @@ public final class ProcessorRunnable implements Runnable {
         }
 
         context.setProcessorRunnable(this);
-        
+
         ProcessorResult result = null;
 
         try {
@@ -247,10 +254,13 @@ public final class ProcessorRunnable implements Runnable {
                 result = processor.process(context);
             } while (result != null &&
                     result.getStatus() == Status.RERUN);
-            
+
             if (result == null || result.getStatus() != Status.TERMINATE) {
                 postProcess(context, result);
+                return true;
             }
+
+            return false;
         } catch (IOException e) {
             result = new ProcessorResult(Status.ERROR, e);
             postProcess(context, result);
@@ -260,6 +270,8 @@ public final class ProcessorRunnable implements Runnable {
             postProcess(context, result);
             throw new RuntimeException(t);
         }
+
+        return true;
     }
 
     /**
@@ -289,6 +301,13 @@ public final class ProcessorRunnable implements Runnable {
         postProcessor = context.getPostProcessor();
     }
 
+    private void reset() {
+        connection = null;
+        processor = null;
+        postProcessor = null;
+        context = null;
+    }
+
     /**
      * Finishing processing by calling post-process methods on {@link Processor}
      * and {@link PostProcessor}.
@@ -302,7 +321,7 @@ public final class ProcessorRunnable implements Runnable {
         } catch (IOException e) {
             logException(context, e);
         }
-        PostProcessor ioEventPostProcessor = context.getPostProcessor();
+        final PostProcessor ioEventPostProcessor = context.getPostProcessor();
         if (ioEventPostProcessor != null) {
             try {
                 ioEventPostProcessor.process(result, context);
@@ -311,25 +330,14 @@ public final class ProcessorRunnable implements Runnable {
             }
         }
         
-        context.offerToPool();
-        offerToPool(this);
+        context.recycle();
+        recycle();
     }
 
-    protected static final ProcessorRunnable takeFromPool() {
-        final Thread currentThread = Thread.currentThread();
-        if (currentThread instanceof DefaultWorkerThread) {
-            ((DefaultWorkerThread) currentThread).removeCachedProcessorRunnable();
-        }
-
-        return null;
-    }
-
-    protected static final void offerToPool(ProcessorRunnable processorRunnable) {
-        final Thread currentThread = Thread.currentThread();
-        if (currentThread instanceof DefaultWorkerThread) {
-            ((DefaultWorkerThread) currentThread).setCachedProcessorRunnable(
-                    processorRunnable);
-        }
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
     
     /**
@@ -339,8 +347,13 @@ public final class ProcessorRunnable implements Runnable {
      * @param e {@link Exception}, which occured.
      */
     private void logException(Context context, Throwable e) {
-        State transportState = context.getConnection().getTransport().
+        final State transportState;
+        if (context != null && context.getConnection() != null) {
+            transportState = context.getConnection().getTransport().
                 getState().getState(false);
+        } else {
+            transportState = State.START;
+        }
 
         if (transportState != State.STOPPING && transportState != State.STOP) {
             logger.log(Level.WARNING,

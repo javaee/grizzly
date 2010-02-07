@@ -160,7 +160,7 @@ public class DefaultMemoryManagerTest extends TestCase {
     }
 
     private void testInWorkerThread(final Runnable task) throws Exception {
-        final FutureImpl<Boolean> future = new FutureImpl<Boolean>();
+        final FutureImpl<Boolean> future = FutureImpl.<Boolean>create();
 
         ExecutorService threadPool = new FixedThreadPool(ThreadPoolConfig.DEFAULT);
         threadPool.execute(new Runnable() {

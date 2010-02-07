@@ -43,11 +43,40 @@ package com.sun.grizzly;
  * 
  * @author Alexey Stashok
  */
-public class ReadResult<K, L> implements Result {
+public class ReadResult<K, L> implements Result, Cacheable {
+    private static final ThreadCache.CachedTypeIndex<ReadResult> CACHE_IDX =
+            ThreadCache.obtainIndex(ReadResult.class);
+
+    public static final ReadResult create(Connection connection) {
+        final ReadResult readResult = ThreadCache.takeFromCache(CACHE_IDX);
+        if (readResult != null) {
+            readResult.connection = connection;
+            return readResult;
+        }
+
+        return new ReadResult(connection);
+    }
+
+    public static final <K, L> ReadResult create(Connection connection,
+            K message, L srcAddress, int readSize) {
+        final ReadResult readResult = ThreadCache.takeFromCache(CACHE_IDX);
+        if (readResult != null) {
+            readResult.connection = connection;
+            readResult.message = message;
+            readResult.srcAddress = srcAddress;
+            readResult.readSize = readSize;
+
+            return readResult;
+        }
+
+        return new ReadResult(connection, message, srcAddress, readSize);
+
+    }
+
     /**
      * Connection, from which data were read.
      */
-    private final Connection connection;
+    private Connection connection;
 
     /**
      * message data
@@ -65,11 +94,11 @@ public class ReadResult<K, L> implements Result {
      */
     private int readSize;
 
-    public ReadResult(Connection connection) {
+    protected ReadResult(Connection connection) {
         this(connection, null, null, 0);
     }
 
-    public ReadResult(Connection connection, K message, L srcAddress,
+    protected ReadResult(Connection connection, K message, L srcAddress,
             int readSize) {
         this.connection = connection;
         this.message = message;
@@ -139,5 +168,18 @@ public class ReadResult<K, L> implements Result {
      */
     public final void setReadSize(int readSize) {
         this.readSize = readSize;
+    }
+
+    private void reset() {
+        connection = null;
+        message = null;
+        srcAddress = null;
+        readSize = 0;
+    }
+
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

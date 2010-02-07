@@ -81,7 +81,6 @@ import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandlerAdapter;
 import com.sun.grizzly.PostProcessor;
-import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.ProcessorResult.Status;
 import com.sun.grizzly.ProcessorRunnable;
@@ -93,7 +92,7 @@ import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import com.sun.grizzly.strategies.SameThreadStrategy;
+import com.sun.grizzly.strategies.SimpleDynamicStrategy;
 import com.sun.grizzly.threadpool.AbstractThreadPool;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
@@ -225,7 +224,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
 
             if (strategy == null) {
-                strategy = new SameThreadStrategy();
+                strategy = new SimpleDynamicStrategy(threadPool);
             }
             
             if (threadPool == null) {
@@ -654,26 +653,27 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @Override
-    public void fireIOEvent(final IOEvent ioEvent, final Connection connection,
-            final Object strategyContext) throws IOException {
+    public IOEventReg fireIOEvent(final IOEvent ioEvent, final Connection connection)
+            throws IOException {
 
         try {
             // First of all try operations, which could run in standalone mode
             if (ioEvent == IOEvent.READ) {
-                processReadIoEvent(ioEvent, (TCPNIOConnection) connection,
-                        strategyContext);
+                return processReadIoEvent(ioEvent, (TCPNIOConnection) connection);
             } else if (ioEvent == IOEvent.WRITE) {
-                processWriteIoEvent(ioEvent, (TCPNIOConnection) connection,
-                        strategyContext);
+                return processWriteIoEvent(ioEvent, (TCPNIOConnection) connection);
             } else {
                 final Processor conProcessor =
                         getConnectionProcessor(connection, ioEvent);
 
                 if (conProcessor != null) {
-                    executeProcessor(ioEvent, connection, conProcessor,
-                            null, null, strategyContext);
+                    if (executeProcessor(ioEvent, connection, conProcessor, null)) {
+                        return IOEventReg.REGISTER;
+                    } else {
+                        return IOEventReg.LEAVE;
+                    }
                 } else {
-                    ((NIOConnection) connection).disableIOEvent(ioEvent);
+                    return IOEventReg.DEREGISTER;
                 }
             }
         } catch (IOException e) {
@@ -692,67 +692,69 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     }
 
-    protected void executeProcessor(IOEvent ioEvent, Connection connection,
-            Processor processor, ProcessorExecutor executor,
-            PostProcessor postProcessor, Object strategyContext)
+    protected boolean executeProcessor(IOEvent ioEvent, Connection connection,
+            Processor processor, PostProcessor postProcessor)
             throws IOException {
 
         if (logger.isLoggable(Level.FINEST)) {
             logger.log(Level.FINEST, "executeProcessor connection (" + 
                     connection + "). IOEvent=" + ioEvent +
-                    " processor=" + processor + " executor=" + executor +
-                    " postProcessor=" + postProcessor +
-                    " strategy=" + strategyContext);
+                    " processor=" + processor + " postProcessor=" + postProcessor);
         }
 
         final ProcessorRunnable processorRunnable =
                 ProcessorRunnable.create(ioEvent, connection, processor,
                 postProcessor);
 
-        strategy.executeProcessor(strategyContext, processorRunnable);
+        return processorRunnable.execute();
     }
 
-    private void processReadIoEvent(IOEvent ioEvent,
-            TCPNIOConnection connection, Object strategyContext)
+    private IOEventReg processReadIoEvent(IOEvent ioEvent,
+            TCPNIOConnection connection)
             throws IOException {
 
         TCPNIOAsyncQueueReader asyncQueueReader =
                 (TCPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
 
         if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
-            executeDefaultProcessor(ioEvent, connection, strategyContext);
+            return executeDefaultProcessor(ioEvent, connection);
         } else {
-            connection.disableIOEvent(ioEvent);
-            executeProcessor(ioEvent, connection, asyncQueueReader,
-                    null, null, strategyContext);
+//            connection.disableIOEvent(ioEvent);
+            executeProcessor(ioEvent, connection, asyncQueueReader, null);
+            return IOEventReg.LEAVE;
         }
     }
 
-    private void processWriteIoEvent(IOEvent ioEvent,
-            TCPNIOConnection connection, Object strategyContext)
-            throws IOException {
+    private IOEventReg processWriteIoEvent(IOEvent ioEvent,
+            TCPNIOConnection connection) throws IOException {
         AsyncQueueWriter asyncQueueWriter = getAsyncQueueIO().getWriter();
         
         if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
-            executeDefaultProcessor(ioEvent, connection, strategyContext);
+            return executeDefaultProcessor(ioEvent, connection);
         } else {
-            connection.disableIOEvent(ioEvent);
-            executeProcessor(ioEvent, connection, asyncQueueWriter,
-                    null, null, strategyContext);
+//            connection.disableIOEvent(ioEvent);
+            executeProcessor(ioEvent, connection, asyncQueueWriter, null);
+            return IOEventReg.LEAVE;
         }
     }
 
 
-    private void executeDefaultProcessor(IOEvent ioEvent,
-            TCPNIOConnection connection, Object strategyContext)
-            throws IOException {
+    private IOEventReg executeDefaultProcessor(IOEvent ioEvent,
+            TCPNIOConnection connection) throws IOException {
         
-        connection.disableIOEvent(ioEvent);
+//        connection.disableIOEvent(ioEvent);
         final Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
-            executeProcessor(ioEvent, connection, conProcessor, null,
-                    enablingInterestPostProcessor, strategyContext);
+            if (executeProcessor(ioEvent, connection, conProcessor, null)) {
+                return IOEventReg.REGISTER;
+            }
+
+            return IOEventReg.LEAVE;
+//            executeProcessor(ioEvent, connection, conProcessor, null,
+//                    enablingInterestPostProcessor);
         }
+
+        return IOEventReg.DEREGISTER;
     }
 
     final Processor getConnectionProcessor(Connection connection, IOEvent ioEvent) {
@@ -836,7 +838,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     public int write(Connection connection, Buffer buffer,
             WriteResult currentResult) throws IOException {
 
-        TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
+        final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
         int written;
         if (buffer.isComposite()) {
             final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();

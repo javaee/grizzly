@@ -37,12 +37,12 @@ package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import java.io.IOException;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -52,8 +52,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public abstract class BufferedOutput implements Output {
 
     protected static final Integer ZERO = new Integer(0);
-    protected static final Future<Integer> ZERO_READY_FUTURE =
-            new ReadyFutureImpl<Integer>(0);
+    protected static final GrizzlyFuture<Integer> ZERO_READY_FUTURE =
+            ReadyFutureImpl.<Integer>create(0);
     
     protected int bufferSize;
     protected CompositeBuffer multiBufferWindow;
@@ -72,7 +72,7 @@ public abstract class BufferedOutput implements Output {
 
     protected abstract void onClosed() throws IOException;
 
-    protected abstract Future<Integer> flush0(final Buffer buffer,
+    protected abstract GrizzlyFuture<Integer> flush0(final Buffer buffer,
             final CompletionHandler<Integer> completionHandler)
             throws IOException;
 
@@ -141,7 +141,7 @@ public abstract class BufferedOutput implements Output {
         }
     }
 
-    private Future<Integer> overflow(
+    private GrizzlyFuture<Integer> overflow(
             final CompletionHandler<Integer> completionHandler)
             throws IOException {
         if (multiBufferWindow != null) {
@@ -153,7 +153,7 @@ public abstract class BufferedOutput implements Output {
                 multiBufferWindow.append(slice);
             }
 
-            final Future<Integer> future = flush0(multiBufferWindow,
+            final GrizzlyFuture<Integer> future = flush0(multiBufferWindow,
                     completionHandler);
 
             if (future.isDone()) {
@@ -173,7 +173,8 @@ public abstract class BufferedOutput implements Output {
         } else if (buffer != null && buffer.position() > 0) {
             buffer.flip();
 
-            final Future<Integer> future = flush0(buffer, completionHandler);
+            final GrizzlyFuture<Integer> future = flush0(buffer,
+                    completionHandler);
             if (future.isDone()) {
                 buffer.clear();
             } else {
@@ -187,17 +188,18 @@ public abstract class BufferedOutput implements Output {
     }
 
     @Override
-    public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
+    public GrizzlyFuture<Integer> flush(CompletionHandler<Integer> completionHandler)
             throws IOException {
         return overflow(completionHandler);
     }
 
     @Override
-    public Future<Integer> close(final CompletionHandler<Integer> completionHandler)
+    public GrizzlyFuture<Integer> close(
+            final CompletionHandler<Integer> completionHandler)
             throws IOException {
 
         if (!isClosed.getAndSet(true) && buffer != null && buffer.position() > 0) {
-            final FutureImpl<Integer> future = new FutureImpl<Integer>();
+            final FutureImpl<Integer> future = FutureImpl.<Integer>create();
 
             try {
                 overflow(new CompletionHandler<Integer>() {
@@ -243,7 +245,7 @@ public abstract class BufferedOutput implements Output {
                 completionHandler.completed(ZERO);
             }
 
-            return new ReadyFutureImpl(ZERO);
+            return ZERO_READY_FUTURE;
         }
     }
 

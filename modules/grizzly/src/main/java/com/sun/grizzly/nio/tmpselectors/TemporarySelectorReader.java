@@ -53,6 +53,7 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.Reader;
@@ -92,7 +93,7 @@ public abstract class TemporarySelectorReader
     }
 
     @Override
-    public <M> Future<ReadResult<M, SocketAddress>> read(
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
             Connection connection, M message,
             CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
             Transformer<Buffer, M> transformer,
@@ -118,7 +119,7 @@ public abstract class TemporarySelectorReader
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public <M> Future<ReadResult<M, SocketAddress>> read(
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
             final Connection connection, final M message,
             final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
             final Transformer<Buffer, M> transformer,
@@ -130,43 +131,23 @@ public abstract class TemporarySelectorReader
                     "Connection should be NIOConnection and cannot be null.");
         }
 
-        final ExtendedReadResult<M, SocketAddress> currentResult =
-                new ExtendedReadResult<M, SocketAddress>(connection, message, null, 0);
+        final ReadResult<M, SocketAddress> currentResult =
+                ReadResult.<M, SocketAddress>create(connection, message, null, 0);
 
-        boolean isTimeout = false;
-        
-        boolean isCompleted = false;
-        while (!isCompleted) {
-            isCompleted = true;
-            final int readBytes;
-            if (transformer == null) {
-                readBytes = read0(connection, currentResult,
-                        (Buffer) message, timeout, timeunit);
-            } else {
-                readBytes = readWithTransformer(connection, transformer,
-                        currentResult, message, timeout, timeunit);
-            }
-
-            if (readBytes <= 0) {
-                isTimeout = true;
-                break;
-            } else {
-                if (interceptor != null) {
-                    isCompleted = (interceptor.intercept(Reader.READ_EVENT,
-                            null, currentResult) & Interceptor.COMPLETED) != 0;
-                } else if (transformer != null) {
-                    final TransformationResult tResult = transformer.getLastResult(connection);
-                    final TransformationResult.Status status = tResult.getStatus();
-                    isCompleted = (status == TransformationResult.Status.COMPLETED);
-                }
-            }
+        final int readBytes;
+        if (transformer == null) {
+            readBytes = readWithoutTransformer(connection, interceptor,
+                    currentResult, (Buffer) message, timeout, timeunit);
+        } else {
+            readBytes = readWithTransformer(connection, transformer,
+                    interceptor, currentResult, message, timeout, timeunit);
         }
 
-        if (!isTimeout) {
+        if (readBytes > 0) {
             if (transformer != null) {
                 transformer.release(connection);
             }
-            
+
             if (completionHandler != null) {
                 completionHandler.completed(currentResult);
             }
@@ -175,80 +156,122 @@ public abstract class TemporarySelectorReader
                 interceptor.intercept(timeoutMillis, connection, currentResult);
             }
 
-            return new ReadyFutureImpl<ReadResult<M, SocketAddress>>(currentResult);
+            return ReadyFutureImpl.<ReadResult<M, SocketAddress>>create(currentResult);
         } else {
-            return new ReadyFutureImpl<ReadResult<M, SocketAddress>>(new TimeoutException());
+            return ReadyFutureImpl.<ReadResult<M, SocketAddress>>create(new TimeoutException());
         }
     }
 
     private final int readWithTransformer(final Connection connection,
-            final Transformer transformer,
-            final ExtendedReadResult currentResult, final Object message,
+            final Transformer transformer, Interceptor<ReadResult> interceptor,
+            final ReadResult currentResult, final Object message,
             final long timeout, final TimeUnit timeunit) throws IOException {
 
-        final ReadResult readResult = new ReadResult(connection);
+        boolean isCompleted = false;
+        Buffer savedRemainderBuffer = null;
 
-        final int readBytes = read0(connection, readResult, null,
-                timeout, timeunit);
+        while (!isCompleted) {
+            isCompleted = true;
 
-        if (readBytes > 0) {
-            currentResult.setReadSize(currentResult.getReadSize() + readBytes);
+            final ReadResult readResult = ReadResult.create(connection);
 
-            Buffer buffer = (Buffer) readResult.getMessage();
-            buffer.trim();
-            
-            final Buffer remainderBuffer = currentResult.getRemainderBuffer();
-            if (remainderBuffer != null) {
-                currentResult.setRemainderBuffer(null);
-                
-                if (remainderBuffer.isComposite()) {
-                    ((CompositeBuffer) remainderBuffer).append(buffer);
-                    buffer = remainderBuffer;
-                } else {
-                    final CompositeBuffer compositeBuffer =
-                            new ByteBuffersBuffer(
-                            ((Transport) transport).getMemoryManager(),
-                            remainderBuffer.toByteBuffer(),
-                            buffer.toByteBuffer());
-                    compositeBuffer.allowBufferDispose(true);
-                    
-                    buffer = compositeBuffer;
+            final int readBytes = read0(connection, readResult, null,
+                    timeout, timeunit);
+
+            if (readBytes > 0) {
+                currentResult.setReadSize(currentResult.getReadSize() + readBytes);
+
+                Buffer buffer = (Buffer) readResult.getMessage();
+                buffer.trim();
+                readResult.recycle();
+
+                final Buffer remainderBuffer = savedRemainderBuffer;
+                if (remainderBuffer != null) {
+                    savedRemainderBuffer = null;
+
+                    if (remainderBuffer.isComposite()) {
+                        ((CompositeBuffer) remainderBuffer).append(buffer);
+                        buffer = remainderBuffer;
+                    } else {
+                        final CompositeBuffer compositeBuffer =
+                                new ByteBuffersBuffer(
+                                ((Transport) transport).getMemoryManager(),
+                                remainderBuffer.toByteBuffer(),
+                                buffer.toByteBuffer());
+                        compositeBuffer.allowBufferDispose(true);
+
+                        buffer = compositeBuffer;
+                    }
                 }
+
+                do {
+                    final TransformationResult tResult = transformer.transform(
+                            connection, buffer);
+
+                    final Buffer remainder = (Buffer) tResult.getExternalRemainder();
+                    final boolean hasRemaining = transformer.hasInputRemaining(remainder);
+                    if (buffer != null && !hasRemaining && !tResult.hasInternalRemainder()) {
+                        buffer.dispose();
+                    }
+
+                    if (tResult.getStatus() == TransformationResult.Status.COMPLETED) {
+                        currentResult.setMessage(tResult.getMessage());
+                        break;
+                    } else if (tResult.getStatus() == TransformationResult.Status.INCOMPLETED) {
+                        if (hasRemaining) {
+                            savedRemainderBuffer = remainder;
+                            buffer = remainder;
+                        }
+
+                        if (!tResult.hasInternalRemainder()) {
+                            break;
+                        }
+                    } else if (tResult.getStatus() == TransformationResult.Status.ERROR) {
+                        throw new IOException("Transformation exception ("
+                                + tResult.getErrorCode() + "): "
+                                + tResult.getErrorDescription());
+                    }
+                } while (true);
+            } else if (readBytes == -1) {
+                readResult.recycle();
+                return -1;
             }
 
-            do {
-                final TransformationResult tResult = transformer.transform(
-                        connection, buffer);
-
-                final Buffer remainder = (Buffer) tResult.getExternalRemainder();
-                final boolean hasRemaining = transformer.hasInputRemaining(remainder);
-                if (buffer != null && !hasRemaining && !tResult.hasInternalRemainder()) {
-                    buffer.dispose();
-                }
-
-                if (tResult.getStatus() == TransformationResult.Status.COMPLETED) {
-                    currentResult.setMessage(tResult.getMessage());
-                    break;
-                } else if (tResult.getStatus() == TransformationResult.Status.INCOMPLETED) {
-                    if (hasRemaining) {
-                        currentResult.setRemainderBuffer(remainder);
-                        buffer = remainder;
-                    }
-
-                    if (!tResult.hasInternalRemainder()) {
-                        break;
-                    }
-                } else if (tResult.getStatus() == TransformationResult.Status.ERROR) {
-                    throw new IOException("Transformation exception ("
-                            + tResult.getErrorCode() + "): "
-                            + tResult.getErrorDescription());
-                }
-            } while (true);
-        } else if (readBytes == -1) {
-            throw new EOFException();
+            if (interceptor != null) {
+                isCompleted = (interceptor.intercept(Reader.READ_EVENT,
+                        null, currentResult) & Interceptor.COMPLETED) != 0;
+            } else if (transformer != null) {
+                final TransformationResult tResult = transformer.getLastResult(connection);
+                final TransformationResult.Status status = tResult.getStatus();
+                isCompleted = (status == TransformationResult.Status.COMPLETED);
+            }
         }
 
-        return readBytes;
+        return currentResult.getReadSize();
+    }
+
+    private final int readWithoutTransformer(Connection connection,
+            Interceptor<ReadResult> interceptor,
+            ReadResult currentResult, Buffer buffer,
+            long timeout, TimeUnit timeunit) throws IOException {
+
+        boolean isCompleted = false;
+        while (!isCompleted) {
+            isCompleted = true;
+            final int readBytes = read0(connection, currentResult,
+                    buffer, timeout, timeunit);
+
+            if (readBytes <= 0) {
+                return -1;
+            } else {
+                if (interceptor != null) {
+                    isCompleted = (interceptor.intercept(Reader.READ_EVENT,
+                            null, currentResult) & Interceptor.COMPLETED) != 0;
+                }
+            }
+        }
+
+        return currentResult.getReadSize();
     }
 
     protected final int read0(Connection connection, ReadResult currentResult,
@@ -312,12 +335,9 @@ public abstract class TemporarySelectorReader
     }
 
     private final static class ExtendedReadResult<K, L> extends ReadResult<K, L> {
+
         private Buffer remainderBuffer;
-        
-        public ExtendedReadResult(Connection connection) {
-            super(connection);
-        }
-        
+
         public ExtendedReadResult(Connection connection, K message,
                 L srcAddress, int readSize) {
 

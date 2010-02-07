@@ -39,12 +39,12 @@ package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Transformer;
 import java.io.IOException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.TransformationResult.Status;
@@ -65,8 +65,8 @@ public abstract class AbstractStreamWriter implements StreamWriter {
     protected static Logger logger = Grizzly.logger(AbstractStreamWriter.class);
     
     protected static final Integer ZERO = new Integer(0);
-    protected static final Future<Integer> ZERO_READY_FUTURE =
-            new ReadyFutureImpl<Integer>(ZERO);
+    protected static final GrizzlyFuture<Integer> ZERO_READY_FUTURE =
+            ReadyFutureImpl.<Integer>create(ZERO);
     
     private Connection connection;
 
@@ -94,7 +94,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      * Cause the overflow handler to be called even if buffer is not full.
      */
     @Override
-    public Future<Integer> flush() throws IOException {
+    public GrizzlyFuture<Integer> flush() throws IOException {
         return flush(null);
     }
 
@@ -102,7 +102,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      * Cause the overflow handler to be called even if buffer is not full.
      */
     @Override
-    public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
+    public GrizzlyFuture<Integer> flush(CompletionHandler<Integer> completionHandler)
             throws IOException {
         return output.flush(completionHandler);
     }
@@ -127,13 +127,13 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      * {@inheritDoc}
      */
     @Override
-    public Future<Integer> close(CompletionHandler<Integer> completionHandler)
-            throws IOException {
+    public GrizzlyFuture<Integer> close(
+            CompletionHandler<Integer> completionHandler) throws IOException {
         if (!isClosed.getAndSet(true)) {
             return output.close(completionHandler);
         }
 
-        return new ReadyFutureImpl<Integer>(0);
+        return ReadyFutureImpl.<Integer>create(0);
     }
 
     /**
@@ -333,8 +333,8 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      * {@inheritDoc}
      */
     @Override
-    public <E> Future<Stream> encode(Transformer<E, Buffer> encoder, E object)
-            throws IOException {
+    public <E> GrizzlyFuture<Stream> encode(Transformer<E, Buffer> encoder,
+            E object) throws IOException {
         return encode(encoder, object, null);
     }
 
@@ -342,8 +342,9 @@ public abstract class AbstractStreamWriter implements StreamWriter {
      * {@inheritDoc}
      */
     @Override
-    public <E> Future<Stream> encode(Transformer<E, Buffer> encoder, E object,
-            CompletionHandler<Stream> completionHandler) throws IOException {
+    public <E> GrizzlyFuture<Stream> encode(Transformer<E, Buffer> encoder,
+            E object, CompletionHandler<Stream> completionHandler)
+            throws IOException {
         Exception exception = null;
 
         final TransformationResult<E, Buffer> result =
@@ -355,7 +356,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
             if (completionHandler != null) {
                 completionHandler.completed(this);
             }
-            return new ReadyFutureImpl<Stream>(this);
+            return ReadyFutureImpl.<Stream>create(this);
         } else if (status == Status.INCOMPLETED) {
             exception = new IllegalStateException("Encoder returned INCOMPLETED state");
         }
@@ -365,7 +366,7 @@ public abstract class AbstractStreamWriter implements StreamWriter {
                 result.getErrorDescription());
         }
 
-        return new ReadyFutureImpl<Stream>(exception);
+        return ReadyFutureImpl.<Stream>create(exception);
     }
 
     /**

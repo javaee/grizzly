@@ -54,6 +54,7 @@ import com.sun.grizzly.AbstractProcessor;
 import com.sun.grizzly.CompletionHandlerAdapter;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
@@ -119,12 +120,12 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
      * @return {@link Future}
      * @throws java.io.IOException
      */
-    public Future<Connection> accept() throws IOException {
+    public GrizzlyFuture<Connection> accept() throws IOException {
         if (!isStandalone()) {
             throw new IllegalStateException("Accept could be used in standlone mode only");
         }
 
-        final Future<Connection> future = acceptAsync();
+        final GrizzlyFuture<Connection> future = acceptAsync();
         
         if (isBlocking()) {
             try {
@@ -142,11 +143,11 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
      * @return {@link Future}
      * @throws java.io.IOException
      */
-    protected Future<Connection> acceptAsync() throws IOException {
+    protected GrizzlyFuture<Connection> acceptAsync() throws IOException {
         if (!isOpen()) throw new IOException("Connection is closed");
 
         synchronized (acceptSync) {
-            final FutureImpl future = new FutureImpl();
+            final FutureImpl future = FutureImpl.create();
             final SocketChannel acceptedChannel = doAccept();
             if (acceptedChannel != null) {
                 configureAcceptedChannel(acceptedChannel);

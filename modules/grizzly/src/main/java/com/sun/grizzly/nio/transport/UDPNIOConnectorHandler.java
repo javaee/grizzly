@@ -52,6 +52,7 @@ import java.util.concurrent.TimeoutException;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.AbstractSocketConnectorHandler;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
 
@@ -80,12 +81,12 @@ public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler
      * @return non-connected UDP {@link Connection}.
      * @throws java.io.IOException
      */
-    public Future<Connection> connect() throws IOException {
+    public GrizzlyFuture<Connection> connect() throws IOException {
         return connect(null, null, null);
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException {
         
@@ -96,17 +97,17 @@ public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler
         }
     }
 
-    protected Future<Connection> connectSync(SocketAddress remoteAddress,
+    protected GrizzlyFuture<Connection> connectSync(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException {
-        Future<Connection> future = connectAsync(remoteAddress, localAddress,
+        GrizzlyFuture<Connection> future = connectAsync(remoteAddress, localAddress,
                 completionHandler);
         waitNIOFuture(future);
 
         return future;
     }
 
-    protected Future<Connection> connectAsync(SocketAddress remoteAddress,
+    protected GrizzlyFuture<Connection> connectAsync(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException {
         DatagramChannel datagramChannel = DatagramChannel.open();
@@ -150,7 +151,7 @@ public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler
             completionHandler.completed(newConnection);
         }
         
-        return new ReadyFutureImpl(newConnection);
+        return ReadyFutureImpl.<Connection>create(newConnection);
     }
 
     public boolean isReuseAddress() {

@@ -61,7 +61,7 @@ public interface Reader<L> {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public Future<ReadResult<Buffer, L>> read(Connection connection)
+    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection)
             throws IOException;
 
     /**
@@ -72,7 +72,7 @@ public interface Reader<L> {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public Future<ReadResult<Buffer, L>> read(Connection connection,
+    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection,
             Buffer buffer) throws IOException;
 
     /**
@@ -85,7 +85,7 @@ public interface Reader<L> {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public Future<ReadResult<Buffer, L>> read(Connection connection,
+    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection,
             Buffer buffer,
             CompletionHandler<ReadResult<Buffer, L>> completionHandler)
             throws IOException;
@@ -106,7 +106,7 @@ public interface Reader<L> {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public <M> Future<ReadResult<M, L>> read(Connection connection,
+    public <M> GrizzlyFuture<ReadResult<M, L>> read(Connection connection,
             M message,
             CompletionHandler<ReadResult<M, L>> completionHandler,
             Transformer<Buffer, M> transformer)
@@ -127,7 +127,7 @@ public interface Reader<L> {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public <M> Future<ReadResult<M, L>> read(Connection connection,
+    public <M> GrizzlyFuture<ReadResult<M, L>> read(Connection connection,
             M message,
             CompletionHandler<ReadResult<M, L>> completionHandler,
             Transformer<Buffer, M> transformer,

@@ -36,11 +36,11 @@
 package com.sun.grizzly.streams;
 
 import java.io.IOException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Transformer;
 
 /**
@@ -66,20 +66,20 @@ public interface StreamWriter extends Stream {
      * Make sure that all data that has been written is
      * flushed from the stream to its destination.
      */
-    public Future<Integer> flush() throws IOException;
+    public GrizzlyFuture<Integer> flush() throws IOException;
 
     /**
      * Make sure that all data that has been written is
      * flushed from the stream to its destination.
      */
-    public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
-            throws IOException;
+    public GrizzlyFuture<Integer> flush(
+            CompletionHandler<Integer> completionHandler) throws IOException;
 
     /**
      * Close the {@link StreamWriter} and make sure all data was flushed.
      */
-    public Future<Integer> close(CompletionHandler<Integer> completionHandler)
-            throws IOException;
+    public GrizzlyFuture<Integer> close(
+            CompletionHandler<Integer> completionHandler) throws IOException;
 
     /**
      * Write the <tt>boolean</tt> value to the <tt>StreamWriter</tt>.
@@ -231,11 +231,12 @@ public interface StreamWriter extends Stream {
      */
     public void writeBuffer(Buffer buffer) throws IOException;
 
-    public <E> Future<Stream> encode(Transformer<E, Buffer> encoder, E object)
-            throws IOException;
+    public <E> GrizzlyFuture<Stream> encode(Transformer<E, Buffer> encoder,
+            E object) throws IOException;
 
-    public <E> Future<Stream> encode(Transformer<E, Buffer> encoder, E object,
-            CompletionHandler<Stream> completionHandler) throws IOException;
+    public <E> GrizzlyFuture<Stream> encode(Transformer<E, Buffer> encoder,
+            E object, CompletionHandler<Stream> completionHandler)
+            throws IOException;
 
     /**
      * Get the {@link Connection} this <tt>StreamWriter</tt> belongs to.

@@ -43,10 +43,7 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.utils.IOEventMask;
 import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.utils.ArrayIOEventMask;
-import com.sun.grizzly.utils.ConcurrentQueuePool;
-import com.sun.grizzly.utils.ObjectPool;
 import java.io.IOException;
-import com.sun.grizzly.threadpool.DefaultWorkerThread;
 
 /**
  * Abstract {@link FilterChain} implementation,
@@ -61,48 +58,6 @@ public abstract class AbstractFilterChain implements FilterChain {
     // By default interested in all client connection related events
     protected final IOEventMask interestedIoEventsMask = new ArrayIOEventMask(
             IOEventMask.CLIENT_EVENTS_MASK).xor(new ArrayIOEventMask(IOEvent.WRITE));
-
-    /**
-     * {@link FilterChainContext} object pool.
-     */
-    protected final ObjectPool<FilterChainContext> filterChainContextPool =
-            new ConcurrentQueuePool<FilterChainContext>() {
-        @Override
-        public FilterChainContext newInstance() {
-            return new FilterChainContext(filterChainContextPool);
-        }
-
-        @Override
-        public void offer(FilterChainContext context) {
-            Thread thread = Thread.currentThread();
-
-            if (thread instanceof DefaultWorkerThread) {
-                context.release();
-                ((DefaultWorkerThread) thread).setCachedFilterChainContext(context);
-                return;
-            }
-
-            super.offer(context);
-        }
-
-        @Override
-        public FilterChainContext poll() {
-            final Thread thread = Thread.currentThread();
-
-            if (thread instanceof DefaultWorkerThread) {
-                final DefaultWorkerThread workerThread = (DefaultWorkerThread) thread;
-                final FilterChainContext context =
-                        workerThread.removeCachedFilterChainContext();
-                
-                if (context != null) {
-                    context.prepare();
-                    return context;
-                }
-            }
-
-            return super.poll();
-        }
-    };
 
     /**
      * {@inheritDoc}
@@ -152,7 +107,7 @@ public abstract class AbstractFilterChain implements FilterChain {
      */
     @Override
     public FilterChainContext context() {
-        return filterChainContextPool.poll();
+        return FilterChainContext.create();
     }
     
     /**

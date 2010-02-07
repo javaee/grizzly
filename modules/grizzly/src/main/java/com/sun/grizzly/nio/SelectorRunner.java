@@ -38,10 +38,10 @@
 
 package com.sun.grizzly.nio;
 
-import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport.State;
 import com.sun.grizzly.utils.ExceptionHandler.Severity;
 import com.sun.grizzly.utils.StateHolder;
@@ -70,7 +70,7 @@ import java.util.concurrent.TimeUnit;
  */
 public final class SelectorRunner implements Runnable {
     private final static Logger logger = Grizzly.logger(SelectorRunner.class);
-
+    
     private final NIOTransport transport;
     private final StateHolder<State> stateHolder;
     
@@ -79,6 +79,16 @@ public final class SelectorRunner implements Runnable {
 
     private volatile Selector selector;
     private volatile Thread selectorRunnerThread;
+
+    // State fields
+    private boolean isResume;
+
+    private int lastSelectedKeysCount;
+    private SelectionKey key = null;
+    private int keyReadyOps;
+
+    private Iterator<SelectionKey> iterator;
+
 
     public SelectorRunner(NIOTransport transport) {
         this(transport, null);
@@ -158,8 +168,8 @@ public final class SelectorRunner implements Runnable {
                     try {
                         for(SelectionKey selectionKey : selector.keys()) {
                             Connection connection =
-                                    selectionKeyHandler.getConnectionForKey(
-                                    selectionKey);
+                                    transport.getSelectionKeyHandler().
+                                    getConnectionForKey(selectionKey);
                             try {
                                 connection.close();
                             } catch (IOException e) {
@@ -228,20 +238,6 @@ public final class SelectorRunner implements Runnable {
             }
         }
     }
-    
-    boolean isResume;
-
-    SelectorHandler selectorHandler;
-    SelectionKeyHandler selectionKeyHandler;
-    Strategy strategy;
-    
-    int lastSelectedKeysCount;
-    SelectionKey key = null;
-    int keyEventProcessState;
-    int keyReadyOps;
-
-    Set<SelectionKey> readyKeys;
-    Iterator<SelectionKey> iterator;
 
     /**
      * This method handle the processing of all Selector's interest op
@@ -253,9 +249,7 @@ public final class SelectorRunner implements Runnable {
      * @param selectorHandler - the <code>SelectorHandler</code>
      */
     protected boolean doSelect() {
-        selectorHandler = transport.getSelectorHandler();
-        selectionKeyHandler = transport.getSelectionKeyHandler();
-        strategy = transport.getStrategy();
+        final SelectorHandler selectorHandler = transport.getSelectorHandler();
         
         try {
 
@@ -273,7 +267,7 @@ public final class SelectorRunner implements Runnable {
             
             selectorHandler.preSelect(this);
             
-            readyKeys = selectorHandler.select(this);
+            final Set<SelectionKey> readyKeys = selectorHandler.select(this);
 
             if (stateHolder.getState(false) == State.STOPPING) return false;
             
@@ -284,6 +278,7 @@ public final class SelectorRunner implements Runnable {
                 if (!iterateKeys()) return false;
             }
 
+            iterator = null;
             selectorHandler.postSelect(this);
         } catch (ClosedSelectorException e) {
             if (isRunning(false)) {
@@ -313,19 +308,16 @@ public final class SelectorRunner implements Runnable {
                 key = iterator.next();
                 iterator.remove();
                 if (key.isValid()) {
-                    keyEventProcessState = 0;
                     keyReadyOps = key.readyOps();
                     if (!iterateKeyEvents()) return false;
                 } else {
-                    selectionKeyHandler.cancel(key);
+                    transport.getSelectionKeyHandler().cancel(key);
                 }
                 
             } catch (IOException e) {
-                keyEventProcessState = 0;
                 keyReadyOps = 0;
                 notifyConnectionException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Severity.CONNECTION, Level.WARNING, Level.FINE);
             } catch (CancelledKeyException e) {
-                keyEventProcessState = 0;
                 keyReadyOps = 0;
                 notifyConnectionException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Severity.CONNECTION, Level.FINE, Level.FINE);
             }
@@ -336,86 +328,104 @@ public final class SelectorRunner implements Runnable {
 
     private boolean iterateKeyEvents()
             throws IOException {
-        boolean isRunningInSameThread = true;
-        while(keyReadyOps != 0 && isRunningInSameThread) {
-            switch (keyEventProcessState) {
-                // OP_READ
-                case 0: {
-                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_READ);
-                    if (newReadyOps != keyReadyOps) {
-                        keyReadyOps = newReadyOps;
-                        if (selectionKeyHandler.onReadInterest(key)) {
-                            isRunningInSameThread = fire(key, IOEvent.READ);
-                        }
-                        keyEventProcessState = 2;
-                        break;
-                    }
-                    
-                    keyEventProcessState++;
-                }
 
-                // OP_ACCEPT
-                case 1: {
-                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_ACCEPT);
-                    if (newReadyOps != keyReadyOps) {
-                        keyReadyOps = newReadyOps;
-                        if (selectionKeyHandler.onAcceptInterest(key)) {
-                            isRunningInSameThread = fire(key, IOEvent.SERVER_ACCEPT);
-                        }
-                        break;
-                    }
+        final SelectionKeyHandler selectionKeyHandler = transport.getSelectionKeyHandler();
+        final Strategy strategy = transport.getStrategy();
+        final IOEvent[] ioEvents = selectionKeyHandler.getIOEvents(keyReadyOps);
+        final Connection connection = selectionKeyHandler.getConnectionForKey(key);
 
-                    keyEventProcessState++;
-                }
-
-                // OP_WRITE
-                case 2: {
-                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_WRITE);
-                    if (newReadyOps != keyReadyOps) {
-                        keyReadyOps = newReadyOps;
-                        if (selectionKeyHandler.onWriteInterest(key)) {
-                            isRunningInSameThread = fire(key, IOEvent.WRITE);
-                        }
-                        break;
-                    }
-
-                    keyEventProcessState++;
-                }
-
-                // OP_CONNECT
-                case 3: {
-                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_CONNECT);
-                    if (newReadyOps != keyReadyOps) {
-                        keyReadyOps = newReadyOps;
-                        if (selectionKeyHandler.onConnectInterest(key)) {
-                            isRunningInSameThread = fire(key, IOEvent.CONNECTED);
-                        }
-                        break;
-                    }
-
-                    keyEventProcessState++;
-                    break;
-                }
-
-                // WRONG
-                default:
-                {
-                    throw new IllegalStateException("SelectorRunner SelectionKey="
-                            + key + " readyOps=" + keyReadyOps +
-                            " state=" + keyEventProcessState);
+        for(IOEvent ioEvent : ioEvents) {
+            final int interest = selectionKeyHandler.ioEvent2SelectionKeyInterest(ioEvent);
+            keyReadyOps &= (~interest);
+            if (selectionKeyHandler.onProcessInterest(key, interest)) {
+                if (!strategy.executeIoEvent(connection, ioEvent)) {
+                    return false;
                 }
             }
         }
-   
-        return isRunningInSameThread;
+
+        return true;
+
+//        boolean isRunningInSameThread = true;
+//        while(keyReadyOps != 0 && isRunningInSameThread) {
+//            switch (keyEventProcessState) {
+//                // OP_READ
+//                case 0: {
+//                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_READ);
+//                    if (newReadyOps != keyReadyOps) {
+//                        keyReadyOps = newReadyOps;
+//                        if (selectionKeyHandler.onReadInterest(key)) {
+//                            isRunningInSameThread = fire(key, IOEvent.READ);
+//                        }
+//                        keyEventProcessState = 2;
+//                        break;
+//                    }
+//
+//                    keyEventProcessState++;
+//                }
+//
+//                // OP_ACCEPT
+//                case 1: {
+//                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_ACCEPT);
+//                    if (newReadyOps != keyReadyOps) {
+//                        keyReadyOps = newReadyOps;
+//                        if (selectionKeyHandler.onAcceptInterest(key)) {
+//                            isRunningInSameThread = fire(key, IOEvent.SERVER_ACCEPT);
+//                        }
+//                        break;
+//                    }
+//
+//                    keyEventProcessState++;
+//                }
+//
+//                // OP_WRITE
+//                case 2: {
+//                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_WRITE);
+//                    if (newReadyOps != keyReadyOps) {
+//                        keyReadyOps = newReadyOps;
+//                        if (selectionKeyHandler.onWriteInterest(key)) {
+//                            isRunningInSameThread = fire(key, IOEvent.WRITE);
+//                        }
+//                        break;
+//                    }
+//
+//                    keyEventProcessState++;
+//                }
+//
+//                // OP_CONNECT
+//                case 3: {
+//                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_CONNECT);
+//                    if (newReadyOps != keyReadyOps) {
+//                        keyReadyOps = newReadyOps;
+//                        if (selectionKeyHandler.onConnectInterest(key)) {
+//                            isRunningInSameThread = fire(key, IOEvent.CONNECTED);
+//                        }
+//                        break;
+//                    }
+//
+//                    keyEventProcessState++;
+//                    break;
+//                }
+//
+//                // WRONG
+//                default:
+//                {
+//                    throw new IllegalStateException("SelectorRunner SelectionKey="
+//                            + key + " readyOps=" + keyReadyOps +
+//                            " state=" + keyEventProcessState);
+//                }
+//            }
+//        }
+//
+//        return isRunningInSameThread;
     }
 
-    private boolean fire(SelectionKey key, IOEvent ioEvent) throws IOException {
-        Connection connection = selectionKeyHandler.getConnectionForKey(key);
-        Object context = strategy.prepare(connection, ioEvent);
-        transport.fireIOEvent(ioEvent, connection, context);
-        return !strategy.isTerminateThread(context);
-    }
+//    private boolean fire(SelectionKey key, IOEvent ioEvent) throws IOException {
+//        Connection connection = selectionKeyHandler.getConnectionForKey(key);
+//        Object context = strategy.prepare(connection, ioEvent);
+//        transport.fireIOEvent(ioEvent, connection, context);
+//        return !strategy.isTerminateThread(context);
+//    }
 
     public Queue<SelectorHandlerTask> getPendingTasks() {
         return pendingTasks;

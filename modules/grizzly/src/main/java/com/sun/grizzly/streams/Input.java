@@ -38,16 +38,16 @@ package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.utils.conditions.Condition;
 import java.io.IOException;
-import java.util.concurrent.Future;
 
 /**
  *
  * @author Alexey Stashok
  */
 public interface Input {
-    public Future<Integer> notifyCondition(
+    public GrizzlyFuture<Integer> notifyCondition(
             final Condition condition,
             final CompletionHandler<Integer> completionHandler);
 

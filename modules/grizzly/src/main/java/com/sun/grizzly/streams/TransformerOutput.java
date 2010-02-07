@@ -39,6 +39,7 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.TransformationResult.Status;
 import com.sun.grizzly.Transformer;
@@ -49,7 +50,6 @@ import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
-import java.util.concurrent.Future;
 
 /**
  *
@@ -83,7 +83,7 @@ public class TransformerOutput extends BufferedOutput {
     }
 
     @Override
-    protected Future<Integer> flush0(Buffer buffer,
+    protected GrizzlyFuture<Integer> flush0(Buffer buffer,
             final CompletionHandler<Integer> completionHandler)
             throws IOException {
         
@@ -110,7 +110,9 @@ public class TransformerOutput extends BufferedOutput {
                     }
                     outputBufferAttr.set(attributeStorage, (CompositeBuffer) buffer);
 
-                    return new ReadyFutureImpl<Integer>(new IllegalStateException("Can not flush data: Insufficient input data for transformer"));
+                    return ReadyFutureImpl.<Integer>create(
+                            new IllegalStateException("Can not flush data: " +
+                            "Insufficient input data for transformer"));
                 } else if (status == Status.ERROR) {
                     transformer.release(attributeStorage);
                     throw new IOException("Transformation exception: "

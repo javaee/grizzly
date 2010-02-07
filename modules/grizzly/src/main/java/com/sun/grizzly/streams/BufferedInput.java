@@ -37,6 +37,7 @@ package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -44,7 +45,6 @@ import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.utils.conditions.Condition;
 import java.io.EOFException;
 import java.io.IOException;
-import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -191,7 +191,7 @@ public abstract class BufferedInput implements Input {
     }
 
     @Override
-    public Future<Integer> notifyCondition(Condition condition,
+    public GrizzlyFuture<Integer> notifyCondition(Condition condition,
             CompletionHandler<Integer> completionHandler) {
         lock.writeLock().lock();
 
@@ -199,13 +199,14 @@ public abstract class BufferedInput implements Input {
             if (!isCompletionHandlerRegistered) {
                 if (condition.check()) {
                     notifyCompleted(completionHandler);
-                    return new ReadyFutureImpl<Integer>(compositeBuffer.remaining());
+                    return ReadyFutureImpl.<Integer>create(
+                            compositeBuffer.remaining());
                 }
 
                 registrationStackTrace = new Exception();
                 isCompletionHandlerRegistered = true;
                 this.completionHandler = completionHandler;
-                final FutureImpl<Integer> localFuture = new FutureImpl<Integer>();
+                final FutureImpl<Integer> localFuture = FutureImpl.<Integer>create();
                 this.future = localFuture;
                 this.condition = condition;
                 
@@ -213,7 +214,7 @@ public abstract class BufferedInput implements Input {
                     onOpenInputSource();
                 } catch (IOException e) {
                     notifyFailure(completionHandler, e);
-                    return new ReadyFutureImpl<Integer>(e);
+                    return ReadyFutureImpl.<Integer>create(e);
                 }
 
                 return localFuture;

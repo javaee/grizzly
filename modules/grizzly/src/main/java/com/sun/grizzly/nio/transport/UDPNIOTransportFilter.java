@@ -67,12 +67,13 @@ public final class UDPNIOTransportFilter extends FilterAdapter {
         final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
 
         final ReadResult<Buffer, SocketAddress> readResult =
-                new ReadResult<Buffer, SocketAddress>(connection);
+                ReadResult.create(connection);
         transport.read(connection, null, readResult);
 
         if (readResult.getReadSize() > 0) {
             final Buffer buffer = readResult.getMessage().flip();
             final SocketAddress address = readResult.getSrcAddress();
+            readResult.recycle();
 
             ctx.setMessage(buffer);
             ctx.setAddress(address);
@@ -82,6 +83,7 @@ public final class UDPNIOTransportFilter extends FilterAdapter {
                 connection.enableIOEvent(IOEvent.READ);
             }
         } else {
+            readResult.recycle();
             return ctx.getStopAction();
         }
 

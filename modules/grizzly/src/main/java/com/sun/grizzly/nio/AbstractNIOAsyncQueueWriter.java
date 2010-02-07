@@ -40,7 +40,6 @@ package com.sun.grizzly.nio;
 import com.sun.grizzly.Transformer;
 import java.io.IOException;
 import java.net.SocketAddress;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Logger;
 import com.sun.grizzly.AbstractWriter;
@@ -50,6 +49,7 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.TransformationResult;
@@ -73,7 +73,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         implements AsyncQueueWriter<SocketAddress> {
 
     private static final AsyncWriteQueueRecord LOCK_RECORD =
-            new AsyncWriteQueueRecord(null, null, null, null, null, null, null,
+            AsyncWriteQueueRecord.create(null, null, null, null, null, null, null,
             null, false);
     
     protected final NIOTransport transport;
@@ -88,7 +88,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public <M> Future<WriteResult<M, SocketAddress>> write(
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
             Connection connection,
             SocketAddress dstAddress, M message,
             CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
@@ -102,7 +102,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public <M> Future<WriteResult<M, SocketAddress>> write(
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress,
             M message,
             CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
@@ -121,11 +121,11 @@ public abstract class AbstractNIOAsyncQueueWriter
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
 
-        final WriteResult currentResult = new WriteResult(connection,
+        final WriteResult currentResult = WriteResult.create(connection,
                 message, dstAddress, 0);
         
         // create and initialize the write queue record
-        final AsyncWriteQueueRecord queueRecord = new AsyncWriteQueueRecord(
+        final AsyncWriteQueueRecord queueRecord = AsyncWriteQueueRecord.create(
                 message, null, currentResult, completionHandler,
                 transformer, interceptor, dstAddress,
                 transformer == null ? (Buffer) message : null,
@@ -161,11 +161,11 @@ public abstract class AbstractNIOAsyncQueueWriter
                     }
                 }
 
-                return new ReadyFutureImpl<WriteResult<M, SocketAddress>>(currentResult);
+                return ReadyFutureImpl.<WriteResult<M, SocketAddress>>create(currentResult);
             } else { // If either write is not completed or queue is not empty
                 
                 // Create future
-                final FutureImpl future = new FutureImpl();
+                final FutureImpl future = FutureImpl.create();
                 queueRecord.setFuture(future);
 
                 if (cloner != null) {
@@ -202,7 +202,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             }
         } catch (IOException e) {
             onWriteFailure(connection, queueRecord, e);
-            return new ReadyFutureImpl(e);
+            return ReadyFutureImpl.create(e);
         }
     }
 
@@ -232,7 +232,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         final AtomicReference<AsyncWriteQueueRecord> currentElement =
                 connectionQueue.getCurrentElementAtomic();
 
-        AsyncWriteQueueRecord<SocketAddress> queueRecord = currentElement.get();
+        AsyncWriteQueueRecord queueRecord = currentElement.get();
         if (queueRecord == LOCK_RECORD) return;
         
         try {
@@ -347,11 +347,11 @@ public abstract class AbstractNIOAsyncQueueWriter
      * @throws java.io.IOException
      */
     protected final <E> void doWrite(final Connection connection,
-            final AsyncWriteQueueRecord<SocketAddress> queueRecord) throws IOException {
+            final AsyncWriteQueueRecord queueRecord) throws IOException {
         final Transformer transformer = queueRecord.getTransformer();
         if (transformer == null) {
             final Buffer outputBuffer = queueRecord.getOutputBuffer();
-            final SocketAddress dstAddress = queueRecord.getDstAddress();
+            final SocketAddress dstAddress = (SocketAddress) queueRecord.getDstAddress();
             final WriteResult currentResult = queueRecord.getCurrentResult();
             final int bytesWritten = write0(connection, dstAddress,
                     outputBuffer, currentResult);
@@ -361,7 +361,6 @@ public abstract class AbstractNIOAsyncQueueWriter
             }
             
         } else {
-            final WriteResult writeResult = new WriteResult(connection);
             do {
                 final Object message = queueRecord.getMessage();
                 final Buffer outputBuffer = queueRecord.getOutputBuffer();
@@ -369,13 +368,11 @@ public abstract class AbstractNIOAsyncQueueWriter
                 if (outputBuffer != null) {
                     if (outputBuffer.hasRemaining()) {
 
-                        final SocketAddress dstAddress = queueRecord.getDstAddress();
+                        final SocketAddress dstAddress = (SocketAddress) queueRecord.getDstAddress();
                         final WriteResult currentResult = queueRecord.getCurrentResult();
-                        writeResult.setMessage(null);
-                        writeResult.setWrittenSize(0);
 
                         final int bytesWritten = write0(connection, dstAddress,
-                                outputBuffer, writeResult);
+                                outputBuffer, null);
                         if (bytesWritten == -1) {
                             throw new IOException("Connection is closed");
                         }
@@ -426,7 +423,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     }
 
     protected final void onWriteCompleted(Connection connection,
-            AsyncWriteQueueRecord<?> record)
+            AsyncWriteQueueRecord record)
             throws IOException {
 
         final Transformer transformer = record.getTransformer();
@@ -447,10 +444,12 @@ public abstract class AbstractNIOAsyncQueueWriter
         if (completionHandler != null) {
             completionHandler.completed(currentResult);
         }
+
+        record.recycle();
     }
 
     protected final void onWriteIncompleted(Connection connection,
-            AsyncWriteQueueRecord<?> record)
+            AsyncWriteQueueRecord record)
             throws IOException {
 
         WriteResult currentResult = record.getCurrentResult();

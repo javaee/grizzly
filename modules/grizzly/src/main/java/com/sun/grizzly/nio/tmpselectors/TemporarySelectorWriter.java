@@ -52,6 +52,7 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.WriteResult;
@@ -91,7 +92,7 @@ public abstract class TemporarySelectorWriter
      * {@inheritDoc}
      */
     @Override
-    public <M> Future<WriteResult<M, SocketAddress>> write(
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress, M message,
             CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
             Transformer<M, Buffer> transformer,
@@ -115,7 +116,7 @@ public abstract class TemporarySelectorWriter
      *         result
      * @throws java.io.IOException
      */
-    public <M> Future<WriteResult<M, SocketAddress>> write(
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
             Connection connection, SocketAddress dstAddress, M message,
             CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
             Transformer<M, Buffer> transformer,
@@ -132,7 +133,7 @@ public abstract class TemporarySelectorWriter
         }
 
         final WriteResult writeResult =
-                new WriteResult(connection, message, dstAddress, 0);
+                WriteResult.create(connection, message, dstAddress, 0);
 
         if (transformer == null) {
             write0(connection, dstAddress, (Buffer) message, writeResult,
@@ -142,8 +143,8 @@ public abstract class TemporarySelectorWriter
                     writeResult, message, timeout, timeunit);
         }
 
-        final Future<WriteResult<M, SocketAddress>> writeFuture =
-                new ReadyFutureImpl(writeResult);
+        final GrizzlyFuture<WriteResult<M, SocketAddress>> writeFuture =
+                ReadyFutureImpl.<WriteResult<M, SocketAddress>>create(writeResult);
         
         if (completionHandler != null) {
             completionHandler.completed(writeResult);
@@ -158,11 +159,7 @@ public abstract class TemporarySelectorWriter
             final WriteResult currentResult, final Object message,
             final long timeout, final TimeUnit timeunit) throws IOException {
 
-        final WriteResult writeResult = new WriteResult(connection);
-
         do {
-            writeResult.setWrittenSize(0);
-            
             final TransformationResult tResult = transformer.transform(
                     connection, message);
 
@@ -170,7 +167,7 @@ public abstract class TemporarySelectorWriter
                 final Buffer buffer = (Buffer) tResult.getMessage();
                 try {
                     final int writtenBytes = write0(connection, dstAddress,
-                            buffer, writeResult, timeout, timeunit);
+                            buffer, null, timeout, timeunit);
 
                     if (writtenBytes > 0) {
                         currentResult.setWrittenSize(

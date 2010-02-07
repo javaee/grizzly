@@ -56,6 +56,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
 
 /**
@@ -176,7 +177,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
     }
 
     @Override
-    public <M> Future<ReadResult<M, SocketAddress>> read(
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
             final M message,
             final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
             final Transformer<Buffer, M> transformer,
@@ -194,7 +195,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
     }
 
     @Override
-    public <M> Future<WriteResult<M, SocketAddress>> write(
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
             final SocketAddress dstAddress,
             final M message,
             final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,

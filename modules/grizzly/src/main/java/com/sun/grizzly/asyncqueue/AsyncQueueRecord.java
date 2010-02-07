@@ -49,15 +49,23 @@ import com.sun.grizzly.Transformer;
  * @author Alexey Stashok
  */
 public class AsyncQueueRecord<R> {
-    protected final Object originalMessage;
+    protected Object originalMessage;
     protected Object message;
     protected Future future;
-    protected final R currentResult;
-    protected final CompletionHandler completionHandler;
-    protected final Transformer transformer;
-    protected final Interceptor<R> interceptor;
+    protected R currentResult;
+    protected CompletionHandler completionHandler;
+    protected Transformer transformer;
+    protected Interceptor<R> interceptor;
 
     public AsyncQueueRecord(Object originalMessage, Future future,
+            R currentResult, CompletionHandler completionHandler,
+            Transformer transformer, Interceptor<R> interceptor) {
+
+        set(originalMessage, future, currentResult, completionHandler,
+                transformer, interceptor);
+    }
+
+    protected final void set(Object originalMessage, Future future,
             R currentResult, CompletionHandler completionHandler,
             Transformer transformer, Interceptor<R> interceptor) {
 

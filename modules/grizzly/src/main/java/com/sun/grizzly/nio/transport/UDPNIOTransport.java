@@ -92,7 +92,7 @@ import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
-import com.sun.grizzly.strategies.SameThreadStrategy;
+import com.sun.grizzly.strategies.SimpleDynamicStrategy;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.threadpool.AbstractThreadPool;
@@ -380,7 +380,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             }
 
             if (strategy == null) {
-                strategy = new SameThreadStrategy();
+                strategy = new SimpleDynamicStrategy(threadPool);
             }
 
             if (threadPool == null) {
@@ -565,26 +565,28 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     }
 
     @Override
-    public void fireIOEvent(final IOEvent ioEvent, final Connection connection,
-            final Object strategyContext) throws IOException {
+    public IOEventReg fireIOEvent(final IOEvent ioEvent,
+            final Connection connection) throws IOException {
 
         try {
             // First of all try operations, which could run in standalone mode
             if (ioEvent == IOEvent.READ) {
-                processReadIoEvent(ioEvent, (UDPNIOConnection) connection,
-                        strategyContext);
+                return processReadIoEvent(ioEvent, (UDPNIOConnection) connection);
             } else if (ioEvent == IOEvent.WRITE) {
-                processWriteIoEvent(ioEvent, (UDPNIOConnection) connection,
-                        strategyContext);
+                return processWriteIoEvent(ioEvent, (UDPNIOConnection) connection);
             } else {
                 final Processor conProcessor = getConnectionProcessor(
                         connection, ioEvent);
 
                 if (conProcessor != null) {
-                    executeProcessor(ioEvent, connection, conProcessor,
-                            null, null, strategyContext);
+                    if (executeProcessor(ioEvent, connection, conProcessor, null, null)) {
+                        return IOEventReg.REGISTER;
+                    }
+
+                    return IOEventReg.LEAVE;
                 } else {
-                    ((NIOConnection) connection).disableIOEvent(ioEvent);
+                    return IOEventReg.DEREGISTER;
+//                    ((NIOConnection) connection).disableIOEvent(ioEvent);
                 }
             }
         } catch (IOException e) {
@@ -603,59 +605,65 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
     }
 
-    protected void executeProcessor(final IOEvent ioEvent,
+    protected boolean executeProcessor(final IOEvent ioEvent,
             final Connection connection,
             final Processor processor, final ProcessorExecutor executor,
-            final PostProcessor postProcessor, final Object strategyContext)
+            final PostProcessor postProcessor)
             throws IOException {
 
         final ProcessorRunnable processorRunnable = ProcessorRunnable.create(
                 ioEvent, connection, processor, postProcessor);
 
-        strategy.executeProcessor(strategyContext, processorRunnable);
+//        strategy.executeProcessor(strategyContext, processorRunnable);
+        return processorRunnable.execute();
     }
 
-    private void processReadIoEvent(final IOEvent ioEvent,
-            final UDPNIOConnection connection, final Object strategyContext)
-            throws IOException {
+    private IOEventReg processReadIoEvent(final IOEvent ioEvent,
+            final UDPNIOConnection connection) throws IOException {
 
         final UDPNIOAsyncQueueReader asyncQueueReader =
                 (UDPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
 
         if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
-            executeDefaultProcessor(ioEvent, connection, strategyContext);
+            return executeDefaultProcessor(ioEvent, connection);
         } else {
-            connection.disableIOEvent(ioEvent);
-            executeProcessor(ioEvent, connection, asyncQueueReader,
-                    null, null, strategyContext);
+//            connection.disableIOEvent(ioEvent);
+            executeProcessor(ioEvent, connection, asyncQueueReader, null, null);
+            return IOEventReg.LEAVE;
         }
     }
 
-    private void processWriteIoEvent(final IOEvent ioEvent,
-            final UDPNIOConnection connection, final Object strategyContext)
+    private IOEventReg processWriteIoEvent(final IOEvent ioEvent,
+            final UDPNIOConnection connection)
             throws IOException {
         final AsyncQueueWriter asyncQueueWriter = getAsyncQueueIO().getWriter();
 
         if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
-            executeDefaultProcessor(ioEvent, connection, strategyContext);
+            return executeDefaultProcessor(ioEvent, connection);
         } else {
-            connection.disableIOEvent(ioEvent);
-            executeProcessor(ioEvent, connection, asyncQueueWriter,
-                    null, null, strategyContext);
+//            connection.disableIOEvent(ioEvent);
+            executeProcessor(ioEvent, connection, asyncQueueWriter, null, null);
+            return IOEventReg.LEAVE;
         }
     }
 
 
-    private void executeDefaultProcessor(final IOEvent ioEvent,
-            final UDPNIOConnection connection, final Object strategyContext)
-            throws IOException {
+    private IOEventReg executeDefaultProcessor(final IOEvent ioEvent,
+            final UDPNIOConnection connection) throws IOException {
 
-        connection.disableIOEvent(ioEvent);
+//        connection.disableIOEvent(ioEvent);
         final Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
-            executeProcessor(ioEvent, connection, conProcessor, null,
-                    enablingInterestPostProcessor, strategyContext);
+//            executeProcessor(ioEvent, connection, conProcessor, null,
+//                    enablingInterestPostProcessor);
+            if (executeProcessor(ioEvent, connection, conProcessor, null, null)) {
+                return IOEventReg.REGISTER;
+            }
+
+            return IOEventReg.LEAVE;
         }
+
+        return IOEventReg.DEREGISTER;
     }
 
     Processor getConnectionProcessor(final Connection connection,

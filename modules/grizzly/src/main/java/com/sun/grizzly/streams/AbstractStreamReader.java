@@ -38,13 +38,13 @@ package com.sun.grizzly.streams;
 import java.io.EOFException;
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
@@ -384,7 +384,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     @Override
-    public <E> Future<E> decode(Transformer<Stream, E> decoder) {
+    public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder) {
         return decode(decoder, null);
     }
 
@@ -392,8 +392,8 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     @Override
-    public <E> Future<E> decode(Transformer<Stream, E> decoder, CompletionHandler<E> completionHandler) {
-        final FutureImpl<E> future = new FutureImpl<E>();
+    public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder, CompletionHandler<E> completionHandler) {
+        final FutureImpl<E> future = FutureImpl.<E>create();
 
         final CompletionHandlerWrapper completionHandlerWrapper =
                 new CompletionHandlerWrapper(future, completionHandler);
@@ -409,7 +409,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     @Override
-    public Future<Integer> notifyAvailable(int size) {
+    public GrizzlyFuture<Integer> notifyAvailable(int size) {
         return notifyAvailable(size, null);
     }
 
@@ -417,7 +417,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     @Override
-    public Future<Integer> notifyAvailable(final int size,
+    public GrizzlyFuture<Integer> notifyAvailable(final int size,
             CompletionHandler<Integer> completionHandler) {
         return notifyCondition(new Condition() {
             @Override
@@ -431,7 +431,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     @Override
-    public Future<Integer> notifyCondition(Condition condition) {
+    public GrizzlyFuture<Integer> notifyCondition(Condition condition) {
         return notifyCondition(condition, null);
     }
 
@@ -439,7 +439,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      * {@inheritDoc}
      */
     @Override
-    public synchronized Future<Integer> notifyCondition(
+    public synchronized GrizzlyFuture<Integer> notifyCondition(
             final Condition condition,
             final CompletionHandler<Integer> completionHandler) {
         if (isClosed()) {
@@ -448,7 +448,7 @@ public abstract class AbstractStreamReader implements StreamReader {
                 completionHandler.failed(exception);
             }
 
-            return new ReadyFutureImpl<Integer>(exception);
+            return ReadyFutureImpl.<Integer>create(exception);
         }
 
         return input.notifyCondition(condition, completionHandler);

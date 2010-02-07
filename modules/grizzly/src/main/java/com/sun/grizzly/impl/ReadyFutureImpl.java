@@ -38,6 +38,9 @@
 
 package com.sun.grizzly.impl;
 
+import com.sun.grizzly.Cacheable;
+import com.sun.grizzly.GrizzlyFuture;
+import com.sun.grizzly.ThreadCache;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -51,35 +54,75 @@ import java.util.concurrent.TimeoutException;
  * 
  * @author Alexey Stashok
  */
-public class ReadyFutureImpl<R> implements Future<R> {
-
-    protected final R result;
-    private final Throwable failure;
-    private final boolean isCancelled;
+public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
+    private static final ThreadCache.CachedTypeIndex<ReadyFutureImpl> CACHE_IDX =
+            ThreadCache.obtainIndex(ReadyFutureImpl.class);
 
     /**
      * Construct cancelled {@link Future}.
      */
-    public ReadyFutureImpl() {
+    public static <R> ReadyFutureImpl<R> create() {
+        final ReadyFutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
+        if (future != null) {
+            future.isCancelled = true;
+            return future;
+        }
+
+        return new ReadyFutureImpl<R>();
+    }
+
+    /**
+     * Construct {@link Future} with the result.
+     */
+    public static <R> ReadyFutureImpl<R> create(R result) {
+        final ReadyFutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
+        if (future != null) {
+            future.result = result;
+            return future;
+        }
+
+        return new ReadyFutureImpl<R>(result);
+    }
+
+    /**
+     * Construct failed {@link Future}.
+     */
+    public static <R> ReadyFutureImpl<R> create(Throwable failure) {
+        final ReadyFutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
+        if (future != null) {
+            future.failure = failure;
+            return future;
+        }
+
+        return new ReadyFutureImpl<R>(failure);
+    }
+
+    protected R result;
+    private Throwable failure;
+    private boolean isCancelled;
+
+    /**
+     * Construct cancelled {@link Future}.
+     */
+    private ReadyFutureImpl() {
         this(null, null, true);
     }
 
     /**
      * Construct {@link Future} with the result.
      */
-    public ReadyFutureImpl(R result) {
+    private ReadyFutureImpl(R result) {
         this(result, null, false);
     }
 
     /**
      * Construct failed {@link Future}.
      */
-    public ReadyFutureImpl(Throwable failure) {
+    private ReadyFutureImpl(Throwable failure) {
         this(null, failure, false);
     }
 
-    protected ReadyFutureImpl(R result, Throwable failure,
-            boolean isCancelled) {
+    private ReadyFutureImpl(R result, Throwable failure, boolean isCancelled) {
         this.result = result;
         this.failure = failure;
         this.isCancelled = isCancelled;
@@ -163,5 +206,31 @@ public class ReadyFutureImpl<R> implements Future<R> {
      */
     public void failure(Throwable failure) {
         throw new IllegalStateException("Can not be reset on ReadyFutureImpl");
+    }
+
+    private void reset() {
+        result = null;
+        failure = null;
+        isCancelled = false;
+    }
+
+    @Override
+    public void markForRecycle(boolean recycleResult) {
+        recycle(recycleResult);
+    }
+
+    @Override
+    public void recycle(boolean recycleResult) {
+        if (recycleResult && result != null && result instanceof Cacheable) {
+            ((Cacheable) result).recycle();
+        }
+
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+    @Override
+    public void recycle() {
+        recycle(false);
     }
 }

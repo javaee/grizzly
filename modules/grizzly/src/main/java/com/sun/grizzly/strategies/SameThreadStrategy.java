@@ -42,8 +42,9 @@ import java.io.IOException;
 import java.util.concurrent.Executor;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.ProcessorRunnable;
 import com.sun.grizzly.Strategy;
+import com.sun.grizzly.Transport.IOEventReg;
+import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
 
 /**
@@ -58,29 +59,43 @@ public final class SameThreadStrategy implements Strategy {
         sameThreadProcessorExecutor = new CurrentThreadExecutor();
     }
 
-   /**
-    * {@inheritDoc}
-    */
     @Override
-    public Object prepare(Connection connection, IOEvent ioEvent) {
-        return null;
+    public boolean executeIoEvent(Connection connection,
+            IOEvent ioEvent) throws IOException {
+        final IOEventReg regResult =
+                connection.getTransport().fireIOEvent(ioEvent, connection);
+        if (regResult == IOEventReg.DEREGISTER
+                && (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE)) {
+            ((NIOConnection) connection).disableIOEvent(ioEvent);
+        }
+
+        return true;
     }
 
-   /**
-    * {@inheritDoc}
-    */
-    @Override
-    public void executeProcessor(Object strategyContext,
-            ProcessorRunnable processorRunnable) throws IOException {
 
-        sameThreadProcessorExecutor.execute(processorRunnable);
-    }
-
-   /**
-    * {@inheritDoc}
-    */
-    @Override
-    public boolean isTerminateThread(Object strategyContext) {
-        return false;
-    }
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public Object prepare(Connection connection, IOEvent ioEvent) {
+//        return null;
+//    }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public void executeProcessor(Object strategyContext,
+//            ProcessorRunnable processorRunnable) throws IOException {
+//
+//        sameThreadProcessorExecutor.execute(processorRunnable);
+//    }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public boolean isTerminateThread(Object strategyContext) {
+//        return false;
+//    }
 }

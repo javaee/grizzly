@@ -57,7 +57,7 @@ public interface Readable<L> extends Closeable {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public Future<ReadResult<Buffer, L>> read()
+    public GrizzlyFuture<ReadResult<Buffer, L>> read()
             throws IOException;
 
     /**
@@ -67,7 +67,7 @@ public interface Readable<L> extends Closeable {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public Future<ReadResult<Buffer, L>> read(Buffer buffer)
+    public GrizzlyFuture<ReadResult<Buffer, L>> read(Buffer buffer)
             throws IOException;
 
     /**
@@ -79,7 +79,7 @@ public interface Readable<L> extends Closeable {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public Future<ReadResult<Buffer, L>> read(Buffer buffer,
+    public GrizzlyFuture<ReadResult<Buffer, L>> read(Buffer buffer,
             CompletionHandler<ReadResult<Buffer, L>> completionHandler)
             throws IOException;
 
@@ -98,7 +98,7 @@ public interface Readable<L> extends Closeable {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public <M> Future<ReadResult<M, L>> read(M message,
+    public <M> GrizzlyFuture<ReadResult<M, L>> read(M message,
             CompletionHandler<ReadResult<M, L>> completionHandler,
             Transformer<Buffer, M> transformer)
             throws IOException;
@@ -117,7 +117,7 @@ public interface Readable<L> extends Closeable {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public <M> Future<ReadResult<M, L>> read(M message,
+    public <M> GrizzlyFuture<ReadResult<M, L>> read(M message,
             CompletionHandler<ReadResult<M, L>> completionHandler,
             Transformer<Buffer, M> transformer,
             Interceptor<ReadResult> interceptor)

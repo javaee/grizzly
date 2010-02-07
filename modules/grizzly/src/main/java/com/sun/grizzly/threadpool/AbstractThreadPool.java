@@ -75,18 +75,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         public void run() {
         }
     };
-//    protected volatile String name = "GrizzlyWorker";
-    /**
-     * Threads priority
-     */
-//    protected volatile int priority = Thread.NORM_PRIORITY;
-//
-//    protected volatile int corePoolSize;
-//    protected volatile int maxPoolSize;
-//
-//    protected volatile long keepAliveTime;
-//
-//    protected volatile ThreadFactory threadFactory;
+    
     private final AtomicInteger nextThreadId = new AtomicInteger();
     protected final Object stateLock = new Object();
     protected final Map<Worker, Long> workers = new HashMap<Worker, Long>();
@@ -99,19 +88,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
 
         this.config = config;
-//        name = config.getPoolName();
-//        setName(config.getPoolName());
-
-//        corePoolSize = config.getCorePoolSize();
-//        this.maxPoolSize = config.getMaxPoolSize();
-//        this.probe = config.getMonitoringProbe();
-
         if (config.getThreadFactory() == null) {
             config.setThreadFactory(getDefaultThreadFactory());
         }
-
-//        this.threadFactory = config.getThreadFactory() != null ?
-//            config.getThreadFactory() : getDefaultThreadFactory();
     }
 
     /**
@@ -378,13 +357,14 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     }
 
     protected ThreadFactory getDefaultThreadFactory() {
+        final AtomicInteger counter = new AtomicInteger();
+        
         return new ThreadFactory() {
-
             @Override
             public Thread newThread(Runnable r) {
                 return new DefaultWorkerThread(Grizzly.DEFAULT_ATTRIBUTE_BUILDER,
                         config.getPoolName() + "-WorkerThread("
-                        + nextThreadId() + ")", r);
+                        + counter.getAndIncrement() + ")", r);
             }
         };
     }

@@ -58,7 +58,7 @@ public interface Writable<L> extends Closeable {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Buffer buffer)
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(Buffer buffer)
             throws IOException;
 
     /**
@@ -71,7 +71,7 @@ public interface Writable<L> extends Closeable {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(Buffer buffer,
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException;
 
@@ -85,7 +85,7 @@ public interface Writable<L> extends Closeable {
      *         result
      * @throws java.io.IOException
      */
-    public <M> Future<WriteResult<M, L>> write(M message,
+    public <M> GrizzlyFuture<WriteResult<M, L>> write(M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer)
             throws IOException;
@@ -100,7 +100,7 @@ public interface Writable<L> extends Closeable {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(L dstAddress,
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(L dstAddress,
             Buffer buffer) throws IOException;
 
     /**
@@ -115,7 +115,7 @@ public interface Writable<L> extends Closeable {
      *         result
      * @throws java.io.IOException
      */
-    public Future<WriteResult<Buffer, L>> write(L dstAddress,
+    public GrizzlyFuture<WriteResult<Buffer, L>> write(L dstAddress,
             Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException;
@@ -132,7 +132,7 @@ public interface Writable<L> extends Closeable {
      *         result
      * @throws java.io.IOException
      */
-    public <M> Future<WriteResult<M, L>> write(L dstAddress,
+    public <M> GrizzlyFuture<WriteResult<M, L>> write(L dstAddress,
             M message,
             CompletionHandler<WriteResult<M, L>> completionHandler,
             Transformer<M, Buffer> transformer)

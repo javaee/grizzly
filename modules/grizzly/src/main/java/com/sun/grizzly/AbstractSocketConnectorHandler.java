@@ -41,7 +41,6 @@ package com.sun.grizzly;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
-import java.util.concurrent.Future;
 
 /**
  * Abstract class simplifies the implementation of
@@ -66,32 +65,32 @@ public abstract class AbstractSocketConnectorHandler
     }
     
     @Override
-    public Future<Connection> connect(String host, int port)
+    public GrizzlyFuture<Connection> connect(String host, int port)
             throws IOException {
         return connect(new InetSocketAddress(host, port));
     }
     
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress)
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
         return connect(remoteAddress, (SocketAddress) null);
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
         return connect(remoteAddress, null, completionHandler);
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
         return connect(remoteAddress, localAddress, null);
     }
 
     @Override
-    public abstract Future<Connection> connect(SocketAddress remoteAddress,
+    public abstract GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler) throws IOException;
 

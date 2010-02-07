@@ -335,9 +335,9 @@ public class SSLTest extends TestCase {
         private final SSLFilter sslFilter;
 
         private final FutureImpl<Integer> serverCompletedFeature =
-                new FutureImpl<Integer>();
+                FutureImpl.<Integer>create();
         private final FutureImpl<Integer> clientCompletedFeature =
-                new FutureImpl<Integer>();
+                FutureImpl.<Integer>create();
 
         public SSLPingPongFilter(SSLFilter sslFilter, int turnaroundNum) {
             this.sslFilter = sslFilter;

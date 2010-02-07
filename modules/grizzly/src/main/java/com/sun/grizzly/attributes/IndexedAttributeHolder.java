@@ -38,9 +38,7 @@
 
 package com.sun.grizzly.attributes;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -57,14 +55,15 @@ import java.util.Set;
 public final class IndexedAttributeHolder implements AttributeHolder {
     private static final Object[] ZERO_ARRAY = new Object[0];
 
-    protected final ArrayList<Object> attributeValues;
+    private Object[] attributeValues;
+    private int attributesNum;
+
     protected final DefaultAttributeBuilder attributeBuilder;
-    
     protected final IndexedAttributeAccessor indexedAttributeAccessor;
 
     public IndexedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
-        attributeValues = new ArrayList<Object>();
+        attributeValues = new Object[16];
         indexedAttributeAccessor = new IndexedAttributeAccessorImpl();
     }
     
@@ -121,8 +120,8 @@ public final class IndexedAttributeHolder implements AttributeHolder {
     public Set<String> getAttributeNames() {
         Set<String> result = new HashSet<String>();
 
-        for (int i = 0; i < attributeValues.size(); i++) {
-            Object value = attributeValues.get(i);
+        for (int i = 0; i < attributesNum; i++) {
+            Object value = attributeValues[i];
             if (value != null) {
                 Attribute attribute = attributeBuilder.getAttributeByIndex(i);
                 result.add(attribute.name());
@@ -137,7 +136,8 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      */
     @Override
     public void clear() {
-        attributeValues.clear();
+        Arrays.fill(attributeValues, 0, attributesNum, null);
+        attributesNum = 0;
     }
 
     /**
@@ -169,11 +169,11 @@ public final class IndexedAttributeHolder implements AttributeHolder {
          */
         @Override
         public Object getAttribute(int index) {
-            if (index >= attributeValues.size()) {
-                return null;
+            if (index < attributesNum) {
+                return attributeValues[index];
             }
 
-            return attributeValues.get(index);
+            return null;
         }
 
         /**
@@ -182,13 +182,16 @@ public final class IndexedAttributeHolder implements AttributeHolder {
         @Override
         public void setAttribute(int index, Object value) {
             ensureSize(index + 1);
-            attributeValues.set(index, value);
+            attributeValues[index] = value;
         }
+
         private void ensureSize(int size) {
-            final int delta = size - attributeValues.size();
+            final int delta = size - attributeValues.length;
             if (delta > 0) {
-                Collections.addAll(attributeValues,
-                        Arrays.copyOf(ZERO_ARRAY, delta));
+                final int newLength = Math.max(attributeValues.length + delta,
+                        (attributeValues.length * 3) / 2 + 1);
+
+                attributeValues = Arrays.copyOf(attributeValues, newLength);
             }
         }
     }

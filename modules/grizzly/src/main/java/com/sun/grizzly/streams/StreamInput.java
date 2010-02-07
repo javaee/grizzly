@@ -37,9 +37,9 @@ package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.utils.conditions.Condition;
 import java.io.IOException;
-import java.util.concurrent.Future;
 
 /**
  *
@@ -54,7 +54,7 @@ public class StreamInput implements Input {
     }
 
     @Override
-    public Future<Integer> notifyCondition(Condition condition,
+    public GrizzlyFuture<Integer> notifyCondition(Condition condition,
             CompletionHandler<Integer> completionHandler) {
         return streamReader.notifyCondition(condition, completionHandler);
     }

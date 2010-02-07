@@ -38,6 +38,9 @@
 
 package com.sun.grizzly.impl;
 
+import com.sun.grizzly.Cacheable;
+import com.sun.grizzly.GrizzlyFuture;
+import com.sun.grizzly.ThreadCache;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -52,9 +55,22 @@ import java.util.concurrent.TimeoutException;
  * 
  * @author Alexey Stashok
  */
-public class FutureImpl<R> implements Future<R> {
+public class FutureImpl<R> implements GrizzlyFuture<R> {
+    private static final ThreadCache.CachedTypeIndex<FutureImpl> CACHE_IDX =
+            ThreadCache.obtainIndex(FutureImpl.class);
+    /**
+     * Construct {@link Future}.
+     */
+    public static <R> FutureImpl<R> create() {
+        final FutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
+        if (future != null) {
+            return future;
+        }
 
-    private final Object sync;
+        return new FutureImpl<R>();
+    }
+
+    private final Object sync = new Object();
     
     private boolean isDone;
     
@@ -63,12 +79,9 @@ public class FutureImpl<R> implements Future<R> {
     
     protected R result;
 
-    public FutureImpl() {
-        this(new Object());
-    }
+    private int recycleMark;
 
-    public FutureImpl(Object sync) {
-        this.sync = sync;
+    private FutureImpl() {
     }
 
     /**
@@ -191,7 +204,46 @@ public class FutureImpl<R> implements Future<R> {
      * Notify blocked listeners threads about operation completion.
      */
     protected void notifyHaveResult() {
-        isDone = true;
-        sync.notifyAll();
+        if (recycleMark == 0) {
+            isDone = true;
+            sync.notifyAll();
+        } else {
+            recycle(recycleMark == 2);
+        }
+    }
+
+    private void reset() {
+        result = null;
+        failure = null;
+        isCancelled = false;
+        isDone = false;
+        recycleMark = 0;
+    }
+
+    @Override
+    public void markForRecycle(boolean recycleResult) {
+        synchronized(sync) {
+            if (isDone) {
+                recycle(recycleResult);
+            } else {
+                recycleMark = 1 + (recycleResult ? 1 : 0);
+            }
+        }
+    }
+
+
+    @Override
+    public void recycle(boolean recycleResult) {
+        if (recycleResult && result != null && result instanceof Cacheable) {
+            ((Cacheable) result).recycle();
+        }
+
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+    @Override
+    public void recycle() {
+        recycle(false);
     }
 }

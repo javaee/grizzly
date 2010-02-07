@@ -67,9 +67,9 @@ public class CompositeBufferInStreamTest extends TestCase {
         final Buffer portion2 = MemoryUtils.wrap(transport.getMemoryManager(), " ");
         final Buffer portion3 = MemoryUtils.wrap(transport.getMemoryManager(), "world!");
 
-        final FutureImpl lock1 = new FutureImpl();
-        final FutureImpl lock2 = new FutureImpl();
-        final FutureImpl lock3 = new FutureImpl();
+        final FutureImpl lock1 = FutureImpl.create();
+        final FutureImpl lock2 = FutureImpl.create();
+        final FutureImpl lock3 = FutureImpl.create();
 
         final Pair<Buffer, FutureImpl>[] portions = new Pair[]{
             new Pair<Buffer, FutureImpl>(portion1, lock1),

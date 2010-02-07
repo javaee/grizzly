@@ -43,11 +43,40 @@ package com.sun.grizzly;
  *
  * @author Alexey Stashok
  */
-public class WriteResult<K, L> implements Result {
+public final class WriteResult<K, L> implements Result, Cacheable {
+    private static final ThreadCache.CachedTypeIndex<WriteResult> CACHE_IDX =
+            ThreadCache.obtainIndex(WriteResult.class);
+
+    public static final WriteResult create(Connection connection) {
+        final WriteResult writeResult = ThreadCache.takeFromCache(CACHE_IDX);
+        if (writeResult != null) {
+            writeResult.connection = connection;
+            return writeResult;
+        }
+
+        return new WriteResult(connection);
+    }
+
+    public static final <K, L> WriteResult create(Connection connection,
+            K message, L dstAddress, int writeSize) {
+        final WriteResult writeResult = ThreadCache.takeFromCache(CACHE_IDX);
+        if (writeResult != null) {
+            writeResult.connection = connection;
+            writeResult.message = message;
+            writeResult.dstAddress = dstAddress;
+            writeResult.writtenSize = writeSize;
+
+            return writeResult;
+        }
+
+        return new WriteResult(connection, message, dstAddress, writeSize);
+
+    }
+
     /**
      * Connection, from which data were read.
      */
-    private final Connection connection;
+    private Connection connection;
 
     /**
      * message data
@@ -65,11 +94,11 @@ public class WriteResult<K, L> implements Result {
      */
     private int writtenSize;
 
-    public WriteResult(Connection connection) {
+    private WriteResult(Connection connection) {
         this(connection, null, null, 0);
     }
 
-    public WriteResult(Connection connection, K message, L dstAddress,
+    private WriteResult(Connection connection, K message, L dstAddress,
             int writeSize) {
         this.connection = connection;
         this.message = message;
@@ -139,5 +168,18 @@ public class WriteResult<K, L> implements Result {
      */
     public final void setWrittenSize(int writeSize) {
         this.writtenSize = writeSize;
+    }
+
+    private void reset() {
+        connection = null;
+        message = null;
+        dstAddress = null;
+        writtenSize = 0;
+    }
+    
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

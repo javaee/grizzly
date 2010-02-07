@@ -63,7 +63,7 @@ public class WorkerThreadExecutor implements ProcessorExecutor {
     @Override
     public void execute(Runnable task) {
         try {
-            workerThreadPool.submit(task);
+            workerThreadPool.execute(task);
         } catch (RejectedExecutionException e) {
             logger.log(Level.FINE, "Task " + task
                     + " was rejected by ThreadPool. Reason: ", e);

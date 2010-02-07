@@ -39,9 +39,9 @@
 package com.sun.grizzly.nio;
 
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
-import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -70,7 +70,7 @@ public final class RoundRobinConnectionDistributor
     }
 
     @Override
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectableChannel channel, int interestOps, Object attachment,
             CompletionHandler completionHandler) 
             throws IOException {

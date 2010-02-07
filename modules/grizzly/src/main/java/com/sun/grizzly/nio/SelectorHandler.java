@@ -39,11 +39,11 @@
 package com.sun.grizzly.nio;
 
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.Set;
-import java.util.concurrent.Future;
 
 /**
  *
@@ -73,13 +73,13 @@ public interface SelectorHandler {
             SelectableChannel channel, int interest, Object attachment)
             throws IOException;
 
-    public Future<RegisterChannelResult> registerChannelAsync(
+    public GrizzlyFuture<RegisterChannelResult> registerChannelAsync(
             SelectorRunner selectorRunner, SelectableChannel channel,
             int interest, Object attachment, 
             CompletionHandler<RegisterChannelResult> completionHandler)
             throws IOException;
 
-    public Future<Runnable> executeInSelectorThread(
+    public GrizzlyFuture<Runnable> executeInSelectorThread(
             final SelectorRunner selectorRunner, final Runnable runnableTask,
             final CompletionHandler<Runnable> completionHandler);
 

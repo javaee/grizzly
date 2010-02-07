@@ -77,7 +77,7 @@ public class ByteBufferStreamsTest extends TestCase {
 
     public static final int PORT = 7778;
     private static Logger logger = Grizzly.logger(ByteBufferStreamsTest.class);
-    private final FutureImpl<Boolean> poisonFuture = new FutureImpl<Boolean>();
+    private final FutureImpl<Boolean> poisonFuture = FutureImpl.<Boolean>create();
     private Connection clientconnection = null;
     private TCPNIOTransport servertransport = null;
     private StreamWriter clientWriter = null;
@@ -1135,7 +1135,8 @@ public class ByteBufferStreamsTest extends TestCase {
         AbstractStreamReader reader = new AbstractStreamReader(null, source) {
 
             @Override
-            public Future notifyCondition(Condition condition, CompletionHandler completionHandler) {
+            public GrizzlyFuture notifyCondition(Condition condition,
+                    CompletionHandler completionHandler) {
                 throw new UnsupportedOperationException("Not supported yet.");
             }
         };

@@ -39,7 +39,6 @@
 package com.sun.grizzly.nio.transport;
 
 import com.sun.grizzly.Transformer;
-import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.ReadResult;
@@ -57,6 +56,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.Reader;
 import com.sun.grizzly.Writer;
@@ -146,7 +146,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
     }
 
     @Override
-    public <M> Future<ReadResult<M, SocketAddress>> read(
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
             final M message,
             final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
             final Transformer<Buffer, M> transformer,
@@ -158,7 +158,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
             try {
                 final TemporarySelectorReader reader =
                         (TemporarySelectorReader) tcpNioTransport.getTemporarySelectorIO().getReader();
-                final Future future = reader.read(this, message,
+                final GrizzlyFuture future = reader.read(this, message,
                         completionHandler, transformer, interceptor,
                         readTimeoutMillis, TimeUnit.MILLISECONDS);
                 return future;
@@ -169,7 +169,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
         } else {
             try {
                 final Reader reader = tcpNioTransport.getAsyncQueueIO().getReader();
-                final Future future = reader.read(this, message,
+                final GrizzlyFuture future = reader.read(this, message,
                         completionHandler, transformer, interceptor);
                 return future;
             } catch (IOException e) {
@@ -179,7 +179,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
     }
 
     @Override
-    public <M> Future<WriteResult<M, SocketAddress>> write(
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
             SocketAddress dstAddress, M message,
             CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
             Transformer<M, Buffer> transformer) throws IOException {
@@ -190,8 +190,8 @@ public class TCPNIOConnection extends AbstractNIOConnection {
             try {
                 final TemporarySelectorWriter writer =
                         (TemporarySelectorWriter) tcpNioTransport.getTemporarySelectorIO().getWriter();
-                final Future future = writer.write(this, dstAddress, message,
-                        completionHandler, transformer, null,
+                final GrizzlyFuture future = writer.write(this, dstAddress,
+                        message, completionHandler, transformer, null,
                         writeTimeoutMillis, TimeUnit.MILLISECONDS);
                 return future;
             } catch (Exception e) {
@@ -202,7 +202,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
         } else {
             try {
                 final Writer writer = tcpNioTransport.getAsyncQueueIO().getWriter();
-                final Future future = writer.write(this, null, message,
+                final GrizzlyFuture future = writer.write(this, null, message,
                         completionHandler, transformer, null);
                 return future;
             } catch (IOException e) {

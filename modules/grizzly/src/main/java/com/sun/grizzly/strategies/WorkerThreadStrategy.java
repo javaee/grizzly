@@ -40,19 +40,26 @@ package com.sun.grizzly.strategies;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.ProcessorRunnable;
+import com.sun.grizzly.Processor;
 import com.sun.grizzly.Strategy;
+import com.sun.grizzly.Transport.IOEventReg;
+import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
 import com.sun.grizzly.utils.WorkerThreadExecutor;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link Strategy}, which executes {@link Processor}s in worker thread.
  *
  * @author Alexey Stashok
  */
-public class WorkerThreadStrategy implements Strategy {
+public final class WorkerThreadStrategy implements Strategy {
+    private static final Logger logger = Grizzly.logger(WorkerThreadStrategy.class);
+    
     /*
      * NONE,
      * SERVER_ACCEPT,
@@ -83,30 +90,65 @@ public class WorkerThreadStrategy implements Strategy {
             workerThreadProcessorExecutor};
     }
 
-   /**
-    * {@inheritDoc}
-    */
     @Override
-    public Object prepare(Connection connection, IOEvent ioEvent) {
-        return null;
+    public boolean executeIoEvent(final Connection connection,
+            final IOEvent ioEvent) throws IOException {
+        
+        final NIOConnection nioConnection = (NIOConnection) connection;
+        
+        final boolean disableInterest = (ioEvent == IOEvent.READ
+                || ioEvent == IOEvent.WRITE);
+        if (disableInterest) {
+            nioConnection.disableIOEvent(ioEvent);
+        }
+
+        final Executor executor = executors[ioEvent.ordinal()];
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final IOEventReg regResult =
+                            connection.getTransport().fireIOEvent(
+                            ioEvent, connection);
+
+                    if (regResult == IOEventReg.REGISTER && disableInterest) {
+                        nioConnection.enableIOEvent(ioEvent);
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Uncought exception: ", e);
+                }
+            }
+        });
+
+        return true;
     }
 
-   /**
-    * {@inheritDoc}
-    */
-    @Override
-    public void executeProcessor(Object strategyContext,
-            ProcessorRunnable processorRunnable) throws IOException {
 
-        Executor executor = executors[processorRunnable.getIoEvent().ordinal()];
-        executor.execute(processorRunnable);
-    }
 
-   /**
-    * {@inheritDoc}
-    */
-    @Override
-    public boolean isTerminateThread(Object strategyContext) {
-        return false;
-    }
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public Object prepare(Connection connection, IOEvent ioEvent) {
+//        return null;
+//    }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public void executeProcessor(Object strategyContext,
+//            ProcessorRunnable processorRunnable) throws IOException {
+//
+//        Executor executor = executors[processorRunnable.getIoEvent().ordinal()];
+//        executor.execute(processorRunnable);
+//    }
+//
+//   /**
+//    * {@inheritDoc}
+//    */
+//    @Override
+//    public boolean isTerminateThread(Object strategyContext) {
+//        return false;
+//    }
 }

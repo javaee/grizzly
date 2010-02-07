@@ -78,9 +78,9 @@ public final class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
             Transformer transformer,
             Interceptor<ReadResult> interceptor) {
         
-        final AsyncReadQueueRecord record = new AsyncReadQueueRecord(
-                buffer, new FutureImpl(),
-                new ReadResult(connection),
+        final AsyncReadQueueRecord record = AsyncReadQueueRecord.create(
+                buffer, FutureImpl.create(),
+                ReadResult.create(connection),
                 completionHandler, transformer, interceptor);
         ((UDPNIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
     }

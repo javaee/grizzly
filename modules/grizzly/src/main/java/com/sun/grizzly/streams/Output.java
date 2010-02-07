@@ -38,6 +38,7 @@ package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
@@ -65,12 +66,12 @@ public interface Output {
      * Make sure that all data that has been written is
      * flushed from the stream to its destination.
      */
-    public Future<Integer> flush(CompletionHandler<Integer> completionHandler)
-            throws IOException;
+    public GrizzlyFuture<Integer> flush(
+            CompletionHandler<Integer> completionHandler) throws IOException;
 
     /**
      * Close the {@link StreamWriter} and make sure all data was flushed.
      */
-    public Future<Integer> close(CompletionHandler<Integer> completionHandler)
-            throws IOException;
+    public GrizzlyFuture<Integer> close(
+            CompletionHandler<Integer> completionHandler) throws IOException;
 }

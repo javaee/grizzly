@@ -43,9 +43,9 @@ import com.sun.grizzly.Appender;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.memory.BufferUtils;
-import com.sun.grizzly.utils.ObjectPool;
 
 /**
  * {@link FilterChain} {@link Context} implementation.
@@ -56,6 +56,19 @@ import com.sun.grizzly.utils.ObjectPool;
  * @author Alexey Stashok
  */
 public final class FilterChainContext extends Context {
+    private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
+            ThreadCache.obtainIndex(FilterChainContext.class);
+
+    public static FilterChainContext create() {
+        final FilterChainContext context = ThreadCache.takeFromCache(CACHE_IDX);
+        if (context != null) {
+            return context;
+        }
+
+        return new FilterChainContext();
+    }
+
+
     public static final int NO_FILTER_INDEX = -1;
 
     /**
@@ -95,8 +108,7 @@ public final class FilterChainContext extends Context {
 
     private final InvokeAction cachedInvokeAction = new InvokeAction();
 
-    public FilterChainContext(ObjectPool parentPool) {
-        super(parentPool);
+    public FilterChainContext() {
         lastExecutedFilterIdx = NO_FILTER_INDEX;
     }
 
@@ -364,11 +376,17 @@ public final class FilterChainContext extends Context {
      * Release the context associated resources.
      */
     @Override
-    public void release() {
+    public void reset() {
         message = null;
         address = null;
         lastExecutedFilterIdx = NO_FILTER_INDEX;
-        super.release();
+        super.reset();
+    }
+
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
     @Override

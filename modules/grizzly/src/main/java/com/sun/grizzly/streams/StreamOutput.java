@@ -38,6 +38,7 @@ package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import java.io.IOException;
 import java.util.concurrent.Future;
 
@@ -79,12 +80,14 @@ public class StreamOutput implements Output {
     }
 
     @Override
-    public Future<Integer> flush(CompletionHandler<Integer> completionHandler) throws IOException {
+    public GrizzlyFuture<Integer> flush(
+            CompletionHandler<Integer> completionHandler) throws IOException {
         return streamWriter.flush(completionHandler);
     }
 
     @Override
-    public Future<Integer> close(CompletionHandler<Integer> completionHandler) throws IOException {
+    public GrizzlyFuture<Integer> close(
+            CompletionHandler<Integer> completionHandler) throws IOException {
         return streamWriter.close(completionHandler);
     }
 
