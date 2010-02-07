@@ -72,7 +72,7 @@ public final class BuffersBuffer implements CompositeBuffer {
     // Last buffer, which was used with a last get/set
     private Buffer lastBuffer;
 
-    // Dispose underlying Buffer, when remove if from buffers list
+    // Allow to dispose this BuffersBuffer
     private boolean allowBufferDispose = false;
 
     // List of wrapped buffers
@@ -132,6 +132,21 @@ public final class BuffersBuffer implements CompositeBuffer {
     }
 
     @Override
+    public final void tryDispose() {
+        if (allowBufferDispose) {
+            dispose();
+        }
+    }
+
+
+    @Override
+    public void dispose() {
+        checkDispose();
+        isDisposed = true;
+        removeBuffers(true);
+    }
+
+    @Override
     public final boolean isComposite() {
         return true;
     }
@@ -173,13 +188,6 @@ public final class BuffersBuffer implements CompositeBuffer {
         capacity += buffer.remaining();
         limit = capacity;
         return this;
-    }
-
-    @Override
-    public void dispose() {
-        checkDispose();
-        isDisposed = true;
-        disposeBuffers();
     }
 
     @Override
@@ -338,7 +346,8 @@ public final class BuffersBuffer implements CompositeBuffer {
         checkDispose();
 
         if (position == limit) {
-            disposeBuffers();
+            removeBuffers(false);
+            
             clear();
             return;
         }
@@ -490,8 +499,8 @@ public final class BuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public void allowBufferDispose(boolean allowBufferDispose) {
-        this.allowBufferDispose = allowBufferDispose;
+    public void allowBufferDispose(boolean allow) {
+        this.allowBufferDispose = allow;
     }
 
     @Override
@@ -1119,9 +1128,9 @@ public final class BuffersBuffer implements CompositeBuffer {
                 Math.max(newCapacity,(originalArray.length * 3) / 2 + 1));
     }
 
-    private void disposeBuffers() {
-        if (allowBufferDispose) {
-            for(Buffer buffer : buffers) {
+    private void removeBuffers(boolean force) {
+        if (force || allowBufferDispose) {
+            for (Buffer buffer : buffers) {
                 buffer.dispose();
             }
         }

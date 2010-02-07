@@ -56,7 +56,6 @@ public final class IndexedAttributeHolder implements AttributeHolder {
     private static final Object[] ZERO_ARRAY = new Object[0];
 
     private Object[] attributeValues;
-    private int attributesNum;
 
     protected final DefaultAttributeBuilder attributeBuilder;
     protected final IndexedAttributeAccessor indexedAttributeAccessor;
@@ -120,7 +119,7 @@ public final class IndexedAttributeHolder implements AttributeHolder {
     public Set<String> getAttributeNames() {
         Set<String> result = new HashSet<String>();
 
-        for (int i = 0; i < attributesNum; i++) {
+        for (int i = 0; i < attributeValues.length; i++) {
             Object value = attributeValues[i];
             if (value != null) {
                 Attribute attribute = attributeBuilder.getAttributeByIndex(i);
@@ -136,8 +135,7 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      */
     @Override
     public void clear() {
-        Arrays.fill(attributeValues, 0, attributesNum, null);
-        attributesNum = 0;
+        Arrays.fill(attributeValues, null);
     }
 
     /**
@@ -169,7 +167,7 @@ public final class IndexedAttributeHolder implements AttributeHolder {
          */
         @Override
         public Object getAttribute(int index) {
-            if (index < attributesNum) {
+            if (index < attributeValues.length) {
                 return attributeValues[index];
             }
 

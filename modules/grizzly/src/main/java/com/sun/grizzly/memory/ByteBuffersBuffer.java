@@ -37,6 +37,7 @@
 package com.sun.grizzly.memory;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.TransportFactory;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
@@ -51,10 +52,41 @@ import java.util.Arrays;
  */
 public final class ByteBuffersBuffer implements CompositeBuffer {
     private static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
-    
+    private static final ThreadCache.CachedTypeIndex<ByteBuffersBuffer> CACHE_IDX =
+            ThreadCache.obtainIndex(ByteBuffersBuffer.class);
+
+    /**
+     * Construct <tt>ByteBuffersBuffer</tt>.
+     */
+    public static final ByteBuffersBuffer create() {
+        return create(TransportFactory.getInstance().getDefaultMemoryManager(),
+                null, false);
+    }
+
+    public static final ByteBuffersBuffer create(MemoryManager memoryManager) {
+        return create(memoryManager, null, false);
+    }
+
+    public static final ByteBuffersBuffer create(MemoryManager memoryManager,
+            ByteBuffer... buffers) {
+        return create(memoryManager, buffers, false);
+    }
+
+    public static final ByteBuffersBuffer create(MemoryManager memoryManager,
+            ByteBuffer[] buffers, boolean isReadOnly) {
+        final ByteBuffersBuffer buffer = ThreadCache.takeFromCache(CACHE_IDX);
+        if (buffer != null) {
+            buffer.set(memoryManager, buffers, isReadOnly);
+            buffer.isDisposed = false;
+            return buffer;
+        }
+
+        return new ByteBuffersBuffer(memoryManager, buffers, isReadOnly);
+    }
+
     private boolean isDisposed;
 
-    private final boolean isReadOnly;
+    private boolean isReadOnly;
 
     // absolute position
     private int position;
@@ -72,65 +104,75 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     // Last buffer, which was used with a last get/set
     private ByteBuffer lastBuffer;
 
-    // Dispose underlying Buffer, when remove if from buffers list
+    // Allow to dispose this ByteBuffersBuffer
     private boolean allowBufferDispose = false;
 
     // List of wrapped buffers
     private ByteBuffer[] buffers;
     private int buffersSize;
 
-    private final MemoryManager memoryManager;
+    private MemoryManager memoryManager;
 
     private ByteOrder byteOrder = ByteOrder.nativeOrder();
 
-    public ByteBuffersBuffer() {
-        this(TransportFactory.getInstance().getDefaultMemoryManager(), null, false);
-    }
-
-    public ByteBuffersBuffer(MemoryManager memoryManager) {
-        this(memoryManager, null, false);
-    }
-
-    public ByteBuffersBuffer(MemoryManager memoryManager, ByteBuffer... buffers) {
-        this(memoryManager, buffers, false);
-    }
-
-    protected ByteBuffersBuffer(MemoryManager memoryManager,
+    private ByteBuffersBuffer(MemoryManager memoryManager,
             ByteBuffer[] buffers, boolean isReadOnly) {
+        set(memoryManager, buffers, isReadOnly);
+    }
 
+    private void set(MemoryManager memoryManager, ByteBuffer[] buffers,
+            boolean isReadOnly) {
         if (memoryManager != null) {
             this.memoryManager = memoryManager;
         } else {
             this.memoryManager = TransportFactory.getInstance().getDefaultMemoryManager();
         }
-        
+
         if (buffers == null) {
             this.buffers = new ByteBuffer[4];
         } else {
             this.buffers = buffers;
             buffersSize = buffers.length;
         }
-        
+
         capacity = calcCapacity();
 
         this.limit = capacity;
         this.isReadOnly = isReadOnly;
     }
 
-    protected ByteBuffersBuffer(ByteBuffersBuffer that) {
-        this(that, that.isReadOnly);
-    }
-
-    protected ByteBuffersBuffer(ByteBuffersBuffer that, boolean isReadOnly) {
+    private ByteBuffersBuffer copy(ByteBuffersBuffer that) {
         this.memoryManager = that.memoryManager;
         this.buffers = Arrays.copyOf(that.buffers, that.buffers.length);
         this.buffersSize = that.buffersSize;
         this.position = that.position;
         this.limit = that.limit;
         this.capacity = that.capacity;
-        this.isReadOnly = isReadOnly;
+        this.isReadOnly = that.isReadOnly;
+
+        return this;
     }
 
+    @Override
+    public final void tryDispose() {
+        if (allowBufferDispose) {
+            dispose();
+        }
+    }
+
+    @Override
+    public void dispose() {
+        checkDispose();
+        isDisposed = true;
+        removeBuffers(true);
+
+        position = 0;
+        limit = 0;
+
+        ThreadCache.putToCache(CACHE_IDX, this);
+    }
+
+    
     @Override
     public final boolean isComposite() {
         return true;
@@ -213,13 +255,6 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             limit = capacity;
             return this;
         }
-    }
-
-    @Override
-    public void dispose() {
-        checkDispose();
-        isDisposed = true;
-        disposeBuffers();
     }
 
     @Override
@@ -313,7 +348,10 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     @Override
     public ByteBuffersBuffer asReadOnlyBuffer() {
         checkDispose();
-        return new ByteBuffersBuffer(this, true);
+        final ByteBuffersBuffer buffer = create().copy(this);
+        buffer.isReadOnly = true;
+        
+        return buffer;
     }
 
     public void shrink() {
@@ -378,7 +416,8 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         checkDispose();
 
         if (position == limit) {
-            disposeBuffers();
+            removeBuffers(false);
+            
             clear();
             return;
         }
@@ -476,7 +515,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     @Override
     public ByteBuffersBuffer duplicate() {
         checkDispose();
-        return new ByteBuffersBuffer(this);
+        return create().copy(this);
     }
 
     @Override
@@ -535,8 +574,8 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public void allowBufferDispose(boolean allowBufferDispose) {
-        this.allowBufferDispose = allowBufferDispose;
+    public void allowBufferDispose(boolean allow) {
+        this.allowBufferDispose = allow;
     }
 
     @Override
@@ -1162,9 +1201,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         return resultBuffers;
     }
 
-    private void disposeBuffers() {
-        if (allowBufferDispose) {
-            for(ByteBuffer buffer : buffers) {
+    private void removeBuffers(boolean force) {
+        if (force || allowBufferDispose) {
+            for (ByteBuffer buffer : buffers) {
                 MemoryUtils.releaseByteBuffer(memoryManager, buffer);
             }
         }

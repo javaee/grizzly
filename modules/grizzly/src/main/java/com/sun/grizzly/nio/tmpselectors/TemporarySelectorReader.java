@@ -194,7 +194,7 @@ public abstract class TemporarySelectorReader
                         buffer = remainderBuffer;
                     } else {
                         final CompositeBuffer compositeBuffer =
-                                new ByteBuffersBuffer(
+                                ByteBuffersBuffer.create(
                                 ((Transport) transport).getMemoryManager(),
                                 remainderBuffer.toByteBuffer(),
                                 buffer.toByteBuffer());

@@ -89,7 +89,7 @@ public abstract class BufferedOutput implements Output {
     @Override
     public void write(Buffer bufferToWrite) throws IOException {
         if (multiBufferWindow == null) {
-            multiBufferWindow = new ByteBuffersBuffer();
+            multiBufferWindow = ByteBuffersBuffer.create();
         }
 
         final boolean isInternalBufferEmpty = buffer == null ||

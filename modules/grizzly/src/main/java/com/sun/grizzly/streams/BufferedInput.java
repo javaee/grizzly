@@ -66,7 +66,7 @@ public abstract class BufferedInput implements Input {
     protected FutureImpl<Integer> future;
 
     public BufferedInput() {
-        compositeBuffer = new ByteBuffersBuffer();
+        compositeBuffer = ByteBuffersBuffer.create();
     }
 
     protected abstract void onOpenInputSource() throws IOException;

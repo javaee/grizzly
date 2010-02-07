@@ -58,6 +58,8 @@ import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.EchoFilter;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Unit test for {@link TCPNIOTransport}
@@ -67,6 +69,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TCPNIOTransportTest extends TestCase {
 
     public static final int PORT = 7777;
+
+    private static final Logger logger = Grizzly.logger(TCPNIOTransportTest.class);
 
     @Override
     protected void setUp() throws Exception {
@@ -153,7 +157,7 @@ public class TCPNIOTransportTest extends TestCase {
         try {
             final TCPNIOServerConnection serverConnection1 = transport.bind(PORT);
             final TCPNIOServerConnection serverConnection2 = transport.bind(PORT + 1);
-            
+
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
@@ -165,7 +169,7 @@ public class TCPNIOTransportTest extends TestCase {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
             connection.close();
-            
+
             transport.unbind(serverConnection1);
 
             future = transport.connect("localhost", PORT);
@@ -189,7 +193,7 @@ public class TCPNIOTransportTest extends TestCase {
     public void testConnectorHandlerConnectAndWrite() throws Exception {
         Connection connection = null;
         StreamWriter writer = null;
-        
+
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
 
         try {
@@ -213,7 +217,7 @@ public class TCPNIOTransportTest extends TestCase {
             if (writer != null) {
                 writer.close();
             }
-            
+
             if (connection != null) {
                 connection.close();
             }
@@ -286,7 +290,7 @@ public class TCPNIOTransportTest extends TestCase {
             assertTrue(connection != null);
 
             connection.setProcessor(null);
-            
+
             reader = transport.getStreamReader(connection);
             writer = transport.getStreamWriter(connection);
 
@@ -363,7 +367,7 @@ public class TCPNIOTransportTest extends TestCase {
         int packetsNumber = 20;
         final int packetSize = 17644;
         final AtomicInteger serverBytesCounter = new AtomicInteger();
-        
+
         Connection connection = null;
         TCPNIOStreamReader reader = null;
         StreamWriter writer = null;
@@ -455,6 +459,7 @@ public class TCPNIOTransportTest extends TestCase {
             public NextAction handleRead(FilterChainContext ctx,
                     NextAction nextAction) throws IOException {
                 final Buffer buffer = (Buffer) ctx.getMessage();
+                logger.log(Level.INFO, "Feeder. Check size filter: " + buffer);
                 if (buffer.remaining() >= size) {
                     latch.countDown();
                     return nextAction;

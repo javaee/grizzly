@@ -77,6 +77,15 @@ public interface Buffer extends Comparable<Buffer> {
      */
     public void trimRegion();
 
+    public boolean allowBufferDispose();
+
+    public void allowBufferDispose(boolean allowBufferDispose);
+
+    /**
+     * Try to dispose <tt>Buffer</tt> if it's allowed.
+     */
+    public void tryDispose();
+
     /**
      * Notify the allocator that the space for this <tt>Buffer</tt> is no
      * longer needed. All calls to methods on a <tt>Buffer</tt>

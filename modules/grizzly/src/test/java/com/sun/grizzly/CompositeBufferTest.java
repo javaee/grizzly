@@ -503,7 +503,8 @@ public class CompositeBufferTest extends TestCase {
             case BUFFERS:
                 return new BuffersBuffer(TransportFactory.getInstance().getDefaultMemoryManager(), buffers);
             case BYTE_BUFFERS:
-                CompositeBuffer cb = new ByteBuffersBuffer(TransportFactory.getInstance().getDefaultMemoryManager());
+                CompositeBuffer cb = ByteBuffersBuffer.create(
+                        TransportFactory.getInstance().getDefaultMemoryManager());
                 for(Buffer buffer : buffers) cb.append(buffer);
                 return cb;
         }

@@ -106,7 +106,8 @@ public class TransformerOutput extends BufferedOutput {
                 } else if (status == Status.INCOMPLETED) {
                     buffer.compact();
                     if (!buffer.isComposite()) {
-                        buffer = new ByteBuffersBuffer(memoryManager, buffer.toByteBuffer());
+                        buffer = ByteBuffersBuffer.create(
+                                memoryManager, buffer.toByteBuffer());
                     }
                     outputBufferAttr.set(attributeStorage, (CompositeBuffer) buffer);
 

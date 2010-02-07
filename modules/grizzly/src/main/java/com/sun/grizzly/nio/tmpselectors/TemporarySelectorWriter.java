@@ -150,6 +150,10 @@ public abstract class TemporarySelectorWriter
             completionHandler.completed(writeResult);
         }
 
+        if (message instanceof Buffer) {
+            ((Buffer) message).tryDispose();
+        }
+
         return writeFuture;
     }
 

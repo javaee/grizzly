@@ -47,6 +47,8 @@ import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
+import java.nio.ByteBuffer;
+import java.util.logging.Level;
 
 /**
  * Echo {@link Filter} implementation
@@ -64,13 +66,18 @@ public class EchoFilter extends FilterAdapter {
         final Connection connection = ctx.getConnection();
         final Object address = ctx.getAddress();
 
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.log(Level.FINEST, "EchoFilter. connection=" + connection
+                    + " dstAddress=" + address + " message=" + message);
+        }
+        
+        if (message instanceof Buffer) {
+            ByteBuffer bb = ((Buffer) message).toByteBuffer();
+            ((Buffer) message).allowBufferDispose(true);
+        }
+
         final GrizzlyFuture future = connection.write(address, message, null,
                 ctx.getEncoder());
-        if (future.isDone()) {
-            if (message instanceof Buffer) {
-                ((Buffer) message).dispose();
-            }
-        }
 
         future.markForRecycle(true);
         

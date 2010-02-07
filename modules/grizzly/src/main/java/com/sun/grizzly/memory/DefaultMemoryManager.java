@@ -36,6 +36,8 @@
 
 package com.sun.grizzly.memory;
 
+import com.sun.grizzly.Cacheable;
+import com.sun.grizzly.ThreadCache;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
@@ -48,6 +50,25 @@ import com.sun.grizzly.threadpool.DefaultWorkerThread;
  * @author Alexey Stashok
  */
 public final class DefaultMemoryManager extends ByteBufferManager {
+    private static final ThreadCache.CachedTypeIndex<TrimAwareWrapper> CACHE_IDX =
+            ThreadCache.obtainIndex(TrimAwareWrapper.class);
+
+    /**
+     * Construct {@link Future}.
+     */
+    private TrimAwareWrapper createTrimAwareBuffer(
+            ByteBufferManager memoryManager,
+            ByteBuffer underlyingByteBuffer) {
+
+        final TrimAwareWrapper buffer = ThreadCache.takeFromCache(CACHE_IDX);
+        if (buffer != null) {
+            buffer.visible = underlyingByteBuffer;
+            return buffer;
+        }
+
+        return new TrimAwareWrapper(memoryManager, underlyingByteBuffer);
+    }
+
     public static final int DEFAULT_MAX_BUFFER_SIZE = 1024 * 128;
     
     /**
@@ -274,7 +295,7 @@ public final class DefaultMemoryManager extends ByteBufferManager {
 
     @Override
     public ByteBufferWrapper wrap(ByteBuffer byteBuffer) {
-        return new TrimAwareWrapper(this, byteBuffer);
+        return createTrimAwareBuffer(this, byteBuffer);
     }
 
     /**
@@ -368,9 +389,10 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      * other words it's possible to return unused {@link Buffer} space to
      * pool.
      */
-    public final class TrimAwareWrapper extends ByteBufferWrapper {
+    public final class TrimAwareWrapper extends ByteBufferWrapper
+            implements Cacheable {
 
-        public TrimAwareWrapper(ByteBufferManager memoryManager,
+        private TrimAwareWrapper(ByteBufferManager memoryManager,
                 ByteBuffer underlyingByteBuffer) {
             super(memoryManager, underlyingByteBuffer);
         }
@@ -415,6 +437,20 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         @Override
         public void trimRegion() {
             super.trimRegion();
+        }
+
+        @Override
+        public void recycle() {
+            allowBufferDispose = false;
+            disposeStackTrace = null;
+
+            ThreadCache.putToCache(CACHE_IDX, this);
+        }
+
+        @Override
+        public void dispose() {
+            super.dispose();
+            recycle();
         }
     }
 }

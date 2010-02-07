@@ -409,7 +409,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                 tResult = transformer.transform(connection, message);
 
                 if (tResult.getStatus() == TransformationResult.Status.COMPLETED) {
-                    queueRecord.setOutputBuffer((Buffer) tResult.getMessage());
+                    final Buffer resultBuffer = (Buffer) tResult.getMessage();
+                    queueRecord.setOutputBuffer(resultBuffer);
                     queueRecord.setMessage(tResult.getExternalRemainder());
                 } else if (tResult.getStatus() == TransformationResult.Status.INCOMPLETED) {
                     throw new IOException("Transformation exception: provided message is incompleted");
@@ -445,6 +446,12 @@ public abstract class AbstractNIOAsyncQueueWriter
             completionHandler.completed(currentResult);
         }
 
+        final Object originalMessage = record.getOriginalMessage();
+        if (originalMessage instanceof Buffer) {
+            // try to dispose originalBuffer (if allowed)
+            ((Buffer) originalMessage).tryDispose();
+        }
+        
         record.recycle();
     }
 

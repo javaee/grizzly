@@ -61,7 +61,10 @@ public class ByteBufferWrapper implements Buffer {
     
     protected ByteBuffer visible;
 
-    private Exception disposeStackTrace;
+    // Dispose underlying Buffer flag
+    protected boolean allowBufferDispose = false;
+    
+    protected Exception disposeStackTrace;
 
     protected ByteBufferWrapper() {
         this(null, null);
@@ -96,12 +99,30 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
+    public final boolean allowBufferDispose() {
+        return allowBufferDispose;
+    }
+
+    @Override
+    public final void allowBufferDispose(boolean allowBufferDispose) {
+        this.allowBufferDispose = allowBufferDispose;
+    }
+
+    @Override
+    public final void tryDispose() {
+        if (allowBufferDispose) {
+            dispose();
+        }
+    }
+
+
+    @Override
     public void dispose() {
         checkDispose();
         memoryManager.release(this);
 
         visible = null;
-        
+
         if (DEBUG_MODE) {
             disposeStackTrace = new Exception("ByteBufferWrapper was disposed from: ");
         }

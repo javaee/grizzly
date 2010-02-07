@@ -402,10 +402,12 @@ public abstract class AbstractNIOAsyncQueueReader
                         buffer = remainderBuffer;
                     } else {
                         final CompositeBuffer compositeBuffer =
-                                new ByteBuffersBuffer(transport.getMemoryManager(),
+                                ByteBuffersBuffer.create(
+                                transport.getMemoryManager(),
                                 remainderBuffer.toByteBuffer(),
                                 buffer.toByteBuffer());
                         compositeBuffer.allowBufferDispose(true);
+                        buffer = compositeBuffer;
                     }
                 }
 

@@ -55,7 +55,7 @@ public class BufferUtils {
             }
 
             final CompositeBuffer compositeBuffer =
-                    new ByteBuffersBuffer((MemoryManager) null,
+                    ByteBuffersBuffer.create((MemoryManager) null,
                     element1.toByteBuffer());
             compositeBuffer.append(element2);
             return compositeBuffer;

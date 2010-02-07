@@ -155,7 +155,7 @@ public final class TransformerInput extends BufferedInput {
                                 inputBufferAttr.set(attributeStorage,
                                         (CompositeBuffer) bufferToTransform);
                             } else {
-                                savedBuffer = new ByteBuffersBuffer(memoryManager);
+                                savedBuffer = ByteBuffersBuffer.create(memoryManager);
                                 savedBuffer.append(bufferToTransform);
                                 inputBufferAttr.set(attributeStorage, savedBuffer);
                             }

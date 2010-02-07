@@ -50,9 +50,5 @@ public interface CompositeBuffer extends Buffer, Appendable<Buffer> {
     @Override
     public Object[] underlying();
 
-    public boolean allowBufferDispose();
-
-    public void allowBufferDispose(boolean allowBufferDispose);
-
     public void removeAll();
 }
