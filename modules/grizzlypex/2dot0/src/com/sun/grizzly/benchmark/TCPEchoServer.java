@@ -40,6 +40,7 @@ package com.sun.grizzly.benchmark;
 
 import java.lang.reflect.Constructor;
 import com.sun.grizzly.Strategy;
+import com.sun.grizzly.Transport;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.DefaultMemoryManager;
@@ -62,11 +63,12 @@ public class TCPEchoServer {
 
         DefaultMemoryManager memoryManager = (DefaultMemoryManager)
                 transportFactory.getDefaultMemoryManager();
-        memoryManager.setMonitoring(false);
+        memoryManager.setMonitoring(settings.isMonitoringMemory());
 
         int poolSize = (settings.getWorkerThreads());
 
         final ThreadPoolConfig tpc = ThreadPoolConfig.DEFAULT.clone().
+                setPoolName("Grizzly-BM").
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
         TCPNIOTransport transport = transportFactory.createTCPTransport();
@@ -75,7 +77,7 @@ public class TCPEchoServer {
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(new EchoFilter());
 
-        Strategy strategy = loadStrategy(settings.getStrategyClass(), tpc);
+        Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
 
         transport.setStrategy(strategy);
 
@@ -93,8 +95,7 @@ public class TCPEchoServer {
         System.out.println("Totaly allocated " + memoryManager.getTotalBytesAllocated() + " bytes");
     }
 
-    public static Strategy loadStrategy(Class<? extends Strategy> strategy,
-            ThreadPoolConfig config) {
+    public static Strategy loadStrategy(Class<? extends Strategy> strategy, Transport transport) {
         try {
             return strategy.newInstance();
         } catch (Exception e) {
@@ -102,7 +103,7 @@ public class TCPEchoServer {
                 Constructor[] cs = strategy.getConstructors();
                 for (Constructor c : cs) {
                     if (c.getParameterTypes().length == 1 && c.getParameterTypes()[0].isAssignableFrom(ExecutorService.class)) {
-                        return (Strategy) c.newInstance(GrizzlyExecutorService.createInstance(config));
+                        return (Strategy) c.newInstance(transport.getThreadPool());
                     }
                 }
 

@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.benchmark;
 
 import com.sun.grizzly.BaseSelectionKeyHandler;
@@ -45,7 +44,7 @@ import com.sun.grizzly.DefaultProtocolChain;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolChainInstanceHandler;
 import com.sun.grizzly.TCPSelectorHandler;
-import com.sun.grizzly.filter.EchoAsyncWriteQueueFilter;
+import com.sun.grizzly.filter.EchoFilter;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.util.GrizzlyExecutorService;
 import com.sun.grizzly.util.ThreadPoolConfig;
@@ -57,6 +56,7 @@ import java.util.concurrent.ExecutorService;
  * @author oleksiys
  */
 public class TCPEchoServer {
+
     public static void main(String[] args) throws Exception {
         final Settings settings = Settings.parse(args);
         System.out.println(settings);
@@ -73,24 +73,23 @@ public class TCPEchoServer {
 
         int poolSize = (settings.getWorkerThreads() + settings.getSelectorThreads());
         // TODO Need to write a new pipeline to support nothreadpool mode.
-        
-        ThreadPoolConfig config = ThreadPoolConfig.DEFAULT.clone()
-                .setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
+
+        ThreadPoolConfig config = ThreadPoolConfig.DEFAULT.clone().setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
         ExecutorService threadPool = GrizzlyExecutorService.createInstance(config);
 
         ProtocolChainInstanceHandler pciHandler =
-            new ProtocolChainInstanceHandler() {
+                new ProtocolChainInstanceHandler() {
 
-            final private ProtocolChain protocolChain = new DefaultProtocolChain();
+                    final private ProtocolChain protocolChain = new DefaultProtocolChain();
 
-            public ProtocolChain poll() {
-                return protocolChain;
-            }
+                    public ProtocolChain poll() {
+                        return protocolChain;
+                    }
 
-            public boolean offer(ProtocolChain instance) {
-                return true;
-            }
-        };
+                    public boolean offer(ProtocolChain instance) {
+                        return true;
+                    }
+                };
 
         final Controller controller = new Controller();
         // Commented out as advised by JFA.
@@ -104,11 +103,11 @@ public class TCPEchoServer {
 
         ProtocolChain protocolChain = pciHandler.poll();
         protocolChain.addFilter(new ReadFilter());
-        protocolChain.addFilter(new EchoAsyncWriteQueueFilter());
-//        protocolChain.addFilter(new EchoFilter());
+//        protocolChain.addFilter(new EchoAsyncWriteQueueFilter());
+        protocolChain.addFilter(new EchoFilter());
 
         final CountDownLatch latch = new CountDownLatch(1);
-        
+
         controller.addStateListener(new ControllerStateListenerAdapter() {
 
             @Override
@@ -123,7 +122,7 @@ public class TCPEchoServer {
                 latch.countDown();
             }
         });
-        
+
         new Thread(controller).start();
 
         latch.await();
@@ -131,7 +130,6 @@ public class TCPEchoServer {
         if (controller.isStarted()) {
             System.out.println("Press enter to exit...");
             System.in.read();
-
             controller.stop();
         }
     }

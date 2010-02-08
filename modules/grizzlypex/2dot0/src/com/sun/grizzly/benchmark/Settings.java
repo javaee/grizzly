@@ -47,7 +47,7 @@ import com.sun.grizzly.strategies.SameThreadStrategy;
  */
 public class Settings {
 
-    private String host = "localhost";
+    private String host = "0.0.0.0";
     private int port = 9011;
 
     private int workerThreads = 5;
@@ -55,6 +55,8 @@ public class Settings {
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
 
     private Class<? extends Strategy> strategyClass = SameThreadStrategy.class;
+
+    private boolean isMonitoringMemory = false;
 
     private Settings() {
     }
@@ -96,6 +98,8 @@ public class Settings {
                             strategyClass + " was not found. Default strategy: " +
                             settings.strategyClass + " will be used instead.");
                 }
+            } else if ("-monitorMemory".equalsIgnoreCase(param)) {
+                settings.isMonitoringMemory = Boolean.valueOf(value);
             }
         }
 
@@ -146,6 +150,14 @@ public class Settings {
         this.strategyClass = strategyClass;
     }
 
+    public boolean isMonitoringMemory() {
+        return isMonitoringMemory;
+    }
+
+    public void setMonitoringMemory(boolean isMonitoringMemory) {
+        this.isMonitoringMemory = isMonitoringMemory;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -155,9 +167,8 @@ public class Settings {
         sb.append("\nWorker threads: ").append(workerThreads);
         sb.append("\nSelector threads: ").append(selectorThreads);
         sb.append("\nStrategy class: ").append(strategyClass);
+        sb.append("\nMonitoring memory: ").append(isMonitoringMemory);
 
         return sb.toString();
     }
-
-
 }

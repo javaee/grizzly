@@ -51,7 +51,7 @@ public class Settings {
 
     private int selectorThreads = Runtime.getRuntime().availableProcessors();
     
-    private boolean useLeaderFollower = true;
+    private boolean useLeaderFollower = false;
 
     private Settings() {
     }
