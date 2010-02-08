@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -75,8 +75,10 @@ public class DataHandler implements CometHandler<Object[]>{
 
     private volatile boolean ended;
 
+    private final String clientId;
 
-    public DataHandler(BayeuxParser bayeuxParser){
+    public DataHandler(String clientId, BayeuxParser bayeuxParser){
+        this.clientId = clientId;
         this.bayeuxParser = bayeuxParser;
     }
 
@@ -152,6 +154,10 @@ public class DataHandler implements CometHandler<Object[]>{
     }
 
     public void onInterrupt(CometEvent event) throws IOException{   
+    }
+
+    public String getClientId() {
+        return clientId;
     }
 
     public Collection<String> getChannels() {

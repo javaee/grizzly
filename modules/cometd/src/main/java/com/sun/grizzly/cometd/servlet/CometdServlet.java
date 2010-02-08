@@ -42,6 +42,7 @@ import com.sun.grizzly.cometd.CometdRequest;
 import com.sun.grizzly.cometd.CometdResponse;
 import com.sun.grizzly.cometd.EventRouter;
 import com.sun.grizzly.cometd.EventRouterImpl;
+import com.sun.grizzly.cometd.PublishInterceptor;
 import java.io.InputStream;
 import java.io.IOException;
 import javax.servlet.ServletException;
@@ -67,7 +68,11 @@ public class CometdServlet extends HttpServlet {
     private EventRouter eventRouter;
 
     public CometdServlet() {
-        bayeuxParser = new BayeuxParser();
+        this(null);
+    }
+
+    public CometdServlet(PublishInterceptor publishInterceptor) {
+        bayeuxParser = new BayeuxParser(publishInterceptor);
         eventRouter = new EventRouterImpl(bayeuxParser);
     }
 

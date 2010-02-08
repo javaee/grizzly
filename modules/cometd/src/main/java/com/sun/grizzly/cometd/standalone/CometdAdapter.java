@@ -44,6 +44,7 @@ import com.sun.grizzly.cometd.CometdRequest;
 import com.sun.grizzly.cometd.CometdResponse;
 import com.sun.grizzly.cometd.EventRouter;
 import com.sun.grizzly.cometd.EventRouterImpl;
+import com.sun.grizzly.cometd.PublishInterceptor;
 import java.io.InputStream;
 import java.io.IOException;
 
@@ -78,8 +79,12 @@ public class CometdAdapter extends GrizzlyAdapter {
     public static final String COMETD_RESPONSE = "response";
 
     public CometdAdapter() {
+        this(null);
+    }
+
+    public CometdAdapter(PublishInterceptor publishInterceptor) {
         super();
-        bayeuxParser = new BayeuxParser();
+        bayeuxParser = new BayeuxParser(publishInterceptor);
         eventRouter  = new EventRouterImpl(bayeuxParser);
         setHandleStaticResources(true);
     }

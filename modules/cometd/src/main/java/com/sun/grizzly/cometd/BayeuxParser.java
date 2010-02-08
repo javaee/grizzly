@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -70,6 +70,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.AbstractQueue;
+import java.util.Collections;
 import java.util.Map.Entry;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -105,7 +106,7 @@ public class BayeuxParser{
     
     public final static String DEFAULT_CONTENT_TYPE ="text/json";
 
-    protected final static DataHandler dumyhandler = new DataHandler(null);
+    protected final static DataHandler dumyhandler = new DataHandler("dummy", null);
 
     private final SecureRandom random = new SecureRandom();
 
@@ -125,7 +126,17 @@ public class BayeuxParser{
             }
         };
 
+    
+    // Interceptor, which (if not null) will process published data on channel.
+    // If Interceptor is null - default logic is applied - everyone gets notified
+    private volatile PublishInterceptor publishInterceptor;
+    
     public BayeuxParser() {
+        this(null);
+    }
+
+    public BayeuxParser(PublishInterceptor publishInterceptor) {
+        this.publishInterceptor = publishInterceptor;
     }
     
     public void parse(CometdContext cometdContext) throws IOException{
@@ -175,7 +186,10 @@ public class BayeuxParser{
                 byte [] ba = new byte[16]; //128bit
                 random.nextBytes(ba);
                 clientId = Base64Utils.encodeToString(ba,false);
-            }while(authenticatedUsers.putIfAbsent(clientId,dumyhandler) != null);
+            } while (!authenticatedUsers.containsKey(clientId) &&
+                    authenticatedUsers.putIfAbsent(clientId,
+                    new DataHandler(clientId, this)) != null);
+            
             handshakeRes.setClientId(clientId);
         } else {
             handshakeRes.setSuccessful(false);
@@ -261,8 +275,8 @@ public class BayeuxParser{
         DataHandler dataHandler = isAuthenticatedAndValid(cometdContext);        
         if (dataHandler != null){
             if (dataHandler == dumyhandler) {
-                dataHandler = new DataHandler(this);
                 String clientId = subscribeReq.getClientId();
+                dataHandler = new DataHandler(clientId, this);
                 authenticatedUsers.put(clientId, dataHandler);
             }
 
@@ -359,7 +373,14 @@ public class BayeuxParser{
             if (justSubscribedInTheSameRequest) {
                 dataHandler.write(deliverRes.toJSON(), res, false);
             }
-            notifyAll(deliverRes, publishRes.getChannel());
+
+            if (publishInterceptor == null) {
+                notifyAll(deliverRes, publishRes.getChannel());
+            } else {
+                publishInterceptor.onPublish(
+                        new PublishContextImpl(publishRes.getChannel(),
+                        dataHandler, data), deliverRes);
+            }
         }
         notifyEnd(deliverRes, req.getRemotePort(),dataHandler);
     }
@@ -520,5 +541,64 @@ public class BayeuxParser{
     
     public void onStatus(CometdContext cometdContext) throws IOException {
     }
- 
+
+    /**
+     * Interceptor, which (if not null) will process published data on channel.
+     * If Interceptor is null - default logic is applied - everyone gets notified.
+     *
+     * @return {@link PublishInterceptor}
+     */
+    public PublishInterceptor getPublishInterceptor() {
+        return publishInterceptor;
+    }
+
+    /**
+     * Interceptor, which (if not null) will process published data on channel.
+     * If Interceptor is null - default logic is applied - everyone gets notified.
+     *
+     * @param publishInterceptor {@link PublishInterceptor}
+     */
+    public void setPublishInterceptor(PublishInterceptor publishInterceptor) {
+        this.publishInterceptor = publishInterceptor;
+    }
+
+    private class PublishContextImpl implements PublishContext {
+
+        private final String channel;
+        private final DataHandler senderClient;
+        private final Data data;
+
+        public PublishContextImpl(String channel, DataHandler senderClient,
+                Data data) {
+            this.channel = channel;
+            this.senderClient = senderClient;
+            this.data = data;
+        }
+
+        public Set<DataHandler> lookupClientHandlers(String channelId) {
+            final CometContext context =
+                    CometEngine.getEngine().getCometContext(channel);
+            if (context != null) {
+                return context.getCometHandlers();
+            }
+
+            return Collections.EMPTY_SET;
+        }
+        
+        public String getChannel() {
+            return channel;
+        }
+
+        public DataHandler lookupClientHandler(String userId) {
+            return authenticatedUsers.get(userId);
+        }
+
+        public DataHandler getSenderClient() {
+            return senderClient;
+        }
+
+        public Data getData() {
+            return data;
+        }
+    }
 }
