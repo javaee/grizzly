@@ -586,7 +586,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                     return IOEventReg.LEAVE;
                 } else {
                     return IOEventReg.DEREGISTER;
-//                    ((NIOConnection) connection).disableIOEvent(ioEvent);
                 }
             }
         } catch (IOException e) {
@@ -614,7 +613,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         final ProcessorRunnable processorRunnable = ProcessorRunnable.create(
                 ioEvent, connection, processor, postProcessor);
 
-//        strategy.executeProcessor(strategyContext, processorRunnable);
         return processorRunnable.execute();
     }
 
@@ -627,7 +625,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
             return executeDefaultProcessor(ioEvent, connection);
         } else {
-//            connection.disableIOEvent(ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueReader, null, null);
             return IOEventReg.LEAVE;
         }
@@ -641,7 +638,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
             return executeDefaultProcessor(ioEvent, connection);
         } else {
-//            connection.disableIOEvent(ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueWriter, null, null);
             return IOEventReg.LEAVE;
         }
@@ -651,11 +647,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     private IOEventReg executeDefaultProcessor(final IOEvent ioEvent,
             final UDPNIOConnection connection) throws IOException {
 
-//        connection.disableIOEvent(ioEvent);
         final Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
-//            executeProcessor(ioEvent, connection, conProcessor, null,
-//                    enablingInterestPostProcessor);
             if (executeProcessor(ioEvent, connection, conProcessor, null, null)) {
                 return IOEventReg.REGISTER;
             }
