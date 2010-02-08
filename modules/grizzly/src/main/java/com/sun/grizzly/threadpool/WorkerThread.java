@@ -58,4 +58,9 @@ public interface WorkerThread extends Runnable, AttributeStorage {
 
     public long getTransactionTimeout(TimeUnit timeunit);
     public void setTransactionTimeout(long timeout, TimeUnit timeunit);
+
+    public boolean isSelectorThread();
+
+    public void setSelectorThread(boolean isSelectorThread);
+
 }

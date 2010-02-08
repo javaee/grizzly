@@ -122,33 +122,4 @@ public final class WorkerThreadStrategy implements Strategy {
 
         return true;
     }
-
-
-
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public Object prepare(Connection connection, IOEvent ioEvent) {
-//        return null;
-//    }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public void executeProcessor(Object strategyContext,
-//            ProcessorRunnable processorRunnable) throws IOException {
-//
-//        Executor executor = executors[processorRunnable.getIoEvent().ordinal()];
-//        executor.execute(processorRunnable);
-//    }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public boolean isTerminateThread(Object strategyContext) {
-//        return false;
-//    }
 }

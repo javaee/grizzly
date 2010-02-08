@@ -92,7 +92,7 @@ import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
-import com.sun.grizzly.strategies.SimpleDynamicStrategy;
+import com.sun.grizzly.strategies.WorkerThreadStrategy;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.threadpool.AbstractThreadPool;
@@ -351,7 +351,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     public void start() throws IOException {
         state.getStateLocker().writeLock().lock();
         try {
-            State currentState = state.getState(false);
+            State currentState = state.getState();
             if (currentState != State.STOP) {
                 logger.log(Level.WARNING,
                         "Transport is not in STOP or BOUND state!");
@@ -380,7 +380,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             }
 
             if (strategy == null) {
-                strategy = new SimpleDynamicStrategy(threadPool);
+                strategy = new WorkerThreadStrategy(threadPool);
             }
 
             if (threadPool == null) {
@@ -459,7 +459,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (state.getState(false) != State.START) {
+            if (state.getState() != State.START) {
                 logger.log(Level.WARNING,
                         "Transport is not in START state!");
             }
@@ -474,7 +474,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (state.getState(false) != State.PAUSE) {
+            if (state.getState() != State.PAUSE) {
                 logger.log(Level.WARNING,
                         "Transport is not in PAUSE state!");
             }

@@ -350,7 +350,7 @@ public final class ProcessorRunnable implements Runnable, Cacheable {
         final State transportState;
         if (context != null && context.getConnection() != null) {
             transportState = context.getConnection().getTransport().
-                getState().getState(false);
+                getState().getState();
         } else {
             transportState = State.START;
         }

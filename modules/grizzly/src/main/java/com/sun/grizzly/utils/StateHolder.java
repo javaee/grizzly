@@ -56,41 +56,29 @@ import java.util.logging.Logger;
  * 
  * @author Alexey Stashok
  */
-public class StateHolder<E> {
+public final class StateHolder<E> {
     private static Logger _logger = Grizzly.logger(StateHolder.class);
     
     private volatile E state;
     
     private final ReentrantReadWriteLock readWriteLock;
-    private final boolean isLockEnabled;
     
     private Collection<ConditionElement> conditionListeners;
     
     /**
      * Constructs <code>StateHolder</code>.
-     * StateHolder will work in not-locking mode.
      */
     public StateHolder() {
-        this(false);
+        this(null);
     }
     
     /**
      * Constructs <code>StateHolder</code>.
-     * @param isLockEnabled locking mode
      */
-    public StateHolder(boolean isLockEnabled) {
-        this(isLockEnabled, null);
-    }
-
-    /**
-     * Constructs <code>StateHolder</code>.
-     * @param isLockEnabled locking mode
-     */
-    public StateHolder(boolean isLockEnabled, E initialState) {
+    public StateHolder(E initialState) {
         state = initialState;
         readWriteLock = new ReentrantReadWriteLock();
         conditionListeners = new LinkedTransferQueue<ConditionElement>();
-        this.isLockEnabled = isLockEnabled;
     }
 
     /**
@@ -99,59 +87,26 @@ public class StateHolder<E> {
      * @return state
      */
     public E getState() {
-        return getState(isLockEnabled);
+        return state;
     }
     
-    /**
-     * Gets current state
-     * @param locked if true, get will be invoked in locking mode, false - non-locked
-     * @return state
-     */
-    public E getState(boolean locked) {
-        if (locked) {
-            readWriteLock.readLock().lock();
-        }
-        
-        E retState = state;
-        
-        if (locked) {
-            readWriteLock.readLock().unlock();
-        }
-        return retState;
-    }
-
     /**
      * Sets current state
      * Current StateHolder locking mode will be used
      * @param state
      */
     public void setState(E state) {
-        setState(state, isLockEnabled);
-    }
-    
-    /**
-     * Sets current state
-     * @param state
-     * @param locked if true, set will be invoked in locking mode, false - non-locking
-     */
-    public void setState(E state, boolean locked) {
-        if (locked) {
-            readWriteLock.writeLock().lock();
-        }
+        readWriteLock.writeLock().lock();
         
         this.state = state;
         
         // downgrading lock to read
-        if (locked) {
-            readWriteLock.readLock().lock();
-            readWriteLock.writeLock().unlock();
-        }
+        readWriteLock.readLock().lock();
+        readWriteLock.writeLock().unlock();
         
         notifyConditionListeners();
 
-        if (locked) {
-            readWriteLock.readLock().unlock();
-        }
+        readWriteLock.readLock().unlock();
     }
 
     /**
@@ -160,14 +115,6 @@ public class StateHolder<E> {
      */
     public ReentrantReadWriteLock getStateLocker() {
         return readWriteLock;
-    }
-    
-    /**
-     * Gets current locking mode
-     * @return true, if mode is set to locking, false otherwise
-     */
-    public boolean isLockEnabled() {
-        return isLockEnabled;
     }
     
     /**
@@ -232,12 +179,9 @@ public class StateHolder<E> {
      */
     public Future<E> notifyWhenConditionMatchState(Condition condition,
             CompletionHandler<E> completionHandler) {
-        boolean isLockEnabledLocal = isLockEnabled;
         Future<E> resultFuture;
 
-        if (isLockEnabledLocal) {
-            getStateLocker().writeLock().lock();
-        }
+        readWriteLock.readLock().lock();
 
         if (condition.check()) {
             if (completionHandler != null) {
@@ -254,9 +198,7 @@ public class StateHolder<E> {
             resultFuture = future;
         }
 
-        if (isLockEnabledLocal) {
-            getStateLocker().writeLock().unlock();
-        }
+        readWriteLock.readLock().unlock();
 
         return resultFuture;
     }

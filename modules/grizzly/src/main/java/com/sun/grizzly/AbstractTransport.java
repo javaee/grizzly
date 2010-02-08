@@ -117,7 +117,7 @@ public abstract class AbstractTransport implements Transport {
     
     public AbstractTransport(String name) {
         this.name = name;
-        state = new StateHolder<State>(false, State.STOP);
+        state = new StateHolder<State>(State.STOP);
         exceptionHandlers = new LinkedTransferQueue<ExceptionHandler>();
     }
     
@@ -203,7 +203,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public boolean isStopped() {
-        State currentState = state.getState();
+        final State currentState = state.getState();
         return currentState == State.STOP || currentState == State.STOPPING;
     }
 

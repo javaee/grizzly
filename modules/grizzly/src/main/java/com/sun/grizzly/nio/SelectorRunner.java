@@ -43,6 +43,8 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport.State;
+import com.sun.grizzly.threadpool.DefaultWorkerThread;
+import com.sun.grizzly.threadpool.WorkerThread;
 import com.sun.grizzly.utils.ExceptionHandler.Severity;
 import com.sun.grizzly.utils.StateHolder;
 import java.io.IOException;
@@ -84,11 +86,9 @@ public final class SelectorRunner implements Runnable {
     private boolean isResume;
 
     private int lastSelectedKeysCount;
+    private Iterator<SelectionKey> iterator;
     private SelectionKey key = null;
     private int keyReadyOps;
-
-    private Iterator<SelectionKey> iterator;
-
 
     public SelectorRunner(NIOTransport transport) {
         this(transport, null);
@@ -97,7 +97,7 @@ public final class SelectorRunner implements Runnable {
     public SelectorRunner(NIOTransport transport, Selector selector) {
         this.transport = transport;
         this.selector = selector;
-        stateHolder = new StateHolder<State>(false, State.STOP);
+        stateHolder = new StateHolder<State>(State.STOP);
 
         pendingTasks = new LinkedTransferQueue<SelectorHandlerTask>();
         postponedTasks = new LinkedList<SelectorHandlerTask>();
@@ -128,6 +128,11 @@ public final class SelectorRunner implements Runnable {
     }
     
     public void postpone() {
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread instanceof WorkerThread) {
+            ((WorkerThread) currentThread).setSelectorThread(false);
+        }
+        
         selectorRunnerThread = null;
         isResume = true;
     }
@@ -206,7 +211,13 @@ public final class SelectorRunner implements Runnable {
 
     @Override
     public void run() {
-        selectorRunnerThread = Thread.currentThread();
+        final Thread currentThread = Thread.currentThread();
+        selectorRunnerThread = currentThread;
+        final boolean isWorkerThread = currentThread instanceof WorkerThread;
+        if (isWorkerThread) {
+            ((WorkerThread) currentThread).setSelectorThread(true);
+        }
+        
         if (!isResume) {
             selectorRunnerThread.setName(selectorRunnerThread.getName() +
                     " SelectorRunner");
@@ -218,8 +229,8 @@ public final class SelectorRunner implements Runnable {
         boolean isSkipping = false;
         
         try {
-            while (!isSkipping && !isStop(false)) {
-                if (transportStateHolder.getState(false) != State.PAUSE) {
+            while (!isSkipping && !isStop()) {
+                if (transportStateHolder.getState() != State.PAUSE) {
                     isSkipping = !doSelect();
                 } else {
                     try {
@@ -235,6 +246,10 @@ public final class SelectorRunner implements Runnable {
             if (!isSkipping) {
                 stateHolder.setState(State.STOP);
                 selectorRunnerThread = null;
+            }
+
+            if (isWorkerThread) {
+                ((WorkerThread) currentThread).setSelectorThread(false);
             }
         }
     }
@@ -266,10 +281,10 @@ public final class SelectorRunner implements Runnable {
             lastSelectedKeysCount = 0;
             
             selectorHandler.preSelect(this);
-            
+
             final Set<SelectionKey> readyKeys = selectorHandler.select(this);
 
-            if (stateHolder.getState(false) == State.STOPPING) return false;
+            if (stateHolder.getState() == State.STOPPING) return false;
             
             lastSelectedKeysCount = readyKeys.size();
             
@@ -281,7 +296,7 @@ public final class SelectorRunner implements Runnable {
             iterator = null;
             selectorHandler.postSelect(this);
         } catch (ClosedSelectorException e) {
-            if (isRunning(false)) {
+            if (isRunning()) {
                 if (selectorHandler.onSelectorClosed(this)) {
                     return true;
                 }
@@ -345,87 +360,7 @@ public final class SelectorRunner implements Runnable {
         }
 
         return true;
-
-//        boolean isRunningInSameThread = true;
-//        while(keyReadyOps != 0 && isRunningInSameThread) {
-//            switch (keyEventProcessState) {
-//                // OP_READ
-//                case 0: {
-//                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_READ);
-//                    if (newReadyOps != keyReadyOps) {
-//                        keyReadyOps = newReadyOps;
-//                        if (selectionKeyHandler.onReadInterest(key)) {
-//                            isRunningInSameThread = fire(key, IOEvent.READ);
-//                        }
-//                        keyEventProcessState = 2;
-//                        break;
-//                    }
-//
-//                    keyEventProcessState++;
-//                }
-//
-//                // OP_ACCEPT
-//                case 1: {
-//                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_ACCEPT);
-//                    if (newReadyOps != keyReadyOps) {
-//                        keyReadyOps = newReadyOps;
-//                        if (selectionKeyHandler.onAcceptInterest(key)) {
-//                            isRunningInSameThread = fire(key, IOEvent.SERVER_ACCEPT);
-//                        }
-//                        break;
-//                    }
-//
-//                    keyEventProcessState++;
-//                }
-//
-//                // OP_WRITE
-//                case 2: {
-//                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_WRITE);
-//                    if (newReadyOps != keyReadyOps) {
-//                        keyReadyOps = newReadyOps;
-//                        if (selectionKeyHandler.onWriteInterest(key)) {
-//                            isRunningInSameThread = fire(key, IOEvent.WRITE);
-//                        }
-//                        break;
-//                    }
-//
-//                    keyEventProcessState++;
-//                }
-//
-//                // OP_CONNECT
-//                case 3: {
-//                    int newReadyOps = keyReadyOps & (~SelectionKey.OP_CONNECT);
-//                    if (newReadyOps != keyReadyOps) {
-//                        keyReadyOps = newReadyOps;
-//                        if (selectionKeyHandler.onConnectInterest(key)) {
-//                            isRunningInSameThread = fire(key, IOEvent.CONNECTED);
-//                        }
-//                        break;
-//                    }
-//
-//                    keyEventProcessState++;
-//                    break;
-//                }
-//
-//                // WRONG
-//                default:
-//                {
-//                    throw new IllegalStateException("SelectorRunner SelectionKey="
-//                            + key + " readyOps=" + keyReadyOps +
-//                            " state=" + keyEventProcessState);
-//                }
-//            }
-//        }
-//
-//        return isRunningInSameThread;
     }
-
-//    private boolean fire(SelectionKey key, IOEvent ioEvent) throws IOException {
-//        Connection connection = selectionKeyHandler.getConnectionForKey(key);
-//        Object context = strategy.prepare(connection, ioEvent);
-//        transport.fireIOEvent(ioEvent, connection, context);
-//        return !strategy.isTerminateThread(context);
-//    }
 
     public Queue<SelectorHandlerTask> getPendingTasks() {
         return pendingTasks;
@@ -435,21 +370,21 @@ public final class SelectorRunner implements Runnable {
         return postponedTasks;
     }
 
-    private boolean isStop(boolean isBlockingCompare) {
-        State state = stateHolder.getState(isBlockingCompare);
+    private boolean isStop() {
+        State state = stateHolder.getState();
 
         if (state == State.STOP
                     || state == State.STOPPING) return true;
         
-        state = transport.getState().getState(isBlockingCompare);
+        state = transport.getState().getState();
         
         return state == State.STOP
                     || state == State.STOPPING; 
     }
     
-    private boolean isRunning(boolean isBlockingCompare) {
-        return stateHolder.getState(isBlockingCompare) == State.START &&
-                transport.getState().getState(isBlockingCompare) == State.START;
+    private boolean isRunning() {
+        return stateHolder.getState() == State.START &&
+                transport.getState().getState() == State.START;
     }
 
     /**
@@ -466,7 +401,7 @@ public final class SelectorRunner implements Runnable {
     private void notifyConnectionException(SelectionKey key, String description, 
             Exception e, Severity severity, Level runLogLevel,
             Level stoppedLogLevel) {
-        if (isRunning(false)) {
+        if (isRunning()) {
             logger.log(runLogLevel, description, e);
 
             if (key != null) {

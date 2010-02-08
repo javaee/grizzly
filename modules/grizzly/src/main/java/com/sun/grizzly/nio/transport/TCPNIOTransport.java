@@ -92,10 +92,11 @@ import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
-import com.sun.grizzly.strategies.SimpleDynamicStrategy;
+import com.sun.grizzly.strategies.WorkerThreadStrategy;
 import com.sun.grizzly.threadpool.AbstractThreadPool;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
+import com.sun.grizzly.threadpool.WorkerThread;
 import java.io.EOFException;
 import java.nio.ByteBuffer;
 
@@ -159,6 +160,9 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      */
     protected int connectionTimeout =
             TCPNIOConnectorHandler.DEFAULT_CONNECTION_TIMEOUT;
+
+    private int maxReadAttempts = 3;
+    
     private Filter defaultTransportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
     private final EnableInterestPostProcessor enablingInterestPostProcessor;
@@ -195,7 +199,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     public void start() throws IOException {
         state.getStateLocker().writeLock().lock();
         try {
-            State currentState = state.getState(false);
+            State currentState = state.getState();
             if (currentState != State.STOP) {
                 logger.log(Level.WARNING,
                         "Transport is not in STOP or BOUND state!");
@@ -224,7 +228,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
 
             if (strategy == null) {
-                strategy = new SimpleDynamicStrategy(threadPool);
+                strategy = new WorkerThreadStrategy(threadPool);
             }
             
             if (threadPool == null) {
@@ -303,7 +307,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (state.getState(false) != State.START) {
+            if (state.getState() != State.START) {
                 logger.log(Level.WARNING,
                         "Transport is not in START state!");
             }
@@ -318,7 +322,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (state.getState(false) != State.PAUSE) {
+            if (state.getState() != State.PAUSE) {
                 logger.log(Level.WARNING,
                         "Transport is not in PAUSE state!");
             }
@@ -719,7 +723,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
             return executeDefaultProcessor(ioEvent, connection);
         } else {
-//            connection.disableIOEvent(ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueReader, null);
             return IOEventReg.LEAVE;
         }
@@ -732,7 +735,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
             return executeDefaultProcessor(ioEvent, connection);
         } else {
-//            connection.disableIOEvent(ioEvent);
             executeProcessor(ioEvent, connection, asyncQueueWriter, null);
             return IOEventReg.LEAVE;
         }
@@ -742,7 +744,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     private IOEventReg executeDefaultProcessor(IOEvent ioEvent,
             TCPNIOConnection connection) throws IOException {
         
-//        connection.disableIOEvent(ioEvent);
         final Processor conProcessor = getConnectionProcessor(connection, ioEvent);
         if (conProcessor != null) {
             if (executeProcessor(ioEvent, connection, conProcessor, null)) {
@@ -750,8 +751,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
 
             return IOEventReg.LEAVE;
-//            executeProcessor(ioEvent, connection, conProcessor, null,
-//                    enablingInterestPostProcessor);
         }
 
         return IOEventReg.DEREGISTER;
@@ -773,8 +772,11 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     public Buffer read(final Connection connection, Buffer buffer)
             throws IOException {
 
+        final Thread currentThread = Thread.currentThread();
+        final boolean isSelectorThread = (currentThread instanceof WorkerThread) &&
+                ((WorkerThread) currentThread).isSelectorThread();
+        
         final TCPNIOConnection tcpConnection = (TCPNIOConnection) connection;
-
         int read = 0;
 
         final boolean isAllocate = (buffer == null);
@@ -783,7 +785,14 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             final ByteBuffer byteBuffer = buffer.toByteBuffer();
             
             try {
-                read = ((SocketChannel) tcpConnection.getChannel()).read(byteBuffer);
+                final SocketChannel socketChannel =
+                        (SocketChannel) tcpConnection.getChannel();
+                if (!isSelectorThread) {
+                    read = doReadInLoop(socketChannel, byteBuffer);
+                } else {
+                    read = socketChannel.read(byteBuffer);
+                }
+                
             } catch (Exception e) {
                 if (logger.isLoggable(Level.FINE)) {
                     logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
@@ -805,17 +814,29 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
         } else {
             if (buffer.hasRemaining()) {
+                final SocketChannel socketChannel =
+                        (SocketChannel) tcpConnection.getChannel();
+                
                 if (buffer.isComposite()) {
                     final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
-                    read = (int) ((SocketChannel) tcpConnection.getChannel()).read(byteBuffers);
+
+                    if (!isSelectorThread) {
+                        read = doReadInLoop(socketChannel, byteBuffers);
+                    } else {
+                        read = (int) socketChannel.read(byteBuffers);
+                    }
 
                     if (read > 0) {
                         resetByteBuffers(byteBuffers, read);
                         buffer.position(buffer.position() + read);
                     }
                 } else {
-                    read = (int) ((SocketChannel) tcpConnection.getChannel()).read(
-                            buffer.toByteBuffer());
+                    final ByteBuffer byteBuffer = buffer.toByteBuffer();
+                    if (!isSelectorThread) {
+                        read = doReadInLoop(socketChannel, byteBuffer);
+                    } else {
+                        read = socketChannel.read(byteBuffer);
+                    }
                 }
 
                 if (logger.isLoggable(Level.FINE)) {
@@ -829,6 +850,51 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
 
         return buffer;
+    }
+
+    private int doReadInLoop(SocketChannel socketChannel,
+            ByteBuffer byteBuffer) throws IOException {
+        int read = 0;
+        int readAttempt = 0;
+        int readNow;
+        while ((readNow = socketChannel.read(byteBuffer)) >= 0) {
+            read += readNow;
+            if (!byteBuffer.hasRemaining()
+                    || ++readAttempt >= maxReadAttempts) {
+                return read;
+            }
+        }
+
+        if (read == 0) {
+            // Assign last readNow (may be -1)
+            read = readNow;
+        }
+
+        return read;
+    }
+    
+    private int doReadInLoop(SocketChannel socketChannel,
+            ByteBuffer[] byteBuffers) throws IOException {
+        
+        int read = 0;
+        int readAttempt = 0;
+        int readNow;
+        final ByteBuffer lastByteBuffer = byteBuffers[byteBuffers.length - 1];
+        
+        while ((readNow = (int) socketChannel.read(byteBuffers)) >= 0) {
+            read += readNow;
+            if (!lastByteBuffer.hasRemaining()
+                    || ++readAttempt >= maxReadAttempts) {
+                return read;
+            }
+        }
+
+        if (read == 0) {
+            // Assign last readNow (may be -1)
+            read = readNow;
+        }
+        
+        return read;
     }
 
     public int write(Connection connection, Buffer buffer) throws IOException {

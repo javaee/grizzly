@@ -65,6 +65,8 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
 
     private long transactionStartedTimeMillis;
 
+    private boolean isSelectorThread;
+
     public DefaultWorkerThread(AttributeBuilder attrBuilder, String name,
             Runnable runTask) {
         super(runTask, name);
@@ -138,5 +140,15 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     
     protected AttributeHolder createAttributeHolder() {
         return new IndexedAttributeHolder(attrBuilder);
+    }
+
+    @Override
+    public boolean isSelectorThread() {
+        return isSelectorThread;
+    }
+
+    @Override
+    public void setSelectorThread(boolean isSelectorThread) {
+        this.isSelectorThread = isSelectorThread;
     }
 }

@@ -53,7 +53,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public final class RoundRobinConnectionDistributor
         extends AbstractNIOConnectionDistributor {
-    private AtomicInteger counter;
+    private final AtomicInteger counter;
     
     public RoundRobinConnectionDistributor(AbstractNIOTransport transport) {
         super(transport);
@@ -82,7 +82,7 @@ public final class RoundRobinConnectionDistributor
     
     private SelectorRunner getSelectorRunner(int interestOps) {
         final SelectorRunner[] runners = getTransportSelectorRunners();
-        final int index = counter.incrementAndGet() % runners.length;
+        final int index = counter.getAndIncrement() % runners.length;
         
         return runners[index];
     }
