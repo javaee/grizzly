@@ -379,15 +379,15 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 nioChannelDistributor = new RoundRobinConnectionDistributor(this);
             }
 
-            if (strategy == null) {
-                strategy = new WorkerThreadStrategy(threadPool);
-            }
-
             if (threadPool == null) {
                 threadPool = GrizzlyExecutorService.createInstance(
                         ThreadPoolConfig.DEFAULT.clone().
                         setCorePoolSize(selectorRunnersCount * 2).
                         setMaxPoolSize(selectorRunnersCount * 2));
+            }
+
+            if (strategy == null) {
+                strategy = new WorkerThreadStrategy(threadPool);
             }
 
             /* By default TemporarySelector pool size should be equal
