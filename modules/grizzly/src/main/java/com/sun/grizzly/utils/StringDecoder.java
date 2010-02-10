@@ -135,7 +135,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
 
         int tmpLimit = input.limit();
         input.limit(input.position() + stringSize);
-        String stringMessage = input.toString(charset);
+        String stringMessage = input.toStringContent(charset);
         input.position(input.limit());
         input.limit(tmpLimit);
 
@@ -171,7 +171,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             // Terminating sequence was found
             int tmpLimit = input.limit();
             input.limit(termIndex);
-            String stringMessage = input.toString(charset);
+            String stringMessage = input.toStringContent(charset);
             input.limit(tmpLimit);
             input.position(termIndex + terminationBytesLength);
             return TransformationResult.<Buffer, String>createCompletedResult(

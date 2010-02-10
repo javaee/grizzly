@@ -40,6 +40,7 @@ import com.sun.grizzly.Appender;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransportFactory;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 
 /**
  *
@@ -112,6 +113,30 @@ public class BufferUtils {
         return slice;
     }
 
+    public static String toStringContent(ByteBuffer byteBuffer, Charset charset,
+            int position, int limit) {
+        
+        if (charset == null) {
+            charset = Charset.defaultCharset();
+        }
+
+        if (byteBuffer.hasArray()) {
+            return new String(byteBuffer.array(),
+                    position + byteBuffer.arrayOffset(),
+                    limit - position, charset);
+        } else {
+            int oldPosition = byteBuffer.position();
+            int oldLimit = byteBuffer.limit();
+            setPositionLimit(byteBuffer, position, limit);
+
+            byte[] tmpBuffer = new byte[limit - position];
+            byteBuffer.get(tmpBuffer);
+
+            setPositionLimit(byteBuffer, oldPosition, oldLimit);
+            return new String(tmpBuffer, charset);
+        }
+    }
+    
     public static void setPositionLimit(Buffer buffer, int position, int limit) {
         final int currentLimit = buffer.limit();
         

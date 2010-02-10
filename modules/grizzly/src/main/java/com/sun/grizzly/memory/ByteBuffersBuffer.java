@@ -1080,19 +1080,44 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public String toString(Charset charset) {
-        checkDispose();
+    public String toStringContent() {
+        return toStringContent(null, position, limit);
+    }
 
-        int oldPosition = position;
-        byte[] tmpBuffer = new byte[remaining()];
-        get(tmpBuffer);
-        setPosLim(oldPosition, limit);
+    @Override
+    public String toStringContent(Charset charset) {
+        return toStringContent(charset, position, limit);
+    }
+
+    @Override
+    public String toStringContent(Charset charset, int position, int limit) {
+        checkDispose();
 
         if (charset == null) {
             charset = Charset.defaultCharset();
         }
-        
-        return new String(tmpBuffer, charset);
+
+        final long posLocation = locateBufferPosition(position);
+        final long limLocation = locateBufferLimit(limit);
+
+        final ByteBuffer posBuffer = buffers[getBufferIndex(posLocation)];
+        final ByteBuffer limBuffer = buffers[getBufferIndex(limLocation)];
+
+        if (posBuffer == limBuffer) {
+            return BufferUtils.toStringContent(posBuffer, charset,
+                    getBufferPosition(posLocation),
+                    getBufferPosition(limLocation));
+        } else {
+            byte[] tmpBuffer = new byte[limit - position];
+
+            int oldPosition = this.position;
+            int oldLimit = this.limit;
+
+            setPosLim(position, limit);
+            get(tmpBuffer);
+            setPosLim(oldPosition, oldLimit);
+            return new String(tmpBuffer, charset);
+        }
     }
 
     @Override

@@ -456,15 +456,6 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder("ByteBufferWrapper (" +
-                System.identityHashCode(this) + ") [");
-        sb.append("visible=[").append(visible).append(']');
-        sb.append(']');
-        return sb.toString();
-    }
-
-    @Override
     public int hashCode() {
         return visible.hashCode();
     }
@@ -506,24 +497,28 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public String toString(Charset charset) {
-        checkDispose();
+    public String toString() {
+        StringBuilder sb = new StringBuilder("ByteBufferWrapper (" +
+                System.identityHashCode(this) + ") [");
+        sb.append("visible=[").append(visible).append(']');
+        sb.append(']');
+        return sb.toString();
+    }
 
-        if (charset == null) {
-            charset = Charset.defaultCharset();
-        }
-        
-        if (visible.hasArray()) {
-            return new String(visible.array(),
-                    visible.position() + visible.arrayOffset(),
-                    visible.remaining(), charset);
-        } else {
-            int oldPosition = visible.position();
-            byte[] tmpBuffer = new byte[visible.remaining()];
-            visible.get(tmpBuffer);
-            visible.position(oldPosition);
-            return new String(tmpBuffer, charset);
-        }
+    @Override
+    public String toStringContent() {
+        return toStringContent(Charset.defaultCharset(), position(), limit());
+    }
+
+    @Override
+    public String toStringContent(Charset charset) {
+        return toStringContent(charset, position(), limit());
+    }
+
+    @Override
+    public String toStringContent(Charset charset, int position, int limit) {
+        checkDispose();
+        return BufferUtils.toStringContent(visible, charset, position, limit);
     }
 
     @Override

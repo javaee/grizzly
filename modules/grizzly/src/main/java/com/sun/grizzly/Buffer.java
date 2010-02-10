@@ -1135,13 +1135,31 @@ public interface Buffer extends Comparable<Buffer> {
     public Buffer putDouble(int index, double value);
 
     /**
+     * Returns {@link Buffer} content as {@link String}, using default {@link Charset}
+     *
+     * @return {@link String} representation of this {@link Buffer} content.
+     */
+    public String toStringContent();
+
+    /**
      * Returns {@link Buffer} content as {@link String}
      * @param charset the {@link Charset}, which will be use
      * for byte[] -> {@link String} transformation.
      *
      * @return {@link String} representation of this {@link Buffer} content.
      */
-    public String toString(Charset charset);
+    public String toStringContent(Charset charset);
+
+    /**
+     * Returns {@link Buffer}'s chunk content as {@link String}
+     * @param charset the {@link Charset}, which will be use
+     * for byte[] -> {@link String} transformation.
+     * @param position the first byte offset in the <tt>Buffer</tt> (inclusive)
+     * @param limit the last byte offset in the <tt>Buffer</tt> (exclusive)
+     *
+     * @return {@link String} representation of part of this {@link Buffer}.
+     */
+    public String toStringContent(Charset charset, int position, int limit);
 
     public ByteBuffer toByteBuffer();
 
