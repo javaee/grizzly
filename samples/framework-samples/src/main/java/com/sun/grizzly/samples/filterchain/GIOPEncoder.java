@@ -52,7 +52,7 @@ import com.sun.grizzly.attributes.AttributeStorage;
 public class GIOPEncoder extends AbstractTransformer<GIOPMessage, Buffer> {
 
     @Override
-    public TransformationResult<GIOPMessage, Buffer> transform(
+    public TransformationResult<GIOPMessage, Buffer> transformImpl(
             final AttributeStorage storage,
             final GIOPMessage input) throws TransformationException {
 
@@ -80,9 +80,8 @@ public class GIOPEncoder extends AbstractTransformer<GIOPMessage, Buffer> {
         // Body
         output.put(input.getBody());
 
-        return saveLastResult(storage,
-                TransformationResult.<GIOPMessage, Buffer>createCompletedResult(
-                output.flip(), null, false));
+        return TransformationResult.<GIOPMessage, Buffer>createCompletedResult(
+                output.flip(), null, false);
     }
 
     @Override

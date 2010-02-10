@@ -67,6 +67,16 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     }
 
     @Override
+    public final TransformationResult<K, L> transform(AttributeStorage storage,
+            K input) throws TransformationException {
+        return saveLastResult(storage, transformImpl(storage, input));
+    }
+
+    protected abstract TransformationResult<K, L> transformImpl(
+            AttributeStorage storage,
+            K input) throws TransformationException;
+
+    @Override
     public final TransformationResult<K, L> getLastResult(
             final AttributeStorage storage) {
         return lastResultAttribute.get(storage);

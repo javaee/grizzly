@@ -106,8 +106,8 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
     }
 
     @Override
-    public TransformationResult<E, Buffer> transform(AttributeStorage storage,
-            E input) throws TransformationException {
+    public TransformationResult<E, Buffer> transformImpl(
+            AttributeStorage storage, E input) throws TransformationException {
 
 
         final MemoryManager memoryManager = obtainMemoryManager(storage);
@@ -300,7 +300,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
             TransformationResult<E, Buffer> lastResult) {
         currentTransformerIdxAttribute.set(storage, index);
         messageProcessingTreeAttribute.set(storage, messageProcessingTree);
-        return saveLastResult(storage, lastResult);
+        return lastResult;
     }
 
     protected Class<? extends Transformer> getTransformer(Class clazz) {

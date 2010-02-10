@@ -97,8 +97,9 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
     }
 
     @Override
-    public TransformationResult<Buffer, String> transform(AttributeStorage storage,
-            Buffer input) throws TransformationException {
+    public TransformationResult<Buffer, String> transformImpl(
+            AttributeStorage storage, Buffer input)
+            throws TransformationException {
 
         if (input == null) {
             throw new TransformationException("Input could not be null");
@@ -112,7 +113,6 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             result = parseWithTerminatingSeq(storage, input);
         }
 
-        lastResultAttribute.set(storage, result);
         return result;
     }
 

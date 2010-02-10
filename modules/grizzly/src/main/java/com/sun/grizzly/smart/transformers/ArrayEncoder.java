@@ -65,7 +65,7 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
     }
 
     @Override
-    public TransformationResult<Object, Buffer> transform(
+    public TransformationResult<Object, Buffer> transformImpl(
             AttributeStorage storage, Object input)
             throws TransformationException {
 
@@ -87,16 +87,14 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
             currentElementIdx += bytesToCopy;
 
             if (currentElementIdx < size) {
-                return saveLastResult(storage,
-                        TransformationResult.<Object, Buffer>createIncompletedResult(
-                        null, false));
+                return TransformationResult.<Object, Buffer>createIncompletedResult(
+                        null, false);
             }
 
             output.flip();
             
-            return saveLastResult(storage,
-                    TransformationResult.<Object, Buffer>createCompletedResult(
-                    output, null, false));
+            return TransformationResult.<Object, Buffer>createCompletedResult(
+                    output, null, false);
         } else {
             return super.transform(storage, input);
         }

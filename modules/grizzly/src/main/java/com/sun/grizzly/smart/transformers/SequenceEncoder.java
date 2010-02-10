@@ -142,8 +142,8 @@ public abstract class SequenceEncoder<E> extends AbstractSmartMemberEncoder<E> {
     }
 
     @Override
-    public TransformationResult<E, Buffer> transform(AttributeStorage storage,
-            E input) throws TransformationException {
+    public TransformationResult<E, Buffer> transformImpl(
+            AttributeStorage storage, E input) throws TransformationException {
         if (input == null) {
             throw new TransformationException("Input should not be null");
         }
@@ -171,9 +171,8 @@ public abstract class SequenceEncoder<E> extends AbstractSmartMemberEncoder<E> {
 
         output.flip();
         
-        return saveLastResult(storage,
-                TransformationResult.<E, Buffer>createCompletedResult(
-                output, null, false));
+        return TransformationResult.<E, Buffer>createCompletedResult(
+                output, null, false);
     }
 
     @Override

@@ -86,13 +86,13 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
     }
 
     @Override
-    public TransformationResult<Buffer, Buffer> transform(AttributeStorage state,
-            Buffer originalMessage)
+    public TransformationResult<Buffer, Buffer> transformImpl(
+            AttributeStorage state, Buffer originalMessage)
             throws TransformationException {
 
         final SSLEngine sslEngine = SSLUtils.getSSLEngine(state);
         if (sslEngine == null) {
-            return saveLastResult(state, HANDSHAKE_NOT_EXECUTED_RESULT);
+            return HANDSHAKE_NOT_EXECUTED_RESULT;
         }
 
         final Buffer targetBuffer = memoryManager.allocate(
@@ -135,15 +135,13 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             if (status == SSLEngineResult.Status.OK) {
                 targetBuffer.trim();
 
-                return saveLastResult(state,
-                        TransformationResult.<Buffer, Buffer>createCompletedResult(
-                        targetBuffer, originalMessage, false));
+                return TransformationResult.<Buffer, Buffer>createCompletedResult(
+                        targetBuffer, originalMessage, false);
             } else if (status == SSLEngineResult.Status.CLOSED) {
                 targetBuffer.dispose();
 
-                return saveLastResult(state,
-                        TransformationResult.<Buffer, Buffer>createCompletedResult(
-                        BufferUtils.EMPTY_BUFFER, originalMessage, false));
+                return TransformationResult.<Buffer, Buffer>createCompletedResult(
+                        BufferUtils.EMPTY_BUFFER, originalMessage, false);
             } else {
                 targetBuffer.dispose();
 
@@ -163,7 +161,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             throw new TransformationException(e);
         }
 
-        return saveLastResult(state, transformationResult);
+        return transformationResult;
     }
 
     @Override

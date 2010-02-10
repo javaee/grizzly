@@ -148,8 +148,10 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
     }
 
     @Override
-    public TransformationResult<Buffer, E> transform(AttributeStorage storage,
-            Buffer input) throws TransformationException {
+    public TransformationResult<Buffer, E> transformImpl(
+            AttributeStorage storage, Buffer input)
+            throws TransformationException {
+        
         if (input == null) {
             throw new TransformationException("Input should not be null");
         }
@@ -225,7 +227,7 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
             AttributeStorage storage,
             E sequence, TransformationResult<Buffer, E> lastResult) {
         sequenceAttribute.set(storage, sequence);
-        return saveLastResult(storage, lastResult);
+        return lastResult;
     }
 
     /**

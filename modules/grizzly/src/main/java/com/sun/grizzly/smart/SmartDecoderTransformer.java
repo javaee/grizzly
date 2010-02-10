@@ -110,7 +110,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
     }
 
     @Override
-    public TransformationResult<Buffer, E> transform(AttributeStorage storage,
+    public TransformationResult<Buffer, E> transformImpl(AttributeStorage storage,
             Buffer input) throws TransformationException {
         int currentElementIndex = 0;
 
@@ -315,7 +315,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
             TransformationResult<Buffer, E> lastResult) {
         currentTransformerIdxAttribute.set(storage, index);
         messageProcessingTreeAttribute.set(storage, messageProcessingTree);
-        return saveLastResult(storage, lastResult);
+        return lastResult;
     }
     
     protected Class<? extends Transformer> getTransformer(Class clazz) {

@@ -203,15 +203,14 @@ public class ProtocolChainCodecTest extends TestCase {
         }
 
         @Override
-        public TransformationResult transform(AttributeStorage storage,
+        public TransformationResult transformImpl(AttributeStorage storage,
                 Object input) throws TransformationException {
             try {
                 Thread.sleep(timeoutMillis);
             } catch (Exception e) {
             }
             
-            return saveLastResult(storage,
-                    TransformationResult.createCompletedResult(input, null, false));
+            return TransformationResult.createCompletedResult(input, null, false);
         }
 
         @Override

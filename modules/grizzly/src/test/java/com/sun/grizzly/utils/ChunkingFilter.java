@@ -75,10 +75,10 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
         }
 
         @Override
-        public TransformationResult<Buffer, Buffer> transform(
+        public TransformationResult<Buffer, Buffer> transformImpl(
                 AttributeStorage storage,
                 Buffer input) throws TransformationException {
-            return super.transform(storage, input);
+            return super.transformImpl(storage, input);
         }
     }
 
@@ -89,10 +89,10 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
         }
 
         @Override
-        public TransformationResult<Buffer, Buffer> transform(
+        public TransformationResult<Buffer, Buffer> transformImpl(
                 AttributeStorage storage,
                 Buffer input) throws TransformationException {
-            return super.transform(storage, input);
+            return super.transformImpl(storage, input);
         }
     }
 
@@ -110,13 +110,12 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
         }
 
         @Override
-        public TransformationResult<Buffer, Buffer> transform(
+        public TransformationResult<Buffer, Buffer> transformImpl(
                 AttributeStorage storage, Buffer input)
                 throws TransformationException {
 
             if (input.remaining() < chunk) {
-                return saveLastResult(storage,
-                        TransformationResult.<Buffer, Buffer>createIncompletedResult(input, false));
+                return TransformationResult.<Buffer, Buffer>createIncompletedResult(input, false);
             }
 
             final int oldInputPos = input.position();
@@ -129,9 +128,8 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
             
             BufferUtils.setPositionLimit(input, oldInputPos + chunk, oldInputLimit);
 
-            return saveLastResult(storage,
-                    TransformationResult.<Buffer, Buffer>createCompletedResult(
-                    output, input, false));
+            return TransformationResult.<Buffer, Buffer>createCompletedResult(
+                    output, input, false);
         }
 
         @Override

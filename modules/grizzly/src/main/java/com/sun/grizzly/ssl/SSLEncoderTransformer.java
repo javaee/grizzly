@@ -87,13 +87,13 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
     }
 
     @Override
-    public TransformationResult<Buffer, Buffer> transform(AttributeStorage state,
-            Buffer originalMessage)
+    public TransformationResult<Buffer, Buffer> transformImpl(
+            AttributeStorage state, Buffer originalMessage)
             throws TransformationException {
 
         final SSLEngine sslEngine = SSLUtils.getSSLEngine(state);
         if (sslEngine == null) {
-            return saveLastResult(state, HANDSHAKE_NOT_EXECUTED_RESULT);
+            return HANDSHAKE_NOT_EXECUTED_RESULT;
         }
 
         final Buffer targetBuffer = memoryManager.allocate(
@@ -165,7 +165,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
             throw new TransformationException(e);
         }
 
-        return saveLastResult(state, transformationResult);
+        return transformationResult;
     }
 
     @Override

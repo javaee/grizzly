@@ -81,12 +81,11 @@ public final class DefaultDecoderTransformer extends AbstractTransformer {
     }
 
     @Override
-    public TransformationResult transform(final AttributeStorage state,
+    public TransformationResult transformImpl(final AttributeStorage state,
             final Object originalMessage) throws TransformationException {
 
         if (!filterChain.hasCodecFilter()) {
-            return saveLastResult(state,
-                    TransformationResult.createCompletedResult(originalMessage, null, false));
+            return TransformationResult.createCompletedResult(originalMessage, null, false);
         }
         
         Object currentMessage;
@@ -183,9 +182,8 @@ public final class DefaultDecoderTransformer extends AbstractTransformer {
                                     FILTER_STATE_TYPE.INCOMPLETE, remainder));
                             }
 
-                            return saveLastResult(state,
-                                    TransformationResult.createIncompletedResult(
-                                    null, hasInternalRemainder));
+                            return TransformationResult.createIncompletedResult(
+                                    null, hasInternalRemainder);
                         }
                         case ERROR:
                         {
@@ -201,15 +199,13 @@ public final class DefaultDecoderTransformer extends AbstractTransformer {
         }
         
         if (decodeResult == null) {
-            return saveLastResult(state,
-                    TransformationResult.createCompletedResult(currentMessage,
-                    null, false));
+            return TransformationResult.createCompletedResult(currentMessage,
+                    null, false);
         }
 
-        return saveLastResult(state,
-                TransformationResult.createCompletedResult(
+        return TransformationResult.createCompletedResult(
                 decodeResult.getMessage(),
-                null, hasInternalRemainder));
+                null, hasInternalRemainder);
     }
 
 

@@ -49,8 +49,8 @@ import com.sun.grizzly.attributes.AttributeStorage;
  */
 public abstract class PrimitiveEncoder<E> extends AbstractSmartMemberEncoder<E> {
     @Override
-    public TransformationResult<E, Buffer> transform(AttributeStorage storage,
-            E input) throws TransformationException {
+    public TransformationResult<E, Buffer> transformImpl(
+            AttributeStorage storage, E input) throws TransformationException {
         
         if (input == null) {
             throw new TransformationException("Input could not be null");
@@ -58,9 +58,8 @@ public abstract class PrimitiveEncoder<E> extends AbstractSmartMemberEncoder<E> 
         
         final Buffer output = obtainMemoryManager(storage).allocate(sizeOf());
         
-        return saveLastResult(storage,
-                TransformationResult.<E, Buffer>createCompletedResult(
-                    put(output, input).flip(), input, false));
+        return TransformationResult.<E, Buffer>createCompletedResult(
+                    put(output, input).flip(), input, false);
     }
 
     @Override

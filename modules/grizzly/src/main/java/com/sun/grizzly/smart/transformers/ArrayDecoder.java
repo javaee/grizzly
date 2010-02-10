@@ -65,8 +65,9 @@ public class ArrayDecoder extends SequenceDecoder<Object> {
     }
 
     @Override
-    public TransformationResult<Buffer, Object> transform(AttributeStorage storage,
-            Buffer input) throws TransformationException {
+    public TransformationResult<Buffer, Object> transformImpl(
+            AttributeStorage storage, Buffer input)
+            throws TransformationException {
         
         if (input == null) {
             throw new TransformationException("Input should not be null");

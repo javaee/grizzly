@@ -49,8 +49,9 @@ import com.sun.grizzly.attributes.AttributeStorage;
  */
 public abstract class PrimitiveDecoder<E> extends AbstractSmartMemberDecoder<E> {
     @Override
-    public TransformationResult<Buffer, E> transform(AttributeStorage storage,
-            Buffer input) throws TransformationException {
+    public TransformationResult<Buffer, E> transformImpl(
+            AttributeStorage storage, Buffer input)
+            throws TransformationException {
         
         if (input == null) {
             throw new TransformationException("Input could not be null");

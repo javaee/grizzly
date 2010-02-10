@@ -84,8 +84,9 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
     }
 
     @Override
-    public TransformationResult<String, Buffer> transform(AttributeStorage storage,
-            String input) throws TransformationException {
+    public TransformationResult<String, Buffer> transformImpl(
+            AttributeStorage storage, String input)
+            throws TransformationException {
 
         if (input == null) {
             throw new TransformationException("Input could not be null");
@@ -117,7 +118,6 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
         final TransformationResult<String, Buffer> result =
                 TransformationResult.<String, Buffer>createCompletedResult(
                 output, null, false);
-        lastResultAttribute.set(storage, result);
         return result;
     }
 

@@ -60,7 +60,7 @@ public class GIOPDecoder extends AbstractTransformer<Buffer, GIOPMessage> {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("PreparsedGIOPMessage");
 
     @Override
-    public TransformationResult<Buffer, GIOPMessage> transform(
+    public TransformationResult<Buffer, GIOPMessage> transformImpl(
             AttributeStorage storage,
             Buffer input) throws TransformationException {
 
@@ -157,15 +157,13 @@ public class GIOPDecoder extends AbstractTransformer<Buffer, GIOPMessage> {
             stateAttr.set(storage, parseState);
 
             // Stop the filterchain execution until more data available
-            return saveLastResult(storage,
-                    TransformationResult.<Buffer, GIOPMessage>createIncompletedResult(input, false));
+            return TransformationResult.<Buffer, GIOPMessage>createIncompletedResult(input, false);
         } else {
             // Remove intermediate parsing state
             preparsedMessageAttr.remove(storage);
             stateAttr.remove(storage);
 
-            return saveLastResult(storage,
-                    TransformationResult.<Buffer, GIOPMessage>createCompletedResult(message, input, false));
+            return TransformationResult.<Buffer, GIOPMessage>createCompletedResult(message, input, false);
         }
     }
 
