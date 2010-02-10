@@ -1,7 +1,8 @@
 /*
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -33,53 +34,38 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  *
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *
- * Copyright 2004 The Apache Software Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
-package com.sun.grizzly.ssl;
+package com.sun.grizzly.http;
+
+import com.sun.grizzly.AbstractTransformer;
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.TransformationException;
+import com.sun.grizzly.TransformationResult;
+import com.sun.grizzly.attributes.AttributeStorage;
 
 /**
- * Taken from:
- * 
- * SSLSupport
- * Interface for SSL-specific functions
- * @author EKR
+ *
+ * @author oleksiys
  */
-public final class SSLAttributes {
-    /**
-     * The Request attribute key for the cipher suite.
-     */
-    public static final String CIPHER_SUITE_KEY = "javax.servlet.request.cipher_suite";
+public class HttpEncoder extends AbstractTransformer<HttpPacket, Buffer> {
 
-    /**
-     * The Request attribute key for the key size.
-     */
-    public static final String KEY_SIZE_KEY = "javax.servlet.request.key_size";
+    @Override
+    public String getName() {
+        return HttpEncoder.class.getName();
+    }
 
-    /**
-     * The Request attribute key for the client certificate chain.
-     */
-    public static final String CERTIFICATE_KEY = "javax.servlet.request.X509Certificate";
+    @Override
+    public TransformationResult<HttpPacket, Buffer> transform(
+            AttributeStorage storage, HttpPacket input)
+            throws TransformationException {
 
-    /**
-     * The Request attribute key for the session id.
-     * This one is a Tomcat extension to the Servlet spec.
-     */
-    public static final String SESSION_ID_KEY = "javax.servlet.request.ssl_session";
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
+    @Override
+    public boolean hasInputRemaining(HttpPacket input) {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
 }
