@@ -75,7 +75,7 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
         }
 
         @Override
-        public TransformationResult<Buffer, Buffer> transformImpl(
+        protected TransformationResult<Buffer, Buffer> transformImpl(
                 AttributeStorage storage,
                 Buffer input) throws TransformationException {
             return super.transformImpl(storage, input);
@@ -89,7 +89,7 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
         }
 
         @Override
-        public TransformationResult<Buffer, Buffer> transformImpl(
+        protected TransformationResult<Buffer, Buffer> transformImpl(
                 AttributeStorage storage,
                 Buffer input) throws TransformationException {
             return super.transformImpl(storage, input);
@@ -110,7 +110,7 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
         }
 
         @Override
-        public TransformationResult<Buffer, Buffer> transformImpl(
+        protected TransformationResult<Buffer, Buffer> transformImpl(
                 AttributeStorage storage, Buffer input)
                 throws TransformationException {
 

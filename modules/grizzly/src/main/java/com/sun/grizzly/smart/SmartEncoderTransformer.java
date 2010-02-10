@@ -106,7 +106,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
     }
 
     @Override
-    public TransformationResult<E, Buffer> transformImpl(
+    protected TransformationResult<E, Buffer> transformImpl(
             AttributeStorage storage, E input) throws TransformationException {
 
 

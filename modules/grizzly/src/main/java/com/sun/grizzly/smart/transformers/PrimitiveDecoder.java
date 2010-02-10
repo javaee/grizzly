@@ -49,7 +49,7 @@ import com.sun.grizzly.attributes.AttributeStorage;
  */
 public abstract class PrimitiveDecoder<E> extends AbstractSmartMemberDecoder<E> {
     @Override
-    public TransformationResult<Buffer, E> transformImpl(
+    protected TransformationResult<Buffer, E> transformImpl(
             AttributeStorage storage, Buffer input)
             throws TransformationException {
         

@@ -110,7 +110,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
     }
 
     @Override
-    public TransformationResult<Buffer, E> transformImpl(AttributeStorage storage,
+    protected TransformationResult<Buffer, E> transformImpl(AttributeStorage storage,
             Buffer input) throws TransformationException {
         int currentElementIndex = 0;
 

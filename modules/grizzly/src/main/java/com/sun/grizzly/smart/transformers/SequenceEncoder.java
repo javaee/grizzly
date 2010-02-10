@@ -142,7 +142,7 @@ public abstract class SequenceEncoder<E> extends AbstractSmartMemberEncoder<E> {
     }
 
     @Override
-    public TransformationResult<E, Buffer> transformImpl(
+    protected TransformationResult<E, Buffer> transformImpl(
             AttributeStorage storage, E input) throws TransformationException {
         if (input == null) {
             throw new TransformationException("Input should not be null");

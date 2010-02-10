@@ -97,7 +97,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
     }
 
     @Override
-    public TransformationResult<Buffer, String> transformImpl(
+    protected TransformationResult<Buffer, String> transformImpl(
             AttributeStorage storage, Buffer input)
             throws TransformationException {
 

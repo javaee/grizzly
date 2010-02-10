@@ -87,7 +87,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
     }
 
     @Override
-    public TransformationResult<Buffer, Buffer> transformImpl(
+    protected TransformationResult<Buffer, Buffer> transformImpl(
             AttributeStorage state, Buffer originalMessage)
             throws TransformationException {
 

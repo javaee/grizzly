@@ -148,7 +148,7 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
     }
 
     @Override
-    public TransformationResult<Buffer, E> transformImpl(
+    protected TransformationResult<Buffer, E> transformImpl(
             AttributeStorage storage, Buffer input)
             throws TransformationException {
         

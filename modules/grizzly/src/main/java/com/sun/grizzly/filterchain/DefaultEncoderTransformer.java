@@ -77,7 +77,7 @@ public final class DefaultEncoderTransformer extends AbstractTransformer {
     }
 
     @Override
-    public TransformationResult transformImpl(final AttributeStorage state,
+    protected TransformationResult transformImpl(final AttributeStorage state,
             final Object originalMessage) throws TransformationException {
 
         if (!filterChain.hasCodecFilter()) {

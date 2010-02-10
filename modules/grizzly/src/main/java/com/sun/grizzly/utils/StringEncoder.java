@@ -84,7 +84,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
     }
 
     @Override
-    public TransformationResult<String, Buffer> transformImpl(
+    protected TransformationResult<String, Buffer> transformImpl(
             AttributeStorage storage, String input)
             throws TransformationException {
 

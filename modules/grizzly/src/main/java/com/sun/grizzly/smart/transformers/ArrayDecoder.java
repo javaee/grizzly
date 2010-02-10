@@ -65,7 +65,7 @@ public class ArrayDecoder extends SequenceDecoder<Object> {
     }
 
     @Override
-    public TransformationResult<Buffer, Object> transformImpl(
+    protected TransformationResult<Buffer, Object> transformImpl(
             AttributeStorage storage, Buffer input)
             throws TransformationException {
         

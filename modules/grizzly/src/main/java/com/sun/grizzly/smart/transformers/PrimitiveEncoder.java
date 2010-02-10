@@ -49,7 +49,7 @@ import com.sun.grizzly.attributes.AttributeStorage;
  */
 public abstract class PrimitiveEncoder<E> extends AbstractSmartMemberEncoder<E> {
     @Override
-    public TransformationResult<E, Buffer> transformImpl(
+    protected TransformationResult<E, Buffer> transformImpl(
             AttributeStorage storage, E input) throws TransformationException {
         
         if (input == null) {

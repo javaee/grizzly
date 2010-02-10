@@ -60,7 +60,7 @@ public class GIOPDecoder extends AbstractTransformer<Buffer, GIOPMessage> {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("PreparsedGIOPMessage");
 
     @Override
-    public TransformationResult<Buffer, GIOPMessage> transformImpl(
+    protected TransformationResult<Buffer, GIOPMessage> transformImpl(
             AttributeStorage storage,
             Buffer input) throws TransformationException {
 
