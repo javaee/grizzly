@@ -97,12 +97,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     // absolute capacity
     private int capacity;
 
-    // Index of buffer in the buffer list, which was used with a last get/set
-    private int lastBufferIndex = -1;
-    // Last buffer position, which was used with a last get/set
-    private int lastBufferPosition = -1;
-    // Last buffer, which was used with a last get/set
-    private ByteBuffer lastBuffer;
+    // Location of the last <tt>ByteBuffersBuffer</tt> access
+    private long lastLocatedInfo = -1;
+    private int lastLocatedPosition = -1;
 
     // Allow to dispose this ByteBuffersBuffer
     private boolean allowBufferDispose = false;
@@ -376,6 +373,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             currentBuffer.limit(bufferPosition);
 
             capacity = capacity - bytesRemoved - lastBufferRemoved;
+            resetLastLocation();
         }
     }
 
@@ -392,6 +390,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
         final int bytesRemoved = removeRightBuffers(bufferIndex + 1);
         capacity -= bytesRemoved;
+        resetLastLocation();
     }
 
     protected int removeRightBuffers(int startIndex) {
@@ -407,6 +406,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         }
 
         buffersSize = startIndex;
+        resetLastLocation();
 
         return removedBytes;
     }
@@ -457,6 +457,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         }
 
         buffersSize -= (leftTrim + rightTrim);
+        resetLastLocation();
         
         System.arraycopy(buffers, leftTrim, buffers, 0, buffersSize);
     }
@@ -552,6 +553,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             calcCapacity();
         }
         setPosLim(0, position);
+        resetLastLocation();
         return this;
     }
 
@@ -581,9 +583,8 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     @Override
     public byte get() {
         checkDispose();
-        prepareLastBuffer();
-        position++;
-        return lastBuffer.get(lastBufferPosition);
+        long location = locateBufferPosition(position++);
+        return bufferGet(location);
     }
 
     @Override
@@ -591,10 +592,8 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         checkDispose();
         checkReadOnly();
 
-        prepareLastBuffer();
-        lastBuffer.put(lastBufferPosition, b);
-        position++;
-        return this;
+        long location = locateBufferPosition(position++);
+        return bufferPut(location, b);
     }
 
     @Override
@@ -628,14 +627,18 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         
         if (remaining() < length) throw new BufferUnderflowException();
 
-        prepareLastBuffer();
+        final long location = locateBufferPosition(position);
+        int bufferIdx = getBufferIndex(location);
+        ByteBuffer buffer = buffers[bufferIdx];
+        int bufferPosition = getBufferPosition(location);
+
         while(true) {
-            int oldPos = lastBuffer.position();
-            lastBuffer.position(lastBufferPosition);
-            int bytesToCopy = Math.min(lastBuffer.remaining(), length);
-            lastBuffer.get(dst, offset, bytesToCopy);
-            lastBuffer.position(oldPos);
-            lastBufferPosition += (bytesToCopy - 1);
+            int oldPos = buffer.position();
+            buffer.position(bufferPosition);
+            int bytesToCopy = Math.min(buffer.remaining(), length);
+            buffer.get(dst, offset, bytesToCopy);
+            buffer.position(oldPos);
+            bufferPosition += (bytesToCopy - 1);
             
             length -= bytesToCopy;
             offset += bytesToCopy;
@@ -643,9 +646,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
             if (length == 0) break;
             
-            lastBufferIndex++;
-            lastBuffer = buffers[lastBufferIndex];
-            lastBufferPosition = lastBuffer.position();
+            bufferIdx++;
+            buffer = buffers[bufferIdx];
+            bufferPosition = buffer.position();
         }
 
         return this;
@@ -663,14 +666,18 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
         if (remaining() < length) throw new BufferOverflowException();
 
-        prepareLastBuffer();
+        final long location = locateBufferPosition(position);
+        int bufferIdx = getBufferIndex(location);
+        ByteBuffer buffer = buffers[bufferIdx];
+        int bufferPosition = getBufferPosition(location);
+        
         while(true) {
-            int oldPos = lastBuffer.position();
-            lastBuffer.position(lastBufferPosition);
-            int bytesToCopy = Math.min(lastBuffer.remaining(), length);
-            lastBuffer.put(src, offset, bytesToCopy);
-            lastBuffer.position(oldPos);
-            lastBufferPosition += (bytesToCopy - 1);
+            int oldPos = buffer.position();
+            buffer.position(bufferPosition);
+            int bytesToCopy = Math.min(buffer.remaining(), length);
+            buffer.put(src, offset, bytesToCopy);
+            buffer.position(oldPos);
+            bufferPosition += (bytesToCopy - 1);
 
             length -= bytesToCopy;
             offset += bytesToCopy;
@@ -678,9 +685,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
             if (length == 0) break;
 
-            lastBufferIndex++;
-            lastBuffer = buffers[lastBufferIndex];
-            lastBufferPosition = lastBuffer.position();
+            bufferIdx++;
+            buffer = buffers[bufferIdx];
+            bufferPosition = buffer.position();
         }
 
         return this;
@@ -1235,50 +1242,82 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
         buffersSize = 0;
         Arrays.fill(buffers, null);
-    }
-
-    private void resetLastBuffer() {
-        lastBuffer = null;
-    }   
-
-    private void prepareLastBuffer() {
-        if (lastBuffer != null) {
-            if (++lastBufferPosition >= lastBuffer.limit()) {
-                lastBufferIndex++;
-                lastBuffer = buffers[lastBufferIndex];
-                lastBufferPosition = lastBuffer.position();
-            }
-        } else {
-            long location = locateBufferPosition(position);
-            lastBufferIndex = getBufferIndex(location);
-            lastBufferPosition = getBufferPosition(location);
-            lastBuffer = buffers[lastBufferIndex];
-        }
+        resetLastLocation();
     }
 
     private long locateBufferPosition(int position) {
         if (buffersSize == 0) return -1;
 
-        ByteBuffer buffer = buffers[0];
-        int currentOffset = buffer.remaining();
-        if (position < currentOffset) {
-            return position + buffer.position();
+        if (lastLocatedPosition != -1) {
+            int diff = position - lastLocatedPosition;
+            
+            if (diff > 0) {
+                lastLocatedInfo = moveForward(lastLocatedInfo, diff);
+                lastLocatedPosition = position;
+            } else if (diff < 0) {
+                lastLocatedInfo = moveBack(lastLocatedInfo, -diff);
+                lastLocatedPosition = position;
+            }
+            
+            return lastLocatedInfo;
         }
 
-        for (int i = 1; i < buffersSize; i++) {
+        lastLocatedInfo = moveForward(0, position);
+        lastLocatedPosition = position;
+
+        return lastLocatedInfo;
+    }
+    
+    private long moveForward(long currentLocation, int steps) {
+        int bufferIdx = getBufferIndex(currentLocation);
+        int bufferPosition = getBufferPosition(currentLocation);
+
+        ByteBuffer buffer = buffers[bufferIdx];
+        if (bufferPosition + steps < buffer.remaining()) {
+            return makeLocation(bufferIdx, bufferPosition + steps);
+        }
+
+        steps -= (buffer.remaining() - bufferPosition);
+        bufferIdx++;
+        
+        for (int i = bufferIdx; i < buffersSize; i++) {
             buffer = buffers[i];
-            
-            final int newOffset = currentOffset + buffer.remaining();
-            if (position < newOffset) {
-                return makeLocation(i, buffer.position() + position - currentOffset);
+
+            if (steps < buffer.remaining()) {
+                return makeLocation(i, buffer.position() + steps);
             }
 
-            currentOffset = newOffset;
+            steps -= buffer.remaining();
         }
 
         throw new IndexOutOfBoundsException("Position " + position + " is out of bounds");
     }
 
+    private long moveBack(long currentLocation, int steps) {
+        int bufferIdx = getBufferIndex(currentLocation);
+        int bufferPosition = getBufferPosition(currentLocation);
+
+        ByteBuffer buffer = buffers[bufferIdx];
+        if (bufferPosition - steps >= buffer.position()) {
+            return makeLocation(bufferIdx, bufferPosition - steps);
+        }
+
+        steps -= (bufferPosition - buffer.position());
+        bufferIdx--;
+
+        for (int i = bufferIdx; i >= 0; i--) {
+            buffer = buffers[i];
+
+            if (steps <= buffer.remaining()) {
+                return makeLocation(i, buffer.limit() - steps);
+            }
+
+            steps -= buffer.remaining();
+        }
+
+        throw new IndexOutOfBoundsException("Position " + position + " is out of bounds");
+    }
+    
     public long locateBufferLimit(int limit) {
         if (buffersSize == 0) return -1;
 
@@ -1358,7 +1397,6 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
         this.position = position;
         this.limit = limit;
-        resetLastBuffer();
     }
 
     private void checkDispose() {
@@ -1379,6 +1417,11 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         }
 
         return currentCapacity;
+    }
+
+    private void resetLastLocation() {
+        lastLocatedPosition = -1;
+        lastLocatedInfo = -1;
     }
 
     @Override
