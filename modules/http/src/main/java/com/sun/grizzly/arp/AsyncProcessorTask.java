@@ -40,6 +40,8 @@ package com.sun.grizzly.arp;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.TaskBase;
+
+import java.io.IOException;
 import java.util.logging.Level;
 
 /**
@@ -69,7 +71,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      * Execute the {@link AsyncExecutor} based on the <code>stage</code>
      * of the {@link ProcessorTask} execution.
      */
-    public void doTask() throws java.io.IOException {
+    public void doTask() throws IOException {
         boolean continueExecution = true;
         while (continueExecution) {
             try {
@@ -131,8 +133,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
 
     
     /**
-     * Set the {@link AsyncExecutor} used by this {@link Task}
-     * to delegate the execution of a {@link ProcessorTask}.
+     * Set the {@link AsyncExecutor} used to delegate the execution of a {@link ProcessorTask}.
      */
     public void setAsyncExecutor(AsyncExecutor asyncExecutor) {
         this.asyncExecutor = asyncExecutor;
@@ -171,7 +172,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
      * @deprecated - Use {@link AsyncExecutor#getProcessorTask}
      */        
     public ProcessorTask getProcessorTask(){
-        return (asyncExecutor == null ? null : asyncExecutor.getProcessorTask());
+        return asyncExecutor == null ? null : asyncExecutor.getProcessorTask();
         
     }
 

@@ -41,29 +41,27 @@ import com.sun.grizzly.comet.concurrent.DefaultConcurrentCometHandler;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+
 import java.io.IOException;
 import java.io.OutputStream;
 
 /**
- *
  * @author Gustav Trede
  */
-public class CometTestAdapter extends GrizzlyAdapter{   
+public class CometTestAdapter extends GrizzlyAdapter {
 
     private String contextPath = "/comet/comet";
 
-    private final boolean useconcurrentcomethandler;
-    static        CometContext cometContext;
+    private final boolean useConcurrentCometHandler;
+    static CometContext cometContext;
     static volatile boolean usetreaming;
 
-    public CometTestAdapter(String contextname,
-           boolean useconcurrentcomethandler, int idletimeoutvalue){
-        super();
-        cometContext = CometEngine.getEngine().register(contextname);
+    public CometTestAdapter(String name, boolean useHandler, int idleTimeout) {
+        cometContext = CometEngine.getEngine().register(name);
         cometContext.setBlockingNotification(false);
-        cometContext.setExpirationDelay(idletimeoutvalue);
-        this.useconcurrentcomethandler = useconcurrentcomethandler;
-       // this.eventsperconnect = eventsperconnect;
+        cometContext.setExpirationDelay(idleTimeout);
+        useConcurrentCometHandler = useHandler;
+        // this.eventsperconnect = eventsperconnect;
         setHandleStaticResources(true);
     }
 
@@ -77,39 +75,39 @@ public class CometTestAdapter extends GrizzlyAdapter{
 
     @Override
     public void service(GrizzlyRequest req, GrizzlyResponse res) {
-        CometHandler handler = useconcurrentcomethandler?
-            new MyConcurrentCometHandler():new CometRequestHandler();        
+        CometHandler handler = useConcurrentCometHandler
+                               ? new MyConcurrentCometHandler()
+                               : new CometRequestHandler();
         try {
             handler.attach(res.getOutputStream());
-            cometContext.addCometHandler(handler);            
+            cometContext.addCometHandler(handler);
         } catch (IOException ex) {
             res.cancel();
-        }        
+        }
     }
 
-    private void doEvent(OutputStream attachment, CometEvent event,CometHandler handler) throws IOException{
+    private void doEvent(OutputStream attachment, CometEvent event, CometHandler handler) throws IOException {
         if (event.getType() == CometEvent.NOTIFY) {
-            Byte datat = (Byte)event.attachment();
+            Byte datat = (Byte) event.attachment();
             attachment.write(datat);
             attachment.flush();
-            if (!usetreaming){
+            if (!usetreaming) {
                 cometContext.resumeCometHandler(handler);
             }
         }
     }
 
-    
 
     private class MyConcurrentCometHandler extends DefaultConcurrentCometHandler<OutputStream> {
         public void onEvent(CometEvent event) throws IOException {
-            doEvent(attachment,event,this);
+            doEvent(attachment, event, this);
         }
 
         public void onInitialize(CometEvent arg0) throws IOException {
         }
 
         public void onInterrupt(CometEvent event) throws IOException {
-           // new Exception().printStackTrace();
+            // new Exception().printStackTrace();
             super.onInterrupt(event);
         }
 
@@ -124,7 +122,7 @@ public class CometTestAdapter extends GrizzlyAdapter{
         private OutputStream attachment;
 
         public void onEvent(CometEvent event) throws IOException {
-            doEvent(attachment,event,this);
+            doEvent(attachment, event, this);
         }
 
         public void attach(OutputStream attachment) {
@@ -144,12 +142,12 @@ public class CometTestAdapter extends GrizzlyAdapter{
 
         private void doClose() throws IOException {
             try {
-                 //new Exception().printStackTrace();
+                //new Exception().printStackTrace();
                 //if(usetreaming){
-                    attachment.close();
-               // }
+                attachment.close();
+                // }
             }
-            finally{
+            finally {
                 //cometContext.removeCometHandler(this,false);
             }
         }

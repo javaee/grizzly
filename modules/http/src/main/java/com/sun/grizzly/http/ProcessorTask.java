@@ -715,8 +715,6 @@ public class ProcessorTask extends TaskBase implements Processor,
     
     /**
      * Prepare and post the response.
-     * @param input the InputStream to read bytes
-     * @param output the OutputStream to write bytes
      */       
     public void postResponse() throws Exception{
         if (isProcessingCompleted){
@@ -804,10 +802,6 @@ public class ProcessorTask extends TaskBase implements Processor,
     public void invokeAdapter(){
         if (!error) {
             try {
-                if (temphack != null &&temphack.checkForUpgrade(request)){
-                    doupgrade();
-                    return;
-                }
                 adapter.service(request, response);
                 // Handle when the response was committed before a serious
                 // error occurred.  Throwing a ServletException should both

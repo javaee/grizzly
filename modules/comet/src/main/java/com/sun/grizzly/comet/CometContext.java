@@ -40,10 +40,9 @@ package com.sun.grizzly.comet;
 
 import com.sun.grizzly.comet.concurrent.DefaultConcurrentCometHandler;
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.util.WorkerThreadImpl;
+
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -162,10 +161,10 @@ public class CometContext<E> {
     
 
      /**
-      * timestamp for next idlecheck
+      * time stamp for next idle check
       * used to limit the frequency of actual performed resets.
       */
-    private volatile long nextidleclear;
+    private volatile long nextIdleClear;
 
     /**
      * The list of registered {@link CometHandler}
@@ -184,20 +183,20 @@ public class CometContext<E> {
             new IllegalStateException("Make sure you have enabled Comet " +
                 "or make sure the Thread invoking that method is the same " +
                 "as the Servlet.service() Thread.");
-       
+
     /**
      * Create a new instance
-     * @param topic the context path 
+     * @param contextTopic the context path
      * @param type when the Comet processing will happen (see {@link CometEngine}).
      */
-    public CometContext(String topic, int continuationType) {
-        this.topic            = topic;
-        this.continuationType = continuationType;
-        this.attributes       = new ConcurrentHashMap();
-        this.handlers         = new ConcurrentHashMap<CometHandler,CometTask>(16,0.75f,64);
-        this.eventInterrupt   = new CometEvent<CometContext>(CometEvent.INTERRUPT,this);
-        this.eventInitialize  = new CometEvent<CometContext>(CometEvent.INITIALIZE,this);
-        this.eventTerminate   = new CometEvent<CometContext>(CometEvent.TERMINATE,this,this);
+    public CometContext(String contextTopic, int type) {
+        topic = contextTopic;
+        continuationType = type;
+        attributes = new ConcurrentHashMap();
+        handlers = new ConcurrentHashMap<CometHandler,CometTask>(16,0.75f,64);
+        eventInterrupt = new CometEvent<CometContext>(CometEvent.INTERRUPT,this);
+        eventInitialize = new CometEvent<CometContext>(CometEvent.INITIALIZE,this);
+        eventTerminate = new CometEvent<CometContext>(CometEvent.TERMINATE,this,this);
         initDefaultValues();
     }
     
@@ -208,7 +207,7 @@ public class CometContext<E> {
     private void initDefaultValues() {
         blockingNotification = false;
         expirationDelay = 30*1000;
-        nextidleclear = 0;
+        nextIdleClear = 0;
     }
 
     /**
@@ -573,11 +572,11 @@ public class CometContext<E> {
     protected void resetSuspendIdleTimeout(){
         if (expirationDelay != -1){            
             long timestamp = System.currentTimeMillis();
-            if (timestamp >  nextidleclear){
+            if (timestamp > nextIdleClear){
                 boolean update=false;
                 synchronized(handlers){
-                    if (timestamp >  nextidleclear){
-                        nextidleclear = timestamp+1000;
+                    if (timestamp > nextIdleClear){
+                        nextIdleClear = timestamp+1000;
                         update = true;
                     }
                 }

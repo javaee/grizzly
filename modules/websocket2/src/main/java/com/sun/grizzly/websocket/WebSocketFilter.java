@@ -19,8 +19,8 @@ public class WebSocketFilter implements AsyncFilter {
             String origin = req.getHeader("origin");
             String host = req.getHeader("Host");
             if (origin != null && host != null) {
-                final ServerHandShake handshake = new ServerHandShake(headers, new ClientHandShake(headers, false, req.requestURI().toString()));
                 try {
+                    final ServerHandShake handshake = new ServerHandShake(headers, new ClientHandShake(headers, false, req.requestURI().toString()));
                     final Response response = task.getRequest().getResponse();
                     response.suspend();
                     handshake.prepare(response);

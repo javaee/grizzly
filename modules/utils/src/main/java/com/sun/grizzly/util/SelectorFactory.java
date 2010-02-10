@@ -75,19 +75,19 @@ public class SelectorFactory{
      * Set max selector pool size.
      * @param size max pool size
      */
-    public final static void setMaxSelectors(int size) throws IOException {
+    public static void setMaxSelectors(int size) throws IOException {
         synchronized(selectors) {
             if (size < 0){
                 LoggerUtils.getLogger().log(Level.WARNING,"tried to remove too many selectors "+size+">="+maxSelectors,new Exception());
                 return;
             }
-            int toadd = (initialized?size-maxSelectors:size);
-            if (toadd>0){
-                while(toadd-->0){
+            int toAdd = initialized?size-maxSelectors:size;
+            if (toAdd >0){
+                while(toAdd-->0){
                     selectors.add(Utils.openSelector());
                 }
             }else{
-                reduce(-toadd);
+                reduce(-toAdd);
             }
             maxSelectors = size;
             initialized = true;
@@ -97,9 +97,9 @@ public class SelectorFactory{
     /**
      * Changes the Selector cache size
      * @param delta
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public final static void changeSelectorsBy(int delta) throws IOException{
+    public static void changeSelectorsBy(int delta) throws IOException{
         synchronized(selectors) {
             setMaxSelectors(maxSelectors+delta);
         }
@@ -110,7 +110,7 @@ public class SelectorFactory{
      * Returns max selector pool size
      * @return max pool size
      */
-    public final static int getMaxSelectors() {
+    public static int getMaxSelectors() {
         return maxSelectors;
     }
 
@@ -119,7 +119,7 @@ public class SelectorFactory{
      * Get a exclusive {@link Selector}
      * @return {@link Selector}
      */
-    public final static Selector getSelector() {
+    public static Selector getSelector() {
         if (!initialized){
             try{
                 setMaxSelectors(maxSelectors);
@@ -145,7 +145,7 @@ public class SelectorFactory{
      * Return the {@link Selector} to the cache
      * @param s {@link Selector}
      */
-    public final static void returnSelector(Selector s) {
+    public static void returnSelector(Selector s) {
         selectors.offer(s);
     }
 
@@ -153,7 +153,7 @@ public class SelectorFactory{
      * Executes <code>Selector.selectNow()</code> and returns
      * the {@link Selector} to the cache
      */
-    public final static void selectNowAndReturnSelector(Selector s) {
+    public static void selectNowAndReturnSelector(Selector s) {
         try {
             s.selectNow();
             returnSelector(s);
@@ -180,9 +180,9 @@ public class SelectorFactory{
      * Add Selector to the cache.
      * This method could be called to reimberse a lost or problematic Selector.
      *
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public final static void reimburseSelector() throws IOException {
+    public static void reimburseSelector() throws IOException {
         returnSelector(Utils.openSelector());
     }
 

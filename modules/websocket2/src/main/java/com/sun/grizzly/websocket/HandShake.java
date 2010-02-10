@@ -57,7 +57,7 @@ public abstract class HandShake {
         secure = isSecure;
         origin = readHeader(headers, "origin");
         final String header = readHeader(headers, "host");
-        final int i = header.indexOf(":");
+        final int i = header == null ? -1 : header.indexOf(":");
         if(i == -1) {
             serverHostName = header;
             port = "80";
@@ -85,7 +85,7 @@ public abstract class HandShake {
         if(!"80".equals(port)) {
             builder.append(":" + port);
         }
-        if(!resourcePath.startsWith("/") && !"".equals(resourcePath)) {
+        if(resourcePath == null || !resourcePath.startsWith("/") && !"".equals(resourcePath)) {
             builder.append("/");
         }
         builder.append(resourcePath);

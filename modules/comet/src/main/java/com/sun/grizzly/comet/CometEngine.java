@@ -48,6 +48,7 @@ import com.sun.grizzly.util.SelectorFactory;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.util.FixedThreadPool;
@@ -111,9 +112,6 @@ public class CometEngine {
      */
     protected final static Logger logger = SelectorThread.logger();
 
-    /**
-     * 
-     */
     private final static IllegalStateException ISE = new IllegalStateException("Invalid state");
 
 
@@ -148,7 +146,7 @@ public class CometEngine {
 
 
     /**
-     * Store updatedCometContextCometContext.
+     * Store updatedCometContext.
      */
     protected final static ThreadLocal<CometTask> updatedContexts = new ThreadLocal<CometTask>();
             
@@ -164,7 +162,7 @@ public class CometEngine {
     }
 
     /**
-     * Return true is Comet is enabled, e.g. {@link SelectorThread.setAsyncExectution}
+     * Return true is Comet is enabled, e.g. {@link SelectorThread#setEnableAsyncExecution(boolean)}
      * has been set to <tt>true</tt>
      * @return
      */
@@ -182,19 +180,19 @@ public class CometEngine {
     }
 
     /**
-     * sets the default threadpool that DefaultNotificationHandler use.
-     * shuttdownnow is called on the existing threadpool.
-     * does notupdate existing notificationhandlers.
+     * sets the default ThreadPool that DefaultNotificationHandler use.
+     * shutdownNow is called on the existing ThreadPool.
+     * does not update existing notification handlers.
      */
-    public void setThreadPool(ExtendedThreadPool threadPool) {
-        if (threadPool != null){
-            int oldsize = 0;
-            if (this.threadPool != null){
-                oldsize = this.threadPool.getMaximumPoolSize();
-                this.threadPool.shutdownNow();
+    public void setThreadPool(ExtendedThreadPool pool) {
+        if (pool != null){
+            int oldSize = 0;
+            if (threadPool != null){
+                oldSize = threadPool.getMaximumPoolSize();
+                threadPool.shutdownNow();
             }
-            this.threadPool = threadPool;
-            int delta = threadPool.getMaximumPoolSize() - oldsize;
+            threadPool = pool;
+            int delta = pool.getMaximumPoolSize() - oldSize;
             try {
                 SelectorFactory.changeSelectorsBy(delta);
             } catch (IOException ex) {
@@ -215,11 +213,11 @@ public class CometEngine {
     /**
      * Unregister the {@link CometHandler} to the list of the
      * {@link CometContext}. Invoking this method will invoke all
-     * {@link CometHandler#onTerminate(com.sun.grizzly.comet.CometEvent)} before
+     * {@link CometHandler#onTerminate(CometEvent)} before
      * removing the associated {@link CometContext}. Invoking that method
      * will also resume the underlying connection associated with the 
      * {@link CometHandler}, similar to what 
-     * {@link CometContext#resumeCometHandler(com.sun.grizzly.comet.CometHandler)}
+     * {@link CometContext#resumeCometHandler(CometHandler)}
      * do.
      */
     public CometContext unregister(String topic){
@@ -251,8 +249,8 @@ public class CometEngine {
      * <code>type</code>.
      * @param topic the context path used to create the
      *        {@link CometContext}
-     * @param type when the request will be suspended, e.g. {@link BEFORE_REQUEST_PROCESSING},
-     * {@link AFTER_SERVLET_PROCESSING} or {@link AFTER_RESPONSE_PROCESSING}
+     * @param type when the request will be suspended, e.g. {@link CometEngine#BEFORE_REQUEST_PROCESSING},
+     * {@link CometEngine#AFTER_SERVLET_PROCESSING} or {@link CometEngine#AFTER_RESPONSE_PROCESSING}
      * @return CometContext a configured {@link CometContext}.
      */
     public CometContext register(String topic, int type){
@@ -262,8 +260,8 @@ public class CometEngine {
     /**
      * Instanciate a new {@link CometContext}.
      * @param topic the topic the new {@link CometContext} will represent.
-     * @param type when the request will be suspended, e.g. {@link BEFORE_REQUEST_PROCESSING},
-     * {@link AFTER_SERVLET_PROCESSING} or {@link AFTER_RESPONSE_PROCESSING}     
+     * @param type when the request will be suspended, e.g. {@link CometEngine#BEFORE_REQUEST_PROCESSING},
+     * {@link CometEngine#AFTER_SERVLET_PROCESSING} or {@link CometEngine#AFTER_RESPONSE_PROCESSING}
      * @return a new {@link CometContext} if not already created, or the
      * existing one.
      */
@@ -283,7 +281,7 @@ public class CometEngine {
                     }else{
                         cometContext = new CometContext(topic, type);
                     }
-                    NotificationHandler notificationHandler = null;
+                    NotificationHandler notificationHandler;
                     try{
                         notificationHandler = notificationClass.newInstance();
                     } catch (Throwable t) {
@@ -292,8 +290,7 @@ public class CometEngine {
                         notificationHandler = new DefaultNotificationHandler();
                     }
                     cometContext.setNotificationHandler(notificationHandler);
-                    if (notificationHandler != null && (notificationHandler
-                                instanceof DefaultNotificationHandler)){
+                    if (notificationHandler != null && notificationHandler instanceof DefaultNotificationHandler) {
                         ((DefaultNotificationHandler)notificationHandler)
                             .setThreadPool(threadPool);
                     }
@@ -332,10 +329,10 @@ public class CometEngine {
          * to the current thread so we can later retrieve the associated
          * SelectionKey. The SelectionKey is required in order to park the request. 
          */        
-        int continuationType = (cometContext == null)?
+        int continuationType = cometContext == null ?
             AFTER_SERVLET_PROCESSING:cometContext.continuationType;
         
-        /* Execute the Servlet.service method. CometEngine.register() or
+        /* Execute the Servlet.service method. CometEngine.register() ork
          * CometContext.addCometHandler() might be invoked during the execution. 
          */
         executeServlet(continuationType,apt);
@@ -346,12 +343,12 @@ public class CometEngine {
          */
         CometTask cometTask = updatedContexts.get();
         if (cometTask != null) {
-            //need to impl tlocal that gets and sets null in one efficent operation
+            //need to impl thread local that gets and sets null in one efficient operation
             updatedContexts.set(null);
             cometContext = cometTask.getCometContext();
             if (cometTask.upcoming_op_isread){  //alreadySuspended
                 cometTask.upcoming_op_isread = false;
-                //need to set dumykey in cometTask ?
+                //need to set dummy key in cometTask ?
                 cometContext.addActiveHandler(cometTask);
                 return false;
             }            
@@ -388,7 +385,7 @@ public class CometEngine {
 
     /**
      * Interrupt a {@link CometHandler} by invoking {@link CometHandler#onInterrupt}
-     * @param task. The {@link CometTask} encapsulating the suspended connection.
+     * @param task The {@link CometTask} encapsulating the suspended connection.
      * @param finishExecution Finish the current execution.
      */
     protected boolean interrupt(final CometTask task, final boolean finishExecution) {
@@ -413,7 +410,7 @@ public class CometEngine {
      * Interrupt logic in its own method, so it can be executed either async or sync.<br>
      * cometHandler.onInterrupt is performed async due to its functionality is unknown,
      * hence not safe to run in the performance critical selector thread.
-     * @param task. The {@link CometTask} encapsulating the suspended connection.
+     * @param task The {@link CometTask} encapsulating the suspended connection.
      * @param finishExecution Finish the current execution.
      */
     protected void interrupt0(CometTask task, boolean finishExecution){
@@ -427,16 +424,16 @@ public class CometEngine {
     
     
     /**
-     * Ensures {@link ProcessorTask} is recycled and that {@link Selectionkey} is canceled when needed.
+     * Ensures {@link ProcessorTask} is recycled and that {@link SelectionKey} is canceled when needed.
      *
      * @param task
-     * @param cancelkey
+     * @param cancelKey
      */
-    protected void flushPostExecute(final CometTask task,boolean cancelkey) {
+    protected void flushPostExecute(final CometTask task,boolean cancelKey) {
         AsyncProcessorTask apt = task.getAsyncProcessorTask();        
         ProcessorTask p = task.getAsyncProcessorTask().getAsyncExecutor().getProcessorTask();
         p.setReRegisterSelectionKey(false);
-        p.setAptCancelKey(cancelkey);
+        p.setAptCancelKey(cancelKey);
         if (apt.getStage() == AsyncTask.POST_EXECUTE){
             try{
                 //All comet IO operations sync on handler except close
@@ -459,7 +456,7 @@ public class CometEngine {
     /**
      * Bring the cometContext path target (most probably a Servlet) to the processing
      * stage we need for Comet request processing.
-     * @param cometContext The CometContext associated with the Servlet
+     * @param continuationType the continuation type
      * @param apt the AsyncProcessorTask
      */
     private void executeServlet(int continuationType, AsyncProcessorTask apt){
@@ -496,7 +493,7 @@ public class CometEngine {
     /**
      * Return the current logger.
      */
-    public final static Logger logger(){
+    public static Logger logger(){
         return logger;
     }
 }

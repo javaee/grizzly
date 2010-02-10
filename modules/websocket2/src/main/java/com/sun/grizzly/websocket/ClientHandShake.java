@@ -39,6 +39,7 @@ package com.sun.grizzly.websocket;
 
 import com.sun.grizzly.util.http.MimeHeaders;
 
+import java.io.IOException;
 import java.nio.charset.Charset;
 
 public class ClientHandShake extends HandShake {
@@ -46,23 +47,15 @@ public class ClientHandShake extends HandShake {
             encode("HTTP/1.1 101 Web Socket Protocol Handshake\r\n").array();
     private final static byte[] UPGRADE_BYTES = Charset.forName("ASCII").
             encode("Upgrade: WebSocket\r\nConnection: Upgrade\r\n").array();
+    private boolean upgrade;
+    private boolean connection;
 
-    private final String host;
-
-    public ClientHandShake(MimeHeaders headers, boolean secure, String path) {
+    public ClientHandShake(MimeHeaders headers, boolean secure, String path) throws IOException {
         super(headers, secure, path);
-        host = readHeader(headers, "host");
-    }
-
-    /**
-     * Host (bytes 48 6F 73 74; always the third name-value pair)
-     * The value gives the hostname that the client intended to use when opening the Web Socket.  It would be of
-     * interest in particular to virtual hosting environments, where one server might serve multiple hosts, and
-     * might therefore want to return different data. The value must be interpreted as UTF-8.
-     *
-     * @return
-     */
-    public String getHost() {
-        return host;
+        upgrade = "WebSocket".equals(headers.getHeader("Upgrade"));
+        connection = "Upgrade".equals(headers.getHeader("Connection"));
+        if(getServerHostName() == null || getOrigin() == null || !upgrade || !connection) {
+            throw new IOException("Missing required headers for WebSocket negotiation");
+        }
     }
 }

@@ -1,5 +1,19 @@
 package com.sun.grizzly.config;
 
+import com.sun.grizzly.comet.CometContext;
+import com.sun.grizzly.comet.CometEngine;
+import com.sun.grizzly.comet.CometEvent;
+import com.sun.grizzly.comet.CometHandler;
+import com.sun.grizzly.http.servlet.ServletAdapter;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -19,20 +33,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import com.sun.grizzly.comet.CometContext;
-import com.sun.grizzly.comet.CometEngine;
-import com.sun.grizzly.comet.CometEvent;
-import com.sun.grizzly.comet.CometHandler;
-import com.sun.grizzly.http.servlet.ServletAdapter;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
-import org.testng.annotations.Test;
 
 @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
 @Test
