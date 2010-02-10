@@ -331,13 +331,21 @@ public final class Cookies { // extends MultiMap {
      * outcomes first.
      */
     public static final boolean isSeparator(final byte c) {
-         if (c > 0 && c < 126) {
-             return separators[c];
-         } else {
-             return false;
-         }
+        return isSeparator(c, true);
     }
-    
+
+    public static final boolean isSeparator(final byte c, final boolean parseAsVersion1) {
+        if (parseAsVersion1) {
+            if (c > 0 && c < 126) {
+                return separators[c];
+            } else {
+                return false;
+            }
+        } else {
+            return (c == ';' || c == ',');
+        }
+    }
+
     /**
      * Returns true if the byte is a whitespace character as
      * defined in RFC2619.
@@ -437,12 +445,13 @@ public final class Cookies { // extends MultiMap {
                     // The position is OK (On a delimiter)
                     break;
                 default:;
-                    if (!isSeparator(bytes[pos])) {
+                    if (!isSeparator(bytes[pos], ServerCookie.COOKIE_VERSION_ONE_STRICT_COMPLIANCE)) {
                         // Token
                         valueStart = pos;
                         // getToken returns the position at the delimeter
                         // or other non-token character
-                        valueEnd = getTokenEndPosition(bytes, valueStart, end);
+                        valueEnd = getTokenEndPosition(bytes, valueStart, end,
+                                ServerCookie.COOKIE_VERSION_ONE_STRICT_COMPLIANCE);
                         // We need pos to advance
                         pos = valueEnd;
                     } else  {
@@ -582,8 +591,13 @@ public final class Cookies { // extends MultiMap {
      * JVK
      */
     public static final int getTokenEndPosition(byte bytes[], int off, int end){
+        return getTokenEndPosition(bytes, off, end, true);
+    }
+
+    public static final int getTokenEndPosition(byte bytes[], int off, int end,
+            boolean parseAsVersion1) {
         int pos = off;
-        while (pos < end && !isSeparator(bytes[pos])) {
+        while (pos < end && !isSeparator(bytes[pos], parseAsVersion1)) {
             pos++;
         }
         

@@ -107,16 +107,18 @@ public class ServerCookie implements Serializable {
     private int version = 0;
 
     /**
-     * If set to false, then it will quote the value and update cookie version
+     * If set to true, then it will double quote the value and update cookie version
      * when there is special characters.
      *
-     * The variable STRICT_SERVLET_COMPLIANCE is from Tomcat with default false.
-     * One use a different environment property with a negated value to avoid user confusion.
-     * By default, com.sun.grizzly.serverCookie.quoteSpecialCharacters = true;
+     * Tomcat uses STRICT_SERVLET_COMPLIANCE, whereas this code uses
+     * COOKIE_VERSION_ONE_STRICT_COMPLIANCE, which unlike the
+     * Tomcat variant not only affects cookie generation, but also cookie parsing.
+     * By default, cookies are parsed as v0 cookies, in order to maintain backward
+     * compatibility with GlassFish v2.x
      */
-    private static final boolean STRICT_SERVLET_COMPLIANCE =
-        !Boolean.valueOf(System.getProperty(
-            "com.sun.grizzly.serverCookie.quoteSpecialCharacters", "true")).booleanValue();
+    static final boolean COOKIE_VERSION_ONE_STRICT_COMPLIANCE =
+        Boolean.valueOf(System.getProperty(
+            "com.sun.grizzly.util.http.ServerCookie.COOKIE_VERSION_ONE_STRICT_COMPLIANCE", "false")).booleanValue();
 
     /**
      * If set to false, we don't use the IE6/7 Max-Age/Expires work around
@@ -426,7 +428,7 @@ public class ServerCookie implements Serializable {
             buf.append('"');
             buf.append(escapeDoubleQuotes(value,1,value.length()-1));
             buf.append('"');
-        } else if (allowVersionSwitch && (!STRICT_SERVLET_COMPLIANCE) && version==0 && !isToken2(value, literals)) {
+        } else if (allowVersionSwitch && (COOKIE_VERSION_ONE_STRICT_COMPLIANCE) && version==0 && !isToken2(value, literals)) {
             buf.append('"');
             buf.append(escapeDoubleQuotes(value,0,value.length()));
             buf.append('"');
