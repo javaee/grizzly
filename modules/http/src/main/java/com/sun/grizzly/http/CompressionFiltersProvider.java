@@ -39,6 +39,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.tcp.http11.OutputFilter;
 import com.sun.grizzly.tcp.http11.filters.GzipOutputFilter;
+import com.sun.grizzly.tcp.http11.filters.LzmaOutputFilter;
 import com.sun.grizzly.util.buf.MessageBytes;
 import java.util.Collection;
 import java.util.Comparator;
@@ -72,7 +73,7 @@ public class CompressionFiltersProvider {
         outputFilters.put(new Key(counter.getAndIncrement(), "gzip"), gzipOutputFilter);
         outputFilters.put(new Key(counter.getAndIncrement(), "deflate"), gzipOutputFilter);
         
-//        registerOutputFilter(new LzmaOutputFilter());
+        registerOutputFilter(new LzmaOutputFilter());
     }
 
     /**
