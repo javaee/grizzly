@@ -44,6 +44,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.charset.Charset;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -54,6 +56,26 @@ import java.util.regex.Matcher;
  * @author Jean-Francois Arcand
  */
 public class Utils {
+    private static ConcurrentHashMap<String, Charset> charsetAliasMap =
+            new ConcurrentHashMap<String, Charset>();
+
+    /**
+     * Lookup a {@link Charset} by name.
+     * Fixes Charset concurrency issue (http://paul.vox.com/library/post/the-mysteries-of-java-character-set-performance.html)
+     * 
+     * @param charsetName
+     * @return {@link Charset}
+     */
+    public static Charset lookupCharset(String charsetName) {
+        Charset charset = charsetAliasMap.get(charsetName);
+        if (charset == null) {
+            charset = Charset.forName(charsetName);
+            charsetAliasMap.putIfAbsent(charsetName, charset);
+        }
+
+        return charset;
+    }
+
      /**
      * Character translation tables.
      */

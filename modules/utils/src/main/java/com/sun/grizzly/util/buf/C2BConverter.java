@@ -58,6 +58,7 @@
 package com.sun.grizzly.util.buf;
 
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -85,7 +86,7 @@ public class C2BConverter {
     public C2BConverter(ByteChunk output, String encoding) throws IOException {
         this.bb=output;
         this.enc=encoding;
-        encoder = Charset.forName(enc).newEncoder().
+        encoder = Utils.lookupCharset(enc).newEncoder().
 		onMalformedInput(CodingErrorAction.REPLACE).
 		onUnmappableCharacter(CodingErrorAction.REPLACE);
     }
