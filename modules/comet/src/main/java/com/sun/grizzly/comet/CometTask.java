@@ -165,11 +165,11 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
         }
         if (cometHandlerIsAsyncRegistered){
             if (selectionKey.isReadable()){
-                selectionKey.interestOps(selectionKey.interestOps() & (~SelectionKey.OP_READ));
+                selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_READ);
                 upcoming_op_isread = true;
             }
             if (selectionKey.isWritable()){
-                selectionKey.interestOps(selectionKey.interestOps() & (~SelectionKey.OP_WRITE));
+                selectionKey.interestOps(selectionKey.interestOps() & ~SelectionKey.OP_WRITE);
                 upcoming_op_isread = false;
             }
             asyncProcessorTask.getThreadPool().execute(this);

@@ -55,17 +55,6 @@ package com.sun.grizzly.http;
 
 
 import com.sun.grizzly.arp.AsyncHandler;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InterruptedIOException;
-import java.io.OutputStream;
-
-import java.net.InetAddress;
-import java.net.Socket;
-import java.nio.BufferOverflowException;
-import java.nio.channels.SocketChannel;
-import java.util.logging.Level;
-
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.ActionHook;
 import com.sun.grizzly.tcp.Adapter;
@@ -75,9 +64,10 @@ import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.Response.ResponseAttachment;
-import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.InputFilter;
+import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.OutputFilter;
+import com.sun.grizzly.tcp.http11.filters.BufferedInputFilter;
 import com.sun.grizzly.tcp.http11.filters.ChunkedInputFilter;
 import com.sun.grizzly.tcp.http11.filters.ChunkedOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.GzipOutputFilter;
@@ -85,12 +75,10 @@ import com.sun.grizzly.tcp.http11.filters.IdentityInputFilter;
 import com.sun.grizzly.tcp.http11.filters.IdentityOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.VoidInputFilter;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
-import com.sun.grizzly.tcp.http11.filters.BufferedInputFilter;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.Interceptor;
-
 import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.Ascii;
@@ -101,15 +89,24 @@ import com.sun.grizzly.util.http.FastHttpDateFormat;
 import com.sun.grizzly.util.http.HtmlHelper;
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.util.net.SSLSupport;
-
 import com.sun.grizzly.util.res.StringManager;
+
+import javax.management.ObjectName;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InterruptedIOException;
+import java.io.OutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.StringTokenizer;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.management.ObjectName;
 
 /**
  * Process HTTP request. This class is based on
@@ -117,21 +114,21 @@ import javax.management.ObjectName;
  *
  * @author Jean-Francois Arcand
  */
-public class ProcessorTask extends TaskBase implements Processor, 
+public class ProcessorTask extends TaskBase implements Processor,
         ActionHook {
 
     private final static Logger logger = SelectorThread.logger();
 
     private boolean isSecurityEnabled;
-    
-    
+
+
     /**
      * The string manager for this package.
      */
     protected static final StringManager sm =
         StringManager.getManager(Constants.Package);
-    
-    
+
+
     /**
      * Associated adapter.
      */
@@ -155,19 +152,19 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     protected InternalInputBuffer inputBuffer = null;
 
-    
+
     /**
      * Input Stream.
      */
     protected InputStream inputStream = null;
-    
-    
+
+
     /**
      * Output Stream.
      */
     protected OutputStream outputStream = null;
 
-    
+
     /**
      * Output.
      */
@@ -190,14 +187,14 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Keep-alive.
      */
     protected boolean keepAlive = true;
-    
-    
+
+
     /**
      * Connection: value
      */
     protected boolean connectionHeaderValueSet = false;
 
-    
+
     /**
      * HTTP/1.1 flag.
      */
@@ -239,30 +236,30 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Remote Host associated with the current connection.
      */
     protected String remoteHost = null;
-    
-    
+
+
     /**
      * Local Host associated with the current connection.
      */
     protected String localName = null;
-        
-    
+
+
     /**
      * Local port to which the socket is connected
      */
     protected int localPort = -1;
-    
-    
+
+
     /**
      * Remote port to which the socket is connected
      */
     protected int remotePort = -1;
-    
-    
+
+
     /**
      * The local Host address.
      */
-    protected String localAddr = null; 
+    protected String localAddr = null;
 
 
     /**
@@ -281,27 +278,27 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Host name (used to avoid useless B2C conversion on the host name).
      */
     protected char[] hostNameC = new char[0];
-    
-    
+
+
     /**
      * Has the request associated with this {@link ProcessorTask} been
      * registered with the {@link RequestGroupInfo}
      */
     protected boolean hasRequestInfoRegistered = false;
-    
-    
+
+
     /**
      * Default HTTP header buffer size.
      */
     protected int maxHttpHeaderSize = Constants.DEFAULT_HEADER_SIZE;
 
-    
+
     /**
      * The number of requests {@link ProcessorTask} has proceeded.
      */
     protected static int requestCount;
 
-    
+
     /**
      * The input request buffer size.
      */
@@ -313,62 +310,62 @@ public class ProcessorTask extends TaskBase implements Processor,
      * JMX-registered if monitoring has been turned on
      */
     protected ObjectName oname;
-    
-    
+
+
     /**
      * Allow client of this class to force connection closing.
      */
     protected boolean dropConnection = false;
-    
-    
+
+
     /**
      * The current keep-alive count left before closing the connection.
      */
     protected int keepAliveLeft;
-  
-     
+
+
     /**
      * The {@link StreamAlgorithm} used by this {@link Task} to manipulate the request.
      */
     protected StreamAlgorithm streamAlgorithm;
-    
-    
+
+
     /**
      * The default response-type
      */
     protected String defaultResponseType = Constants.DEFAULT_RESPONSE_TYPE;
-     
-    
+
+
     /**
      * The forced request-type
      */
-    protected String forcedRequestType = Constants.FORCED_REQUEST_TYPE;     
-    
-    
+    protected String forcedRequestType = Constants.FORCED_REQUEST_TYPE;
+
+
     /**
      * Is asynchronous mode enabled?
      */
     protected boolean asyncExecution = false;
-    
-    
+
+
     /**
      * The code>RequestInfo</code> used to gather stats.
      */
     protected RequestInfo requestInfo;
-    
-    
+
+
     /**
      * When the asynchronous mode is enabled, the execution of this object
      * will be delegated to the {@link AsyncHandler}
      */
     protected AsyncHandler asyncHandler;
 
-    
+
     private Semaphore asyncSemaphore = new Semaphore(1);
 
 
     private int sendBufferSize = Constants.SEND_BUFFER_SIZE;
-    
+
 // ----------------------------------------------- Compression Support ---//
 
 
@@ -381,10 +378,10 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * List of MIMES which could be gzipped
      */
-    protected String[] compressableMimeTypes 
+    protected String[] compressableMimeTypes
             = { "text/html", "text/xml", "text/plain" };
-    
-   
+
+
     /**
      * Allowed compression level.
      */
@@ -395,20 +392,20 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Minimum contentsize to make compression.
      */
     protected int compressionMinSize = 2048;
-    
-    
+
+
     /**
      * List of restricted user agents.
      */
     protected String[] restrictedUserAgents = null;
 
-        
+
     /**
      * Buffer the response until the buffer is full.
      */
     protected boolean bufferResponse = true;
-    
-        
+
+
     /**
      * Flag to disable setting a different time-out on uploads.
      */
@@ -418,15 +415,15 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * Flag, which indicates if async HTTP write is enabled
      */
-    protected boolean isAsyncHttpWriteEnabled;    
-    
-    
+    protected boolean isAsyncHttpWriteEnabled;
+
+
     /**
-     * The maximum time a connection can stay open holding a {@link WorkerThread}. 
+     * The maximum time a connection can stay open holding a {@link WorkerThread}.
      * Default is 5 minutes like Apache.
      */
     private int transactionTimeout = Constants.DEFAULT_TIMEOUT;
-    
+
     /**
      * Use chunking.
      */
@@ -445,7 +442,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Max keep-alive request before timing out.
      */
     protected int maxKeepAliveRequests = Constants.DEFAULT_MAX_KEEP_ALIVE;
-   
+
     // When true, a Thread will be reserved to serve requests for the keep-alive
     // being time.
     protected boolean handleKeepAliveBlockingThread = false;
@@ -464,27 +461,29 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Used by terminateProcess() method
      */
     private final TaskEvent<ProcessorTask> event = new TaskEvent<ProcessorTask>(this);
-    
+
     // Has processing of this object completed.
     private boolean isProcessingCompleted = false;
 
     private boolean setSkipPostExecute;
+    private boolean httpExtension = false;
+
     // ----------------------------------------------------- Constructor ---- //
 
     public ProcessorTask(){
         this(true);
     }
-       
-    
-    public ProcessorTask(boolean init){    
+
+
+    public ProcessorTask(boolean init){
         type = PROCESSOR_TASK;
         if (init) {
             initialize();
         }
     }
-    
-    
-    public ProcessorTask(boolean init, boolean bufferResponse){    
+
+
+    public ProcessorTask(boolean init, boolean bufferResponse){
         this.bufferResponse = bufferResponse;
 
         type = PROCESSOR_TASK;
@@ -492,28 +491,28 @@ public class ProcessorTask extends TaskBase implements Processor,
             initialize();
         }
     }
-    
-    
+
+
     /**
      * Initialize the stream and the buffer used to parse the request.
      */
     public void initialize(){
         isSecurityEnabled = (System.getSecurityManager() != null);
-        started = true;   
+        started = true;
         request = createRequest();
 
         response = createResponse();
         response.setHook(this);
-        
-        inputBuffer = new InternalInputBuffer(request,requestBufferSize); 
-        
-        outputBuffer = new SocketChannelOutputBuffer(response, 
+
+        inputBuffer = new InternalInputBuffer(request,requestBufferSize);
+
+        outputBuffer = new SocketChannelOutputBuffer(response,
                                                      sendBufferSize,
-                                                     bufferResponse);           
-        
+                                                     bufferResponse);
+
 
         request.setInputBuffer(inputBuffer);
-       
+
         response.setOutputBuffer(outputBuffer);
         request.setResponse(response);
 
@@ -531,7 +530,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             if (!handleKeepAliveBlockingThread)
                 logger.info("Keep Alive blocking thread algorithm will no be used");
-        }   
+        }
     }
 
     /**
@@ -551,8 +550,8 @@ public class ProcessorTask extends TaskBase implements Processor,
     }
 
     // ----------------------------------------------------- Thread run ---- //
-    
-    
+
+
      /**
      * Execute the HTTP request by parsing the header/body,
      * and then by delegating the process to the Catalina container.
@@ -567,30 +566,30 @@ public class ProcessorTask extends TaskBase implements Processor,
                     sm.getString("processorTask.errorProcessingRequest"), ex);
             }
         } finally {
-            terminateProcess();        
+            terminateProcess();
         }
     }
 
- 
-     // --------------------------------------------------------- TaskEvent ---// 
-       
-    
+
+     // --------------------------------------------------------- TaskEvent ---//
+
+
     /**
      * Pre process the request by decoding the request line and the header.
-     */ 
+     */
     public void preProcess() throws Exception {
         preProcess(inputStream,outputStream);
     }
-    
-    
+
+
     /**
      * Pre process the request by decoding the request line and the header.
      * @param input the InputStream to read bytes
      * @param output the OutputStream to write bytes
-     */     
+     */
     public void preProcess(InputStream input, OutputStream output)
                                                             throws Exception {
-        
+
         // Make sure this object has been initialized.
         if ( !started ){
             initialize();
@@ -605,28 +604,28 @@ public class ProcessorTask extends TaskBase implements Processor,
                     selectorHandler.getAsyncQueueWriter());
             outputBuffer.setSelectionKey(key);
 	     response.setChannel((SocketChannel)key.channel());
-        } 
+        }
         configPreProcess();
     }
-        
-    
+
+
     /**
      * Prepare this object before parsing the request.
      */
     protected void configPreProcess() throws Exception {
-                   
-        if(selectorThread.isMonitoringEnabled() 
+
+        if(selectorThread.isMonitoringEnabled()
                 && !hasRequestInfoRegistered ) {
             registerMonitoring();
         } else if (!selectorThread.isMonitoringEnabled() && hasRequestInfoRegistered) {
             unregisterMonitoring();
-        } 
-        
+        }
+
         if (selectorThread.isMonitoringEnabled()) {
             requestInfo = request.getRequestProcessor();
             requestInfo.setWorkerThreadID(Thread.currentThread().getId());
         }
-        
+
         // Set the remote address
         remoteAddr = null;
         remoteHost = null;
@@ -635,20 +634,20 @@ public class ProcessorTask extends TaskBase implements Processor,
         remotePort = -1;
         localPort = -1;
         connectionHeaderValueSet = false;
-        
+
         // Error flag
         error = false;
         keepAlive = true;
 
         if (request.getServerPort() == 0) {
             request.setServerPort(selectorThread.getPort());
-        }        
+        }
     }
 
-    
+
     /**
      * Process an HTTP request using a non blocking {@link Socket}
-     */      
+     */
     protected boolean doProcess() throws Exception {
         do{
             int soTimeout = ((InputReader)inputStream).getReadTimeout();
@@ -712,15 +711,15 @@ public class ProcessorTask extends TaskBase implements Processor,
         return error;
     }
 
-    
+
     /**
      * Prepare and post the response.
-     */       
+     */
     public void postResponse() throws Exception{
         if (isProcessingCompleted){
             return;
         }
-        
+
         // Do not commit the response;
         if (response.isSuspended()){
             WorkerThread wt = (WorkerThread)Thread.currentThread();
@@ -729,11 +728,11 @@ public class ProcessorTask extends TaskBase implements Processor,
             ra.markAttached(true);
             key.attach(ra);
             return;
-        }      
+        }
         finishResponse();
     }
-    
-    
+
+
     /**
      * Finish the response
      */
@@ -748,7 +747,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                     sm.getString("processorTask.errorFinishingRequest"), ex);
             }
         }
-        
+
         // Finish the handling of the request
         try {
             if (error){
@@ -779,11 +778,11 @@ public class ProcessorTask extends TaskBase implements Processor,
         if (error) {
             response.setStatus(500);
         }
-        
+
         if (selectorThread.isMonitoringEnabled()) {
-            request.updateCounters();  
+            request.updateCounters();
         }
-                
+
         if (keepAlive) {
             // If keep connection alive - prepare for the next request
             inputBuffer.nextRequest();
@@ -850,9 +849,9 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Parse the request line and the http header.
      */
     public boolean parseRequest() throws Exception {
-        
+
         // Parsing the request header
-        try { 
+        try {
             try {
                 inputBuffer.parseRequestLine();
             } catch (BufferOverflowException boe) {
@@ -893,15 +892,15 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             request.setStartTime(System.currentTimeMillis());
 
-            if ( SelectorThread.isEnableNioLogging() ){                               
-                logger.log(Level.INFO, 
+            if ( SelectorThread.isEnableNioLogging() ){
+                logger.log(Level.INFO,
                         "SocketChannel request line " + key.channel() + " is: "
                         + request);
-                
-                logger.log(Level.INFO, "SocketChannel headers" 
+
+                logger.log(Level.INFO, "SocketChannel headers"
                         + key.channel() + " are: \n"
                         + request.getMimeHeaders());
-            }                       
+            }
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINEST)){
                 logger.log(Level.FINEST,
@@ -942,20 +941,20 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         return false;
     }
-    
-    
+
+
     /**
      * Post process the http request, after the response has been
      * commited.
-     */      
-    public void postProcess() throws Exception {        
+     */
+    public void postProcess() throws Exception {
         if (response.isSuspended() || isProcessingCompleted){
             return;
         }
-        
+
         inputBuffer.recycle();
         outputBuffer.recycle();
-        
+
         // Recycle ssl info
         sslSupport = null;
 
@@ -964,10 +963,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             connectionHeaderValueSet = false;
         }
     }
-    
+
 
     /**
-     * Notify the {@link TaskListener} that the request has been 
+     * Notify the {@link TaskListener} that the request has been
      * fully processed.
      */
     public void terminateProcess(){
@@ -979,25 +978,25 @@ public class ProcessorTask extends TaskBase implements Processor,
                 if (getTaskListener() != null){
                     event.setStatus(error?TaskEvent.ERROR:TaskEvent.COMPLETED);
                     getTaskListener().taskEvent(event);
-                }                                
-            } 
+                }
+            }
         } catch (InterruptedException ex) {
             if (logger.isLoggable(Level.WARNING)){
                 logger.log(Level.WARNING,sm.getString("terminateProcess"),ex);
             }
-        } finally {            
+        } finally {
             asyncSemaphore.release();
         }
     }
-    
-    
+
+
     // -------------------------------------------------------------------- //
-    
-    
+
+
     /**
      * Process pipelined HTTP requests using the specified input and output
      * streams.
-     * 
+     *
      * @param input stream from which the HTTP requests will be read
      * @param output stream which will be used to output the HTTP
      * responses
@@ -1006,28 +1005,28 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     public boolean process(InputStream input, OutputStream output)
             throws Exception {
-                
-        preProcess(input,output);    
+
+        preProcess(input,output);
         doProcess();
         postProcess();
         return keepAlive;
     }
-    
-    
-    /** 
+
+
+    /**
      * Get the request URI associated with this processor.
      */
     public String getRequestURI() {
         return request.requestURI().toString();
     }
-    
+
 
     // ----------------------------------------------------- ActionHook Methods
 
 
     /**
      * Send an action to the connector.
-     * 
+     *
      * @param actionCode Type of the action
      * @param param Action parameter
      */
@@ -1039,7 +1038,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             if (response.isCommitted())
                 return;
-                        
+
             // Validate and write response headers
             prepareResponse();
             try {
@@ -1047,7 +1046,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             } catch (IOException ex) {
                 if (logger.isLoggable(Level.FINEST)){
                     logger.log(Level.FINEST,
-                        sm.getString("processorTask.nonBlockingError"), ex);               
+                        sm.getString("processorTask.nonBlockingError"), ex);
                     error = true;
                 }
             }
@@ -1093,7 +1092,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             // Note: This must be called before the response is committed
             outputBuffer.reset();
         } else if (actionCode == ActionCode.ACTION_DISCARD_UPSTREAM_WRITE) {
-            outputBuffer.discardUpstreamBytes();                      
+            outputBuffer.discardUpstreamBytes();
         } else if (actionCode == ActionCode.ACTION_START) {
             started = true;
         } else if (actionCode == ActionCode.ACTION_STOP) {
@@ -1130,12 +1129,12 @@ public class ProcessorTask extends TaskBase implements Processor,
                 InetAddress inetAddr = socket.getInetAddress();
                 if (inetAddr != null) {
                     remoteAddr = inetAddr.getHostAddress();
-                }   
+                }
             }
             request.remoteAddr().setString(remoteAddr);
 
         } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_NAME_ATTRIBUTE) {
-            
+
             if ((localName == null) && (socket != null)) {
                 InetAddress inetAddr = socket.getLocalAddress();
                 if (inetAddr != null) {
@@ -1145,13 +1144,13 @@ public class ProcessorTask extends TaskBase implements Processor,
             request.localName().setString(localName);
 
         } else if (actionCode == ActionCode.ACTION_REQ_HOST_ATTRIBUTE) {
-            
+
             if ((remoteHost == null) && (socket != null)) {
                 InetAddress inetAddr = socket.getInetAddress();
                 if (inetAddr != null) {
                     remoteHost = inetAddr.getHostName();
                 }
-                
+
                 if(remoteHost == null) {
                     if(remoteAddr != null) {
                         remoteHost = remoteAddr;
@@ -1161,28 +1160,28 @@ public class ProcessorTask extends TaskBase implements Processor,
                 }
             }
             request.remoteHost().setString(remoteHost);
-            
+
         } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE) {
-                       
+
             if (localAddr == null)
                localAddr = socket.getLocalAddress().getHostAddress();
 
             request.localAddr().setString(localAddr);
-            
+
         } else if (actionCode == ActionCode.ACTION_REQ_REMOTEPORT_ATTRIBUTE) {
-            
+
             if ((remotePort == -1 ) && (socket !=null)) {
-                remotePort = socket.getPort(); 
-            }    
+                remotePort = socket.getPort();
+            }
             request.setRemotePort(remotePort);
 
         } else if (actionCode == ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE) {
-            
+
             if ((localPort == -1 ) && (socket !=null)) {
-                localPort = socket.getLocalPort(); 
-            }            
+                localPort = socket.getLocalPort();
+            }
             request.setLocalPort(localPort);
-       
+
         } else if (actionCode == ActionCode.ACTION_REQ_SSL_CERTIFICATE) {
             if( sslSupport != null) {
                 /*
@@ -1207,16 +1206,16 @@ public class ProcessorTask extends TaskBase implements Processor,
             }
         } else if ( actionCode == ActionCode.ACTION_POST_REQUEST ) {
             final Interceptor handler = getHandler();
-            
-            if (response.getStatus() == 200 && handler != null 
+
+            if (response.getStatus() == 200 && handler != null
                     && compressionLevel == 0){
                 try{
                     handler.handle(request,Interceptor.RESPONSE_PROCEEDED);
                 } catch(IOException ex){
                     logger.log(Level.FINEST,"Handler exception",ex);
                 }
-            }   
-        } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) { 
+            }
+        } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) {
             key.attach(null);
         } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
             if (key != null) {
@@ -1225,30 +1224,30 @@ public class ProcessorTask extends TaskBase implements Processor,
                     ((Response.ResponseAttachment)attachment).resetTimeout();
                 }
             }
-        } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) { 
+        } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) {
             if (key != null) {
                 try{
                    outputBuffer.flush();
                 } catch (IOException ex){
                     if (logger.isLoggable(Level.FINEST)){
                         logger.log(Level.FINEST,
-                                "ACTION_CLIENT_FLUSH",ex); 
+                                "ACTION_CLIENT_FLUSH",ex);
                     }
                     error = true;
                     response.setErrorException(ex);
                 }
-            } 
-        } else if (actionCode == ActionCode.ACTION_FINISH_RESPONSE){             
+            }
+        } else if (actionCode == ActionCode.ACTION_FINISH_RESPONSE){
             finishResponse();
             try{
                 postProcess();
             } catch (Exception ex){
                 if (logger.isLoggable(Level.FINEST)){
                     logger.log(Level.FINEST,
-                            "ACTION_FINISH_RESPONSE",ex); 
+                            "ACTION_FINISH_RESPONSE",ex);
                 }
                 error = true;
-                response.setErrorException(ex);                
+                response.setErrorException(ex);
             }
             if (!keepAlive){
                 selectorThread.cancelKey(key);
@@ -1263,7 +1262,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     /**
      * Set the associated adapter.
-     * 
+     *
      * @param adapter the new adapter
      */
     public void setAdapter(Adapter adapter) {
@@ -1273,7 +1272,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     /**
      * Get the associated adapter.
-     * 
+     *
      * @return the associated adapter
      */
     public Adapter getAdapter() {
@@ -1310,7 +1309,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             // Send 505; Unsupported HTTP version
             response.setStatus(505);
         }
-        
+
         // Check connection header
         MessageBytes connectionValueMB = headers.getValue("connection");
         if (connectionValueMB != null) {
@@ -1362,7 +1361,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * After reading the request headers, we have to setup the request filters.
      */
-    protected void prepareRequest() {        
+    protected void prepareRequest() {
         MessageBytes methodMB = request.method();
         if (methodMB.equals(Constants.GET)) {
             methodMB.setString(Constants.GET);
@@ -1390,11 +1389,11 @@ public class ProcessorTask extends TaskBase implements Processor,
                         (uriB, uriBCStart + pos + 1, 1);
                 } else {
                     request.requestURI().setBytes
-                        (uriB, uriBCStart + slashPos, 
+                        (uriB, uriBCStart + slashPos,
                          uriBC.getLength() - slashPos);
                 }
                 MessageBytes hostMB = headers.setValue("host");
-                hostMB.setBytes(uriB, uriBCStart + pos + 3, 
+                hostMB.setBytes(uriB, uriBCStart + pos + 3,
                                 slashPos - pos - 3);
             }
 
@@ -1402,11 +1401,12 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         // Input filter setup
         InputFilter[] inputFilters = inputBuffer.getFilters();
+        httpExtension = headers.getHeader("Upgrade") != null;
 
         // Parse content-length header
         long contentLength = request.getContentLengthLong();
-        if (contentLength >= 0) {
-            
+        if (!httpExtension && contentLength >= 0) {
+
             inputBuffer.addActiveFilter
                 (inputFilters[Constants.IDENTITY_FILTER]);
             contentDelimitation = true;
@@ -1455,7 +1455,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         parseHost(valueMB);
 
-        if (!contentDelimitation) {
+        if (!httpExtension && !contentDelimitation) {
             // If there's no content length 
             // (broken HTTP/1.0 or HTTP/1.1), assume
             // the client is not broken and didn't send a body
@@ -1548,114 +1548,113 @@ public class ProcessorTask extends TaskBase implements Processor,
      */
     protected void prepareResponse() {
 
-        boolean entityBody = true;
         contentDelimitation = false;
-
-        OutputFilter[] outputFilters = outputBuffer.getFilters();
-
-        if (http09 == true) {
-            // HTTP/0.9
-            outputBuffer.addActiveFilter
-                (outputFilters[Constants.IDENTITY_FILTER]);
-            return;
-        }
-
-        int statusCode = response.getStatus();
-        if ((statusCode == 204) || (statusCode == 205) 
-            || (statusCode == 304)) {
-            // No entity body
-            outputBuffer.addActiveFilter
-                (outputFilters[Constants.VOID_FILTER]);
-            entityBody = false;
-            contentDelimitation = true;
-        }
-
-        // Check for compression
-        OutputFilter compressionOutputFilter = null;
-        if (entityBody && (compressionLevel > 0)) {
-            compressionOutputFilter = detectCompression();
-            
-            // Change content-length to -1 to force chunking
-            if (compressionOutputFilter != null) {
-                response.setContentLength(-1);
-            }
-        }
-        
-        MessageBytes methodMB = request.method();
-        if (methodMB.equals("HEAD")) {
-            // No entity body
-            outputBuffer.addActiveFilter
-                (outputFilters[Constants.VOID_FILTER]);
-            contentDelimitation = true;
-        }
-
         MimeHeaders headers = response.getMimeHeaders();
-        if (!entityBody) {
-            response.setContentLength(-1);
-        } else {
-            String contentType = response.getContentType();
-            if (contentType != null) {
-                headers.setValue("Content-Type").setString(contentType);
-            }
-        
-            String contentLanguage = response.getContentLanguage();
-            if (contentLanguage != null && !"".equals(contentLanguage)) {
-                headers.setValue("Content-Language")
-                    .setString(contentLanguage);
-            }
-        }
 
-        int contentLength = response.getContentLength();
-        if (contentLength != -1) {
-            headers.setValue("Content-Length").setInt(contentLength);
-            outputBuffer.addActiveFilter
-                (outputFilters[Constants.IDENTITY_FILTER]);
-            contentDelimitation = true;
-        } else {
-            if (useChunking && entityBody && http11 && keepAlive) {
+        if (!httpExtension) {
+            boolean entityBody = true;
+            OutputFilter[] outputFilters = outputBuffer.getFilters();
+            if (http09) {
+                // HTTP/0.9
                 outputBuffer.addActiveFilter
-                    (outputFilters[Constants.CHUNKED_FILTER]);
+                        (outputFilters[Constants.IDENTITY_FILTER]);
+                return;
+            }
+
+            int statusCode = response.getStatus();
+            if (statusCode == 204 || statusCode == 205 || statusCode == 304) {
+                // No entity body
+                outputBuffer.addActiveFilter
+                        (outputFilters[Constants.VOID_FILTER]);
+                entityBody = false;
                 contentDelimitation = true;
-                response.addHeader("Transfer-Encoding", "chunked");
-            } else {
-                outputBuffer.addActiveFilter
-                    (outputFilters[Constants.IDENTITY_FILTER]);
             }
-        }
 
-        if (compressionOutputFilter != null) {
-            outputBuffer.addActiveFilter(compressionOutputFilter);
-            // FIXME: Make content-encoding generation dynamic
-            response.setHeader("Content-Encoding",
-                    compressionOutputFilter.getEncodingName().toString());
-            // Make Proxies happy via Vary (from mod_deflate)
-            response.setHeader("Vary", "Accept-Encoding");
-        }
-        
-        // Add date header
-        if (! response.containsHeader("Date")){
-            String date = FastHttpDateFormat.getCurrentDate();
-            response.addHeader("Date", date);
-        }
-         
-        // Add transfer encoding header
-        // FIXME
+            // Check for compression
+            OutputFilter compressionOutputFilter = null;
+            if (entityBody && compressionLevel > 0) {
+                compressionOutputFilter = detectCompression();
 
-        if ((entityBody) && (!contentDelimitation)) {
-            // Mark as close the connection after the request, and add the 
-            // connection: close header
-            keepAlive = false;
-        }
+                // Change content-length to -1 to force chunking
+                if (compressionOutputFilter != null) {
+                    response.setContentLength(-1);
+                }
+            }
 
-        // If we know that the request is bad this early, add the
-        // Connection: close header.
-        keepAlive = keepAlive && !statusDropsConnection(statusCode)
-            && !dropConnection;
-        if (!keepAlive ) {
-            headers.setValue("Connection").setString("close");
-            connectionHeaderValueSet = false;
-        } else if (!http11 && !error) {
-            headers.setValue("Connection").setString("Keep-Alive");
+            if (request.method().equals("HEAD")) {
+                // No entity body
+                outputBuffer.addActiveFilter
+                        (outputFilters[Constants.VOID_FILTER]);
+                contentDelimitation = true;
+            }
+
+            if (!entityBody) {
+                response.setContentLength(-1);
+            } else {
+                String contentType = response.getContentType();
+                if (contentType != null) {
+                    headers.setValue("Content-Type").setString(contentType);
+                }
+
+                String contentLanguage = response.getContentLanguage();
+                if (contentLanguage != null && !"".equals(contentLanguage)) {
+                    headers.setValue("Content-Language")
+                            .setString(contentLanguage);
+                }
+            }
+
+            int contentLength = response.getContentLength();
+            if (contentLength != -1) {
+                headers.setValue("Content-Length").setInt(contentLength);
+                outputBuffer.addActiveFilter
+                        (outputFilters[Constants.IDENTITY_FILTER]);
+                contentDelimitation = true;
+            } else {
+                if (useChunking && entityBody && http11 && keepAlive) {
+                    outputBuffer.addActiveFilter
+                            (outputFilters[Constants.CHUNKED_FILTER]);
+                    contentDelimitation = true;
+                    response.addHeader("Transfer-Encoding", "chunked");
+                } else {
+                    outputBuffer.addActiveFilter
+                            (outputFilters[Constants.IDENTITY_FILTER]);
+                }
+            }
+
+            if (compressionOutputFilter != null) {
+                outputBuffer.addActiveFilter(compressionOutputFilter);
+                // FIXME: Make content-encoding generation dynamic
+                response.setHeader("Content-Encoding",
+                        compressionOutputFilter.getEncodingName().toString());
+                // Make Proxies happy via Vary (from mod_deflate)
+                response.setHeader("Vary", "Accept-Encoding");
+            }
+
+            // Add date header
+            if (!response.containsHeader("Date")) {
+                String date = FastHttpDateFormat.getCurrentDate();
+                response.addHeader("Date", date);
+            }
+
+            // Add transfer encoding header
+            // FIXME
+
+            if (entityBody && !contentDelimitation) {
+                // Mark as close the connection after the request, and add the
+                // connection: close header
+                keepAlive = false;
+            }
+
+            // If we know that the request is bad this early, add the
+            // Connection: close header.
+            keepAlive = keepAlive && !statusDropsConnection(statusCode)
+                    && !dropConnection;
+            if (!keepAlive) {
+                headers.setValue("Connection").setString("close");
+                connectionHeaderValueSet = false;
+            } else if (!http11 && !error) {
+                headers.setValue("Connection").setString("Keep-Alive");
+            }
         }
 
         // Build the response header
@@ -1706,27 +1705,29 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     /**
      * Add an input filter to the current request.
-     * 
-     * @return false if the encoding was not found (which would mean it is 
+     *
+     * @return false if the encoding was not found (which would mean it is
      * unsupported)
      */
-    protected boolean addInputFilter(InputFilter[] inputFilters, 
-                                     String encodingName) {
-        if (encodingName.equals("identity")) {
-            // Skip
-        } else if (encodingName.equals("chunked")) {
-            inputBuffer.addActiveFilter
-                (inputFilters[Constants.CHUNKED_FILTER]);
-            contentDelimitation = true;
-        } else {
-            for (int i = 2; i < inputFilters.length; i++) {
-                if (inputFilters[i].getEncodingName()
-                    .toString().equals(encodingName)) {
-                    inputBuffer.addActiveFilter(inputFilters[i]);
-                    return true;
+    protected boolean addInputFilter(InputFilter[] inputFilters,
+            String encodingName) {
+        if (!httpExtension) {
+            if (encodingName.equals("identity")) {
+                // Skip
+            } else if (encodingName.equals("chunked")) {
+                inputBuffer.addActiveFilter
+                        (inputFilters[Constants.CHUNKED_FILTER]);
+                contentDelimitation = true;
+            } else {
+                for (int i = 2; i < inputFilters.length; i++) {
+                    if (inputFilters[i].getEncodingName()
+                            .toString().equals(encodingName)) {
+                        inputBuffer.addActiveFilter(inputFilters[i]);
+                        return true;
+                    }
                 }
+                return false;
             }
-            return false;
         }
         return true;
     }
@@ -1791,7 +1792,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
      /**
      * Add input or output filter.
-     * 
+     *
      * @param className class name of the filter
      */
     protected void addFilter(String className) {
@@ -1807,7 +1808,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                         sm.getString("processorTask.unknownFilter"),className);
             }
         } catch (Exception e) {
-            logger.log(Level.SEVERE,sm.getString("processorTask.errorFilter"), 
+            logger.log(Level.SEVERE,sm.getString("processorTask.errorFilter"),
                         new Object[]{className, e});
         }
     }
@@ -1836,7 +1837,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         this.socket = socket;
     }
 
-    
+
     /**
      * Set the upload uploadTimeout.
      */
@@ -1868,24 +1869,24 @@ public class ProcessorTask extends TaskBase implements Processor,
     public void setAsyncHttpWriteEnabled(boolean isAsyncHttpWriteEnabled) {
         this.isAsyncHttpWriteEnabled = isAsyncHttpWriteEnabled;
     }
-    
+
     /**
      * Register a new <code>RequestProcessor</code> instance.
      */
     private void registerMonitoring(){
-        
+
         requestInfo = request.getRequestProcessor();
         // Add RequestInfo to RequestGroupInfo
         requestInfo.setGlobalProcessor(selectorThread.getRequestGroupInfo());
 
         hasRequestInfoRegistered = true;
         if ( selectorThread.getManagement() == null ) return;
-      
+
         try {
             oname = new ObjectName(selectorThread.getDomain()
                                    +  ":type=RequestProcessor,worker=http"
                                    + selectorThread.getPort()
-                                   + ",name=HttpRequest" 
+                                   + ",name=HttpRequest"
                                    + requestCount++ );
             selectorThread.getManagement().
                     registerComponent(requestInfo, oname,null);
@@ -1896,7 +1897,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
 
     }
-    
+
 
     /**
      * Unregisters the MBean corresponding to this
@@ -1905,7 +1906,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     protected void unregisterMonitoring() {
 
         if ( selectorThread.getManagement() == null ) return;
-        
+
         requestInfo = request.getRequestProcessor();
         /*
          * Remove 'requestInfo' from 'requestGroupInfo'.
@@ -1934,7 +1935,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     public int getMaxHttpHeaderSize() {
         return maxHttpHeaderSize;
     }
-    
+
     public void setMaxHttpHeaderSize(int maxHttpHeaderSize) {
         this.maxHttpHeaderSize = maxHttpHeaderSize;
     }
@@ -1946,7 +1947,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     public void setBufferSize(int requestBufferSize){
         this.requestBufferSize = requestBufferSize;
     }
-    
+
 
     /**
      * Return the request input buffer size
@@ -1954,7 +1955,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     public int getBufferSize(){
         return requestBufferSize;
     }
-      
+
     /**
      * Enable or disable the keep-alive mechanism. Setting this value
      * to <tt>false</tt> will automatically add the following header to the
@@ -1963,8 +1964,8 @@ public class ProcessorTask extends TaskBase implements Processor,
     public void setDropConnection(boolean dropConnection){
         this.dropConnection = dropConnection;
     }
-    
-    
+
+
     /**
      * Is the keep-alive mechanism enabled or disabled.
      */
@@ -1972,22 +1973,22 @@ public class ProcessorTask extends TaskBase implements Processor,
         return dropConnection;
     }
 
-     
+
     /**
      * Set the {@link StreamAlgorithm} used by this class.
      */
     public void setStreamAlgorithm(StreamAlgorithm streamAlgorithm){
         this.streamAlgorithm = streamAlgorithm;
-    } 
-    
-    
+    }
+
+
     /**
      * Return the {@link StreamAlgorithm} used by this instance.
      */
     public StreamAlgorithm getStreamAlgorithm(){
         return streamAlgorithm;
-    }     
-    
+    }
+
     private Interceptor getHandler() {
         if (streamAlgorithm != null) {
             return streamAlgorithm.getHandler();
@@ -1995,7 +1996,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         return null;
     }
-    
+
     /**
      * Set the default response type used. Specified as a semi-colon
      * delimited string consisting of content-type, encoding,
@@ -2012,56 +2013,56 @@ public class ProcessorTask extends TaskBase implements Processor,
     public String getDefaultResponseType(){
          return defaultResponseType;
     }
-    
-    
+
+
     /**
      * Sets the forced request type, which is forced onto requests that
      * do not already specify any MIME type.
      */
     public void setForcedRequestType(String forcedRequestType){
         this.forcedRequestType = forcedRequestType;
-    }  
-    
-        
+    }
+
+
     /**
      * Return the default request type used
      */
     public String getForcedRequestType(){
         return forcedRequestType;
-    }   
-    
-    
+    }
+
+
     // ------------------------------------------------------- Asynch call ---//
-    
+
     /**
      * Enable/disable asynchronous execution of this object.
      */
     public void setEnableAsyncExecution(boolean asyncExecution){
         this.asyncExecution = asyncExecution;
     }
-    
-    
+
+
     /**
      * Is asynchronous execution enabled?
-     */    
+     */
     public boolean isAsyncExecutionEnabled(){
         return asyncExecution;
     }
-    
-    
+
+
     /**
-     * Set the {@link AsyncHandler} used when asynchronous execution is 
+     * Set the {@link AsyncHandler} used when asynchronous execution is
      * enabled.
      */
     public void setAsyncHandler(AsyncHandler asyncHandler){
-        this.asyncHandler = asyncHandler;     
+        this.asyncHandler = asyncHandler;
     }
-    
-       
+
+
     /**
-     * Return the {@link AsyncHandler} used when asynchronous execution is 
+     * Return the {@link AsyncHandler} used when asynchronous execution is
      * enabled.
-     */    
+     */
     public AsyncHandler getAsyncHandler(){
         return asyncHandler;
     }
@@ -2074,7 +2075,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         return request;
     }
 
-    
+
     /**
      * Recyle this object.
      */
@@ -2088,10 +2089,10 @@ public class ProcessorTask extends TaskBase implements Processor,
                     ((HttpWorkerThread) currentThread).getStreamAlgorithm() == null) {
                 ((HttpWorkerThread) currentThread).setStreamAlgorithm(streamAlgorithm);
             }
-            
+
             streamAlgorithm = null;
         }
-        
+
         socket = null;
         dropConnection = false;
         reRegisterSelectionKey = true;
@@ -2099,9 +2100,9 @@ public class ProcessorTask extends TaskBase implements Processor,
         key = null;
         isProcessingCompleted = false;
     }
-    
+
     // ----------------------------------------------------- Compression ----//
-    
+
 
     /**
      * Return compression level.
@@ -2141,12 +2142,12 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
     }
 
-    
+
     /**
      * Add user-agent for which gzip compression didn't works
      * The user agent String given will be exactly matched
      * to the user-agent header submitted by the client.
-     * 
+     *
      * @param userAgent user-agent string
      */
     public void addNoCompressionUserAgent(String userAgent) {
@@ -2155,8 +2156,8 @@ public class ProcessorTask extends TaskBase implements Processor,
 
 
     /**
-     * Set no compression user agent list (this method is best when used with 
-     * a large number of connectors, where it would be better to have all of 
+     * Set no compression user agent list (this method is best when used with
+     * a large number of connectors, where it would be better to have all of
      * them referenced a single array).
      */
     public void setNoCompressionUserAgents(String[] noCompressionUserAgents) {
@@ -2213,8 +2214,8 @@ public class ProcessorTask extends TaskBase implements Processor,
     }
 
     /**
-     * Set compressable mime-type list (this method is best when used with 
-     * a large number of connectors, where it would be better to have all of 
+     * Set compressable mime-type list (this method is best when used with
+     * a large number of connectors, where it would be better to have all of
      * them referenced a single array).
      */
     public void setCompressableMimeType(String[] compressableMimeTypes) {
@@ -2228,12 +2229,12 @@ public class ProcessorTask extends TaskBase implements Processor,
     public String[] findCompressableMimeTypes() {
         return (compressableMimeTypes);
     }
-    
-    
+
+
     /**
      * General use method
-     * 
-     * @param sArray the StringArray 
+     *
+     * @param sArray the StringArray
      * @param value string
      */
     private String[] addStringArray(String sArray[], String value) {
@@ -2255,11 +2256,11 @@ public class ProcessorTask extends TaskBase implements Processor,
         return results;
     }
 
-    
+
     /**
      * General use method
-     * 
-     * @param sArray the StringArray 
+     *
+     * @param sArray the StringArray
      * @param value string
      */
     private boolean inStringArray(String sArray[], String value) {
@@ -2270,8 +2271,8 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
         return false;
     }
-    
-    
+
+
     /**
      * Checks if any entry in the string array starts with the specified value
      *
@@ -2288,8 +2289,8 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
         return false;
     }
-    
-    
+
+
     /**
      * Check for compression. Compression is onlky supported when http/1.1 is
      * used.
@@ -2303,12 +2304,12 @@ public class ProcessorTask extends TaskBase implements Processor,
                 CompressionFiltersProvider.provider();
 
         // Check if browser support gzip encoding
-        MessageBytes acceptEncodingMB = 
+        MessageBytes acceptEncodingMB =
             request.getMimeHeaders().getValue("accept-encoding");
-            
+
 
         OutputFilter compressionOutputFilter = null;
-        
+
         if ((acceptEncodingMB == null)
             || ((compressionOutputFilter = compressionFiltersProvider.getOutputFilter(acceptEncodingMB))) == null)
             return null;
@@ -2321,13 +2322,13 @@ public class ProcessorTask extends TaskBase implements Processor,
             && !compressionOutputFilter.equals(compressionFiltersProvider.getOutputFilter(contentEncodingMB)))
             return null;
 
-        // If force mode, allways compress (test purposes only)
+        // If force mode, always compress (test purposes only)
         if (compressionLevel == 2)
            return compressionOutputFilter;
 
         // Check for incompatible Browser
         if (noCompressionUserAgents != null) {
-            MessageBytes userAgentValueMB =  
+            MessageBytes userAgentValueMB =
                 request.getMimeHeaders().getValue("user-agent");
             if (userAgentValueMB != null) {
                 String userAgentValue = userAgentValueMB.toString();
@@ -2339,17 +2340,17 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         // Check if suffisant len to trig the compression        
         int contentLength = response.getContentLength();
-        if ((contentLength == -1) 
+        if ((contentLength == -1)
             || (contentLength > compressionMinSize)) {
             // Check for compatible MIME-TYPE
             if (compressableMimeTypes != null)
-                return (startsWithStringArray(compressableMimeTypes, 
+                return (startsWithStringArray(compressableMimeTypes,
                         response.getContentType())) ? compressionOutputFilter : null;
         }
 
 	return null;
     }
-    
+
 
     public int getCompressionMinSize() {
         return compressionMinSize;
@@ -2357,14 +2358,14 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     public void setCompressionMinSize(int compressionMinSize) {
         this.compressionMinSize = compressionMinSize;
-    }   
+    }
 
 
     /**
-     * Add restricted user-agent (which will downgrade the connector 
+     * Add restricted user-agent (which will downgrade the connector
      * to HTTP/1.0 mode). The user agent String given will be exactly matched
      * to the user-agent header submitted by the client.
-     * 
+     *
      * @param userAgent user-agent string
      */
     public void addRestrictedUserAgent(String userAgent) {
@@ -2373,8 +2374,8 @@ public class ProcessorTask extends TaskBase implements Processor,
 
 
     /**
-     * Set restricted user agent list (this method is best when used with 
-     * a large number of connectors, where it would be better to have all of 
+     * Set restricted user agent list (this method is best when used with
+     * a large number of connectors, where it would be better to have all of
      * them referenced a single array).
      */
     public void setRestrictedUserAgents(String[] restrictedUserAgents) {
@@ -2389,14 +2390,14 @@ public class ProcessorTask extends TaskBase implements Processor,
         return (restrictedUserAgents);
     }
 
-    
+
     /**
      * Return the SSLSupport object used by this instance.
      */
     public SSLSupport getSSLSupport() {
         return sslSupport;
     }
-    
+
 
     /**
      * Set the SSLSupport object used by this instance.
@@ -2412,31 +2413,31 @@ public class ProcessorTask extends TaskBase implements Processor,
         return request.getRequestProcessor().getWorkerThreadID();
     }
 
-    
+
     public boolean isKeepAlive() {
         return keepAlive;
     }
 
-    
+
     public void setConnectionHeaderValueSet(boolean connectionHeaderValueSet) {
         this.connectionHeaderValueSet = connectionHeaderValueSet;
     }
 
-    
+
     public boolean isError() {
         return error;
     }
 
-    
+
     public InputStream getInputStream(){
         return inputStream;
     }
-    
+
     public void setInputStream(InputStream inputStream){
         this.inputStream = inputStream;
     }
-         
-    
+
+
     /**
      * Set the flag to control upload time-outs.
      */
@@ -2444,7 +2445,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         disableUploadTimeout = isDisabled;
     }
 
-    
+
     /**
      * Get the flag that controls upload time-outs.
      */
@@ -2452,10 +2453,10 @@ public class ProcessorTask extends TaskBase implements Processor,
         return disableUploadTimeout;
     }
 
-    /** 
+    /**
      * Set the maximum time, in milliseconds, a {@link WorkerThread} executing
      * an instance of this class can execute.
-     * 
+     *
      * @return  the maximum time, in milliseconds
      */
     public int getTransactionTimeout() {
@@ -2463,16 +2464,16 @@ public class ProcessorTask extends TaskBase implements Processor,
     }
 
     /**
-     * Set the maximum time, in milliseconds, a {@link WrokerThread} processing 
+     * Set the maximum time, in milliseconds, a {@link WorkerThread} processing
      * an instance of this class.
-     * 
+     *
      * @param transactionTimeout  the maximum time, in milliseconds.
      */
     public void setTransactionTimeout(int transactionTimeout) {
         this.transactionTimeout = transactionTimeout;
     }
 
-    
+
     /**
      * Is chunking encoding used. Default is true;
      * @return Is chunking encoding used.
@@ -2481,7 +2482,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         return useChunking;
     }
 
-    
+
     /**
      * Enable chunking the http response. Default is true.
      * @param useChunking
@@ -2492,7 +2493,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     /**
      * False prevents the selectionkey from being re registered after async is done in the terminateProcess() call.
-     * default is true.     
+     * default is true.
      * @param reRegisterSelectionKey
      */
     public void setReRegisterSelectionKey(boolean reRegisterSelectionKey) {
@@ -2522,7 +2523,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     public boolean getAptCancelKey() {
         return aptCancelKey;
     }
-    
+
     /**
      * Force keep-alive no mather what the client support.
      */
@@ -2530,7 +2531,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         keepAlive = forceKeepAlive;
         connectionHeaderValueSet = forceKeepAlive;
     }
-    
+
     /**
      * Is keep-alive forced?
      */
