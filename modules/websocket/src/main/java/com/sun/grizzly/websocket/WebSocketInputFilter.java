@@ -27,6 +27,7 @@ public class WebSocketInputFilter implements InputFilter {
     public int doRead(ByteChunk chunk, Request unused) throws IOException {
         int read = 0;
         if (request.getAttribute("handshake") != null) {
+            frame.recycle();
             read = buffer.doRead(tempRead, request);
             System.out.println("WebSocketInputFilter.doRead : read = " + read);
             frame.append(tempRead);
