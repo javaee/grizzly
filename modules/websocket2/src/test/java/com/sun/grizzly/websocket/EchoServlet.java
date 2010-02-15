@@ -56,7 +56,7 @@ public class EchoServlet extends HttpServlet {
 //                    System.out.println(
 //                            "doPost: chunk.getBytes() = " + new String(chunk.getBytes(), 0, chunk.getLength()));
                 final ServletOutputStream outputStream = response.getOutputStream();
-                outputStream.write(chunk.getBytes(), 1, chunk.getLength() - 2);
+                outputStream.write(chunk.getBytes(), 0, chunk.getLength());
                 outputStream.flush();
             }
         } catch (IOException e) {

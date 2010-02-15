@@ -12,6 +12,7 @@ public class WebSocketOutputFilter implements OutputFilter {
     private static final byte[] ENCODING_NAME = "UTF-8".getBytes();
     private static final ByteChunk ENCODING = new ByteChunk();
     private OutputBuffer buffer;
+    private ByteChunk framed = new ByteChunk(1024);
 
     static {
         ENCODING.setBytes(ENCODING_NAME, 0, ENCODING_NAME.length);
@@ -19,17 +20,22 @@ public class WebSocketOutputFilter implements OutputFilter {
 
     public int doWrite(ByteChunk chunk, Response unused) throws IOException {
         System.out.println("WSOF: " + new String(chunk.getBytes(), 0, chunk.getLength(), "UTF-8"));
-        return 0;
+        framed.append((byte) 0x00);
+        framed.append(chunk);
+        framed.append((byte) 0xFF);
+        buffer.doWrite(framed, response);
+        framed.recycle();
+        return framed.getLength();
     }
 
     public void setResponse(Response response) {
-        System.out.println("WebSocketOutputFilter.setResponse");
-        System.out.println("response = " + response);
         this.response = response;
     }
 
     public void recycle() {
         response = null;
+        buffer = null;
+        framed.recycle();
     }
 
     public ByteChunk getEncodingName() {

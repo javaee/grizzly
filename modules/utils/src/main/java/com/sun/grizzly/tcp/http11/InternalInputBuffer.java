@@ -78,7 +78,6 @@ public class InternalInputBuffer implements InputBuffer {
      * Void constructor.
      */
     public InternalInputBuffer() {
-       ;
     }
 
     /**

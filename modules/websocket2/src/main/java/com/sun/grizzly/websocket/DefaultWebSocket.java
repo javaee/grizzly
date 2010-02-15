@@ -24,6 +24,8 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
     private Request request;
 
     public DefaultWebSocket(AsyncExecutor asyncExecutor) throws IOException {
+        System.out.println("DefaultWebSocket.DefaultWebSocket");
+        
         asyncProcessorTask = asyncExecutor.getAsyncTask();
         final ProcessorTask task = asyncExecutor.getProcessorTask();
         request = task.getRequest();
@@ -35,6 +37,7 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
         inputBuffer = request.getInputBuffer();
         handshake.prepare(response);
         response.flush();
+        request.setAttribute("handshake", handshake);
 
         final SelectorHandler handler = task.getSelectorHandler();
         final SelectionKey selectionKey = task.getSelectionKey();
@@ -46,14 +49,14 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
 
     @Override
     public void process(final SelectionKey selectionKey) {
-        if(selectionKey.isWritable()) {
+       /* if(selectionKey.isWritable()) {
             doWrite(selectionKey);
-        } else if(selectionKey.isReadable()) {
-             asyncProcessorTask.getThreadPool().execute(new Runnable() {
-                 public void run() {
+        } else */if(selectionKey.isReadable()) {
+//             asyncProcessorTask.getThreadPool().execute(new Runnable() {
+//                 public void run() {
                      doRead(selectionKey);
-                 }
-             });
+//                 }
+//             });
         } else {
             System.out.println("selectionKey.readyOps() = " + selectionKey.readyOps());
         }

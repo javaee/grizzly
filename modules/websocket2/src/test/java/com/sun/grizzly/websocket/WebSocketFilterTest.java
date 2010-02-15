@@ -46,7 +46,7 @@ public class WebSocketFilterTest extends TestCase {
         Assert.assertEquals("Response should match spec", SERVER_HANDSHAKE, new String(buf.array()));
     }
 
-    public void testSimpleConversation() throws IOException, InstantiationException, InterruptedException {
+    public void atestSimpleConversation() throws IOException, InstantiationException, InterruptedException {
         final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(new EchoServlet()));
         final Socket s = new Socket("localhost", 1725);
         try {
@@ -74,12 +74,13 @@ public class WebSocketFilterTest extends TestCase {
         chunk.append((byte) 0xFF);
         outputStream.write(chunk.getBytes(), 0, chunk.getLength());
         outputStream.flush();
-        Thread.sleep(500);
+        Thread.sleep(1000);
         bytes = reader.read();
         System.out.println("frame:  from server: " + Arrays.toString(bytes) + " ==> '" + new String(bytes) + "'");
-//        Assert.assertTrue("Should get framed data", bytes.length > 0 && bytes[0] == 0
-//                && bytes[bytes.length - 1] == (byte) 0xFF);
-//        Assert.assertEquals("Should get data stream back", text, new String(bytes, 1, bytes.length - 2));
+        Assert.assertTrue("Should get framed data", bytes.length > 0 && bytes[0] == 0
+                && bytes[bytes.length - 1] == (byte) 0xFF);
+        Assert.assertEquals("Should get data stream back", text, new String(bytes, 1, bytes.length - 2));
+        Thread.sleep(500);
     }
 
     public void atestHtmlPageInChrome() throws IOException, InstantiationException, InterruptedException {
@@ -106,8 +107,8 @@ public class WebSocketFilterTest extends TestCase {
         st.setEnableAsyncExecution(true);
         st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
         st.setTcpNoDelay(true);
-//        st.setInputFilters(new WebSocketInputFilter());
-//        st.setOutputFilters(new WebSocketOutputFilter());
+        st.setInputFilters(new WebSocketInputFilter());
+        st.setOutputFilters(new WebSocketOutputFilter());
 //        st.setLinger(-1);
         st.listen();
 

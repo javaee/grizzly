@@ -467,6 +467,8 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     private boolean setSkipPostExecute;
     private boolean httpExtension = false;
+    private InputFilter[] extraInputFilters = {};
+    private OutputFilter[] extraOutputFilters = {};
 
     // ----------------------------------------------------- Constructor ---- //
 
@@ -821,28 +823,6 @@ public class ProcessorTask extends TaskBase implements Processor,
                 error = true;
             }
         }
-    }
-
-     public static TemporaryInterceptor temphack;
-
-    private void doupgrade(){
-        boolean kill = true;
-            try{
-                kill = temphack.doUpgrade(key, request,sslSupport);
-            }finally{
-                try{
-                    if (kill){//TODO: fix so not shares lock with grizzly selector:
-                        key.channel().close();
-                    }
-                    }catch(IOException e) { }
-                    finally{
-                        sslSupport = null;
-                        setSkipPostExecute = true;
-                        isProcessingCompleted = true;
-                        inputBuffer.recycle();
-                        outputBuffer.recycle();
-                    }
-            }
     }
 
     /**
@@ -1402,6 +1382,9 @@ public class ProcessorTask extends TaskBase implements Processor,
         // Input filter setup
         InputFilter[] inputFilters = inputBuffer.getFilters();
         httpExtension = headers.getHeader("Upgrade") != null;
+        for (InputFilter filter : extraInputFilters) {
+            inputBuffer.addActiveFilter(filter);
+        }
 
         // Parse content-length header
         long contentLength = request.getContentLengthLong();
@@ -1665,7 +1648,9 @@ public class ProcessorTask extends TaskBase implements Processor,
             outputBuffer.sendHeader(headers.getName(i), headers.getValue(i));
         }
         outputBuffer.endHeaders();
-
+        for (OutputFilter filter : extraOutputFilters) {
+            outputBuffer.addActiveFilter(filter);
+        }
     }
 
 
@@ -1813,6 +1798,13 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
     }
 
+    protected void addActiveFilters(InputFilter... filters) {
+        extraInputFilters = filters == null ? new InputFilter[0] : filters;
+    }
+
+    protected void addActiveFilters(OutputFilter... filters) {
+        extraOutputFilters = filters == null ? new OutputFilter[0] : filters;
+    }
 
     /**
      * Set the maximum size of a POST which will be buffered in SSL mode.

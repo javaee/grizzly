@@ -28,14 +28,15 @@ public class WebSocketInputFilter implements InputFilter {
         int read = 0;
         if (request.getAttribute("handshake") != null) {
             read = buffer.doRead(tempRead, request);
+            System.out.println("WebSocketInputFilter.doRead : read = " + read);
             frame.append(tempRead);
             tempRead.recycle();
             final byte[] bytes = frame.getBytes();
             if (read != -1) {
                 if (bytes != null && bytes[0] == 0x00 && bytes[read - 1] == (byte) 0xFF) {
                     chunk.append(bytes, 1, read - 2);
-                    System.out.println("good frame: " + new String(bytes, 1, read - 2));
-                    System.out.println("good frame: " + Arrays.toString(bytes));
+//                    System.out.println("good frame: " + new String(bytes, 1, read - 2));
+//                    System.out.println("good frame: " + Arrays.toString(bytes));
                 } else {
                     System.out.println("bad frame: '" + Arrays.toString(bytes) + "'");
                     System.out.println("bad frame: '" + new String(bytes) + "'");
@@ -43,7 +44,7 @@ public class WebSocketInputFilter implements InputFilter {
                 }
             }
         }
-        return read == -1 ? -1 : read - 2;
+        return read;
     }
 
     public void setRequest(Request req) {
@@ -61,6 +62,7 @@ public class WebSocketInputFilter implements InputFilter {
     }
 
     public void setBuffer(InputBuffer buf) {
+        System.out.println("WebSocketInputFilter.setBuffer : buf = " + buf);
         buffer = buf;
     }
 

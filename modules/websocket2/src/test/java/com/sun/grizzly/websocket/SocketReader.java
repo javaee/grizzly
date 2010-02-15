@@ -20,7 +20,7 @@ public class SocketReader {
         byte[] buffer = new byte[1024];
         try {
             int tries = 0;
-            while (tries++ < 100000 && (count == 0 || ready())) {
+            while (tries++ < 10 && (count == 0 || ready())) {
                 if (ready()) {
                     count = stream.read(buffer);
                     baos.write(buffer, 0, count);

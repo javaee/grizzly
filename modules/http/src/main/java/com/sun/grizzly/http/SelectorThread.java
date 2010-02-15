@@ -37,7 +37,6 @@
  */
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
@@ -45,61 +44,62 @@ import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SelectorHandler;
 import com.sun.grizzly.TCPSelectorHandler;
+import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.arp.AsyncInterceptor;
 import com.sun.grizzly.arp.AsyncProtocolFilter;
 import com.sun.grizzly.filter.ReadFilter;
-import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.http.FileCache.FileCacheEntry;
-import com.sun.grizzly.portunif.PUReadFilter;
+import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.portunif.PUPreProcessor;
+import com.sun.grizzly.portunif.PUReadFilter;
 import com.sun.grizzly.portunif.ProtocolFinder;
 import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
-import com.sun.grizzly.util.SelectorFactory;
-
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.Socket;
-import java.net.SocketException;
-import java.util.Iterator;
-import java.util.logging.Logger;
-import java.util.logging.Level;
-import java.util.concurrent.ConcurrentHashMap;
-import java.nio.channels.Selector;
-import java.nio.channels.SelectionKey;
-
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyListener;
+import com.sun.grizzly.tcp.http11.InputFilter;
+import com.sun.grizzly.tcp.http11.OutputFilter;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.IntrospectionUtils;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
+import com.sun.grizzly.util.SelectorFactory;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.res.StringManager;
-import java.io.File;
-import java.net.DatagramSocket;
-import java.net.ServerSocket;
-import java.nio.ByteBuffer;
-import javax.management.ObjectName;
-import javax.management.MBeanServer;
-import javax.management.MBeanRegistration;
 
+import javax.management.MBeanRegistration;
+import javax.management.MBeanServer;
+import javax.management.ObjectName;
+import java.io.File;
+import java.io.IOException;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.StringTokenizer;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 
 
@@ -561,7 +561,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     // ProcessorTaskFactory, which is used to create ProcessorTasks
     protected volatile ProcessorTaskFactory processorTaskFactory;
-    
+    private InputFilter[] inputFilters;
+    private OutputFilter[] outputFilters;
+
     // ---------------------------------------------------- Constructor --//
     
     
@@ -1016,7 +1018,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         task.setTransactionTimeout(transactionTimeout);
         task.setUseChunking(useChunking);
         task.setSendBufferSize(sendBufferSize);
-        
+        task.addActiveFilters(inputFilters);
+        task.addActiveFilters(outputFilters);
+
         // Asynch extentions
         if ( asyncExecution ) {
             task.setEnableAsyncExecution(asyncExecution);
@@ -2491,5 +2495,13 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     public void setProcessorTaskFactory(ProcessorTaskFactory processorTaskFactory) {
         this.processorTaskFactory = processorTaskFactory;
         clearTasks();
+    }
+
+    public void setInputFilters(InputFilter... filters) {
+        inputFilters = filters;
+    }
+
+    public void setOutputFilters(OutputFilter... filters) {
+        outputFilters = filters;
     }
 }
