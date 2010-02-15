@@ -95,5 +95,6 @@ public class ServerHandShake extends HandShake {
         if(getProtocol() != null) {
             response.setHeader("WebSocket-Protocol", getProtocol());
         }
+        response.suspend();
     }
 }

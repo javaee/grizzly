@@ -29,6 +29,7 @@ public class WebSocketFilterTest extends TestCase {
             + "WebSocket-Origin: http://localhost" + Constants.CRLF
             + "WebSocket-Location: ws://localhost/demo" + Constants.CRLF
             + Constants.CRLF;
+    private final boolean inputFilterAdded = true;
 
     public void test() {
     }
@@ -55,16 +56,16 @@ public class WebSocketFilterTest extends TestCase {
             outputStream.flush();
             final SocketReader reader = new SocketReader(s.getInputStream());
             Assert.assertArrayEquals(SERVER_HANDSHAKE.getBytes("ASCII"), reader.getBytes());
-            frame(outputStream, reader, "message 1");
-            frame(outputStream, reader, "message 2");
-            frame(outputStream, reader, "message 3");
+            for(int count = 1; count <= 3; count++) {
+                frame(outputStream, reader, "message " + count, count);
+            }
         } finally {
             s.close();
             thread.stopEndpoint();
         }
     }
 
-    private void frame(OutputStream outputStream, SocketReader reader, final String text)
+    private void frame(OutputStream outputStream, SocketReader reader, final String text, int count)
             throws IOException, InterruptedException {
         ByteChunk chunk = new ByteChunk();
         byte[] bytes = text.getBytes("UTF-8");
@@ -76,15 +77,16 @@ public class WebSocketFilterTest extends TestCase {
         outputStream.flush();
         Thread.sleep(1000);
         bytes = reader.read();
-        System.out.println("frame:  from server: " + Arrays.toString(bytes) + " ==> '" + new String(bytes) + "'");
+        System.out.println("frame " + count + " :  from server: " + Arrays.toString(bytes) + " ==> '" + new String(bytes) + "'");
         Assert.assertTrue("Should get framed data", bytes.length > 0 && bytes[0] == 0
                 && bytes[bytes.length - 1] == (byte) 0xFF);
-        Assert.assertEquals("Should get data stream back", text, new String(bytes, 1, bytes.length - 2));
-        Thread.sleep(500);
+        if(inputFilterAdded) {
+            Assert.assertEquals("Should get data stream back", text, new String(bytes, 1, bytes.length - 2));
+        }
     }
 
-    public void atestHtmlPageInChrome() throws IOException, InstantiationException, InterruptedException {
-        createSelectorThread(1725, new EchoAdapter());
+    public void testHtmlPageInChrome() throws IOException, InstantiationException, InterruptedException {
+        createSelectorThread(1725, new ServletAdapter(new EchoServlet()));
 
         boolean wait = true;
         while (wait) {
@@ -107,7 +109,9 @@ public class WebSocketFilterTest extends TestCase {
         st.setEnableAsyncExecution(true);
         st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
         st.setTcpNoDelay(true);
-        st.setInputFilters(new WebSocketInputFilter());
+        if(inputFilterAdded) {
+            st.setInputFilters(new WebSocketInputFilter());
+        }
         st.setOutputFilters(new WebSocketOutputFilter());
 //        st.setLinger(-1);
         st.listen();

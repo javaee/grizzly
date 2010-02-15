@@ -53,8 +53,8 @@ public class EchoServlet extends HttpServlet {
             if (chunk.getLength() > 0) {
 //                    System.out.println("doPost: chunk.getBytes() = " + chunk.getBytes());
 //                    System.out.println("chunk.getLength() = " + chunk.getLength());
-//                    System.out.println(
-//                            "doPost: chunk.getBytes() = " + new String(chunk.getBytes(), 0, chunk.getLength()));
+                    System.out.println(
+                            "doPost: chunk.getBytes() = " + new String(chunk.getBytes(), 0, chunk.getLength()));
                 final ServletOutputStream outputStream = response.getOutputStream();
                 outputStream.write(chunk.getBytes(), 0, chunk.getLength());
                 outputStream.flush();

@@ -19,13 +19,15 @@ public class WebSocketOutputFilter implements OutputFilter {
     }
 
     public int doWrite(ByteChunk chunk, Response unused) throws IOException {
-        System.out.println("WSOF: " + new String(chunk.getBytes(), 0, chunk.getLength(), "UTF-8"));
+        System.out.println("WebSocketOutputFilter.doWrite");
         framed.append((byte) 0x00);
         framed.append(chunk);
         framed.append((byte) 0xFF);
+        System.out.println("framed = " + framed);
         buffer.doWrite(framed, response);
+        final int length = framed.getLength();
         framed.recycle();
-        return framed.getLength();
+        return length;
     }
 
     public void setResponse(Response response) {

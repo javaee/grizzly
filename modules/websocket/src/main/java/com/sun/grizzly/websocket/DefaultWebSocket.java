@@ -22,12 +22,11 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
     private final InputBuffer inputBuffer;
     private final AsyncTask asyncProcessorTask;
     private Request request;
+    private ProcessorTask task;
 
     public DefaultWebSocket(AsyncExecutor asyncExecutor) throws IOException {
-        System.out.println("DefaultWebSocket.DefaultWebSocket");
-        
         asyncProcessorTask = asyncExecutor.getAsyncTask();
-        final ProcessorTask task = asyncExecutor.getProcessorTask();
+        task = asyncExecutor.getProcessorTask();
         request = task.getRequest();
         final MimeHeaders headers = request.getMimeHeaders();
         final ServerHandShake handshake =
@@ -39,26 +38,25 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
         response.flush();
         request.setAttribute("handshake", handshake);
 
-        final SelectorHandler handler = task.getSelectorHandler();
         final SelectionKey selectionKey = task.getSelectionKey();
-        handler.register(selectionKey, SelectionKey.OP_READ | SelectionKey.OP_WRITE);
+        final SelectorHandler handler = task.getSelectorHandler();
         selectionKey.attach(this);
-        
+
         task.invokeAdapter();
+        handler.register(selectionKey, SelectionKey.OP_READ/* | SelectionKey.OP_WRITE*/);
     }
 
     @Override
     public void process(final SelectionKey selectionKey) {
        /* if(selectionKey.isWritable()) {
             doWrite(selectionKey);
-        } else */if(selectionKey.isReadable()) {
-//             asyncProcessorTask.getThreadPool().execute(new Runnable() {
-//                 public void run() {
+        } else */if(selectionKey.isReadable() && selectionKey.channel().isOpen()) {
+            System.out.println("DefaultWebSocket.process.selectionKey.channel().isOpen() = " + selectionKey.channel().isOpen());
+             asyncProcessorTask.getThreadPool().execute(new Runnable() {
+                 public void run() {
                      doRead(selectionKey);
-//                 }
-//             });
-        } else {
-            System.out.println("selectionKey.readyOps() = " + selectionKey.readyOps());
+                 }
+             });
         }
     }
 
@@ -81,8 +79,9 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
     }
 
     private void doRead(SelectionKey selectionKey) {
-        System.out.println("DefaultWebSocket.doRead");
-        asyncProcessorTask.getAsyncExecutor().getProcessorTask().invokeAdapter();
+        task.getSelectorHandler().register(selectionKey, SelectionKey.OP_WRITE/* | SelectionKey.OP_WRITE*/);
+        task.invokeAdapter();
+        task.getSelectorHandler().register(selectionKey, SelectionKey.OP_READ/* | SelectionKey.OP_WRITE*/);
     }
 
     @Override
