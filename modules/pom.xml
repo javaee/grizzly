@@ -26,6 +26,6 @@
         <module>compat</module>
         <module>bundles</module>
         <module>config</module>        
-        <module>websocket2</module>
+        <module>websocket</module>
     </modules>
 </project>

@@ -8,10 +8,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
-    <artifactId>grizzly-websocket2</artifactId>
+    <artifactId>grizzly-websocket</artifactId>
     <packaging>jar</packaging>
     <version>1.9.19-SNAPSHOT</version>
-    <name>grizzly-websocket2</name>
+    <name>grizzly-websocket</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
