@@ -1,49 +1,46 @@
 package com.sun.grizzly.websocket;
 
-import java.io.ByteArrayOutputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class SocketReader {
     private final InputStream stream;
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    private int count;
+//    private int count;
 
     public SocketReader(InputStream chan) {
         stream = chan;
     }
 
-    public byte[] read() {
-        count = 0;
-        baos.reset();
+    public byte[] read(int size) {
+        int bytesRead = 0;
 //            ByteBuffer buffer = ByteBuffer.allocate(1024);
-        byte[] buffer = new byte[1024];
+        byte[] buffer = new byte[size];
         try {
-            int tries = 0;
-            while (tries++ < 10 && (count == 0 || ready())) {
-                if (ready()) {
-                    count = stream.read(buffer);
-                    baos.write(buffer, 0, count);
+
+            while(bytesRead < size) {
+                int count = stream.read(buffer, bytesRead, buffer.length - bytesRead);
+                if (count == -1) {
+                    throw new EOFException();
                 }
-                Thread.sleep(500);
+
+                bytesRead += count;
             }
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e.getMessage(), e);
+
+            return buffer;
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-
-        return baos.toByteArray();
     }
 
-    private boolean ready() throws IOException {
-        return stream.available() > 0;
-    }
-
-    public byte[] getBytes() {
-        if (baos.size() == 0) {
-            read();
-        }
-        return baos.toByteArray();
-    }
+//    private boolean ready() throws IOException {
+//        return stream.available() > 0;
+//    }
+//
+//    public byte[] getBytes() {
+//        if (baos.size() == 0) {
+//            read();
+//        }
+//        return baos.toByteArray();
+//    }
 }

@@ -34,7 +34,7 @@ public class WebSocketFilterTest extends TestCase {
     public void test() {
     }
 
-    public void atestServerHandShake() throws Exception {
+    public void testServerHandShake() throws Exception {
         MimeHeaders headers = new MimeHeaders();
         headers.addValue("upgrade").setString("WebSocket");
         headers.addValue("connection").setString("Upgrade");
@@ -55,7 +55,10 @@ public class WebSocketFilterTest extends TestCase {
             outputStream.write(CLIENT_HANDSHAKE.getBytes());
             outputStream.flush();
             final SocketReader reader = new SocketReader(s.getInputStream());
-            Assert.assertArrayEquals(SERVER_HANDSHAKE.getBytes("ASCII"), reader.getBytes());
+            final byte[] serverHandshakePattern = SERVER_HANDSHAKE.getBytes("ASCII");
+            Assert.assertArrayEquals(serverHandshakePattern,
+                    reader.read(serverHandshakePattern.length));
+            
             for(int count = 1; count <= 3; count++) {
                 frame(outputStream, reader, "message " + count, count);
             }
@@ -83,10 +86,11 @@ public class WebSocketFilterTest extends TestCase {
         chunk.append((byte) 0x00);
         chunk.append(bytes, 0, bytes.length);
         chunk.append((byte) 0xFF);
+        System.out.println("Sendinng: " + new String(chunk.getBytes(), 0, chunk.getLength()));
         outputStream.write(chunk.getBytes(), 0, chunk.getLength());
         outputStream.flush();
         Thread.sleep(1000);
-        bytes = reader.read();
+        bytes = reader.read(chunk.getLength());
         System.out.println(new java.util.Date() + ":  frame " + count + " :  from server: " + Arrays.toString(bytes) + " ==> '" + new String(bytes) + "'");
         Assert.assertTrue("Should get framed data", bytes.length > 0 && bytes[0] == 0
                 && bytes[bytes.length - 1] == (byte) 0xFF);

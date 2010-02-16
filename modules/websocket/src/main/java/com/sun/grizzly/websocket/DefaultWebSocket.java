@@ -40,11 +40,11 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
         final SelectionKey selectionKey = task.getSelectionKey();
         final SelectorHandler handler = task.getSelectorHandler();
         selectionKey.attach(this);
-        handler.register(selectionKey, SelectionKey.OP_READ);
+//        handler.register(selectionKey, SelectionKey.OP_READ);
 
-        queue(selectionKey);
+//        queue(selectionKey);
 //        task.invokeAdapter();
-
+        runWebSocketsAdapter(selectionKey);
     }
 
     @Override
@@ -52,17 +52,10 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
         /* if(selectionKey.isWritable()) {
           doWrite(selectionKey);
       } else */
-        if (selectionKey.isValid() && selectionKey.isReadable()) {
-            queue(selectionKey);
+        if (selectionKey.isReadable()) {
+//            disableOpRead(selectionKey);
+            runWebSocketsAdapter(selectionKey);
         }
-    }
-
-    private void queue(final SelectionKey selectionKey) {
-        asyncProcessorTask.getThreadPool().execute(new Runnable() {
-            public void run() {
-                doRead(selectionKey);
-            }
-        });
     }
 
     private void doWrite(SelectionKey selectionKey) {
@@ -83,16 +76,28 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
         System.out.println(new java.util.Date() + ":  DefaultWebSocket.doWrite -- done");
     }
 
-    private void doRead(SelectionKey selectionKey) {
-        if (selectionKey.isValid()) {
+    private void runWebSocketsAdapter(final SelectionKey selectionKey) {
+//        if (selectionKey.isValid()) {
             final ProcessorTask task = asyncProcessorTask.getAsyncExecutor().getProcessorTask();
-            task.getSelectorHandler().register(selectionKey, SelectionKey.OP_WRITE/* | SelectionKey.OP_WRITE*/);
+//            task.getSelectorHandler().register(selectionKey, SelectionKey.OP_WRITE/* | SelectionKey.OP_WRITE*/);
             task.invokeAdapter();
-            task.getSelectorHandler().register(selectionKey, SelectionKey.OP_READ/* | SelectionKey.OP_WRITE*/);
-        }
+            enableOpRead(selectionKey);
+//        }
     }
 
     @Override
     public void postProcess(SelectionKey selectionKey) {
+    }
+
+    /**
+     * This method may be called from within worker thread, so we have to use
+     * {@link SelectorHandler}.
+     *
+     * @param selectionKey
+     */
+    private void enableOpRead(SelectionKey selectionKey) {
+        final SelectorHandler selectorHandler = asyncProcessorTask.
+                getAsyncExecutor().getProcessorTask().getSelectorHandler();
+        selectorHandler.register(selectionKey, SelectionKey.OP_READ);
     }
 }
