@@ -62,13 +62,19 @@ public class SAXWebXmlHandler extends DefaultHandler {
 		
 		if (qName.toUpperCase().equals("WEB-APP")) {
 			
-			String value = atts.getValue("xsi:schemaLocation");
+			// look for version attribute
+			version = atts.getValue("version");
 			
-			if(value!=null){
-				xsdFound = true;
-				int index = value.lastIndexOf("/");
-				if(index>0){
-					version = value.substring(index+1);
+			// if version not found extract it from xsi
+			if(version==null){
+				String value = atts.getValue("xsi:schemaLocation");
+				
+				if(value!=null){
+					xsdFound = true;
+					int index = value.lastIndexOf("/");
+					if(index>0){
+						version = value.substring(index+1);
+					}
 				}
 			}
 			

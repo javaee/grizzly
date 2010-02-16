@@ -89,6 +89,11 @@ public class WebappLoader {
 		webAppMap.put(WEB_APP_2_4, "com.sun.grizzly.http.webxml.parser.JAXBWebXml_2_4Parser");
 		webAppMap.put(WEB_APP_2_5, "com.sun.grizzly.http.webxml.parser.JAXBWebXml_2_5Parser");
 		webAppMap.put(WEB_APP_3_0, "com.sun.grizzly.http.webxml.parser.JAXBWebXml_3_0Parser");
+		webAppMap.put("2.2", "com.sun.grizzly.http.webxml.parser.JAXBWebXml_2_2Parser");
+		webAppMap.put("2.3", "com.sun.grizzly.http.webxml.parser.JAXBWebXml_2_3Parser");
+		webAppMap.put("2.4", "com.sun.grizzly.http.webxml.parser.JAXBWebXml_2_4Parser");
+		webAppMap.put("2.5", "com.sun.grizzly.http.webxml.parser.JAXBWebXml_2_5Parser");
+		webAppMap.put("3.0", "com.sun.grizzly.http.webxml.parser.JAXBWebXml_3_0Parser");
 	}
 	
 	/**
