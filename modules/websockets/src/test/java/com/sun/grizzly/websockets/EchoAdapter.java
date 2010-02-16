@@ -19,12 +19,6 @@ public class EchoAdapter extends GrizzlyAdapter {
                 chunk.append(chars[index]);
             }
             response.getOutputBuffer().write(buffer.array(), buffer.arrayOffset(), buffer.position());
-/*
-            final GrizzlyOutputBuffer outputBuffer = response.getOutputBuffer();
-            final String s = new String(buffer.array(), 0, buffer.position());
-            outputBuffer.write(buffer.array(), 0, buffer.position());
-            outputBuffer.flush();
-*/
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }

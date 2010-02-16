@@ -29,6 +29,7 @@ public class WebSocketFilterTest extends TestCase {
             + "WebSocket-Location: ws://localhost/demo" + Constants.CRLF
             + Constants.CRLF;
     private final boolean inputFilterAdded = true;
+    private static final int MESSAGE_COUNT = 1;
 
     public void test() {
     }
@@ -58,7 +59,7 @@ public class WebSocketFilterTest extends TestCase {
             Assert.assertArrayEquals(serverHandshakePattern,
                     reader.read(serverHandshakePattern.length));
             
-            for(int count = 1; count <= 3; count++) {
+            for(int count = 1; count <= MESSAGE_COUNT; count++) {
                 frame(outputStream, reader, "message " + count, count);
             }
         } finally {

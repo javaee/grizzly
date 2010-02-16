@@ -6,7 +6,6 @@ import java.io.InputStream;
 
 public class SocketReader {
     private final InputStream stream;
-//    private int count;
 
     public SocketReader(InputStream chan) {
         stream = chan;
@@ -14,7 +13,6 @@ public class SocketReader {
 
     public byte[] read(int size) {
         int bytesRead = 0;
-//            ByteBuffer buffer = ByteBuffer.allocate(1024);
         byte[] buffer = new byte[size];
         try {
 
@@ -32,15 +30,4 @@ public class SocketReader {
             throw new RuntimeException(e.getMessage(), e);
         }
     }
-
-//    private boolean ready() throws IOException {
-//        return stream.available() > 0;
-//    }
-//
-//    public byte[] getBytes() {
-//        if (baos.size() == 0) {
-//            read();
-//        }
-//        return baos.toByteArray();
-//    }
 }

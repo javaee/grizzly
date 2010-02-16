@@ -26,9 +26,6 @@ public class WebSocketInputFilter implements InputFilter {
         if (request.getAttribute("handshake") != null) {
             try {
                 read = buffer.doRead(tempRead, request);
-                for (int count = 0; read <= 0 && count < 10; count++) {
-                    read = buffer.doRead(tempRead, request);
-                }
                 if (read > 0) {
                     try {
                         if (read > frame.length) {
@@ -49,15 +46,7 @@ public class WebSocketInputFilter implements InputFilter {
                     }
                     if (frame[0] == (byte) 0x00 && frame[read - 1] == (byte) 0xFF) {
                         chunk.append(frame, 1, read - 2);
-                    } else {
-                        System.out.println(new java.util.Date() + ": WebSocketInputFilter.doRead bad frame: '"
-                                + new String(tempRead.getBytes(), tempRead.getStart(), read - 1) + "'");
-                        dump(read);
-
-//                        throw new IOException(String.format("Malformed frame"));
                     }
-                } else {
-                    dump(read);
                 }
             } finally {
                 reset();
