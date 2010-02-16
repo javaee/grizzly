@@ -1217,19 +1217,30 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Create the {@link ExecutorService} used to execute kernel like operations.
      */
     protected ExecutorService createKernelExecutor() {
-        return Executors.newCachedThreadPool(new WorkerThreadFactory("grizzly-kernel") {
+        return createKernelExecutor("grizzly-kernel", "Grizzly-kernel-thread");
+    }
+
+    /**
+     * Create the {@link ExecutorService} used to execute kernel operations.
+     * Passed paratemeters let us cusomize thread pool group name and
+     * name pattern for an individual threads.
+     */
+    protected final ExecutorService createKernelExecutor(
+            final String threadGroupName, final String threadNamePattern) {
+        
+        return Executors.newCachedThreadPool(new WorkerThreadFactory(threadGroupName) {
             private AtomicInteger counter = new AtomicInteger();
-            
+
             @Override
             public Thread newThread(Runnable r) {
                 final Thread newThread = super.newThread(r);
-                newThread.setName("Grizzly-kernel(" +
+                newThread.setName(threadNamePattern + "(" +
                         counter.incrementAndGet() + ")");
                 return newThread;
             }
         });
     }
-    
+
     /**
      * Are {@link Context} instance cached/pooled or a new instance gets created
      * for every transaction?
