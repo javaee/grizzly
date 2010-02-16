@@ -22,6 +22,7 @@
  */
 package com.sun.grizzly.config;
 
+import com.sun.grizzly.Controller;
 import com.sun.grizzly.DefaultProtocolChain;
 import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolChain;
@@ -53,6 +54,7 @@ import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.ExecutorService;
 
 import org.jvnet.hk2.component.Habitat;
 
@@ -118,6 +120,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      */
     @Override
     protected void initController() {
+        controller = new Controller() {
+            @Override
+            protected ExecutorService createKernelExecutor() {
+                return createKernelExecutor("grizzly-kernel",
+                        "Grizzly-kernel-thread-" + port);
+            }
+        };
+
         super.initController();
         controller.setReadThreadsCount(readThreadsCount);
         Runtime.getRuntime().addShutdownHook(new Thread() {
