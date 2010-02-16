@@ -1217,7 +1217,17 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Create the {@link ExecutorService} used to execute kernel like operations.
      */
     protected ExecutorService createKernelExecutor() {
-        return Executors.newCachedThreadPool(new WorkerThreadFactory("grizzly-kernel"));
+        return Executors.newCachedThreadPool(new WorkerThreadFactory("grizzly-kernel") {
+            private AtomicInteger counter = new AtomicInteger();
+            
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread newThread = super.newThread(r);
+                newThread.setName("Grizzly-kernel(" +
+                        counter.incrementAndGet() + ")");
+                return newThread;
+            }
+        });
     }
     
     /**
