@@ -114,19 +114,21 @@ public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
                 AttributeStorage storage, Buffer input)
                 throws TransformationException {
 
-            if (input.remaining() < chunk) {
+            if (input.remaining() == 0) {
                 return TransformationResult.<Buffer, Buffer>createIncompletedResult(input, false);
             }
+
+            final int chunkSize = Math.min(chunk, input.remaining());
 
             final int oldInputPos = input.position();
             final int oldInputLimit = input.limit();
 
-            BufferUtils.setPositionLimit(input, oldInputPos, oldInputPos + chunk);
+            BufferUtils.setPositionLimit(input, oldInputPos, oldInputPos + chunkSize);
             
-            final Buffer output = obtainMemoryManager(storage).allocate(chunk);
+            final Buffer output = obtainMemoryManager(storage).allocate(chunkSize);
             output.put(input).flip();
             
-            BufferUtils.setPositionLimit(input, oldInputPos + chunk, oldInputLimit);
+            BufferUtils.setPositionLimit(input, oldInputPos + chunkSize, oldInputLimit);
 
             return TransformationResult.<Buffer, Buffer>createCompletedResult(
                     output, input, false);

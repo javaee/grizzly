@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.filterchain;
 
-import com.sun.grizzly.Appendable;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
