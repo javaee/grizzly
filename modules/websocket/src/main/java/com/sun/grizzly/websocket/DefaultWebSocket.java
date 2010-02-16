@@ -22,11 +22,10 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
     private final InputBuffer inputBuffer;
     private final AsyncTask asyncProcessorTask;
     private Request request;
-    private ProcessorTask task;
 
     public DefaultWebSocket(AsyncExecutor asyncExecutor) throws IOException {
         asyncProcessorTask = asyncExecutor.getAsyncTask();
-        task = asyncExecutor.getProcessorTask();
+        ProcessorTask task = asyncExecutor.getProcessorTask();
         request = task.getRequest();
         final MimeHeaders headers = request.getMimeHeaders();
         final ServerHandShake handshake =
@@ -41,32 +40,38 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
         final SelectionKey selectionKey = task.getSelectionKey();
         final SelectorHandler handler = task.getSelectorHandler();
         selectionKey.attach(this);
+        handler.register(selectionKey, SelectionKey.OP_READ);
 
-        task.invokeAdapter();
-        handler.register(selectionKey, SelectionKey.OP_READ/* | SelectionKey.OP_WRITE*/);
+        queue(selectionKey);
+//        task.invokeAdapter();
+
     }
 
     @Override
     public void process(final SelectionKey selectionKey) {
-       /* if(selectionKey.isWritable()) {
-            doWrite(selectionKey);
-        } else */if(selectionKey.isReadable() && selectionKey.channel().isOpen()) {
-            System.out.println("DefaultWebSocket.process.selectionKey.channel().isOpen() = " + selectionKey.channel().isOpen());
-             asyncProcessorTask.getThreadPool().execute(new Runnable() {
-                 public void run() {
-                     doRead(selectionKey);
-                 }
-             });
+        /* if(selectionKey.isWritable()) {
+          doWrite(selectionKey);
+      } else */
+        if (selectionKey.isValid() && selectionKey.isReadable()) {
+            queue(selectionKey);
         }
+    }
+
+    private void queue(final SelectionKey selectionKey) {
+        asyncProcessorTask.getThreadPool().execute(new Runnable() {
+            public void run() {
+                doRead(selectionKey);
+            }
+        });
     }
 
     private void doWrite(SelectionKey selectionKey) {
         SocketChannel channel = (SocketChannel) selectionKey.channel();
         final ByteBuffer buffer = ByteBuffer.allocate(128);
         try {
-            System.out.println("DefaultWebSocket.doWrite");
-            while(channel.read(buffer) != 0) {
-                System.out.println("reading bytes to write to WebSocket");
+            System.out.println(new java.util.Date() + ":  DefaultWebSocket.doWrite");
+            while (channel.read(buffer) != 0) {
+                System.out.println(new java.util.Date() + ":  reading bytes to write to WebSocket");
                 final ByteChunk chunk = new ByteChunk();
                 chunk.setBytes(buffer.array(), 0, buffer.limit());
                 outputBuffer.doWrite(chunk, request.getResponse());
@@ -75,13 +80,16 @@ public class DefaultWebSocket extends SelectionKeyActionAttachment implements We
             e.printStackTrace();
             throw new RuntimeException(e.getMessage(), e);
         }
-        System.out.println("DefaultWebSocket.doWrite -- done");
+        System.out.println(new java.util.Date() + ":  DefaultWebSocket.doWrite -- done");
     }
 
     private void doRead(SelectionKey selectionKey) {
-        task.getSelectorHandler().register(selectionKey, SelectionKey.OP_WRITE/* | SelectionKey.OP_WRITE*/);
-        task.invokeAdapter();
-        task.getSelectorHandler().register(selectionKey, SelectionKey.OP_READ/* | SelectionKey.OP_WRITE*/);
+        if (selectionKey.isValid()) {
+            final ProcessorTask task = asyncProcessorTask.getAsyncExecutor().getProcessorTask();
+            task.getSelectorHandler().register(selectionKey, SelectionKey.OP_WRITE/* | SelectionKey.OP_WRITE*/);
+            task.invokeAdapter();
+            task.getSelectorHandler().register(selectionKey, SelectionKey.OP_READ/* | SelectionKey.OP_WRITE*/);
+        }
     }
 
     @Override

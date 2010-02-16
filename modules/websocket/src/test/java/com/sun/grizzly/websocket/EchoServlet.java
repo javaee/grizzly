@@ -11,6 +11,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.CharBuffer;
+import java.util.Date;
 
 public class EchoServlet extends HttpServlet {
     private String contextPath;
@@ -26,7 +27,7 @@ public class EchoServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         doPost(req, resp);
 /*
-        System.out.println("WebSocketFilterTest.doGet: " + adapterCount++);
+        System.out.println(new java.util.Date() + ":  WebSocketFilterTest.doGet: " + adapterCount++);
         final ServletInputStream inputStream = req.getInputStream();
         ByteArrayOutputStream bais = new ByteArrayOutputStream();
         int read;
@@ -36,11 +37,11 @@ public class EchoServlet extends HttpServlet {
         }
 
         final String echo = new String(bais.toByteArray());
-        System.out.println("from client: " + echo);
+        System.out.println(new java.util.Date() + ":  from client: " + echo);
         final PrintWriter writer = resp.getWriter();
         writer.write(echo);
         writer.flush();
-        System.out.println("WebSocketFilterTest$EchoServlet.doGet exeunt");
+        System.out.println(new java.util.Date() + ":  WebSocketFilterTest$EchoServlet.doGet exeunt");
 */
     }
 
@@ -48,13 +49,10 @@ public class EchoServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-//                final CharBuffer buffer = CharBuffer.allocate(1024);
             ByteChunk chunk = readBytes2(request);
             if (chunk.getLength() > 0) {
-//                    System.out.println("doPost: chunk.getBytes() = " + chunk.getBytes());
-//                    System.out.println("chunk.getLength() = " + chunk.getLength());
-                    System.out.println(
-                            "doPost: chunk.getBytes() = " + new String(chunk.getBytes(), 0, chunk.getLength()));
+                    System.out.println(new Date() +
+                            ":  doPost: chunk.getBytes() = " + new String(chunk.getBytes(), 0, chunk.getLength()));
                 final ServletOutputStream outputStream = response.getOutputStream();
                 outputStream.write(chunk.getBytes(), 0, chunk.getLength());
                 outputStream.flush();

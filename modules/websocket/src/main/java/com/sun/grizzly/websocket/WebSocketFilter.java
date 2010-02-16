@@ -26,9 +26,9 @@ public class WebSocketFilter implements AsyncFilter {
                     handshake.prepare(response);
                     response.flush();
                     req.setAttribute("handshake", handshake);
-                    System.out.println("invoking adapter");
+                    System.out.println(new java.util.Date() + ":  invoking adapter");
                     task.invokeAdapter();
-                    System.out.println("done invoking adapter");
+                    System.out.println(new java.util.Date() + ":  done invoking adapter");
 //                    final ByteChunk payload = new ByteChunk();
 //                    Thread.sleep(5000);
 //                    task.getRequest().doRead(payload);

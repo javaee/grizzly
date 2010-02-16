@@ -50,7 +50,8 @@ public class WebSocketInputFilter implements InputFilter {
                     if (frame[0] == (byte) 0x00 && frame[read - 1] == (byte) 0xFF) {
                         chunk.append(frame, 1, read - 2);
                     } else {
-                        System.out.println("bad frame: '" + new String(tempRead.getBytes(), tempRead.getStart(), read - 1) + "'");
+                        System.out.println(new java.util.Date() + ": WebSocketInputFilter.doRead bad frame: '"
+                                + new String(tempRead.getBytes(), tempRead.getStart(), read - 1) + "'");
                         dump(read);
 
 //                        throw new IOException(String.format("Malformed frame"));
@@ -67,10 +68,10 @@ public class WebSocketInputFilter implements InputFilter {
     }
 
     private void dump(int read) {
-        System.out.println("WebSocketInputFilter.doRead.read = " + read);
-        System.out.println("WebSocketInputFilter.doRead.tempRead.getStart() = " + tempRead.getStart());
-        System.out.println("WebSocketInputFilter.doRead.tempRead.getLength() = " + tempRead.getLength());
-        System.out.println("WebSocketInputFilter.doRead.bytes.length = " + tempRead.getBytes().length);
+        System.out.println(new java.util.Date() + ":  WebSocketInputFilter.doRead.read = " + read);
+        System.out.println(new java.util.Date() + ":  WebSocketInputFilter.doRead.tempRead.getStart() = " + tempRead.getStart());
+        System.out.println(new java.util.Date() + ":  WebSocketInputFilter.doRead.tempRead.getLength() = " + tempRead.getLength());
+        System.out.println(new java.util.Date() + ":  WebSocketInputFilter.doRead.bytes.length = " + tempRead.getBytes().length);
     }
 
     private void reset() {
