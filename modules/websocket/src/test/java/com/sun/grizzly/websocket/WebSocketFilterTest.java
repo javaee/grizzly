@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 public class WebSocketFilterTest extends TestCase {
     private static final String CLIENT_HANDSHAKE = "GET /demo HTTP/1.1" + Constants.CRLF
@@ -86,12 +85,10 @@ public class WebSocketFilterTest extends TestCase {
         chunk.append((byte) 0x00);
         chunk.append(bytes, 0, bytes.length);
         chunk.append((byte) 0xFF);
-        System.out.println("Sendinng: " + new String(chunk.getBytes(), 0, chunk.getLength()));
         outputStream.write(chunk.getBytes(), 0, chunk.getLength());
         outputStream.flush();
         Thread.sleep(1000);
         bytes = reader.read(chunk.getLength());
-        System.out.println(new java.util.Date() + ":  frame " + count + " :  from server: " + Arrays.toString(bytes) + " ==> '" + new String(bytes) + "'");
         Assert.assertTrue("Should get framed data", bytes.length > 0 && bytes[0] == 0
                 && bytes[bytes.length - 1] == (byte) 0xFF);
         if(inputFilterAdded) {

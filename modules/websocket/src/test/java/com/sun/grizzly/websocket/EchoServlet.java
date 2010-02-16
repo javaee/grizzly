@@ -11,7 +11,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.CharBuffer;
-import java.util.Date;
 
 public class EchoServlet extends HttpServlet {
     private String contextPath;
@@ -51,8 +50,6 @@ public class EchoServlet extends HttpServlet {
         try {
             ByteChunk chunk = readBytes2(request);
             if (chunk.getLength() > 0) {
-                    System.out.println(new Date() +
-                            ":  doPost: chunk.getBytes() = " + new String(chunk.getBytes(), 0, chunk.getLength()));
                 final ServletOutputStream outputStream = response.getOutputStream();
                 outputStream.write(chunk.getBytes(), 0, chunk.getLength());
                 outputStream.flush();
