@@ -1,4 +1,4 @@
-package com.sun.grizzly.websocket;
+package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.arp.AsyncTask;
@@ -17,7 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WebSocketEngine {
-    static final Logger logger = Logger.getLogger("websocket");
+    static final Logger logger = Logger.getLogger("websockets");
     private static final int DISABLE_CLIENT_DISCONNECTION_DETECTION = 0;
 
     private final static String INVALID_WEBSOCKET = "WebSocket cannot be null.";

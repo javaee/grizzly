@@ -1,4 +1,4 @@
-package com.sun.grizzly.websocket;
+package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.NIOContext;

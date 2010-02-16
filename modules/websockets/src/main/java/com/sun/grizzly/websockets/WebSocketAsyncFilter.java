@@ -1,4 +1,4 @@
-package com.sun.grizzly.websocket;
+package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncFilter;
@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.logging.Logger;
 
 public class WebSocketAsyncFilter implements AsyncFilter {
-    private static final Logger logger = Logger.getLogger("websocket");
+    private static final Logger logger = Logger.getLogger("websockets");
 
     public boolean doFilter(AsyncExecutor asyncExecutor) {
         try {

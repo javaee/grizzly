@@ -1,4 +1,4 @@
-package com.sun.grizzly.websocket;
+package com.sun.grizzly.websockets;
 
 public class WebSocketEvent {
     private Type type;

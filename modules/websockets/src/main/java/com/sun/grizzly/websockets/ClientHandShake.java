@@ -35,7 +35,7 @@
  * holder.
  *
  */
-package com.sun.grizzly.websocket;
+package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.http.MimeHeaders;
 

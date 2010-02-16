@@ -8,10 +8,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
-    <artifactId>grizzly-websocket</artifactId>
+    <artifactId>grizzly-websockets</artifactId>
     <packaging>jar</packaging>
     <version>1.9.19-SNAPSHOT</version>
-    <name>grizzly-websocket</name>
+    <name>grizzly-websockets</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -24,7 +24,7 @@
                     <instructions>
                         <Import-Package>*</Import-Package>
                         <Export-Package>
-                            com.sun.grizzly.websocket.*
+                            com.sun.grizzly.websockets.*
                         </Export-Package>
                         <Embed-Dependency>com.sun.grizzly.http;scope=runtime</Embed-Dependency>
                     </instructions>

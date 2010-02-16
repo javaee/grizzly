@@ -35,7 +35,7 @@
  * holder.
  *
  */
-package com.sun.grizzly.websocket;
+package com.sun.grizzly.websockets;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
