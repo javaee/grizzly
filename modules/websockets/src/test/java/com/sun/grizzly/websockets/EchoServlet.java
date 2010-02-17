@@ -2,7 +2,6 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.buf.ByteChunk;
 
-import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
@@ -12,12 +11,6 @@ import java.io.IOException;
 import java.nio.CharBuffer;
 
 public class EchoServlet extends HttpServlet {
-    private String contextPath;
-
-    @Override
-    public void init(ServletConfig config) throws ServletException {
-        contextPath = config.getServletContext().getContextPath() + "/echo";
-    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
