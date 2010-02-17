@@ -514,6 +514,56 @@ public interface Buffer extends Comparable<Buffer> {
      */
     public Buffer put(Buffer src);
 
+    // -- Bulk put operations --
+    /**
+     * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
+     *
+     * <p> This method transfers the "length" bytes from the given source
+     * buffer into this buffer.  If this buffer has less bytes remaining than
+     * length, that is, if
+     * <tt>length</tt>&nbsp;<tt>&gt;</tt>&nbsp;<tt>remaining()</tt>,
+     * then no bytes are transferred and a {@link
+     * BufferOverflowException} is thrown.
+     *
+     * <p> Otherwise, this method copies
+     * <i>n</i>&nbsp;=&nbsp;<tt>length</tt> bytes from the given
+     * <tt>postion</tt> in the source buffer into this buffer, starting from
+     * the current buffer position.
+     * The positions of this buffer is then incremented by <i>length</i>.
+     *
+     * <p> In other words, an invocation of this method of the form
+     * <tt>dst.put(src, position, length)</tt> has exactly the same effect
+     * as the loop
+     *
+     * <pre>
+     *     for (int i = 0; i < length; i++)
+     *         dst.put(src.get(i + position)); </pre>
+     *
+     * except that it first checks that there is sufficient space in this
+     * buffer and it is potentially much more efficient. </p>
+     *
+     * @param  src
+     *         The source buffer from which bytes are to be read;
+     *         must not be this buffer
+     *
+     * @param position starting position in the source buffer
+     *
+     * @param length number of bytes to be copied
+     *
+     * @return  This buffer
+     *
+     * @throws  BufferOverflowException
+     *          If there is insufficient space in this buffer
+     *          for the remaining bytes in the source buffer
+     *
+     * @throws  IllegalArgumentException
+     *          If the source buffer is this buffer
+     *
+     * @throws  ReadOnlyBufferException
+     *          If this buffer is read-only
+     */
+    public Buffer put(Buffer src, int position, int length);
+
     /**
      * Relative bulk <i>put</i> method&nbsp;&nbsp;<i>(optional operation)</i>.
      *

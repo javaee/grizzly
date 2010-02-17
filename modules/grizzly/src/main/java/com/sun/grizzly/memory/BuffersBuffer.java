@@ -611,23 +611,20 @@ public final class BuffersBuffer implements CompositeBuffer {
 
     @Override
     public BuffersBuffer put(Buffer src) {
+        put(src, src.position(), src.remaining());
+        src.position(src.limit());
+        return this;
+    }
+
+    @Override
+    public Buffer put(Buffer src, int position, int length) {
         checkDispose();
         checkReadOnly();
 
-        if (remaining() < src.remaining()) throw new BufferOverflowException();
-
-        Object underlying = src.underlying();
-        ByteBuffer bb;
-        if (underlying instanceof ByteBuffer && (bb = (ByteBuffer) underlying).hasArray()) {
-            return put(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
-        }
-
-        while(src.hasRemaining()) {
-            put(src.get());
-        }
-
+        BufferUtils.put(src, position, length, this);
         return this;
     }
+
 
     @Override
     public char getChar() {

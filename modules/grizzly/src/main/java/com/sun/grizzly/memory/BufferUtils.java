@@ -39,6 +39,8 @@ package com.sun.grizzly.memory;
 import com.sun.grizzly.Appender;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransportFactory;
+import java.nio.BufferOverflowException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
@@ -161,4 +163,99 @@ public class BufferUtils {
         }
     }
 
+    public static void put(ByteBuffer srcBuffer, int srcOffset, int length,
+            ByteBuffer dstBuffer) {
+        
+        if (dstBuffer.remaining() < length) {
+            throw new BufferOverflowException();
+        }
+        
+        if (srcBuffer.hasArray() && dstBuffer.hasArray()) {
+
+            System.arraycopy(srcBuffer.array(),
+                    srcBuffer.arrayOffset() + srcOffset,
+                    dstBuffer.array(),
+                    dstBuffer.arrayOffset() + dstBuffer.position(),
+                    length);
+            dstBuffer.position(dstBuffer.position() + length);
+        } else {
+            int oldPos = srcBuffer.position();
+            int oldLim = srcBuffer.limit();
+            setPositionLimit(srcBuffer, srcOffset, srcOffset + length);
+
+            dstBuffer.put(srcBuffer);
+
+            srcBuffer.position(oldPos);
+            srcBuffer.limit(oldLim);
+        }
+    }
+
+    public static void put(Buffer src, int position, int length,
+            Buffer dstBuffer) {
+
+        if (dstBuffer.remaining() < length) {
+            throw new BufferOverflowException();
+        }
+
+        if (!src.isComposite()) {
+            final ByteBuffer srcByteBuffer = src.toByteBuffer();
+            if (srcByteBuffer.hasArray()) {
+                dstBuffer.put(srcByteBuffer.array(),
+                        srcByteBuffer.arrayOffset() + position, length);
+            } else {
+                for(int i=0; i<length; i++) {
+                    dstBuffer.put(srcByteBuffer.get(position + i));
+                }
+            }
+        } else {
+            final ByteBuffer[] srcByteBuffers = src.toByteBufferArray(position,
+                    position + length);
+            for(ByteBuffer srcByteBuffer : srcByteBuffers) {
+                final int initialPosition = srcByteBuffer.position();
+                final int srcByteBufferLen = srcByteBuffer.remaining();
+
+                if (srcByteBuffer.hasArray()) {
+                    dstBuffer.put(srcByteBuffer.array(),
+                            srcByteBuffer.arrayOffset() + initialPosition,
+                            srcByteBufferLen);
+                } else {
+                    for (int i = 0; i < srcByteBufferLen; i++) {
+                        dstBuffer.put(srcByteBuffer.get(initialPosition + i));
+                    }
+                }
+            }
+        }
+    }
+
+    public static void get(ByteBuffer srcBuffer,
+            byte[] dstBytes, int dstOffset, int length) {
+        
+        if (srcBuffer.hasArray()) {
+            if (length > srcBuffer.remaining()) {
+                throw new BufferUnderflowException();
+            }
+
+            System.arraycopy(srcBuffer.array(),
+                    srcBuffer.arrayOffset() + srcBuffer.position(),
+                    dstBytes, dstOffset, length);
+            srcBuffer.position(srcBuffer.position() + length);
+        } else {
+            srcBuffer.get(dstBytes, dstOffset, length);
+        }
+    }
+    
+    public static void put(byte[] srcBytes, int srcOffset, int length,
+            ByteBuffer dstBuffer) {
+        if (dstBuffer.hasArray()) {
+            if (length > dstBuffer.remaining()) {
+                throw new BufferOverflowException();
+            }
+
+            System.arraycopy(srcBytes, srcOffset, dstBuffer.array(),
+                    dstBuffer.arrayOffset() + dstBuffer.position(), length);
+            dstBuffer.position(dstBuffer.position() + length);
+        } else {
+            dstBuffer.put(srcBytes, srcOffset, length);
+        }
+    }
 }

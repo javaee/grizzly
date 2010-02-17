@@ -267,42 +267,49 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public ByteBufferWrapper get(byte[] dst) {
-        visible.get(dst);
-        return this;
+        return get(dst, 0, dst.length);
     }
 
     @Override
     public ByteBufferWrapper get(byte[] dst, int offset, int length) {
-        visible.get(dst, offset, length);
+        BufferUtils.get(visible, dst, offset, length);
         return this;
     }
 
     @Override
     public ByteBufferWrapper put(Buffer src) {
-        if (!src.isComposite()) {
-            visible.put((ByteBuffer) src.underlying());
-        } else {
-            final ByteBuffer[] bbs = src.toByteBufferArray();
-            for(ByteBuffer bb : bbs) {
-                final int pos = bb.position();
-                visible.put(bb);
-                bb.position(pos);
-            }
-
-            src.position(src.limit());
-        }
+        put(src, src.position(), src.remaining());
+        src.position(src.limit());
         return this;
     }
 
     @Override
-    public ByteBufferWrapper put(byte[] src) {
-        visible.put(src);
+    public ByteBufferWrapper put(Buffer src, int position, int length) {
+        if (!src.isComposite()) {
+            BufferUtils.put(src.toByteBuffer(), position, length, visible);
+        } else {
+            final ByteBuffer[] bbs =
+                    src.toByteBufferArray(position, position + length);
+            
+            for(ByteBuffer bb : bbs) {
+                final int pos = bb.position();
+                BufferUtils.put(bb, pos, bb.remaining(), visible);
+                bb.position(pos);
+            }
+        }
+        
         return this;
+    }
+
+
+    @Override
+    public ByteBufferWrapper put(byte[] src) {
+        return put(src, 0, src.length);
     }
 
     @Override
     public ByteBufferWrapper put(byte[] src, int offset, int length) {
-        visible.put(src, offset, length);
+        BufferUtils.put(src, offset, length, visible);
         return this;
     }
 

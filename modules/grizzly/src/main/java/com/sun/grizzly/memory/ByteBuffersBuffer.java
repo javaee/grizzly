@@ -636,7 +636,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             int oldPos = buffer.position();
             buffer.position(bufferPosition);
             int bytesToCopy = Math.min(buffer.remaining(), length);
-            buffer.get(dst, offset, bytesToCopy);
+            BufferUtils.get(buffer, dst, offset, bytesToCopy);
             buffer.position(oldPos);
             bufferPosition += (bytesToCopy - 1);
             
@@ -675,7 +675,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             int oldPos = buffer.position();
             buffer.position(bufferPosition);
             int bytesToCopy = Math.min(buffer.remaining(), length);
-            buffer.put(src, offset, bytesToCopy);
+            BufferUtils.put(src, offset, bytesToCopy, buffer);
             buffer.position(oldPos);
             bufferPosition += (bytesToCopy - 1);
 
@@ -695,21 +695,18 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
     @Override
     public ByteBuffersBuffer put(Buffer src) {
+        put(src, src.position(), src.remaining());
+        src.position(src.limit());
+        return this;
+    }
+
+    @Override
+    public Buffer put(Buffer src, int position, int length) {
         checkDispose();
         checkReadOnly();
 
-        if (remaining() < src.remaining()) throw new BufferOverflowException();
-
-        Object underlying = src.underlying();
-        ByteBuffer bb;
-        if (underlying instanceof ByteBuffer && (bb = (ByteBuffer) underlying).hasArray()) {
-            return put(bb.array(), bb.arrayOffset() + bb.position(), bb.remaining());
-        }
-
-        while(src.hasRemaining()) {
-            put(src.get());
-        }
-
+        BufferUtils.put(src, position, length, this);
+        
         return this;
     }
 
