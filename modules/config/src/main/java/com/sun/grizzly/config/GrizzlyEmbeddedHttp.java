@@ -28,9 +28,9 @@ import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolChainInstanceHandler;
 import com.sun.grizzly.ProtocolFilter;
-import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
+import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.config.dom.FileCache;
 import com.sun.grizzly.config.dom.Http;
 import com.sun.grizzly.config.dom.NetworkListener;
@@ -52,26 +52,23 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
-
-import java.nio.ByteBuffer;
-import java.util.concurrent.ExecutorService;
-
 import org.jvnet.hk2.component.Habitat;
+import org.jvnet.hk2.config.ConfigBeanProxy;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Queue;
 import java.util.ResourceBundle;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import java.lang.management.ManagementFactory;
-import java.util.Queue;
-
-import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
  * Implementation of Grizzly embedded HTTP listener
@@ -83,13 +80,11 @@ import org.jvnet.hk2.config.ConfigBeanProxy;
 public class GrizzlyEmbeddedHttp extends SelectorThread {
     private final AtomicBoolean algorithmInitialized = new AtomicBoolean(false);
     private boolean isHttpSecured = false;
-    public static String DEFAULT_ALGORITHM_CLASS_NAME = DEFAULT_ALGORITHM;
     /**
      * The resource bundle containing the message strings for logger.
      */
     protected static final ResourceBundle _rb = logger.getResourceBundle();
     private String defaultVirtualServer;
-    private int threadPoolTimeoutSeconds = 0;
     // Port unification settings
     protected PUReadFilter puFilter;
     protected final List<ProtocolFinder> finders = new ArrayList<ProtocolFinder>();
@@ -226,7 +221,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final Protocol protocol = networkListener.findProtocol();
         final boolean mayEnableComet = !"admin-listener".equalsIgnoreCase(networkListener.getName());
         configureProtocol(networkListener, protocol, habitat, mayEnableComet);
-        configureThreadPool(networkListener, pool, getThreadPoolTimeoutSeconds());
+        configureThreadPool(networkListener, pool, networkListener.findHttpProtocol().getHttp()
+        );
     }
 
     protected void configureTransport(Transport transport) {
@@ -270,7 +266,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     Boolean.getBoolean("v3.grizzly.cometSupport"))) {
                 configureComet(habitat);
             }
-            threadPoolTimeoutSeconds = Integer.parseInt(http.getTimeoutSeconds());
         } else if (protocol.getPortUnification() != null) {
             // Port unification
             PortUnification pu = protocol.getPortUnification();
@@ -396,7 +391,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      *
      * @param habitat
      */
-    private final void configureComet(Habitat habitat) {
+    private void configureComet(Habitat habitat) {
         AsyncFilter cometFilter = habitat.getComponent(AsyncFilter.class, "comet");
         if (cometFilter == null) {
             cometFilter = new CometAsyncFilter();
@@ -499,8 +494,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Configures an HTTP grizzlyListener with the given request-processing config.
      */
-    private void configureThreadPool(NetworkListener networkListener,
-        ThreadPool threadPool, int keepAlive) {
+    private void configureThreadPool(NetworkListener networkListener, ThreadPool threadPool, Http http) {
         if (threadPool == null) {
             return;
         }
@@ -508,7 +502,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             final int maxQueueSize = Integer.parseInt(threadPool.getMaxQueueSize());
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
-            final int timeout = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
+            final int keepAlive = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
+
             final String name = Utils.composeThreadPoolName(networkListener);
             setThreadPool(newThreadPool(name, minThreads, maxThreads, maxQueueSize,
                 keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
@@ -522,6 +517,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     break;
                 }
             }
+            final int timeout = Integer.parseInt(http.getTimeoutSeconds());
             if (!debugMode && timeout > 0) {
                 // Idle Threads cannot be alive more than 15 minutes by default
                 setTransactionTimeout(timeout * 1000);
@@ -537,10 +533,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     protected ExtendedThreadPool newThreadPool(String name, int minThreads, int maxThreads,
         int maxQueueSize, long timeout, TimeUnit timeunit) {
         return new StatsThreadPool(name, minThreads, maxThreads, maxQueueSize, timeout, timeunit);
-    }
-
-    protected int getThreadPoolTimeoutSeconds() {
-        return threadPoolTimeoutSeconds;
     }
 
     public String getDefaultVirtualServer() {
