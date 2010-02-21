@@ -56,7 +56,7 @@ public class HttpDecoder extends AbstractTransformer<Buffer, HttpPacket> {
     }
 
     @Override
-    public TransformationResult<Buffer, HttpPacket> transform(
+    protected TransformationResult<Buffer, HttpPacket> transformImpl(
             AttributeStorage storage, Buffer input)
             throws TransformationException {
         throw new UnsupportedOperationException("Not supported yet.");

@@ -56,16 +56,12 @@ public class HttpEncoder extends AbstractTransformer<HttpPacket, Buffer> {
     }
 
     @Override
-    public TransformationResult<HttpPacket, Buffer> transform(
-            AttributeStorage storage, HttpPacket input)
-            throws TransformationException {
-
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
-
-    @Override
     public boolean hasInputRemaining(HttpPacket input) {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
+    @Override
+    protected TransformationResult<HttpPacket, Buffer> transformImpl(AttributeStorage storage, HttpPacket input) throws TransformationException {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
 }
