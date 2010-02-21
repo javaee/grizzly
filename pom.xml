@@ -70,7 +70,7 @@
             <layout>legacy</layout>
         </repository>
         <repository>
-            <id>java.net</id>
+            <id>legacy.java.net</id>
             <name>maven-repository.dev.java.net</name>
             <url>https://maven-repository.dev.java.net/nonav/repository/</url>
             <layout>legacy</layout>
