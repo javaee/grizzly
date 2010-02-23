@@ -38,9 +38,9 @@
 
 package com.sun.grizzly.attributes;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * {@link AttributeHolder} implementation, which doesn't support indexed access
@@ -58,7 +58,7 @@ public class NamedAttributeHolder implements AttributeHolder {
 
     public NamedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
-        attributesMap = new HashMap<String, Object>();
+        attributesMap = new ConcurrentHashMap<String, Object>();
     }
     
     /**

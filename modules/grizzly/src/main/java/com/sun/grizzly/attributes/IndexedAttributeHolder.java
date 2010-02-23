@@ -41,6 +41,7 @@ package com.sun.grizzly.attributes;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
  * {@link AttributeHolder}, which supports indexed access to stored
@@ -53,12 +54,15 @@ import java.util.Set;
  * @author Alexey Stashok
  */
 public final class IndexedAttributeHolder implements AttributeHolder {
-    private static final Object[] ZERO_ARRAY = new Object[0];
+    // dummy volatile
+    private volatile int count;
 
     private Object[] attributeValues;
 
     protected final DefaultAttributeBuilder attributeBuilder;
     protected final IndexedAttributeAccessor indexedAttributeAccessor;
+
+    private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
     public IndexedAttributeHolder(AttributeBuilder attributeBuilder) {
         this.attributeBuilder = (DefaultAttributeBuilder) attributeBuilder;
@@ -100,12 +104,12 @@ public final class IndexedAttributeHolder implements AttributeHolder {
         Attribute attribute = attributeBuilder.getAttributeByName(name);
         if (attribute != null) {
             int index = attribute.index();
-            
+
             Object value = indexedAttributeAccessor.getAttribute(index);
             if (value != null) {
                 indexedAttributeAccessor.setAttribute(index, null);
             }
-            
+
             return value;
         }
         
@@ -117,13 +121,16 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      */
     @Override
     public Set<String> getAttributeNames() {
-        Set<String> result = new HashSet<String>();
+        final Set<String> result = new HashSet<String>();
 
-        for (int i = 0; i < attributeValues.length; i++) {
-            Object value = attributeValues[i];
-            if (value != null) {
-                Attribute attribute = attributeBuilder.getAttributeByIndex(i);
-                result.add(attribute.name());
+        if (count != 0) {
+            final Object[] localAttributeValues = attributeValues;
+            for (int i = 0; i < localAttributeValues.length; i++) {
+                Object value = localAttributeValues[i];
+                if (value != null) {
+                    Attribute attribute = attributeBuilder.getAttributeByIndex(i);
+                    result.add(attribute.name());
+                }
             }
         }
 
@@ -135,7 +142,13 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      */
     @Override
     public void clear() {
-        Arrays.fill(attributeValues, null);
+        lock.writeLock().lock();
+
+        try {
+            Arrays.fill(attributeValues, null);
+        } finally {
+            lock.writeLock().unlock();
+        }
     }
 
     /**
@@ -167,8 +180,10 @@ public final class IndexedAttributeHolder implements AttributeHolder {
          */
         @Override
         public Object getAttribute(int index) {
-            if (index < attributeValues.length) {
-                return attributeValues[index];
+            if (count != 0) {
+                if (index < attributeValues.length) {
+                    return attributeValues[index];
+                }
             }
 
             return null;
@@ -179,17 +194,34 @@ public final class IndexedAttributeHolder implements AttributeHolder {
          */
         @Override
         public void setAttribute(int index, Object value) {
-            ensureSize(index + 1);
-            attributeValues[index] = value;
+            lock.readLock().lock();
+
+            try {
+                ensureSize(index + 1);
+                attributeValues[index] = value;
+                count++;
+            } finally {
+                lock.readLock().unlock();
+            }
         }
 
         private void ensureSize(int size) {
-            final int delta = size - attributeValues.length;
+            int delta = size - attributeValues.length;
             if (delta > 0) {
-                final int newLength = Math.max(attributeValues.length + delta,
-                        (attributeValues.length * 3) / 2 + 1);
+                lock.readLock().unlock();
+                lock.writeLock().lock();
+                try {
+                    delta = size - attributeValues.length;
+                    if (delta > 0) {
+                        final int newLength = Math.max(attributeValues.length + delta,
+                                (attributeValues.length * 3) / 2 + 1);
 
-                attributeValues = Arrays.copyOf(attributeValues, newLength);
+                        attributeValues = Arrays.copyOf(attributeValues, newLength);
+                    }
+                } finally {
+                    lock.readLock().lock();
+                    lock.writeLock().unlock();
+                }
             }
         }
     }
