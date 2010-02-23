@@ -36,34 +36,42 @@
  *
  */
 
-package com.sun.grizzly;
-
-import java.io.IOException;
+package com.sun.grizzly.utils;
 
 /**
- * Abstract {@link Processor} interface implementation.
+ * Utility class, which may stores the current execution position to help
+ * tracking threading issues.
  * 
  * @author Alexey Stashok
  */
-public abstract class AbstractProcessor<E extends Context>
-        implements Processor<E> {
+public class DebugPoint {
+    private final Exception stackTrace;
+    private final String threadName;
 
-    /**
-     * Returning null, means that core is responsible to create the
-     * processing {@link Context} itself.
-     * 
-     * @return <tt>null</tt>
-     */
-    @Override
-    public E context() {
-        return null;
+    public DebugPoint(Exception stackTrace, String threadName) {
+        this.stackTrace = stackTrace;
+        this.threadName = threadName;
+    }
+
+    public Exception getStackTrace() {
+        return stackTrace;
+    }
+
+    public String getThreadName() {
+        return threadName;
     }
 
     @Override
-    public void beforeProcess(E context) throws IOException {
-    }
+    public String toString() {
+        StringBuilder sb = new StringBuilder(512);
+        sb.append("Point [current-thread").append(Thread.currentThread().getName());
+        sb.append(", debug-point-thread=").append(threadName);
+        sb.append(", stackTrace=\n");
+        StackTraceElement[] trace = stackTrace.getStackTrace();
+        for (int i = 0; i < trace.length; i++) {
+            sb.append("\tat " + trace[i]).append('\n');
+        }
 
-    @Override
-    public void afterProcess(E context) throws IOException {
+        return sb.toString();
     }
 }

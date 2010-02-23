@@ -35,7 +35,6 @@
  */
 package com.sun.grizzly;
 
-import junit.framework.TestCase;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -56,7 +55,7 @@ import com.sun.grizzly.memory.slab.SlabMemoryManagerFactory;
  * @author Ken Cavanaugh
  * @author John Vieten
  */
-public class SlabMemoryManagerTest extends TestCase {
+public class SlabMemoryManagerTest extends GrizzlyTestCase {
     public static final int PORT = 7778;
     private static final int SLAB_SIZE = 90000;
     private Slab testSlab;

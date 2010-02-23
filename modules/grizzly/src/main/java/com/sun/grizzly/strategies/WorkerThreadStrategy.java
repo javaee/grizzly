@@ -114,8 +114,22 @@ public final class WorkerThreadStrategy implements Strategy {
                     if (regResult == IOEventReg.REGISTER && disableInterest) {
                         nioConnection.enableIOEvent(ioEvent);
                     }
+                } catch (IOException e) {
+                    logger.log(Level.FINE, "Uncaught exception: ", e);
+                    try {
+                        connection.close();
+                    } catch (IOException ee) {
+                        logger.log(Level.WARNING, "Exception occurred when " +
+                                "closing the connection: ", ee);
+                    }
                 } catch (Exception e) {
-                    logger.log(Level.WARNING, "Uncought exception: ", e);
+                    logger.log(Level.WARNING, "Uncaught exception: ", e);
+                    try {
+                        connection.close();
+                    } catch (IOException ee) {
+                        logger.log(Level.WARNING, "Exception occurred when " +
+                                "closing the connection: ", ee);
+                    }
                 }
             }
         });

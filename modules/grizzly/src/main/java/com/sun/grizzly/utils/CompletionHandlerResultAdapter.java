@@ -36,49 +36,77 @@
  *
  */
 
-package com.sun.grizzly.asyncqueue;
+package com.sun.grizzly.utils;
 
-import java.io.IOException;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Processor;
+import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.impl.FutureImpl;
 
 /**
- * Common interface for {@link AsyncQueue} processors.
- * 
+ *
  * @author Alexey Stashok
  */
-public interface AsyncQueueProcessor extends Processor {
-    /**
-     * Checks whether there is ready data in {@link AsyncQueue},
-     * associated with the {@link Connection}.
-     * 
-     * @param connection {@link Connection}
-     * @return <tt>true</tt>, if there is ready data,
-     *         or <tt>false</tt> otherwise.
-     */
-    public abstract boolean isReady(Connection connection);
-    
-    /**
-     * Callback method, which is called async. to process ready
-     * {@link AsyncQueue}, which are associated with the given
-     * {@link Connection}
-     * 
-     * @param connection {@link Connection}
-     * @throws java.io.IOException
-     */
-    public abstract void processAsync(Connection connection) throws IOException;
-    
-    /**
-     * Callback method, which is called, when {@link Connection} has been closed,
-     * to let processor release a connection associated resources.
-     * 
-     * @param connection {@link Connection}
-     * @throws java.io.IOException
-     */
-    public abstract void onClose(Connection connection);
-    
-    /**
-     * Close <tt>AsyncQueueProcessor</tt> and release associated resources
-     */
-    public abstract void close();
+public class CompletionHandlerResultAdapter<R, W>
+        implements CompletionHandler<W>,ResultAware<R> {
+    private volatile R result;
+
+    private final FutureImpl<R> future;
+    private final CompletionHandler<R> completionHandler;
+
+    public CompletionHandlerResultAdapter(FutureImpl<R> future) {
+        this(future, null);
+    }
+
+    public CompletionHandlerResultAdapter(FutureImpl<R> future,
+            CompletionHandler<R> completionHandler) {
+        this(future, completionHandler, null);
+    }
+
+    public CompletionHandlerResultAdapter(FutureImpl<R> future,
+            CompletionHandler<R> completionHandler,
+            R result) {
+        this.future = future;
+        this.completionHandler = completionHandler;
+        this.result = result;
+    }
+
+    public R getResult() {
+        return result;
+    }
+
+    @Override
+    public void setResult(R result) {
+        this.result = result;
+    }
+
+    @Override
+    public void cancelled() {
+        future.cancel(false);
+        if (completionHandler != null) {
+            completionHandler.cancelled();
+        }
+    }
+
+    @Override
+    public void failed(Throwable throwable) {
+        future.failure(throwable);
+        if (completionHandler != null) {
+            completionHandler.failed(throwable);
+        }
+    }
+
+    @Override
+    public void completed(W result) {
+        future.result(this.result);
+        if (completionHandler != null) {
+            completionHandler.completed(this.result);
+        }
+    }
+
+    @Override
+    public void updated(W result) {
+        if (completionHandler != null) {
+            completionHandler.updated(this.result);
+        }
+    }
+
 }

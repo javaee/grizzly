@@ -40,8 +40,6 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.ExceptionHandler;
 import com.sun.grizzly.utils.StateHolder;
 import java.io.IOException;
@@ -58,7 +56,7 @@ import java.util.concurrent.ExecutorService;
 public interface Transport extends ExceptionHandler {
     public enum State {STARTING, START, PAUSE, STOPPING, STOP};
 
-    public enum IOEventReg {REGISTER, DEREGISTER, LEAVE};
+    public enum IOEventReg {REGISTER, DEREGISTER};
 
     /**
      * Gets the {@link Transport} name.
@@ -111,6 +109,21 @@ public interface Transport extends ExceptionHandler {
     public boolean isStandalone();
 
     /**
+     * Gets the default {@link Processor}, which will process <tt>Transport</tt>
+     * {@link Connection}s I/O events in case, if {@link Connection}
+     * doesn't have own {@link Processor} preferences.
+     * If {@link Transport} associated {@link Processor} is <tt>null</tt>,
+     * and {@link Connection} doesn't have any preferred {@link Processor} -
+     * then {@link Transport} will try to get {@link Processor} using
+     * {@link ProcessorSelector#select(IOEvent, Connection)}.
+     *
+     * @return the default {@link Processor}, which will process
+     * {@link Connection} I/O events, if one doesn't have
+     * own {@link Processor} preferences.
+     */
+    public Processor obtainProcessor(IOEvent ioEvent, Connection connection);
+
+    /**
      * Gets the default {@link Processor}, which will process {@link Connection}
      * I/O events in case, if {@link Connection} doesn't have own
      * {@link Processor} preferences.
@@ -129,10 +142,6 @@ public interface Transport extends ExceptionHandler {
      * Sets the default {@link Processor}, which will process {@link Connection}
      * I/O events in case, if {@link Connection} doesn't have own
      * {@link Processor} preferences.
-     * If {@link Transport} associated {@link Processor} is <tt>null</tt>,
-     * and {@link Connection} doesn't have any preferred {@link Processor} -
-     * then {@link Transport} will try to get {@link Processor} using
-     * {@link ProcessorSelector#select(IOEvent, Connection)}.
      *
      * @param processor the default {@link Processor}, which will process
      * {@link Connection} I/O events, if one doesn't have own
@@ -374,6 +383,14 @@ public interface Transport extends ExceptionHandler {
             throws IOException;
 
     /**
+     * Fires the {@link IOEvent} on the {@link Connection} according to the
+     * passed {@link Context}
+     *
+     * @param context I/O event processing context
+     */
+    public IOEventReg fireIOEvent(Context context) throws IOException;
+
+    /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,
      *         <tt>false</tt> otherwise.
      * @return <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,
@@ -381,21 +398,7 @@ public interface Transport extends ExceptionHandler {
      */
     public boolean isStopped();
 
-    /**
-     * Get the {@link Connection} {@link StreamReader}, to read data from the
-     * {@link Connection}.
-     *
-     * @return the {@link Connection} {@link StreamReader}, to read data from the
-     * {@link Connection}.
-     */
-    public StreamReader getStreamReader(Connection connection);
+    public Reader getReader(Connection connection);
 
-    /**
-     * Get the {@link Connection} {@link StreamWriter}, to write data to the
-     * {@link Connection}.
-     *
-     * @return the {@link Connection} {@link StreamWriter}, to write data to the
-     * {@link Connection}.
-     */
-    public StreamWriter getStreamWriter(Connection connection);
+    public Writer getWriter(Connection connection);
 }

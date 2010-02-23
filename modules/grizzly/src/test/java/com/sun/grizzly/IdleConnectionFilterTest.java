@@ -41,8 +41,7 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import junit.framework.TestCase;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
@@ -54,7 +53,7 @@ import com.sun.grizzly.utils.IdleTimeoutFilter;
  * 
  * @author Alexey Stashok
  */
-public class IdleConnectionFilterTest extends TestCase {
+public class IdleConnectionFilterTest extends GrizzlyTestCase {
     public static final int PORT = 7782;
 
     public void testAcceptedConnectionIdleTimeout() throws Exception {
@@ -69,7 +68,7 @@ public class IdleConnectionFilterTest extends TestCase {
 
             transport.getFilterChain().add(new TransportFilter());
             transport.getFilterChain().add(idleTimeoutFilter);
-            transport.getFilterChain().add(new FilterAdapter() {
+            transport.getFilterChain().add(new BaseFilter() {
                 private Connection acceptedConnection;
                 @Override
                 public NextAction handleAccept(FilterChainContext ctx,
@@ -120,7 +119,7 @@ public class IdleConnectionFilterTest extends TestCase {
 
             transport.getFilterChain().add(new TransportFilter());
             transport.getFilterChain().add(idleTimeoutFilter);
-            transport.getFilterChain().add(new FilterAdapter() {
+            transport.getFilterChain().add(new BaseFilter() {
                 private Connection connectedConnection;
                 @Override
                 public NextAction handleConnect(FilterChainContext ctx,

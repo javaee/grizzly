@@ -44,34 +44,38 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.Reader;
+import com.sun.grizzly.Transport;
 import com.sun.grizzly.streams.AbstractStreamReader;
 import com.sun.grizzly.streams.BufferedInput;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
-public class UDPNIOStreamReader extends AbstractStreamReader {
+public final class DefaultStreamReader extends AbstractStreamReader {
 
-    public UDPNIOStreamReader(UDPNIOConnection connection) {
-        super(connection, new UDPNIOInput());
-        ((UDPNIOInput) input).parentStreamReader = this;
+    public DefaultStreamReader(Connection connection) {
+        super(connection, new Input());
+        ((Input) input).parentStreamReader = this;
     }
 
-    public UDPNIOInput getSource() {
-        return (UDPNIOInput) input;
+    public Input getSource() {
+        return (Input) input;
     }
 
-    public static final class UDPNIOInput extends BufferedInput {
+    public static final class Input extends BufferedInput {
 
-        private UDPNIOStreamReader parentStreamReader;
+        private DefaultStreamReader parentStreamReader;
         private boolean isDone;
 
         @Override
         protected void onOpenInputSource() throws IOException {
             isDone = false;
             final Connection connection = parentStreamReader.getConnection();
-            connection.read(null, null, null,
+            final Transport transport = connection.getTransport();
+            final Reader reader = transport.getReader(connection);
+
+            reader.read(connection, null, null, null,
                     new Interceptor() {
 
                         @Override

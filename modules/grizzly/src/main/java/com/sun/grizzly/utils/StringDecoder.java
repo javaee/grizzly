@@ -42,9 +42,12 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import com.sun.grizzly.AbstractTransformer;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.attributes.Attribute;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * String decoder, which decodes {@link Buffer} to {@link String}
@@ -52,7 +55,8 @@ import com.sun.grizzly.attributes.Attribute;
  * @author Alexey Stashok
  */
 public class StringDecoder extends AbstractTransformer<Buffer, String> {
-
+    private static final Logger logger = Grizzly.logger(StringDecoder.class);
+    
     protected Charset charset;
     
     protected Attribute<Integer> lengthAttribute;
@@ -120,6 +124,10 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             AttributeStorage storage, Buffer input) {
         Integer stringSize = lengthAttribute.get(storage);
 
+        if (logger.isLoggable(Level.FINE)) {
+            logger.log(Level.FINE, "StringDecoder decode stringSize=" + stringSize + " buffer=" + input + " content=" + input.toStringContent());
+        }
+
         if (stringSize == null) {
             if (input.remaining() < 2) {
                 return TransformationResult.<Buffer, String>createIncompletedResult(input, false);
@@ -128,7 +136,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             stringSize = (int) input.getShort();
             lengthAttribute.set(storage, stringSize);
         }
-
+        
         if (input.remaining() < stringSize) {
             return TransformationResult.<Buffer, String>createIncompletedResult(input, false);
         }

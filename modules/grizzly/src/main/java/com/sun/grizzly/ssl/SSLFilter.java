@@ -38,9 +38,7 @@
 package com.sun.grizzly.ssl;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Codec;
 import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
@@ -48,13 +46,13 @@ import java.util.logging.Filter;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.Transformer;
+import com.sun.grizzly.GrizzlyFuture;
+import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.filterchain.CodecFilterAdapter;
+import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.memory.MemoryManager;
 import java.nio.ByteBuffer;
-import java.util.concurrent.Future;
 import java.util.logging.Level;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -68,13 +66,11 @@ import javax.net.ssl.SSLSession;
  *
  * @author Alexey Stashok
  */
-public final class SSLFilter extends CodecFilterAdapter<Buffer, Buffer> {
+public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private final Attribute<CompletionHandler> handshakeCompletionHandlerAttr;
     private Logger logger = Grizzly.logger(SSLFilter.class);
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
-
-    private volatile Codec underlyingChainCodec = null;
 
     private volatile int dumbVolatile;
 
@@ -112,27 +108,6 @@ public final class SSLFilter extends CodecFilterAdapter<Buffer, Buffer> {
     }
 
     @Override
-    public void onAdded(final FilterChain filterChain) {
-        super.onAdded(filterChain);
-        final int idx = filterChain.indexOf(this);
-        
-        underlyingChainCodec = filterChain.getCodec(idx);
-    }
-
-    @Override
-    public void onRemoved(FilterChain filterChain) {
-        super.onRemoved(filterChain);
-        
-        underlyingChainCodec = null;
-    }
-
-    @Override
-    public void onFilterChainChanged(FilterChain filterChain) {
-        super.onFilterChainChanged(filterChain);
-        final int idx = filterChain.indexOf(this);
-        underlyingChainCodec = filterChain.getCodec(idx);
-    }
-    @Override
     public NextAction handleRead(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
         final Connection connection = ctx.getConnection();
@@ -149,8 +124,7 @@ public final class SSLFilter extends CodecFilterAdapter<Buffer, Buffer> {
 
             Buffer buffer = (Buffer) ctx.getMessage();
 
-            buffer = doHandshakeStep(connection, ctx.getAddress(),
-                    sslEngine, ctx.getEncoder(), buffer);
+            buffer = doHandshakeStep(sslEngine, ctx);
 
             final boolean isHandshaking = SSLUtils.isHandshaking(sslEngine);
             if (!isHandshaking) {
@@ -171,27 +145,9 @@ public final class SSLFilter extends CodecFilterAdapter<Buffer, Buffer> {
         final Connection connection = ctx.getConnection();
         SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
         if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
-            return super.handleRead(ctx, nextAction);
+            return super.handleWrite(ctx, nextAction);
         } else {
-            if (sslEngine == null) {
-                sslEngine = serverSSLEngineConfigurator.createSSLEngine();
-                sslEngine.beginHandshake();
-                SSLUtils.setSSLEngine(connection, sslEngine);
-            }
-            Buffer buffer = (Buffer) ctx.getMessage();
-
-            buffer = doHandshakeStep(connection, ctx.getAddress(),
-                    sslEngine, ctx.getEncoder(), buffer);
-            final boolean isHandshaking = SSLUtils.isHandshaking(sslEngine);
-            if (!isHandshaking) {
-                notifyHandshakeCompleted(connection, sslEngine);
-                if (buffer.hasRemaining()) {
-                    ctx.setMessage(buffer);
-                    return super.handleWrite(ctx, nextAction);
-                }
-            }
-
-            return ctx.getStopAction(buffer.hasRemaining() ? buffer : null);
+            throw new IllegalStateException("Handshake is not completed!");
         }
     }
 
@@ -231,15 +187,20 @@ public final class SSLFilter extends CodecFilterAdapter<Buffer, Buffer> {
             handshakeCompletionHandlerAttr.set(connection, completionHandler);
             dumbVolatile++;
         }
-        
-        doHandshakeStep(connection, dstAddress, sslEngine,
-                underlyingChainCodec.getEncoder(), null);
+
+        final FilterChainContext ctx = createContext(connection, IOEvent.WRITE,
+                null, completionHandler);
+
+        doHandshakeStep(sslEngine, ctx);
     }
 
-    protected Buffer doHandshakeStep(final Connection connection,
-            final Object dstAddress, final SSLEngine sslEngine,
-            final Transformer encoder, Buffer inputBuffer)
-            throws SSLException, IOException {
+    protected Buffer doHandshakeStep(final SSLEngine sslEngine,
+            FilterChainContext context) throws SSLException, IOException {
+
+        final Connection connection = context.getConnection();
+        final Object dstAddress = context.getAddress();
+        Buffer inputBuffer = (Buffer) context.getMessage();
+
         final boolean isLoggingFinest = logger.isLoggable(Level.FINEST);
 
         final SSLSession sslSession = sslEngine.getSession();
@@ -335,6 +296,7 @@ public final class SSLFilter extends CodecFilterAdapter<Buffer, Buffer> {
 
                     final Buffer buffer = memoryManager.allocate(
                             sslEngine.getSession().getPacketBufferSize());
+                    buffer.allowBufferDispose(true);
 
                     try {
                         final SSLEngineResult result = sslEngine.wrap(
@@ -342,12 +304,9 @@ public final class SSLFilter extends CodecFilterAdapter<Buffer, Buffer> {
 
                         buffer.trim();
 
-                        final Future writeFuture = connection.write(dstAddress,
-                                buffer, null,
-                                encoder);
-                        if (writeFuture.isDone()) {
-                            buffer.dispose();
-                        }
+                        final GrizzlyFuture writeFuture = context.write(dstAddress,
+                                buffer, null);
+                        writeFuture.markForRecycle(true);
 
                         handshakeStatus = sslEngine.getHandshakeStatus();
                     } catch (SSLException e) {

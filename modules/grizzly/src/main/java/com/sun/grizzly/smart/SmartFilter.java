@@ -43,13 +43,13 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.attributes.AttributeBuilder;
-import com.sun.grizzly.filterchain.CodecFilterAdapter;
+import com.sun.grizzly.filterchain.AbstractCodecFilter;
 
 /**
  *
  * @author oleksiys
  */
-public class SmartFilter<K> extends CodecFilterAdapter<Buffer, K> {
+public class SmartFilter<K> extends AbstractCodecFilter<Buffer, K> {
 
     private final AttributeBuilder attributeBuilder;
     private final Attribute<Buffer> remainderAttribute;

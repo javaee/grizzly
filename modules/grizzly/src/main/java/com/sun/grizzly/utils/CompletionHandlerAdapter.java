@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -36,26 +36,60 @@
  *
  */
 
-package com.sun.grizzly;
+package com.sun.grizzly.utils;
 
-import java.io.IOException;
+import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.impl.FutureImpl;
 
 /**
- * Post processor, which will be called once {@link Processor} will
- * complete its execution.
- * The {@link PostProcessor} will be executed in the same {@link Thread}
- * as {@link Processor}.
- * 
+ *
  * @author Alexey Stashok
  */
-public interface PostProcessor<E extends Context> {
-    /**
-     * Method will be called by framework to post process the I/O event, which
-     * occured on a connection
-     * 
-     * @param context processing context
-     * @throws java.io.IOException
-     */
-    public void process(ProcessorResult result,
-            E context) throws IOException;
+public class CompletionHandlerAdapter<R>
+        implements CompletionHandler<R> {
+
+    private final FutureImpl<R> future;
+    private final CompletionHandler<R> completionHandler;
+
+    public CompletionHandlerAdapter(FutureImpl<R> future) {
+        this(future, null);
+    }
+
+    public CompletionHandlerAdapter(FutureImpl<R> future,
+            CompletionHandler<R> completionHandler) {
+        this.future = future;
+        this.completionHandler = completionHandler;
+    }
+    
+    @Override
+    public void cancelled() {
+        future.cancel(false);
+        if (completionHandler != null) {
+            completionHandler.cancelled();
+        }
+    }
+
+    @Override
+    public void failed(Throwable throwable) {
+        future.failure(throwable);
+        if (completionHandler != null) {
+            completionHandler.failed(throwable);
+        }
+    }
+
+    @Override
+    public void completed(R result) {
+        future.result(result);
+        if (completionHandler != null) {
+            completionHandler.completed(result);
+        }
+    }
+
+    @Override
+    public void updated(R result) {
+        if (completionHandler != null) {
+            completionHandler.updated(result);
+        }
+    }
+
 }

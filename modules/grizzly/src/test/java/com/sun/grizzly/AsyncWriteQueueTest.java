@@ -48,7 +48,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import junit.framework.TestCase;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -65,7 +64,7 @@ import java.util.logging.Logger;
  *
  * @author oleksiys
  */
-public class AsyncWriteQueueTest extends TestCase {
+public class AsyncWriteQueueTest extends GrizzlyTestCase {
     public static final int PORT = 7781;
 
     private static Logger logger = Grizzly.logger(AsyncWriteQueueTest.class);
@@ -75,7 +74,7 @@ public class AsyncWriteQueueTest extends TestCase {
         StreamReader reader = null;
         StreamWriter writer = null;
 
-        final int packetNumber = 20;
+        final int packetNumber = 127;
         final int packetSize = 1024;
 
         final AtomicInteger serverRcvdBytes = new AtomicInteger();
@@ -95,7 +94,6 @@ public class AsyncWriteQueueTest extends TestCase {
         try {
             transport.bind(PORT);
             transport.start();
-            transport.configureBlocking(true);
 
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
@@ -103,7 +101,7 @@ public class AsyncWriteQueueTest extends TestCase {
 
             connection.configureStandalone(true);
 
-            reader = transport.getStreamReader(connection);
+            reader = ((StandaloneProcessor) connection.getProcessor()).getStreamReader(connection);
 
             final Writer asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
             final MemoryManager mm = transport.getMemoryManager();
@@ -112,7 +110,7 @@ public class AsyncWriteQueueTest extends TestCase {
             final CountDownLatch latch = new CountDownLatch(packetNumber);
 
             final CompletionHandler completionHandler =
-                    new CompletionHandlerAdapter() {
+                    new EmptyCompletionHandler() {
                 @Override
                 public void completed(Object result) {
                     latch.countDown();

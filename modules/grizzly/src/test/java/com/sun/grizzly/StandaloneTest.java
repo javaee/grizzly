@@ -43,7 +43,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import junit.framework.TestCase;
 import com.sun.grizzly.nio.transport.TCPNIOServerConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
@@ -54,7 +53,7 @@ import com.sun.grizzly.streams.StreamWriter;
  * 
  * @author Alexey Stashok
  */
-public class StandaloneTest extends TestCase {
+public class StandaloneTest extends GrizzlyTestCase {
     private static Logger logger = Grizzly.logger(StandaloneTest.class);
     
     public static int PORT = 7780;
@@ -92,11 +91,11 @@ public class StandaloneTest extends TestCase {
                 buffer[i] = (byte) (i % 128);
             }
             // write buffer
-            writer = transport.getStreamWriter(connection);
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
             writer.writeByteArray(buffer);
             writer.flush();
 
-            reader = transport.getStreamReader(connection);
+            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
             
             // prepare receiving buffer
             byte[] receiveBuffer = new byte[messageSize];
@@ -136,8 +135,10 @@ public class StandaloneTest extends TestCase {
                     Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
                     assertTrue(acceptFuture.isDone());
 
-                    StreamReader reader = transport.getStreamReader(connection);
-                    StreamWriter writer = transport.getStreamWriter(connection);
+                    StreamReader reader =
+                            StandaloneProcessor.INSTANCE.getStreamReader(connection);
+                    StreamWriter writer =
+                            StandaloneProcessor.INSTANCE.getStreamWriter(connection);
                     try {
 
                         Future readFuture = reader.notifyAvailable(messageSize);

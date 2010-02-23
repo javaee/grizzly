@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -35,112 +35,50 @@
  * holder.
  *
  */
+
 package com.sun.grizzly.asyncqueue;
 
-import com.sun.grizzly.utils.LinkedTransferQueue;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.LinkedList;
-import java.util.Queue;
+import java.io.IOException;
+import com.sun.grizzly.Connection;
+import com.sun.grizzly.Processor;
 
 /**
- * Class represents common implementation of asynchronous processing queue.
- *
+ * Common interface for {@link AsyncQueue} processors.
+ * 
  * @author Alexey Stashok
  */
-public abstract class AsyncQueue<E> {
-    public static final <E> AsyncQueue<E> createSafeAsyncQueue() {
-        return new SafeAsyncQueue<E>();
-    }
-    
-    public static final <E> AsyncQueue<E> createUnSafeAsyncQueue() {
-        return new UnSafeAsyncQueue<E>();
-    }
-
+public interface AsyncQueue {
     /**
-     * Thread safe <tt>AsyncQueue</tt> implementation.
-     * @param <E> queue element type.
+     * Checks whether there is ready data in {@link AsyncQueue},
+     * associated with the {@link Connection}.
+     * 
+     * @param connection {@link Connection}
+     * @return <tt>true</tt>, if there is ready data,
+     *         or <tt>false</tt> otherwise.
      */
-    public final static class SafeAsyncQueue<E> extends AsyncQueue<E> {
-        final AtomicReference<E> currentElement;
-        
-        protected SafeAsyncQueue() {
-            super(new LinkedTransferQueue<E>());
-            currentElement = new AtomicReference<E>();
-        }
-
-        @Override
-        public E getCurrentElement() {
-            return currentElement.get();
-        }
-
-        @Override
-        public AtomicReference<E> getCurrentElementAtomic() {
-            return currentElement;
-        }
-    }
-
-    /**
-     * Non thread safe <tt>AsyncQueue</tt> implementation.
-     * @param <E> queue element type.
-     */
-    public final static class UnSafeAsyncQueue<E> extends AsyncQueue<E> {
-        private E currentElement;
-        /**
-         * Locker object, which could be used by a queue processors
-         */
-        protected final ReentrantLock queuedActionLock;
-
-        protected UnSafeAsyncQueue() {
-            super(new LinkedList<E>());
-            queuedActionLock = new ReentrantLock();
-        }
-
-        @Override
-        public E getCurrentElement() {
-            return currentElement;
-        }
-
-        @Override
-        public AtomicReference<E> getCurrentElementAtomic() {
-            throw new UnsupportedOperationException("Is not supported for unsafe queue");
-        }
-
-        /**
-         * Get the locker object, which could be used by a queue processors
-         * @return the locker object, which could be used by a queue processors
-         */
-        public ReentrantLock getQueuedActionLock() {
-            return queuedActionLock;
-        }
-    }
+    public abstract boolean isReady(Connection connection);
     
     /**
-     * The queue of tasks, which will be processed asynchrounously
+     * Callback method, which is called async. to process ready
+     * {@link AsyncQueue}, which are associated with the given
+     * {@link Connection}
+     * 
+     * @param connection {@link Connection}
+     * @throws java.io.IOException
      */
-    protected final Queue<E> queue;
-
-    protected AsyncQueue(Queue<E> queue) {
-        this.queue = queue;
-    }
-
-    /**
-     * Get the current processing task
-     * @return the current processing task
-     */
-    public abstract E getCurrentElement();
-
-    /**
-     * Get the wrapped current processing task, to perform atomic operations.
-     * @return the wrapped current processing task, to perform atomic operations.
-     */
-    public abstract AtomicReference<E> getCurrentElementAtomic();
+    public abstract void processAsync(Connection connection) throws IOException;
     
     /**
-     * Get the queue of tasks, which will be processed asynchrounously
-     * @return the queue of tasks, which will be processed asynchrounously
+     * Callback method, which is called, when {@link Connection} has been closed,
+     * to let processor release a connection associated resources.
+     * 
+     * @param connection {@link Connection}
+     * @throws java.io.IOException
      */
-    public Queue<E> getQueue() {
-        return queue;
-    }
+    public abstract void onClose(Connection connection);
+    
+    /**
+     * Close <tt>AsyncQueueProcessor</tt> and release associated resources
+     */
+    public abstract void close();
 }

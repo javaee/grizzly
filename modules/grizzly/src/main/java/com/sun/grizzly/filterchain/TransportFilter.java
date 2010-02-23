@@ -62,7 +62,7 @@ import com.sun.grizzly.Connection;
  * 
  * @author Alexey Stashok
  */
-public final class TransportFilter extends FilterAdapter {
+public final class TransportFilter extends BaseFilter {
     public static final String WORKER_THREAD_BUFFER_NAME = "thread-buffer";
     /**
      * Create <tt>TransportFilter</tt>.
@@ -155,96 +155,6 @@ public final class TransportFilter extends FilterAdapter {
 
         if (transportFilter0 != null) {
             return transportFilter0.handleClose(ctx, nextAction);
-        }
-
-        return null;
-    }
-
-    /**
-     * Delegates post accepting processing to {@link Transport}'s specific
-     * transport filter.
-     */
-    @Override
-    public NextAction postAccept(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
-
-        final Filter transportFilter0 = getTransportFilter0(
-                ctx.getConnection().getTransport());
-
-        if (transportFilter0 != null) {
-            return transportFilter0.postAccept(ctx, nextAction);
-        }
-
-        return null;
-    }
-
-    /**
-     * Delegates post connecting processing to {@link Transport}'s specific
-     * transport filter.
-     */
-    @Override
-    public NextAction postConnect(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
-
-        final Filter transportFilter0 = getTransportFilter0(
-                ctx.getConnection().getTransport());
-
-        if (transportFilter0 != null) {
-            return transportFilter0.postRead(ctx, nextAction);
-        }
-
-        return null;
-    }
-
-    /**
-     * Delegates post reading processing to {@link Transport}'s specific
-     * transport filter.
-     */
-    @Override
-    public NextAction postRead(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
-
-        final Filter transportFilter0 = getTransportFilter0(
-                ctx.getConnection().getTransport());
-
-        if (transportFilter0 != null) {
-            return transportFilter0.postConnect(ctx, nextAction);
-        }
-        
-        return null;
-    }
-
-    /**
-     * Delegates post writing processing to {@link Transport}'s specific
-     * transport filter.
-     */
-    @Override
-    public NextAction postWrite(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
-
-        final Filter transportFilter0 = getTransportFilter0(
-                ctx.getConnection().getTransport());
-
-        if (transportFilter0 != null) {
-            return transportFilter0.postWrite(ctx, nextAction);
-        }
-
-        return null;
-    }
-
-    /**
-     * Delegates post closing processing to {@link Transport}'s specific
-     * transport filter.
-     */
-    @Override
-    public NextAction postClose(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
-
-        final Filter transportFilter0 = getTransportFilter0(
-                ctx.getConnection().getTransport());
-
-        if (transportFilter0 != null) {
-            return transportFilter0.postClose(ctx, nextAction);
         }
 
         return null;

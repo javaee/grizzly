@@ -48,23 +48,19 @@ import com.sun.grizzly.AbstractReader;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
-import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.Reader;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.asyncqueue.AsyncQueue;
+import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
-import com.sun.grizzly.utils.ObjectPool;
 import java.util.Queue;
 
 /**
@@ -105,7 +101,7 @@ public abstract class AbstractNIOAsyncQueueReader
         }
 
         // Get connection async read queue
-        final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
+        final TaskQueue<AsyncReadQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
 
@@ -148,11 +144,13 @@ public abstract class AbstractNIOAsyncQueueReader
                         nextRecord = queue.peek();
                         if (nextRecord != null &&
                                 currentElement.compareAndSet(null, nextRecord)) {
+                            queue.remove(nextRecord);
                             onReadyToRead(connection);
                         }
                     }
 
                     intercept(connection, COMPLETE_EVENT, queueRecord, null);
+                    queueRecord.recycle();
                     return ReadyFutureImpl.<ReadResult<M, SocketAddress>>create(
                             currentResult);
                 } else { // If direct read is not finished
@@ -182,7 +180,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
                 connectionQueue.getQueue().offer(queueRecord);
 
-                if (currentElement.compareAndSet(null, queueRecord)) { // if queue become empty
+                if (currentElement.compareAndSet(null, queueRecord)) { // if queue became empty
                     // set this element as current and remove it from a queue
                     queue.remove(queueRecord);
                     onReadyToRead(connection);
@@ -206,7 +204,7 @@ public abstract class AbstractNIOAsyncQueueReader
      */
     @Override
     public final boolean isReady(final Connection connection) {
-        final AsyncQueue connectionQueue =
+        final TaskQueue connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
         return connectionQueue != null
@@ -220,7 +218,7 @@ public abstract class AbstractNIOAsyncQueueReader
      */
     @Override
     public void processAsync(final Connection connection) throws IOException {
-        final AsyncQueue<AsyncReadQueueRecord> connectionQueue =
+        final TaskQueue<AsyncReadQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncReadQueue();
 
         final Queue<AsyncReadQueueRecord> queue = connectionQueue.getQueue();
@@ -248,6 +246,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
                     intercept(connection, Reader.COMPLETE_EVENT,
                             queueRecord, null);
+                    queueRecord.recycle();
 
                     queueRecord = queue.poll();
                     currentElement.set(queueRecord);
@@ -295,7 +294,7 @@ public abstract class AbstractNIOAsyncQueueReader
     public void onClose(Connection connection) {
         final AbstractNIOConnection nioConnection =
                 (AbstractNIOConnection) connection;
-        final AsyncQueue<AsyncReadQueueRecord> readQueue =
+        final TaskQueue<AsyncReadQueueRecord> readQueue =
                 nioConnection.getAsyncReadQueue();
 
         if (readQueue != null) {
@@ -316,37 +315,6 @@ public abstract class AbstractNIOAsyncQueueReader
                 }
             }
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public ObjectPool getContextPool() {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final boolean isInterested(IOEvent ioEvent) {
-        return ioEvent == IOEvent.READ;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final ProcessorResult process(Context context) throws IOException {
-        processAsync(context.getConnection());
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final void setInterested(IOEvent ioEvent, boolean isInterested) {
     }
 
     /**
@@ -480,8 +448,6 @@ public abstract class AbstractNIOAsyncQueueReader
         if (completionHandler != null) {
             completionHandler.completed(currentResult);
         }
-
-        record.recycle();
     }
 
     protected final void onReadIncompleted(Connection connection,

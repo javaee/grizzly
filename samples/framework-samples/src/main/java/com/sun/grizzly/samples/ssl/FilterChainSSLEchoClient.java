@@ -39,16 +39,15 @@
 package com.sun.grizzly.samples.ssl;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.CompletionHandlerAdapter;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Transformer;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.Filter;
-import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.MemoryManager;
@@ -114,7 +113,7 @@ public class FilterChainSSLEchoClient {
      * The {@link Filter}, responsible for handling client {@link Connection}
      * events.
      */
-    private static class SendMessageFilter extends FilterAdapter {
+    private static class SendMessageFilter extends BaseFilter {
         
         private final SSLFilter sslFilter;
 
@@ -136,10 +135,9 @@ public class FilterChainSSLEchoClient {
                 NextAction nextAction) throws IOException {
             final Connection connection = ctx.getConnection();
             final MemoryManager mm = connection.getTransport().getMemoryManager();
-            final Transformer encoder = ctx.getEncoder();
 
             // Execute async SSL handshake
-            sslFilter.handshake(connection, new CompletionHandlerAdapter<SSLEngine>() {
+            sslFilter.handshake(connection, new EmptyCompletionHandler<SSLEngine>() {
 
                 /**
                  * Once SSL handshake will be completed - send greeting message
@@ -147,8 +145,7 @@ public class FilterChainSSLEchoClient {
                 @Override
                 public void completed(SSLEngine result) {
                     try {
-                        connection.write(MemoryUtils.wrap(mm, MESSAGE),
-                                null, encoder);
+                        connection.write(MemoryUtils.wrap(mm, MESSAGE));
                     } catch (IOException e) {
                         try {
                             connection.close();
@@ -187,7 +184,7 @@ public class FilterChainSSLEchoClient {
                         message + "\"");
             }
 
-            return nextAction;
+            return ctx.getStopAction();
         }
 
     }

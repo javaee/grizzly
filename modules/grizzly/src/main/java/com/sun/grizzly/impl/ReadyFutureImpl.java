@@ -56,7 +56,7 @@ import java.util.concurrent.TimeoutException;
  */
 public final class ReadyFutureImpl<R> implements GrizzlyFuture<R> {
     private static final ThreadCache.CachedTypeIndex<ReadyFutureImpl> CACHE_IDX =
-            ThreadCache.obtainIndex(ReadyFutureImpl.class);
+            ThreadCache.obtainIndex(ReadyFutureImpl.class, 4);
 
     /**
      * Construct cancelled {@link Future}.

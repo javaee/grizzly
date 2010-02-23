@@ -61,6 +61,8 @@ public class Grizzly {
     private static final int major;
     private static final int minor;
 
+    private static boolean isTrackingThreadCache;
+    
     public static Logger logger(Class clazz) {
         return Logger.getLogger(clazz.getName());
     }
@@ -126,5 +128,13 @@ public class Grizzly {
      */
     public static boolean equalVersion(int major, int minor) {
         return minor == Grizzly.minor && major == Grizzly.major;
-    } 
+    }
+
+    public static boolean isTrackingThreadCache() {
+        return isTrackingThreadCache;
+    }
+
+    public static void setTrackingThreadCache(boolean isTrackingThreadCache) {
+        Grizzly.isTrackingThreadCache = isTrackingThreadCache;
+    }
 }

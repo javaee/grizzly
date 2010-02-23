@@ -54,7 +54,7 @@ import com.sun.grizzly.Writer;
  * @author Alexey Stashok
  */
 public interface AsyncQueueWriter<L> 
-        extends Writer<L>, AsyncQueueProcessor {
+        extends Writer<L>, AsyncQueue {
     /**
      * Method writes the {@link Buffer} to the specific address.
      *

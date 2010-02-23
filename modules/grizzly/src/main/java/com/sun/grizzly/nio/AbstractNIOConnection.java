@@ -38,8 +38,6 @@
 
 package com.sun.grizzly.nio;
 
-import com.sun.grizzly.Transformer;
-import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.ProcessorSelector;
@@ -58,7 +56,7 @@ import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.StandaloneProcessor;
 import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
-import com.sun.grizzly.asyncqueue.AsyncQueue;
+import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
@@ -86,8 +84,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     
     protected final AttributeHolder attributes;
 
-    protected final AsyncQueue<AsyncReadQueueRecord> asyncReadQueue;
-    protected final AsyncQueue<AsyncWriteQueueRecord> asyncWriteQueue;
+    protected final TaskQueue<AsyncReadQueueRecord> asyncReadQueue;
+    protected final TaskQueue<AsyncWriteQueueRecord> asyncWriteQueue;
     
     protected final AtomicBoolean isClosed = new AtomicBoolean(false);
 
@@ -97,8 +95,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;
-        asyncReadQueue = AsyncQueue.<AsyncReadQueueRecord>createSafeAsyncQueue();
-        asyncWriteQueue = AsyncQueue.<AsyncWriteQueueRecord>createSafeAsyncQueue();
+        asyncReadQueue = TaskQueue.<AsyncReadQueueRecord>createSafeTaskQueue();
+        asyncWriteQueue = TaskQueue.<AsyncWriteQueueRecord>createSafeTaskQueue();
         
         attributes = new IndexedAttributeHolder(transport.getAttributeBuilder());
     }
@@ -206,6 +204,25 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     }
 
     @Override
+    public Processor obtainProcessor(IOEvent ioEvent) {
+        if (processor == null && processorSelector == null) {
+            return transport.obtainProcessor(ioEvent, this);
+        }
+
+        if (processor != null && processor.isInterested(ioEvent)) {
+            return processor;
+        } else if (processorSelector != null) {
+            final Processor selectedProcessor =
+                    processorSelector.select(ioEvent, this);
+            if (selectedProcessor != null) {
+                return selectedProcessor;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
     public Processor getProcessor() {
         return processor;
     }
@@ -228,11 +245,11 @@ public abstract class AbstractNIOConnection implements NIOConnection {
                 preferableProcessorSelector;
     }
 
-    public AsyncQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
+    public TaskQueue<AsyncReadQueueRecord> getAsyncReadQueue() {
         return asyncReadQueue;
     }
 
-    public AsyncQueue<AsyncWriteQueueRecord> getAsyncWriteQueue() {
+    public TaskQueue<AsyncWriteQueueRecord> getAsyncWriteQueue() {
         return asyncWriteQueue;
     }
 
@@ -242,67 +259,42 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     }
 
     @Override
-    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read()
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read()
             throws IOException {
-        return read(null, null, null, null);
+        return read(null);
     }
 
     @Override
-    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read(Buffer buffer)
+    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
+            CompletionHandler<ReadResult<M, SocketAddress>> completionHandler)
             throws IOException {
-        return read(buffer, null, null, null);
+
+        final Processor obtainedProcessor = obtainProcessor(IOEvent.READ);
+        return obtainedProcessor.read(this, completionHandler);
     }
 
     @Override
-    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read(Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler) throws IOException {
-        return read(buffer, completionHandler, null, null);
-    }
-
-    @Override
-    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(M message,
-            CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
-            Transformer<Buffer, M> transformer) throws IOException {
-        
-        return read(message, completionHandler, transformer, null);
-    }
-
-    @Override
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(Buffer buffer)
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(M message)
             throws IOException {
-        return write(null, buffer, null, null);
-    }
-
-    @Override
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler)
-            throws IOException {
-        return write(null, buffer, completionHandler, null);
+        return write(null, message, null);
     }
 
     @Override
     public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(M message,
-            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            Transformer<M, Buffer> transformer) throws IOException {
-
-        return write(null, message, completionHandler, transformer);
-    }
-
-
-
-    @Override
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
-            SocketAddress dstAddress, Buffer buffer) throws IOException {
-        return write(dstAddress, buffer, null, null);
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler)
+            throws IOException {
+        return write(null, message, completionHandler);
     }
 
     @Override
-    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(SocketAddress dstAddress,
-            Buffer buffer,
-            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler) throws IOException {
-        return write(dstAddress, buffer, completionHandler, null);
-    }
+    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
+            SocketAddress dstAddress, M message,
+            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler)
+            throws IOException {
 
+        final Processor obtainedProcessor = obtainProcessor(IOEvent.WRITE);
+        return obtainedProcessor.write(this, dstAddress, message, completionHandler);
+    }
 
     @Override
     public boolean isOpen() {

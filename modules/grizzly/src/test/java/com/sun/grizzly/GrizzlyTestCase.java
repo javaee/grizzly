@@ -1,8 +1,7 @@
 /*
- *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2003-2008 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -33,58 +32,23 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
 
-package com.sun.grizzly.utils;
+package com.sun.grizzly;
 
-import java.io.IOException;
-import com.sun.grizzly.Context;
-import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.Processor;
-import com.sun.grizzly.ProcessorResult;
+import com.sun.grizzly.memory.ByteBufferWrapper;
+import junit.framework.TestCase;
 
 /**
- * {@link Processor}, which redirects all calls to internal {@link Processor}
- * instance;
- * 
- * @author Alexey Stashok
+ *
+ * @author oleksiys
  */
-public class ProcessorWrapper<E extends Context> implements Processor<E> {
-    private Processor<E> internalProcessor;
-
-    public ProcessorWrapper(Processor<E> internalProcessor) {
-        this.internalProcessor = internalProcessor;
-    }
+public abstract class GrizzlyTestCase extends TestCase {
 
     @Override
-    public E context() {
-        return internalProcessor.context();
+    protected void setUp() throws Exception {
+        super.setUp();
+        Grizzly.setTrackingThreadCache(true);
+        ByteBufferWrapper.DEBUG_MODE = true;
     }
-
-    @Override
-    public void beforeProcess(E context) throws IOException {
-        internalProcessor.beforeProcess(context);
-    }
-
-    @Override
-    public ProcessorResult process(E context) throws IOException {
-        return internalProcessor.process(context);
-    }
-
-    @Override
-    public void afterProcess(E context) throws IOException {
-        internalProcessor.afterProcess(context);
-    }
-
-    @Override
-    public boolean isInterested(IOEvent ioEvent) {
-        return internalProcessor.isInterested(ioEvent);
-    }
-
-    @Override
-    public void setInterested(IOEvent ioEvent, boolean isInterested) {
-        internalProcessor.setInterested(ioEvent, isInterested);
-    }
-
 }

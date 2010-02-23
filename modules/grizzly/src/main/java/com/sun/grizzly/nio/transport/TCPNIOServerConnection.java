@@ -35,14 +35,10 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.nio.transport;
 
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.Context;
-import com.sun.grizzly.Processor;
-import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.nio.NIOConnection;
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -50,12 +46,10 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.Future;
 import java.util.logging.Level;
-import com.sun.grizzly.AbstractProcessor;
-import com.sun.grizzly.CompletionHandlerAdapter;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
-import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
 import com.sun.grizzly.nio.SelectionKeyHandler;
@@ -67,28 +61,23 @@ import java.util.logging.Logger;
  * @author oleksiys
  */
 public final class TCPNIOServerConnection extends TCPNIOConnection {
+
     private static Logger logger = Grizzly.logger(TCPNIOServerConnection.class);
-
     private FutureImpl<Connection> acceptListener;
-    
     private final RegisterAcceptedChannelCompletionHandler defaultCompletionHandler;
-
-    private final AcceptorEventProcessorSelector acceptorSelector;
-
     private final Object acceptSync = new Object();
-    
-    public TCPNIOServerConnection(TCPNIOTransport transport, 
+
+    public TCPNIOServerConnection(TCPNIOTransport transport,
             ServerSocketChannel serverSocketChannel) {
         super(transport, serverSocketChannel);
         defaultCompletionHandler =
                 new RegisterAcceptedChannelCompletionHandler();
-        acceptorSelector = new AcceptorEventProcessorSelector();
     }
 
     public void listen() throws IOException {
         final CompletionHandler registerCompletionHandler =
-                ((TCPNIOTransport) transport).registerChannelCompletionHandler;
-        
+                ((TCPNIOTransport) transport).selectorRegistrationHandler;
+
         final Future future =
                 transport.getNioChannelDistributor().registerChannelAsync(
                 channel, SelectionKey.OP_ACCEPT, this, registerCompletionHandler);
@@ -109,11 +98,6 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         return transport.isStandalone();
     }
 
-    @Override
-    public ProcessorSelector getProcessorSelector() {
-        return acceptorSelector;
-    }
-
     /**
      * Accept a {@link Connection}. Could be used only in standalone mode. See {@link Connection#configureStandalone(boolean)}.
      *
@@ -126,11 +110,11 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         }
 
         final GrizzlyFuture<Connection> future = acceptAsync();
-        
+
         if (isBlocking()) {
             try {
                 future.get();
-            } catch(Exception e) {
+            } catch (Exception e) {
             }
         }
 
@@ -144,7 +128,9 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
      * @throws java.io.IOException
      */
     protected GrizzlyFuture<Connection> acceptAsync() throws IOException {
-        if (!isOpen()) throw new IOException("Connection is closed");
+        if (!isOpen()) {
+            throw new IOException("Connection is closed");
+        }
 
         synchronized (acceptSync) {
             final FutureImpl future = FutureImpl.create();
@@ -156,7 +142,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 acceptListener = future;
                 enableIOEvent(IOEvent.SERVER_ACCEPT);
             }
-            
+
             return future;
         }
     }
@@ -175,18 +161,18 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
 
     private void registerAcceptedChannel(SocketChannel acceptedChannel,
             FutureImpl listener) throws IOException {
-        
+
         final TCPNIOTransport tcpNIOTransport = (TCPNIOTransport) transport;
         final NIOConnection connection =
                 tcpNIOTransport.obtainNIOConnection(acceptedChannel);
 
-        final CompletionHandler handler = (listener == null) ?
-            defaultCompletionHandler :
-            new RegisterAcceptedChannelCompletionHandler(listener);
+        final CompletionHandler handler = (listener == null)
+                ? defaultCompletionHandler
+                : new RegisterAcceptedChannelCompletionHandler(listener);
 
         connection.setProcessor(transport.getProcessor());
         connection.setProcessorSelector(transport.getProcessorSelector());
-        
+
         tcpNIOTransport.getNioChannelDistributor().registerChannelAsync(
                 acceptedChannel, SelectionKey.OP_READ, connection, handler);
     }
@@ -208,81 +194,47 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
     }
 
     protected void throwUnsupportReadWrite() {
-        throw new UnsupportedOperationException("TCPNIOServerConnection " +
-                "doesn't support neither read nor write operations.");
-    }
-
-    protected final class AcceptorEventProcessorSelector implements ProcessorSelector {
-        private AcceptorEventProcessor acceptorProcessor =
-                new AcceptorEventProcessor();
-
-        @Override
-        public Processor select(IOEvent ioEvent, Connection connection) {
-            if (ioEvent == IOEvent.SERVER_ACCEPT) {
-                return acceptorProcessor;
-            }
-
-            return null;
-        }
+        throw new UnsupportedOperationException("TCPNIOServerConnection "
+                + "doesn't support neither read nor write operations.");
     }
 
     /**
-     * EventProcessor, which will be notified, once OP_ACCEPT will
-     * be ready on ServerSockerChannel
+     * Method will be called by framework, when async accept will be ready
+     *
+     * @throws java.io.IOException
      */
-    protected final class AcceptorEventProcessor extends AbstractProcessor {
-        /**
-         * Method will be called by framework, when async accept will be ready
-         *
-         * @param context processing context
-         * @throws java.io.IOException
-         */
-        @Override
-        public ProcessorResult process(Context context)
-                throws IOException {
+    public void onAccept() throws IOException {
 
-            if (!isStandalone()) {
+        if (!isStandalone()) {
+            final SocketChannel acceptedChannel = doAccept();
+            if (acceptedChannel == null) {
+                return;
+            }
+
+            configureAcceptedChannel(acceptedChannel);
+            registerAcceptedChannel(acceptedChannel, acceptListener);
+        } else {
+            synchronized (acceptSync) {
+                if (acceptListener == null) {
+                    TCPNIOServerConnection.this.disableIOEvent(
+                            IOEvent.SERVER_ACCEPT);
+                    return;
+                }
+
                 final SocketChannel acceptedChannel = doAccept();
                 if (acceptedChannel == null) {
-                    return null;
+                    return;
                 }
 
                 configureAcceptedChannel(acceptedChannel);
                 registerAcceptedChannel(acceptedChannel, acceptListener);
-            } else {
-                synchronized(acceptSync) {
-                    if (acceptListener == null) {
-                        TCPNIOServerConnection.this.disableIOEvent(
-                                IOEvent.SERVER_ACCEPT);
-                        return null;
-                    }
-                    
-                    final SocketChannel acceptedChannel = doAccept();
-                    if (acceptedChannel == null) {
-                        return null;
-                    }
-                    
-                    configureAcceptedChannel(acceptedChannel);
-                    registerAcceptedChannel(acceptedChannel, acceptListener);
-                    acceptListener = null;
-                }
+                acceptListener = null;
             }
-
-            return null;
-        }
-
-        @Override
-        public boolean isInterested(IOEvent ioEvent) {
-            return true;
-        }
-
-        @Override
-        public void setInterested(IOEvent ioEvent, boolean isInterested) {
         }
     }
-        
+
     protected final class RegisterAcceptedChannelCompletionHandler
-            extends CompletionHandlerAdapter<RegisterChannelResult> {
+            extends EmptyCompletionHandler<RegisterChannelResult> {
 
         private final FutureImpl listener;
 
@@ -300,23 +252,25 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
             try {
                 final TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
 
-                nioTransport.registerChannelCompletionHandler.completed(result);
+                nioTransport.selectorRegistrationHandler.completed(result);
 
                 final SelectionKeyHandler selectionKeyHandler =
                         nioTransport.getSelectionKeyHandler();
                 final SelectionKey acceptedConnectionKey =
                         result.getSelectionKey();
-                final Connection connection =
-                        selectionKeyHandler.getConnectionForKey(acceptedConnectionKey);
+                final TCPNIOConnection connection =
+                        (TCPNIOConnection) selectionKeyHandler.
+                        getConnectionForKey(acceptedConnectionKey);
 
+                connection.resetAddresses();
                 if (listener != null) {
                     listener.result(connection);
                 }
 
                 transport.fireIOEvent(IOEvent.ACCEPTED, connection);
             } catch (Exception e) {
-                logger.log(Level.FINE, "Exception happened, when " +
-                        "trying to accept the connection", e);
+                logger.log(Level.FINE, "Exception happened, when "
+                        + "trying to accept the connection", e);
             }
         }
     }

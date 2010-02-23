@@ -44,7 +44,7 @@ import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.TransformerStreamWriter;
 import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.utils.CompletionHandlerWrapper;
+import com.sun.grizzly.utils.CompletionHandlerResultAdapter;
 import com.sun.grizzly.utils.conditions.Condition;
 import java.io.IOException;
 import java.util.concurrent.Future;
@@ -221,7 +221,7 @@ public class SSLStreamWriter extends TransformerStreamWriter {
     }
 
     protected final class HandshakeCompletionHandler extends
-            CompletionHandlerWrapper<SSLEngine, Integer> {
+            CompletionHandlerResultAdapter<SSLEngine, Integer> {
 
         public HandshakeCompletionHandler(FutureImpl<SSLEngine> future,
                 CompletionHandler<SSLEngine> completionHandler) {

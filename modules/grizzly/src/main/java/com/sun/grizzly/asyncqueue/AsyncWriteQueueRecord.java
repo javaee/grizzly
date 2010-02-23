@@ -38,23 +38,23 @@
 package com.sun.grizzly.asyncqueue;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Cacheable;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.Transformer;
 import java.util.concurrent.Future;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.WriteResult;
+import com.sun.grizzly.utils.DebugPoint;
 
 /**
  * {@link AsyncQueue} write element unit
  * 
  * @author Alexey Stashok
  */
-public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult>
-        implements Cacheable {
+public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     private static final ThreadCache.CachedTypeIndex<AsyncWriteQueueRecord> CACHE_IDX =
-            ThreadCache.obtainIndex(AsyncWriteQueueRecord.class);
+            ThreadCache.obtainIndex(AsyncWriteQueueRecord.class, 2);
 
     public static final AsyncWriteQueueRecord create(Object message,
             Future future,
@@ -68,9 +68,11 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult>
                 ThreadCache.takeFromCache(CACHE_IDX);
         
         if (asyncWriteQueueRecord != null) {
+            asyncWriteQueueRecord.isRecycled = false;
             asyncWriteQueueRecord.set(message, future, currentResult,
                     completionHandler, transformer, interceptor, dstAddress,
                     outputBuffer, isCloned);
+            
             return asyncWriteQueueRecord;
         }
 
@@ -112,22 +114,27 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult>
     }
 
     public final boolean isCloned() {
+        checkRecycled();
         return isCloned;
     }
 
     public final void setCloned(boolean isCloned) {
+        checkRecycled();
         this.isCloned = isCloned;
     }
 
     public final Object getDstAddress() {
+        checkRecycled();
         return dstAddress;
     }
 
     public Buffer getOutputBuffer() {
+        checkRecycled();
         return outputBuffer;
     }
 
     public void setOutputBuffer(Buffer outputBuffer) {
+        checkRecycled();
         this.outputBuffer = outputBuffer;
     }
 
@@ -137,7 +144,14 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult>
 
     @Override
     public void recycle() {
+        checkRecycled();
         reset();
+        isRecycled = true;
+        if (Grizzly.isTrackingThreadCache()) {
+            recycleTrack = new DebugPoint(new Exception(),
+                    Thread.currentThread().getName());
+        }
+
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

@@ -42,11 +42,9 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import junit.framework.TestCase;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.nio.transport.UDPNIOConnection;
-import com.sun.grizzly.nio.transport.UDPNIOStreamReader;
 import com.sun.grizzly.nio.transport.UDPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
@@ -57,7 +55,7 @@ import com.sun.grizzly.utils.EchoFilter;
  *
  * @author Alexey Stashok
  */
-public class UDPNIOTransportTest extends TestCase {
+public class UDPNIOTransportTest extends GrizzlyTestCase {
     public static final int PORT = 7777;
 
     @Override
@@ -117,8 +115,8 @@ public class UDPNIOTransportTest extends TestCase {
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-            connection.setProcessor(null);
-            writer = transport.getStreamWriter(connection);
+            connection.configureStandalone(true);
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
             byte[] sendingBytes = "Hello".getBytes();
             writer.writeByteArray(sendingBytes);
             Future<Integer> writeFuture = writer.flush();
@@ -156,10 +154,10 @@ public class UDPNIOTransportTest extends TestCase {
             assertTrue(connection != null);
 
             connection.configureBlocking(true);
-            connection.setProcessor(null);
+            connection.configureStandalone(true);
 
             byte[] originalMessage = "Hello".getBytes();
-            writer = transport.getStreamWriter(connection);
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
             writer.writeByteArray(originalMessage);
             Future<Integer> writeFuture = writer.flush();
 
@@ -167,7 +165,7 @@ public class UDPNIOTransportTest extends TestCase {
             assertEquals(originalMessage.length, (int) writeFuture.get());
 
 
-            reader = transport.getStreamReader(connection);
+            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
             Future readFuture = reader.notifyAvailable(originalMessage.length);
             assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
 
@@ -201,10 +199,10 @@ public class UDPNIOTransportTest extends TestCase {
             connection = (UDPNIOConnection) future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.setProcessor(null);
+            connection.configureStandalone(true);
 
-            reader = transport.getStreamReader(connection);
-            writer = transport.getStreamWriter(connection);
+            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
 
             for (int i = 0; i < 100; i++) {
                 byte[] originalMessage = new String("Hello world #" + i).getBytes();
@@ -247,10 +245,10 @@ public class UDPNIOTransportTest extends TestCase {
             connection = (UDPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.setProcessor(null);
+            connection.configureStandalone(true);
 
             byte[] originalMessage = "Hello".getBytes();
-            writer = transport.getStreamWriter(connection);
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
             writer.writeByteArray(originalMessage);
             Future<Integer> writeFuture = writer.flush();
 
@@ -258,7 +256,7 @@ public class UDPNIOTransportTest extends TestCase {
             assertEquals(originalMessage.length, (int) writtenBytes);
 
 
-            reader = transport.getStreamReader(connection);
+            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
             Future readFuture = reader.notifyAvailable(originalMessage.length);
             assertTrue("Read timeout", readFuture.get(10, TimeUnit.SECONDS) != null);
 
@@ -280,7 +278,7 @@ public class UDPNIOTransportTest extends TestCase {
         final int packetSize = 32;
 
         Connection connection = null;
-        UDPNIOStreamReader reader = null;
+        StreamReader reader = null;
         StreamWriter writer = null;
         UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
         transport.getFilterChain().add(new TransportFilter());
@@ -298,9 +296,9 @@ public class UDPNIOTransportTest extends TestCase {
             connection = (UDPNIOConnection) connectFuture.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.setProcessor(null);
-            reader = (UDPNIOStreamReader) transport.getStreamReader(connection);
-            writer = transport.getStreamWriter(connection);
+            connection.configureStandalone(true);
+            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
 
             for (int i = 0; i < packetsNumber; i++) {
                 final byte[] message = new byte[packetSize];

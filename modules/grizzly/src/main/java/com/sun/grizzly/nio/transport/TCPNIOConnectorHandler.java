@@ -39,9 +39,6 @@
 package com.sun.grizzly.nio.transport;
 
 import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.Context;
-import com.sun.grizzly.ProcessorResult;
-import com.sun.grizzly.nio.NIOConnection;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -52,7 +49,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import com.sun.grizzly.AbstractProcessor;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.AbstractSocketConnectorHandler;
 import com.sun.grizzly.CompletionHandler;
@@ -60,6 +56,7 @@ import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
+import java.util.concurrent.Callable;
 
 /**
  * TCP NIO transport client side ConnectorHandler implementation
@@ -72,6 +69,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     
     protected boolean isReuseAddress;
     protected int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
+
+//    private volatile FutureImpl<Connection> connectFuture;
+//    private volatile CompletionHandler<Connection> connectCompletionHandler;
 
     public TCPNIOConnectorHandler(TCPNIOTransport transport) {
         super(transport);
@@ -120,15 +120,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
         
-        TCPNIOConnection newConnection = (TCPNIOConnection)
+        final TCPNIOConnection newConnection = (TCPNIOConnection)
                 nioTransport.obtainNIOConnection(socketChannel);
         
-        FutureImpl connectFuture = FutureImpl.create();
-        
-        ConnectorEventProcessor finishConnectProcessor =
-                new ConnectorEventProcessor(connectFuture, completionHandler);
-        newConnection.setProcessor(finishConnectProcessor);
-
         try {
             boolean isConnected = socketChannel.connect(remoteAddress);
 
@@ -145,17 +139,38 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 registerChannelFuture.recycle();
 
                 // make sure completion handler is called
-                nioTransport.registerChannelCompletionHandler.completed(result);
-
+                nioTransport.selectorRegistrationHandler.completed(result);
+                newConnection.resetAddresses();
+                
                 transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
+
+                if (completionHandler != null) {
+                    completionHandler.completed(newConnection);
+                }
+                
+                return ReadyFutureImpl.<Connection>create(newConnection);
             } else {
-                Future registerChannelFuture =
+                final FutureImpl connectFuture = FutureImpl.create();
+                newConnection.setConnectHandler(
+                        new Callable<Connection>() {
+                    
+                    @Override
+                    public Connection call() throws Exception {
+                        onConnectedAsync(newConnection , connectFuture,
+                                completionHandler);
+                        return null;
+                    }
+                });
+                
+                final Future registerChannelFuture =
                         nioTransport.getNioChannelDistributor().registerChannelAsync(
                         socketChannel, SelectionKey.OP_CONNECT, newConnection,
-                        nioTransport.registerChannelCompletionHandler);
+                        nioTransport.selectorRegistrationHandler);
 
                 // Wait until the SelectableChannel will be registered on the Selector
                 waitNIOFuture(registerChannelFuture);
+
+                return connectFuture;
             }
         } catch (Exception e) {
             if (completionHandler != null) {
@@ -164,10 +179,52 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             
             return ReadyFutureImpl.create(e);
         }
-        
-        return connectFuture;
     }
 
+    protected static void onConnectedAsync(TCPNIOConnection connection,
+            FutureImpl<Connection> connectFuture,
+            CompletionHandler<Connection> completionHandler) throws IOException {
+        
+        try {
+            final TCPNIOTransport tcpTransport =
+                    (TCPNIOTransport) connection.getTransport();
+
+            final SocketChannel channel = (SocketChannel) connection.getChannel();
+            if (!channel.isConnected()) {
+                channel.finishConnect();
+            }
+
+            connection.resetAddresses();
+            
+            // Unregister OP_CONNECT interest
+            tcpTransport.getSelectorHandler().unregisterKey(
+                    connection.getSelectorRunner(),
+                    connection.getSelectionKey(),
+                    SelectionKey.OP_CONNECT);
+
+            tcpTransport.configureChannel(channel);
+
+            tcpTransport.getSelectorHandler().registerKey(
+                    connection.getSelectorRunner(),
+                    connection.getSelectionKey(),
+                    SelectionKey.OP_READ);
+
+            if (completionHandler != null) {
+                completionHandler.completed(connection);
+            }
+
+            connectFuture.result(connection);
+        } catch (Exception e) {
+            if (completionHandler != null) {
+                completionHandler.failed(e);
+            }
+
+            connectFuture.failure(e);
+
+            throw new IOException("Connect exception", e);
+        }
+    }
+    
     public boolean isReuseAddress() {
         return isReuseAddress;
     }
@@ -202,83 +259,6 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
             }
         } catch (CancellationException e) {
             throw new IOException("Connection was cancelled!");
-        }
-    }
-
-    /**
-     * Processor, which will be notified, once OP_CONNECT will be ready
-     */
-    protected class ConnectorEventProcessor extends AbstractProcessor {
-        private final FutureImpl<Connection> connectFuture;
-        private final CompletionHandler<Connection> completionHandler;
-
-        public ConnectorEventProcessor(FutureImpl<Connection> future,
-                CompletionHandler completionHandler) {
-            this.connectFuture = future;
-            this.completionHandler = completionHandler;
-        }
-        
-        /**
-         * Method will be called by framework, when async connect will be completed
-         * 
-         * @param context processing context
-         * @throws java.io.IOException
-         */
-        @Override
-        public ProcessorResult process(Context context)
-                throws IOException {
-            try {
-                final NIOConnection connection = (NIOConnection)
-                        context.getConnection();
-                
-                final TCPNIOTransport transport =
-                        (TCPNIOTransport) connection.getTransport();
-
-                final SocketChannel channel = (SocketChannel) connection.getChannel();
-                if (!channel.isConnected()) {
-                    channel.finishConnect();
-                }
-
-                // Unregister OP_CONNECT interest
-                transport.getSelectorHandler().unregisterKey(
-                        connection.getSelectorRunner(),
-                        connection.getSelectionKey(),
-                        SelectionKey.OP_CONNECT);
-
-                transport.configureChannel(channel);
-                connection.setProcessor(defaultProcessor);
-                connection.setProcessorSelector(defaultProcessorSelector);
-
-                // Execute CONNECTED event one more time for default {@link Processor}
-                transport.fireIOEvent(IOEvent.CONNECTED, connection);
-                
-                transport.getSelectorHandler().registerKey(
-                        connection.getSelectorRunner(),
-                        connection.getSelectionKey(),
-                        SelectionKey.OP_READ);
-
-                if (completionHandler != null) {
-                    completionHandler.completed(connection);
-                }
-
-                connectFuture.result(connection);
-            } catch (Exception e) {
-                if (completionHandler != null) {
-                    completionHandler.failed(e);
-                }
-                
-                connectFuture.failure(e);
-            }
-            return null;
-        }
-
-        @Override
-        public boolean isInterested(IOEvent ioEvent) {
-            return true;
-        }
-
-        @Override
-        public void setInterested(IOEvent ioEvent, boolean isInterested) {
         }
     }
 }

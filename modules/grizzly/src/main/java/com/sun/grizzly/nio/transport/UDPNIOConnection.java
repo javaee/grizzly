@@ -38,10 +38,8 @@
 
 package com.sun.grizzly.nio.transport;
 
-import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.ReadResult;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.IOEvent;
@@ -55,9 +53,11 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
-import com.sun.grizzly.Interceptor;
+import com.sun.grizzly.Processor;
+import com.sun.grizzly.impl.FutureImpl;
 
 /**
  * {@link com.sun.grizzly.Connection} implementation
@@ -173,41 +173,6 @@ public class UDPNIOConnection extends AbstractNIOConnection {
             }
         } catch (IOException e) {
             logger.log(Level.WARNING, "Error setting write buffer size", e);
-        }
-    }
-
-    @Override
-    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
-            final M message,
-            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
-            final Transformer<Buffer, M> transformer,
-            final Interceptor<ReadResult> interceptor) throws IOException {
-        
-        final UDPNIOTransport udpTransport = (UDPNIOTransport) transport;
-
-        if (isBlocking) {
-            return udpTransport.getTemporarySelectorIO().getReader().read(this,
-                    message, completionHandler, transformer, interceptor);
-        } else {
-            return udpTransport.getAsyncQueueIO().getReader().read(this,
-                    message, completionHandler, transformer, interceptor);
-        }
-    }
-
-    @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
-            final SocketAddress dstAddress,
-            final M message,
-            final CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            final Transformer<M, Buffer> transformer) throws IOException {
-        final UDPNIOTransport udpTransport = (UDPNIOTransport) transport;
-        
-        if (isBlocking) {
-            return udpTransport.getTemporarySelectorIO().getWriter().write(this,
-                    dstAddress, message, completionHandler, transformer);
-        } else {
-            return udpTransport.getAsyncQueueIO().getWriter().write(this,
-                    dstAddress, message, completionHandler, transformer);
         }
     }
 }

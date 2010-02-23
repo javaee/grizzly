@@ -39,12 +39,13 @@
 package com.sun.grizzly.asyncqueue;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Cacheable;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.Transformer;
+import com.sun.grizzly.utils.DebugPoint;
 import java.util.concurrent.Future;
 
 /**
@@ -52,10 +53,9 @@ import java.util.concurrent.Future;
  * 
  * @author Alexey Stashok
  */
-public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult>
-        implements Cacheable {
+public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     private static final ThreadCache.CachedTypeIndex<AsyncReadQueueRecord> CACHE_IDX =
-            ThreadCache.obtainIndex(AsyncReadQueueRecord.class);
+            ThreadCache.obtainIndex(AsyncReadQueueRecord.class, 2);
     
     public static final AsyncReadQueueRecord create(Object message,
             Future future,
@@ -67,6 +67,7 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult>
                 ThreadCache.takeFromCache(CACHE_IDX);
         
         if (asyncReadQueueRecord != null) {
+            asyncReadQueueRecord.isRecycled = false;
             asyncReadQueueRecord.set(message, future, currentResult,
                     completionHandler, transformer, interceptor);
             return asyncReadQueueRecord;
@@ -87,10 +88,12 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult>
     }
 
     public Buffer getRemainderBuffer() {
+        checkRecycled();
         return remainderBuffer;
     }
 
     public void setRemainderBuffer(Buffer remainderBuffer) {
+        checkRecycled();
         this.remainderBuffer = remainderBuffer;
     }
 
@@ -101,7 +104,15 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult>
 
     @Override
     public void recycle() {
+        checkRecycled();
+        
         reset();
+        isRecycled = true;
+        if (Grizzly.isTrackingThreadCache()) {
+            recycleTrack = new DebugPoint(new Exception(),
+                    Thread.currentThread().getName());
+        }
+
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

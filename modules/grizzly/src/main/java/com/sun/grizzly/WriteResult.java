@@ -45,12 +45,15 @@ package com.sun.grizzly;
  */
 public final class WriteResult<K, L> implements Result, Cacheable {
     private static final ThreadCache.CachedTypeIndex<WriteResult> CACHE_IDX =
-            ThreadCache.obtainIndex(WriteResult.class);
+            ThreadCache.obtainIndex(WriteResult.class, 4);
+
+    private boolean isRecycled = false;
 
     public static final WriteResult create(Connection connection) {
         final WriteResult writeResult = ThreadCache.takeFromCache(CACHE_IDX);
         if (writeResult != null) {
             writeResult.connection = connection;
+            writeResult.isRecycled = false;
             return writeResult;
         }
 
@@ -65,6 +68,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
             writeResult.message = message;
             writeResult.dstAddress = dstAddress;
             writeResult.writtenSize = writeSize;
+            writeResult.isRecycled = false;
 
             return writeResult;
         }
@@ -113,6 +117,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      */
     @Override
     public final Connection getConnection() {
+        checkRecycled();
         return connection;
     }
 
@@ -122,6 +127,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      * @return the message, which was read.
      */
     public final K getMessage() {
+        checkRecycled();
         return message;
     }
 
@@ -131,6 +137,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      * @param message the message, which was read.
      */
     public final void setMessage(K message) {
+        checkRecycled();
         this.message = message;
     }
 
@@ -140,6 +147,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      * @return the destination address, the message was written to.
      */
     public final L getDstAddress() {
+        checkRecycled();
         return dstAddress;
     }
 
@@ -149,6 +157,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      * @param dstAddress the destination address, the message was written to.
      */
     public final void setDstAddress(L dstAddress) {
+        checkRecycled();
         this.dstAddress = dstAddress;
     }
 
@@ -158,6 +167,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      * @return the number of bytes, which were written.
      */
     public final int getWrittenSize() {
+        checkRecycled();
         return writtenSize;
     }
 
@@ -167,7 +177,13 @@ public final class WriteResult<K, L> implements Result, Cacheable {
      * @param writeSize the number of bytes, which were written.
      */
     public final void setWrittenSize(int writeSize) {
+        checkRecycled();
         this.writtenSize = writeSize;
+    }
+
+    private void checkRecycled() {
+        if (Grizzly.isTrackingThreadCache() && isRecycled)
+            throw new IllegalStateException("ReadResult has been recycled!");
     }
 
     private void reset() {
@@ -180,6 +196,7 @@ public final class WriteResult<K, L> implements Result, Cacheable {
     @Override
     public void recycle() {
         reset();
+        isRecycled = true;
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

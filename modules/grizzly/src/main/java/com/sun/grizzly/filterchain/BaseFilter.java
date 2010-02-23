@@ -38,8 +38,12 @@
 
 package com.sun.grizzly.filterchain;
 
+import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Connection;
 import java.io.IOException;
 import com.sun.grizzly.Context;
+import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.impl.FutureImpl;
 
 /**
  * Provides empty implementation for {@link Filter} processing methods.
@@ -48,13 +52,15 @@ import com.sun.grizzly.Context;
  * 
  * @author Alexey Stashok
  */
-public class FilterAdapter implements Filter {
+public class BaseFilter implements Filter {
 
-    private int index;
+    private volatile int index;
+    private volatile FilterChain filterChain;
 
     @Override
     public void onAdded(FilterChain filterChain) {
         index = filterChain.indexOf(this);
+        this.filterChain = filterChain;
     }
 
     @Override
@@ -89,25 +95,6 @@ public class FilterAdapter implements Filter {
     }
 
     /**
-     * Execute any cleanup activities, such as releasing
-     * resources that were acquired during the execution of
-     * {@link Filter#handleRead(com.sun.grizzly.FilterChainContext)} method of
-     * this {@link Filter} instance.
-     * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException}
-     */
-    @Override
-    public NextAction postRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
-    }
-
-    /**
      * Execute a unit of processing work to be performed, when channel will 
      * become available for writing. 
      * This {@link Filter} may either complete the required processing and 
@@ -124,25 +111,6 @@ public class FilterAdapter implements Filter {
      */
     @Override
     public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
-    }
-
-    /**
-     * Execute any cleanup activities, such as releasing 
-     * resources that were acquired during the execution of
-     * {@link Filter#handleWrite(com.sun.grizzly.FilterChainContext)} method of
-     * this {@link Filter} instance.
-     * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException}
-     */
-    @Override
-    public NextAction postWrite(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
     }
@@ -169,25 +137,6 @@ public class FilterAdapter implements Filter {
     }
 
     /**
-     * Execute any cleanup activities, such as releasing
-     * resources that were acquired during the execution of
-     * {@link Filter#handleConnect(com.sun.grizzly.FilterChainContext)} method of
-     * this {@link Filter} instance.
-     * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException}
-     */
-    @Override
-    public NextAction postConnect(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
-    }
-
-    /**
      * Execute a unit of processing work to be performed, when server channel
      * has accepted the client connection.
      * This {@link Filter} may either complete the required processing and 
@@ -204,25 +153,6 @@ public class FilterAdapter implements Filter {
      */
     @Override
     public NextAction handleAccept(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
-    }
-
-    /**
-     * Execute any cleanup activities, such as releasing
-     * resources that were acquired during the execution of
-     * {@link Filter#handleAccept(com.sun.grizzly.FilterChainContext)} method of
-     * this {@link Filter} instance.
-     * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException}
-     */
-    @Override
-    public NextAction postAccept(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         return nextAction;
     }
@@ -249,25 +179,6 @@ public class FilterAdapter implements Filter {
     }
 
     /**
-     * Execute any cleanup activities, such as releasing
-     * resources that were acquired during the execution of
-     * {@link Filter#handleClose(com.sun.grizzly.FilterChainContext)} method of
-     * this {@link Filter} instance.
-     * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
-     * @return {@link NextAction} instruction for {@link FilterChain}, how it
-     *         should continue the execution
-     * @throws {@link java.io.IOException}
-     */
-    @Override
-    public NextAction postClose(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
-    }
-
-    /**
      * Notification about exception, occured on the {@link FilterChain}
      *
      * @param ctx event processing {@link FilterChainContext}
@@ -287,16 +198,8 @@ public class FilterAdapter implements Filter {
      * @return the {@link FilterChain}, which is currently 
      *         executing this {@link Filter}
      */
-    public FilterChain getFilterChain(Context ctx) {
-        return (FilterChain) ctx.getProcessor();
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    public boolean isIndexable() {
-        return true;
+    public FilterChain getFilterChain() {
+        return filterChain;
     }
 
     /**
@@ -304,5 +207,17 @@ public class FilterAdapter implements Filter {
      */
     public int getIndex() {
         return index;
+    }
+
+    public FilterChainContext createContext(final Connection connection,
+            IOEvent ioEvent, FutureImpl future,
+            CompletionHandler completionHandler) {
+        
+        final FilterChainContext ctx = (FilterChainContext) Context.create(
+                filterChain, connection, ioEvent, future, completionHandler);
+        ctx.setFilterIdx(index);
+        ctx.setStartIdx(index);
+
+        return ctx;
     }
 }

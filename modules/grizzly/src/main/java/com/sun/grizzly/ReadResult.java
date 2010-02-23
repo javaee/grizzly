@@ -45,12 +45,15 @@ package com.sun.grizzly;
  */
 public class ReadResult<K, L> implements Result, Cacheable {
     private static final ThreadCache.CachedTypeIndex<ReadResult> CACHE_IDX =
-            ThreadCache.obtainIndex(ReadResult.class);
+            ThreadCache.obtainIndex(ReadResult.class, 4);
+
+    private boolean isRecycled = false;
 
     public static final ReadResult create(Connection connection) {
         final ReadResult readResult = ThreadCache.takeFromCache(CACHE_IDX);
         if (readResult != null) {
             readResult.connection = connection;
+            readResult.isRecycled = false;
             return readResult;
         }
 
@@ -65,7 +68,8 @@ public class ReadResult<K, L> implements Result, Cacheable {
             readResult.message = message;
             readResult.srcAddress = srcAddress;
             readResult.readSize = readSize;
-
+            readResult.isRecycled = false;
+            
             return readResult;
         }
 
@@ -113,6 +117,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      */
     @Override
     public final Connection getConnection() {
+        checkRecycled();
         return connection;
     }
 
@@ -122,6 +127,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      * @return the message, which was read.
      */
     public final K getMessage() {
+        checkRecycled();
         return message;
     }
 
@@ -131,6 +137,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      * @param message the message, which was read.
      */
     public final void setMessage(K message) {
+        checkRecycled();
         this.message = message;
     }
 
@@ -140,6 +147,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      * @return the source address, the message was read from.
      */
     public final L getSrcAddress() {
+        checkRecycled();
         return srcAddress;
     }
 
@@ -149,6 +157,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      * @param srcAddress the source address, the message was read from.
      */
     public final void setSrcAddress(L srcAddress) {
+        checkRecycled();
         this.srcAddress = srcAddress;
     }
 
@@ -158,6 +167,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      * @return the number of bytes, which were read.
      */
     public final int getReadSize() {
+        checkRecycled();
         return readSize;
     }
 
@@ -167,6 +177,7 @@ public class ReadResult<K, L> implements Result, Cacheable {
      * @param readSize the number of bytes, which were read.
      */
     public final void setReadSize(int readSize) {
+        checkRecycled();
         this.readSize = readSize;
     }
 
@@ -177,9 +188,15 @@ public class ReadResult<K, L> implements Result, Cacheable {
         readSize = 0;
     }
 
+    private void checkRecycled() {
+        if (Grizzly.isTrackingThreadCache() && isRecycled)
+            throw new IllegalStateException("ReadResult has been recycled!");
+    }
+    
     @Override
     public void recycle() {
         reset();
+        isRecycled = true;
         ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

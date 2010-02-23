@@ -211,6 +211,20 @@ public abstract class AbstractTransport implements Transport {
      * {@inheritDoc}
      */
     @Override
+    public Processor obtainProcessor(IOEvent ioEvent, Connection connection) {
+        if (processor != null && processor.isInterested(ioEvent)) {
+            return processor;
+        } else if (processorSelector != null) {
+            return processorSelector.select(ioEvent, connection);
+        }
+
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Processor getProcessor() {
         return processor;
     }

@@ -48,7 +48,6 @@ import com.sun.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.Context;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
@@ -60,8 +59,6 @@ import com.sun.grizzly.filterchain.FilterChainEnabledTransport;
 import com.sun.grizzly.filterchain.FilterChainFactory;
 import com.sun.grizzly.filterchain.PatternFilterChainFactory;
 import com.sun.grizzly.filterchain.SingletonFilterChainFactory;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import java.io.IOException;
@@ -79,17 +76,16 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.CompletionHandlerAdapter;
-import com.sun.grizzly.PostProcessor;
+import com.sun.grizzly.EmptyCompletionHandler;
+import com.sun.grizzly.Context;
 import com.sun.grizzly.ProcessorResult;
-import com.sun.grizzly.ProcessorResult.Status;
-import com.sun.grizzly.ProcessorRunnable;
-import com.sun.grizzly.ProcessorSelector;
+import com.sun.grizzly.Reader;
 import com.sun.grizzly.SocketBinder;
 import com.sun.grizzly.SocketConnectorHandler;
 import com.sun.grizzly.StandaloneProcessor;
 import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
+import com.sun.grizzly.Writer;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.strategies.WorkerThreadStrategy;
@@ -164,8 +160,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     private int maxReadAttempts = 3;
     
     private Filter defaultTransportFilter;
-    protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
-    private final EnableInterestPostProcessor enablingInterestPostProcessor;
+    protected final RegisterChannelCompletionHandler selectorRegistrationHandler;
     
     public TCPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -177,8 +172,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         readBufferSize = DEFAULT_READ_BUFFER_SIZE;
         writeBufferSize = DEFAULT_WRITE_BUFFER_SIZE;
 
-        registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
-        enablingInterestPostProcessor = new EnableInterestPostProcessor();
+        selectorRegistrationHandler = new RegisterChannelCompletionHandler();
 
         asyncQueueIO = new AsyncQueueIO(new TCPNIOAsyncQueueReader(this),
                 new TCPNIOAsyncQueueWriter(this));
@@ -657,116 +651,119 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @Override
-    public IOEventReg fireIOEvent(final IOEvent ioEvent, final Connection connection)
-            throws IOException {
+    public IOEventReg fireIOEvent(final IOEvent ioEvent,
+            final Connection connection) throws IOException {
 
         try {
-            // First of all try operations, which could run in standalone mode
-            if (ioEvent == IOEvent.READ) {
-                return processReadIoEvent(ioEvent, (TCPNIOConnection) connection);
-            } else if (ioEvent == IOEvent.WRITE) {
-                return processWriteIoEvent(ioEvent, (TCPNIOConnection) connection);
-            } else {
-                final Processor conProcessor =
-                        getConnectionProcessor(connection, ioEvent);
+            if (ioEvent == IOEvent.SERVER_ACCEPT) {
+                ((TCPNIOServerConnection) connection).onAccept();
+                return IOEventReg.REGISTER;
+            } else if (ioEvent == IOEvent.CONNECTED) {
+                ((TCPNIOConnection) connection).onConnect();
+            }
+            
+            final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-                if (conProcessor != null) {
-                    if (executeProcessor(ioEvent, connection, conProcessor, null)) {
-                        return IOEventReg.REGISTER;
-                    } else {
-                        return IOEventReg.LEAVE;
-                    }
+            if (conProcessor != null) {
+                if (executeProcessor(connection, ioEvent, conProcessor)) {
+                    return IOEventReg.REGISTER;
                 } else {
                     return IOEventReg.DEREGISTER;
                 }
+            } else {
+                return IOEventReg.DEREGISTER;
             }
         } catch (IOException e) {
-            logger.log(Level.FINE, "IOException occurred on fireIOEvent()." +
-                    "connection=" + connection + " event=" + ioEvent);
+            logger.log(Level.FINE, "IOException occurred on fireIOEvent()."
+                    + "connection=" + connection + " event=" + ioEvent);
             throw e;
         } catch (Exception e) {
-            String text = new StringBuilder(256).
-                    append("Unexpected exception occurred fireIOEvent().").
+            String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
                     append("connection=").append(connection).
                     append(" event=").append(ioEvent).toString();
 
             logger.log(Level.WARNING, text, e);
             throw new IOException(e.getClass() + ": " + text);
         }
-
     }
 
-    protected boolean executeProcessor(IOEvent ioEvent, Connection connection,
-            Processor processor, PostProcessor postProcessor)
-            throws IOException {
-
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.log(Level.FINEST, "executeProcessor connection (" + 
-                    connection + "). IOEvent=" + ioEvent +
-                    " processor=" + processor + " postProcessor=" + postProcessor);
-        }
-
-        final ProcessorRunnable processorRunnable =
-                ProcessorRunnable.create(ioEvent, connection, processor,
-                postProcessor);
-
-        return processorRunnable.execute();
-    }
-
-    private IOEventReg processReadIoEvent(IOEvent ioEvent,
-            TCPNIOConnection connection)
-            throws IOException {
-
-        TCPNIOAsyncQueueReader asyncQueueReader =
-                (TCPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
-
-        if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
-            return executeDefaultProcessor(ioEvent, connection);
-        } else {
-            executeProcessor(ioEvent, connection, asyncQueueReader, null);
-            return IOEventReg.LEAVE;
-        }
-    }
-
-    private IOEventReg processWriteIoEvent(IOEvent ioEvent,
-            TCPNIOConnection connection) throws IOException {
-        AsyncQueueWriter asyncQueueWriter = getAsyncQueueIO().getWriter();
+    @Override
+    public IOEventReg fireIOEvent(Context context) throws IOException {
+        final IOEvent ioEvent = context.getIoEvent();
+        final Connection connection = context.getConnection();
         
-        if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
-            return executeDefaultProcessor(ioEvent, connection);
-        } else {
-            executeProcessor(ioEvent, connection, asyncQueueWriter, null);
-            return IOEventReg.LEAVE;
-        }
-    }
-
-
-    private IOEventReg executeDefaultProcessor(IOEvent ioEvent,
-            TCPNIOConnection connection) throws IOException {
-        
-        final Processor conProcessor = getConnectionProcessor(connection, ioEvent);
-        if (conProcessor != null) {
-            if (executeProcessor(ioEvent, connection, conProcessor, null)) {
+        try {
+            if (ioEvent == IOEvent.SERVER_ACCEPT) {
+                ((TCPNIOServerConnection) connection).onAccept();
                 return IOEventReg.REGISTER;
+            } else if (ioEvent == IOEvent.CONNECTED) {
+                ((TCPNIOConnection) connection).onConnect();
             }
 
-            return IOEventReg.LEAVE;
-        }
+            if (executeProcessor(context)) {
+                return IOEventReg.REGISTER;
+            } else {
+                return IOEventReg.DEREGISTER;
+            }
+        } catch (IOException e) {
+            logger.log(Level.FINE, "IOException occurred on fireIOEvent()."
+                    + "connection=" + connection + " event=" + ioEvent);
+            throw e;
+        } catch (Exception e) {
+            String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
+                    append("connection=").append(connection).
+                    append(" event=").append(ioEvent).toString();
 
-        return IOEventReg.DEREGISTER;
+            logger.log(Level.WARNING, text, e);
+            throw new IOException(e.getClass() + ": " + text);
+        }
     }
 
-    final Processor getConnectionProcessor(Connection connection, IOEvent ioEvent) {
-        final Processor conProcessor = connection.getProcessor();
-        final ProcessorSelector conProcessorSelector =
-                connection.getProcessorSelector();
 
-        if ((conProcessor == null || !conProcessor.isInterested(ioEvent)) &&
-                conProcessorSelector != null) {
-            return conProcessorSelector.select(ioEvent, connection);
+    protected boolean executeProcessor(Connection connection,
+            IOEvent ioEvent, Processor processor) throws IOException {
+
+        final Context context = Context.create(processor, connection, ioEvent,
+                null, null);
+        return executeProcessor(context);
+    }
+
+    protected boolean executeProcessor(Context context) throws IOException {
+
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.log(Level.FINEST, "executeProcessor connection (" +
+                    context.getConnection() +
+                    "). IOEvent=" + context.getIoEvent() +
+                    " processor=" + context.getProcessor());
         }
 
-        return conProcessor;
+        final ProcessorResult result = context.getProcessor().process(context);
+        final ProcessorResult.Status status = result.getStatus();
+
+        if (status != ProcessorResult.Status.TERMINATE) {
+             context.recycle();
+             return status == ProcessorResult.Status.COMPLETED;
+        }
+
+        return false;
+    }
+    
+    @Override
+    public Reader getReader(Connection connection) {
+        if (connection.isBlocking()) {
+            return getTemporarySelectorIO().getReader();
+        } else {
+            return getAsyncQueueIO().getReader();
+        }
+    }
+
+    @Override
+    public Writer getWriter(Connection connection) {
+        if (connection.isBlocking()) {
+            return getTemporarySelectorIO().getWriter();
+        } else {
+            return getAsyncQueueIO().getWriter();
+        }
     }
 
     public Buffer read(final Connection connection, Buffer buffer)
@@ -942,16 +939,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    @Override
-    public StreamReader getStreamReader(Connection connection) {
-        return new TCPNIOStreamReader((TCPNIOConnection) connection);
-    }
-
-    @Override
-    public StreamWriter getStreamWriter(Connection connection) {
-        return new TCPNIOStreamWriter((TCPNIOConnection) connection);
-    }
-
     private void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
         int index = 0;
         while(processed > 0) {
@@ -961,20 +948,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    public class EnableInterestPostProcessor implements PostProcessor {
-
-        @Override
-        public void process(ProcessorResult result,
-                Context context) throws IOException {
-            if (result == null || result.getStatus() == Status.OK) {
-                IOEvent ioEvent = context.getIoEvent();
-                ((NIOConnection) context.getConnection()).enableIOEvent(ioEvent);
-            }
-        }
-    }
-    
     protected class RegisterChannelCompletionHandler
-            extends CompletionHandlerAdapter<RegisterChannelResult> {
+            extends EmptyCompletionHandler<RegisterChannelResult> {
 
         @Override
         public void completed(RegisterChannelResult result) {
@@ -989,7 +964,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                     SelectorRunner selectorRunner = result.getSelectorRunner();
                     connection.setSelectionKey(selectionKey);
                     connection.setSelectorRunner(selectorRunner);
-                    connection.resetAddresses();
                 }
             } catch (Exception e) {
                 logger.log(Level.FINE, "Exception happened, when " +

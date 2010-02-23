@@ -44,28 +44,69 @@ package com.sun.grizzly;
  * @author Alexey Stashok
  */
 public class ProcessorResult {
+    private static final ProcessorResult COMPLETED_RESULT = new ProcessorResult(Status.COMPLETED);
+    private static final ProcessorResult COMPLETED_LEAVE_RESULT = new ProcessorResult(Status.COMPLETED_LEAVE);
+    private static final ProcessorResult ERROR_RESULT = new ProcessorResult(Status.ERROR);
+    private static final ProcessorResult TERMINATE_RESULT = new ProcessorResult(Status.TERMINATE);
+
+    private static final ThreadCache.CachedTypeIndex<ProcessorResult> CACHE_IDX =
+            ThreadCache.obtainIndex(ProcessorResult.class, 1);
+
+    private static ProcessorResult create() {
+        final ProcessorResult result = ThreadCache.takeFromCache(CACHE_IDX);
+        if (result != null) {
+            return result;
+        }
+
+        return new ProcessorResult();
+    }
+
     /**
      * Enum represents the status/code of {@link ProcessorResult}.
      */
     public enum Status {
-        OK, ERROR, RERUN, TERMINATE;
+        COMPLETED, COMPLETED_LEAVE, ERROR, TERMINATE;
     }
     
     /**
      * Result status
      */
-    private final Status status;
+    private Status status;
 
     /**
      * Result description
      */
-    private final Object description;
+    private Object description;
 
-    public ProcessorResult(Status status) {
+    public static ProcessorResult createCompleted() {
+        return COMPLETED_RESULT;
+    }
+
+    public static ProcessorResult createCompletedLeave() {
+        return COMPLETED_LEAVE_RESULT;
+    }
+
+    public static ProcessorResult createError() {
+        return ERROR_RESULT;
+    }
+
+    public static ProcessorResult createError(Object description) {
+        return create().setStatus(Status.ERROR).setDescription(description);
+    }
+
+    public static ProcessorResult createTerminate() {
+        return TERMINATE_RESULT;
+    }
+
+    private ProcessorResult() {
+        this(null, null);
+    }
+
+    private ProcessorResult(Status status) {
         this(status, null);
     }
 
-    public ProcessorResult(Status status, Object description) {
+    private ProcessorResult(Status status, Object description) {
         this.status = status;
         this.description = description;
     }
@@ -79,6 +120,13 @@ public class ProcessorResult {
         return status;
     }
 
+    protected ProcessorResult setStatus(Status status) {
+        this.status = status;
+        return this;
+    }
+
+
+
     /**
      * Get the {@link ProcessorResult} description.
      *
@@ -86,5 +134,10 @@ public class ProcessorResult {
      */
     public Object getDescription() {
         return description;
+    }
+
+    protected ProcessorResult setDescription(Object description) {
+        this.description = description;
+        return this;
     }
 }

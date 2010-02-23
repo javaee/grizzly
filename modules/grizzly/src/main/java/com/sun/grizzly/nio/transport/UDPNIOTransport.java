@@ -56,22 +56,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.CompletionHandlerAdapter;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Processor;
-import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.ProcessorResult;
-import com.sun.grizzly.ProcessorResult.Status;
-import com.sun.grizzly.ProcessorRunnable;
-import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.ReadResult;
+import com.sun.grizzly.Reader;
 import com.sun.grizzly.SocketBinder;
 import com.sun.grizzly.SocketConnectorHandler;
 import com.sun.grizzly.StandaloneProcessor;
 import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
+import com.sun.grizzly.Writer;
 import com.sun.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import com.sun.grizzly.asyncqueue.AsyncQueueIO;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
@@ -93,8 +90,6 @@ import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import com.sun.grizzly.strategies.WorkerThreadStrategy;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.threadpool.AbstractThreadPool;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
@@ -145,7 +140,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     protected TemporarySelectorIO temporarySelectorIO;
     private final Filter transportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
-    private final EnableInterestPostProcessor enablingInterestPostProcessor;
 
     public UDPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -158,7 +152,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         writeBufferSize = -1;
 
         registerChannelCompletionHandler = new RegisterChannelCompletionHandler();
-        enablingInterestPostProcessor = new EnableInterestPostProcessor();
 
         asyncQueueIO = new AsyncQueueIO(new UDPNIOAsyncQueueReader(this),
                 new UDPNIOAsyncQueueWriter(this));
@@ -565,36 +558,27 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     }
 
     @Override
-    public IOEventReg fireIOEvent(final IOEvent ioEvent,
-            final Connection connection) throws IOException {
+    public IOEventReg fireIOEvent(final IOEvent ioEvent, final Connection connection)
+            throws IOException {
 
         try {
-            // First of all try operations, which could run in standalone mode
-            if (ioEvent == IOEvent.READ) {
-                return processReadIoEvent(ioEvent, (UDPNIOConnection) connection);
-            } else if (ioEvent == IOEvent.WRITE) {
-                return processWriteIoEvent(ioEvent, (UDPNIOConnection) connection);
-            } else {
-                final Processor conProcessor = getConnectionProcessor(
-                        connection, ioEvent);
+            final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
-                if (conProcessor != null) {
-                    if (executeProcessor(ioEvent, connection, conProcessor, null, null)) {
-                        return IOEventReg.REGISTER;
-                    }
-
-                    return IOEventReg.LEAVE;
+            if (conProcessor != null) {
+                if (executeProcessor(connection, ioEvent, conProcessor)) {
+                    return IOEventReg.REGISTER;
                 } else {
                     return IOEventReg.DEREGISTER;
                 }
+            } else {
+                return IOEventReg.DEREGISTER;
             }
         } catch (IOException e) {
-            logger.log(Level.FINE, "IOException occurred on fireIOEvent()." +
-                    "connection=" + connection + " event=" + ioEvent);
+            logger.log(Level.FINE, "IOException occurred on fireIOEvent()."
+                    + "connection=" + connection + " event=" + ioEvent);
             throw e;
         } catch (Exception e) {
-            String text = new StringBuilder(256).
-                    append("Unexpected exception occurred fireIOEvent().").
+            String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
                     append("connection=").append(connection).
                     append(" event=").append(ioEvent).toString();
 
@@ -604,73 +588,75 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
     }
 
-    protected boolean executeProcessor(final IOEvent ioEvent,
-            final Connection connection,
-            final Processor processor, final ProcessorExecutor executor,
-            final PostProcessor postProcessor)
-            throws IOException {
+    @Override
+    public IOEventReg fireIOEvent(Context context) throws IOException {
+        final IOEvent ioEvent = context.getIoEvent();
+        final Connection connection = context.getConnection();
 
-        final ProcessorRunnable processorRunnable = ProcessorRunnable.create(
-                ioEvent, connection, processor, postProcessor);
-
-        return processorRunnable.execute();
-    }
-
-    private IOEventReg processReadIoEvent(final IOEvent ioEvent,
-            final UDPNIOConnection connection) throws IOException {
-
-        final UDPNIOAsyncQueueReader asyncQueueReader =
-                (UDPNIOAsyncQueueReader) getAsyncQueueIO().getReader();
-
-        if (asyncQueueReader == null || !asyncQueueReader.isReady(connection)) {
-            return executeDefaultProcessor(ioEvent, connection);
-        } else {
-            executeProcessor(ioEvent, connection, asyncQueueReader, null, null);
-            return IOEventReg.LEAVE;
-        }
-    }
-
-    private IOEventReg processWriteIoEvent(final IOEvent ioEvent,
-            final UDPNIOConnection connection)
-            throws IOException {
-        final AsyncQueueWriter asyncQueueWriter = getAsyncQueueIO().getWriter();
-
-        if (asyncQueueWriter == null || !asyncQueueWriter.isReady(connection)) {
-            return executeDefaultProcessor(ioEvent, connection);
-        } else {
-            executeProcessor(ioEvent, connection, asyncQueueWriter, null, null);
-            return IOEventReg.LEAVE;
-        }
-    }
-
-
-    private IOEventReg executeDefaultProcessor(final IOEvent ioEvent,
-            final UDPNIOConnection connection) throws IOException {
-
-        final Processor conProcessor = getConnectionProcessor(connection, ioEvent);
-        if (conProcessor != null) {
-            if (executeProcessor(ioEvent, connection, conProcessor, null, null)) {
+        try {
+            if (executeProcessor(context)) {
                 return IOEventReg.REGISTER;
+            } else {
+                return IOEventReg.DEREGISTER;
             }
+        } catch (IOException e) {
+            logger.log(Level.FINE, "IOException occurred on fireIOEvent()."
+                    + "connection=" + connection + " event=" + ioEvent);
+            throw e;
+        } catch (Exception e) {
+            String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
+                    append("connection=").append(connection).
+                    append(" event=").append(ioEvent).toString();
 
-            return IOEventReg.LEAVE;
+            logger.log(Level.WARNING, text, e);
+            throw new IOException(e.getClass() + ": " + text);
         }
-
-        return IOEventReg.DEREGISTER;
     }
 
-    Processor getConnectionProcessor(final Connection connection,
-            final IOEvent ioEvent) {
-        Processor conProcessor = connection.getProcessor();
-        final ProcessorSelector conProcessorSelector =
-                connection.getProcessorSelector();
+    protected boolean executeProcessor(Connection connection,
+            IOEvent ioEvent, Processor processor) throws IOException {
 
-        if ((conProcessor == null || !conProcessor.isInterested(ioEvent)) &&
-                conProcessorSelector != null) {
-            conProcessor = conProcessorSelector.select(ioEvent, connection);
+        final Context context = Context.create(processor, connection, ioEvent,
+                null, null);
+        return executeProcessor(context);
+    }
+
+    protected boolean executeProcessor(Context context) throws IOException {
+
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.log(Level.FINEST, "executeProcessor connection (" +
+                    context.getConnection() +
+                    "). IOEvent=" + context.getIoEvent() +
+                    " processor=" + context.getProcessor());
         }
 
-        return conProcessor;
+        final ProcessorResult result = context.getProcessor().process(context);
+        final ProcessorResult.Status status = result.getStatus();
+
+        if (status != ProcessorResult.Status.TERMINATE) {
+             context.recycle();
+             return status == ProcessorResult.Status.COMPLETED;
+        }
+
+        return false;
+    }
+
+    @Override
+    public Reader getReader(Connection connection) {
+        if (connection.isBlocking()) {
+            return getTemporarySelectorIO().getReader();
+        } else {
+            return getAsyncQueueIO().getReader();
+        }
+    }
+
+    @Override
+    public Writer getWriter(Connection connection) {
+        if (connection.isBlocking()) {
+            return getTemporarySelectorIO().getWriter();
+        } else {
+            return getAsyncQueueIO().getWriter();
+        }
     }
 
     private int readConnected(final UDPNIOConnection connection, Buffer buffer,
@@ -801,16 +787,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         return written;
     }
 
-    @Override
-    public StreamReader getStreamReader(Connection connection) {
-        return new UDPNIOStreamReader((UDPNIOConnection) connection);
-    }
-
-    @Override
-    public StreamWriter getStreamWriter(Connection connection) {
-        return new UDPNIOStreamWriter((UDPNIOConnection) connection);
-    }
-
     private void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
         int index = 0;
         while(processed > 0) {
@@ -820,21 +796,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         }
     }
 
-    public class EnableInterestPostProcessor
-            implements PostProcessor {
-
-        @Override
-        public void process(final ProcessorResult result,
-                final Context context) throws IOException {
-            if (result == null || result.getStatus() == Status.OK) {
-                final IOEvent ioEvent = context.getIoEvent();
-                ((NIOConnection) context.getConnection()).enableIOEvent(ioEvent);
-            }
-        }
-    }
-
     protected class RegisterChannelCompletionHandler
-            extends CompletionHandlerAdapter<RegisterChannelResult> {
+            extends EmptyCompletionHandler<RegisterChannelResult> {
 
         @Override
         public void completed(final RegisterChannelResult result) {

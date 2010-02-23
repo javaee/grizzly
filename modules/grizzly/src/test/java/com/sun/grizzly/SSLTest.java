@@ -39,14 +39,13 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.Filter;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import junit.framework.TestCase;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
@@ -55,6 +54,8 @@ import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.ssl.SSLStreamReader;
 import com.sun.grizzly.ssl.SSLStreamWriter;
+import com.sun.grizzly.streams.StreamReader;
+import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.EchoFilter;
 import com.sun.grizzly.utils.StringFilter;
@@ -69,7 +70,7 @@ import javax.net.ssl.SSLEngine;
  * 
  * @author Alexey Stashok
  */
-public class SSLTest extends TestCase {
+public class SSLTest extends GrizzlyTestCase {
     private final static Logger logger = Grizzly.logger(SSLTest.class);
     
     public static final int PORT = 7779;
@@ -243,8 +244,13 @@ public class SSLTest extends TestCase {
                 connection.configureStandalone(true);
                 connection.setReadTimeout(10, TimeUnit.SECONDS);
 
-                reader = new SSLStreamReader(transport.getStreamReader(connection));
-                writer = new SSLStreamWriter(transport.getStreamWriter(connection));
+                StreamReader connectionStreamReader =
+                        StandaloneProcessor.INSTANCE.getStreamReader(connection);
+                StreamWriter connectionStreamWriter =
+                        StandaloneProcessor.INSTANCE.getStreamWriter(connection);
+                
+                reader = new SSLStreamReader(connectionStreamReader);
+                writer = new SSLStreamWriter(connectionStreamWriter);
 
                 final Future handshakeFuture = writer.handshake(reader,
                         clientSSLEngineConfigurator);
@@ -327,7 +333,7 @@ public class SSLTest extends TestCase {
         return sslContextConfigurator;
     }
 
-    private class SSLPingPongFilter extends FilterAdapter {
+    private class SSLPingPongFilter extends BaseFilter {
         private final Attribute<Integer> turnAroundAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("TurnAroundAttr");
 
@@ -349,15 +355,14 @@ public class SSLTest extends TestCase {
                 final NextAction nextAction) throws IOException {
 
             final Connection connection = ctx.getConnection();
-            final Transformer encoder = ctx.getEncoder();
             
             try {
-                sslFilter.handshake(connection, new CompletionHandlerAdapter<SSLEngine>() {
+                sslFilter.handshake(connection, new EmptyCompletionHandler<SSLEngine>() {
 
                     @Override
                     public void completed(SSLEngine result) {
                         try {
-                            connection.write("ping", null, encoder);
+                            connection.write("ping");
                             turnAroundAttr.set(connection, 1);
                         } catch (IOException e) {
                             clientCompletedFeature.failure(e);
@@ -387,7 +392,7 @@ public class SSLTest extends TestCase {
             final String message = (String) ctx.getMessage();
             if (message.equals("ping")) {
                 try {
-                    connection.write("pong", null, ctx.getEncoder());
+                    connection.write("pong");
                     turnAroundAttr.set(connection, currentTurnAround);
                     if (currentTurnAround >= turnAroundNum) {
                         serverCompletedFeature.result(turnAroundNum);
@@ -402,7 +407,7 @@ public class SSLTest extends TestCase {
                         return nextAction;
                     }
 
-                    connection.write("ping", null, ctx.getEncoder());
+                    connection.write("ping");
                     turnAroundAttr.set(connection, currentTurnAround);
                 } catch (Exception e) {
                     clientCompletedFeature.failure(e);
@@ -410,7 +415,7 @@ public class SSLTest extends TestCase {
                 
             }
 
-            return nextAction;
+            return ctx.getStopAction();
         }
 
         public Future<Integer> getClientCompletedFeature() {

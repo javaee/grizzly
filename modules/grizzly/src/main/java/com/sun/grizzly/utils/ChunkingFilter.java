@@ -44,7 +44,7 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransformationException;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.filterchain.CodecFilterAdapter;
+import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.memory.BufferUtils;
 import java.util.logging.Logger;
 
@@ -53,7 +53,7 @@ import java.util.logging.Logger;
  *
  * @author oleksiys
  */
-public class ChunkingFilter extends CodecFilterAdapter<Buffer, Buffer> {
+public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private static final Logger logger = Grizzly.logger(ChunkingFilter.class);
 
     private final int chunkSize;

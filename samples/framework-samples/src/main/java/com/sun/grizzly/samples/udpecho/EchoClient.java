@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.StandaloneProcessor;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.nio.transport.UDPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
@@ -81,7 +82,9 @@ public class EchoClient {
 
             assert connection != null;
 
-            writer = transport.getStreamWriter(connection);
+            connection.configureStandalone(true);
+            
+            writer = StandaloneProcessor.INSTANCE.getStreamWriter(connection);
             String message = "Echo test";
             byte[] sendBytes = message.getBytes();
 
@@ -93,7 +96,7 @@ public class EchoClient {
 
             assert writeFuture.isDone();
 
-            reader = transport.getStreamReader(connection);
+            reader = StandaloneProcessor.INSTANCE.getStreamReader(connection);
             // allocate the buffer for receiving bytes
             byte[] receiveBytes = new byte[sendBytes.length];
             Future readFuture = reader.notifyAvailable(receiveBytes.length);

@@ -39,7 +39,7 @@
 package com.sun.grizzly.utils;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.filterchain.CodecFilterAdapter;
+import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import java.nio.charset.Charset;
 
 /**
@@ -47,7 +47,7 @@ import java.nio.charset.Charset;
  * 
  * @author Alexey Stashok
  */
-public final class StringFilter extends CodecFilterAdapter<Buffer, String> {
+public final class StringFilter extends AbstractCodecFilter<Buffer, String> {
 
     public StringFilter() {
         this(null);

@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -35,21 +35,41 @@
  * holder.
  *
  */
-package com.sun.grizzly.samples.filterchain;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.filterchain.CodecFilterAdapter;
-import java.util.logging.Filter;
+package com.sun.grizzly;
 
 /**
- * Example of parser {@link Filter}.
- *
+ * Empty implementation for {@link CompletionHandler} interface.
+ * 
  * @author Alexey Stashok
  */
-public final class GIOPParserFilter extends CodecFilterAdapter<Buffer, GIOPMessage>{
+public class EmptyCompletionHandler<E> implements CompletionHandler<E> {
 
-    public GIOPParserFilter() {
-        super(new GIOPDecoder(), new GIOPEncoder());
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void cancelled() {
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void failed(Throwable throwable) {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void completed(E result) {
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void updated(E result) {
+    }
 }

@@ -41,11 +41,14 @@ package com.sun.grizzly.filterchain;
 import com.sun.grizzly.Appendable;
 import com.sun.grizzly.Appender;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Context;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ThreadCache;
-import com.sun.grizzly.Transformer;
+import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
+import java.io.IOException;
 
 /**
  * {@link FilterChain} {@link Context} implementation.
@@ -57,7 +60,7 @@ import com.sun.grizzly.memory.BufferUtils;
  */
 public final class FilterChainContext extends Context {
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
-            ThreadCache.obtainIndex(FilterChainContext.class);
+            ThreadCache.obtainIndex(FilterChainContext.class, 4);
 
     public static FilterChainContext create() {
         final FilterChainContext context = ThreadCache.takeFromCache(CACHE_IDX);
@@ -69,7 +72,7 @@ public final class FilterChainContext extends Context {
     }
 
 
-    public static final int NO_FILTER_INDEX = -1;
+    public static final int NO_FILTER_INDEX = Integer.MIN_VALUE;
 
     /**
      * Cached {@link NextAction} instance for "Invoke action" implementation
@@ -102,42 +105,40 @@ public final class FilterChainContext extends Context {
      * Index of the currently executing {@link Filter} in
      * the {@link FilterChainContext#filters} list.
      */
-    private int lastExecutedFilterIdx;
+    private int filterIdx;
+
+    private int startIdx;
 
     private final StopAction cachedStopAction = new StopAction();
 
     private final InvokeAction cachedInvokeAction = new InvokeAction();
 
     public FilterChainContext() {
-        lastExecutedFilterIdx = NO_FILTER_INDEX;
+        filterIdx = NO_FILTER_INDEX;
     }
 
-    @Override
-    public void suspend() {
-        super.suspend();
-        lastExecutedFilterIdx++;
+    public int nextFilterIdx() {
+        return ++filterIdx;
     }
 
-    /**
-     * Get index of the last executed {@link Filter} in
-     * the {@link FilterChainContext#filters} list.
-     *
-     * @return index of the last executed {@link Filter} in
-     * the {@link FilterChainContext#filters} list.
-     */
-    public int getLastExecutedFilterIdx() {
-        return lastExecutedFilterIdx;
+    public int previousFilterIdx() {
+        return --filterIdx;
     }
 
-    /**
-     * Set index of the last executed {@link Filter} in
-     * the {@link FilterChainContext#filters} list.
-     *
-     * @param currentFilterIdx index of the last executed {@link Filter}
-     * in the {@link FilterChainContext#filters} list.
-     */
-    protected void setLastExecutedFilterIdx(int lastExecutedFilterIdx) {
-        this.lastExecutedFilterIdx = lastExecutedFilterIdx;
+    public int getFilterIdx() {
+        return filterIdx;
+    }
+
+    protected void setFilterIdx(int index) {
+        this.filterIdx = index;
+    }
+
+    public int getStartIdx() {
+        return startIdx;
+    }
+
+    protected void setStartIdx(int startIdx) {
+        this.startIdx = startIdx;
     }
 
     /**
@@ -363,14 +364,31 @@ public final class FilterChainContext extends Context {
         return SUSPEND_ACTION;
     }
 
-    public Transformer<?, Buffer> getEncoder() {
-        return getFilterChain().getCodec(lastExecutedFilterIdx + 1).getEncoder();
+    public GrizzlyFuture write(Object message) throws IOException {
+        return write(null, message, null);
     }
 
-    public Transformer<Buffer, ?> getDecoder() {
-        return getFilterChain().getCodec(lastExecutedFilterIdx + 1).getDecoder();
+    public GrizzlyFuture write(Object message,
+            CompletionHandler completionHandler) throws IOException {
+        return write(null, message, completionHandler);
     }
 
+    public GrizzlyFuture write(Object address, Object message,
+            CompletionHandler completionHandler) throws IOException {
+        final FutureImpl futureImpl = FutureImpl.create();
+        final FilterChainContext newContext = (FilterChainContext) getProcessor().context();
+        newContext.setIoEvent(IOEvent.WRITE);
+        newContext.setConnection(getConnection());
+        newContext.setMessage(message);
+        newContext.setAddress(address);
+        newContext.setCompletionFuture(futureImpl);
+        newContext.setCompletionHandler(completionHandler);
+        newContext.setStartIdx(filterIdx - 1);
+        newContext.setFilterIdx(filterIdx - 1);
+
+        getFilterChain().execute(newContext);
+        return futureImpl;
+    }
 
     /**
      * Release the context associated resources.
@@ -379,7 +397,7 @@ public final class FilterChainContext extends Context {
     public void reset() {
         message = null;
         address = null;
-        lastExecutedFilterIdx = NO_FILTER_INDEX;
+        filterIdx = NO_FILTER_INDEX;
         super.reset();
     }
 

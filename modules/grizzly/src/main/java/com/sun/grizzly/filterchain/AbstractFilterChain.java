@@ -39,11 +39,8 @@
 package com.sun.grizzly.filterchain;
 
 import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.Context;
 import com.sun.grizzly.utils.IOEventMask;
-import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.utils.ArrayIOEventMask;
-import java.io.IOException;
 
 /**
  * Abstract {@link FilterChain} implementation,
@@ -56,8 +53,7 @@ import java.io.IOException;
  */
 public abstract class AbstractFilterChain implements FilterChain {
     // By default interested in all client connection related events
-    protected final IOEventMask interestedIoEventsMask = new ArrayIOEventMask(
-            IOEventMask.CLIENT_EVENTS_MASK).xor(new ArrayIOEventMask(IOEvent.WRITE));
+    protected final IOEventMask interestedIoEventsMask = IOEventMask.ALL_EVENTS_MASK;
 
     /**
      * {@inheritDoc}
@@ -79,45 +75,9 @@ public abstract class AbstractFilterChain implements FilterChain {
      * {@inheritDoc}
      */
     @Override
-    public void beforeProcess(Context context) throws IOException {
-    }
-
-    /**
-     * Delegates processing to {@link AbstractFilterChain#execute(com.sun.grizzly.filterchain.FilterChainContext)}
-     *
-     * @param context processing {@link Context}
-     * @return {@link ProcessorResult}
-     * @throws java.io.IOException
-     */
-    @Override
-    public final ProcessorResult process(Context context)
-            throws IOException {
-        return execute((FilterChainContext) context);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void afterProcess(Context context) throws IOException {
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
     public FilterChainContext context() {
-        return FilterChainContext.create();
+        final FilterChainContext context = FilterChainContext.create();
+        context.setProcessor(this);
+        return context;
     }
-    
-    /**
-     * Method processes occured {@link IOEvent} on this {@link FilterChain}.
-     * 
-     * @param context processing context
-     * @return {@link ProcessorResult}
-     * 
-     * @throws java.io.IOException
-     */
-    public abstract ProcessorResult execute(FilterChainContext context)
-            throws IOException;
 }

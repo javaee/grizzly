@@ -47,7 +47,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import junit.framework.Assert;
-import junit.framework.TestCase;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
@@ -73,7 +72,7 @@ import java.util.concurrent.BlockingQueue;
  *    @author Ken Cavanaugh
  *    @author John Vieten
  **/
-public class ByteBufferStreamsTest extends TestCase {
+public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     public static final int PORT = 7778;
     private static Logger logger = Grizzly.logger(ByteBufferStreamsTest.class);
@@ -1062,7 +1061,7 @@ public class ByteBufferStreamsTest extends TestCase {
         return new DoubleArrayChecker(size, arg);
     }
 
-    public void testStreaming() throws IOException {
+    public void testStreaming() throws Exception {
         // comment this test out until threading bug is found.
         //
 
@@ -1110,7 +1109,9 @@ public class ByteBufferStreamsTest extends TestCase {
         send(ch);
 
         // end
-        send(new PoisonChecker());
+        Future future = send(new PoisonChecker());
+        future.get(10, TimeUnit.SECONDS);
+        
         // test streaming
         MemoryManager alloc = SlabMemoryManagerFactory.makeAllocator(10000, false);
         byte[] testdata = new byte[500];
@@ -1162,7 +1163,7 @@ public class ByteBufferStreamsTest extends TestCase {
             logger.log(Level.SEVERE, "Data generate error", e);
         }
 
-        Assert.assertEquals(true, Arrays.equals(checkArray, testdata));
+        Assert.assertTrue(Arrays.equals(checkArray, testdata));
     }
 
     @Override
@@ -1219,13 +1220,18 @@ public class ByteBufferStreamsTest extends TestCase {
 
             clienttransport.start();
             clienttransport.configureBlocking(false);
+            clienttransport.configureStandalone(true);
+            
             Future<Connection> future =
                     clienttransport.connect("localhost", PORT);
             clientconnection = future.get(10, TimeUnit.SECONDS);
             assertTrue(clientconnection != null);
 
-
-            clientWriter = clienttransport.getStreamWriter(clientconnection);
+            clientconnection.configureStandalone(true);
+            clientWriter =
+                    ((StandaloneProcessor) clientconnection.getProcessor()).
+                    getStreamWriter(clientconnection);
+            
         } catch (Exception ex) {
             logger.log(Level.SEVERE, "Client start error", ex);
         }
@@ -1242,8 +1248,11 @@ public class ByteBufferStreamsTest extends TestCase {
                         Future<Connection> acceptFuture = serverConnection.accept();
                         Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
                         assertTrue(acceptFuture.isDone());
+                        connection.configureStandalone(true);
 
-                        StreamReader reader = transport.getStreamReader(connection);
+                        StreamReader reader =
+                                ((StandaloneProcessor) connection.getProcessor()).
+                                getStreamReader(connection);
                         try {
                             Checker checker;
                             while ((checker = checkerQueue.poll(30, TimeUnit.SECONDS)) != null) {

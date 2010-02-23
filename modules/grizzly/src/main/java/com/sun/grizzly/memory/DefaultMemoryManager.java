@@ -51,7 +51,7 @@ import com.sun.grizzly.threadpool.DefaultWorkerThread;
  */
 public final class DefaultMemoryManager extends ByteBufferManager {
     private static final ThreadCache.CachedTypeIndex<TrimAwareWrapper> CACHE_IDX =
-            ThreadCache.obtainIndex(TrimAwareWrapper.class);
+            ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
 
     /**
      * Construct {@link Future}.

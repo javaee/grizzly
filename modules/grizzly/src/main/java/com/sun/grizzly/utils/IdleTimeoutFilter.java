@@ -46,7 +46,7 @@ import java.util.logging.Level;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.util.Queue;
@@ -57,7 +57,7 @@ import java.util.logging.Logger;
  *
  * @author oleksiys
  */
-public class IdleTimeoutFilter extends FilterAdapter {
+public class IdleTimeoutFilter extends BaseFilter {
     private static Logger logger = Grizzly.logger(IdleTimeoutFilter.class);
     
     public static final long UNLIMITED_TIMEOUT = -1;
@@ -139,19 +139,7 @@ public class IdleTimeoutFilter extends FilterAdapter {
     }
 
     @Override
-    public NextAction postRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
-        resetTimeout(ctx.getConnection());
-        return nextAction;
-    }
-
-    @Override
-    public NextAction postWrite(FilterChainContext ctx, NextAction nextAction) throws IOException {
-        resetTimeout(ctx.getConnection());
-        return nextAction;
-    }
-
-    @Override
-    public NextAction postAccept(FilterChainContext ctx,
+    public NextAction handleAccept(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
         if (isHandleAccepted) {
             Connection connection = ctx.getConnection();
@@ -163,7 +151,7 @@ public class IdleTimeoutFilter extends FilterAdapter {
     }
 
     @Override
-    public NextAction postConnect(FilterChainContext ctx, NextAction nextAction)
+    public NextAction handleConnect(FilterChainContext ctx, NextAction nextAction)
             throws IOException {
         if (isHandleConnected()) {
             Connection connection = ctx.getConnection();

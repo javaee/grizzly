@@ -39,20 +39,23 @@
 package com.sun.grizzly.nio.transport;
 
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Filter;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.attributes.Attribute;
+import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.utils.CompletionHandlerAdapter;
 
 /**
  * The {@link TCPNIOTransport}'s transport {@link Filter} implementation
  * 
  * @author Alexey Stashok
  */
-public final class TCPNIOTransportFilter extends FilterAdapter {
+public final class TCPNIOTransportFilter extends BaseFilter {
 
     public static final int DEFAULT_BUFFER_SIZE = 8192;
     private final TCPNIOTransport transport;
@@ -89,8 +92,20 @@ public final class TCPNIOTransportFilter extends FilterAdapter {
         final Object message = ctx.getMessage();
         if (message != null) {
             final Connection connection = ctx.getConnection();
-            transport.write(connection, (Buffer) message);
+            final FutureImpl contextFuture = ctx.getCompletionFuture();
+            CompletionHandler writeCompletionHandler = null;
+
+            final boolean hasCompletionListeners = (contextFuture != null);
+            if (hasCompletionListeners) {
+                writeCompletionHandler = new CompletionHandlerAdapter(
+                        contextFuture, ctx.getCompletionHandler());
+            }
+
+            transport.getWriter(connection).write(connection,
+                    (Buffer) message, writeCompletionHandler).markForRecycle(
+                    !hasCompletionListeners);
         }
+
 
         return nextAction;
     }

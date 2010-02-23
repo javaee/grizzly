@@ -119,49 +119,4 @@ public final class LeaderFollowerStrategy implements Strategy {
         }
     }
 
-
-
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public Boolean prepare(Connection connection, IOEvent ioEvent) {
-//        return true;
-//    }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public void executeProcessor(Boolean strategyContext,
-//            ProcessorRunnable processorRunnable) throws IOException {
-//
-//        if (strategyContext != null && strategyContext) {
-//            NIOConnection nioConnection =
-//                    (NIOConnection) processorRunnable.getConnection();
-//            SelectorRunner runner = nioConnection.getSelectorRunner();
-//            runner.postpone();
-//            nioConnection.getTransport().getThreadPool().execute(runner);
-//        }
-//
-//        Executor executor = getProcessorExecutor(strategyContext);
-//
-//        executor.execute(processorRunnable);
-//    }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public boolean isTerminateThread(Boolean strategyContext) {
-//        return strategyContext;
-//    }
-//
-//    public Executor getProcessorExecutor(Boolean strategyContext) {
-//        if (strategyContext != null && strategyContext) {
-//            return sameThreadProcessorExecutor;
-//        }
-//
-//        return workerThreadProcessorExecutor;
-//    }
 }

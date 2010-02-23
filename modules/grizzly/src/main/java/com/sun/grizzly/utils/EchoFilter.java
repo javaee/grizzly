@@ -38,7 +38,7 @@
 package com.sun.grizzly.utils;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
@@ -55,7 +55,7 @@ import java.util.logging.Level;
  * 
  * @author Alexey Stashok
  */
-public class EchoFilter extends FilterAdapter {
+public class EchoFilter extends BaseFilter {
 
     private static final Logger logger = Grizzly.logger(EchoFilter.class);
 
@@ -76,11 +76,9 @@ public class EchoFilter extends FilterAdapter {
             ((Buffer) message).allowBufferDispose(true);
         }
 
-        final GrizzlyFuture future = connection.write(address, message, null,
-                ctx.getEncoder());
-
+        final GrizzlyFuture future = ctx.write(address, message, null);
         future.markForRecycle(true);
-        
-        return nextAction;
+
+        return ctx.getStopAction();
     }
 }

@@ -71,31 +71,4 @@ public final class SameThreadStrategy implements Strategy {
 
         return true;
     }
-
-
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public Object prepare(Connection connection, IOEvent ioEvent) {
-//        return null;
-//    }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public void executeProcessor(Object strategyContext,
-//            ProcessorRunnable processorRunnable) throws IOException {
-//
-//        sameThreadProcessorExecutor.execute(processorRunnable);
-//    }
-//
-//   /**
-//    * {@inheritDoc}
-//    */
-//    @Override
-//    public boolean isTerminateThread(Object strategyContext) {
-//        return false;
-//    }
 }

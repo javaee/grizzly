@@ -47,14 +47,13 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import junit.framework.TestCase;
 
 /**
  * Test how {@link CompositeBuffer} works with Streams.
  * 
  * @author Alexey Stashok
  */
-public class CompositeBufferInStreamTest extends TestCase {
+public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
     public static final int PORT = 7783;
     private static Logger logger = Grizzly.logger(CompositeBufferInStreamTest.class);
@@ -92,7 +91,11 @@ public class CompositeBufferInStreamTest extends TestCase {
             connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            final StreamWriter writer = transport.getStreamWriter(connection);
+            connection.configureStandalone(true);
+            
+            final StreamWriter writer =
+                    ((StandaloneProcessor) connection.getProcessor()).
+                    getStreamWriter(connection);
 
             for (Pair<Buffer, FutureImpl> portion : portions) {
                 final Buffer buffer = portion.getFirst().duplicate();
@@ -132,7 +135,10 @@ public class CompositeBufferInStreamTest extends TestCase {
 
                         int availableExp = 0;
                         
-                        StreamReader reader = transport.getStreamReader(connection);
+                        StreamReader reader =
+                                ((StandaloneProcessor) connection.getProcessor()).
+                                getStreamReader(connection);
+                        
                         int i = 0;
                         try {
                             for (; i < portions.length; i++) {

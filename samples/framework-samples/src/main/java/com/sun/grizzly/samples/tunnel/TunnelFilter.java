@@ -42,15 +42,15 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.SocketConnectorHandler;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.logging.Logger;
 
 /**
  * Simple tunneling filter, which maps input of one connection to the output of
@@ -58,7 +58,9 @@ import java.net.SocketAddress;
  *
  * @author Alexey Stashok
  */
-public class TunnelFilter extends FilterAdapter {
+public class TunnelFilter extends BaseFilter {
+    private static final Logger logger = Grizzly.logger(TunnelFilter.class);
+    
     private Attribute<Connection> peerConnectionAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("TunnelFilter.peerConnection");
 
@@ -83,6 +85,8 @@ public class TunnelFilter extends FilterAdapter {
     @Override
     public NextAction handleRead(final FilterChainContext ctx,
             final NextAction nextAction) throws IOException {
+        logger.finest("Connection: " + ctx.getConnection() + " handleRead: " + ctx.getMessage());
+        
         final Connection connection = ctx.getConnection();
         final Connection peerConnection = peerConnectionAttribute.get(connection);
 
@@ -108,7 +112,7 @@ public class TunnelFilter extends FilterAdapter {
         // if peer connection is already created - just forward data to peer
         redirectToPeer(ctx, peerConnection);
 
-        return nextAction;
+        return ctx.getStopAction();
     }
 
     /**
@@ -138,10 +142,10 @@ public class TunnelFilter extends FilterAdapter {
     private static void redirectToPeer(final FilterChainContext context,
             final Connection peerConnection) throws IOException {
 
+        final Connection srcConnection = context.getConnection();
         final Object message = context.getMessage();
-        final Transformer encoder = context.getEncoder();
-        
-        peerConnection.write(message, null, encoder);
+        logger.fine("Redirecting from " + srcConnection.getPeerAddress() + " to " + peerConnection.getPeerAddress() + " message: " + message);
+        peerConnection.write(message);
     }
     
     /**
@@ -190,7 +194,7 @@ public class TunnelFilter extends FilterAdapter {
          * earlier suspended.
          */
         private void resumeContext() {
-            context.getProcessorRunnable().run();
+            context.getRunnable().run();
         }
 
         /**

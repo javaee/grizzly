@@ -38,10 +38,14 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
-import com.sun.grizzly.utils.ObjectPool;
+import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.nio.NIOConnection;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Object, which is responsible for holding context during I/O event processing.
@@ -49,9 +53,36 @@ import com.sun.grizzly.utils.ObjectPool;
  * @author Alexey Stashok
  */
 public class Context implements AttributeStorage, Cacheable {
+    private static final Logger logger = Grizzly.logger(Context.class);
+
     private static final ThreadCache.CachedTypeIndex<Context> CACHE_IDX =
-            ThreadCache.obtainIndex(Context.class);
+            ThreadCache.obtainIndex(Context.class, 4);
     
+    public static Context create() {
+        final Context context = ThreadCache.takeFromCache(CACHE_IDX);
+        if (context != null) {
+            return context;
+        }
+
+        return new Context();
+    }
+
+    public static Context create(Processor processor) {
+        return processor.context();
+    }
+
+    public static Context create(Processor processor, Connection connection,
+            IOEvent ioEvent, FutureImpl future,
+            CompletionHandler completionHandler) {
+        final Context context = create(processor);
+        context.setConnection(connection);
+        context.setIoEvent(ioEvent);
+        context.setCompletionFuture(future);
+        context.setCompletionHandler(completionHandler);
+
+        return context;
+    }
+
     public enum State {
         RUNNING, SUSPEND;
     };
@@ -72,27 +103,50 @@ public class Context implements AttributeStorage, Cacheable {
     private Processor processor;
 
     /**
-     * PostProcessor to be called, on processing completion
-     */
-    private PostProcessor postProcessor;
-
-    /**
      * Attributes, associated with the processing Context
      */
     private final AttributeHolder attributes;
     
     /**
-     * Processing task, executed on processorExecutor
-     */
-    private ProcessorRunnable processorRunnable;
-
-    /**
      * Context task state
      */
     private volatile State state;
 
+    /**
+     * {@link Future}, which will be notified, when {@link Processor} will
+     * complete processing of a task.
+     */
+    private FutureImpl completionFuture;
+
+    /**
+     * {@link CompletionHandler}, which will be notified, when {@link Processor}
+     * will complete processing of a task.
+     */
+    private CompletionHandler completionHandler;
+
+    private final Runnable contextRunnable;
+    
     public Context() {
         attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+
+        contextRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    final Connection connection = Context.this.connection;
+                    final IOEvent ioEvent = Context.this.ioEvent;
+
+                    final Transport transport = connection.getTransport();
+                    final IOEventReg ioEventReg =
+                            transport.fireIOEvent(Context.this);
+                    if (ioEventReg == IOEventReg.REGISTER) {
+                        ((NIOConnection) connection).enableIOEvent(ioEvent);
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.FINE, "Exception during running Processor", e);
+                }
+            }
+        };
     }
     
     /**
@@ -154,24 +208,6 @@ public class Context implements AttributeStorage, Cacheable {
     }
 
     /**
-     * Get the {@link ProcessorRunnable} task instance.
-     * 
-     * @return the {@link ProcessorRunnable} task instance.
-     */
-    public ProcessorRunnable getProcessorRunnable() {
-        return processorRunnable;
-    }
-
-    /**
-     * Set the {@link ProcessorRunnable} task instance.
-     *
-     * @param processorRunnable the {@link ProcessorRunnable} task instance.
-     */
-    public void setProcessorRunnable(ProcessorRunnable processorRunnable) {
-        this.processorRunnable = processorRunnable;
-    }
-
-    /**
      * Get the {@link Processor}, which is responsible to process
      * the {@link IOEvent}.
      * 
@@ -193,29 +229,22 @@ public class Context implements AttributeStorage, Cacheable {
         this.processor = processor;
     }
 
-    /**
-     * Get the {@link PostProcessor}, which will be called after
-     * {@link Processor} will finish its execution to finish IOEvent processing.
-     *
-     * @return the {@link PostProcessor}, which will be called after
-     * {@link Processor} will finish its execution to finish IOEvent processing.
-     */
-    public PostProcessor getPostProcessor() {
-        return postProcessor;
+    public FutureImpl getCompletionFuture() {
+        return completionFuture;
     }
 
-    /**
-     * Set the {@link PostProcessor}, which will be called after
-     * {@link Processor} will finish its execution to finish IOEvent processing.
-     *
-     * @param ioEventPostProcessor the {@link PostProcessor}, which will be
-     * called after {@link Processor} will finish its execution to
-     * finish IOEvent processing.
-     */
-    public void setPostProcessor(PostProcessor ioEventPostProcessor) {
-        this.postProcessor = ioEventPostProcessor;
+    public void setCompletionFuture(FutureImpl completionFuture) {
+        this.completionFuture = completionFuture;
     }
 
+    public CompletionHandler getCompletionHandler() {
+        return completionHandler;
+    }
+
+    public void setCompletionHandler(CompletionHandler completionHandler) {
+        this.completionHandler = completionHandler;
+    }
+    
     /**
      * Get attributes ({@link AttributeHolder}), associated with the processing
      * {@link Context}. {@link AttributeHolder} is cleared after each I/O event
@@ -230,6 +259,10 @@ public class Context implements AttributeStorage, Cacheable {
         return attributes;
     }
 
+    public final Runnable getRunnable() {
+        return contextRunnable;
+    }
+
     /**
      * If implementation uses {@link ObjectPool} to store and reuse
      * {@link Context} instances - this method will be called before
@@ -240,8 +273,9 @@ public class Context implements AttributeStorage, Cacheable {
         
         state = State.RUNNING;
         processor = null;
-        postProcessor = null;
         connection = null;
+        completionFuture = null;
+        completionHandler = null;
         ioEvent = IOEvent.NONE;
     }
 

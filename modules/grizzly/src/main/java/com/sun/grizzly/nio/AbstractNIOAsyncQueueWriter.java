@@ -46,21 +46,17 @@ import com.sun.grizzly.AbstractWriter;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.IOEvent;
-import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
-import com.sun.grizzly.ProcessorResult;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.WriteResult;
-import com.sun.grizzly.asyncqueue.AsyncQueue;
+import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.asyncqueue.MessageCloner;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.utils.ObjectPool;
 import java.util.Queue;
 
 /**
@@ -117,7 +113,7 @@ public abstract class AbstractNIOAsyncQueueWriter
         }
 
         // Get connection async write queue
-        final AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
+        final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
 
@@ -146,6 +142,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 // If buffer was written directly - set next queue element as current
                 // Notify callback handler
                 onWriteCompleted(connection, queueRecord);
+                queueRecord.recycle();
 
                 AsyncWriteQueueRecord nextRecord = queue.poll();
                 if (nextRecord != null) { // if there is something in queue
@@ -157,6 +154,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                     nextRecord = queue.peek();
                     if (nextRecord != null &&
                             currentElement.compareAndSet(null, nextRecord)) {
+                        queue.remove(nextRecord);
                         onReadyToWrite(connection);
                     }
                 }
@@ -211,7 +209,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public final boolean isReady(Connection connection) {
-        AsyncQueue connectionQueue =
+        TaskQueue connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
         return connectionQueue != null &&
@@ -225,7 +223,7 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public void processAsync(Connection connection) throws IOException {
-        final AsyncQueue<AsyncWriteQueueRecord> connectionQueue =
+        final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
         final Queue<AsyncWriteQueueRecord> queue = connectionQueue.getQueue();
@@ -243,7 +241,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                 // check if buffer was completely written
                 if (isFinished(connection, queueRecord)) {
                     onWriteCompleted(connection, queueRecord);
-
+                    queueRecord.recycle();
+                    
                     queueRecord = queue.poll();
                     currentElement.set(queueRecord);
 
@@ -275,7 +274,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     public void onClose(Connection connection) {
         final AbstractNIOConnection nioConnection =
                 (AbstractNIOConnection) connection;
-        final AsyncQueue<AsyncWriteQueueRecord> writeQueue =
+        final TaskQueue<AsyncWriteQueueRecord> writeQueue =
                 nioConnection.getAsyncWriteQueue();
         if (writeQueue != null) {
             AsyncWriteQueueRecord record =
@@ -295,38 +294,6 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
             }
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    public final ObjectPool getContextPool() {
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final boolean isInterested(IOEvent ioEvent) {
-        return ioEvent == IOEvent.WRITE;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final ProcessorResult process(Context context)
-            throws IOException {
-        processAsync(context.getConnection());
-        return null;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final void setInterested(IOEvent ioEvent, boolean isInterested) {
     }
 
     /**
@@ -424,8 +391,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     }
 
     protected final void onWriteCompleted(Connection connection,
-            AsyncWriteQueueRecord record)
-            throws IOException {
+            AsyncWriteQueueRecord record) throws IOException {
 
         final Transformer transformer = record.getTransformer();
         if (transformer != null) {
@@ -451,8 +417,6 @@ public abstract class AbstractNIOAsyncQueueWriter
             // try to dispose originalBuffer (if allowed)
             ((Buffer) originalMessage).tryDispose();
         }
-        
-        record.recycle();
     }
 
     protected final void onWriteIncompleted(Connection connection,

@@ -47,22 +47,22 @@ import java.util.Map;
  * @author oleksiys
  */
 public final class ThreadCache {
-    private static final Object[] INITIAL_OBJECT_ARRAY = new Object[16];
+    private static final ObjectCacheElement[] INITIAL_OBJECT_ARRAY = new ObjectCacheElement[16];
     
     private static final Map<Class, CachedTypeIndex> typeIndexMap =
             new HashMap<Class, CachedTypeIndex>();
     
     private static int indexCounter;
 
-    private static ThreadLocal<Object[]> genericCacheAttr =
-            new ThreadLocal<Object[]>();
+    private static ThreadLocal<ObjectCache> genericCacheAttr =
+            new ThreadLocal<ObjectCache>();
 
     public static synchronized <E> CachedTypeIndex<E> obtainIndex(
-            Class<E> clazz) {
+            Class<E> clazz, int size) {
         
         CachedTypeIndex typeIndex = typeIndexMap.get(clazz);
         if (typeIndex == null) {
-            typeIndex = new CachedTypeIndex(indexCounter++, clazz);
+            typeIndex = new CachedTypeIndex(indexCounter++, clazz, size);
             typeIndexMap.put(clazz, typeIndex);
         }
 
@@ -74,20 +74,13 @@ public final class ThreadCache {
         if (currentThread instanceof DefaultWorkerThread) {
             ((DefaultWorkerThread) currentThread).putToCache(index, o);
         } else {
-            Object[] genericCache = genericCacheAttr.get();
-            if (genericCache != null && index.getIndex() < genericCache.length) {
-                genericCache[index.getIndex()] = o;
-                return;
+            ObjectCache genericCache = genericCacheAttr.get();
+            if (genericCache == null) {
+                genericCache = new ObjectCache();
+                genericCacheAttr.set(genericCache);
             }
-
-            final Object[] arrayToGrow =
-                    (genericCache != null) ? genericCache : INITIAL_OBJECT_ARRAY;
-            final int newSize = Math.max(index.getIndex() + 1,
-                    (arrayToGrow.length * 3) / 2 + 1);
             
-            genericCache = Arrays.copyOf(arrayToGrow, newSize);
-            genericCache[index.getIndex()] = o;
-            genericCacheAttr.set(genericCache);
+            genericCache.put(index, o);
         }
     }
 
@@ -96,27 +89,97 @@ public final class ThreadCache {
         if (currentThread instanceof DefaultWorkerThread) {
             return ((DefaultWorkerThread) currentThread).takeFromCache(index);
         } else {
-            final Object[] genericCache = genericCacheAttr.get();
-            final int idx;
-            if (genericCache != null &&
-                    (idx = index.getIndex()) < genericCache.length) {
-                
-                E tmpObj = (E) genericCache[idx];
-                genericCache[idx] = null;
-                return tmpObj;
+            final ObjectCache genericCache = genericCacheAttr.get();
+            if (genericCache != null) {
+                genericCache.get(index);
             }
 
             return null;
         }
     }
 
+    public static final class ObjectCache {
+        private ObjectCacheElement[] objectCacheElements;
+
+        public void put(CachedTypeIndex index, Object o) {
+            if (objectCacheElements != null &&
+                    index.getIndex() < objectCacheElements.length) {
+                ObjectCacheElement objectCache = objectCacheElements[index.getIndex()];
+                if (objectCache == null) {
+                    objectCache = new ObjectCacheElement(index.size);
+                    objectCacheElements[index.getIndex()] = objectCache;
+                }
+
+                objectCache.put(o);
+                return;
+            }
+
+            final ObjectCacheElement[] arrayToGrow =
+                    (objectCacheElements != null) ?
+                        objectCacheElements : INITIAL_OBJECT_ARRAY;
+            final int newSize = Math.max(index.getIndex() + 1,
+                    (arrayToGrow.length * 3) / 2 + 1);
+
+            objectCacheElements = Arrays.copyOf(arrayToGrow, newSize);
+
+            final ObjectCacheElement objectCache = new ObjectCacheElement(index.getSize());
+            objectCache.put(o);
+            objectCacheElements[index.getIndex()] = objectCache;
+        }
+
+        public <E> E get(CachedTypeIndex<E> index) {
+            final int idx;
+            if (objectCacheElements != null &&
+                    (idx = index.getIndex()) < objectCacheElements.length) {
+
+                final ObjectCacheElement objectCache = objectCacheElements[idx];
+                if (objectCache == null) return null;
+
+                return (E) objectCache.get();
+            }
+
+            return null;
+        }
+    }
+    
+    public static final class ObjectCacheElement {
+        private final int size;
+        private final Object[] cache;
+        private int index;
+        
+        public ObjectCacheElement(int size) {
+            this.size = size;
+            cache = new Object[size];
+        }
+
+        public void put(Object o) {
+            if (index < size) {
+                cache[index++] = o;
+            }
+        }
+
+        public Object get() {
+            if (index > 0) {
+                index--;
+                
+                final Object o = cache[index];
+                cache[index] = null;
+                return o;
+            }
+
+            return null;
+        }
+    }
+    
     public static class CachedTypeIndex<E> {
         private final int index;
         private final Class clazz;
+        private final int size;
 
-        public CachedTypeIndex(int index, Class<E> clazz) {
+        public CachedTypeIndex(int index, Class<E> clazz, int size) {
             this.index = index;
             this.clazz = clazz;
+            this.size = size;
         }
 
         public int getIndex() {
@@ -125,6 +188,10 @@ public final class ThreadCache {
 
         public Class getClazz() {
             return clazz;
+        }
+
+        public int getSize() {
+            return size;
         }
     }
 }

@@ -39,7 +39,6 @@
 package com.sun.grizzly;
 
 import java.util.concurrent.TimeUnit;
-import junit.framework.TestCase;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.DefaultMemoryManager;
@@ -51,7 +50,7 @@ import java.util.concurrent.ExecutorService;
  *
  * @author oleksiys
  */
-public class DefaultMemoryManagerTest extends TestCase {
+public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     public void testDispose() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager();
         Runnable r = new Runnable() {

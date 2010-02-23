@@ -38,8 +38,6 @@
 
 package com.sun.grizzly.nio.transport;
 
-import com.sun.grizzly.Transformer;
-import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.WriteResult;
@@ -56,14 +54,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.GrizzlyFuture;
-import com.sun.grizzly.Interceptor;
-import com.sun.grizzly.Reader;
-import com.sun.grizzly.Writer;
-import com.sun.grizzly.nio.tmpselectors.TemporarySelectorReader;
-import com.sun.grizzly.nio.tmpselectors.TemporarySelectorWriter;
-import java.io.EOFException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
 
 /**
  * {@link com.sun.grizzly.Connection} implementation
@@ -76,7 +67,9 @@ public class TCPNIOConnection extends AbstractNIOConnection {
 
     private SocketAddress localSocketAddress;
     private SocketAddress peerSocketAddress;
-    
+
+    private volatile Callable<Connection> connectHandler;
+
     public TCPNIOConnection(TCPNIOTransport transport,
             SelectableChannel channel) {
         super(transport);
@@ -145,68 +138,23 @@ public class TCPNIOConnection extends AbstractNIOConnection {
         }
     }
 
-    @Override
-    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
-            final M message,
-            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
-            final Transformer<Buffer, M> transformer,
-            final Interceptor<ReadResult> interceptor) throws IOException {
-        
-        final TCPNIOTransport tcpNioTransport = (TCPNIOTransport) transport;
-
-        if (isBlocking) {
-            try {
-                final TemporarySelectorReader reader =
-                        (TemporarySelectorReader) tcpNioTransport.getTemporarySelectorIO().getReader();
-                final GrizzlyFuture future = reader.read(this, message,
-                        completionHandler, transformer, interceptor,
-                        readTimeoutMillis, TimeUnit.MILLISECONDS);
-                return future;
-            } catch (Exception e) {
-                logger.log(Level.FINE, "Error occured during TemporarySelector.read", e);
-                throw new EOFException();
-            }
-        } else {
-            try {
-                final Reader reader = tcpNioTransport.getAsyncQueueIO().getReader();
-                final GrizzlyFuture future = reader.read(this, message,
-                        completionHandler, transformer, interceptor);
-                return future;
-            } catch (IOException e) {
-                throw e;
-            }
-        }
+    protected final void setConnectHandler(
+            Callable<Connection> connectHandler) {
+        this.connectHandler = connectHandler;
     }
 
-    @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
-            SocketAddress dstAddress, M message,
-            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            Transformer<M, Buffer> transformer) throws IOException {
-
-        final TCPNIOTransport tcpNioTransport = (TCPNIOTransport) transport;
-
-        if (isBlocking) {
+    protected void onConnect() throws IOException {
+        final Callable<Connection> localConnectHandler = connectHandler;
+        
+        if (localConnectHandler != null) {
+            connectHandler = null;
+            
             try {
-                final TemporarySelectorWriter writer =
-                        (TemporarySelectorWriter) tcpNioTransport.getTemporarySelectorIO().getWriter();
-                final GrizzlyFuture future = writer.write(this, dstAddress,
-                        message, completionHandler, transformer, null,
-                        writeTimeoutMillis, TimeUnit.MILLISECONDS);
-                return future;
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "Error writing to channel", e);
-                throw new EOFException("Cause: " + e.getClass().getName() +
-                        " \"" + e.getMessage() + "\"");
-            }
-        } else {
-            try {
-                final Writer writer = tcpNioTransport.getAsyncQueueIO().getWriter();
-                final GrizzlyFuture future = writer.write(this, null, message,
-                        completionHandler, transformer, null);
-                return future;
+                localConnectHandler.call();
             } catch (IOException e) {
                 throw e;
+            } catch (Exception e) {
+                throw new IOException("Connect exception", e);
             }
         }
     }

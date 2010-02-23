@@ -43,13 +43,12 @@ import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import java.util.LinkedList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import junit.framework.TestCase;
 
 /**
  *
  * @author gustav trede
  */
-public class GrizzlyExecutorServiceTest extends TestCase {
+public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
 
     public GrizzlyExecutorServiceTest() {
     }

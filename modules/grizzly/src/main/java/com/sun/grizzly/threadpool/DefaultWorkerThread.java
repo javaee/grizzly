@@ -40,11 +40,11 @@ package com.sun.grizzly.threadpool;
 
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.ThreadCache;
+import com.sun.grizzly.ThreadCache.ObjectCache;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.memory.DefaultMemoryManager.BufferInfo;
-import java.util.Arrays;
 
 /**
  * Default Grizzly worker thread implementation
@@ -58,7 +58,7 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
 
     private BufferInfo associatedBuffer;
     
-    private Object[] objectCache = new Object[16];
+    private final ObjectCache objectCache = new ObjectCache();
     
     private long transactionTimeoutMillis =
             WorkerThread.UNLIMITED_TRANSACTION_TIMEOUT;
@@ -93,26 +93,11 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     }
 
     public final <E> E takeFromCache(ThreadCache.CachedTypeIndex<E> index) {
-        final int idx = index.getIndex();
-        if (idx < objectCache.length) {
-            final E tmpObject = (E) objectCache[idx];
-            objectCache[idx] = null;
-            return tmpObject;
-        }
-
-        return null;
+        return objectCache.get(index);
     }
 
     public final <E> void putToCache(ThreadCache.CachedTypeIndex<E> index, E o) {
-        final int idx = index.getIndex();
-        if (idx < objectCache.length) {
-            objectCache[idx] = o;
-        } else {
-            final int newSize = Math.max(idx + 1,
-                    (objectCache.length * 3) / 2 + 1);
-            objectCache = Arrays.copyOf(objectCache, newSize);
-            objectCache[idx] = o;
-        }
+        objectCache.put(index, o);
     }
 
     @Override

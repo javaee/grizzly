@@ -39,8 +39,8 @@
 package com.sun.grizzly.samples.echo;
 
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.filterchain.BaseFilter;
 import java.io.IOException;
-import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -52,7 +52,7 @@ import java.util.logging.Filter;
  * 
  * @author Alexey Stashok
  */
-public class EchoFilter extends FilterAdapter {
+public class EchoFilter extends BaseFilter {
 
     /**
      * Handle just read operation, when some message has come and ready to be
@@ -74,9 +74,9 @@ public class EchoFilter extends FilterAdapter {
 
         final Object message = ctx.getMessage();
 
-        connection.write(peerAddress, message, null, ctx.getEncoder());
+        ctx.write(peerAddress, message, null);
 
-        return nextAction;
+        return ctx.getStopAction();
     }
 
 }

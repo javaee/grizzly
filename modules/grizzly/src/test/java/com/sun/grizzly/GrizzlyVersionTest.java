@@ -38,13 +38,11 @@
 
 package com.sun.grizzly;
 
-import junit.framework.TestCase;
-
 /**
  *
  * @author Alexey Stashok
  */
-public class GrizzlyVersionTest extends TestCase {
+public class GrizzlyVersionTest extends GrizzlyTestCase {
     public void testGrizzlyVersion() {
         System.out.println("Grizzly version: " + Grizzly.getDotedVersion());
         assertTrue(true);

@@ -38,10 +38,11 @@
 
 package com.sun.grizzly.filterchain;
 
-import com.sun.grizzly.Buffer;
 import java.util.List;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.Codec;
+import com.sun.grizzly.ProcessorResult;
+import java.io.IOException;
 
 /**
  * <p>
@@ -86,21 +87,13 @@ import com.sun.grizzly.Codec;
  */
 public interface FilterChain extends Processor, List<Filter> {
     /**
-     * Get the <tt>FilterChain</tt> {@link Codec}.
+     * Method processes occured {@link IOEvent} on this {@link FilterChain}.
      *
-     * @return the <tt>FilterChain</tt> {@link Codec}.
-     */
-    public Codec<Buffer, Object> getCodec();
-
-    /**
-     * Get the {@link Codec} for the part of <tt>FilterChain</tt> part, starting
-     * from a {@link Filter} with index 0, ending with Filter with index
-     * (<tt>limit</tt> - 1)
+     * @param context processing context
+     * @return {@link ProcessorResult}
      *
-     * @return the {@link Codec} for the part of <tt>FilterChain</tt> part,
-     * starting from a {@link Filter} with index 0, ending with Filter with index
-     * (<tt>limit</tt> - 1)
+     * @throws java.io.IOException
      */
-    public Codec<Buffer, Object> getCodec(int limit);
+    public ProcessorResult execute(FilterChainContext context) throws IOException;
 
 }

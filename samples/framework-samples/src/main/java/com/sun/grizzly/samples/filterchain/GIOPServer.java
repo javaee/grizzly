@@ -58,7 +58,7 @@ public class GIOPServer {
 
         // Add filters to the chain
         transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new GIOPParserFilter());
+        transport.getFilterChain().add(new GIOPFilter());
         transport.getFilterChain().add(new EchoFilter());
 
 

@@ -53,7 +53,7 @@ import java.util.Arrays;
 public final class ByteBuffersBuffer implements CompositeBuffer {
     private static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
     private static final ThreadCache.CachedTypeIndex<ByteBuffersBuffer> CACHE_IDX =
-            ThreadCache.obtainIndex(ByteBuffersBuffer.class);
+            ThreadCache.obtainIndex(ByteBuffersBuffer.class, 2);
 
     /**
      * Construct <tt>ByteBuffersBuffer</tt>.
@@ -1259,7 +1259,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             return lastLocatedInfo;
         }
 
-        lastLocatedInfo = moveForward(0, position);
+        lastLocatedInfo = moveForward(buffers[0].position(), position);
         lastLocatedPosition = position;
 
         return lastLocatedInfo;
@@ -1270,11 +1270,11 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         int bufferPosition = getBufferPosition(currentLocation);
 
         ByteBuffer buffer = buffers[bufferIdx];
-        if (bufferPosition + steps < buffer.remaining()) {
+        if (bufferPosition + steps < buffer.limit()) {
             return makeLocation(bufferIdx, bufferPosition + steps);
         }
 
-        steps -= (buffer.remaining() - bufferPosition);
+        steps -= (buffer.limit() - bufferPosition);
         bufferIdx++;
         
         for (int i = bufferIdx; i < buffersSize; i++) {

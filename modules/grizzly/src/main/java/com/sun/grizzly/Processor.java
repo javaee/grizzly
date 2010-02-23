@@ -56,15 +56,6 @@ public interface Processor<E extends Context> {
     public E context();
 
     /**
-     * Method will be called by framework before executing
-     * this {@link Processor}.
-     *
-     * @param context processing context
-     * @throws java.io.IOException
-     */
-    public void beforeProcess(E context) throws IOException;
-
-    /**
      * Method will be called by framework to process some event, which
      * occured on a connection
      * 
@@ -74,15 +65,13 @@ public interface Processor<E extends Context> {
      */
     public ProcessorResult process(E context) throws IOException;
 
-    /**
-     * Method will be called by framework after {@link Processor} execution,
-     * so it can release associated resources.
-     *
-     * @param context processing context
-     * @throws java.io.IOException
-     */
-    public void afterProcess(E context) throws IOException;
+    public GrizzlyFuture read(Connection connection,
+            CompletionHandler completionHandler) throws IOException;
 
+    public <M> GrizzlyFuture write(Connection connection,
+            Object dstAddress, M message,
+            CompletionHandler completionHandler) throws IOException;
+    
     /**
      * Is this {@link Processor} interested in processing the i/o event
      * 

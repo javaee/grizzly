@@ -38,19 +38,17 @@
 
 package com.sun.grizzly.samples.ssl;
 
-import com.sun.grizzly.CompletionHandlerAdapter;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Transformer;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.net.URL;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.Filter;
-import com.sun.grizzly.filterchain.FilterAdapter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
@@ -119,7 +117,7 @@ public class StringBasedSSLEchoClient {
      * The {@link Filter}, responsible for handling client {@link Connection}
      * events.
      */
-    private static class SendMessageFilter extends FilterAdapter {
+    private static class SendMessageFilter extends BaseFilter {
         
         private final SSLFilter sslFilter;
 
@@ -140,11 +138,10 @@ public class StringBasedSSLEchoClient {
         public NextAction handleConnect(FilterChainContext ctx,
                 NextAction nextAction) throws IOException {
             final Connection connection = ctx.getConnection();
-            final MemoryManager mm = connection.getTransport().getMemoryManager();
-            final Transformer encoder = ctx.getEncoder();
 
             // Execute async SSL handshake
-            sslFilter.handshake(connection, new CompletionHandlerAdapter<SSLEngine>() {
+            sslFilter.handshake(connection,
+                    new EmptyCompletionHandler<SSLEngine>() {
 
                 /**
                  * Once SSL handshake will be completed - send greeting message
@@ -153,7 +150,7 @@ public class StringBasedSSLEchoClient {
                 public void completed(SSLEngine result) {
                     try {
                         // Here we send String directly
-                        connection.write(MESSAGE, null, encoder);
+                        connection.write(MESSAGE);
                     } catch (IOException e) {
                         try {
                             connection.close();
@@ -188,7 +185,7 @@ public class StringBasedSSLEchoClient {
                         message + "\"");
             }
 
-            return nextAction;
+            return ctx.getStopAction();
         }
 
     }

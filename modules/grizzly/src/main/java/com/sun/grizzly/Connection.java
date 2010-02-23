@@ -40,8 +40,6 @@ package com.sun.grizzly;
 
 import java.io.Closeable;
 import java.io.IOException;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.attributes.AttributeStorage;
 import java.util.concurrent.TimeUnit;
 
@@ -91,6 +89,21 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
     public void configureStandalone(boolean isStandalone);
 
     public boolean isStandalone();
+
+    /**
+     * Gets the {@link Processor}, which will process {@link Connection}
+     * I/O event.
+     * If {@link Processor} is <tt>null</tt>,  - then {@link Transport} will try
+     * to get {@link Processor} using {@link Connection}'s
+     * {@link ProcessorSelector#select(IOEvent, Connection)}. If
+     * {@link ProcessorSelector}, associated withthe {@link Connection} is also
+     * <tt>null</tt> - will ask {@link Transport} for a {@link Processor}.
+     *
+     * @return the default {@link Processor}, which will process
+     * {@link Connection} I/O events.
+     */
+    public Processor obtainProcessor(IOEvent ioEvent);
+    
     /**
      * Gets the default {@link Processor}, which will process {@link Connection}
      * I/O events.

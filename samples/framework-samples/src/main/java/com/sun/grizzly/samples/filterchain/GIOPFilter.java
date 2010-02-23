@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -35,40 +35,21 @@
  * holder.
  *
  */
+package com.sun.grizzly.samples.filterchain;
 
-package com.sun.grizzly.filterchain;
-
-import com.sun.grizzly.Codec;
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.filterchain.AbstractCodecFilter;
+import java.util.logging.Filter;
 
 /**
- * {@link DefaultFilterChain} codec implementation.
- *
- * @see Codec
+ * Example of parser {@link Filter}.
  *
  * @author Alexey Stashok
  */
-public class DefaultFilterChainCodec implements Codec {
-    private final DefaultDecoderTransformer decoder;
-    private final DefaultEncoderTransformer encoder;
-    
-    public DefaultFilterChainCodec(final DefaultFilterChain filterChain) {
-        this(filterChain, filterChain.size());
-    }
+public final class GIOPFilter extends AbstractCodecFilter<Buffer, GIOPMessage>{
 
-    public DefaultFilterChainCodec(final DefaultFilterChain filterChain,
-            final int limit) {
-        decoder = new DefaultDecoderTransformer(filterChain, limit);
-        encoder = new DefaultEncoderTransformer(filterChain, limit);
-    }
-
-    @Override
-    public final DefaultDecoderTransformer getDecoder() {
-        return decoder;
-    }
-
-    @Override
-    public final DefaultEncoderTransformer getEncoder() {
-        return encoder;
+    public GIOPFilter() {
+        super(new GIOPDecoder(), new GIOPEncoder());
     }
 
 }

@@ -37,17 +37,14 @@
  */
 package com.sun.grizzly.samples.filterchain;
 
-import com.sun.grizzly.Buffer;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.StandaloneProcessorSelector;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.TransformationResult.Status;
+import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.WriteResult;
+import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.streams.StreamReader;
-import com.sun.grizzly.streams.StreamWriter;
 
 /**
  * Simple GIOP client
@@ -59,10 +56,12 @@ public class GIOPClient {
     // @TODO comment the test out until Smart filter will be adjusted to new API
     public static void main(String[] args) throws Exception {
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
         // Create TCP NIO transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+
+        // Add filters to the chain
+        transport.getFilterChain().add(new TransportFilter());
+        transport.getFilterChain().add(new GIOPFilter());
 
         try {
             // start transport
@@ -74,44 +73,18 @@ public class GIOPClient {
 
             connection = future.get(10, TimeUnit.SECONDS);
 
-            // Initialize reader and writer
-            reader = transport.getStreamReader(connection);
-            writer = transport.getStreamWriter(connection);
-
-            // Enable standalone mode for this connection
-            // (don't use Filter chains or other I/O event processors)
-            connection.setProcessorSelector(new StandaloneProcessorSelector());
-
             // Initialize sample GIOP message
             byte[] testMessage = new String("GIOP test").getBytes();
             GIOPMessage sentMessage = new GIOPMessage((byte) 1, (byte) 2,
                     (byte) 0x0F, (byte) 0, testMessage);
 
-            final GIOPEncoder encoder = new GIOPEncoder();
-            final GIOPDecoder decoder = new GIOPDecoder();
+            Future<WriteResult> writeFuture = connection.write(sentMessage);
 
-            final TransformationResult<GIOPMessage, Buffer> tOutResult =
-                    encoder.transform(connection, sentMessage);
-            final Buffer outputBuffer = tOutResult.getMessage();
-            encoder.release(connection);
-            
-            writer.writeBuffer(outputBuffer);
-            Future<Integer> writeFuture = writer.flush();
+            writeFuture.get(10, TimeUnit.SECONDS);
 
-            int size = writeFuture.get(10, TimeUnit.SECONDS);
-
-            Future messageAvailFuture = reader.notifyAvailable(size);
-            messageAvailFuture.get(10, TimeUnit.SECONDS);
-
-            final Buffer inBuffer = reader.takeBufferWindow();
-            TransformationResult<Buffer, GIOPMessage> tInResult =
-                    decoder.transform(connection, inBuffer);
-
-            assert tInResult != null;
-            assert tInResult.getStatus() == Status.COMPLETED;
-
-            GIOPMessage rcvMessage = tInResult.getMessage();
-            decoder.release(connection);
+            Future<ReadResult> readFuture = connection.read();
+            ReadResult readResult = readFuture.get(10, TimeUnit.SECONDS);
+            GIOPMessage rcvMessage = (GIOPMessage) readResult.getMessage();
             
             // Check if echo returned message equal to original one
             if (sentMessage.equals(rcvMessage)) {

@@ -40,7 +40,7 @@ import java.nio.charset.CharsetEncoder;
 import java.util.Date;
 import junit.framework.TestCase;
 import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -76,7 +76,7 @@ public class RCMTest extends TestCase {
 
         transport.getFilterChain().add(new TransportFilter());
         transport.getFilterChain().add(parser);
-        transport.getFilterChain().add(new FilterAdapter() {
+        transport.getFilterChain().add(new BaseFilter() {
 
             /**
              * <code>CharBuffer</code> used to store the HTML response, containing
@@ -113,7 +113,7 @@ public class RCMTest extends TestCase {
                     ByteBuffer rBuf = encoder.encode(reponseBuffer);
 
                     final Buffer writeBuffer = MemoryUtils.wrap(memoryManager, rBuf);
-                    connection.write(writeBuffer, null, ctx.getEncoder());
+                    ctx.write(writeBuffer, null);
                 } catch (IOException t) {
                     t.printStackTrace();
                     throw t;
@@ -121,7 +121,7 @@ public class RCMTest extends TestCase {
 
                 ctx.getConnection().close();
                 
-                return nextAction;
+                return ctx.getStopAction();
             }
 
             /**

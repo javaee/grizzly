@@ -38,17 +38,20 @@
 
 package com.sun.grizzly.asyncqueue;
 
+import com.sun.grizzly.Cacheable;
 import com.sun.grizzly.Interceptor;
 import java.util.concurrent.Future;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Transformer;
+import com.sun.grizzly.utils.DebugPoint;
 
 /**
  * {@link AsyncQueue} element unit
  * 
  * @author Alexey Stashok
  */
-public class AsyncQueueRecord<R> {
+public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected Object originalMessage;
     protected Object message;
     protected Future future;
@@ -57,6 +60,9 @@ public class AsyncQueueRecord<R> {
     protected Transformer transformer;
     protected Interceptor<R> interceptor;
 
+    protected boolean isRecycled = false;
+    protected DebugPoint recycleTrack;
+    
     public AsyncQueueRecord(Object originalMessage, Future future,
             R currentResult, CompletionHandler completionHandler,
             Transformer transformer, Interceptor<R> interceptor) {
@@ -69,6 +75,7 @@ public class AsyncQueueRecord<R> {
             R currentResult, CompletionHandler completionHandler,
             Transformer transformer, Interceptor<R> interceptor) {
 
+        checkRecycled();
         this.originalMessage = originalMessage;
         this.message = originalMessage;
         this.future = future;
@@ -79,38 +86,58 @@ public class AsyncQueueRecord<R> {
     }
 
     public Object getOriginalMessage() {
+        checkRecycled();
         return originalMessage;
     }
 
     public final Object getMessage() {
+        checkRecycled();
         return message;
     }
 
     public final void setMessage(Object message) {
+        checkRecycled();
         this.message = message;
     }
 
     public final Future getFuture() {
+        checkRecycled();
         return future;
     }
 
     public void setFuture(Future future) {
+        checkRecycled();
         this.future = future;
     }
 
     public final R getCurrentResult() {
+        checkRecycled();
         return currentResult;
     }
 
     public final CompletionHandler getCompletionHandler() {
+        checkRecycled();
         return completionHandler;
     }
 
     public final Transformer getTransformer() {
+        checkRecycled();
         return transformer;
     }
 
     public final Interceptor<R> getInterceptor() {
+        checkRecycled();
         return interceptor;
+    }
+
+    protected final void checkRecycled() {
+        if (Grizzly.isTrackingThreadCache() && isRecycled) {
+            final DebugPoint track = recycleTrack;
+            if (track != null) {
+                throw new IllegalStateException("AsyncReadQueueRecord has been recycled at: " + track);
+            } else {
+                throw new IllegalStateException("AsyncReadQueueRecord has been recycled");
+            }
+        }
     }
 }

@@ -48,12 +48,13 @@ import java.io.IOException;
  *
  * @author Alexey Stashok
  */
-public class CodecFilterAdapter<K, L> extends FilterAdapter
+public abstract class AbstractCodecFilter<K, L> extends BaseFilter
         implements CodecFilter<K, L> {
     private final Transformer<K, L> decoder;
     private final Transformer<L, K> encoder;
 
-    public CodecFilterAdapter(Transformer<K, L> decoder, Transformer<L, K> encoder) {
+    public AbstractCodecFilter(Transformer<K, L> decoder,
+            Transformer<L, K> encoder) {
         this.decoder = decoder;
         this.encoder = encoder;
     }
@@ -73,7 +74,7 @@ public class CodecFilterAdapter<K, L> extends FilterAdapter
                 final K remainder = result.getExternalRemainder();
                 final boolean hasRemaining =
                         decoder.hasInputRemaining(remainder);
-                decoder.release(ctx);
+                decoder.release(connection);
                 
                 ctx.setMessage(result.getMessage());
                 if (hasRemaining) {
@@ -110,8 +111,11 @@ public class CodecFilterAdapter<K, L> extends FilterAdapter
             {
                 ctx.setMessage(result.getMessage());
                 final L remainder = result.getExternalRemainder();
+                final boolean hasRemaining =
+                        encoder.hasInputRemaining(remainder);
+                encoder.release(connection);
                 
-                if (encoder.hasInputRemaining(remainder)) {
+                if (hasRemaining) {
                     return ctx.getInvokeAction(remainder);
                 } else {
                     return ctx.getInvokeAction();

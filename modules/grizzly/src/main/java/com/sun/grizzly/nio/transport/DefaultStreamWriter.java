@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.net.SocketAddress;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.FutureImpl;
@@ -52,24 +53,24 @@ import com.sun.grizzly.streams.BufferedOutput;
  *
  * @author Alexey Stashok
  */
-public class UDPNIOStreamWriter extends AbstractStreamWriter {
-
-    public UDPNIOStreamWriter(UDPNIOConnection connection) {
-        super(connection, new UDPNIOOutput(connection));
+public final class DefaultStreamWriter extends AbstractStreamWriter {
+    public DefaultStreamWriter(Connection connection) {
+        super(connection, new Output(connection));
     }
 
     @Override
     public GrizzlyFuture<Integer> flush(
-            CompletionHandler<Integer> completionHandler) throws IOException {
+            final CompletionHandler<Integer> completionHandler)
+            throws IOException {
         return super.flush(new ResetCounterCompletionHandler(
-                (UDPNIOOutput) output, completionHandler));
+                (Output) output, completionHandler));
     }
 
-    public final static class UDPNIOOutput extends BufferedOutput {
-        private final UDPNIOConnection connection;
+    public final static class Output extends BufferedOutput {
+        private final Connection connection;
         private int sentBytesCounter;
 
-        public UDPNIOOutput(UDPNIOConnection connection) {
+        public Output(Connection connection) {
             super(connection.getWriteBufferSize());
             this.connection = connection;
         }
@@ -79,9 +80,9 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
         protected GrizzlyFuture<Integer> flush0(Buffer buffer,
                 final CompletionHandler<Integer> completionHandler)
                 throws IOException {
-
+            
             final FutureImpl<Integer> future = FutureImpl.<Integer>create();
-
+            
             if (buffer == null) {
                 buffer = BufferUtils.EMPTY_BUFFER;
             }
@@ -110,11 +111,11 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
     private final static class CompletionHandlerAdapter
             implements CompletionHandler<WriteResult<Buffer, SocketAddress>> {
 
-        private final UDPNIOOutput output;
+        private final Output output;
         private final FutureImpl<Integer> future;
         private final CompletionHandler<Integer> completionHandler;
 
-        public CompletionHandlerAdapter(UDPNIOOutput output,
+        public CompletionHandlerAdapter(Output output,
                 FutureImpl<Integer> future,
                 CompletionHandler<Integer> completionHandler) {
             this.output = output;
@@ -170,10 +171,10 @@ public class UDPNIOStreamWriter extends AbstractStreamWriter {
     private final static class ResetCounterCompletionHandler
             implements CompletionHandler<Integer> {
 
-        private final UDPNIOOutput output;
+        private final Output output;
         private final CompletionHandler<Integer> parentCompletionHandler;
 
-        public ResetCounterCompletionHandler(UDPNIOOutput output,
+        public ResetCounterCompletionHandler(Output output,
                 CompletionHandler<Integer> parentCompletionHandler) {
             this.output = output;
             this.parentCompletionHandler = parentCompletionHandler;

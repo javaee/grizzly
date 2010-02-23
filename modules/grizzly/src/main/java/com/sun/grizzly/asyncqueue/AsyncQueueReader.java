@@ -45,6 +45,5 @@ import com.sun.grizzly.Reader;
  * 
  * @author Alexey Stashok
  */
-public interface AsyncQueueReader<L>
-        extends Reader<L>, AsyncQueueProcessor {
+public interface AsyncQueueReader<L> extends Reader<L>, AsyncQueue {
 }

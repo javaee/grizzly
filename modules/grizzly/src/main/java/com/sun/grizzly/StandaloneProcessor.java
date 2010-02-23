@@ -38,7 +38,16 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.asyncqueue.AsyncQueueEnabledTransport;
+import com.sun.grizzly.asyncqueue.AsyncQueueReader;
+import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
+import com.sun.grizzly.filterchain.FilterChain;
+import com.sun.grizzly.nio.transport.DefaultStreamReader;
+import com.sun.grizzly.nio.transport.DefaultStreamWriter;
+import com.sun.grizzly.streams.StreamReader;
+import com.sun.grizzly.streams.StreamWriter;
 import java.io.IOException;
+import java.net.Socket;
 
 /**
  * {@link Processor}, which is not interested in processing I/O events.
@@ -51,7 +60,7 @@ import java.io.IOException;
  *
  * @author Alexey Stashok
  */
-public class StandaloneProcessor extends AbstractProcessor {
+public class StandaloneProcessor implements Processor {
     public static final StandaloneProcessor INSTANCE = new StandaloneProcessor();
 
     /**
@@ -61,7 +70,31 @@ public class StandaloneProcessor extends AbstractProcessor {
      */
     @Override
     public ProcessorResult process(Context context) throws IOException {
-        throw new IllegalStateException("NullProcessor should never be executed");
+        final IOEvent iOEvent = context.getIoEvent();
+        if (iOEvent == IOEvent.READ) {
+            final Connection connection = context.getConnection();
+            final AsyncQueueReader reader =
+                    ((AsyncQueueEnabledTransport) connection.getTransport()).
+                    getAsyncQueueIO().getReader();
+            if (reader.isReady(connection)) {
+                reader.processAsync(connection);
+            }
+
+            return ProcessorResult.createCompletedLeave();
+        } else if (iOEvent == IOEvent.WRITE) {
+            final Connection connection = context.getConnection();
+            final AsyncQueueWriter writer =
+                    ((AsyncQueueEnabledTransport) connection.getTransport()).
+                    getAsyncQueueIO().getWriter();
+            
+            if (writer.isReady(connection)) {
+                writer.processAsync(connection);
+            }
+
+            return ProcessorResult.createCompletedLeave();
+        }
+        
+        throw new IllegalStateException("Unexpected IOEvent=" + iOEvent);
     }
 
     /**
@@ -69,7 +102,7 @@ public class StandaloneProcessor extends AbstractProcessor {
      */
     @Override
     public boolean isInterested(IOEvent ioEvent) {
-        return false;
+        return ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE;
     }
 
     /**
@@ -77,5 +110,55 @@ public class StandaloneProcessor extends AbstractProcessor {
      */
     @Override
     public void setInterested(IOEvent ioEvent, boolean isInterested) {
+    }
+
+    @Override
+    public Context context() {
+        final Context context = Context.create();
+        context.setProcessor(this);
+        return context;
+    }
+
+
+    /**
+     * Get the {@link Connection} {@link StreamReader}, to read data from the
+     * {@link Connection}.
+     *
+     * @return the {@link Connection} {@link StreamReader}, to read data from the
+     * {@link Connection}.
+     */
+    public StreamReader getStreamReader(Connection connection) {
+        return new DefaultStreamReader(connection);
+    }
+
+    /**
+     * Get the {@link Connection} {@link StreamWriter}, to write data to the
+     * {@link Connection}.
+     *
+     * @return the {@link Connection} {@link StreamWriter}, to write data to the
+     * {@link Connection}.
+     */
+    public StreamWriter getStreamWriter(Connection connection) {
+        return new DefaultStreamWriter(connection);
+    }
+
+    @Override
+    public GrizzlyFuture read(Connection connection,
+            CompletionHandler completionHandler) throws IOException {
+        
+        final Transport transport = connection.getTransport();
+        return transport.getReader(connection).read(connection,
+                null, completionHandler);
+    }
+
+    @Override
+    public GrizzlyFuture write(Connection connection, Object dstAddress,
+            Object message, CompletionHandler completionHandler)
+            throws IOException {
+        
+        final Transport transport = connection.getTransport();
+        
+        return transport.getWriter(connection).write(connection, dstAddress,
+                (Buffer) message, completionHandler);
     }
 }

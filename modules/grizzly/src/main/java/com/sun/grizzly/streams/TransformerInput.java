@@ -36,7 +36,7 @@
 package com.sun.grizzly.streams;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.CompletionHandlerAdapter;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransformationException;
@@ -93,7 +93,7 @@ public final class TransformerInput extends BufferedInput {
     }
 
     public final class TransformerCompletionHandler
-            extends CompletionHandlerAdapter<Integer> {
+            extends EmptyCompletionHandler<Integer> {
         
         @Override
         public void failed(Throwable throwable) {

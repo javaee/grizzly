@@ -39,9 +39,11 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.filterchain.CodecFilterAdapter;
+import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.filterchain.Filter;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.DefaultFilterChain;
+import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
@@ -52,14 +54,14 @@ import com.sun.grizzly.utils.StringFilter;
 import java.io.IOException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-import junit.framework.TestCase;
 
 /**
  *
  * @author Alexey Stashok
  */
-public class ProtocolChainCodecTest extends TestCase {
+public class ProtocolChainCodecTest extends GrizzlyTestCase {
     private static final Logger logger = Grizzly.logger(ProtocolChainCodecTest.class);
     public static final int PORT = 7784;
     
@@ -98,29 +100,33 @@ public class ProtocolChainCodecTest extends TestCase {
     public void testSyncDelayedSingleChunkedStringEcho() throws Exception {
         logger.info("This test execution may take several seconds");
         doTestStringEcho(true, 1,
-                new CodecFilterAdapter(new DelayTransformer(1000),
-                new DelayTransformer(20)), new ChunkingFilter(1));
+                new AbstractCodecFilter(new DelayTransformer(1000),
+                new DelayTransformer(20)) {},
+                new ChunkingFilter(1));
     }
 
     public void testAsyncDelayedSingleChunkedStringEcho() throws Exception {
         logger.info("This test execution may take several seconds");
         doTestStringEcho(false, 1,
-                new CodecFilterAdapter(new DelayTransformer(1000),
-                new DelayTransformer(20)), new ChunkingFilter(1));
+                new AbstractCodecFilter(new DelayTransformer(1000),
+                new DelayTransformer(20)){},
+                new ChunkingFilter(1));
     }
 
     public void testSyncDelayed5ChunkedStringEcho() throws Exception {
         logger.info("This test execution may take several seconds");
         doTestStringEcho(true, 5,
-                new CodecFilterAdapter(new DelayTransformer(1000),
-                new DelayTransformer(20)), new ChunkingFilter(1));
+                new AbstractCodecFilter(new DelayTransformer(1000),
+                new DelayTransformer(20)) {},
+                new ChunkingFilter(1));
     }
 
     public void testAsyncDelayed5ChunkedStringEcho() throws Exception {
         logger.info("This test execution may take several seconds");
         doTestStringEcho(false, 5,
-                new CodecFilterAdapter(new DelayTransformer(1000),
-                new DelayTransformer(20)), new ChunkingFilter(1));
+                new AbstractCodecFilter(new DelayTransformer(1000),
+                new DelayTransformer(20)) {},
+                new ChunkingFilter(1));
     }
 
     protected final void doTestStringEcho(boolean blocking,
@@ -136,19 +142,20 @@ public class ProtocolChainCodecTest extends TestCase {
             transport.getFilterChain().add(filter);
         }
         transport.getFilterChain().add(new StringFilter());
-        transport.getFilterChain().add(new FilterAdapter() {
+        transport.getFilterChain().add(new BaseFilter() {
             volatile int counter;
             @Override
-            public NextAction handleRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
-                final Connection connection = ctx.getConnection();
+            public NextAction handleRead(FilterChainContext ctx,
+                    NextAction nextAction) throws IOException {
+                
                 final String message = (String) ctx.getMessage();
 
-//                System.out.println("Server got message: " + message);
+                logger.log(Level.FINE, "Server got message: " + message);
 
                 assertEquals(clientMessage + "-" + counter, message);
 
-                connection.write(serverMessage + "-" + counter++, null, ctx.getEncoder());
-                return nextAction;
+                ctx.write(serverMessage + "-" + counter++);
+                return ctx.getStopAction();
             }
         });
 
@@ -160,20 +167,22 @@ public class ProtocolChainCodecTest extends TestCase {
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            connection.setProcessor(null);
+            FilterChain filterChain = new DefaultFilterChain();
+            filterChain.add(new TransportFilter());
+            filterChain.add(new StringFilter());
+            
+            connection.setProcessor(filterChain);
             connection.configureBlocking(blocking);
 
             for (int i = 0; i < messageNum; i++) {
                 Future<WriteResult> writeFuture = connection.write(
-                        clientMessage + "-" + i, null,
-                        transport.getFilterChain().getCodec().getEncoder());
+                        clientMessage + "-" + i);
 
                 assertTrue("Write timeout loop: " + i,
                         writeFuture.get(10, TimeUnit.SECONDS) != null);
 
 
-                Future<ReadResult> readFuture = connection.read(null, null,
-                        transport.getFilterChain().getCodec().getDecoder());
+                Future<ReadResult> readFuture = connection.read();
                 assertTrue("Read timeout loop: " + i,
                         readFuture.get(10, TimeUnit.SECONDS) != null);
 

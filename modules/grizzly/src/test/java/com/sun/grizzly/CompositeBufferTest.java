@@ -41,14 +41,13 @@ import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.memory.CompositeBuffer;
-import junit.framework.TestCase;
 
 /**
  * {@link CompositeBuffer} test set.
  * 
  * @author Alexey Stashok
  */
-public class CompositeBufferTest extends TestCase {
+public class CompositeBufferTest extends GrizzlyTestCase {
 
     enum CompositeBufferType {
 

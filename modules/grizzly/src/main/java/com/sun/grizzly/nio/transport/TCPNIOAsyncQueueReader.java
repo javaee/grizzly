@@ -103,17 +103,4 @@ public final class TCPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
                 nioConnection.getSelectorRunner(),
                 nioConnection.getSelectionKey(), SelectionKey.OP_READ);
     }
-
-    @Override
-    public Context context() {
-        return null;
-    }
-
-    @Override
-    public void beforeProcess(Context context) throws IOException {
-    }
-
-    @Override
-    public void afterProcess(Context context) throws IOException {
-    }
 }

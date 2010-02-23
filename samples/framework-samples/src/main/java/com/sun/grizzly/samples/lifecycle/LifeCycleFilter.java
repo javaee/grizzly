@@ -46,7 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 
@@ -57,7 +57,7 @@ import com.sun.grizzly.filterchain.NextAction;
  *
  * @author Alexey Stashok
  */
-public class LifeCycleFilter extends FilterAdapter {
+public class LifeCycleFilter extends BaseFilter {
     private Attribute<Integer> connectionIdAttribute =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("connection-id");
 

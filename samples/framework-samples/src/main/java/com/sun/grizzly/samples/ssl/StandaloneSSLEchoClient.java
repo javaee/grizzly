@@ -45,6 +45,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.StandaloneProcessor;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
@@ -89,9 +90,11 @@ public class StandaloneSSLEchoClient {
 
             assert connection != null;
 
+            connection.configureStandalone(true);
+            
             // Initialize SSLReader and SSLWriter
-            reader = new SSLStreamReader(transport.getStreamReader(connection));
-            writer = new SSLStreamWriter(transport.getStreamWriter(connection));
+            reader = new SSLStreamReader(StandaloneProcessor.INSTANCE.getStreamReader(connection));
+            writer = new SSLStreamWriter(StandaloneProcessor.INSTANCE.getStreamWriter(connection));
 
             // Perform SSL handshake
             Future handshakeFuture = writer.handshake(reader, initializeSSL());

@@ -49,7 +49,7 @@ import java.util.logging.Level;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.filterchain.FilterAdapter;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.memory.BufferUtils;
@@ -76,7 +76,7 @@ import java.util.logging.Logger;
  *
  * @author Jeanfrancois Arcand
  */
-public class ResourceAllocationFilter extends FilterAdapter {
+public class ResourceAllocationFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(ResourceAllocationFilter.class);
     
     protected final static String RESERVE = "reserve";
@@ -224,8 +224,10 @@ public class ResourceAllocationFilter extends FilterAdapter {
             threadPools.put(token, threadPool);
         }
 
+        ctx.nextFilterIdx();
         ctx.suspend();
-        threadPool.execute(ctx.getProcessorRunnable());
+        
+        threadPool.execute(ctx.getRunnable());
         return ctx.getSuspendAction();
     }
 

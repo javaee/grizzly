@@ -115,27 +115,9 @@ public class LogFilter implements Filter {
     }
 
     @Override
-    public NextAction postRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        logger.log(level, "LogFilter postRead. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
-        return nextAction;
-    }
-
-    @Override
     public NextAction handleWrite(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
         logger.log(level, "LogFilter handleWrite. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
-        return nextAction;
-    }
-
-    @Override
-    public NextAction postWrite(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        logger.log(level, "LogFilter postWrite. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
         return nextAction;
@@ -151,15 +133,6 @@ public class LogFilter implements Filter {
     }
 
     @Override
-    public NextAction postConnect(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        logger.log(level, "LogFilter postConnect. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
-        return nextAction;
-    }
-
-    @Override
     public NextAction handleAccept(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
         logger.log(level, "LogFilter handleAccept. Connection=" +
@@ -169,27 +142,9 @@ public class LogFilter implements Filter {
     }
 
     @Override
-    public NextAction postAccept(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        logger.log(level, "LogFilter postAccept. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
-        return nextAction;
-    }
-
-    @Override
     public NextAction handleClose(FilterChainContext ctx,
             NextAction nextAction) throws IOException {
         logger.log(level, "LogFilter handleClose. Connection=" +
-                ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
-                " message=" + ctx.getMessage());
-        return nextAction;
-    }
-
-    @Override
-    public NextAction postClose(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
-        logger.log(level, "LogFilter postClose. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
         return nextAction;

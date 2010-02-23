@@ -55,7 +55,7 @@ public class TunnelServer {
     public static final String HOST = "localhost";
     public static final int PORT = 7777;
 
-    public static final String REDIRECT_HOST = "delo.si";
+    public static final String REDIRECT_HOST = "java.net";
     public static final int REDIRECT_PORT = 80;
 
     public static void main(String[] args) throws IOException {

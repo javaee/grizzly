@@ -52,39 +52,6 @@ import java.util.concurrent.Future;
  */
 public interface Readable<L> extends Closeable {
     /**
-     * Method reads data.
-     *
-     * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
-     */
-    public GrizzlyFuture<ReadResult<Buffer, L>> read()
-            throws IOException;
-
-    /**
-     * Method reads data to the <tt>buffer</tt>.
-     *
-     * @param buffer the buffer, where data will be read
-     * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
-     */
-    public GrizzlyFuture<ReadResult<Buffer, L>> read(Buffer buffer)
-            throws IOException;
-
-    /**
-     * Method reads data to the <tt>buffer</tt>.
-     *
-     * @param buffer the buffer, where data will be read
-     * @param completionHandler {@link CompletionHandler},
-     *        which will get notified, when read will be completed
-     * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
-     */
-    public GrizzlyFuture<ReadResult<Buffer, L>> read(Buffer buffer,
-            CompletionHandler<ReadResult<Buffer, L>> completionHandler)
-            throws IOException;
-
-
-    /**
      * Method reads data to the <tt>buffer</tt>.
      *
      * @param buffer the buffer, where data will be read
@@ -98,28 +65,9 @@ public interface Readable<L> extends Closeable {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public <M> GrizzlyFuture<ReadResult<M, L>> read(M message,
-            CompletionHandler<ReadResult<M, L>> completionHandler,
-            Transformer<Buffer, M> transformer)
-            throws IOException;
-
-    /**
-     * Method reads data to the <tt>buffer</tt>.
-     *
-     * @param buffer the buffer, where data will be read
-     * @param completionHandler {@link CompletionHandler},
-     *        which will get notified, when read will be completed
-     * @param interceptor {@link Interceptor}, which will be able to intercept
-     *        control each time new portion of a data was read to a
-     *        <tt>buffer</tt>.
-     *        The <tt>interceptor</tt> can decide, whether asynchronous read is
-     *        completed or not, or provide other processing instructions.
-     * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
-     */
-    public <M> GrizzlyFuture<ReadResult<M, L>> read(M message,
-            CompletionHandler<ReadResult<M, L>> completionHandler,
-            Transformer<Buffer, M> transformer,
-            Interceptor<ReadResult> interceptor)
+    public <M> GrizzlyFuture<ReadResult<M, L>> read() throws IOException;
+    
+    public <M> GrizzlyFuture<ReadResult<M, L>> read(
+            CompletionHandler<ReadResult<M, L>> completionHandler)
             throws IOException;
 }
