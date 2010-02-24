@@ -42,8 +42,6 @@ import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.DefaultFilterChain;
-import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -172,11 +170,12 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            FilterChain filterChain = new DefaultFilterChain();
-            filterChain.add(new TransportFilter());
-            filterChain.add(new StringFilter());
+            FilterChainBuilder clientFilterChainBuilder =
+                    FilterChainBuilder.singleton();
+            clientFilterChainBuilder.add(new TransportFilter());
+            clientFilterChainBuilder.add(new StringFilter());
             
-            connection.setProcessor(filterChain);
+            connection.setProcessor(clientFilterChainBuilder.build());
             connection.configureBlocking(blocking);
 
             for (int i = 0; i < messageNum; i++) {
