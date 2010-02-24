@@ -41,6 +41,7 @@ package com.sun.grizzly.samples.strategy;
 import java.io.IOException;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.samples.echo.EchoClient;
@@ -71,18 +72,22 @@ public class CustomStrategy {
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        // Add TransportFilter, which is responsible
+        // for reading and writing data to the connection
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+
+
         // Create TCP transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-
+        transport.setProcessor(filterChainBuilder.build());
+        
         // Set the LeaderFollowerStrategy (any strategy could be applied this way)
         transport.setStrategy(new LeaderFollowerStrategy(
                 GrizzlyExecutorService.createInstance()));
         
-        // Add TransportFilter, which is responsible
-        // for reading and writing data to the connection
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
-
         try {
             // binding transport to start listen on certain host and port
             transport.bind(HOST, PORT);

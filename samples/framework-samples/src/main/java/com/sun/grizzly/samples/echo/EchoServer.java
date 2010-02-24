@@ -41,6 +41,7 @@ package com.sun.grizzly.samples.echo;
 import java.io.IOException;
 import java.util.logging.Logger;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 
@@ -56,14 +57,17 @@ public class EchoServer {
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
-        // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
-
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+        
+        // Create TCP transport
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
+        
         try {
             // binding transport to start listen on certain host and port
             transport.bind(HOST, PORT);

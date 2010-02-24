@@ -41,6 +41,7 @@ import java.util.Date;
 import junit.framework.TestCase;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -70,13 +71,13 @@ public class RCMTest extends TestCase {
     protected void setUp() throws Exception {
         super.setUp();
         
-        transport = TransportFactory.getInstance().createTCPTransport();
         final ResourceAllocationFilter parser = new ResourceAllocationFilter();
-        
 
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(parser);
-        transport.getFilterChain().add(new BaseFilter() {
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(parser);
+        filterChainBuilder.add(new BaseFilter() {
 
             /**
              * <code>CharBuffer</code> used to store the HTML response, containing
@@ -95,7 +96,7 @@ public class RCMTest extends TestCase {
                 try {
                     final Buffer requestBuffer = (Buffer) ctx.getMessage();
                     final Connection connection = ctx.getConnection();
-                    
+
                     final MemoryManager memoryManager =
                             ctx.getConnection().getTransport().getMemoryManager();
 
@@ -120,7 +121,7 @@ public class RCMTest extends TestCase {
                 }
 
                 ctx.getConnection().close();
-                
+
                 return ctx.getStopAction();
             }
 
@@ -134,6 +135,9 @@ public class RCMTest extends TestCase {
                 reponseBuffer.put("\r\n");
             }
         });
+
+        transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
         
         transport.bind(port);
         transport.start();

@@ -44,6 +44,7 @@ import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.DefaultFilterChain;
 import com.sun.grizzly.filterchain.FilterChain;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
@@ -136,18 +137,18 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
         final String clientMessage = "Hello server! It's a client";
         final String serverMessage = "Hello client! It's a server";
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
         for (Filter filter : filters) {
-            transport.getFilterChain().add(filter);
+            filterChainBuilder.add(filter);
         }
-        transport.getFilterChain().add(new StringFilter());
-        transport.getFilterChain().add(new BaseFilter() {
+        filterChainBuilder.add(new StringFilter());
+        filterChainBuilder.add(new BaseFilter() {
             volatile int counter;
             @Override
             public NextAction handleRead(FilterChainContext ctx,
                     NextAction nextAction) throws IOException {
-                
+
                 final String message = (String) ctx.getMessage();
 
                 logger.log(Level.FINE, "Server got message: " + message);
@@ -158,6 +159,10 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
                 return ctx.getStopAction();
             }
         });
+
+        
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);

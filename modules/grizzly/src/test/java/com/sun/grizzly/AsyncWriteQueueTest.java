@@ -36,6 +36,7 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
@@ -79,9 +80,9 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
 
         final AtomicInteger serverRcvdBytes = new AtomicInteger();
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter() {
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter() {
 
             @Override
             public NextAction handleRead(FilterChainContext ctx,
@@ -90,6 +91,9 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                 return super.handleRead(ctx, nextAction);
             }
         });
+
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);

@@ -49,6 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.nio.transport.TCPNIOServerConnection;
@@ -229,9 +230,13 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -274,9 +279,13 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+        
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -321,9 +330,13 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+        
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -369,16 +382,22 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter() {
+        
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter() {
 
             @Override
-            public NextAction handleRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
+            public NextAction handleRead(FilterChainContext ctx,
+                    NextAction nextAction) throws IOException {
+                
                 serverBytesCounter.addAndGet(((Buffer) ctx.getMessage()).remaining());
                 return super.handleRead(ctx, nextAction);
             }
         });
+
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -473,11 +492,16 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
+
         CheckSizeFilter checkSizeFilter = new CheckSizeFilter(fullMessageSize);
-        transport.getFilterChain().add(checkSizeFilter);
-        transport.getFilterChain().add(new EchoFilter());
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(checkSizeFilter);
+        filterChainBuilder.add(new EchoFilter());
+
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);

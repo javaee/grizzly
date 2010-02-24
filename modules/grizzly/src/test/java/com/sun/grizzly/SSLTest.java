@@ -40,6 +40,7 @@ package com.sun.grizzly;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
@@ -59,7 +60,6 @@ import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.EchoFilter;
 import com.sun.grizzly.utils.StringFilter;
-import java.util.Arrays;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -155,15 +155,17 @@ public class SSLTest extends GrizzlyTestCase {
                 clientSSLEngineConfigurator);
         final SSLPingPongFilter pingPongFilter = new SSLPingPongFilter(
                 sslFilter, pingPongTurnArounds);
-        
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(sslFilter);
+        filterChainBuilder.add(new StringFilter());
+        filterChainBuilder.add(pingPongFilter);
+        filterChainBuilder.addAll(filterIndex, filters);
+
         TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(sslFilter);
-        transport.getFilterChain().add(new StringFilter());
-        transport.getFilterChain().add(pingPongFilter);
-
-        transport.getFilterChain().addAll(filterIndex, Arrays.asList(filters));
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -218,14 +220,16 @@ public class SSLTest extends GrizzlyTestCase {
             fail("Failed to validate SSLContextConfiguration.");
         }
 
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
+                clientSSLEngineConfigurator));
+        filterChainBuilder.add(new EchoFilter());
+        filterChainBuilder.addAll(filterIndex, filters);
+
         TCPNIOTransport transport =
                 TransportFactory.getInstance().createTCPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new SSLFilter(serverSSLEngineConfigurator,
-                clientSSLEngineConfigurator));
-        transport.getFilterChain().add(new EchoFilter());
-
-        transport.getFilterChain().addAll(filterIndex, Arrays.asList(filters));
+        transport.setProcessor(filterChainBuilder.build());
 
         SSLStreamReader reader = null;
         SSLStreamWriter writer = null;

@@ -52,13 +52,7 @@ import com.sun.grizzly.Processor;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
-import com.sun.grizzly.filterchain.DefaultFilterChain;
-import com.sun.grizzly.filterchain.Filter;
-import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainEnabledTransport;
-import com.sun.grizzly.filterchain.FilterChainFactory;
-import com.sun.grizzly.filterchain.PatternFilterChainFactory;
-import com.sun.grizzly.filterchain.SingletonFilterChainFactory;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorPool;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorsEnabledTransport;
 import java.io.IOException;
@@ -86,6 +80,7 @@ import com.sun.grizzly.StandaloneProcessor;
 import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.Writer;
+import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.nio.SelectorRunner;
 import com.sun.grizzly.nio.tmpselectors.TemporarySelectorIO;
 import com.sun.grizzly.strategies.WorkerThreadStrategy;
@@ -117,10 +112,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * The Server connections.
      */
     protected final Collection<TCPNIOServerConnection> serverConnections;
-    /**
-     * FilterChainFactory implementation
-     */
-    protected FilterChainFactory filterChainFactory;
     /**
      * Transport AsyncQueueIO
      */
@@ -181,9 +172,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 new TCPNIOTemporarySelectorReader(this),
                 new TCPNIOTemporarySelectorWriter(this));
 
-        filterChainFactory = new SingletonFilterChainFactory(
-                new DefaultFilterChain());
-
         attributeBuilder = Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
         defaultTransportFilter = new TCPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<TCPNIOServerConnection>();
@@ -210,7 +198,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
 
             if (processor == null && processorSelector == null) {
-                processor = getFilterChainFactory().create();
+                processor = new StandaloneProcessor();
             }
 
             if (selectorRunnersCount <= 0) {
@@ -557,7 +545,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 processor = StandaloneProcessor.INSTANCE;
                 processorSelector = StandaloneProcessorSelector.INSTANCE;
             } else {
-                processor = getFilterChainFactory().create();
+                processor = null;
                 processorSelector = null;
             }
         }
@@ -609,30 +597,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setServerSocketSoTimeout(int serverSocketSoTimeout) {
         this.serverSocketSoTimeout = serverSocketSoTimeout;
-    }
-
-    @Override
-    public FilterChainFactory getFilterChainFactory() {
-        return filterChainFactory;
-    }
-
-    @Override
-    public void setFilterChainFactory(FilterChainFactory factory) {
-        filterChainFactory = factory;
-    }
-
-    @Override
-    public FilterChain getFilterChain() {
-        FilterChainFactory factory = getFilterChainFactory();
-        if (factory instanceof PatternFilterChainFactory) {
-            return ((PatternFilterChainFactory) factory).getFilterChainPattern();
-        }
-
-        throw new IllegalStateException(
-                "Transport FilterChainFactory doesn't " +
-                "support creating of FilterChain by a patterns. " +
-                "It means you have to add/remove Filters using " +
-                "FilterChainFactory API: " + factory.getClass().getName());
     }
 
     @Override

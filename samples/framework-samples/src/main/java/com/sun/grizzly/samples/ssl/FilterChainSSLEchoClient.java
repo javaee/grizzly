@@ -49,6 +49,7 @@ import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -72,22 +73,25 @@ public class FilterChainSSLEchoClient {
     private static final String MESSAGE = "Hello World!";
 
     public static void main(String[] args) throws IOException {
-        // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
-        transport.getFilterChain().add(new TransportFilter());
-        
+        filterChainBuilder.add(new TransportFilter());
+
         // Initialize and add SSLFilter
         final SSLEngineConfigurator serverConfig = initializeSSL();
         final SSLEngineConfigurator clientConfig = serverConfig.clone().setClientMode(true);
-        
+
         final SSLFilter sslFilter = new SSLFilter(serverConfig, clientConfig);
-        transport.getFilterChain().add(sslFilter);
+        filterChainBuilder.add(sslFilter);
 
         // Add Filter, which will send a greeting message and check the result
-        transport.getFilterChain().add(new SendMessageFilter(sslFilter));
+        filterChainBuilder.add(new SendMessageFilter(sslFilter));
+
+        // Create TCP transport
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // start the transport

@@ -41,6 +41,7 @@ package com.sun.grizzly.samples.ssl;
 import java.io.IOException;
 import java.net.URL;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.samples.echo.EchoFilter;
@@ -63,21 +64,25 @@ public class SSLEchoServer {
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
-        // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
-        transport.getFilterChain().add(new TransportFilter());
-        
+        filterChainBuilder.add(new TransportFilter());
+
         // Initialize and add SSLFilter
         final SSLEngineConfigurator serverConfig = initializeSSL();
         final SSLEngineConfigurator clientConfig = serverConfig.clone().setClientMode(true);
-        
-        transport.getFilterChain().add(new SSLFilter(serverConfig, clientConfig));
+
+        filterChainBuilder.add(new SSLFilter(serverConfig, clientConfig));
 
         // Use the plain EchoFilter
-        transport.getFilterChain().add(new EchoFilter());
+        filterChainBuilder.add(new EchoFilter());
+
+
+        // Create TCP transport
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // binding transport to start listen on certain host and port

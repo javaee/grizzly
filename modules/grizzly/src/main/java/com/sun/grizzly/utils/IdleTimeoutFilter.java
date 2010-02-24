@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.utils;
 
+import com.sun.grizzly.filterchain.FilterChain;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
@@ -162,7 +163,10 @@ public class IdleTimeoutFilter extends BaseFilter {
         return nextAction;
     }
 
-    public synchronized void initialize() {
+    @Override
+    public synchronized void onAdded(FilterChain filterChain) {
+        super.onAdded(filterChain);
+
         if (scheduledFuture != null) {
             throw new IllegalStateException(
                     "IdleTimeoutFilter was already initialized!");
@@ -170,7 +174,14 @@ public class IdleTimeoutFilter extends BaseFilter {
         registerChecker();
     }
 
-    public synchronized void release() {
+    @Override
+    public synchronized void onRemoved(FilterChain filterChain) {
+        release();
+        super.onRemoved(filterChain);
+    }
+
+
+    protected synchronized void release() {
         checker = null;
         scheduledFuture.cancel(false);
         scheduledFuture = null;

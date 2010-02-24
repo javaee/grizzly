@@ -73,13 +73,8 @@ import com.sun.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import com.sun.grizzly.asyncqueue.AsyncQueueIO;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
-import com.sun.grizzly.filterchain.DefaultFilterChain;
 import com.sun.grizzly.filterchain.Filter;
-import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainEnabledTransport;
-import com.sun.grizzly.filterchain.FilterChainFactory;
-import com.sun.grizzly.filterchain.PatternFilterChainFactory;
-import com.sun.grizzly.filterchain.SingletonFilterChainFactory;
 import com.sun.grizzly.nio.DefaultSelectionKeyHandler;
 import com.sun.grizzly.nio.DefaultSelectorHandler;
 import com.sun.grizzly.nio.NIOConnection;
@@ -127,10 +122,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
      */
     protected final Collection<UDPNIOServerConnection> serverConnections;
     /**
-     * FilterChainFactory implementation
-     */
-    protected FilterChainFactory filterChainFactory;
-    /**
      * Transport AsyncQueueIO
      */
     protected AsyncQueueIO asyncQueueIO;
@@ -159,9 +150,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         temporarySelectorIO = new TemporarySelectorIO(
                 new UDPNIOTemporarySelectorReader(this),
                 new UDPNIOTemporarySelectorWriter(this));
-
-        filterChainFactory = new SingletonFilterChainFactory(
-                new DefaultFilterChain());
 
         transportFilter = new UDPNIOTransportFilter(this);
         serverConnections = new ConcurrentLinkedQueue<UDPNIOServerConnection>();
@@ -361,7 +349,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             }
 
             if (processor == null && processorSelector == null) {
-                processor = getFilterChainFactory().create();
+                processor = new StandaloneProcessor();
             }
 
             if (selectorRunnersCount <= 0) {
@@ -485,36 +473,12 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 processor = StandaloneProcessor.INSTANCE;
                 processorSelector = StandaloneProcessorSelector.INSTANCE;
             } else {
-                processor = getFilterChainFactory().create();
+                processor = null;
                 processorSelector = null;
             }
         }
     }
     
-    @Override
-    public FilterChainFactory getFilterChainFactory() {
-        return filterChainFactory;
-    }
-
-    @Override
-    public void setFilterChainFactory(FilterChainFactory factory) {
-        filterChainFactory = factory;
-    }
-
-    @Override
-    public FilterChain getFilterChain() {
-        final FilterChainFactory factory = getFilterChainFactory();
-        if (factory instanceof PatternFilterChainFactory) {
-            return ((PatternFilterChainFactory) factory).getFilterChainPattern();
-        }
-
-        throw new IllegalStateException(
-                "Transport FilterChainFactory doesn't " +
-                "support creating of FilterChain by a patterns. " +
-                "It means you have to add/remove Filters using " +
-                "FilterChainFactory API: " + factory.getClass().getName());
-    }
-
     @Override
     public Filter getTransportFilter() {
         return transportFilter;

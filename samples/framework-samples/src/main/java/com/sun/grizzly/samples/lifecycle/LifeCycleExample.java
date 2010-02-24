@@ -40,6 +40,7 @@ package com.sun.grizzly.samples.lifecycle;
 
 import java.io.IOException;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.samples.echo.EchoFilter;
@@ -54,17 +55,21 @@ public class LifeCycleExample {
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
-        // Create TCP transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-
         LifeCycleFilter lifeCycleFilter = new LifeCycleFilter();
+
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
-        transport.getFilterChain().add(new TransportFilter());
+        filterChainBuilder.add(new TransportFilter());
         // Add lifecycle filter to track the connections
-        transport.getFilterChain().add(lifeCycleFilter);
+        filterChainBuilder.add(lifeCycleFilter);
         // Add echo filter
-        transport.getFilterChain().add(new EchoFilter());
+        filterChainBuilder.add(new EchoFilter());
+
+        // Create TCP transport
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // binding transport to start listen on certain host and port

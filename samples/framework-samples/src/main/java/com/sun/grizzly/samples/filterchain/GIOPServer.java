@@ -39,6 +39,7 @@
 package com.sun.grizzly.samples.filterchain;
 
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.samples.echo.EchoFilter;
@@ -53,14 +54,17 @@ public class GIOPServer {
     public static final int PORT = 9098;
     
     public static void main(String[] args) throws Exception {
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        // Add filters to the chain
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new GIOPFilter());
+        filterChainBuilder.add(new EchoFilter());
+
+
         // Create TCP NIO transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-
-        // Add filters to the chain
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new GIOPFilter());
-        transport.getFilterChain().add(new EchoFilter());
-
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // Bind server socket and start transport

@@ -42,6 +42,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
@@ -58,17 +59,15 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
 
     public void testAcceptedConnectionIdleTimeout() throws Exception {
         Connection connection = null;
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+
         final CountDownLatch latch = new CountDownLatch(1);
-        try {
-            transport.bind(PORT);
-
-            IdleTimeoutFilter idleTimeoutFilter = new IdleTimeoutFilter(2,
-                    TimeUnit.SECONDS);
-
-            transport.getFilterChain().add(new TransportFilter());
-            transport.getFilterChain().add(idleTimeoutFilter);
-            transport.getFilterChain().add(new BaseFilter() {
+        IdleTimeoutFilter idleTimeoutFilter = new IdleTimeoutFilter(2,
+                TimeUnit.SECONDS);
+        
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(idleTimeoutFilter);
+        filterChainBuilder.add(new BaseFilter() {
                 private Connection acceptedConnection;
                 @Override
                 public NextAction handleAccept(FilterChainContext ctx,
@@ -89,7 +88,11 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
 
             });
 
-            idleTimeoutFilter.initialize();
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
+        
+        try {
+            transport.bind(PORT);
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
@@ -109,41 +112,44 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
 
     public void testConnectedConnectionIdleTimeout() throws Exception {
         Connection connection = null;
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         final CountDownLatch latch = new CountDownLatch(1);
+
+        IdleTimeoutFilter idleTimeoutFilter = new IdleTimeoutFilter(2,
+                TimeUnit.SECONDS);
+        idleTimeoutFilter.setHandleAccepted(false);
+        idleTimeoutFilter.setHandleConnected(true);
+
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(idleTimeoutFilter);
+        filterChainBuilder.add(new BaseFilter() {
+            private Connection connectedConnection;
+
+            @Override
+            public NextAction handleConnect(FilterChainContext ctx,
+                    NextAction nextAction) throws IOException {
+                connectedConnection = ctx.getConnection();
+                return nextAction;
+            }
+
+            @Override
+            public NextAction handleClose(FilterChainContext ctx,
+                    NextAction nextAction) throws IOException {
+                if (ctx.getConnection().equals(connectedConnection)) {
+                    latch.countDown();
+                }
+
+                return nextAction;
+            }
+        });
+        
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
+        
         try {
             transport.bind(PORT);
 
-            IdleTimeoutFilter idleTimeoutFilter = new IdleTimeoutFilter(2,
-                    TimeUnit.SECONDS);
-
-            transport.getFilterChain().add(new TransportFilter());
-            transport.getFilterChain().add(idleTimeoutFilter);
-            transport.getFilterChain().add(new BaseFilter() {
-                private Connection connectedConnection;
-                @Override
-                public NextAction handleConnect(FilterChainContext ctx,
-                        NextAction nextAction) throws IOException {
-                    connectedConnection = ctx.getConnection();
-                    return nextAction;
-                }
-
-                @Override
-                public NextAction handleClose(FilterChainContext ctx,
-                        NextAction nextAction) throws IOException {
-                    if (ctx.getConnection().equals(connectedConnection)) {
-                        latch.countDown();
-                    }
-
-                    return nextAction;
-                }
-
-            });
-
-            idleTimeoutFilter.setHandleAccepted(false);
-            idleTimeoutFilter.setHandleConnected(true);
-            
-            idleTimeoutFilter.initialize();
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);

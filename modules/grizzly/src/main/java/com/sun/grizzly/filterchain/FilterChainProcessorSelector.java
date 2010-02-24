@@ -54,13 +54,13 @@ import com.sun.grizzly.ProcessorSelector;
 public class FilterChainProcessorSelector implements ProcessorSelector {
 
     /**
-     * {@link FilterChainFactory}, responsible for creating {@link FilterChain}
+     * {@link FilterChainBuilder}, responsible for creating {@link FilterChain}
      * instances
      */
-    protected FilterChainFactory factory;
+    protected FilterChainBuilder builder;
 
-    public FilterChainProcessorSelector(FilterChainFactory factory) {
-        this.factory = factory;
+    public FilterChainProcessorSelector(FilterChainBuilder builder) {
+        this.builder = builder;
     }
 
     /**
@@ -76,7 +76,7 @@ public class FilterChainProcessorSelector implements ProcessorSelector {
     @Override
     public Processor select(IOEvent ioEvent, Connection connection) {
 
-        FilterChain chain = factory.create();
+        FilterChain chain = builder.build();
         if (chain.isInterested(ioEvent)) {
             return chain;
         }

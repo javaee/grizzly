@@ -43,6 +43,7 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.WriteResult;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 
@@ -56,12 +57,17 @@ public class GIOPClient {
     // @TODO comment the test out until Smart filter will be adjusted to new API
     public static void main(String[] args) throws Exception {
         Connection connection = null;
+
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        // Add TransportFilter, which is responsible
+        // for reading and writing data to the connection
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new GIOPFilter());
+
         // Create TCP NIO transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-
-        // Add filters to the chain
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new GIOPFilter());
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // start transport

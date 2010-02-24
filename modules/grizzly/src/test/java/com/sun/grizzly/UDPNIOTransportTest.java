@@ -38,6 +38,7 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.concurrent.Future;
@@ -141,9 +142,13 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+
         UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -186,9 +191,13 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+
         UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -233,9 +242,13 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+
         UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.bind(PORT);
@@ -280,9 +293,13 @@ public class UDPNIOTransportTest extends GrizzlyTestCase {
         Connection connection = null;
         StreamReader reader = null;
         StreamWriter writer = null;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+        
         UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             transport.setReadBufferSize(2048);

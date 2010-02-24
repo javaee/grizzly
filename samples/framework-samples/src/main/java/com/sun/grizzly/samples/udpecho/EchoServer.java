@@ -41,6 +41,7 @@ package com.sun.grizzly.samples.udpecho;
 import java.io.IOException;
 import java.util.logging.Logger;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.UDPNIOTransport;
 import com.sun.grizzly.samples.echo.EchoFilter;
@@ -57,13 +58,16 @@ public class EchoServer {
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
-        // Create UDP transport
-        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
-
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
         // Add TransportFilter, which will be responsible for reading and
         // writing data to the connection
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new EchoFilter());
+
+        // Create UDP transport
+        UDPNIOTransport transport = TransportFactory.getInstance().createUDPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // binding transport to start listen on certain host and port

@@ -39,6 +39,7 @@
 package com.sun.grizzly.samples.smart.giop;
 
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.samples.echo.EchoFilter;
@@ -55,17 +56,19 @@ public class GIOPServer {
     public static final int PORT = 9099;
     
     public static void main(String[] args) throws Exception {
-        // Create TCP NIO transport
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-
         // Initialize smart Codec
         SmartCodec smartCodec = new SmartCodec(GIOPMessage.class);
-
+        
+        // Create a FilterChain using FilterChainBuilder
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
         // Add filters to the chain
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new SmartFilter(smartCodec));
-        transport.getFilterChain().add(new EchoFilter());
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new SmartFilter(smartCodec));
+        filterChainBuilder.add(new EchoFilter());
 
+        // Create TCP NIO transport
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
 
         try {
             // Bind server socket and start transport

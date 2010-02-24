@@ -42,37 +42,11 @@ package com.sun.grizzly.filterchain;
  * Common interface for Transports, which support {@link FilterChain}s.
  *
  * @see Transport
- * @see FilterChainFactory
  * @see FilterChain
  * 
  * @author Alexey Stashok
  */
 public interface FilterChainEnabledTransport {
-    /**
-     * Get {@link FilterChainFactory}, responsible to construct
-     * {@link FilterChain} instance.
-     *
-     * @return {@link FilterChainFactory}, responsible to construct
-     * {@link FilterChain} instance.
-     */
-    public FilterChainFactory getFilterChainFactory();
-    
-    /**
-     * Set {@link FilterChainFactory}, responsible to construct
-     * {@link FilterChain} instance.
-     *
-     * @param factory {@link FilterChainFactory}, responsible to construct
-     * {@link FilterChain} instance.
-     */
-    public void setFilterChainFactory(FilterChainFactory factory);
-
-    /**
-     * Get {@link FilterChain} instance.
-     * 
-     * @return {@link FilterChain} instance.
-     */
-    public FilterChain getFilterChain();
-    
     /**
      * Get transport {@link Filter}, which is aware of {@link Transport}
      * specifics; knows how to read/write from/to {@link Transport}
