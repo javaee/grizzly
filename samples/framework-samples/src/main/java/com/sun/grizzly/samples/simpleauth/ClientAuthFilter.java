@@ -74,7 +74,9 @@ public class ClientAuthFilter extends BaseFilter {
      * Filter check if incoming message is the server authentication response.
      * If yes - we suppose client authentication is completed, store client id
      * (assigned by the server), and resume all the pending writes. If client
-     * was authenticated before - we pass the response to a next filter in chain.
+     * was authenticated before - we check the "auth-id: <connection-id>"
+     * header to be equal to the client id, stored on client. If it's ok - we
+     * pass control to a next filter, if not - throw an Exception.
      *
      * @param ctx Request processing context
      * @param nextAction default {@link NextAction}.
@@ -113,8 +115,22 @@ public class ClientAuthFilter extends BaseFilter {
             // if it's authentication response - we don't pass processing to a next filter in a chain.
             return ctx.getStopAction();
         } else {
-            // otherwise pass control to a next filter in a chain
-            return nextAction;
+            // if it's some custom message
+            // Get id line
+            final String idLine = packet.getLines().get(1);
+
+            // Check the client id
+            if (checkAuth(connection, idLine)) {
+                // if id corresponds to what client has -
+                // Remove authentication header
+                packet.getLines().remove(1);
+
+                // Pass to a next filter
+                return nextAction;
+            } else {
+                // if authentication failed - throw an Exception.
+                throw new IllegalStateException("Client is not authenticated!");
+            }
         }
     }
 
@@ -127,7 +143,7 @@ public class ClientAuthFilter extends BaseFilter {
      * suspends current write and adds suspended context to a queue to resume it,
      * once authentication will be completed.
      * 
-     * @param ctx Request processing context
+     * @param ctx Response processing context
      * @param nextAction default {@link NextAction}.
      *
      * @return {@link NextAction}
@@ -201,6 +217,31 @@ public class ClientAuthFilter extends BaseFilter {
         return nextAction;
     }
 
+    /**
+     * Method checks, whether authentication header, sent in the message corresponds
+     * to a value, stored in the client authentication map.
+     * 
+     * @param connection {@link Connection}
+     * @param idLine authentication header string.
+     * 
+     * @return <tt>true</tt>, if authentication passed, or <tt>false</tt> otherwise.
+     */
+    private boolean checkAuth(Connection connection, String idLine) {
+        // Get the connection id, from the client map
+        final ConnectionAuthInfo registeredId =
+                authenticatedConnections.get(connection);
+        if (registeredId == null || registeredId.id == null) return false;
+        
+        if (idLine.startsWith("auth-id:")) {
+            // extract client id from the authentication header
+            String id = getId(idLine);
+            // check whether extracted id is equal to what client has in his map
+            return registeredId.id.equals(id);
+        } else {
+            return false;
+        }
+    }
+    
     /**
      * Retrieve connection id from a packet header
      *

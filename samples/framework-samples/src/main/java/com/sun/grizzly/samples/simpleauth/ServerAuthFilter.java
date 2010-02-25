@@ -119,10 +119,58 @@ public class ServerAuthFilter extends BaseFilter {
                 return nextAction;
             } else {
                 // if authentication failed - throw an Exception.
-                throw new IOException("Client is not authenticated!");
+                throw new IllegalStateException("Client is not authenticated!");
             }
         }
     }
+
+    /**
+     * The method is called each time, when server sends a message to a client.
+     * First of all filter check if this packet is not authentication-response.
+     * If yes - filter just passes control to a next filter in a chain, if not -
+     * filter gets the client id from its local authenticated clients map and
+     * adds "auth-id: <connection-id>" header to the outgoing message and
+     * finally passes control to a next filter in a chain.
+     *
+     * @param ctx Response processing context
+     * @param nextAction default {@link NextAction}.
+     *
+     * @return {@link NextAction}
+     * @throws IOException
+     */
+    @Override
+    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
+            throws IOException {
+
+        // Get the connection
+        final Connection connection = ctx.getConnection();
+        // Get the sending packet
+        final MultiLinePacket packet = (MultiLinePacket) ctx.getMessage();
+
+        // Get the message command
+        final String command = packet.getLines().get(0);
+
+        // if it's authentication-response
+        if (command.equals("authentication-response")) {
+            // just pass control to a next filter in a chain
+            return nextAction;
+        } else {
+            // if not - get connection id from authenticated connections map
+            final String id = authenticatedConnections.get(connection);
+            if (id != null) {
+                // if id exists - add "auth-id" header to a packet
+                packet.getLines().add(1, "auth-id: " + id);
+                // pass control to a next filter in a chain
+                return nextAction;
+            }
+
+            // connection id wasn't found in a map of authenticated connections
+            // throw an Exception
+            throw new IllegalStateException("Client is not authenticated");
+        }
+    }
+
+
 
     /**
      * The method generates the key and builds the authentication response

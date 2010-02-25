@@ -107,10 +107,10 @@ public class Client {
             BufferedReader reader  = new BufferedReader(new InputStreamReader(System.in));
 
             while (true) {
-                System.out.print("Type the message (\"q\" for quit): ");
+                System.out.print("Type the message (Empty line for quit): ");
                 String input = reader.readLine();
 
-                if ("q".equals(input)) {
+                if ("".equals(input)) {
                     break;
                 }
 
