@@ -49,6 +49,7 @@ import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.Transport.IOEventReg;
+import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.nio.NIOConnection;
@@ -381,17 +382,17 @@ public final class FilterChainContext extends Context {
         return SUSPEND_ACTION;
     }
 
-    public GrizzlyFuture write(Object message) throws IOException {
+    public GrizzlyFuture<WriteResult> write(Object message) throws IOException {
         return write(null, message, null);
     }
 
-    public GrizzlyFuture write(Object message,
+    public GrizzlyFuture<WriteResult> write(Object message,
             CompletionHandler completionHandler) throws IOException {
         return write(null, message, completionHandler);
     }
 
-    public GrizzlyFuture write(Object address, Object message,
-            CompletionHandler completionHandler) throws IOException {
+    public GrizzlyFuture<WriteResult> write(Object address, Object message,
+            CompletionHandler<WriteResult> completionHandler) throws IOException {
         final FutureImpl futureImpl = FutureImpl.create();
         final FilterChainContext newContext = (FilterChainContext) getProcessor().context();
         newContext.setIoEvent(IOEvent.WRITE);
