@@ -38,13 +38,10 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.impl.FutureImpl;
-import com.sun.grizzly.nio.NIOConnection;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -82,10 +79,6 @@ public class Context implements AttributeStorage, Cacheable {
 
         return context;
     }
-
-    public enum State {
-        RUNNING, SUSPEND;
-    };
     
     /**
      * Processing Connection
@@ -106,11 +99,6 @@ public class Context implements AttributeStorage, Cacheable {
      * Attributes, associated with the processing Context
      */
     private final AttributeHolder attributes;
-    
-    /**
-     * Context task state
-     */
-    private volatile State state;
 
     /**
      * {@link Future}, which will be notified, when {@link Processor} will
@@ -124,51 +112,8 @@ public class Context implements AttributeStorage, Cacheable {
      */
     private CompletionHandler completionHandler;
 
-    private final Runnable contextRunnable;
-    
     public Context() {
         attributes = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
-
-        contextRunnable = new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    final Connection connection = Context.this.connection;
-                    final IOEvent ioEvent = Context.this.ioEvent;
-
-                    final Transport transport = connection.getTransport();
-                    final IOEventReg ioEventReg =
-                            transport.fireIOEvent(Context.this);
-                    if (ioEventReg == IOEventReg.REGISTER) {
-                        ((NIOConnection) connection).enableIOEvent(ioEvent);
-                    }
-                } catch (Exception e) {
-                    logger.log(Level.FINE, "Exception during running Processor", e);
-                }
-            }
-        };
-    }
-    
-    /**
-     * Get the current processing task state.
-     * @return the current processing task state.
-     */
-    public State state() {
-        return state;
-    }
-
-    /**
-     * Suspend processing of the current task
-     */
-    public void suspend() {
-        this.state = State.SUSPEND;
-    }
-
-    /**
-     * Resume processing of the current task
-     */
-    public void resume() {
-        this.state = State.RUNNING;
     }
 
     /**
@@ -259,10 +204,6 @@ public class Context implements AttributeStorage, Cacheable {
         return attributes;
     }
 
-    public final Runnable getRunnable() {
-        return contextRunnable;
-    }
-
     /**
      * If implementation uses {@link ObjectPool} to store and reuse
      * {@link Context} instances - this method will be called before
@@ -271,7 +212,6 @@ public class Context implements AttributeStorage, Cacheable {
     public void reset() {
         attributes.clear();
         
-        state = State.RUNNING;
         processor = null;
         connection = null;
         completionFuture = null;

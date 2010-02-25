@@ -130,7 +130,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
 
         if (stringSize == null) {
             if (input.remaining() < 2) {
-                return TransformationResult.<Buffer, String>createIncompletedResult(input, false);
+                return TransformationResult.<Buffer, String>createIncompletedResult(input);
             }
 
             stringSize = (int) input.getShort();
@@ -138,7 +138,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
         }
         
         if (input.remaining() < stringSize) {
-            return TransformationResult.<Buffer, String>createIncompletedResult(input, false);
+            return TransformationResult.<Buffer, String>createIncompletedResult(input);
         }
 
         int tmpLimit = input.limit();
@@ -191,7 +191,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             }
 
             return TransformationResult.<Buffer, String>createIncompletedResult(
-                    input, false);
+                    input);
         }
     }
 
@@ -202,7 +202,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
     }
 
     @Override
-    public boolean hasInputRemaining(Buffer input) {
+    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input != null && input.hasRemaining();
     }
 

@@ -172,7 +172,7 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
             } else if (status == Status.INCOMPLETED) {
                 return saveState(storage, sequence,
                         TransformationResult.<Buffer,E>createIncompletedResult(
-                        input, false));
+                        input));
             } else {
                 return result;
             }
@@ -190,7 +190,7 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
     }
 
     @Override
-    public boolean hasInputRemaining(Buffer input) {
+    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input != null && input.hasRemaining();
     }
 

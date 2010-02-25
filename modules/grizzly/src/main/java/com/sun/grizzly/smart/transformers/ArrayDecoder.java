@@ -88,7 +88,7 @@ public class ArrayDecoder extends SequenceDecoder<Object> {
             if (input.remaining() < byteArray.length) {
                 return saveState(storage, byteArray, currentElementIdx,
                         TransformationResult.<Buffer, Object>createIncompletedResult(
-                        input, false));
+                        input));
             }
 
             input.get(byteArray);

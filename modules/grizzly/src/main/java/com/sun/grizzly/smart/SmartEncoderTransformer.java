@@ -201,7 +201,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
     }
 
     @Override
-    public boolean hasInputRemaining(E input) {
+    public boolean hasInputRemaining(AttributeStorage storage, E input) {
         return input != null;
     }
 

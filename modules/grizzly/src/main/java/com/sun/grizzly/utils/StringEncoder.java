@@ -122,7 +122,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
     }
 
     @Override
-    public boolean hasInputRemaining(String input) {
+    public boolean hasInputRemaining(AttributeStorage storage, String input) {
         return input != null;
     }
 

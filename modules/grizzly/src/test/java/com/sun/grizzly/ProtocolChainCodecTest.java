@@ -227,7 +227,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
         }
 
         @Override
-        public boolean hasInputRemaining(Object input) {
+        public boolean hasInputRemaining(AttributeStorage storage, Object input) {
             return false;
         }
     }

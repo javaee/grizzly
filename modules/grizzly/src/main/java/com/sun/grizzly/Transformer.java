@@ -97,5 +97,5 @@ public interface Transformer<K, L> {
      */
     public void release(AttributeStorage storage);
 
-    public boolean hasInputRemaining(K input);
+    public boolean hasInputRemaining(AttributeStorage storage, K input);
 }

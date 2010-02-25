@@ -225,9 +225,9 @@ public class ResourceAllocationFilter extends BaseFilter {
         }
 
         ctx.nextFilterIdx();
-        ctx.suspend();
+        Runnable runnable = ctx.suspend();
         
-        threadPool.execute(ctx.getRunnable());
+        threadPool.execute(runnable);
         return ctx.getSuspendAction();
     }
 

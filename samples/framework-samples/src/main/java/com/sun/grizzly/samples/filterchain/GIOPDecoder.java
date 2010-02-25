@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -157,7 +157,7 @@ public class GIOPDecoder extends AbstractTransformer<Buffer, GIOPMessage> {
             stateAttr.set(storage, parseState);
 
             // Stop the filterchain execution until more data available
-            return TransformationResult.<Buffer, GIOPMessage>createIncompletedResult(input, false);
+            return TransformationResult.<Buffer, GIOPMessage>createIncompletedResult(input);
         } else {
             // Remove intermediate parsing state
             preparsedMessageAttr.remove(storage);
@@ -173,7 +173,7 @@ public class GIOPDecoder extends AbstractTransformer<Buffer, GIOPMessage> {
     }
 
     @Override
-    public boolean hasInputRemaining(Buffer input) {
+    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input != null && input.hasRemaining();
     }
 }

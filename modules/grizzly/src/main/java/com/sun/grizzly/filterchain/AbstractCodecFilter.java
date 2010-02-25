@@ -73,7 +73,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
             {
                 final K remainder = result.getExternalRemainder();
                 final boolean hasRemaining =
-                        decoder.hasInputRemaining(remainder);
+                        decoder.hasInputRemaining(connection, remainder);
                 decoder.release(connection);
                 
                 ctx.setMessage(result.getMessage());
@@ -112,7 +112,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
                 ctx.setMessage(result.getMessage());
                 final L remainder = result.getExternalRemainder();
                 final boolean hasRemaining =
-                        encoder.hasInputRemaining(remainder);
+                        encoder.hasInputRemaining(connection, remainder);
                 encoder.release(connection);
                 
                 if (hasRemaining) {

@@ -115,7 +115,7 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 throws TransformationException {
 
             if (input.remaining() == 0) {
-                return TransformationResult.<Buffer, Buffer>createIncompletedResult(input, false);
+                return TransformationResult.<Buffer, Buffer>createIncompletedResult(input);
             }
 
             final int chunkSize = Math.min(chunk, input.remaining());
@@ -135,7 +135,7 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
         }
 
         @Override
-        public boolean hasInputRemaining(Buffer input) {
+        public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
             return input != null && input.hasRemaining();
         }
     }

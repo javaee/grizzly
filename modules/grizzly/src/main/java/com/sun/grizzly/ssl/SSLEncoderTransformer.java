@@ -169,7 +169,7 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
     }
 
     @Override
-    public boolean hasInputRemaining(Buffer input) {
+    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input != null && input.hasRemaining();
     }
 }

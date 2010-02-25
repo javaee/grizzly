@@ -158,7 +158,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
                         return saveState(storage, processingTree,
                                 currentElementIndex,
                                 TransformationResult.<Buffer, E>createIncompletedResult(
-                                input, false));
+                                input));
                     } else {
                         transformer.release(storage);
                         return result;
@@ -215,7 +215,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
     }
 
     @Override
-    public boolean hasInputRemaining(Buffer input) {
+    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input != null && input.hasRemaining();
     }
 

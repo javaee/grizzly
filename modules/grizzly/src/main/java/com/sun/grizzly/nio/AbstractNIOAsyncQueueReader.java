@@ -387,7 +387,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         currentResult.setMessage(tResult.getMessage());
 
                         final Buffer remainder = (Buffer) tResult.getExternalRemainder();
-                        final boolean hasRemaining = transformer.hasInputRemaining(remainder);
+                        final boolean hasRemaining = transformer.hasInputRemaining(connection, remainder);
                         if (hasRemaining) {
                             buffer.trimRegion();
                             queueRecord.setRemainderBuffer(buffer);
@@ -399,7 +399,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         return readBytes;
                     } else if (tResult.getStatus() == TransformationResult.Status.INCOMPLETED) {
                         final Buffer remainder = (Buffer) tResult.getExternalRemainder();
-                        final boolean hasRemaining = transformer.hasInputRemaining(remainder);
+                        final boolean hasRemaining = transformer.hasInputRemaining(connection, remainder);
 
                         if (hasRemaining) {
                             remainderBuffer.trimRegion();

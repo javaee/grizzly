@@ -57,9 +57,9 @@ public class TransformationResult<I, O> {
     }
 
     public static <I, O> TransformationResult<I, O> createIncompletedResult(
-            I externalRemainder, boolean hasInternalRemainder) {
+            I externalRemainder) {
         return new TransformationResult<I, O>(Status.INCOMPLETED, null,
-                externalRemainder, hasInternalRemainder);
+                externalRemainder, false);
     }
 
     public enum Status {

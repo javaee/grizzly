@@ -88,7 +88,7 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
 
             if (currentElementIdx < size) {
                 return TransformationResult.<Object, Buffer>createIncompletedResult(
-                        null, false);
+                        null);
             }
 
             output.flip();

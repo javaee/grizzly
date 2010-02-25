@@ -148,7 +148,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
                 if (status == SSLEngineResult.Status.BUFFER_UNDERFLOW) {
                     transformationResult =
                             TransformationResult.<Buffer, Buffer>createIncompletedResult(
-                            originalMessage, false);
+                            originalMessage);
                 } else if (status == SSLEngineResult.Status.BUFFER_OVERFLOW) {
                     transformationResult =
                             TransformationResult.<Buffer, Buffer>createErrorResult(
@@ -165,7 +165,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
     }
 
     @Override
-    public boolean hasInputRemaining(Buffer input) {
+    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input != null && input.hasRemaining();
     }
 }

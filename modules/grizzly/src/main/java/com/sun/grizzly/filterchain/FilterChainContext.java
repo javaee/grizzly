@@ -39,16 +39,22 @@
 package com.sun.grizzly.filterchain;
 
 import com.sun.grizzly.Appendable;
-import com.sun.grizzly.Appender;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.Context;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ThreadCache;
+import com.sun.grizzly.Transport;
+import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
+import com.sun.grizzly.nio.NIOConnection;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * {@link FilterChain} {@link Context} implementation.
@@ -59,6 +65,12 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public final class FilterChainContext extends Context {
+    private static final Logger logger = Grizzly.logger(FilterChainContext.class);
+    
+    public enum State {
+        RUNNING, SUSPEND;
+    };
+
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
             ThreadCache.obtainIndex(FilterChainContext.class, 4);
 
@@ -79,10 +91,6 @@ public final class FilterChainContext extends Context {
      */
     private static final NextAction INVOKE_ACTION = new InvokeAction();
     /**
-     * Cached {@link NextAction} instance for "Rerun Chain action" implementation
-     */
-    private static final NextAction RERUN_CHAIN_ACTION = new RerunChainAction();
-    /**
      * Cached {@link NextAction} instance for "Stop action" implementation
      */
     private static final NextAction STOP_ACTION = new StopAction();
@@ -90,6 +98,13 @@ public final class FilterChainContext extends Context {
      * Cached {@link NextAction} instance for "Suspend action" implementation
      */
     private static final NextAction SUSPEND_ACTION = new SuspendAction();
+
+    /**
+     * Context task state
+     */
+    private volatile State state;
+
+    private final Runnable contextRunnable;
 
     /**
      * Context associated message
@@ -115,6 +130,59 @@ public final class FilterChainContext extends Context {
 
     public FilterChainContext() {
         filterIdx = NO_FILTER_INDEX;
+
+        contextRunnable = new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (state == State.SUSPEND) {
+                        state = State.RUNNING;
+                    }
+
+                    final Connection connection = getConnection();
+                    final IOEvent ioEvent = getIoEvent();
+
+                    final Transport transport = connection.getTransport();
+
+                    // If we're resuming read - we need to make sure key will get reregistered
+                    if (ioEvent == IOEvent.READ) {
+                        final IOEventReg ioEventReg =
+                                transport.fireIOEvent(FilterChainContext.this);
+                        if (ioEventReg == IOEventReg.REGISTER) {
+                            ((NIOConnection) connection).enableIOEvent(ioEvent);
+                        }
+                    } else {
+                        getFilterChain().execute(FilterChainContext.this);
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.FINE, "Exception during running Processor", e);
+                }
+            }
+        };
+    }
+
+    /**
+     * Suspend processing of the current task
+     */
+    public Runnable suspend() {
+        this.state = State.SUSPEND;
+        return getRunnable();
+    }
+
+    /**
+     * Resume processing of the current task
+     */
+    public void resume() {
+        getRunnable().run();
+    }
+
+
+    /**
+     * Get the current processing task state.
+     * @return the current processing task state.
+     */
+    public State state() {
+        return state;
     }
 
     public int nextFilterIdx() {
@@ -198,6 +266,10 @@ public final class FilterChainContext extends Context {
         this.address = address;
     }
 
+    protected final Runnable getRunnable() {
+        return contextRunnable;
+    }
+
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
      * process next {@link Filter} in chain. Parameter remaining signals, that
@@ -213,52 +285,9 @@ public final class FilterChainContext extends Context {
      * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
      * process next {@link Filter} in chain.
      */
-    public NextAction getInvokeAction(Appendable remainder) {
+    public NextAction getInvokeAction(Object remainder) {
         cachedInvokeAction.setRemainder(remainder);
         return cachedInvokeAction;
-    }
-    
-    /**
-     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain. Parameter remaining signals, that
-     * there is some data remaining in the source message, so {@link FilterChain}
-     * could be rerun.
-     *
-     * Normally, after receiving this instruction from {@link Filter},
-     * {@link FilterChain} executes next filter.
-     *
-     * @param remaining signals, that there is some data remaining in the source
-     * message, so {@link FilterChain} could be rerun.
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain.
-     */
-    public <E> NextAction getInvokeAction(E remainder, Appender<E> appender) {
-        cachedInvokeAction.setRemainder(remainder, appender);
-        return cachedInvokeAction;
-    }
-
-    /**
-     * Get {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain. Parameter remaining signals, that
-     * there is some data remaining in the source message, so {@link FilterChain}
-     * could be rerun.
-     *
-     * Normally, after receiving this instruction from {@link Filter},
-     * {@link FilterChain} executes next filter.
-     *
-     * @param remainder signals, that there is some data remaining in the source
-     * message, so {@link FilterChain} could be rerun.
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain} to
-     * process next {@link Filter} in chain.
-     */
-    public NextAction getInvokeAction(Object unknownObject) {
-        if (unknownObject instanceof Buffer) {
-            return getInvokeAction(unknownObject, BufferUtils.BUFFER_APPENDER);
-        }
-
-        return getInvokeAction((Appendable) unknownObject);
     }
     
     /**
@@ -273,18 +302,6 @@ public final class FilterChainContext extends Context {
      */
     public NextAction getInvokeAction() {
         return INVOKE_ACTION;
-    }
-
-    /**
-     * Get {@link NextAction} implementation, which is expected only on post processing
-     * phase. This implementation instructs {@link FilterChain} to re-process the
-     * {@link IOEvent} processing again from the beginning.
-     *
-     * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to re-process the {@link IOEvent} processing again from the beginning.
-     */
-    public NextAction getRerunChainAction() {
-        return RERUN_CHAIN_ACTION;
     }
 
     /**
@@ -398,6 +415,7 @@ public final class FilterChainContext extends Context {
         message = null;
         address = null;
         filterIdx = NO_FILTER_INDEX;
+        state = State.RUNNING;
         super.reset();
     }
 

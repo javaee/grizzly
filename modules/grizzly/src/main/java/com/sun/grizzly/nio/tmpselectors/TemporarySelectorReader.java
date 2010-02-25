@@ -209,7 +209,7 @@ public abstract class TemporarySelectorReader
                             connection, buffer);
 
                     final Buffer remainder = (Buffer) tResult.getExternalRemainder();
-                    final boolean hasRemaining = transformer.hasInputRemaining(remainder);
+                    final boolean hasRemaining = transformer.hasInputRemaining(connection, remainder);
                     if (buffer != null && !hasRemaining && !tResult.hasInternalRemainder()) {
                         buffer.dispose();
                     }

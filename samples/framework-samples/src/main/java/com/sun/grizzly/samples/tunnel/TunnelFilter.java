@@ -99,9 +99,6 @@ public class TunnelFilter extends BaseFilter {
         if (peerConnection == null) {
             // "Peer connect" phase could take some time - so execute it in non-blocking mode
 
-            // Suspend current task execution to resume it, once peer connection will be connected
-            ctx.suspend();
-
             // Connect peer connection and register completion handler
             transport.connect(redirectAddress, new ConnectCompletionHandler(ctx));
 
@@ -194,7 +191,7 @@ public class TunnelFilter extends BaseFilter {
          * earlier suspended.
          */
         private void resumeContext() {
-            context.getRunnable().run();
+            context.resume();
         }
 
         /**

@@ -176,7 +176,7 @@ public abstract class SequenceEncoder<E> extends AbstractSmartMemberEncoder<E> {
     }
 
     @Override
-    public boolean hasInputRemaining(E input) {
+    public boolean hasInputRemaining(AttributeStorage storage, E input) {
         return input != null;
     }
 

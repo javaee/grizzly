@@ -309,10 +309,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         FILTERS_STATE_ATTR.set(connection, filtersState);
                     }
 
-                    final Appender appender = ((InvokeAction) nextNextAction).getAppender();
                     filtersState.setState(ioEvent, i,
                             new FilterStateElement(FILTER_STATE_TYPE.REMAINDER,
-                            remainder, appender));
+                            remainder, null));
                 }
             } else {
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it

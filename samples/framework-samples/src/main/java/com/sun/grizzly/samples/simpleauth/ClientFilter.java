@@ -36,44 +36,41 @@
  *
  */
 
-package com.sun.grizzly.smart.transformers;
+package com.sun.grizzly.samples.simpleauth;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.TransformationException;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.attributes.AttributeStorage;
+import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.filterchain.NextAction;
+import java.io.IOException;
+import java.util.logging.Logger;
 
 /**
- * 
+ * Simple filter, which prints out the server echo message.
+ *
  * @author Alexey Stashok
  */
-public abstract class PrimitiveDecoder<E> extends AbstractSmartMemberDecoder<E> {
-    @Override
-    protected TransformationResult<Buffer, E> transformImpl(
-            AttributeStorage storage, Buffer input)
-            throws TransformationException {
-        
-        if (input == null) {
-            throw new TransformationException("Input could not be null");
-        }
-        
-        TransformationResult<Buffer, E> result;
-
-        if (input.remaining() < sizeOf()) {
-            result = TransformationResult.<Buffer, E>createIncompletedResult(input);
-        } else {
-            result = TransformationResult.<Buffer, E>createCompletedResult(get(input), input, false);
-        }
-
-        return result;
-    }
-
-    @Override
-    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
-        return input != null && input.hasRemaining();
-    }
-
-    public abstract int sizeOf();
+public class ClientFilter extends BaseFilter {
+    private final static Logger logger = Grizzly.logger(ClientFilter.class);
     
-    public abstract E get(Buffer input);
+    /**
+     * The method is called, when we receive a message from a server.
+     * 
+     * @param ctx Request processing context
+     * @param nextAction default {@link NextAction}.
+     *
+     * @return {@link NextAction}
+     * @throws IOException
+     */
+    @Override
+    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
+            throws IOException {
+        // Get the message
+        final MultiLinePacket message = (MultiLinePacket) ctx.getMessage();
+        
+        logger.info("---------Client got a response:\n" + message);
+        
+        return ctx.getStopAction();
+    }
+
 }

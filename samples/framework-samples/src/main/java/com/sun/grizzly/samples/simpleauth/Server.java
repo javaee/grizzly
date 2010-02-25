@@ -36,30 +36,41 @@
  *
  */
 
-package com.sun.grizzly.samples.ssl;
+package com.sun.grizzly.samples.simpleauth;
 
-import java.io.IOException;
-import java.net.URL;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.samples.echo.EchoFilter;
-import com.sun.grizzly.ssl.SSLContextConfigurator;
-import com.sun.grizzly.ssl.SSLEngineConfigurator;
-import com.sun.grizzly.ssl.SSLFilter;
+import com.sun.grizzly.utils.StringFilter;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.logging.Logger;
 
 /**
- * Class initializes and starts the SSL echo server, based on Grizzly 2.0
- * We use the {@link EchoFilter} from echo example.
+ * Server implementation, which echoes message, only if client was authenticated :)
+ * Client and server exachange String based messages:
  *
- * @see SSLFilter
- * @see SSLContextConfigurator
- * @see SSLEngineConfigurator
+ * (1)
+ * MultiLinePacket = command
+ *                   *(parameter LF)
+ *                   LF
+ * parameter = TEXT (ASCII)
+ *
+ * Server filters are built in a following way:
+ *
+ * {@link TransportFilter} - reads/writes data from/to network
+ * {@link StringFilter} - translates Buffer <-> String. StringFilter reads just single line at a time.
+ * {@link MultiLineFilter} - translates String <-> MultiLinePacket (see 1)
+ * {@link ServerAuthFilter} - checks authentication header in an incoming packets.
+ * {@link EchoFilter} - sends echo to a client.
  *
  * @author Alexey Stashok
  */
-public class SSLEchoServer {
+public class Server {
+    private static final Logger logger = Logger.getLogger(Server.class.getName());
+
     public static final String HOST = "localhost";
     public static final int PORT = 7777;
 
@@ -69,16 +80,14 @@ public class SSLEchoServer {
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());
-
-        // Initialize and add SSLFilter
-        final SSLEngineConfigurator serverConfig = initializeSSL();
-        final SSLEngineConfigurator clientConfig = serverConfig.clone().setClientMode(true);
-
-        filterChainBuilder.add(new SSLFilter(serverConfig, clientConfig));
-
-        // Use the plain EchoFilter
+        // StringFilter is responsible for parsing single string line
+        filterChainBuilder.add(new StringFilter(Charset.forName("ASCII"), "\n"));
+        // MultiStringFilter is responsible for gathering parsed lines in a single multi line packet
+        filterChainBuilder.add(new MultiLineFilter(""));
+        // AuthFilter is responsible for a client authentication
+        filterChainBuilder.add(new ServerAuthFilter());
+        // EchoServer sends the client message back
         filterChainBuilder.add(new EchoFilter());
-
 
         // Create TCP transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
@@ -91,46 +100,16 @@ public class SSLEchoServer {
             // start the transport
             transport.start();
 
-            System.out.println("Press any key to stop the server...");
+            logger.info("Press any key to stop the server...");
             System.in.read();
         } finally {
-            System.out.println("Stopping transport...");
+            logger.info("Stopping transport...");
             // stop the transport
             transport.stop();
 
             // release TransportManager resources like ThreadPool
             TransportFactory.getInstance().close();
-            System.out.println("Stopped transport...");
+            logger.info("Stopped transport...");
         }
-    }
-    
-    /**
-     * Initialize server side SSL configuration.
-     * 
-     * @return server side {@link SSLEngineConfigurator}.
-     */
-    private static SSLEngineConfigurator initializeSSL() {
-        // Initialize SSLContext configuration
-        SSLContextConfigurator sslContextConfig = new SSLContextConfigurator();
-
-        // Set key store
-        ClassLoader cl = SSLEchoServer.class.getClassLoader();
-        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
-        if (cacertsUrl != null) {
-            sslContextConfig.setTrustStoreFile(cacertsUrl.getFile());
-            sslContextConfig.setTrustStorePass("changeit");
-        }
-
-        // Set trust store
-        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
-        if (keystoreUrl != null) {
-            sslContextConfig.setKeyStoreFile(keystoreUrl.getFile());
-            sslContextConfig.setKeyStorePass("changeit");
-        }
-
-
-        // Create SSLEngine configurator
-        return new SSLEngineConfigurator(sslContextConfig.createSSLContext(),
-                false, false, false);
     }
 }

@@ -37,9 +37,6 @@
  */
 package com.sun.grizzly.filterchain;
 
-import com.sun.grizzly.Appendable;
-import com.sun.grizzly.Appender;
-
 /**
  * {@link NextAction} implementation, which instructs {@link FilterChain} to
  * process next {@link Filter} in chain.
@@ -59,14 +56,13 @@ import com.sun.grizzly.Appender;
 final class InvokeAction extends AbstractNextAction {
     static final int TYPE = 0;
 
-    private Appender appender;
     private Object remainder;
 
     InvokeAction() {
         this(null);
     }
 
-    public InvokeAction(Appendable remainder) {
+    public InvokeAction(Object remainder) {
         super(TYPE);
         this.remainder = remainder;
     }
@@ -75,17 +71,7 @@ final class InvokeAction extends AbstractNextAction {
         return remainder;
     }
 
-    public Appender getAppender() {
-        return appender;
-    }
-
-    public void setRemainder(Appendable appendable) {
-        this.remainder = appendable;
-        appender = null;
-    }
-
-    public <E> void setRemainder(E remainder, Appender<E> appender) {
+    public void setRemainder(Object remainder) {
         this.remainder = remainder;
-        this.appender = appender;
     }
 }

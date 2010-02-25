@@ -50,10 +50,15 @@ import java.nio.charset.Charset;
 public final class StringFilter extends AbstractCodecFilter<Buffer, String> {
 
     public StringFilter() {
-        this(null);
+        this(null, null);
     }
     
     public StringFilter(Charset charset) {
-        super(new StringDecoder(charset), new StringEncoder(charset));
+        this(charset, null);
+    }
+
+    public StringFilter(Charset charset, String stringTerminatingSymb) {
+        super(new StringDecoder(charset, stringTerminatingSymb),
+                new StringEncoder(charset, stringTerminatingSymb));
     }
 }

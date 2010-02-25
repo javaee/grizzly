@@ -36,44 +36,69 @@
  *
  */
 
-package com.sun.grizzly.smart.transformers;
+package com.sun.grizzly.samples.simpleauth;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.TransformationException;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.attributes.AttributeStorage;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
+ * Packet, which contains multiple String lines.
  * 
  * @author Alexey Stashok
  */
-public abstract class PrimitiveDecoder<E> extends AbstractSmartMemberDecoder<E> {
-    @Override
-    protected TransformationResult<Buffer, E> transformImpl(
-            AttributeStorage storage, Buffer input)
-            throws TransformationException {
-        
-        if (input == null) {
-            throw new TransformationException("Input could not be null");
-        }
-        
-        TransformationResult<Buffer, E> result;
+public class MultiLinePacket {
+    // String lines list
+    private final List<String> lines = new ArrayList<String>();
 
-        if (input.remaining() < sizeOf()) {
-            result = TransformationResult.<Buffer, E>createIncompletedResult(input);
-        } else {
-            result = TransformationResult.<Buffer, E>createCompletedResult(get(input), input, false);
-        }
-
-        return result;
+    public static MultiLinePacket create() {
+        return new MultiLinePacket();
     }
-
-    @Override
-    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
-        return input != null && input.hasRemaining();
-    }
-
-    public abstract int sizeOf();
     
-    public abstract E get(Buffer input);
+    public static MultiLinePacket create(String... lines) {
+        MultiLinePacket packet = new MultiLinePacket();
+
+        for(String line : lines) {
+            packet.getLines().add(line);
+        }
+
+        return packet;
+    }
+
+    private MultiLinePacket() {
+    }
+
+    /**
+     * Gets the packet string lines.
+     * @return the packet string lines.
+     */
+    public List<String> getLines() {
+        return lines;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder(256);
+
+        for (String line : lines) {
+            sb.append(line).append("\n");
+        }
+
+        return sb.toString();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof MultiLinePacket) {
+            return lines.equals(((MultiLinePacket) obj).lines);
+        }
+
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 89 * hash + (this.lines != null ? this.lines.hashCode() : 0);
+        return hash;
+    }
 }
