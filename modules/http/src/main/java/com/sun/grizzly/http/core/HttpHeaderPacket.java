@@ -39,7 +39,6 @@ package com.sun.grizzly.http.core;
 
 import com.sun.grizzly.util.MimeHeaders;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Buffer;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.memory.BufferUtils;
 
