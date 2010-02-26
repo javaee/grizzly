@@ -69,12 +69,14 @@
             <url>http://download.java.net/maven/1</url>
             <layout>legacy</layout>
         </repository>
+        <!--
         <repository>
             <id>legacy.java.net</id>
             <name>maven-repository.dev.java.net</name>
             <url>https://maven-repository.dev.java.net/nonav/repository/</url>
             <layout>legacy</layout>
         </repository>
+        -->
         <repository>
             <id>codehaus</id>
             <name>repository.codehaus.org</name>
