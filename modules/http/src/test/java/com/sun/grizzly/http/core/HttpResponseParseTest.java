@@ -37,28 +37,21 @@
  */
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.core.HttpRequestEncoder;
-import com.sun.grizzly.http.core.HttpResponseDecoder;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.StandaloneProcessor;
-import com.sun.grizzly.TransformationException;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.attributes.AttributeHolder;
-import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.attributes.IndexedAttributeHolder;
-import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
+import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
@@ -66,6 +59,7 @@ import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.Pair;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -121,7 +115,7 @@ public class HttpResponseParseTest extends TestCase {
         try {
             doTestDecoder("HTTP/1.0 404 Not found\n\n", 4096);
             assertTrue(true);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             logger.log(Level.SEVERE, "exception", e);
             assertTrue("Unexpected exception", false);
         }
@@ -131,7 +125,7 @@ public class HttpResponseParseTest extends TestCase {
         try {
             doTestDecoder("HTTP/1.0 404 Not found\n\n", 2);
             assertTrue("Overflow exception had to be thrown", false);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             assertTrue(true);
         }
     }
@@ -140,7 +134,7 @@ public class HttpResponseParseTest extends TestCase {
         try {
             doTestDecoder("HTTP/1.0 404 Not found\n\n", 11);
             assertTrue("Overflow exception had to be thrown", false);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             assertTrue(true);
         }
     }
@@ -149,7 +143,7 @@ public class HttpResponseParseTest extends TestCase {
         try {
             doTestDecoder("HTTP/1.0 404 Not found\n\n", 19);
             assertTrue("Overflow exception had to be thrown", false);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             assertTrue(true);
         }
     }
@@ -158,19 +152,27 @@ public class HttpResponseParseTest extends TestCase {
         try {
             doTestDecoder("HTTP/1.0 404 Not found\nHeader1: somevalue\n\n", 30);
             assertTrue("Overflow exception had to be thrown", false);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             assertTrue(true);
         }
     }
 
-    private TransformationResult<Buffer, HttpPacket> doTestDecoder(
-            String response, int limit) {
+    private HttpPacket doTestDecoder(String response, int limit) {
 
         MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
         Buffer input = MemoryUtils.wrap(mm, response);
         
-        Transformer<Buffer, HttpPacket> decoder = new HttpResponseDecoder(limit);
-        return decoder.transform(new StandaloneAttrStorage(), input);
+        HttpClientFilter filter = new HttpClientFilter(limit);
+        FilterChainContext ctx = FilterChainContext.create();
+        ctx.setMessage(input);
+        ctx.setConnection(new StandaloneConnection());
+
+        try {
+            filter.handleRead(ctx, null);
+            return (HttpPacket) ctx.getMessage();
+        } catch (IOException e) {
+            throw new IllegalStateException(e.getMessage());
+        }
     }
 
     private void doHttpResponseTest(String protocol, int code,
@@ -186,8 +188,7 @@ public class HttpResponseParseTest extends TestCase {
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(2));
-        filterChainBuilder.add(new AbstractCodecFilter(
-                new HttpResponseDecoder(), new HttpRequestEncoder()) {});
+        filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new HTTPResponseCheckFilter(parseResult,
                 protocol, code, phrase, Collections.EMPTY_MAP));
 
@@ -255,7 +256,9 @@ public class HttpResponseParseTest extends TestCase {
         @Override
         public NextAction handleRead(FilterChainContext ctx,
                 NextAction nextAction) throws IOException {
-            HttpResponse httpResponse = (HttpResponse) ctx.getMessage();
+            HttpContent httpContent = (HttpContent) ctx.getMessage();
+            HttpResponse httpResponse = (HttpResponse) httpContent.getHttpHeader();
+            
             try {
                 assertEquals(protocol, httpResponse.getProtocol());
                 assertEquals(code, httpResponse.getStatus());
@@ -275,13 +278,25 @@ public class HttpResponseParseTest extends TestCase {
         }
     }
 
-    protected static final class StandaloneAttrStorage implements AttributeStorage {
-        private final AttributeHolder holder = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+    protected static final class StandaloneConnection extends AbstractNIOConnection {
+        public StandaloneConnection() {
+            super(TransportFactory.getInstance().createTCPTransport());
+        }
 
         @Override
-        public AttributeHolder getAttributes() {
-            return holder;
+        protected void preClose() {
+            throw new UnsupportedOperationException("Not supported yet.");
         }
-        
+
+        @Override
+        public SocketAddress getPeerAddress() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public SocketAddress getLocalAddress() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
     }
+
 }

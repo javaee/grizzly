@@ -1,7 +1,8 @@
 /*
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -33,53 +34,60 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  *
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *
- * Copyright 2004 The Apache Software Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
- 
+package com.sun.grizzly.http.core;
 
-package com.sun.grizzly.util;
-
-import com.sun.grizzly.http.core.HttpRequest;
-import java.io.IOException;
-
-import com.sun.grizzly.http.util.ByteChunk;
-
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.memory.BufferUtils;
 
 /**
- * Input buffer.
  *
- * This class is used only in the protocol implementation. All reading from
- * tomcat ( or adapter ) should be done using Request.doRead().
- * 
- * @author Remy Maucherat
+ * @author oleksiys
  */
-public interface InputBuffer {
+public class HttpContent implements HttpPacket {
+    public static Builder builder() {
+        return new Builder();
+    }
 
+    protected Buffer content = BufferUtils.EMPTY_BUFFER;
 
-    /** Return from the input stream.
-        IMPORTANT: the current model assumes that the protocol will 'own' the
-        buffer and return a pointer to it in ByteChunk ( i.e. the param will
-        have chunk.getBytes()==null before call, and the result after the call ).
-    */
-    public int doRead(ByteChunk chunk, HttpRequest request)
-        throws IOException;
+    protected HttpHeader httpHeader;
 
+    protected HttpContent() {
+    }
 
+    public Buffer getContent() {
+        return content;
+    }
+
+    protected void setContent(Buffer content) {
+        this.content = content;
+    }
+
+    public HttpHeader getHttpHeader() {
+        return httpHeader;
+    }
+
+    protected void setHttpHeader(HttpHeader httpHeaderPacket) {
+        this.httpHeader = httpHeaderPacket;
+    }
+
+    @Override
+    public final boolean isHeader() {
+        return false;
+    }
+
+    public static class Builder {
+
+        protected HttpContent packet;
+
+        public final Builder content(Buffer content) {
+            packet.setContent(content);
+            return this;
+        }
+        public final HttpContent build() {
+            return packet;
+        }
+    }
 }

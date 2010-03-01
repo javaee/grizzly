@@ -51,7 +51,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sun.grizzly.util;
+package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Buffer;

@@ -52,127 +52,84 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.util.MimeHeaders;
-import com.sun.grizzly.http.util.BufferChunk;
 
+package com.sun.grizzly.http.util;
 
 
 /**
- * Response object.
+ * Usefull methods for Content-Type processing
  * 
  * @author James Duncan Davidson [duncan@eng.sun.com]
- * @author Jason Hunter [jch@eng.sun.com]
  * @author James Todd [gonzo@eng.sun.com]
+ * @author Jason Hunter [jch@eng.sun.com]
  * @author Harish Prabandham
- * @author Hans Bergsten <hans@gefionsoftware.com>
- * @author Remy Maucherat
+ * @author costin@eng.sun.com
  */
-public class HttpResponse extends HttpHeader {
-    public static final int NON_PARSED_STATUS = Integer.MIN_VALUE;
-    
-    // ----------------------------------------------------- Instance Variables
+public class ContentType {
 
     /**
-     * Status code.
+     * Parse the character encoding from the specified content type header.
+     * If the content type is null, or there is no explicit character encoding,
+     * <code>null</code> is returned.
+     *
+     * @param contentType a content type header
      */
-    protected int parsedStatusInt = NON_PARSED_STATUS;
-    protected BufferChunk statusBC = BufferChunk.newInstance();
+    public static String getCharsetFromContentType(String contentType) {
 
+        if (contentType == null)
+            return (null);
+        int start = contentType.indexOf("charset=");
+        if (start < 0)
+            return (null);
+        String encoding = contentType.substring(start + 8);
+        int end = encoding.indexOf(';');
+        if (end >= 0)
+            encoding = encoding.substring(0, end);
+        encoding = encoding.trim();
+        if ((encoding.length() > 2) && (encoding.startsWith("\""))
+            && (encoding.endsWith("\"")))
+            encoding = encoding.substring(1, encoding.length() - 1);
+        return (encoding.trim());
 
-    /**
-     * Status message.
-     */
-    private BufferChunk reasonPhraseBC = BufferChunk.newInstance();
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    // ----------------------------------------------------------- Constructors
-    protected HttpResponse() {
-    }
-
-    // ------------------------------------------------------------- Properties
-    public MimeHeaders getMimeHeaders() {
-        return headers;
-    }
-
-
-    // -------------------- State --------------------
-
-    public BufferChunk getStatusBC() {
-        return statusBC;
-    }
-
-    public int getStatus() {
-        if (parsedStatusInt == NON_PARSED_STATUS) {
-            parsedStatusInt = Integer.parseInt(statusBC.toString());
-        }
-
-        return parsedStatusInt;
     }
     
-    /** 
-     * Set the response status 
-     */ 
-    public void setStatus(int status) {
-        parsedStatusInt = status;
-        statusBC.setString(Integer.toString(status));
-    }
-
-
-    public BufferChunk getReasonPhraseBC() {
-        return reasonPhraseBC;
-    }
-
     /**
-     * Get the status message.
+     * Returns true if the given content type contains a charset component,
+     * false otherwise.
+     *
+     * @param type Content type
+     * @return true if the given content type contains a charset component,
+     * false otherwise
      */
-    public String getReasonPhrase() {
-        return reasonPhraseBC.toString();
-    }
+    @SuppressWarnings("deprecation")
+    public static boolean hasCharset(String type) {
 
+        boolean hasCharset = false;
 
-    /**
-     * Set the status message.
-     */
-    public void setReasonPhrase(String message) {
-        reasonPhraseBC.setString(message);
-    }
-
-    // --------------------
-    
-    @Override
-    public void recycle() {
-        super.recycle();
-        statusBC.recycle();
-        reasonPhraseBC.recycle();
-    }
-
-    @Override
-    public final boolean isRequest() {
-        return false;
-    }
-
-    public static class Builder extends HttpHeader.Builder<Builder> {
-        protected Builder() {
-            packet = new HttpResponse();
+        int len = type.length();
+        int index = type.indexOf(';');
+        while (index != -1) {
+            index++;
+            while (index < len && Character.isSpace(type.charAt(index))) {
+                index++;
+            }
+            if (index+8 < len
+                    && type.charAt(index) == 'c'
+                    && type.charAt(index+1) == 'h'
+                    && type.charAt(index+2) == 'a'
+                    && type.charAt(index+3) == 'r'
+                    && type.charAt(index+4) == 's'
+                    && type.charAt(index+5) == 'e'
+                    && type.charAt(index+6) == 't'
+                    && type.charAt(index+7) == '=') {
+                hasCharset = true;
+                break;
+            }
+            index = type.indexOf(';', index);
         }
 
-        public Builder status(int status) {
-            ((HttpResponse) packet).setStatus(status);
-            return this;
-        }
-
-        public Builder reasonPhrase(String reasonPhrase) {
-            ((HttpResponse) packet).setReasonPhrase(reasonPhrase);
-            return this;
-        }
-
-        public final HttpResponse build() {
-            return (HttpResponse) packet;
-        }
+        return hasCharset;
     }
+
 }

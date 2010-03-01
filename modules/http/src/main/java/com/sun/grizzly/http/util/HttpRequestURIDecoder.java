@@ -22,11 +22,6 @@
  */
 package com.sun.grizzly.http.util;
 
-import com.sun.grizzly.http.util.B2CConverter;
-import com.sun.grizzly.http.util.ByteChunk;
-import com.sun.grizzly.http.util.CharChunk;
-import com.sun.grizzly.http.util.MessageBytes;
-import com.sun.grizzly.http.util.UDecoder;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;

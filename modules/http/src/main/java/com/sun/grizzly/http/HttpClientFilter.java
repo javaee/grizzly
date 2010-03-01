@@ -36,109 +36,132 @@
  *
  */
 
-package com.sun.grizzly.http.core;
+package com.sun.grizzly.http;
 
+import com.sun.grizzly.http.core.HttpPacket;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.TransformationException;
-import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.attributes.Attribute;
-import com.sun.grizzly.attributes.AttributeStorage;
+import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.http.core.HttpRequest;
+import com.sun.grizzly.http.core.HttpResponse;
+import com.sun.grizzly.memory.MemoryManager;
+import java.io.IOException;
 
 /**
  *
  * @author oleksiys
  */
-public class HttpResponseDecoder extends HttpPacketDecoder {
-    private final Attribute<HttpResponse> responseInProcessAttr;
-    private final Attribute<ParsingState> parsingStateAttr;
+public class HttpClientFilter extends HttpFilter {
+    public static final int DEFAULT_MAX_HEADERS_SIZE = 8192;
 
-    private final int maxHttpHeaderSize;
+    protected static final int HEADER_PARSED_STATE = 2;
 
-    public HttpResponseDecoder() {
-        this(8192);
+    
+    private final Attribute<HttpResponseImpl> httpResponseInProcessAttr;
+
+    private final int maxHeadersSize;
+
+    public HttpClientFilter() {
+        this(DEFAULT_MAX_HEADERS_SIZE);
     }
 
-    public HttpResponseDecoder(int maxHttpHeaderSize) {
-        this.maxHttpHeaderSize = maxHttpHeaderSize;
-
-        this.parsingStateAttr =
+    public HttpClientFilter(int maxHeadersSize) {
+        this.maxHeadersSize = maxHeadersSize;
+        
+        this.httpResponseInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                "HttpResponseDecoder.ParsingState");
-        this.responseInProcessAttr =
-                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
-                "HttpResponseDecoder.PacketInProcess");
+                "HttpServerFilter.httpRequest");
     }
 
     @Override
-    protected TransformationResult<Buffer, HttpPacket> transformImpl(
-            AttributeStorage storage, Buffer input)
-            throws TransformationException {
-
-        final HttpResponse processingResponse =
-                responseInProcessAttr.get(storage);
-
-        if (processingResponse != null) {
-            final HttpContentPacket content = new HttpContentPacket();
-            content.setHttpHeaderPacket(processingResponse);
-            content.setContent(input);
-
-            return TransformationResult.<Buffer, HttpPacket>createCompletedResult(
-                        content, null, false);
+    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
+            throws IOException {
+        Buffer input = (Buffer) ctx.getMessage();
+        final Connection connection = ctx.getConnection();
+        
+        HttpResponseImpl httpResponse = httpResponseInProcessAttr.get(connection);
+        if (httpResponse == null) {
+            final ParsingState parsingState =
+                    new ParsingState(input.position(), maxHeadersSize);
+            httpResponse = new HttpResponseImpl(parsingState);
+            httpResponseInProcessAttr.set(connection, httpResponse);
         }
 
-        ParsingState parsingState = parsingStateAttr.get(storage);
-        if (parsingState == null) {
-            parsingState = new ParsingState();
-            parsingState.setHttpPacket(new HttpResponse());
-            parsingState.offset = input.position();
-            parsingState.packetLimit =  parsingState.offset + maxHttpHeaderSize;
-            parsingStateAttr.set(storage, parsingState);
+        if (!httpResponse.isHeaderParsed()) {
+            if (!decodeHttpPacket(httpResponse, input)) {
+                return ctx.getStopAction(input);
+            } else {
+                httpResponse.setHeaderParsed(true);
+                httpResponse.getHeaderParsingState().recycle();
+                checkContent(httpResponse);
+            }
         }
 
-        switch (parsingState.state) {
-            case 0: { // parsing status line
-                if (!parseResponseStatus(parsingState, input)) {
-                    parsingState.checkOverflow();
-                    return TransformationResult.createIncompletedResult(input);
+        Buffer remainder = null;
+        
+        if (input.hasRemaining()) {
+            final ContentParsingState contentParsingState =
+                    httpResponse.getContentParsingState();
+            if (contentParsingState.isChunked) {
+                if (contentParsingState.chunkLength == -1) {
+                    if (!parseHttpChunkLength(httpResponse, input)) {
+                        return ctx.getStopAction(input);
+                    }
+                } else {
+                    contentParsingState.chunkContentStart = 0;
                 }
 
-                parsingState.state++;
-            }
-
-            case 1: { // parsing headers
-                if (!parseHeaders(parsingState, input)) {
-                    parsingState.checkOverflow();
-                    return TransformationResult.createIncompletedResult(input);
-                }
-
-                parsingState.state++;
-            }
-
-            case 2: { // Headers are ready
-                final HttpResponse parsedResponse =
-                        (HttpResponse) parsingState.httpPacket;
+                final int chunkContentStart =
+                        contentParsingState.chunkContentStart;
                 
-                if (parsingState.offset < input.limit()) {
-                    parsedResponse.setContent(
-                            input.slice(parsingState.offset,input.limit()));
-                }
-                
-                responseInProcessAttr.set(storage, parsedResponse);
+                final long thisPacketRemaining =
+                        contentParsingState.chunkRemainder;
+                final int contentAvailable = input.limit() - chunkContentStart;
 
-                return TransformationResult.<Buffer, HttpPacket>createCompletedResult(
-                        parsedResponse, null, false);
+                if (contentAvailable > thisPacketRemaining) {
+                    remainder = input.slice(
+                            (int) (chunkContentStart + thisPacketRemaining), input.limit());
+                    input.limit((int) (chunkContentStart + thisPacketRemaining));
+                }
+            } else {
+                final long thisPacketRemaining = contentParsingState.chunkRemainder;
+                final int available = input.remaining();
+                
+                if (available > thisPacketRemaining) {
+                    remainder = input.slice(
+                            (int) (input.position() + thisPacketRemaining), input.limit());
+                    input.limit((int) (input.position() + thisPacketRemaining));
+                }
             }
 
-            default: throw new IllegalStateException();
+            contentParsingState.chunkRemainder -= input.remaining();
         }
+
+        ctx.setMessage(httpResponse.createContent(input));
+        return ctx.getInvokeAction(remainder);
+    }
+
+    @Override
+    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
+            throws IOException {
+        final HttpPacket input = (HttpPacket) ctx.getMessage();
+        final Connection connection = ctx.getConnection();
+
+        final Buffer output = encodeHttpPacket(
+                connection.getTransport().getMemoryManager(), input);
+
+        ctx.setMessage(output);
+        return nextAction;
     }
     
-    private static boolean parseResponseStatus(ParsingState parsingState,
-            Buffer input) {
-        
-        final HttpResponse httpResponse =
-                (HttpResponse) parsingState.httpPacket;
+    @Override
+    final boolean decodeInitialLine(HttpPacketParsing httpPacket,
+            ParsingState parsingState, Buffer input) {
+
+        final HttpResponse httpResponse = (HttpResponse) httpPacket;
         
         final int packetLimit = parsingState.packetLimit;
 
@@ -229,13 +252,14 @@ public class HttpResponseDecoder extends HttpPacketDecoder {
     }
 
     @Override
-    public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
-        return input != null && input.hasRemaining();
-    }
+    Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
+        final HttpRequest httpRequest = (HttpRequest) httpPacket;
+        output = put(memoryManager, output, httpRequest.getMethodBC());
+        output = put(memoryManager, output, Constants.SP);
+        output = put(memoryManager, output, httpRequest.getRequestURIBC());
+        output = put(memoryManager, output, Constants.SP);
+        output = put(memoryManager, output, httpRequest.getProtocolBC());
 
-    @Override
-    public void release(AttributeStorage storage) {
-        parsingStateAttr.remove(storage);
-        super.release(storage);
+        return output;
     }
 }

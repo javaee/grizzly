@@ -90,7 +90,7 @@ import com.sun.grizzly.http.util.UDecoder;
  * @author Costin Manolache
  * @author Remy Maucherat
  */
-public class HttpRequest extends HttpHeaderPacket {
+public class HttpRequest extends HttpHeader {
 
     // ----------------------------------------------------- Instance Variables
     private BufferChunk methodBC = BufferChunk.newInstance();
@@ -178,7 +178,7 @@ public class HttpRequest extends HttpHeaderPacket {
         return true;
     }
 
-    public static class Builder extends HttpHeaderPacket.Builder<Builder> {
+    public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
             packet = new HttpRequest();
         }

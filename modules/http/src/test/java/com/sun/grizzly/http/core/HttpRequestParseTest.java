@@ -37,28 +37,21 @@
  */
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.core.HttpResponseEncoder;
-import com.sun.grizzly.http.core.HttpRequestDecoder;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.StandaloneProcessor;
-import com.sun.grizzly.TransformationException;
-import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.attributes.AttributeHolder;
-import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.attributes.IndexedAttributeHolder;
-import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
+import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
@@ -66,6 +59,7 @@ import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.Pair;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -120,7 +114,7 @@ public class HttpRequestParseTest extends TestCase {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 4096);
             assertTrue(true);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             logger.log(Level.SEVERE, "exception", e);
             assertTrue("Unexpected exception", false);
         }
@@ -130,7 +124,7 @@ public class HttpRequestParseTest extends TestCase {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 2);
             assertTrue("Overflow exception had to be thrown", false);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             assertTrue(true);
         }
     }
@@ -139,7 +133,7 @@ public class HttpRequestParseTest extends TestCase {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 8);
             assertTrue("Overflow exception had to be thrown", false);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             assertTrue(true);
         }
     }
@@ -148,7 +142,7 @@ public class HttpRequestParseTest extends TestCase {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\n\n", 19);
             assertTrue("Overflow exception had to be thrown", false);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             assertTrue(true);
         }
     }
@@ -157,19 +151,27 @@ public class HttpRequestParseTest extends TestCase {
         try {
             doTestDecoder("GET /index.html HTTP/1.0\nHost: localhost\n\n", 30);
             assertTrue("Overflow exception had to be thrown", false);
-        } catch (TransformationException e) {
+        } catch (IllegalStateException e) {
             assertTrue(true);
         }
     }
 
-    private TransformationResult<Buffer, HttpPacket> doTestDecoder(
-            String request, int limit) {
+    private HttpPacket doTestDecoder(String request, int limit) {
 
         MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
         Buffer input = MemoryUtils.wrap(mm, request);
         
-        Transformer<Buffer, HttpPacket> decoder = new HttpRequestDecoder(limit);
-        return decoder.transform(new StandaloneAttrStorage(), input);
+        HttpServerFilter filter = new HttpServerFilter(limit);
+        FilterChainContext ctx = FilterChainContext.create();
+        ctx.setMessage(input);
+        ctx.setConnection(new StandaloneConnection());
+
+        try {
+            filter.handleRead(ctx, null);
+            return (HttpPacket) ctx.getMessage();
+        } catch (IOException e) {
+            throw new IllegalStateException(e.getMessage());
+        }
     }
 
     private void doHttpRequestTest(String method, String requestURI,
@@ -185,8 +187,7 @@ public class HttpRequestParseTest extends TestCase {
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(2));
-        filterChainBuilder.add(new AbstractCodecFilter(
-                new HttpRequestDecoder(), new HttpResponseEncoder()) {});
+        filterChainBuilder.add(new HttpServerFilter());
         filterChainBuilder.add(new HTTPRequestCheckFilter(parseResult,
                 method, requestURI, protocol, Collections.EMPTY_MAP));
 
@@ -222,7 +223,7 @@ public class HttpRequestParseTest extends TestCase {
             assertTrue("Write timeout", writeFuture.isDone());
             assertEquals(message.length, (int) writeFuture.get());
 
-            assertTrue(parseResult.get(10, TimeUnit.SECONDS));
+            assertTrue(parseResult.get(10000, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
                 connection.close();
@@ -253,7 +254,9 @@ public class HttpRequestParseTest extends TestCase {
         @Override
         public NextAction handleRead(FilterChainContext ctx,
                 NextAction nextAction) throws IOException {
-            HttpRequest httpRequest = (HttpRequest) ctx.getMessage();
+            HttpContent httpContent = (HttpContent) ctx.getMessage();
+            HttpRequest httpRequest = (HttpRequest) httpContent.getHttpHeader();
+            
             try {
                 assertEquals(method, httpRequest.getMethod());
                 assertEquals(requestURI, httpRequest.getRequestURI());
@@ -273,13 +276,25 @@ public class HttpRequestParseTest extends TestCase {
         }
     }
 
-    protected static final class StandaloneAttrStorage implements AttributeStorage {
-        private final AttributeHolder holder = new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+    protected static final class StandaloneConnection extends AbstractNIOConnection {
+
+        public StandaloneConnection() {
+            super(TransportFactory.getInstance().createTCPTransport());
+        }
 
         @Override
-        public AttributeHolder getAttributes() {
-            return holder;
+        protected void preClose() {
+            throw new UnsupportedOperationException("Not supported yet.");
         }
-        
+
+        @Override
+        public SocketAddress getPeerAddress() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public SocketAddress getLocalAddress() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
     }
 }

@@ -54,7 +54,6 @@
  
 package com.sun.grizzly.http.util;
 
-import com.sun.grizzly.http.util.MessageBytes;
 import java.io.Serializable;
 
 /**

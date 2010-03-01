@@ -52,7 +52,7 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.core;
+package com.sun.grizzly.http;
 
 /**
  * Constants.

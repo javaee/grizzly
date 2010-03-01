@@ -37,26 +37,34 @@
  */
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.util.MimeHeaders;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.BufferChunk;
-import com.sun.grizzly.memory.BufferUtils;
 
 /**
  *
  * @author oleksiys
  */
-public abstract class HttpHeaderPacket implements HttpPacket {
+public abstract class HttpHeader implements HttpPacket {
 
+    protected boolean isCommited;
+    
     protected MimeHeaders headers = new MimeHeaders();
     protected BufferChunk protocolBC = BufferChunk.newInstance();
-    protected Buffer content = BufferUtils.EMPTY_BUFFER;
 
     public abstract boolean isRequest();
 
     @Override
     public final boolean isHeader() {
         return true;
+    }
+
+    public boolean isCommited() {
+        return isCommited;
+    }
+
+    public void setCommited(boolean isCommited) {
+        this.isCommited = isCommited;
     }
 
     // -------------------- Headers --------------------
@@ -93,31 +101,30 @@ public abstract class HttpHeaderPacket implements HttpPacket {
         this.protocolBC.setString(protocol);
     }
 
-    public Buffer getContent() {
-        return content;
+    public final HttpContent createContent() {
+        return createContent(null);
     }
 
-    public void setContent(Buffer content) {
-        this.content = content;
+    public HttpContent createContent(Buffer content) {
+        final HttpContent httpContent = new HttpContent();
+        httpContent.setHttpHeader(this);
+        httpContent.setContent(content);
+
+        return httpContent;
     }
 
     public void recycle() {
         protocolBC.recycle();
         headers.clear();
-        content = BufferUtils.EMPTY_BUFFER;
+        isCommited = false;
     }
 
     public static abstract class Builder<T extends Builder> {
 
-        protected HttpHeaderPacket packet;
+        protected HttpHeader packet;
 
         public final T protocol(String protocol) {
             packet.setProtocol(protocol);
-            return (T) this;
-        }
-
-        public final T content(Buffer content) {
-            packet.setContent(content);
             return (T) this;
         }
 

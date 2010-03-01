@@ -186,6 +186,42 @@ public class BufferChunk {
         }
     }
 
+
+    /**
+     * Returns true if the message bytes starts with the specified string.
+     * @param s the string
+     * @param pos The start position
+     */
+    public boolean startsWithIgnoreCase(String s, int pos) {
+        if (!hasString()) {
+            int len = s.length();
+            if (len > end - start - pos) {
+                return false;
+            }
+            
+            int off = start + pos;
+            for (int i = 0; i < len; i++) {
+                if (Ascii.toLower(buffer.get(off++)) != Ascii.toLower(s.charAt(i))) {
+                    return false;
+                }
+            }
+            
+            return true;
+        } else {
+            if (cachedString.length() < pos + s.length()) {
+                return false;
+            }
+
+            for (int i = 0; i < s.length(); i++) {
+                if (Ascii.toLower(s.charAt(i))
+                        != Ascii.toLower(cachedString.charAt(pos + i))) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    
     public boolean hasBuffer() {
         return buffer != null;
     }

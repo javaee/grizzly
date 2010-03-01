@@ -37,21 +37,18 @@
  */
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.core.HttpRequestDecoder;
-import com.sun.grizzly.http.core.HttpRequestEncoder;
-import com.sun.grizzly.http.core.HttpResponseDecoder;
-import com.sun.grizzly.http.core.HttpResponseEncoder;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.WriteResult;
-import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.http.HttpClientFilter;
+import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
@@ -76,8 +73,7 @@ public class HttpCommTest extends TestCase {
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.singleton();
         serverFilterChainBuilder.add(new TransportFilter());
         serverFilterChainBuilder.add(new ChunkingFilter(2));
-        serverFilterChainBuilder.add(new AbstractCodecFilter(
-                new HttpRequestDecoder(), new HttpResponseEncoder()) {});
+        serverFilterChainBuilder.add(new HttpServerFilter());
         serverFilterChainBuilder.add(new DummyServerFilter());
 
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
@@ -95,8 +91,7 @@ public class HttpCommTest extends TestCase {
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.singleton();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(2));
-            clientFilterChainBuilder.add(new AbstractCodecFilter(
-                    new HttpResponseDecoder(), new HttpRequestEncoder()) {});
+            clientFilterChainBuilder.add(new HttpClientFilter());
             
             connection.setProcessor(clientFilterChainBuilder.build());
 
@@ -108,12 +103,13 @@ public class HttpCommTest extends TestCase {
             writeResultFuture.get(10, TimeUnit.SECONDS);
 
             Future<ReadResult> readResultFuture = connection.read();
-            ReadResult<HttpResponse, SocketAddress> readResult =
+            ReadResult<HttpContent, SocketAddress> readResult =
                     readResultFuture.get(100000, TimeUnit.SECONDS);
 
-            HttpResponse response = readResult.getMessage();
+            HttpContent response = readResult.getMessage();
+            HttpResponse responseHeader = (HttpResponse) response.getHttpHeader();
 
-            assertEquals(response.getHeader("Found"), httpRequest.getRequestURI());
+            assertEquals(responseHeader.getHeader("Found"), httpRequest.getRequestURI());
             
         } finally {
             if (connection != null) {
@@ -132,7 +128,8 @@ public class HttpCommTest extends TestCase {
         public NextAction handleRead(FilterChainContext ctx,
                 NextAction nextAction) throws IOException {
 
-            final HttpRequest request = (HttpRequest) ctx.getMessage();
+            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            final HttpRequest request = (HttpRequest) httpContent.getHttpHeader();
 
             System.out.println("Got the request: " + request);
 

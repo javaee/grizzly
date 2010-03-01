@@ -38,32 +38,33 @@
 
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.memory.MemoryManager;
-
 /**
  *
  * @author oleksiys
  */
-public class HttpResponseEncoder extends HttpPacketEncoder {
+public interface HttpPacketFactory {
+    public HttpRequest createHttpRequest();
 
-    @Override
-    protected Buffer encodeInitialLine(HttpPacket httpPacket,
-            Buffer encodedBuffer, MemoryManager memoryManager) {
+    public HttpResponse createHttpResponse();
 
-        final HttpResponse httpResponse = (HttpResponse) httpPacket;
-        encodedBuffer = put(memoryManager, encodedBuffer, httpResponse.getProtocolBC());
-        encodedBuffer = put(memoryManager, encodedBuffer, Constants.SP);
-        encodedBuffer = put(memoryManager, encodedBuffer, httpResponse.getStatusBC());
-        encodedBuffer = put(memoryManager, encodedBuffer, Constants.SP);
-        encodedBuffer = put(memoryManager, encodedBuffer, httpResponse.getReasonPhraseBC());
+    public HttpContent createHttpContent();
 
-        return encodedBuffer;
-    }
+    public static final class DefaultHttpPacketFactory
+            implements HttpPacketFactory {
+        
+        @Override
+        public HttpRequest createHttpRequest() {
+            return new HttpRequest();
+        }
 
-    @Override
-    public boolean hasInputRemaining(AttributeStorage storage, HttpPacket input) {
-        return false;
+        @Override
+        public HttpResponse createHttpResponse() {
+            return new HttpResponse();
+        }
+
+        @Override
+        public HttpContent createHttpContent() {
+            return new HttpContent();
+        }
     }
 }

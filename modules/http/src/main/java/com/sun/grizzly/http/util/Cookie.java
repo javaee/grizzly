@@ -52,7 +52,7 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.util;
+package com.sun.grizzly.http.util;
 
 import java.text.MessageFormat;
 import java.util.ResourceBundle;
