@@ -1232,8 +1232,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
 
     private void removeBuffers(boolean force) {
         if (force || allowBufferDispose) {
-            for (ByteBuffer buffer : buffers) {
-                MemoryUtils.releaseByteBuffer(memoryManager, buffer);
+            for (int i = 0; i < buffersSize; i++) {
+                final ByteBuffer byteBuffer = buffers[i];
+                MemoryUtils.releaseByteBuffer(memoryManager, byteBuffer);
             }
         }
 
