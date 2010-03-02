@@ -91,8 +91,8 @@ public class RCMTest extends TestCase {
                     Charset.forName("UTF-8").newEncoder();
 
             @Override
-            public NextAction handleRead(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
                 try {
                     final Buffer requestBuffer = (Buffer) ctx.getMessage();
                     final Connection connection = ctx.getConnection();

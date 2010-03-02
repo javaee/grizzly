@@ -134,13 +134,12 @@ public class StringBasedSSLEchoClient {
          * send greeting message to a server.
          *
          * @param ctx {@link FilterChain} context
-         * @param nextAction default {@link NextAction}
          * @return nextAction
          * @throws IOException
          */
         @Override
-        public NextAction handleConnect(FilterChainContext ctx,
-                NextAction nextAction) throws IOException {
+        public NextAction handleConnect(FilterChainContext ctx)
+                throws IOException {
             final Connection connection = ctx.getConnection();
 
             // Execute async SSL handshake
@@ -164,19 +163,17 @@ public class StringBasedSSLEchoClient {
                 }
             });
 
-            return nextAction;
+            return ctx.getInvokeAction();
         }
 
         /**
          * Handle server response and check, whether it has expected data
          * @param ctx {@link FilterChain} context
-         * @param nextAction default {@link NextAction}
          * @return nextAction
          * @throws IOException
          */
         @Override
-        public NextAction handleRead(FilterChainContext ctx,
-                NextAction nextAction) throws IOException {
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
 
             // The received message is String
             final String message = (String) ctx.getMessage();

@@ -75,14 +75,14 @@ public final class TransportFilter extends BaseFilter {
      * filter.
      */
     @Override
-    public NextAction handleAccept(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleAccept(final FilterChainContext ctx)
+            throws IOException {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            return transportFilter0.handleAccept(ctx, nextAction);
+            return transportFilter0.handleAccept(ctx);
         }
 
         return null;
@@ -93,14 +93,14 @@ public final class TransportFilter extends BaseFilter {
      * filter.
      */
     @Override
-    public NextAction handleConnect(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleConnect(final FilterChainContext ctx)
+            throws IOException {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            return transportFilter0.handleConnect(ctx, nextAction);
+            return transportFilter0.handleConnect(ctx);
         }
 
         return null;
@@ -111,14 +111,14 @@ public final class TransportFilter extends BaseFilter {
      * filter.
      */
     @Override
-    public NextAction handleRead(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx)
+            throws IOException {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            return transportFilter0.handleRead(ctx, nextAction);
+            return transportFilter0.handleRead(ctx);
         }
         
         return null;
@@ -129,14 +129,14 @@ public final class TransportFilter extends BaseFilter {
      * filter.
      */
     @Override
-    public NextAction handleWrite(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleWrite(final FilterChainContext ctx)
+            throws IOException {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            return transportFilter0.handleWrite(ctx, nextAction);
+            return transportFilter0.handleWrite(ctx);
         }
 
         return null;
@@ -147,14 +147,14 @@ public final class TransportFilter extends BaseFilter {
      * filter.
      */
     @Override
-    public NextAction handleClose(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleClose(final FilterChainContext ctx)
+            throws IOException {
 
         final Filter transportFilter0 = getTransportFilter0(
                 ctx.getConnection().getTransport());
 
         if (transportFilter0 != null) {
-            return transportFilter0.handleClose(ctx, nextAction);
+            return transportFilter0.handleClose(ctx);
         }
 
         return null;

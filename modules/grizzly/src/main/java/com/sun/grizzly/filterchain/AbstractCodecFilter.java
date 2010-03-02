@@ -60,8 +60,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
     }
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final K message = (K) ctx.getMessage();
 
@@ -95,12 +94,11 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
             }
         }
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final L message = (L) ctx.getMessage();
 
@@ -133,7 +131,7 @@ public abstract class AbstractCodecFilter<K, L> extends BaseFilter
             }
         }
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
 

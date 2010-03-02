@@ -60,8 +60,8 @@ public class EchoFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(EchoFilter.class);
 
     @Override
-    public NextAction handleRead(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx)
+            throws IOException {
         final Object message = ctx.getMessage();
         final Connection connection = ctx.getConnection();
         final Object address = ctx.getAddress();

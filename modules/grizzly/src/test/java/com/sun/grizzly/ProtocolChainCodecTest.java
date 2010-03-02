@@ -144,8 +144,8 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
         filterChainBuilder.add(new BaseFilter() {
             volatile int counter;
             @Override
-            public NextAction handleRead(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
 
                 final String message = (String) ctx.getMessage();
 

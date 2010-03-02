@@ -85,14 +85,12 @@ public class MultiLineFilter extends BaseFilter {
      * processing until more strings will get available.
      *
      * @param ctx Request processing context
-     * @param nextAction default {@link NextAction}.
      *
      * @return {@link NextAction}
      * @throws IOException
      */
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
         // Get the Connection
         final Connection connection = ctx.getConnection();
         // Check if some MultiLinePacket is being parsed
@@ -117,7 +115,7 @@ public class MultiLineFilter extends BaseFilter {
             logger.log(Level.INFO, "--------Received from network: \n" + packet);
 
             // Pass control to a next filter in a chain
-            return nextAction;
+            return ctx.getInvokeAction();
         }
 
         // If this is not terminating line - add this line to a MultiLinePacket
@@ -133,14 +131,12 @@ public class MultiLineFilter extends BaseFilter {
      * pass each String to a next Filter in chain.
      *
      * @param ctx Request processing context
-     * @param nextAction default {@link NextAction}.
      *
      * @return {@link NextAction}
      * @throws IOException
      */
     @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
 
         // Get a connection
         final Connection connection = ctx.getConnection();

@@ -184,7 +184,7 @@ public class ResourceAllocationFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final Buffer inputMessage = (Buffer) ctx.getMessage();
 
         StringBuilder sb = new StringBuilder(256);

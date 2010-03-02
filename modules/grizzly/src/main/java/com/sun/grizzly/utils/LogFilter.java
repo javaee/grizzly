@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.utils;
 
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
@@ -47,8 +46,6 @@ import com.sun.grizzly.filterchain.NextAction;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.sun.grizzly.TransformationException;
-import com.sun.grizzly.TransformationResult;
 
 /**
  * Simple log {@link Filter}
@@ -106,48 +103,43 @@ public class LogFilter implements Filter {
     }
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
         logger.log(level, "LogFilter handleRead. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleWrite(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         logger.log(level, "LogFilter handleWrite. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleConnect(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
+    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
         logger.log(level, "LogFilter handleConnect. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleAccept(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
+    public NextAction handleAccept(FilterChainContext ctx) throws IOException {
         logger.log(level, "LogFilter handleAccept. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleClose(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
+    public NextAction handleClose(FilterChainContext ctx) throws IOException {
         logger.log(level, "LogFilter handleClose. Connection=" +
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
@@ -156,20 +148,6 @@ public class LogFilter implements Filter {
         logger.log(level, "LogFilter exceptionOccured. Connection=" + 
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
-    }
-
-    public TransformationResult decode(Connection connection,
-            Object originalMessage) throws TransformationException {
-        logger.log(level, "LogFilter. decode(" + connection +
-                ") message=" + originalMessage);
-        return null;
-    }
-
-    public TransformationResult encode(Connection connection,
-            Object originalMessage) throws TransformationException {
-        logger.log(level, "LogFilter. encode(" + connection +
-                ") message=" + originalMessage);
-        return null;
     }
 
     public boolean isIndexable() {

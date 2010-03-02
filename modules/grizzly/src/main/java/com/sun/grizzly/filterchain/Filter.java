@@ -91,8 +91,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException;
+    public NextAction handleRead(FilterChainContext ctx) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when channel will
@@ -109,8 +108,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException;
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when channel gets
@@ -127,8 +125,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleConnect(FilterChainContext ctx, NextAction nextAction)
-            throws IOException;
+    public NextAction handleConnect(FilterChainContext ctx) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when server channel
@@ -145,8 +142,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleAccept(FilterChainContext ctx, NextAction nextAction)
-            throws IOException;
+    public NextAction handleAccept(FilterChainContext ctx) throws IOException;
 
     /**
      * Execute a unit of processing work to be performed, when connection
@@ -163,8 +159,7 @@ public interface Filter {
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
-    public NextAction handleClose(FilterChainContext ctx, NextAction nextAction)
-            throws IOException;
+    public NextAction handleClose(FilterChainContext ctx) throws IOException;
 
     
     /**

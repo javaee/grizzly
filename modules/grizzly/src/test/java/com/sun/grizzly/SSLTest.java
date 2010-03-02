@@ -355,8 +355,8 @@ public class SSLTest extends GrizzlyTestCase {
         }
 
         @Override
-        public NextAction handleConnect(final FilterChainContext ctx,
-                final NextAction nextAction) throws IOException {
+        public NextAction handleConnect(final FilterChainContext ctx)
+                throws IOException {
 
             final Connection connection = ctx.getConnection();
             
@@ -376,13 +376,13 @@ public class SSLTest extends GrizzlyTestCase {
             } catch (Exception e) {
                 clientCompletedFeature.failure(e);
             }
-            return nextAction;
+            return ctx.getInvokeAction();
         }
 
 
         @Override
-        public NextAction handleRead(final FilterChainContext ctx,
-                final NextAction nextAction) throws IOException {
+        public NextAction handleRead(final FilterChainContext ctx)
+                throws IOException {
 
             final Connection connection = ctx.getConnection();
             
@@ -408,7 +408,7 @@ public class SSLTest extends GrizzlyTestCase {
                 try {
                     if (currentTurnAround > turnAroundNum) {
                         clientCompletedFeature.result(turnAroundNum);
-                        return nextAction;
+                        return ctx.getStopAction();
                     }
 
                     connection.write("ping");

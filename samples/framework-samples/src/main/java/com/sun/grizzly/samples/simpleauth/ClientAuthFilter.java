@@ -79,14 +79,12 @@ public class ClientAuthFilter extends BaseFilter {
      * pass control to a next filter, if not - throw an Exception.
      *
      * @param ctx Request processing context
-     * @param nextAction default {@link NextAction}.
      *
      * @return {@link NextAction}
      * @throws IOException
      */
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
         // Get the connection
         final Connection connection = ctx.getConnection();
         // Get the processing packet
@@ -126,7 +124,7 @@ public class ClientAuthFilter extends BaseFilter {
                 packet.getLines().remove(1);
 
                 // Pass to a next filter
-                return nextAction;
+                return ctx.getInvokeAction();
             } else {
                 // if authentication failed - throw an Exception.
                 throw new IllegalStateException("Client is not authenticated!");
@@ -144,14 +142,13 @@ public class ClientAuthFilter extends BaseFilter {
      * once authentication will be completed.
      * 
      * @param ctx Response processing context
-     * @param nextAction default {@link NextAction}.
      *
      * @return {@link NextAction}
      * @throws IOException
      */
     @Override
-    public NextAction handleWrite(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleWrite(final FilterChainContext ctx)
+            throws IOException {
 
         // Get the connection
         final Connection connection = ctx.getConnection();
@@ -196,7 +193,7 @@ public class ClientAuthFilter extends BaseFilter {
 
         // Authentication has been completed - add "auth-id" header and pass the message to a next filter in chain.
         packet.getLines().add(1, "auth-id: " + authInfo.id);
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     /**
@@ -204,17 +201,15 @@ public class ClientAuthFilter extends BaseFilter {
      * We remove connection entry in authenticated connections map.
      * 
      * @param ctx Request processing context
-     * @param nextAction default {@link NextAction}.
      *
      * @return {@link NextAction}
      * @throws IOException
      */
     @Override
-    public NextAction handleClose(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
+    public NextAction handleClose(FilterChainContext ctx) throws IOException {
         authenticatedConnections.remove(ctx.getConnection());
         
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     /**

@@ -130,13 +130,12 @@ public class FilterChainSSLEchoClient {
          * send greeting message to a server.
          *
          * @param ctx {@link FilterChain} context
-         * @param nextAction default {@link NextAction}
          * @return nextAction
          * @throws IOException
          */
         @Override
-        public NextAction handleConnect(FilterChainContext ctx,
-                NextAction nextAction) throws IOException {
+        public NextAction handleConnect(FilterChainContext ctx)
+                throws IOException {
             final Connection connection = ctx.getConnection();
             final MemoryManager mm = connection.getTransport().getMemoryManager();
 
@@ -159,19 +158,17 @@ public class FilterChainSSLEchoClient {
                 }
             });
 
-            return nextAction;
+            return ctx.getInvokeAction();
         }
 
         /**
          * Handle server response and check, whether it has expected data
          * @param ctx {@link FilterChain} context
-         * @param nextAction default {@link NextAction}
          * @return nextAction
          * @throws IOException
          */
         @Override
-        public NextAction handleRead(FilterChainContext ctx,
-                NextAction nextAction) throws IOException {
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
 
             // create String from Buffer
             final Buffer responseMessage = (Buffer) ctx.getMessage();

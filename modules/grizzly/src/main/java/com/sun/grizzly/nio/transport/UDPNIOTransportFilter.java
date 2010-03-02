@@ -65,8 +65,8 @@ public final class UDPNIOTransportFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleRead(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx)
+            throws IOException {
         final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
 
         final ReadResult<Buffer, SocketAddress> readResult =
@@ -89,12 +89,12 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             return ctx.getStopAction();
         }
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleWrite(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleWrite(final FilterChainContext ctx)
+            throws IOException {
         final Object message = ctx.getMessage();
         if (message != null) {
             final Connection connection = ctx.getConnection();
@@ -114,7 +114,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
                     !hasCompletionListeners);
         }
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
     @Override
     public void exceptionOccurred(final FilterChainContext ctx,

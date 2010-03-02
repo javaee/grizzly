@@ -81,17 +81,13 @@ public class BaseFilter implements Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException} 
      */
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
+        return ctx.getInvokeAction();
     }
 
     /**
@@ -102,17 +98,13 @@ public class BaseFilter implements Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException}
      */
     @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+        return ctx.getInvokeAction();
     }
 
     /**
@@ -123,17 +115,13 @@ public class BaseFilter implements Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException} 
      */
     @Override
-    public NextAction handleConnect(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
+    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
+        return ctx.getInvokeAction();
     }
 
     /**
@@ -144,17 +132,13 @@ public class BaseFilter implements Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException} 
      */
     @Override
-    public NextAction handleAccept(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
+    public NextAction handleAccept(FilterChainContext ctx) throws IOException {
+        return ctx.getInvokeAction();
     }
 
     /**
@@ -165,17 +149,13 @@ public class BaseFilter implements Filter {
      * {@link Filter} in a {@link FilterChain} containing this {@link Filter} 
      * by returning true.
      * @param ctx {@link FilterChainContext}
-     * @param nextAction default {@link NextAction}, which Filter 
-     *        could change in order to control how 
-     *        {@link FilterChain} will continue the execution
      * @return {@link NextAction} instruction for {@link FilterChain}, how it
      *         should continue the execution
      * @throws {@link java.io.IOException} 
      */
     @Override
-    public NextAction handleClose(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
-        return nextAction;
+    public NextAction handleClose(FilterChainContext ctx) throws IOException {
+        return ctx.getInvokeAction();
     }
 
     /**

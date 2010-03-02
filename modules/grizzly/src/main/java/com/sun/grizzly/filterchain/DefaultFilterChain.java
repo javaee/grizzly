@@ -100,37 +100,37 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         null, null,
         new FilterExecutorUp() {
         @Override
-            public NextAction execute(Filter filter, FilterChainContext context,
-                    NextAction nextAction) throws IOException {
-                return filter.handleAccept(context, nextAction);
+            public NextAction execute(Filter filter, FilterChainContext context)
+            throws IOException {
+                return filter.handleAccept(context);
             }
         },
         new FilterExecutorUp() {
         @Override
-            public NextAction execute(Filter filter, FilterChainContext context,
-                    NextAction nextAction) throws IOException {
-                return filter.handleConnect(context, nextAction);
+            public NextAction execute(Filter filter, FilterChainContext context)
+            throws IOException {
+                return filter.handleConnect(context);
             }
         },
         new FilterExecutorUp() {
         @Override
-            public NextAction execute(Filter filter, FilterChainContext context,
-                    NextAction nextAction) throws IOException {
-                return filter.handleRead(context, nextAction);
+            public NextAction execute(Filter filter, FilterChainContext context)
+            throws IOException {
+                return filter.handleRead(context);
             }
         },
         new FilterExecutorDown() {
         @Override
-            public NextAction execute(Filter filter, FilterChainContext context,
-                    NextAction nextAction) throws IOException {
-                return filter.handleWrite(context, nextAction);
+            public NextAction execute(Filter filter, FilterChainContext context)
+            throws IOException {
+                return filter.handleWrite(context);
             }
         },
         new FilterExecutorUp() {
         @Override
-            public NextAction execute(Filter filter, FilterChainContext context,
-                    NextAction nextAction) throws IOException {
-                return filter.handleClose(context, nextAction);
+            public NextAction execute(Filter filter, FilterChainContext context)
+            throws IOException {
+                return filter.handleClose(context);
             }
         },
     };
@@ -253,8 +253,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         
         final Connection connection = ctx.getConnection();
         
-        final NextAction invokeAction = ctx.getInvokeAction();
-        
         FiltersState filtersState = FILTERS_STATE_ATTR.get(connection);
         
         int i = start;
@@ -287,8 +285,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         " context=" + ctx);
             }
             // execute the task
-            final NextAction nextNextAction = executor.execute(currentFilter,
-                    ctx, invokeAction);
+            final NextAction nextNextAction =
+                    executor.execute(currentFilter, ctx);
 
             if (logger.isLoggable(Level.FINEST)) {
                 logger.fine("after execute filter. filter=" + currentFilter +
@@ -477,8 +475,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * {@link IOEvent}.
      */
     public interface FilterExecutor {
-        public NextAction execute(Filter filter, FilterChainContext context,
-                NextAction nextAction) throws IOException;
+        public NextAction execute(Filter filter, FilterChainContext context)
+                throws IOException;
 
         public int defaultStartIdx(FilterChainContext context);
 

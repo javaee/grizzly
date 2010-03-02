@@ -44,7 +44,6 @@ import java.io.IOException;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import java.util.logging.Filter;
 
 /**
  * Implementation of {@link FilterChain} filter, which replies with the request
@@ -59,16 +58,12 @@ public class EchoFilter extends BaseFilter {
      * processed.
      *
      * @param ctx Context of {@link FilterChainContext} processing
-     * @param nextAction default {@link NextAction} filter chain will execute
-     *                   after processing this {@link Filter}. Could be modified.
      * @return the next action
      * @throws java.io.IOException
      */
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
+    public NextAction handleRead(FilterChainContext ctx)
             throws IOException {
-        final Connection connection = ctx.getConnection();
-
         // Peer address is used for non-connected UDP Connection :)
         final Object peerAddress = ctx.getAddress();
 

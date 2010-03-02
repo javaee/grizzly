@@ -388,11 +388,11 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         filterChainBuilder.add(new EchoFilter() {
 
             @Override
-            public NextAction handleRead(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
                 
                 serverBytesCounter.addAndGet(((Buffer) ctx.getMessage()).remaining());
-                return super.handleRead(ctx, nextAction);
+                return super.handleRead(ctx);
             }
         });
 
@@ -473,13 +473,13 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
             }
 
             @Override
-            public NextAction handleRead(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
                 final Buffer buffer = (Buffer) ctx.getMessage();
                 logger.log(Level.INFO, "Feeder. Check size filter: " + buffer);
                 if (buffer.remaining() >= size) {
                     latch.countDown();
-                    return nextAction;
+                    return ctx.getInvokeAction();
                 }
 
                 return ctx.getStopAction(buffer);

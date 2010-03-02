@@ -108,13 +108,13 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
     @Override
-    public NextAction handleRead(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx)
+            throws IOException {
         final Connection connection = ctx.getConnection();
         SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
 
         if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
-            return super.handleRead(ctx, nextAction);
+            return super.handleRead(ctx);
         } else {
             if (sslEngine == null) {
                 sslEngine = serverSSLEngineConfigurator.createSSLEngine();
@@ -132,7 +132,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 
                 if (buffer.hasRemaining()) {
                     ctx.setMessage(buffer);
-                    return super.handleRead(ctx, nextAction);
+                    return super.handleRead(ctx);
                 }
             }
 
@@ -141,11 +141,11 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     }
 
     @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction) throws IOException {
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
         if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
-            return super.handleWrite(ctx, nextAction);
+            return super.handleWrite(ctx);
         } else {
             throw new IllegalStateException("Handshake is not completed!");
         }

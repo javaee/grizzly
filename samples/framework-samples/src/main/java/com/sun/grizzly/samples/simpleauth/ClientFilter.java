@@ -57,13 +57,12 @@ public class ClientFilter extends BaseFilter {
      * The method is called, when we receive a message from a server.
      * 
      * @param ctx Request processing context
-     * @param nextAction default {@link NextAction}.
      *
      * @return {@link NextAction}
      * @throws IOException
      */
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
+    public NextAction handleRead(FilterChainContext ctx)
             throws IOException {
         // Get the message
         final MultiLinePacket message = (MultiLinePacket) ctx.getMessage();

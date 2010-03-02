@@ -128,39 +128,37 @@ public class IdleTimeoutFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction) throws IOException {
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
         clearTimeout(ctx.getConnection());
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction) throws IOException {
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         clearTimeout(ctx.getConnection());
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleAccept(FilterChainContext ctx,
-            NextAction nextAction) throws IOException {
+    public NextAction handleAccept(FilterChainContext ctx) throws IOException {
         if (isHandleAccepted) {
             Connection connection = ctx.getConnection();
             resetTimeout(connection);
             addConnection(connection);
         }
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleConnect(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
         if (isHandleConnected()) {
             Connection connection = ctx.getConnection();
             resetTimeout(connection);
             addConnection(connection);
         }
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override

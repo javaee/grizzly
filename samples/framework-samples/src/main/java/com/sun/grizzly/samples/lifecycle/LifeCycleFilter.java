@@ -74,16 +74,14 @@ public class LifeCycleFilter extends BaseFilter {
      * accepted by a {@link Transport}
      *
      * @param ctx the filter chain context
-     * @param nextAction next action to be executed
-     *                   by the chain (could be modified)
      * @return the next action to be executed by chain
      * @throws java.io.IOException
      */
     @Override
-    public NextAction handleAccept(FilterChainContext ctx, NextAction nextAction) throws IOException {
+    public NextAction handleAccept(FilterChainContext ctx) throws IOException {
         newConnection(ctx.getConnection());
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
 
@@ -92,31 +90,27 @@ public class LifeCycleFilter extends BaseFilter {
      * connected to some endpoint
      *
      * @param ctx the filter chain context
-     * @param nextAction next action to be executed
-     *                   by the chain (could be modified)
      * @return the next action to be executed by chain
      * @throws java.io.IOException
      */
     @Override
-    public NextAction handleConnect(FilterChainContext ctx, NextAction nextAction) throws IOException {
+    public NextAction handleConnect(FilterChainContext ctx) throws IOException {
         newConnection(ctx.getConnection());
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     /**
      * Method is called, when the {@link Connection} is getting closed
      *
      * @param ctx the filter chain context
-     * @param nextAction next action to be executed
-     *                   by the chain (could be modified)
      * @return the next action to be executed by chain
      * @throws java.io.IOException
      */
     @Override
-    public NextAction handleClose(FilterChainContext ctx, NextAction nextAction) throws IOException {
+    public NextAction handleClose(FilterChainContext ctx) throws IOException {
         activeConnectionsMap.remove(ctx.getConnection());
-        return super.handleClose(ctx, nextAction);
+        return super.handleClose(ctx);
     }
 
     /**

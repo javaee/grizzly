@@ -68,8 +68,8 @@ public final class TCPNIOTransportFilter extends BaseFilter {
     }
 
     @Override
-    public NextAction handleRead(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx)
+            throws IOException {
         final TCPNIOConnection connection = (TCPNIOConnection) ctx.getConnection();
 
         Buffer buffer = transport.read(connection, null);
@@ -83,12 +83,12 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             ctx.setAddress(connection.getPeerAddress());
         }
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override
-    public NextAction handleWrite(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleWrite(final FilterChainContext ctx)
+            throws IOException {
         final Object message = ctx.getMessage();
         if (message != null) {
             final Connection connection = ctx.getConnection();
@@ -107,7 +107,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
         }
 
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     @Override

@@ -85,10 +85,10 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         filterChainBuilder.add(new EchoFilter() {
 
             @Override
-            public NextAction handleRead(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
+            public NextAction handleRead(FilterChainContext ctx)
+                    throws IOException {
                 serverRcvdBytes.addAndGet(((Buffer) ctx.getMessage()).remaining());
-                return super.handleRead(ctx, nextAction);
+                return super.handleRead(ctx);
             }
         });
 

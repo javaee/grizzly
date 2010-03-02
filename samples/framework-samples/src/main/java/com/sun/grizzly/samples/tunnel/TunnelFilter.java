@@ -83,8 +83,8 @@ public class TunnelFilter extends BaseFilter {
      * This method will be called, once {@link Connection} has some available data
      */
     @Override
-    public NextAction handleRead(final FilterChainContext ctx,
-            final NextAction nextAction) throws IOException {
+    public NextAction handleRead(final FilterChainContext ctx)
+            throws IOException {
         logger.finest("Connection: " + ctx.getConnection() + " handleRead: " + ctx.getMessage());
         
         final Connection connection = ctx.getConnection();
@@ -116,8 +116,7 @@ public class TunnelFilter extends BaseFilter {
      * This method will be called, to notify about {@link Connection} closing.
      */
     @Override
-    public NextAction handleClose(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleClose(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final Connection peerConnection = peerConnectionAttribute.get(connection);
 
@@ -126,7 +125,7 @@ public class TunnelFilter extends BaseFilter {
             peerConnection.close();
         }
 
-        return nextAction;
+        return ctx.getInvokeAction();
     }
 
     /**

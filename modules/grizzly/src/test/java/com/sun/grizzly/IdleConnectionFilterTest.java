@@ -70,20 +70,20 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         filterChainBuilder.add(new BaseFilter() {
                 private Connection acceptedConnection;
                 @Override
-                public NextAction handleAccept(FilterChainContext ctx,
-                        NextAction nextAction) throws IOException {
+                public NextAction handleAccept(FilterChainContext ctx)
+                        throws IOException {
                     acceptedConnection = ctx.getConnection();
-                    return nextAction;
+                    return ctx.getInvokeAction();
                 }
 
                 @Override
-                public NextAction handleClose(FilterChainContext ctx,
-                        NextAction nextAction) throws IOException {
+                public NextAction handleClose(FilterChainContext ctx)
+                        throws IOException {
                     if (ctx.getConnection().equals(acceptedConnection)) {
                         latch.countDown();
                     }
 
-                    return nextAction;
+                    return ctx.getInvokeAction();
                 }
 
             });
@@ -127,20 +127,20 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
             private Connection connectedConnection;
 
             @Override
-            public NextAction handleConnect(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
+            public NextAction handleConnect(FilterChainContext ctx)
+                    throws IOException {
                 connectedConnection = ctx.getConnection();
-                return nextAction;
+                return ctx.getInvokeAction();
             }
 
             @Override
-            public NextAction handleClose(FilterChainContext ctx,
-                    NextAction nextAction) throws IOException {
+            public NextAction handleClose(FilterChainContext ctx)
+                    throws IOException {
                 if (ctx.getConnection().equals(connectedConnection)) {
                     latch.countDown();
                 }
 
-                return nextAction;
+                return ctx.getInvokeAction();
             }
         });
         
