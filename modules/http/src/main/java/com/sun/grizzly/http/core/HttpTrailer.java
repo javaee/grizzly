@@ -38,40 +38,84 @@
 
 package com.sun.grizzly.http.core;
 
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.http.util.MimeHeaders;
+import com.sun.grizzly.memory.BufferUtils;
+
 /**
  *
  * @author oleksiys
  */
-public interface HttpPacketFactory {
-    public HttpRequest createHttpRequest();
+public class HttpTrailer extends HttpContent {
+    public static Builder builder(HttpHeader httpHeader) {
+        return new Builder(httpHeader);
+    }
 
-    public HttpResponse createHttpResponse();
+    private MimeHeaders headers;
+    
+    protected HttpTrailer(HttpHeader httpHeader) {
+        super(httpHeader);
+    }
 
-    public HttpContent createHttpContent(HttpHeader httpHeader);
+    @Override
+    public final Buffer getContent() {
+        return BufferUtils.EMPTY_BUFFER;
+    }
 
-    public HttpTrailer createHttpTrailer(HttpHeader httpHeader);
+    @Override
+    protected final void setContent(Buffer content) {
+        throw new IllegalStateException("Trailer can not have content");
+    }
 
-    public static final class DefaultHttpPacketFactory
-            implements HttpPacketFactory {
-        
-        @Override
-        public HttpRequest createHttpRequest() {
-            return new HttpRequest();
+    // -------------------- Headers --------------------
+    public MimeHeaders getHeaders() {
+        return headers;
+    }
+
+    public String getHeader(String name) {
+        return headers.getHeader(name);
+    }
+
+    public void setHeader(String name, String value) {
+        headers.setValue(name).setString(value);
+    }
+
+    public void addHeader(String name, String value) {
+        headers.addValue(name).setString(value);
+    }
+
+    public boolean containsHeader(String name) {
+        return headers.getHeader(name) != null;
+    }
+
+    protected void setHeaders(MimeHeaders mimeHeaders) {
+        this.headers = mimeHeaders;
+    }
+    
+    public static final class Builder extends HttpContent.Builder<Builder> {
+
+        protected Builder(HttpHeader httpHeader) {
+            super(httpHeader);
         }
 
         @Override
-        public HttpResponse createHttpResponse() {
-            return new HttpResponse();
-        }
-
-        @Override
-        public HttpContent createHttpContent(HttpHeader httpHeader) {
-            return new HttpContent(httpHeader);
-        }
-
-        @Override
-        public HttpTrailer createHttpTrailer(HttpHeader httpHeader) {
+        protected HttpContent create(HttpHeader httpHeader) {
             return new HttpTrailer(httpHeader);
+        }
+
+        public final Builder headers(MimeHeaders mimeHeaders) {
+            ((HttpTrailer) packet).setHeaders(mimeHeaders);
+            return this;
+        }
+
+        public final Builder header(String name, String value) {
+            ((HttpTrailer) packet).setHeader(name, value);
+            return this;
+        }
+
+        @Override
+        public final HttpTrailer build() {
+            return (HttpTrailer) packet;
         }
     }
 }

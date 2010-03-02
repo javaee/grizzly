@@ -54,21 +54,16 @@
 
 package com.sun.grizzly.http;
 
+import java.nio.charset.Charset;
+
 /**
  * Constants.
  *
  * @author Remy Maucherat
  */
 public class Constants {
+    protected static final Charset ASCII_CHARSET = Charset.forName("ASCII");
 
-
-    /**
-     * Server string.
-     */
-
-    /* S1AS8PE 4929847, 5022949
-    public static final String SERVER = "Apache-Coyote/1.1";
-     */
 
     /**
      * CR.
@@ -327,4 +322,10 @@ public class Constants {
     // START SJSAS 6346226
     public final static String JROUTE_COOKIE = "JROUTE";
     // END SJSAS 6346226
+
+    public final static byte[] CONTENT_LENGTH_HEADER = "content-length".getBytes(ASCII_CHARSET);
+    public final static byte[] TRANSFER_ENCODING_HEADER = "transfer-encoding".getBytes(ASCII_CHARSET);
+
+    public final static byte[] CHUNKED_ENCODING = "chunked".getBytes(ASCII_CHARSET);
+
 }

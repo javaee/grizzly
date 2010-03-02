@@ -37,7 +37,7 @@
  */
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.Buffer;
+import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.BufferChunk;
 
@@ -52,6 +52,10 @@ public abstract class HttpHeader implements HttpPacket {
     protected MimeHeaders headers = new MimeHeaders();
     protected BufferChunk protocolBC = BufferChunk.newInstance();
 
+    protected boolean isChunked;
+
+    protected long contentLength;
+
     public abstract boolean isRequest();
 
     @Override
@@ -59,6 +63,32 @@ public abstract class HttpHeader implements HttpPacket {
         return true;
     }
 
+    public boolean isChunked() {
+        return isChunked;
+    }
+
+    public void setChunked(boolean isChunked) {
+        this.isChunked = isChunked;
+    }
+
+    public long getContentLength() {
+        if (contentLength == -1) {
+            final BufferChunk contentLengthChunk =
+                    headers.getValue("content-length");
+            if (contentLengthChunk != null) {
+                contentLength = Ascii.parseLong(contentLengthChunk.getBuffer(),
+                        contentLengthChunk.getStart(),
+                        contentLengthChunk.getEnd() - contentLengthChunk.getStart());
+            }
+        }
+
+        return contentLength;
+    }
+
+    public void setContentLength(long contentLength) {
+        this.contentLength = contentLength;
+    }
+    
     public boolean isCommited() {
         return isCommited;
     }
@@ -101,22 +131,20 @@ public abstract class HttpHeader implements HttpPacket {
         this.protocolBC.setString(protocol);
     }
 
-    public final HttpContent createContent() {
-        return createContent(null);
+    public final HttpContent.Builder httpContentBuilder() {
+        return HttpContent.builder(this);
     }
 
-    public HttpContent createContent(Buffer content) {
-        final HttpContent httpContent = new HttpContent();
-        httpContent.setHttpHeader(this);
-        httpContent.setContent(content);
-
-        return httpContent;
+    public HttpTrailer.Builder httpTrailerBuilder() {
+        return HttpTrailer.builder(this);
     }
 
     public void recycle() {
         protocolBC.recycle();
         headers.clear();
         isCommited = false;
+        isChunked = false;
+        contentLength = -1;
     }
 
     public static abstract class Builder<T extends Builder> {
@@ -125,6 +153,16 @@ public abstract class HttpHeader implements HttpPacket {
 
         public final T protocol(String protocol) {
             packet.setProtocol(protocol);
+            return (T) this;
+        }
+
+        public final T chunked(boolean isChunked) {
+            packet.setChunked(isChunked);
+            return (T) this;
+        }
+
+        public final T contentLength(long contentLength) {
+            packet.setContentLength(contentLength);
             return (T) this;
         }
 

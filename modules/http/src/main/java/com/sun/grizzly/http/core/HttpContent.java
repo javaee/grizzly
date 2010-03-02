@@ -46,15 +46,16 @@ import com.sun.grizzly.memory.BufferUtils;
  * @author oleksiys
  */
 public class HttpContent implements HttpPacket {
-    public static Builder builder() {
-        return new Builder();
+    public static Builder builder(HttpHeader httpHeader) {
+        return new Builder(httpHeader);
     }
 
     protected Buffer content = BufferUtils.EMPTY_BUFFER;
 
-    protected HttpHeader httpHeader;
+    protected final HttpHeader httpHeader;
 
-    protected HttpContent() {
+    protected HttpContent(HttpHeader httpHeader) {
+        this.httpHeader = httpHeader;
     }
 
     public Buffer getContent() {
@@ -69,24 +70,29 @@ public class HttpContent implements HttpPacket {
         return httpHeader;
     }
 
-    protected void setHttpHeader(HttpHeader httpHeaderPacket) {
-        this.httpHeader = httpHeaderPacket;
-    }
-
     @Override
     public final boolean isHeader() {
         return false;
     }
 
-    public static class Builder {
+    public static class Builder<T extends Builder> {
 
         protected HttpContent packet;
 
-        public final Builder content(Buffer content) {
-            packet.setContent(content);
-            return this;
+        protected Builder(HttpHeader httpHeader) {
+            packet = create(httpHeader);
         }
-        public final HttpContent build() {
+
+        protected HttpContent create(HttpHeader httpHeader) {
+            return new HttpContent(httpHeader);
+        }
+
+        public final T content(Buffer content) {
+            packet.setContent(content);
+            return (T) this;
+        }
+
+        public HttpContent build() {
             return packet;
         }
     }

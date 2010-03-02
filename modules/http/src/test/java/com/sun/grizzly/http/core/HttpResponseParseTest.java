@@ -168,7 +168,7 @@ public class HttpResponseParseTest extends TestCase {
         ctx.setConnection(new StandaloneConnection());
 
         try {
-            filter.handleRead(ctx, null);
+            filter.handleRead(ctx);
             return (HttpPacket) ctx.getMessage();
         } catch (IOException e) {
             throw new IllegalStateException(e.getMessage());

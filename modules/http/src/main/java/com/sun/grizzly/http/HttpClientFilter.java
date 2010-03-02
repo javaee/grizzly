@@ -55,21 +55,17 @@ import java.io.IOException;
  * @author oleksiys
  */
 public class HttpClientFilter extends HttpFilter {
-    public static final int DEFAULT_MAX_HEADERS_SIZE = 8192;
-
     protected static final int HEADER_PARSED_STATE = 2;
 
     
     private final Attribute<HttpResponseImpl> httpResponseInProcessAttr;
-
-    private final int maxHeadersSize;
 
     public HttpClientFilter() {
         this(DEFAULT_MAX_HEADERS_SIZE);
     }
 
     public HttpClientFilter(int maxHeadersSize) {
-        this.maxHeadersSize = maxHeadersSize;
+        super(maxHeadersSize);
         
         this.httpResponseInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
@@ -104,6 +100,11 @@ public class HttpClientFilter extends HttpFilter {
         return ctx.getInvokeAction();
     }
     
+    @Override
+    final void onHttpPacketParsed(FilterChainContext ctx) {
+        httpResponseInProcessAttr.remove(ctx.getConnection());
+    }
+
     @Override
     final boolean decodeInitialLine(HttpPacketParsing httpPacket,
             ParsingState parsingState, Buffer input) {
