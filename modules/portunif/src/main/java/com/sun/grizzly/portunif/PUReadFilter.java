@@ -306,10 +306,13 @@ public class PUReadFilter extends ReadFilter {
 
         boolean isKeepAlive = protocolHandler.handle(context, protocolRequest);
 
+        mapSelectionKey = protocolRequest.isMapSelectionKey();
         if (isKeepAlive && mapSelectionKey) {
             mappedProtocols.put(context.getSelectionKey(), protocolHandler);
+        } else {
+            mappedProtocols.remove(context.getSelectionKey());
         }
-
+        
         if (protocolRequest.isExecuteFilterChain()) return true;
 
         if (isKeepAlive) {
