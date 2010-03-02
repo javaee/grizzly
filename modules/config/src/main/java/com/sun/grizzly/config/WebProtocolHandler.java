@@ -40,8 +40,11 @@ public class WebProtocolHandler extends DefaultFilterChainProtocolHandler {
     // --------------------------------------------------------------------//
     private final String[] protocols;
 
-    public WebProtocolHandler(String protocolName) {
+    private final boolean isStickyMapping;
+    
+    public WebProtocolHandler(String protocolName, boolean isStickyMapping) {
         this.protocols = new String[] {protocolName};
+        this.isStickyMapping = isStickyMapping;
     }
     // --------------------------------------------------------------------//
 
@@ -54,7 +57,7 @@ public class WebProtocolHandler extends DefaultFilterChainProtocolHandler {
     @Override
     public boolean handle(final Context context, final PUProtocolRequest protocolRequest)
         throws IOException {
-        protocolRequest.setMapSelectionKey(true);
+        protocolRequest.setMapSelectionKey(isStickyMapping);
         protocolRequest.setExecuteFilterChain(true);
         return true;
     }

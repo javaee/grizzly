@@ -308,7 +308,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                             }
                         });
                     } else {
-                        handlers.add(new WebProtocolHandler(protocolName));
+                        handlers.add(new WebProtocolHandler(protocolName,
+                                GrizzlyConfig.toBoolean(pu.getWebProtocolStickyEnabled())));
                     }
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize sub protocol. Finder: " +

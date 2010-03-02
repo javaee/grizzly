@@ -72,4 +72,29 @@ public interface PortUnification extends ConfigBeanProxy, Injectable, PropertyBa
      */
     @Element
     List<ProtocolFinder> getProtocolFinder();
+
+    /**
+     * If the data came on a network connection is recognized as HTTP packet
+     * and it is passed to a default Web protocol - then, if Web protocol sticky
+     * flag is enabled, the network connection gets associated with the Web
+     * protocol forever, and port unification finder will never be called again
+     * for this network connection. If the web protocol sticky flag is
+     * <tt>false</tt> - then this time HTTP packet will be passed to a Web protocol,
+     * but next time for a next data on this connection - protocol finders will
+     * be called again to recognize the target protocol.
+     */
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    String getWebProtocolStickyEnabled();
+
+    /**
+     * If the data came on a network connection is recognized as HTTP packet
+     * and it is passed to a default Web protocol - then, if Web protocol sticky
+     * flag is enabled, the network connection gets associated with the Web
+     * protocol forever, and port unification finder will never be called again
+     * for this network connection. If the web protocol sticky flag is
+     * <tt>false</tt> - then this time HTTP packet will be passed to a Web protocol,
+     * but next time for a next data on this connection - protocol finders will
+     * be called again to recognize the target protocol.
+     */
+    void setStickyProtocolEnabled(final String enabled);
 }
