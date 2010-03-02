@@ -6,7 +6,10 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.core.HttpContent;
 import com.sun.grizzly.http.core.HttpHeader;
 import com.sun.grizzly.http.core.HttpPacket;
@@ -17,6 +20,7 @@ import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;
+import java.io.IOException;
 import java.nio.charset.Charset;
 
 /**
@@ -34,6 +38,78 @@ public abstract class HttpFilter extends BaseFilter {
     abstract Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output,
             MemoryManager memoryManager);
 
+    public final NextAction handleRead(FilterChainContext ctx,
+            HttpPacketParsing httpPacket) throws IOException {
+        
+        Buffer input = (Buffer) ctx.getMessage();
+
+        if (!httpPacket.isHeaderParsed()) {
+            if (!decodeHttpPacket(httpPacket, input)) {
+                return ctx.getStopAction(input);
+            } else {
+                httpPacket.setHeaderParsed(true);
+                httpPacket.getHeaderParsingState().recycle();
+                checkContent(httpPacket);
+            }
+        }
+
+        Buffer remainder = null;
+
+        if (input.hasRemaining()) {
+            final ContentParsingState contentParsingState =
+                    httpPacket.getContentParsingState();
+            if (contentParsingState.isChunked) {
+                if (contentParsingState.chunkLength == -1) {
+                    if (!parseHttpChunkLength(httpPacket, input)) {
+                        // if we don't have enough data to parse chunk length - stop execution
+                        return ctx.getStopAction(input);
+                    }
+                } else {
+                    contentParsingState.chunkContentStart = 0;
+                }
+
+                final int chunkContentStart =
+                        contentParsingState.chunkContentStart;
+
+                final long thisPacketRemaining =
+                        contentParsingState.chunkRemainder;
+                final int contentAvailable = input.limit() - chunkContentStart;
+
+                if (contentAvailable > thisPacketRemaining) {
+                    remainder = input.slice(
+                            (int) (chunkContentStart + thisPacketRemaining), input.limit());
+                    input.limit((int) (chunkContentStart + thisPacketRemaining));
+                }
+            } else {
+                final long thisPacketRemaining = contentParsingState.chunkRemainder;
+                final int available = input.remaining();
+
+                if (available > thisPacketRemaining) {
+                    remainder = input.slice(
+                            (int) (input.position() + thisPacketRemaining), input.limit());
+                    input.limit((int) (input.position() + thisPacketRemaining));
+                }
+            }
+
+            contentParsingState.chunkRemainder -= input.remaining();
+        }
+
+        ctx.setMessage(((HttpHeader) httpPacket).createContent(input));
+        return ctx.getInvokeAction(remainder);
+    }
+
+    @Override
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+        final HttpPacket input = (HttpPacket) ctx.getMessage();
+        final Connection connection = ctx.getConnection();
+
+        final Buffer output = encodeHttpPacket(
+                connection.getTransport().getMemoryManager(), input);
+
+        ctx.setMessage(output);
+        return ctx.getInvokeAction();
+    }
+    
     protected boolean parseHttpChunkLength(HttpPacketParsing httpPacket,
             Buffer input) {
         final ParsingState parsingState = httpPacket.getHeaderParsingState();

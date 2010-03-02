@@ -45,6 +45,10 @@ import com.sun.grizzly.http.util.MimeHeaders;
  * @author oleksiys
  */
 public interface HttpPacketParsing {
+    public boolean isHeaderParsed();
+
+    public void setHeaderParsed(boolean isHeaderParsed);
+
     public HttpFilter.ParsingState getHeaderParsingState();
 
     public HttpFilter.ContentParsingState getContentParsingState();

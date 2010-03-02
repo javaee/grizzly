@@ -125,8 +125,8 @@ public class HttpCommTest extends TestCase {
     public static class DummyServerFilter extends BaseFilter {
 
         @Override
-        public NextAction handleRead(FilterChainContext ctx,
-                NextAction nextAction) throws IOException {
+        public NextAction handleRead(FilterChainContext ctx)
+                throws IOException {
 
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
             final HttpRequest request = (HttpRequest) httpContent.getHttpHeader();

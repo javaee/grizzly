@@ -77,8 +77,7 @@ public class HttpClientFilter extends HttpFilter {
     }
 
     @Override
-    public NextAction handleRead(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleRead(FilterChainContext ctx) throws IOException {
         Buffer input = (Buffer) ctx.getMessage();
         final Connection connection = ctx.getConnection();
         
@@ -90,63 +89,11 @@ public class HttpClientFilter extends HttpFilter {
             httpResponseInProcessAttr.set(connection, httpResponse);
         }
 
-        if (!httpResponse.isHeaderParsed()) {
-            if (!decodeHttpPacket(httpResponse, input)) {
-                return ctx.getStopAction(input);
-            } else {
-                httpResponse.setHeaderParsed(true);
-                httpResponse.getHeaderParsingState().recycle();
-                checkContent(httpResponse);
-            }
-        }
-
-        Buffer remainder = null;
-        
-        if (input.hasRemaining()) {
-            final ContentParsingState contentParsingState =
-                    httpResponse.getContentParsingState();
-            if (contentParsingState.isChunked) {
-                if (contentParsingState.chunkLength == -1) {
-                    if (!parseHttpChunkLength(httpResponse, input)) {
-                        return ctx.getStopAction(input);
-                    }
-                } else {
-                    contentParsingState.chunkContentStart = 0;
-                }
-
-                final int chunkContentStart =
-                        contentParsingState.chunkContentStart;
-                
-                final long thisPacketRemaining =
-                        contentParsingState.chunkRemainder;
-                final int contentAvailable = input.limit() - chunkContentStart;
-
-                if (contentAvailable > thisPacketRemaining) {
-                    remainder = input.slice(
-                            (int) (chunkContentStart + thisPacketRemaining), input.limit());
-                    input.limit((int) (chunkContentStart + thisPacketRemaining));
-                }
-            } else {
-                final long thisPacketRemaining = contentParsingState.chunkRemainder;
-                final int available = input.remaining();
-                
-                if (available > thisPacketRemaining) {
-                    remainder = input.slice(
-                            (int) (input.position() + thisPacketRemaining), input.limit());
-                    input.limit((int) (input.position() + thisPacketRemaining));
-                }
-            }
-
-            contentParsingState.chunkRemainder -= input.remaining();
-        }
-
-        ctx.setMessage(httpResponse.createContent(input));
-        return ctx.getInvokeAction(remainder);
+        return handleRead(ctx, httpResponse);
     }
 
     @Override
-    public NextAction handleWrite(FilterChainContext ctx, NextAction nextAction)
-            throws IOException {
+    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final HttpPacket input = (HttpPacket) ctx.getMessage();
         final Connection connection = ctx.getConnection();
 
@@ -154,7 +101,7 @@ public class HttpClientFilter extends HttpFilter {
                 connection.getTransport().getMemoryManager(), input);
 
         ctx.setMessage(output);
-        return nextAction;
+        return ctx.getInvokeAction();
     }
     
     @Override

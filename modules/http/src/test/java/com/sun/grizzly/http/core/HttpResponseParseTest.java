@@ -254,8 +254,8 @@ public class HttpResponseParseTest extends TestCase {
         }
 
         @Override
-        public NextAction handleRead(FilterChainContext ctx,
-                NextAction nextAction) throws IOException {
+        public NextAction handleRead(FilterChainContext ctx)
+                throws IOException {
             HttpContent httpContent = (HttpContent) ctx.getMessage();
             HttpResponse httpResponse = (HttpResponse) httpContent.getHttpHeader();
             
@@ -274,7 +274,7 @@ public class HttpResponseParseTest extends TestCase {
                 parseResult.failure(e);
             }
 
-            return nextAction;
+            return ctx.getInvokeAction();
         }
     }
 
