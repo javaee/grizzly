@@ -67,6 +67,11 @@ public class HttpTrailer extends HttpContent {
         throw new IllegalStateException("Trailer can not have content");
     }
 
+    @Override
+    public final boolean isLast() {
+        return true;
+    }
+
     // -------------------- Headers --------------------
     public MimeHeaders getHeaders() {
         return headers;
@@ -91,7 +96,7 @@ public class HttpTrailer extends HttpContent {
     protected void setHeaders(MimeHeaders mimeHeaders) {
         this.headers = mimeHeaders;
     }
-    
+
     public static final class Builder extends HttpContent.Builder<Builder> {
 
         protected Builder(HttpHeader httpHeader) {

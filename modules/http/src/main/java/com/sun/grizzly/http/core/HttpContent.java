@@ -50,6 +50,8 @@ public class HttpContent implements HttpPacket {
         return new Builder(httpHeader);
     }
 
+    protected boolean isLast;
+    
     protected Buffer content = BufferUtils.EMPTY_BUFFER;
 
     protected final HttpHeader httpHeader;
@@ -70,6 +72,14 @@ public class HttpContent implements HttpPacket {
         return httpHeader;
     }
 
+    public boolean isLast() {
+        return isLast;
+    }
+
+    public void setLast(boolean isLast) {
+        this.isLast = isLast;
+    }
+
     @Override
     public final boolean isHeader() {
         return false;
@@ -87,6 +97,11 @@ public class HttpContent implements HttpPacket {
             return new HttpContent(httpHeader);
         }
 
+        public final T last(boolean isLast) {
+            packet.setLast(isLast);
+            return (T) this;
+        }
+        
         public final T content(Buffer content) {
             packet.setContent(content);
             return (T) this;

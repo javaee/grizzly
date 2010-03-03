@@ -111,6 +111,18 @@ public final class Ascii {
     }
 
     /**
+     * All possible chars for representing a number as a String
+     */
+    final static char[] digits = {
+	'0' , '1' , '2' , '3' , '4' , '5' ,
+	'6' , '7' , '8' , '9' , 'a' , 'b' ,
+	'c' , 'd' , 'e' , 'f' , 'g' , 'h' ,
+	'i' , 'j' , 'k' , 'l' , 'm' , 'n' ,
+	'o' , 'p' , 'q' , 'r' , 's' , 't' ,
+	'u' , 'v' , 'w' , 'x' , 'y' , 'z'
+    };
+    
+    /**
      * Returns the upper case equivalent of the specified ASCII character.
      */
     public static int toUpper(int c) {
@@ -328,5 +340,32 @@ public final class Ascii {
             }
         }
         return n;
+    }
+
+    public static void intToHexString(Buffer buffer, int i) {
+	intToUnsignedString(buffer, i, 4);
+    }
+
+    /**
+     * Convert the integer to an unsigned number.
+     */
+    public static void intToUnsignedString(Buffer buffer, int value, int shift) {
+        int currentShift = 32 - shift;
+
+        int radix = 1 << shift;
+	int mask = (radix - 1) << currentShift;
+
+        boolean initialZeros = true;
+        
+        while (mask != 0) {
+            final int digit = (value & mask) >>> currentShift;
+            if (digit != 0 || !initialZeros) {
+                buffer.put((byte) digits[digit]);
+                initialZeros = false;
+            }
+            
+            mask >>>= shift;
+            currentShift -= shift;
+        }
     }
 }

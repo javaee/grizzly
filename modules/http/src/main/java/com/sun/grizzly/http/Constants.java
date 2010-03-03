@@ -323,9 +323,16 @@ public class Constants {
     public final static String JROUTE_COOKIE = "JROUTE";
     // END SJSAS 6346226
 
-    public final static byte[] CONTENT_LENGTH_HEADER = "content-length".getBytes(ASCII_CHARSET);
-    public final static byte[] TRANSFER_ENCODING_HEADER = "transfer-encoding".getBytes(ASCII_CHARSET);
+    public final static String CONTENT_LENGTH_HEADER = "content-length";
 
-    public final static byte[] CHUNKED_ENCODING = "chunked".getBytes(ASCII_CHARSET);
+    public final static byte[] CONTENT_LENGTH_HEADER_BYTES = CONTENT_LENGTH_HEADER.getBytes(ASCII_CHARSET);
+
+    public final static String TRANSFER_ENCODING_HEADER = "transfer-encoding";
+
+    public final static byte[] TRANSFER_ENCODING_HEADER_BYTES = TRANSFER_ENCODING_HEADER.getBytes(ASCII_CHARSET);
+
+    public final static String CHUNKED_ENCODING = "chunked";
+
+    public final static byte[] CHUNKED_ENCODING_BYTES = CHUNKED_ENCODING.getBytes(ASCII_CHARSET);
 
 }
