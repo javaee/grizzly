@@ -274,7 +274,7 @@ public class HttpResponseParseTest extends TestCase {
                 parseResult.failure(e);
             }
 
-            return ctx.getInvokeAction();
+            return ctx.getStopAction();
         }
     }
 

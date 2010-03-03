@@ -43,6 +43,8 @@ import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.DefaultFilterChain;
+import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -92,8 +94,9 @@ public class HttpCommTest extends TestCase {
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(2));
             clientFilterChainBuilder.add(new HttpClientFilter());
-            
-            connection.setProcessor(clientFilterChainBuilder.build());
+            FilterChain clientFilterChain = clientFilterChainBuilder.build();
+            ((DefaultFilterChain) clientFilterChain).awareOfStandaloneRead(true);
+            connection.setProcessor(clientFilterChain);
 
             HttpRequest httpRequest = HttpRequest.builder().method("GET").
                     uri("/dummyURL").protocol("HTTP/1.0").

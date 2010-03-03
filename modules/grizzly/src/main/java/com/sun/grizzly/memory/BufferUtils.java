@@ -258,4 +258,32 @@ public class BufferUtils {
             dstBuffer.put(srcBytes, srcOffset, length);
         }
     }
+
+    public static final Buffer appendBuffers(MemoryManager memoryManager,
+            Buffer buffer1, Buffer buffer2) {
+
+        if (buffer1 == null) {
+            return buffer2;
+        } else if (buffer2 == null) {
+            return buffer1;
+        }
+
+        if (buffer1.isComposite()) {
+            ((CompositeBuffer) buffer1).append(buffer2);
+            return buffer1;
+        } if (buffer2.isComposite()) {
+            ((CompositeBuffer) buffer2).prepend(buffer1);
+            return buffer2;
+        } else {
+            CompositeBuffer compositeBuffer =
+                    ByteBuffersBuffer.create(memoryManager);
+
+            compositeBuffer.append(buffer1);
+            compositeBuffer.append(buffer2);
+
+            compositeBuffer.allowBufferDispose(true);
+
+            return compositeBuffer;
+        }
+    }
 }

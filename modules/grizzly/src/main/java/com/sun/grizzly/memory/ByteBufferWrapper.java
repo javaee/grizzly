@@ -469,8 +469,24 @@ public class ByteBufferWrapper implements Buffer {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof ByteBufferWrapper) {
-            return visible.equals(((ByteBufferWrapper) obj).visible);
+        if (obj instanceof Buffer) {
+            Buffer that = (Buffer) obj;
+            if (this.remaining() != that.remaining()) {
+                return false;
+            }
+            int p = this.position();
+            for (int i = this.limit() - 1, j = that.limit() - 1; i >= p; i--, j--) {
+                byte v1 = this.get(i);
+                byte v2 = that.get(j);
+                if (v1 != v2) {
+                    if ((v1 != v1) && (v2 != v2)) // For float and double
+                    {
+                        continue;
+                    }
+                    return false;
+                }
+            }
+            return true;
         }
 
         return false;

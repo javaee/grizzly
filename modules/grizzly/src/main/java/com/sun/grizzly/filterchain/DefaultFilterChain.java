@@ -283,7 +283,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                         storedMessage =
                                 appender.append(storedMessage, currentMessage);
                     } else {
-                        ((Appendable) storedMessage).append(currentMessage);
+                        storedMessage = ((Appendable) storedMessage).append(currentMessage);
                     }
                 }
                 
@@ -386,7 +386,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         final int add = (end - start > 0) ? 1 : -1;
         final IOEvent ioEvent = ctx.getIoEvent();
 
-        for(int i = start; i != end; i += add) {
+        for(int i = end - add; i != start - add; i -= add) {
             final FilterStateElement element = filtersState.getState(ioEvent, i);
             if (element != null &&
                     element.getType() == FILTER_STATE_TYPE.REMAINDER) {

@@ -38,9 +38,7 @@
 
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.Buffer;
 import com.sun.grizzly.http.util.MimeHeaders;
-import com.sun.grizzly.memory.BufferUtils;
 
 /**
  *
@@ -53,18 +51,13 @@ public class HttpTrailer extends HttpContent {
 
     private MimeHeaders headers;
     
+    protected HttpTrailer() {
+        this(null);
+    }
+
     protected HttpTrailer(HttpHeader httpHeader) {
         super(httpHeader);
-    }
-
-    @Override
-    public final Buffer getContent() {
-        return BufferUtils.EMPTY_BUFFER;
-    }
-
-    @Override
-    protected final void setContent(Buffer content) {
-        throw new IllegalStateException("Trailer can not have content");
+        headers = new MimeHeaders();
     }
 
     @Override
@@ -95,6 +88,12 @@ public class HttpTrailer extends HttpContent {
 
     protected void setHeaders(MimeHeaders mimeHeaders) {
         this.headers = mimeHeaders;
+    }
+
+    @Override
+    public void recycle() {
+        this.headers.recycle();
+        super.recycle();
     }
 
     public static final class Builder extends HttpContent.Builder<Builder> {

@@ -334,5 +334,7 @@ public class Constants {
     public final static String CHUNKED_ENCODING = "chunked";
 
     public final static byte[] CHUNKED_ENCODING_BYTES = CHUNKED_ENCODING.getBytes(ASCII_CHARSET);
+    
+    public final static byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
 
 }

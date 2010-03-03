@@ -342,6 +342,16 @@ public final class Ascii {
         return n;
     }
 
+    public static long parseLong(BufferChunk contentLengthChunk) {
+        if (contentLengthChunk.hasBuffer()) {
+            return parseLong(contentLengthChunk.getBuffer(),
+                    contentLengthChunk.getStart(),
+                    contentLengthChunk.getEnd() - contentLengthChunk.getStart());
+        } else {
+            return Long.parseLong(contentLengthChunk.toString());
+        }
+    }
+    
     public static void intToHexString(Buffer buffer, int i) {
 	intToUnsignedString(buffer, i, 4);
     }

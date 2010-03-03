@@ -75,11 +75,17 @@ class HttpRequestImpl extends HttpRequest implements HttpPacketParsing {
         this.contentParsingState = contentParsingState;
     }
 
+    @Override
     public boolean isHeaderParsed() {
         return isHeaderParsed;
     }
 
+    @Override
     public void setHeaderParsed(boolean isHeaderParsed) {
+        if (isHeaderParsed && !isChunked) {
+            contentParsingState.chunkRemainder = getContentLength();
+        }
+        
         this.isHeaderParsed = isHeaderParsed;
     }
 

@@ -44,4 +44,5 @@ package com.sun.grizzly.http.core;
  */
 public interface HttpPacket {
     public boolean isHeader();
+    public void recycle();
 }

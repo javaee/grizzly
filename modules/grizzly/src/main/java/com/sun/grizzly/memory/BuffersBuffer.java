@@ -1317,4 +1317,51 @@ public final class BuffersBuffer implements CompositeBuffer {
         limit = 0;
         Arrays.fill(buffers, null);
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Buffer) {
+            Buffer that = (Buffer) obj;
+            if (this.remaining() != that.remaining()) {
+                return false;
+            }
+            int p = this.position();
+            for (int i = this.limit() - 1, j = that.limit() - 1; i >= p; i--, j--) {
+                byte v1 = this.get(i);
+                byte v2 = that.get(j);
+                if (v1 != v2) {
+                    if ((v1 != v1) && (v2 != v2)) // For float and double
+                    {
+                        continue;
+                    }
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns the current hash code of this buffer.
+     *
+     * <p> The hash code of a byte buffer depends only upon its remaining
+     * elements; that is, upon the elements from <tt>position()</tt> up to, and
+     * including, the element at <tt>limit()</tt>&nbsp;-&nbsp;<tt>1</tt>.
+     *
+     * <p> Because buffer hash codes are content-dependent, it is inadvisable
+     * to use buffers as keys in hash maps or similar data structures unless it
+     * is known that their contents will not change.  </p>
+     *
+     * @return  The current hash code of this buffer
+     */
+    @Override
+    public int hashCode() {
+	int h = 1;
+	int p = position();
+	for (int i = limit() - 1; i >= p; i--)
+	    h = 31 * h + (int)get(i);
+	return h;
+    }
 }

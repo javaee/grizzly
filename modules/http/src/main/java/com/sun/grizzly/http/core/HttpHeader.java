@@ -54,7 +54,7 @@ public abstract class HttpHeader implements HttpPacket {
 
     protected boolean isChunked;
 
-    protected long contentLength;
+    protected long contentLength = -1;
 
     public abstract boolean isRequest();
 
@@ -76,9 +76,7 @@ public abstract class HttpHeader implements HttpPacket {
             final BufferChunk contentLengthChunk =
                     headers.getValue("content-length");
             if (contentLengthChunk != null) {
-                contentLength = Ascii.parseLong(contentLengthChunk.getBuffer(),
-                        contentLengthChunk.getStart(),
-                        contentLengthChunk.getEnd() - contentLengthChunk.getStart());
+                contentLength = Ascii.parseLong(contentLengthChunk);
             }
         }
 

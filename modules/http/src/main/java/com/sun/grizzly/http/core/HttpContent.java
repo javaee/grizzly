@@ -45,7 +45,7 @@ import com.sun.grizzly.memory.BufferUtils;
  *
  * @author oleksiys
  */
-public class HttpContent implements HttpPacket {
+public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpContent> {
     public static Builder builder(HttpHeader httpHeader) {
         return new Builder(httpHeader);
     }
@@ -54,21 +54,25 @@ public class HttpContent implements HttpPacket {
     
     protected Buffer content = BufferUtils.EMPTY_BUFFER;
 
-    protected final HttpHeader httpHeader;
+    protected HttpHeader httpHeader;
+
+    protected HttpContent() {
+        this(null);
+    }
 
     protected HttpContent(HttpHeader httpHeader) {
         this.httpHeader = httpHeader;
     }
 
-    public Buffer getContent() {
+    public final Buffer getContent() {
         return content;
     }
 
-    protected void setContent(Buffer content) {
+    protected final void setContent(Buffer content) {
         this.content = content;
     }
 
-    public HttpHeader getHttpHeader() {
+    public final HttpHeader getHttpHeader() {
         return httpHeader;
     }
 
@@ -83,6 +87,32 @@ public class HttpContent implements HttpPacket {
     @Override
     public final boolean isHeader() {
         return false;
+    }
+
+    @Override
+    public HttpContent append(HttpContent element) {
+        if (isLast) {
+            throw new IllegalStateException("Can not append to a last chunk");
+        }
+
+        final Buffer content2 = element.getContent();
+        if (content2 != null && content2.hasRemaining()) {
+            content = BufferUtils.appendBuffers(null, content, content2);
+        }
+
+        if (element.isLast()) {
+            element.setContent(content);
+            return element;
+        }        
+
+        return this;
+    }
+
+    @Override
+    public void recycle() {
+        isLast = false;
+        content = BufferUtils.EMPTY_BUFFER;
+        httpHeader = null;
     }
 
     public static class Builder<T extends Builder> {
