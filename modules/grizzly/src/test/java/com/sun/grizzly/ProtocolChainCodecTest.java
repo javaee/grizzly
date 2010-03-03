@@ -42,6 +42,8 @@ import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.DefaultFilterChain;
+import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -174,9 +176,10 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
                     FilterChainBuilder.singleton();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
-            
-            connection.setProcessor(clientFilterChainBuilder.build());
-            connection.configureBlocking(blocking);
+            final FilterChain clientFilterChain = clientFilterChainBuilder.build();
+            ((DefaultFilterChain) clientFilterChain).awareOfStandaloneRead(true);
+
+            connection.setProcessor(clientFilterChain);
 
             for (int i = 0; i < messageNum; i++) {
                 Future<WriteResult> writeFuture = connection.write(

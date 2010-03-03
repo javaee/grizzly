@@ -141,12 +141,22 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      */
     private Logger logger = Grizzly.logger(DefaultFilterChain.class);
 
+    private boolean awareOfStandaloneRead = false;
+
     public DefaultFilterChain() {
         this(new ArrayList<Filter>());
     }
     
     public DefaultFilterChain(Collection<Filter> initialFilters) {
         super(new ArrayList<Filter>(initialFilters));
+    }
+
+    public boolean awareOfStandaloneRead() {
+        return awareOfStandaloneRead;
+    }
+
+    public void awareOfStandaloneRead(boolean awareOfStandaloneRead) {
+        this.awareOfStandaloneRead = awareOfStandaloneRead;
     }
 
     @Override
@@ -337,6 +347,16 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
 
         if (i == end && ioEvent == IOEvent.READ) {
+            if (!awareOfStandaloneRead) {
+                logger.log(Level.WARNING, "Message has been processed by a " +
+                        "FilterChain, but the last Filter returned InvokeAction" +
+                        " - so Message will be put to a standalone read queue. " +
+                        "If it's not expected - you have to make your last filer " +
+                        "to not return InvokeAction, otherwise this may lead to" +
+                        " OutOfMemoryError. If this situation is expected " +
+                        " you can disable this message by calling " +
+                        "DefaultFilterChain.awareOfStandaloneRead(true)");
+            }
             notifyStandaloneReadListener(ctx);
         }
 
