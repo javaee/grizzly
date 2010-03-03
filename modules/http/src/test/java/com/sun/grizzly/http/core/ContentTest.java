@@ -137,7 +137,7 @@ public class ContentTest extends TestCase {
                 WriteResult writeResult = writeFuture.get(10, TimeUnit.SECONDS);
             }
 
-            HttpContent result = (HttpContent) parseResult.get(1000, TimeUnit.SECONDS);
+            HttpContent result = (HttpContent) parseResult.get(10, TimeUnit.SECONDS);
             HttpHeader resultHeader = result.getHttpHeader();
 
             HttpContent mergedPatternContent = patternContentMessages[0];
