@@ -435,7 +435,7 @@ public abstract class HttpFilter extends BaseFilter {
             if (mimeHeaders.getValue(Constants.CONTENT_LENGTH_HEADER) == null) {
                 long contentLength = httpHeader.getContentLength();
                 if (contentLength == -1) {
-                    if (httpContent != null || httpContent.getContent().hasRemaining()) {
+                    if (httpContent != null && httpContent.getContent().hasRemaining()) {
                         contentLength = httpContent.getContent().remaining();
                     }
                 }
