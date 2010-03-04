@@ -501,6 +501,36 @@ public class ServletAdapter extends GrizzlyAdapter {
         servletInitParameters.put(name, value);
     }
     
+    /**
+     * Remove a servlet initialization parameter for this servlet.
+     *
+     * @param name Name of this initialization parameter to remove
+     * @param value Value of this initialization parameter to remove
+     */
+    public void removeInitParameter(String name){
+        servletInitParameters.remove(name);
+    }
+    
+    /**
+     * get a servlet initialization parameter for this servlet.
+     *
+     * @param name Name of this initialization parameter to retreive
+     * @param value Value of this initialization parameter to retreive
+     */
+    public String getInitParameter(String name){
+        return servletInitParameters.get(name);
+    }
+    
+    /**
+     * if the servlet initialization parameter in present for this servlet.
+     *
+     * @param name Name of this initialization parameter 
+     * @param value Value of this initialization parameter 
+     */
+    public boolean containsInitParameter(String name){
+        return servletInitParameters.containsKey(name);
+    }
+    
     
     /**
      * Add a new servlet context parameter for this servlet.
