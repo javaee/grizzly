@@ -115,6 +115,11 @@ public class CometContext<E> {
     
     protected final static String ALREADY_REMOVED = 
             "CometHandler already been removed or invalid.";
+
+    private final static String COMET_NOT_ENABLED =
+            "Make sure you have enabled Comet "
+            + "or make sure the Thread invoking that method is the same "
+            + "as the Servlet.service() Thread.";
     
     /**
      * Main logger
@@ -176,13 +181,6 @@ public class CometContext<E> {
     protected final CometEvent eventTerminate;
 
     private final CometEvent eventInitialize;
-
-    private static final IllegalStateException ISE = new IllegalStateException(INVALID_COMET_HANDLER);    
-
-    private static final IllegalStateException cometNotEnabled =
-            new IllegalStateException("Make sure you have enabled Comet " +
-                "or make sure the Thread invoking that method is the same " +
-                "as the Servlet.service() Thread.");
 
     /**
      * Create a new instance
@@ -281,11 +279,11 @@ public class CometContext<E> {
      */
     public int addCometHandler(CometHandler handler, boolean alreadySuspended){
         if (handler == null){
-            throw ISE;
+            throw new IllegalStateException(INVALID_COMET_HANDLER);
         }
         
         if (!CometEngine.getEngine().isCometEnabled()){
-            throw cometNotEnabled;
+            throw new IllegalStateException(COMET_NOT_ENABLED);
         }
         // is it ok that we only manage one addcomethandler call per thread ?
         // else we can use a list of handlers to add inside tlocal
@@ -356,7 +354,7 @@ public class CometContext<E> {
      */
     protected void invokeCometHandler(CometEvent event, CometHandler cometHandler) throws IOException{
         if (cometHandler == null){
-            throw ISE;
+            throw new IllegalStateException(INVALID_COMET_HANDLER);
         }
         event.setCometContext(this);
         if (cometHandler instanceof DefaultConcurrentCometHandler){
@@ -515,7 +513,7 @@ public class CometContext<E> {
     public void notify(final Object attachment,final int eventType,final CometHandler cometHandler)
         throws IOException{
         if (cometHandler == null){
-            throw ISE;
+            throw new IllegalStateException(INVALID_COMET_HANDLER);
         }
         CometEvent event = new CometEvent(eventType,this,attachment);
         notificationHandler.setBlockingNotification(blockingNotification);        
@@ -639,7 +637,7 @@ public class CometContext<E> {
                 }
             }
         }
-        throw ISE;        
+        throw new IllegalStateException(INVALID_COMET_HANDLER);
     }
 
     
