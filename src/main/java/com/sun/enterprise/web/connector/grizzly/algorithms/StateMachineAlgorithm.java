@@ -35,13 +35,12 @@
  */
 package com.sun.enterprise.web.connector.grizzly.algorithms;
 
+import java.nio.BufferUnderflowException;
+import java.nio.ByteBuffer;
+import java.util.logging.Level;
+
 import com.sun.enterprise.web.connector.grizzly.Handler;
 import com.sun.enterprise.web.connector.grizzly.SelectorThread;
-import com.sun.enterprise.web.connector.grizzly.handlers.NoParsingHandler;
-
-import java.nio.ByteBuffer;
-import java.nio.BufferUnderflowException;
-import java.util.logging.Level;
 
 /**
  * Predict if the NIO channel has been fully read or not. This lagorithm will 
@@ -60,7 +59,11 @@ public final class StateMachineAlgorithm extends StreamAlgorithmBase{
     
     public StateMachineAlgorithm() {
         if (embeddedInGlassFish){
-            handler = new NoParsingHandler();
+            try {
+                handler = (Handler) Thread.currentThread().getContextClassLoader().loadClass(NoParsingAlgorithm.GF_NO_PARSING_HANDLER).newInstance();
+            } catch (Exception e) {
+                handler = new DummyHandler();
+            }
         } else {
             handler = new DummyHandler();
         }      

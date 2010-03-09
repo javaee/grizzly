@@ -35,15 +35,19 @@
  */
 package com.sun.enterprise.web.connector.grizzly.blocking;
 
-import com.sun.enterprise.web.connector.grizzly.PipelineStatistic;
-import com.sun.enterprise.web.connector.grizzly.DefaultProcessorTask;
-import com.sun.enterprise.web.connector.grizzly.DefaultReadTask;
-import com.sun.enterprise.web.connector.grizzly.TaskContext;
-import com.sun.enterprise.web.connector.grizzly.TaskEvent;
-import com.sun.enterprise.web.connector.grizzly.handlers.NoParsingHandler;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.logging.Level;
+
+import com.sun.enterprise.web.connector.grizzly.DefaultProcessorTask;
+import com.sun.enterprise.web.connector.grizzly.DefaultReadTask;
+import com.sun.enterprise.web.connector.grizzly.Handler;
+import com.sun.enterprise.web.connector.grizzly.PipelineStatistic;
+import com.sun.enterprise.web.connector.grizzly.SelectorThread;
+import com.sun.enterprise.web.connector.grizzly.TaskContext;
+import com.sun.enterprise.web.connector.grizzly.TaskEvent;
+import com.sun.enterprise.web.connector.grizzly.algorithms.NoParsingAlgorithm;
+import com.sun.enterprise.web.connector.grizzly.handlers.NoParsingHandler;
 
 /**
  * Process a blocking socket. By default, SSL is using blocking mode.
@@ -67,7 +71,7 @@ public class ReadBlockingTask extends DefaultReadTask{
     /**
      * The <code>Handler</code> used to pre-process the request.
      */
-    private NoParsingHandler handler;
+    private Handler handler;
     
             
     public ReadBlockingTask(){
@@ -83,9 +87,13 @@ public class ReadBlockingTask extends DefaultReadTask{
      * instance.
      */
     public void attachProcessor(DefaultProcessorTask processorTask){
-        handler = new NoParsingHandler();
-        
-        this.processorTask = processorTask;      
+        try {
+            handler = (Handler) Thread.currentThread().getContextClassLoader().loadClass(
+                NoParsingAlgorithm.GF_NO_PARSING_HANDLER).newInstance();
+        } catch (Exception e) {
+            handler = new NoParsingHandler();
+        }
+        this.processorTask = processorTask;
         processorTask.setHandler(handler);  
     }
     
@@ -104,8 +112,7 @@ public class ReadBlockingTask extends DefaultReadTask{
             try {
                 blockingSelector.getServerSocketFactory().handshake(socket);
             } catch (Throwable ex) {
-                selectorThread.getLogger().log(Level.FINE,
-                           "selectorThread.sslHandshakeException", ex);
+                SelectorThread.getLogger().log(Level.FINE, "selectorThread.sslHandshakeException", ex);
                 try {
                     socket.close();
                 } catch (IOException ioe){
@@ -202,7 +209,7 @@ public class ReadBlockingTask extends DefaultReadTask{
      * Set the <code>PipelineStatistic</code> object used to gather statistic;
      */
     public void setPipelineStatistic(PipelineStatistic pipelineStatistic){
-        this.pipelineStat = pipelineStatistic;
+        pipelineStat = pipelineStatistic;
     }
     
     

@@ -36,9 +36,9 @@
 
 package com.sun.enterprise.web.connector.grizzly.algorithms;
 
-import com.sun.enterprise.web.connector.grizzly.Handler;
-import com.sun.enterprise.web.connector.grizzly.handlers.NoParsingHandler;
 import java.nio.ByteBuffer;
+
+import com.sun.enterprise.web.connector.grizzly.Handler;
 
 
 /**
@@ -47,17 +47,21 @@ import java.nio.ByteBuffer;
  *
  * @author Jeanfrancois Arcand
  */
-public class NoParsingAlgorithm extends StreamAlgorithmBase{
+public class NoParsingAlgorithm extends StreamAlgorithmBase {
+    public static final String GF_NO_PARSING_HANDLER
+        = "com.sun.enterprise.web.connector.grizzly.handlers.GlassFishNoParsingHandler";
 
-    
     public NoParsingAlgorithm() {
         if (embeddedInGlassFish){
-            handler = new NoParsingHandler();
+            try {
+                handler = (Handler) Thread.currentThread().getContextClassLoader().loadClass(NoParsingAlgorithm.GF_NO_PARSING_HANDLER).newInstance();
+            } catch (Exception e) {
+                handler = new DummyHandler();
+            }
         } else {
             handler = new DummyHandler();
         }            
     }
-    
     
     /**
      * Do nothing, as the ByteBufferInputStream will take care of reading the 
