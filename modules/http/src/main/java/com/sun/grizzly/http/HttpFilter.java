@@ -98,9 +98,12 @@ public abstract class HttpFilter extends BaseFilter {
                 httpPacket.getContentParsingState();
         
         boolean isLast = false;
+
+        final HttpHeader httpHeader = (HttpHeader) httpPacket;
+        final boolean isChunked = httpHeader.isChunked();
         
         if (input.hasRemaining()) {
-            if (((HttpHeader) httpPacket).isChunked()) {
+            if (isChunked) {
                 // if it's chunked HTTP message
                 final boolean isLastChunk = contentParsingState.isLastChunk;
                 if (!isLastChunk && contentParsingState.chunkRemainder == 0) {
@@ -167,6 +170,9 @@ public abstract class HttpFilter extends BaseFilter {
                     onHttpPacketParsed(ctx);
                 }
             }
+        } else if (!isChunked && httpHeader.getContentLength() <= 0) { // If content wasn't parsed this time - check if we expect any
+            isLast = true;
+            onHttpPacketParsed(ctx);
         }
 
         final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();

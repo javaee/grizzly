@@ -145,6 +145,5 @@ public class HttpCommTest extends TestCase {
 
             return ctx.getStopAction();
         }
-        
     }
 }

@@ -108,9 +108,6 @@ public class HttpRequest extends HttpHeader {
     // ----------------------------------------------------------- Constructors
     protected HttpRequest() {
         methodBC.setString("GET");
-        /* SJSWS 6376484
-        uriBC.setString("/");
-         */
         queryBC.setString("");
     }
 
