@@ -44,7 +44,7 @@ import com.sun.grizzly.ThreadCache.ObjectCache;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.attributes.AttributeHolder;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
-import com.sun.grizzly.memory.DefaultMemoryManager.BufferInfo;
+import com.sun.grizzly.memory.DefaultMemoryManager.ThreadLocalPool;
 
 /**
  * Default Grizzly worker thread implementation
@@ -56,7 +56,7 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
     private final AttributeBuilder attrBuilder;
     private final AttributeHolder attributes;
 
-    private BufferInfo associatedBuffer;
+    private final ThreadLocalPool memoryPool = new ThreadLocalPool();
     
     private final ObjectCache objectCache = new ObjectCache();
     
@@ -84,12 +84,8 @@ public class DefaultWorkerThread extends Thread implements WorkerThread {
         return attributes;
     }
 
-    public BufferInfo getAssociatedBuffer() {
-        return associatedBuffer;
-    }
-
-    public void setAssociatedBuffer(BufferInfo associatedBuffer) {
-        this.associatedBuffer = associatedBuffer;
+    public ThreadLocalPool getMemoryPool() {
+        return memoryPool;
     }
 
     public final <E> E takeFromCache(ThreadCache.CachedTypeIndex<E> index) {

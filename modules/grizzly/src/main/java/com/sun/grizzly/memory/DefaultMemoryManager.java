@@ -41,6 +41,7 @@ import com.sun.grizzly.ThreadCache;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicLong;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
+import java.util.Arrays;
 
 /**
  * Default {@link MemoryManager}, used in Grizzly.
@@ -150,20 +151,21 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         }
 
         if (isDefaultWorkerThread()) {
-            BufferInfo bufferInfo = getThreadBuffer();
+            ThreadLocalPool threadLocalCache = getThreadLocalPool();
 
-            if (bufferInfo == null || bufferInfo.buffer == null) {
-                bufferInfo = reallocatePoolBuffer();
-                return allocateFromPool(bufferInfo, size);
+            if (threadLocalCache.hasRemaining()) {
+                threadLocalCache = reallocatePoolBuffer();
+                return allocateFromPool(threadLocalCache, size);
             }
 
-            final ByteBuffer allocatedFromPool = allocateFromPool(bufferInfo, size);
+            final ByteBuffer allocatedFromPool =
+                    allocateFromPool(threadLocalCache, size);
 
             if (allocatedFromPool != null) {
                 return allocatedFromPool;
             } else {
-                bufferInfo = reallocatePoolBuffer();
-                return allocateFromPool(bufferInfo, size);
+                threadLocalCache = reallocatePoolBuffer();
+                return allocateFromPool(threadLocalCache, size);
             }
 
         } else {
@@ -171,16 +173,14 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         }
     }
 
-    private BufferInfo reallocatePoolBuffer() {
+    private ThreadLocalPool reallocatePoolBuffer() {
         final ByteBuffer byteBuffer = incAllocated(
                 super.allocateByteBuffer(maxThreadBufferSize));
 
-        final BufferInfo bufferInfo = new BufferInfo();
-
-        bufferInfo.buffer = byteBuffer;
-        bufferInfo.lastAllocatedBuffer = null;
-        setThreadBuffer(bufferInfo);
-        return bufferInfo;
+        final ThreadLocalPool threadLocalCache = getThreadLocalPool();
+        threadLocalCache.reset(byteBuffer);
+        
+        return threadLocalCache;
     }
 
     /**
@@ -199,35 +199,21 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         if (oldByteBuffer.capacity() >= newSize) return (ByteBuffer) oldByteBuffer;
 
         if (isDefaultWorkerThread()) {
-            final BufferInfo bufferInfo = getThreadBuffer();
-            if (bufferInfo != null &&
-                    bufferInfo.buffer != null &&
-                    bufferInfo.lastAllocatedBuffer == oldByteBuffer &&
-                    bufferInfo.buffer.remaining() + oldByteBuffer.capacity() >= newSize) {
-                final ByteBuffer bufferPool = bufferInfo.buffer;
-                bufferPool.position(bufferPool.position() - oldByteBuffer.capacity());
-
-                final ByteBuffer newByteBuffer =
-                        allocateFromPool(bufferInfo, newSize);
-                newByteBuffer.position(oldByteBuffer.position());
-                return newByteBuffer;
-            }
+            final ThreadLocalPool memoryPool = getThreadLocalPool();
+            final ByteBuffer newBuffer =
+                    memoryPool.reallocate(oldByteBuffer, newSize);
+            
+            if (newBuffer != null) return newBuffer;
         }
 
         return incAllocated(super.reallocateByteBuffer(oldByteBuffer, newSize));
     }
 
 
-    private ByteBuffer allocateFromPool(final BufferInfo bufferInfo,
+    private ByteBuffer allocateFromPool(final ThreadLocalPool threadLocalCache,
             final int size) {
-        if (bufferInfo == null || bufferInfo.buffer == null) return null;
-        final ByteBuffer bufferPool = bufferInfo.buffer;
-        if (bufferPool.remaining() >= size) {
-            final ByteBuffer allocatedByteBuffer =
-                    BufferUtils.slice(bufferPool, size);
-
-            bufferInfo.lastAllocatedBuffer = allocatedByteBuffer;
-            return allocatedByteBuffer;
+        if (threadLocalCache.remaining() >= size) {
+            return threadLocalCache.allocate(size);
         }
 
         return null;
@@ -245,30 +231,9 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     @Override
     public void releaseByteBuffer(ByteBuffer byteBuffer) {
         if (isDefaultWorkerThread()) {
-            BufferInfo bufferInfo = getThreadBuffer();
+            ThreadLocalPool memoryPool = getThreadLocalPool();
 
-            if (prepend(bufferInfo, byteBuffer)) return;
-
-            if (bufferInfo == null || bufferInfo.buffer == null ||
-                    (bufferInfo.buffer.capacity() <= byteBuffer.capacity() &&
-                    byteBuffer.capacity() <= maxThreadBufferSize)) {
-
-                boolean isNewBufferInfo = false;
-                if (bufferInfo == null) {
-                    bufferInfo = new BufferInfo();
-                    isNewBufferInfo = true;
-                }
-                
-                byteBuffer.clear();
-                bufferInfo.buffer = byteBuffer;
-                bufferInfo.lastAllocatedBuffer = null;
-
-                if (isNewBufferInfo) {
-                    setThreadBuffer(bufferInfo);
-                }
-                
-                return;
-            }
+            if (memoryPool.release((ByteBuffer) byteBuffer.clear())) return;
 
         }
         super.releaseByteBuffer(byteBuffer);
@@ -283,10 +248,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      */
     public int getReadyThreadBufferSize() {
         if (isDefaultWorkerThread()) {
-            BufferInfo bi = getThreadBuffer();
-            if (bi != null && bi.buffer != null) {
-                return bi.buffer.remaining();
-            }
+            final ThreadLocalPool threadLocalPool = getThreadLocalPool();
+            return threadLocalPool.remaining();
         }
 
         return 0;
@@ -299,25 +262,14 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     }
 
     /**
-     * Get thread associated memory pool info.
+     * Get thread associated buffer pool.
      * 
-     * @return thread associated memory pool info.
+     * @return thread associated buffer pool.
      */
-    private BufferInfo getThreadBuffer() {
+    private ThreadLocalPool getThreadLocalPool() {
         DefaultWorkerThread workerThread =
                 (DefaultWorkerThread) Thread.currentThread();
-        return workerThread.getAssociatedBuffer();
-    }
-
-    /**
-     * Set thread associated memory pool info.
-     * 
-     * @param bufferInfo thread associated memory pool info.
-     */
-    private void setThreadBuffer(BufferInfo bufferInfo) {
-        DefaultWorkerThread workerThread =
-                (DefaultWorkerThread) Thread.currentThread();
-        workerThread.setAssociatedBuffer(bufferInfo);
+        return workerThread.getMemoryPool();
     }
 
     /**
@@ -331,33 +283,6 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         return allocated;
     }
 
-    /**
-     * If possible, prepends passed underlyingBuffer to thread local memory
-     * pool.
-     * 
-     * @param bufferInfo thread associated memory pool info.
-     * @param underlyingBuffer {@link ByteBuffer} to prepend
-     * @return <tt>true</tt>, if {@link ByteBuffer} was prepended,
-     * or <tt>false</tt> otherwise.
-     */
-    private boolean prepend(BufferInfo bufferInfo, ByteBuffer underlyingBuffer) {
-        if (bufferInfo != null &&
-                bufferInfo.lastAllocatedBuffer == underlyingBuffer) {
-            bufferInfo.lastAllocatedBuffer = null;
-            if (bufferInfo.buffer != null) {
-                ByteBuffer chunk = bufferInfo.buffer;
-                chunk.position(chunk.position() - underlyingBuffer.capacity());
-            } else {
-                bufferInfo.buffer = underlyingBuffer;
-            }
-
-            return true;
-
-        }
-
-        return false;
-    }
-
     private boolean isDefaultWorkerThread() {
         return Thread.currentThread() instanceof DefaultWorkerThread;
     }
@@ -365,23 +290,121 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     /**
      * Information about thread associated memory pool.
      */
-    public class BufferInfo {
+    public static final class ThreadLocalPool {
         /**
          * Memory pool
          */
-        public ByteBuffer buffer;
+        private ByteBuffer pool;
 
         /**
-         * Last allocated {@link ByteBuffer}.
+         * {@link ByteBuffer} allocation history.
          */
-        public ByteBuffer lastAllocatedBuffer;
+        private Object[] allocationHistory;
+        private int lastAllocatedIndex;
+
+        public ThreadLocalPool() {
+            allocationHistory = new Object[8];
+        }
+
+        public void reset(ByteBuffer pool) {
+            Arrays.fill(allocationHistory, 0, lastAllocatedIndex, null);
+            lastAllocatedIndex = 0;
+            this.pool = pool;
+        }
+
+        public ByteBuffer allocate(int size) {
+            final ByteBuffer allocated = BufferUtils.slice(pool, size);
+            return addHistory(allocated);
+        }
+
+        public ByteBuffer reallocate(ByteBuffer oldByteBuffer, int newSize) {
+            if (isLastAllocated(oldByteBuffer) &&
+                    remaining() + oldByteBuffer.capacity() >= newSize) {
+            
+            lastAllocatedIndex--;
+
+            pool.position(pool.position() - oldByteBuffer.capacity());
+            final ByteBuffer newByteBuffer = BufferUtils.slice(pool, newSize);
+            newByteBuffer.position(oldByteBuffer.position());
+
+            return addHistory(newByteBuffer);
+            }
+
+            return null;
+        }
+
+        public boolean release(ByteBuffer underlyingBuffer) {
+            if (isLastAllocated(underlyingBuffer)) {
+                pool.position(pool.position() - underlyingBuffer.capacity());
+                allocationHistory[--lastAllocatedIndex] = null;
+
+                return true;
+            } else if (tryReset(underlyingBuffer)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        public boolean tryReset(ByteBuffer byteBuffer) {
+            if (wantReset(byteBuffer.remaining())) {
+                reset(byteBuffer);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private boolean wantReset(int size) {
+            return !hasRemaining() ||
+                    (lastAllocatedIndex == 0 && pool.remaining() < size);
+        }
+
+        public boolean isLastAllocated(ByteBuffer oldByteBuffer) {
+            return lastAllocatedIndex > 0 &&
+                    allocationHistory[lastAllocatedIndex - 1] == oldByteBuffer;
+        }
+
+        public ByteBuffer reduceLastAllocated(ByteBuffer byteBuffer) {
+            final ByteBuffer oldLastAllocated = 
+                    (ByteBuffer) allocationHistory[lastAllocatedIndex - 1];
+
+            pool.position(pool.position() - (oldLastAllocated.capacity() -
+                    byteBuffer.capacity()));
+            allocationHistory[lastAllocatedIndex - 1] = byteBuffer;
+
+            return oldLastAllocated;
+        }
+
+        public int remaining() {
+            if (hasRemaining()) return 0;
+
+            return pool.remaining();
+        }
+
+        public boolean hasRemaining() {
+            return pool == null || !pool.hasRemaining();
+        }
+
+        private ByteBuffer addHistory(ByteBuffer allocated) {
+            if (lastAllocatedIndex >= allocationHistory.length) {
+                allocationHistory =
+                        Arrays.copyOf(allocationHistory,
+                        (allocationHistory.length * 3) / 2 + 1);
+            }
+
+            allocationHistory[lastAllocatedIndex++] = allocated;
+            return allocated;
+        }
 
         @Override
         public String toString() {
-            return "(buffer=" + buffer + " lastAllocatedBuffer=" + lastAllocatedBuffer + ")";
+            return "(pool=" + pool +
+                    " last-allocated-index=" + (lastAllocatedIndex - 1) +
+                    " allocation-history=" + Arrays.toString(allocationHistory)
+                    + ")";
         }
-
-
     }
 
     /**
@@ -401,37 +424,32 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         public void trim() {
             final int sizeToReturn = visible.capacity() - visible.position();
 
-            BufferInfo bufferInfo;
-            
-            if (sizeToReturn > 0 && isDefaultWorkerThread() &&
-                    ((bufferInfo = getThreadBuffer()) == null
-                    || bufferInfo.lastAllocatedBuffer == visible)) {
-                visible.flip();
 
-                ByteBuffer originalByteBuffer = visible;
-                visible = visible.slice();
-                if (bufferInfo == null) {
+            if (sizeToReturn > 0 && isDefaultWorkerThread()) {
+                final ThreadLocalPool threadLocalCache = getThreadLocalPool();
+
+
+                if (threadLocalCache.isLastAllocated(visible)) {
+                    visible.flip();
+
+                    visible = visible.slice();
+                    threadLocalCache.reduceLastAllocated(visible);
+
+                    return;
+                } else if (threadLocalCache.wantReset(sizeToReturn)) {
+                    visible.flip();
+
+                    final ByteBuffer originalByteBuffer = visible;
+                    visible = visible.slice();
                     originalByteBuffer.position(originalByteBuffer.limit());
                     originalByteBuffer.limit(originalByteBuffer.capacity());
-                    bufferInfo = new BufferInfo();
-                    bufferInfo.buffer = originalByteBuffer;
-                    bufferInfo.lastAllocatedBuffer = visible;
-                    setThreadBuffer(bufferInfo);
 
-                } else if (bufferInfo.lastAllocatedBuffer == originalByteBuffer) {
-                    if (bufferInfo.buffer == null) {
-                        originalByteBuffer.position(originalByteBuffer.limit());
-                        originalByteBuffer.limit(originalByteBuffer.capacity());
-                        bufferInfo.buffer = originalByteBuffer;
-                    } else {
-                        bufferInfo.buffer.position(
-                                bufferInfo.buffer.position() - sizeToReturn);
-                    }
-                    bufferInfo.lastAllocatedBuffer = visible;
+                    threadLocalCache.tryReset(originalByteBuffer);
+                    return;
                 }
-            } else {
-                super.trim();
             }
+
+            super.trim();
         }
 
         @Override

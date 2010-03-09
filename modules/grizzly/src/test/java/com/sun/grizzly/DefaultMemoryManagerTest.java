@@ -158,6 +158,116 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         testInWorkerThread(r);
     }
 
+    public void testSimpleAllocateHistory() throws Exception {
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                final int allocSize = 16384;
+
+                // Initialize memory manager
+                mm.allocate(0);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+
+                final int chunkSize = 4096;
+                
+                ByteBufferWrapper buffer1 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize,
+                        mm.getReadyThreadBufferSize());
+
+                ByteBufferWrapper buffer2 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize * 2,
+                        mm.getReadyThreadBufferSize());
+
+                ByteBufferWrapper buffer3 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize * 3,
+                        mm.getReadyThreadBufferSize());
+
+                ByteBufferWrapper buffer4 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize * 4,
+                        mm.getReadyThreadBufferSize());
+
+                buffer4.dispose();
+                assertEquals(
+                        initialSize - chunkSize * 3,
+                        mm.getReadyThreadBufferSize());
+
+                buffer3.dispose();
+                assertEquals(
+                        initialSize - chunkSize * 2,
+                        mm.getReadyThreadBufferSize());
+
+                buffer2.dispose();
+                assertEquals(
+                        initialSize - chunkSize,
+                        mm.getReadyThreadBufferSize());
+
+                buffer1.dispose();
+
+                assertEquals(initialSize,
+                        mm.getReadyThreadBufferSize());
+            }
+        };
+
+        testInWorkerThread(r);
+    }
+
+    public void testTrimAllocateHistory() throws Exception {
+        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                final int allocSize = 16384;
+
+                // Initialize memory manager
+                mm.allocate(0);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+
+                final int chunkSize = 4096;
+
+                ByteBufferWrapper buffer1 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - chunkSize,
+                        mm.getReadyThreadBufferSize());
+
+                buffer1.position(chunkSize / 2);
+                buffer1.trim();
+                assertEquals(
+                        initialSize - chunkSize / 2,
+                        mm.getReadyThreadBufferSize());
+
+                ByteBufferWrapper buffer2 = mm.allocate(chunkSize);
+                assertEquals(
+                        initialSize - (chunkSize + chunkSize / 2),
+                        mm.getReadyThreadBufferSize());
+
+                buffer2.position(chunkSize / 2);
+                buffer2.trim();
+                assertEquals(
+                        initialSize - chunkSize,
+                        mm.getReadyThreadBufferSize());
+
+                buffer2.dispose();
+                assertEquals(
+                        initialSize - chunkSize / 2,
+                        mm.getReadyThreadBufferSize());
+
+                buffer1.dispose();
+
+                assertEquals(initialSize,
+                        mm.getReadyThreadBufferSize());
+            }
+        };
+
+        testInWorkerThread(r);
+    }
+
     private void testInWorkerThread(final Runnable task) throws Exception {
         final FutureImpl<Boolean> future = FutureImpl.<Boolean>create();
 
