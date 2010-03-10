@@ -107,12 +107,12 @@ public class HttpCommTest extends TestCase {
 
             Future<ReadResult> readResultFuture = connection.read();
             ReadResult<HttpContent, SocketAddress> readResult =
-                    readResultFuture.get(100000, TimeUnit.SECONDS);
+                    readResultFuture.get(10, TimeUnit.SECONDS);
 
             HttpContent response = readResult.getMessage();
             HttpResponse responseHeader = (HttpResponse) response.getHttpHeader();
 
-            assertEquals(responseHeader.getHeader("Found"), httpRequest.getRequestURI());
+            assertEquals(httpRequest.getRequestURI(), responseHeader.getHeader("Found"));
             
         } finally {
             if (connection != null) {

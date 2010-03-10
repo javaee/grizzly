@@ -36,9 +36,10 @@
  *
  */
 
-package com.sun.grizzly.http.util;
+package com.sun.grizzly.http.core;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.http.util.Ascii;
 import java.nio.charset.Charset;
 
 /**
@@ -48,7 +49,8 @@ import java.nio.charset.Charset;
  * @author Alexey Stashok
  */
 public class BufferChunk {
-
+    private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
+    
     public static BufferChunk newInstance() {
         return new BufferChunk();
     }
@@ -59,6 +61,9 @@ public class BufferChunk {
     private int end;
 
     private String cachedString;
+    private Charset cachedStringCharset;
+
+    private String stringValue;
 
     private BufferChunk() {
     }
@@ -68,8 +73,7 @@ public class BufferChunk {
     }
 
     public void setBuffer(Buffer buffer) {
-        this.buffer = buffer;
-        cachedString = null;
+        setBuffer(buffer, buffer.position(), buffer.limit());
     }
     
     public void setBuffer(Buffer buffer, int start, int end) {
@@ -77,6 +81,7 @@ public class BufferChunk {
         this.start = start;
         this.end = end;
         cachedString = null;
+        cachedStringCharset = null;
     }
 
     public int getStart() {
@@ -85,7 +90,7 @@ public class BufferChunk {
 
     public void setStart(int start) {
         this.start = start;
-        cachedString = null;
+        onContentChanged();
     }
     
     public int getEnd() {
@@ -94,11 +99,11 @@ public class BufferChunk {
 
     public void setEnd(int end) {
         this.end = end;
-        cachedString = null;
+        onContentChanged();
     }
 
     public void setString(String string) {
-        cachedString = string;
+        stringValue = string;
     }
 
     public int size() {
@@ -107,14 +112,27 @@ public class BufferChunk {
 
     @Override
     public String toString() {
-        return toString(Charset.defaultCharset());
+        return toString(null);
     }
     
     public String toString(Charset charset) {
-        if (cachedString != null) return cachedString;
+        if (hasString()) return stringValue;
+        
+        if (charset == null) charset = UTF8_CHARSET;
+
+        if (cachedString != null && charset.equals(cachedStringCharset)) {
+            return cachedString;
+        }
 
         cachedString = buffer.toStringContent(charset, start, end);
+        cachedStringCharset = charset;
+        
         return cachedString;
+    }
+
+    protected void onContentChanged() {
+        cachedString = null;
+        cachedStringCharset = null;
     }
 
     /**
@@ -159,7 +177,7 @@ public class BufferChunk {
 
             return true;
         } else {
-            return cachedString.equals(s);
+            return stringValue.equals(s);
         }
     }
 
@@ -182,7 +200,7 @@ public class BufferChunk {
             
             return true;
         } else {
-            return cachedString.equalsIgnoreCase(s);
+            return stringValue.equalsIgnoreCase(s);
         }
     }
 
@@ -208,13 +226,13 @@ public class BufferChunk {
             
             return true;
         } else {
-            if (cachedString.length() < pos + s.length()) {
+            if (stringValue.length() < pos + s.length()) {
                 return false;
             }
 
             for (int i = 0; i < s.length(); i++) {
                 if (Ascii.toLower(s.charAt(i))
-                        != Ascii.toLower(cachedString.charAt(pos + i))) {
+                        != Ascii.toLower(stringValue.charAt(pos + i))) {
                     return false;
                 }
             }
@@ -227,7 +245,7 @@ public class BufferChunk {
     }
 
     public boolean hasString() {
-        return cachedString != null;
+        return stringValue != null;
     }
     
     public boolean isNull() {
@@ -239,5 +257,7 @@ public class BufferChunk {
         end = -1;
         buffer = null;
         cachedString = null;
+        cachedStringCharset = null;
+        stringValue = null;
     }
 }

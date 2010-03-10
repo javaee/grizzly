@@ -204,7 +204,7 @@ public class HttpClientFilter extends HttpFilter {
         final HttpRequest httpRequest = (HttpRequest) httpPacket;
         output = put(memoryManager, output, httpRequest.getMethodBC());
         output = put(memoryManager, output, Constants.SP);
-        output = put(memoryManager, output, httpRequest.getRequestURIBC());
+        output = put(memoryManager, output, httpRequest.getRequestURIRef().getRequestURIBC());
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpRequest.getProtocolBC());
 

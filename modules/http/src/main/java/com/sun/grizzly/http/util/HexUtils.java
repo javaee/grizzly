@@ -74,6 +74,28 @@ public final class HexUtils {
 
 
     /**
+     *  Table "isHexDigit".
+     */
+    public static final boolean[] IS_HEX_DIGIT = {
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        true,  true,  true,  true,  true,  true,  true,  true,  true,  true,  false, false, false, false, false, false,
+        false, true,  true,  true,  true,  true,  true,  false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, true,  true,  true,  true,  true,  true,  false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false,
+    };
+
+    /**
      *  Table for HEX to DEC byte translation.
      */
     public static final int[] DEC = {
@@ -218,5 +240,11 @@ public final class HexUtils {
 
     }
 
+    public static final boolean isHexDigit(byte c) {
+        return IS_HEX_DIGIT[c];
+    }
 
+    public static final int hexDigit2Dec(byte hexDigit) {
+        return DEC[hexDigit];
+    }
 }

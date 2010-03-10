@@ -55,7 +55,7 @@ package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.core.BufferChunk;
 import java.io.Serializable;
 import java.text.FieldPosition;
 import java.text.SimpleDateFormat;

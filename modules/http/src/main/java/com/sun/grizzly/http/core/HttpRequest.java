@@ -53,7 +53,6 @@
  */
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.UDecoder;
 
 /**
@@ -94,12 +93,8 @@ public class HttpRequest extends HttpHeader {
 
     // ----------------------------------------------------- Instance Variables
     private BufferChunk methodBC = BufferChunk.newInstance();
-    private BufferChunk requestURIBC = BufferChunk.newInstance();
+    private RequestURIRef requestURIRef = new RequestURIRef();
     private BufferChunk queryBC = BufferChunk.newInstance();
-    /**
-     * URL decoder.
-     */
-    private UDecoder urlDecoder = new UDecoder();
 
     public static Builder builder() {
         return new Builder();
@@ -109,10 +104,6 @@ public class HttpRequest extends HttpHeader {
     protected HttpRequest() {
         methodBC.setString("GET");
         queryBC.setString("");
-    }
-
-    public UDecoder getURLDecoder() {
-        return urlDecoder;
     }
 
     // -------------------- Request data --------------------
@@ -128,16 +119,16 @@ public class HttpRequest extends HttpHeader {
         this.methodBC.setString(method);
     }
 
-    public BufferChunk getRequestURIBC() {
-        return requestURIBC;
+    public RequestURIRef getRequestURIRef() {
+        return requestURIRef;
     }
 
     public String getRequestURI() {
-        return requestURIBC.toString();
+        return requestURIRef.getURI();
     }
 
     public void setRequestURI(String requestURI) {
-        this.requestURIBC.setString(requestURI);
+        this.requestURIRef.setURI(requestURI);
     }
 
     public BufferChunk getQueryStringBC() {
@@ -148,18 +139,12 @@ public class HttpRequest extends HttpHeader {
         return queryBC.toString();
     }
 
-    // -------------------- debug --------------------
-    @Override
-    public String toString() {
-        return "R( " + getRequestURI() + ")";
-    }
-
     // -------------------- Recycling -------------------- 
     @Override
     public void recycle() {
         super.recycle();
 
-        requestURIBC.recycle();
+        requestURIRef.recycle();
         queryBC.recycle();
         methodBC.recycle();
 
@@ -173,6 +158,11 @@ public class HttpRequest extends HttpHeader {
     @Override
     public final boolean isRequest() {
         return true;
+    }
+
+    @Override
+    public String toString() {
+        return "HttpRequest( " + getRequestURI() + ")";
     }
 
     public static class Builder extends HttpHeader.Builder<Builder> {

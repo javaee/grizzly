@@ -48,7 +48,7 @@ import com.sun.grizzly.http.core.HttpHeader;
 import com.sun.grizzly.http.core.HttpPacket;
 import com.sun.grizzly.http.core.HttpTrailer;
 import com.sun.grizzly.http.util.Ascii;
-import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.core.BufferChunk;
 import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;

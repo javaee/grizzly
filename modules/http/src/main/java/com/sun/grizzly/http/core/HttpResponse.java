@@ -55,7 +55,6 @@
 package com.sun.grizzly.http.core;
 
 import com.sun.grizzly.http.util.MimeHeaders;
-import com.sun.grizzly.http.util.BufferChunk;
 
 
 

@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -61,7 +61,6 @@ import com.sun.grizzly.Grizzly;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
@@ -69,23 +68,23 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /** Efficient conversion of character to bytes.
- *  
+ *
  *  Now uses NIO directly
  */
 
 public class C2BConverter {
 
-    private final static Logger logger = Grizzly.logger(C2BConverter.class);
+    private static final Logger logger = Grizzly.logger(C2BConverter.class);
     protected ByteChunk bb;
     protected String enc;
     protected CharsetEncoder encoder;
-    
+
     /** Create a converter, with bytes going to a byte buffer
      */
     public C2BConverter(ByteChunk output, String encoding) throws IOException {
         this.bb=output;
         this.enc=encoding;
-        encoder = Charset.forName(enc).newEncoder().
+        encoder = Utils.lookupCharset(enc).newEncoder().
 		onMalformedInput(CodingErrorAction.REPLACE).
 		onUnmappableCharacter(CodingErrorAction.REPLACE);
     }
@@ -99,7 +98,7 @@ public class C2BConverter {
     public static C2BConverter getInstance(ByteChunk output, String encoding) throws IOException {
         return new C2BConverter(output, encoding);
     }
-    
+
     public ByteChunk getByteChunk() {
         return bb;
     }
@@ -147,9 +146,9 @@ public class C2BConverter {
     public  void convert(String s ) throws IOException {
         convert(s, 0, s.length());
     }
-    
+
     /** Generate the bytes using the specified encoding
-     */    
+     */
     public  void convert(String s, int off, int len ) throws IOException {
         convert(s.toCharArray(), off, len);
     }
@@ -172,7 +171,7 @@ public class C2BConverter {
         setByteChunk( mb.getByteChunk());
         bb.recycle();
         bb.allocate( 32, -1 );
-        
+
         if( type==MessageBytes.T_STR ) {
             convert( mb.getString() );
             // System.out.println("XXX Converting " + mb.getString() );
@@ -186,7 +185,7 @@ public class C2BConverter {
                 logger.fine("XXX unknowon type " + type );
             }
         }
-        //System.out.println("C2B: XXX " + bb.getBuffer() + bb.getLength()); 
+        //System.out.println("C2B: XXX " + bb.getBuffer() + bb.getLength());
         setByteChunk(orig);
     }
 

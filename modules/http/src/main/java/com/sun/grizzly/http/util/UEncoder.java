@@ -69,7 +69,7 @@ import java.util.logging.Logger;
  *  This class is not thread safe - you need one encoder per thread.
  *  The encoder will save and recycle the internal objects, avoiding
  *  garbage.
- * 
+ *
  *  You can add extra characters that you want preserved, for example
  *  while encoding a URL you can add "/".
  *
@@ -87,7 +87,7 @@ public final class UEncoder {
 
     private String encoding="UTF8";
     private static final int debug=0;
-    
+
     public UEncoder() {
 	initSafeChars();
     }
@@ -132,7 +132,7 @@ public final class UEncoder {
 	    } else {
 		if( debug > 0 ) log("Unsafe:  " + (char)c);
 		c2b.convert( (char)c );
-		
+
 		// "surrogate" - UTF is _not_ 16 bit, but 21 !!!!
 		// ( while UCS is 31 ). Amazing...
 		if (c >= 0xD800 && c <= 0xDBFF) {
@@ -191,7 +191,7 @@ public final class UEncoder {
     public String encodeURL(String url) {
         return encodeURL(url, false);
     }
-    
+
     /**
      * Utility funtion to re-encode the URL.
      * Still has problems with charset, since UEncoder mostly
@@ -210,15 +210,15 @@ public final class UEncoder {
 	}
 	return outUri;
     }
-    
+
 
     // -------------------- Internal implementation --------------------
-    
-    // 
+
+    //
     private void init() {
-	
+
     }
-    
+
     private void initSafeChars() {
 	safeChars=new BitSet(128);
 	int i;
@@ -246,7 +246,7 @@ public final class UEncoder {
 	safeChars.set('\'');
 	safeChars.set('(');
 	safeChars.set(')');
-	safeChars.set(',');	
+	safeChars.set(',');
     }
 
     private static void log( String s ) {

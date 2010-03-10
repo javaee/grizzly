@@ -59,12 +59,12 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/** 
+/**
  *  All URL decoding happens here. This way we can reuse, review, optimize
  *  without adding complexity to the buffers.
  *
  *  The conversion will modify the original buffer.
- * 
+ *
  *  @author Costin Manolache
  */
 public final class UDecoder {
@@ -74,19 +74,19 @@ public final class UDecoder {
      */
     private final static Logger logger = Grizzly.logger(UDecoder.class);
     
-    protected static final boolean ALLOW_ENCODED_SLASH =
+    public static final boolean ALLOW_ENCODED_SLASH =
             Boolean.valueOf(System.getProperty("com.sun.grizzly.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "false")).booleanValue();
 
     private boolean allowEncodedSlash;
-    
+
     public UDecoder(){
         this(ALLOW_ENCODED_SLASH);
     }
-    
+
     public UDecoder(boolean allowEncodedSlash){
         this.allowEncodedSlash = allowEncodedSlash;
     }
-    
+
     /** URLDecode, will modify the source.  Includes converting
      *  '+' to ' '.
      */
@@ -95,15 +95,15 @@ public final class UDecoder {
         convert(mb, true);
     }
 
-    
-    /** 
+
+    /**
      * URLDecode the {@link ByteChunk}
      */
     public void convert(ByteChunk mb, boolean query) throws IOException {
-        convert(mb,query,ALLOW_ENCODED_SLASH);
+        convert(mb,query,allowEncodedSlash);
     }
-    
-    /** 
+
+    /**
      * URLDecode the {@link ByteChunk}
      */
     public void convert(ByteChunk mb, boolean query, boolean allowEncodedSlash)
@@ -228,14 +228,14 @@ public final class UDecoder {
             throws IOException {
         convert(mb, true);
     }
-    
-    /** 
+
+    /**
      * URLDecode, will modify the source
      */
     public void convert(MessageBytes mb, boolean query) throws IOException{
         convert(mb,query,ALLOW_ENCODED_SLASH);
     }
-    
+
     /** URLDecode, will modify the source
      */
     public void convert(MessageBytes mb, boolean query, boolean allowEncodingSlash)
@@ -261,7 +261,7 @@ public final class UDecoder {
     }
 
     // XXX Old code, needs to be replaced !!!!
-    // 
+    //
     public final String convert(String str) {
         return convert(str, true);
     }
@@ -351,11 +351,11 @@ public final class UDecoder {
         return allowEncodedSlash;
     }
 
+    /**
+     * Overide the default value
+     * @param allowEncodedSlash
+     */
     public void setAllowEncodedSlash(boolean allowEncodedSlash) {
-        if (ALLOW_ENCODED_SLASH){
-            throw new IllegalStateException("Cannot change the allowedEncodedSlash. " +
-                    "Remove the -D property");
-        }
         this.allowEncodedSlash = allowEncodedSlash;
     }
 }

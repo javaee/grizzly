@@ -51,102 +51,141 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
-
-
 package com.sun.grizzly.http.util;
-
 
 import com.sun.grizzly.Grizzly;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.CoderResult;
+import java.nio.charset.CodingErrorAction;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /** Efficient conversion of bytes  to character .
- *  
- *  This uses the standard JDK mechansim - a reader - but provides mechanisms
- *  to recycle all the objects that are used. It is compatible with JDK1.1
- *  and up,
- *  ( nio is better, but it's not available even in 1.2 or 1.3 )
  *
- *  Not used in the current code, the performance gain is not very big
- *  in the current case ( since String is created anyway ), but it will
- *  be used in a later version or after the remaining optimizations.
+ * Now uses NIO directly
  */
 public class B2CConverter {
+
     /**
      * Default Logger.
      */
-    private final static Logger logger = Grizzly.logger(B2CConverter.class);
+    private static final boolean IS_OLD_IO_MODE = Boolean.getBoolean(B2CConverter.class.getName() + ".blockingMode");
 
-    private IntermediateInputStream iis;
-    private ReadConvertor conv;
-    private String encoding;
+    private static final Logger logger = Grizzly.logger(B2CConverter.class);
+    private static final int MAX_NUMBER_OF_BYTES_PER_CHARACTER = 16;
+
+    private Charset charset;
+    private CharsetDecoder decoder;
+    private final ByteBuffer remainder = ByteBuffer.allocate(MAX_NUMBER_OF_BYTES_PER_CHARACTER);
+
+    // Support old blocking converter
+    private B2CConverterBlocking blockingConverter;
 
     protected B2CConverter() {
-    }
-    
-    /** Create a converter, with bytes going to a byte buffer
-     */
-    public B2CConverter(String encoding)
-	throws IOException
-    {
-	this.encoding=encoding;
-	reset();
+        init("US_ASCII");
     }
 
-    
+    /** Create a converter, with bytes going to a byte buffer
+     */
+    public B2CConverter(String encoding) throws IOException {
+        init(encoding);
+    }
+
+    protected void init(String encoding) {
+        if (IS_OLD_IO_MODE) {
+            try {
+                blockingConverter = new B2CConverterBlocking(encoding);
+            } catch (IOException e) {
+                throw new IllegalStateException("Can not initialize blocking converter");
+            }
+        } else {
+            charset = Utils.lookupCharset(encoding);
+            decoder = charset.newDecoder().
+                    onMalformedInput(CodingErrorAction.REPLACE).
+                    onUnmappableCharacter(CodingErrorAction.REPLACE);
+        }
+    }
+
     /** Reset the internal state, empty the buffers.
      *  The encoding remain in effect, the internal buffers remain allocated.
      */
-    public  void recycle() {
-	conv.recycle();
+    public void recycle() {
+        if (IS_OLD_IO_MODE) {
+            blockingConverter.recycle();
+        }
     }
-
-    static final int BUFFER_SIZE=8192;
-    char result[]=new char[BUFFER_SIZE];
 
     /** Convert a buffer of bytes into a chars
      * @deprecated
      */
-    public  void convert( ByteChunk bb, CharChunk cb )
-	throws IOException
-    {
-	// Set the ByteChunk as input to the Intermediate reader
+    public void convert(ByteChunk bb, CharChunk cb)
+            throws IOException {
         convert(bb, cb, cb.getBuffer().length - cb.getEnd());
     }
 
-    public void convert( ByteChunk bb, CharChunk cb, int limit) 
-        throws IOException
-    {
-	iis.setByteChunk( bb );
-	try {
-	    // read from the reader
-            int bbLengthBeforeRead = 0;
-	    while( limit > 0 ) { // conv.ready() ) {
-                int size = limit < BUFFER_SIZE ? limit : BUFFER_SIZE;
-                bbLengthBeforeRead = bb.getLength();
-		int cnt=conv.read( result, 0, size );
-		if( cnt <= 0 ) {
-		    // End of stream ! - we may be in a bad state
-		    if( debug>0)
-			log( "EOF" );
-		    return;
-		}
-		if( debug > 1 )
-		    log("Converted: " + new String( result, 0, cnt ));
-		cb.append( result, 0, cnt );
-                limit = limit - (bbLengthBeforeRead - bb.getLength());
-	    }
-	} catch( IOException ex) {
-	    if( debug>0)
-		log( "Reseting the converter " + ex.toString() );
-	    reset();
-	    throw ex;
-	}
+    public void convert(ByteChunk bb, CharChunk cb, int limit)
+            throws IOException {
+        if (IS_OLD_IO_MODE) {
+            blockingConverter.convert(bb, cb, limit);
+            return;
+        }
+
+        try {
+            final int bbAvailable = bb.getEnd() - bb.getStart();
+            if (limit > bbAvailable) {
+                limit = bbAvailable;
+            }
+
+            byte[] barr = bb.getBuffer();
+            int boff = bb.getOffset();
+            ByteBuffer tmp_bb = ByteBuffer.wrap(barr, boff, limit);
+
+            char[] carr = cb.getBuffer();
+            int coff = cb.getEnd();
+            final int remain = carr.length - coff;
+            final int cbLimit = cb.getLimit();
+            if (remain < limit && (cbLimit < 0 || cbLimit > carr.length)) {
+                cb.makeSpace(limit);
+                carr = cb.getBuffer();
+                coff = cb.getEnd();
+            }
+
+            CharBuffer tmp_cb = CharBuffer.wrap(carr, coff, carr.length - coff);
+
+            if (remainder.position() > 0) {
+                flushRemainder(tmp_bb, tmp_cb);
+            }
+
+            CoderResult cr = decoder.decode(tmp_bb, tmp_cb, false);
+            cb.setEnd(tmp_cb.position());
+
+            while (cr == CoderResult.OVERFLOW) {
+                cb.flushBuffer();
+                coff = cb.getEnd();
+                carr = cb.getBuffer();
+                tmp_cb = CharBuffer.wrap(carr, coff, carr.length - coff);
+                cr = decoder.decode(tmp_bb, tmp_cb, false);
+                cb.setEnd(tmp_cb.position());
+            }
+            bb.setOffset(tmp_bb.position());
+            if (tmp_bb.hasRemaining()) {
+                remainder.put(tmp_bb);
+            }
+
+            if (cr != CoderResult.UNDERFLOW) {
+                throw new IOException("Encoding error");
+            }
+        } catch (IOException ex) {
+            if (debug > 0) {
+                log("B2CConverter " + ex.toString());
+            }
+            decoder.reset();
+            throw ex;
+        }
     }
 
     // START CR 6309511
@@ -154,11 +193,16 @@ public class B2CConverter {
      * Character conversion of a US-ASCII MessageBytes.
      */
     public static void convertASCII(MessageBytes mb) {
- 
-        // This is of course only meaningful for bytes
-        if (mb.getType() != MessageBytes.T_BYTES)
+        if (IS_OLD_IO_MODE) {
+            B2CConverterBlocking.convertASCII(mb);
             return;
-        
+        }
+
+        // This is of course only meaningful for bytes
+        if (mb.getType() != MessageBytes.T_BYTES) {
+            return;
+        }
+
         ByteChunk bc = mb.getByteChunk();
         CharChunk cc = mb.getCharChunk();
         int length = bc.getLength();
@@ -172,165 +216,47 @@ public class B2CConverter {
             cbuf[i] = (char) (bbuf[i + start] & 0xff);
         }
         mb.setChars(cbuf, 0, length);
-   
-     }
+
+    }
     // END CR 6309511
 
-    public void reset()
-	throws IOException
-    {
-	// destroy the reader/iis
-	iis=new IntermediateInputStream();
-	conv=new ReadConvertor( iis, encoding );
-    }
+    public void reset() throws IOException {
+        if (IS_OLD_IO_MODE) {
+            blockingConverter.reset();
+            return;
+        }
 
-    private final int debug=0;
-    void log( String s ) {
-        if (logger.isLoggable(Level.FINEST))
-	    logger.log(Level.FINEST,"B2CConverter: " + s );
-    }
-
-    // -------------------- Not used - the speed improvemnt is quite small
-
-    /*
-    private Hashtable decoders;
-    public static final boolean useNewString=false;
-    public static final boolean useSpecialDecoders=true;
-    private UTF8Decoder utfD;
-    // private char[] conversionBuff;
-    CharChunk conversionBuf;
-
-
-    private  static String decodeString(ByteChunk mb, String enc)
-	throws IOException
-    {
-	byte buff=mb.getBuffer();
-	int start=mb.getStart();
-	int end=mb.getEnd();
-	if( useNewString ) {
-	    if( enc==null) enc="UTF8";
-	    return new String( buff, start, end-start, enc );
-	}
-	B2CConverter b2c=null;
-	if( useSpecialDecoders &&
-	    (enc==null || "UTF8".equalsIgnoreCase(enc))) {
-	    if( utfD==null ) utfD=new UTF8Decoder();
-	    b2c=utfD;
-	}
-	if(decoders == null ) decoders=new Hashtable();
-	if( enc==null ) enc="UTF8";
-	b2c=(B2CConverter)decoders.get( enc );
-	if( b2c==null ) {
-	    if( useSpecialDecoders ) {
-		if( "UTF8".equalsIgnoreCase( enc ) ) {
-		    b2c=new UTF8Decoder();
-		}
-	    }
-	    if( b2c==null )
-		b2c=new B2CConverter( enc );
-	    decoders.put( enc, b2c );
-	}
-	if( conversionBuf==null ) conversionBuf=new CharChunk(1024);
-
-	try {
-	    conversionBuf.recycle();
-	    b2c.convert( this, conversionBuf );
-	    //System.out.println("XXX 1 " + conversionBuf );
-	    return conversionBuf.toString();
-	} catch( IOException ex ) {
-	    ex.printStackTrace();
-	    return null;
-	}
-    }
-
-    */
-}
-
-// -------------------- Private implementation --------------------
-
-
-
-/**
- * 
- */
-final class  ReadConvertor extends InputStreamReader {
-    
-    /** Create a converter.
-     */
-    public ReadConvertor( IntermediateInputStream in, String enc )
-	throws UnsupportedEncodingException
-    {
-	super( in, enc );
-    }
-    
-    /** Overriden - will do nothing but reset internal state.
-     */
-    public  final void close() throws IOException {
-	// NOTHING
-	// Calling super.close() would reset out and cb.
-    }
-    
-    public  final int read(char cbuf[], int off, int len)
-	throws IOException
-    {
-	// will do the conversion and call write on the output stream
-	return super.read( cbuf, off, len );
-    }
-    
-    /** Reset the buffer
-     */
-    public  final void recycle() {
-        try {
-            // Must clear super's buffer.
-            while (ready()) {
-                // InputStreamReader#skip(long) will allocate buffer to skip.
-                read();
-            }
-        } catch(IOException ioe){
+        if (decoder != null) {
+            decoder.reset();
+            remainder.clear();
         }
     }
-}
 
+    private final int debug = 0;
 
-/** Special output stream where close() is overriden, so super.close()
-    is never called.
-    
-    This allows recycling. It can also be disabled, so callbacks will
-    not be called if recycling the converter and if data was not flushed.
-*/
-final class IntermediateInputStream extends InputStream {
-    ByteChunk bc = null;
-    boolean initialized = false;
-    
-    public IntermediateInputStream() {
-    }
-    
-    public  final void close() throws IOException {
-	// shouldn't be called - we filter it out in writer
-	throw new IOException("close() called - shouldn't happen ");
-    }
-    
-    public  final  int read(byte cbuf[], int off, int len) throws IOException {
-        if (!initialized) return -1;
-        return bc.substract(cbuf, off, len);
-    }
-    
-    public  final int read() throws IOException {
-        if (!initialized) return -1;
-        return bc.substract();
+    void log(String s) {
+        if (logger.isLoggable(Level.FINEST)) {
+            logger.log(Level.FINEST, "B2CConverter: " + s);
+        }
     }
 
-    public int available() throws IOException {
-        if (!initialized)  return 0;
-        return bc.getLength();
+    private void flushRemainder(ByteBuffer tmp_bb, CharBuffer tmp_cb) {
+        while(remainder.position() > 0 && tmp_bb.hasRemaining()) {
+            remainder.put(tmp_bb.get());
+            remainder.flip();
+            CoderResult cr = decoder.decode(remainder, tmp_cb, false);
+            if (cr == CoderResult.OVERFLOW) {
+                // Shouldn't happen, because we allocated required output buffer before
+                throw new IllegalStateException("CharChunk is not big enough");
+            }
+
+            if (!remainder.hasRemaining()) {
+                remainder.clear();
+                break;
+            }
+
+            remainder.compact();
+        }
     }
-
-    // -------------------- Internal methods --------------------
-
-    void setByteChunk( ByteChunk mb ) {
-        initialized = (mb != null);
-        bc = mb;
-    }
-
 }
 

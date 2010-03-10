@@ -218,10 +218,10 @@ public class HttpServerFilter extends HttpFilter {
         }
 
         if (found) {
-            httpRequest.getRequestURIBC().setBuffer(input, state.start, offset);
+            httpRequest.getRequestURIRef().getRequestURIBC().setBuffer(input, state.start, offset);
             if (state.checkpoint != -1) {
                 // cut RequestURI to not include query string
-                httpRequest.getRequestURIBC().setEnd(state.checkpoint);
+                httpRequest.getRequestURIRef().getRequestURIBC().setEnd(state.checkpoint);
 
                 httpRequest.getQueryStringBC().setBuffer(input,
                         state.checkpoint + 1, offset);
