@@ -76,15 +76,15 @@ public class GrizzlyWebServerDeployer {
 
     private static Logger logger = Logger.getLogger("GrizzlyWebServerDeployerLogger");
 
-    private static final String ROOT = "/";
+    protected static final String ROOT = "/";
 
-    private static final String WEB_XML = "web.xml";
+    protected static final String WEB_XML = "web.xml";
     public static final String WEB_XML_PATH = File.separator + "WEB-INF" + File.separator + WEB_XML;
 
-    private GrizzlyWebServer ws = null;
+    protected GrizzlyWebServer ws = null;
 
-    private String webxmlPath;
-    private WarDeployer deployer = new WarDeployer();
+    protected String webxmlPath;
+    protected WarDeployer deployer = new WarDeployer();
 
     /**
      * @param args Command line parameters.
@@ -137,7 +137,7 @@ public class GrizzlyWebServerDeployer {
 
     private void deployApplication(final DeployerConfiguration conf, String location, URLClassLoader serverLibLoader, WebApp webDefault) throws Exception {
         if (location.endsWith(".war")) {// #1
-            deployWar(location, conf.forcedContext, serverLibLoader, webDefault);
+            deployWar(location, conf.forcedContext, serverLibLoader, webDefault, conf);
         } else if (location.endsWith(".xml")) {// #2
             // use the forcedContext if set
             deployServlet(location, conf.forcedContext, serverLibLoader, webDefault);
@@ -151,7 +151,7 @@ public class GrizzlyWebServerDeployer {
                 for (File file : files) {
 
                     if (file.getName().endsWith(".war")) {
-                        deployWar(file.getPath(), null, serverLibLoader, webDefault);
+                        deployWar(file.getPath(), null, serverLibLoader, webDefault, conf);
                     } else {
                         /*
                         * we could have these cases
@@ -216,7 +216,7 @@ public class GrizzlyWebServerDeployer {
      * @throws DeployException Deployment failed.
      */
     public void deployWar(
-            String location, String context, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws DeployException {
+            String location, String context, URLClassLoader serverLibLoader, WebApp defaultWebApp, final DeployerConfiguration conf) throws DeployException {
         String ctx = context;
         if (ctx == null) {
             ctx = getContext(location);
@@ -225,7 +225,7 @@ public class GrizzlyWebServerDeployer {
                 ctx = ctx.substring(0, i);
             }
         }
-        WarDeploymentConfiguration config = new WarDeploymentConfiguration(ctx, serverLibLoader, defaultWebApp);
+        WarDeploymentConfiguration config = new WarDeploymentConfiguration(ctx, serverLibLoader, defaultWebApp, conf);
         if (logger.isLoggable(Level.FINER)) {
             logger.log(Level.FINER, String.format("Configuration for deployment: %s.", config));
         }
@@ -364,7 +364,7 @@ public class GrizzlyWebServerDeployer {
     }
 
     /** TODO extract to utils */
-    static String fixPath(String path) {
+    public static String fixPath(String path) {
         return path
                 .replaceAll("[/\\\\]+", '\\' + ROOT)
                 .replaceAll("\\\\", '\\' + ROOT);

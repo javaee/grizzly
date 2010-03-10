@@ -267,16 +267,22 @@ public class ServletContextImpl implements ServletContext {
         path = normalize(path);
         if (path == null)
             return (null);
- 
+        
         File[] files =  new File(basePath, path).listFiles();
         Set<String> list = new HashSet<String>();
         if (files != null){
             for (File f : files){
                 try {
                     String canonicalPath = f.getCanonicalPath();
+                    
+                    // add a trailing "/" if a folder
+                    if(f.isDirectory()){
+                    	canonicalPath = canonicalPath + "/";
+                    }
+                    
                     canonicalPath = canonicalPath.substring(
                             canonicalPath.indexOf(basePath) + basePath.length());
-                    list.add(canonicalPath);
+                    list.add(canonicalPath.replace("\\", "/"));
                 } catch (IOException ex) {
                     throw new RuntimeException(ex);
                 }

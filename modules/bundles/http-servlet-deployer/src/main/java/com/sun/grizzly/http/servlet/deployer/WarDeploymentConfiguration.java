@@ -36,6 +36,7 @@
 package com.sun.grizzly.http.servlet.deployer;
 
 import com.sun.grizzly.http.deployer.DeploymentConfiguration;
+import com.sun.grizzly.http.servlet.deployer.conf.DeployerConfiguration;
 import com.sun.grizzly.http.webxml.schema.WebApp;
 
 import java.net.URLClassLoader;
@@ -51,6 +52,7 @@ import java.net.URLClassLoader;
  * </ul>
  *
  * @author Hubert Iwaniuk
+ * @author Sebastien Dionne
  * @since Sep 28, 2009
  */
 public class WarDeploymentConfiguration implements DeploymentConfiguration {
@@ -60,7 +62,10 @@ public class WarDeploymentConfiguration implements DeploymentConfiguration {
     public URLClassLoader serverLibLoader;
     /** Web default application, merged with all to be deployed. */
     public WebApp webDefault;
-
+    /** contains command line params **/
+    public DeployerConfiguration conf;
+    
+    
     /**
      * Constructor.
      *
@@ -69,9 +74,21 @@ public class WarDeploymentConfiguration implements DeploymentConfiguration {
      * @param webDefault      Web default application, merged with one to be deployed.
      */
     public WarDeploymentConfiguration(String ctx, URLClassLoader serverLibLoader, WebApp webDefault) {
+        this(ctx, serverLibLoader, webDefault, null);
+    }
+    /**
+     * Constructor.
+     *
+     * @param ctx             Context to deploy to.
+     * @param serverLibLoader Server Libraries {@link ClassLoader}.
+     * @param webDefault      Web default application, merged with one to be deployed.
+     * @param conf			  Command line params
+     */
+    public WarDeploymentConfiguration(String ctx, URLClassLoader serverLibLoader, WebApp webDefault, DeployerConfiguration conf) {
         this.serverLibLoader = serverLibLoader;
         this.webDefault = webDefault;
         this.ctx = ctx;
+        this.conf = conf;
     }
 
     /** {@inheritDoc} */

@@ -69,6 +69,7 @@ public abstract class Deployer<V extends Deployable, T extends DeploymentConfigu
             }
             gws.addGrizzlyAdapter(adapter, mappings.toArray(new String[mappings.size()]));
         }
+        
         final DeploymentID deploymentId = new DeploymentID(toDeploy.hashCode());
         deployed.put(deploymentId, map.keySet());
         return deploymentId;

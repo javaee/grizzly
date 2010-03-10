@@ -35,32 +35,45 @@
  */
 package com.sun.grizzly.http.servlet.deployer;
 
-import com.sun.grizzly.http.deployer.DeployException;
-import com.sun.grizzly.http.deployer.FromURIDeployer;
-import com.sun.grizzly.http.servlet.ServletAdapter;
-import com.sun.grizzly.http.servlet.deployer.annotation.AnnotationParser;
-import com.sun.grizzly.http.webxml.WebappLoader;
-import com.sun.grizzly.http.webxml.schema.*;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
-import com.sun.grizzly.util.ClassLoaderUtil;
-import com.sun.grizzly.util.ExpandJar;
-import com.sun.grizzly.util.FileUtil;
-
-import javax.servlet.Filter;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLClassLoader;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.servlet.Filter;
+
+import com.sun.grizzly.http.deployer.DeployException;
+import com.sun.grizzly.http.deployer.FromURIDeployer;
+import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.http.servlet.deployer.annotation.AnnotationParser;
+import com.sun.grizzly.http.webxml.WebappLoader;
+import com.sun.grizzly.http.webxml.schema.ContextParam;
+import com.sun.grizzly.http.webxml.schema.FilterMapping;
+import com.sun.grizzly.http.webxml.schema.InitParam;
+import com.sun.grizzly.http.webxml.schema.Listener;
+import com.sun.grizzly.http.webxml.schema.WebApp;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import com.sun.grizzly.util.ClassLoaderUtil;
+import com.sun.grizzly.util.ExpandJar;
+import com.sun.grizzly.util.FileUtil;
 
 /**
  * {@link FromURIDeployer} for War files.
  *
  * @author Hubert Iwaniuk
+ * @author Sebastien Dionne
  * @since Sep 28, 2009
  */
 public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentConfiguration> {
@@ -92,7 +105,7 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
         ClassLoader prevCL = Thread.currentThread().getContextClassLoader();
         Thread.currentThread().setContextClassLoader(loader);
         try {
-            return createDeployments(root, webApp, configuration.ctx, loader);
+            return createDeployments(root, webApp, configuration.ctx, loader, configuration);
         } finally {
             Thread.currentThread().setContextClassLoader(prevCL);
         }
@@ -149,15 +162,16 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
         return result;
     }
 
-    private Map<GrizzlyAdapter, Set<String>> createDeployments(String root, WebApp webApp, String context, ClassLoader webAppCL) {
+    private Map<GrizzlyAdapter, Set<String>> createDeployments(String root, WebApp webApp, String context, ClassLoader webAppCL, final WarDeploymentConfiguration configuration) {
         boolean blankContextServletPathFound = false;
         boolean defaultContextServletPathFound = false;
 
         List<String> aliasesUsed = new ArrayList<String>();
         Map<GrizzlyAdapter, Set<String>> result = new HashMap<GrizzlyAdapter, Set<String>>();
-
+        
+        WebAppAdapter webAppAdapter = getWebAppAdapter(webAppCL);
         for (Map.Entry<ServletAdapter, List<String>> adapterAliases :
-                WebAppAdapter.getServletAdaptersToAlises(webApp, context).entrySet()) {
+        	webAppAdapter.getServletAdaptersToAlises(webApp, context).entrySet()) {
 
             ServletAdapter sa = adapterAliases.getKey();
             sa.setClassLoader(webAppCL);
@@ -192,7 +206,8 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
                 sa.addServletListener(element.listenerClass);
             }
 
-            //set root Folder
+            //set root Folder // and remove all
+            sa.getRootFolders().clear();
             sa.addRootFolder(root);
 
             // create the alias array from the list of urlPattern
@@ -221,6 +236,9 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
             if (EMPTY_SERVLET_PATH.equals(sa.getServletPath())) {
                 blankContextServletPathFound = true;
             }
+            
+            // extra config if needed
+            setExtraConfig(sa, configuration);
         }
 
         // we need one servlet that will handle "/"
@@ -245,6 +263,7 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
         sa.setContextPath(context);
         sa.setServletPath(tmpPath);
         sa.setHandleStaticResources(true);
+        sa.getRootFolders().clear();
         sa.addRootFolder(rootFolder);
 
         result.put(sa, Collections.singleton(context + ROOT));
@@ -319,6 +338,24 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
     			logger.info("cleanup failed");
     		}
     	}
+    	
+    }
+    
+    /**
+     * returns a WebAppAdapter.  Allow this class to be extends.
+     * @param webAppCL the ClassLoader
+     * @return a WebAppAdapter
+     */
+    protected WebAppAdapter getWebAppAdapter(ClassLoader webAppCL){
+    	return new WebAppAdapter();
+    }
+    
+    /**
+     * Should be used to set configuration that are not in web.xml
+     * @param sa ServletAdapter 
+     * @param configuration configuration
+     */
+    protected void setExtraConfig(ServletAdapter sa, final WarDeploymentConfiguration configuration){
     	
     }
 }

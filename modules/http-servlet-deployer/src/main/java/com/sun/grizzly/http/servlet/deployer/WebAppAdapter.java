@@ -67,6 +67,13 @@ public class WebAppAdapter extends ServletAdapter {
     private ClassLoader webAppCL;
     private String root;
     private String context;
+    
+    /**
+     * Blank constructor
+     */
+    public WebAppAdapter(){
+    	
+    }
 
     /**
      * Default constructor, takes care of setting up adapter.
@@ -117,7 +124,7 @@ public class WebAppAdapter extends ServletAdapter {
             setListeners(webApp, sa);
 
             //set root Folder
-            sa.setRootFolder(root);
+            sa.addRootFolder(root);
 
             // create the alias array from the list of urlPattern
             String alias[] = getAlias(sa, adapterAliases.getValue());
@@ -171,7 +178,7 @@ public class WebAppAdapter extends ServletAdapter {
         sa.setContextPath(context);
         sa.setServletPath(tmpPath);
         sa.setHandleStaticResources(true);
-        sa.setRootFolder(rootFolder);
+        sa.addRootFolder(rootFolder);
 
         logServletAdapterConfiguration(context, sa);
 
@@ -199,7 +206,7 @@ public class WebAppAdapter extends ServletAdapter {
      * @param context context of the application
      * @return a list of ServletAdapter with the UrlPattern for each Servlet.
      */
-    public static Map<ServletAdapter, List<String>> getServletAdaptersToAlises(WebApp webApp, String context) {
+    public Map<ServletAdapter, List<String>> getServletAdaptersToAlises(WebApp webApp, String context) {
 
         Map<ServletAdapter, List<String>> servletAdapterMap;
 
@@ -331,7 +338,7 @@ public class WebAppAdapter extends ServletAdapter {
         return result;
     }
 
-    static ServletAdapter createServletAdapter(
+    protected ServletAdapter createServletAdapter(
             final String context, final String servletUrlPattern) {
         ServletAdapter sa = new ServletAdapter();
         sa.setContextPath(context);
@@ -466,7 +473,7 @@ public class WebAppAdapter extends ServletAdapter {
         logger.log(Level.FINEST, "sa context=" + sa.getContextPath());
         logger.log(Level.FINEST, "sa servletPath=" + sa.getServletPath());
         logger.log(Level.FINEST, "sa alias=" + alias);
-        logger.log(Level.FINEST, "sa rootFolder=" + sa.getRootFolder());
+        logger.log(Level.FINEST, "sa rootFolders=" + sa.getRootFolders());
     }
 
     public Map<GrizzlyAdapter, Set<String>> getToRegister() {
