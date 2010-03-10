@@ -60,6 +60,9 @@ import java.io.IOException;
  * @author oleksiys
  */
 public abstract class HttpFilter extends BaseFilter {
+    public static final String HTTP_1_0 = "HTTP/1.0";
+    public static final String HTTP_1_1 = "HTTP/1.1";
+
     public static final int DEFAULT_MAX_HEADERS_SIZE = 8192;
 
     private static final int MAX_CHUNK_SIZE_LENGTH = 16;
@@ -390,7 +393,7 @@ public abstract class HttpFilter extends BaseFilter {
         
         Buffer httpChunkBuffer = memoryManager.allocate(16);
         final int chunkSize = content.remaining();
-
+        
         Ascii.intToHexString(httpChunkBuffer, chunkSize);
         httpChunkBuffer = put(memoryManager, httpChunkBuffer,
                 Constants.CRLF_BYTES);
@@ -402,11 +405,13 @@ public abstract class HttpFilter extends BaseFilter {
         
         Buffer httpChunkTrailer = memoryManager.allocate(256);
 
-        httpChunkTrailer = put(memoryManager, httpChunkTrailer,
-                Constants.CRLF_BYTES);
-
-        if (isLastChunk) {
+        if (!isLastChunk) {
+            httpChunkTrailer = put(memoryManager, httpChunkTrailer,
+                    Constants.CRLF_BYTES);
+        } else {
             if (chunkSize > 0) {
+                httpChunkTrailer = put(memoryManager, httpChunkTrailer,
+                        Constants.CRLF_BYTES);
                 httpChunkTrailer = put(memoryManager, httpChunkTrailer,
                         Constants.LAST_CHUNK_CRLF_BYTES);
             }

@@ -136,6 +136,7 @@ public abstract class HttpHeader implements HttpPacket {
         return HttpTrailer.builder(this);
     }
 
+    @Override
     public void recycle() {
         protocolBC.recycle();
         headers.clear();

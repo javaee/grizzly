@@ -361,6 +361,11 @@ public final class Ascii {
      * Convert the integer to an unsigned number.
      */
     public static void intToUnsignedString(Buffer buffer, int value, int shift) {
+        if (value == 0) {
+            buffer.put((byte) '0');
+            return;
+        }
+
         int currentShift = 32 - shift;
 
         int radix = 1 << shift;
