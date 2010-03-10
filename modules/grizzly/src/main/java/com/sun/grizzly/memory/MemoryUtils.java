@@ -42,6 +42,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.TransportFactory;
 
 /**
  * Class has useful methods to simplify the work with {@link Buffer}s.
@@ -143,6 +144,10 @@ public class MemoryUtils {
      */
     public static <E extends Buffer> E wrap(MemoryManager<E> memoryManager,
             byte[] array, int offset, int length) {
+        if (memoryManager == null) {
+            memoryManager = TransportFactory.getInstance().getDefaultMemoryManager();
+        }
+        
         if (memoryManager instanceof WrapperAware) {
             return ((WrapperAware<E>) memoryManager).wrap(array, offset, length);
         }
