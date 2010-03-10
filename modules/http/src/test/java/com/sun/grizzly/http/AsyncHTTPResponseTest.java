@@ -80,16 +80,16 @@ public class AsyncHTTPResponseTest extends TestCase {
                     new BigResponseAdapter(responseLength/1024, responseLength));
             selectorThread.listen();
 
+            long start = System.currentTimeMillis();
             HttpURLConnection connection = (HttpURLConnection)
                     new URL("http://localhost:" + PORT).openConnection();
 
             int code = connection.getResponseCode();
             assertEquals(code, 200);
 
-            System.out.println("Sleeping 2secs...");
-            Thread.sleep(2000);
-
             int length = connection.getContentLength();
+            long time = System.currentTimeMillis() - start;
+            System.out.println("Took " + time + "ms to complete.");
             assertEquals(length, responseLength);
 
             byte[] content = new byte[length];
@@ -137,16 +137,16 @@ public class AsyncHTTPResponseTest extends TestCase {
             };
             HttpsURLConnection.setDefaultHostnameVerifier(hv);
 
+            long start = System.currentTimeMillis();
             HttpsURLConnection connection = (HttpsURLConnection)
                     new URL("https://localhost:" + PORT).openConnection();
 
             int code = connection.getResponseCode();
             assertEquals(code, 200);
 
-            System.out.println("Sleeping 5secs...");
-            Thread.sleep(5000);
-            
             int length = connection.getContentLength();
+            long time = System.currentTimeMillis() - start;
+            System.out.println("Took " + time + "ms to complete.");
             assertEquals(length, responseLength);
 
             byte[] content = new byte[length];
