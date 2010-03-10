@@ -110,21 +110,27 @@ public class ClassLoaderUtil {
         if (dirPath != null && 
                 (dirPath.endsWith(".war") || dirPath.endsWith(".jar"))) {
             file = new File(dirPath);
-            appRoot = new URL("jar:file:" +
+            appRoot = new URL("jar:file:" + separator +
                     file.getCanonicalPath().replace('\\','/') + "!/");
-            classesURL = new URL("jar:file:" +
+            classesURL = new URL("jar:file:" + separator +
                     file.getCanonicalPath().replace('\\','/') + "!/WEB-INF/classes/");
+                    
             path = ExpandJar.expand(appRoot);
+            
+            //DEBUG
+            //classesURL = new URL("file:/" + path + "WEB-INF/classes/");
+            //appRoot = new URL("file:/" + path);
+            
         } else {
             path = dirPath;
             classesURL = new URL("file://" + path + "WEB-INF/classes/");
             appRoot = new URL("file://" + path);
         }
-
+				
         String absolutePath =  new File(path).getAbsolutePath();
         URL[] urls;
         File libFiles = new File(absolutePath + File.separator + "WEB-INF"+ File.separator + "lib");
-        int arraySize = 2;
+        int arraySize = 4;
 
         if (libFiles.exists() && libFiles.isDirectory()){
             urls = new URL[libFiles.listFiles().length + arraySize];
@@ -137,6 +143,9 @@ public class ClassLoaderUtil {
          
         urls[urls.length -1] = classesURL;
         urls[urls.length -2] = appRoot;
+        urls[urls.length -3] = new URL("file://" + path + "/WEB-INF/classes/");
+        urls[urls.length -4] = new URL("file://" + path);
+        
         return new URLClassLoader(urls, Thread.currentThread().getContextClassLoader());
     }
 
