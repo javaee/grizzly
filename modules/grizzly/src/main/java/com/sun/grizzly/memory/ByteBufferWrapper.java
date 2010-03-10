@@ -55,7 +55,7 @@ import com.sun.grizzly.Buffer;
  * @author Alexey Stashok
  */
 public class ByteBufferWrapper implements Buffer {
-    public static boolean DEBUG_MODE = true;
+    public static boolean DEBUG_MODE = false;
 
     protected final ByteBufferManager memoryManager;
     
