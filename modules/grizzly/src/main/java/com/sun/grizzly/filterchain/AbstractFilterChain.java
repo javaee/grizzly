@@ -40,7 +40,6 @@ package com.sun.grizzly.filterchain;
 
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.utils.IOEventMask;
-import com.sun.grizzly.utils.ArrayIOEventMask;
 
 /**
  * Abstract {@link FilterChain} implementation,
@@ -79,5 +78,10 @@ public abstract class AbstractFilterChain implements FilterChain {
         final FilterChainContext context = FilterChainContext.create();
         context.setProcessor(this);
         return context;
+    }
+
+    @Override
+    protected void finalize() throws Throwable {
+        clear();
     }
 }

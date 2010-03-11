@@ -44,6 +44,7 @@ import java.io.IOException;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.impl.FutureImpl;
+import java.lang.ref.WeakReference;
 
 /**
  * Provides empty implementation for {@link Filter} processing methods.
@@ -55,12 +56,12 @@ import com.sun.grizzly.impl.FutureImpl;
 public class BaseFilter implements Filter {
 
     private volatile int index;
-    private volatile FilterChain filterChain;
+    private volatile WeakReference<FilterChain> filterChain;
 
     @Override
     public void onAdded(FilterChain filterChain) {
         index = filterChain.indexOf(this);
-        this.filterChain = filterChain;
+        this.filterChain = new WeakReference<FilterChain>(filterChain);
     }
 
     @Override
@@ -179,7 +180,8 @@ public class BaseFilter implements Filter {
      *         executing this {@link Filter}
      */
     public FilterChain getFilterChain() {
-        return filterChain;
+        final WeakReference<FilterChain> localRef = filterChain;
+        return localRef != null ? localRef.get() : null;
     }
 
     /**
@@ -194,7 +196,7 @@ public class BaseFilter implements Filter {
             CompletionHandler completionHandler) {
         
         final FilterChainContext ctx = (FilterChainContext) Context.create(
-                filterChain, connection, ioEvent, future, completionHandler);
+                getFilterChain(), connection, ioEvent, future, completionHandler);
         ctx.setFilterIdx(index);
         ctx.setStartIdx(index);
 

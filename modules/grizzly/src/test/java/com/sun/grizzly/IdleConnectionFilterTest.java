@@ -68,7 +68,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(idleTimeoutFilter);
         filterChainBuilder.add(new BaseFilter() {
-                private Connection acceptedConnection;
+                private volatile Connection acceptedConnection;
                 @Override
                 public NextAction handleAccept(FilterChainContext ctx)
                         throws IOException {
@@ -124,7 +124,7 @@ public class IdleConnectionFilterTest extends GrizzlyTestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(idleTimeoutFilter);
         filterChainBuilder.add(new BaseFilter() {
-            private Connection connectedConnection;
+            private volatile Connection connectedConnection;
 
             @Override
             public NextAction handleConnect(FilterChainContext ctx)

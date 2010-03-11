@@ -52,6 +52,7 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import java.util.Queue;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.logging.Logger;
 
 /**
@@ -69,16 +70,25 @@ public class IdleTimeoutFilter extends BaseFilter {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             IDLE_ATTRIBUTE_NAME, UNLIMITED_TIMEOUT);
     
-    private boolean isHandleAccepted;
-    private boolean isHandleConnected;
+    private volatile boolean isHandleAccepted;
+    private volatile boolean isHandleConnected;
     private volatile ScheduledFuture scheduledFuture;
-    private long timeoutMillis;
-    private ScheduledExecutorService scheduledThreadPool;
+    private final long timeoutMillis;
+    private final ScheduledExecutorService scheduledThreadPool;
     private final Queue<Connection> connections;
     private volatile TimeoutChecker checker;
 
     public IdleTimeoutFilter(long timeout, TimeUnit timeunit) {
-        this(timeout, timeunit, Executors.newScheduledThreadPool(1));
+        this(timeout, timeunit, Executors.newScheduledThreadPool(1,
+                new ThreadFactory() {
+
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread newThread = new Thread(r);
+                newThread.setDaemon(true);
+                return newThread;
+            }
+        }));
     }
 
     public IdleTimeoutFilter(long timeout, TimeUnit timeunit,
@@ -87,28 +97,15 @@ public class IdleTimeoutFilter extends BaseFilter {
         this.scheduledThreadPool = scheduledThreadPool;
         connections = new LinkedTransferQueue<Connection>();
         isHandleAccepted = true;
-        isHandleConnected = false;
+        isHandleConnected = true;
     }
 
     public ScheduledExecutorService getScheduledThreadPool() {
         return scheduledThreadPool;
     }
 
-    public void setScheduledThreadPool(
-            ScheduledExecutorService scheduledThreadPool) {
-        this.scheduledThreadPool = scheduledThreadPool;
-    }
-
     public long getTimeout(TimeUnit timeunit) {
         return timeunit.convert(timeoutMillis, TimeUnit.MILLISECONDS);
-    }
-
-    public void setTimeout(long timeout, TimeUnit timeunit) {
-        timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, timeunit);
-        if (scheduledFuture == null) {
-            scheduledFuture.cancel(false);
-            registerChecker();
-        }
     }
 
     public boolean isHandleAccepted() {
