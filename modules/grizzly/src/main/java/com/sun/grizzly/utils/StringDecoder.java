@@ -125,7 +125,8 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
         Integer stringSize = lengthAttribute.get(storage);
 
         if (logger.isLoggable(Level.FINE)) {
-            logger.log(Level.FINE, "StringDecoder decode stringSize=" + stringSize + " buffer=" + input + " content=" + input.toStringContent());
+            logger.log(Level.FINE, "StringDecoder decode stringSize=" + stringSize +
+                    " buffer=" + input + " content=" + input.toStringContent());
         }
 
         if (stringSize == null) {
@@ -190,6 +191,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
                 offset = 0;
             }
 
+            lengthAttribute.set(storage, offset);            
             return TransformationResult.<Buffer, String>createIncompletedResult(
                     input);
         }
