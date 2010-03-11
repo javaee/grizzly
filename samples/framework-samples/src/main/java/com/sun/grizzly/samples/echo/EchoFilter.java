@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.samples.echo;
 
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.filterchain.BaseFilter;
 import java.io.IOException;
 import com.sun.grizzly.filterchain.FilterChain;
