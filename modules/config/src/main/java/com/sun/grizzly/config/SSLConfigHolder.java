@@ -24,17 +24,19 @@
 package com.sun.grizzly.config;
 
 import com.sun.grizzly.SSLConfig;
+import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.Ssl;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.net.SSLImplementation;
+import com.sun.grizzly.util.net.ServerSocketFactory;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import com.sun.grizzly.util.net.ServerSocketFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
 
 /**
  *
@@ -252,8 +254,8 @@ public class SSLConfigHolder {
                 tmpSSLArtifactsList.add("SSLv2Hello");
             }
             if (tmpSSLArtifactsList.isEmpty()) {
-                logger.log(Level.CONFIG, "pewebcontainer.all_ssl_protocols_disabled",
-                    ((Protocol) ssl.getParent()).getName());
+                logEmptyWarning(ssl, "WEB0307: All SSL protocol variants disabled for network-listener {0}," +
+                        " using SSL implementation specific defaults");
             } else {
                 final String[] protocols = new String[tmpSSLArtifactsList.size()];
                 tmpSSLArtifactsList.toArray(protocols);
@@ -309,8 +311,8 @@ public class SSLConfigHolder {
                 }
             }
             if (tmpSSLArtifactsList.isEmpty()) {
-                logger.log(Level.WARNING, "pewebcontainer.all_ssl_ciphers_disabled",
-                    ((Protocol) ssl.getParent()).getName());
+                logEmptyWarning(ssl, "WEB0308: All SSL cipher suites disabled for network-listener(s) {0}." +
+                        "  Using SSL implementation specific defaults");
             } else {
                 final String[] enabledCiphers = new String[tmpSSLArtifactsList.size()];
                 tmpSSLArtifactsList.toArray(enabledCiphers);
@@ -325,6 +327,17 @@ public class SSLConfigHolder {
             logger.log(Level.WARNING, "SSL support could not be configured!", e);
         }
         return false;
+    }
+
+    private static void logEmptyWarning(Ssl ssl, final String msg) {
+        final StringBuilder name = new StringBuilder();
+        for (NetworkListener listener : ((Protocol) ssl.getParent()).findNetworkListeners()) {
+            if(name.length() != 0) {
+                name.append(", ");
+            }
+            name.append(listener.getName());
+        }
+        logger.log(Level.FINE, msg, name.toString());
     }
 
     /**
