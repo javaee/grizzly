@@ -91,7 +91,7 @@ public final class ThreadCache {
         } else {
             final ObjectCache genericCache = genericCacheAttr.get();
             if (genericCache != null) {
-                genericCache.get(index);
+                return genericCache.get(index);
             }
 
             return null;
