@@ -39,7 +39,6 @@
 package com.sun.grizzly;
 
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledExecutorService;
 import com.sun.grizzly.nio.DefaultNIOTransportFactory;
 import com.sun.grizzly.nio.transport.UDPNIOTransport;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
@@ -215,6 +214,7 @@ public abstract class TransportFactory {
     protected <T extends Transport> T setupTransport(T transport) {
         transport.setAttributeBuilder(defaultAttributeBuilder);
         transport.setMemoryManager(defaultMemoryManager);
+        transport.setThreadPool(defaultWorkerThreadPool);
         return transport;
     }
 }

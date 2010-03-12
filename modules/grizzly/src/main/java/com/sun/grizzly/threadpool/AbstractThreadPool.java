@@ -61,13 +61,22 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
     private static final Logger logger = Grizzly.logger(AbstractThreadPool.class);
     // Min number of worker threads in a pool
-    public static int DEFAULT_MIN_THREAD_COUNT = 5;
+    public static final int DEFAULT_MIN_THREAD_COUNT;
     // Max number of worker threads in a pool
-    public static int DEFAULT_MAX_THREAD_COUNT = 5;
+    public static final int DEFAULT_MAX_THREAD_COUNT;
+
+    static {
+        int processorsBasedThreadCount =
+                Runtime.getRuntime().availableProcessors() * 2;
+        int defaultThreadsCount = processorsBasedThreadCount > 5 ? processorsBasedThreadCount : 5;
+        DEFAULT_MIN_THREAD_COUNT = defaultThreadsCount;
+        DEFAULT_MAX_THREAD_COUNT = defaultThreadsCount;
+    }
+    
     // Max number of tasks thread pool can enqueue
-    public static int DEFAULT_MAX_TASKS_QUEUED = -1;
+    public static final int DEFAULT_MAX_TASKS_QUEUED = -1;
     // Timeout, after which idle thread will be stopped and excluded from pool
-    public static int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
+    public static final int DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 30000;
     
     protected static final Runnable poison = new Runnable() {
 
