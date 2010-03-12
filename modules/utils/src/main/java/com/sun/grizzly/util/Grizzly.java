@@ -39,6 +39,7 @@
 package com.sun.grizzly.util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -65,11 +66,20 @@ public class Grizzly {
 
     /** Reads version from properties and parses it. */
     static {
+        InputStream is = null;
         Properties prop = new Properties();
         try {
-            prop.load(Grizzly.class.getResourceAsStream("version.properties"));
+            is = Grizzly.class.getResourceAsStream("version.properties");
+            prop.load(is);
         } catch (IOException e) {
             e.printStackTrace();
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                }
+            }
         }
         version = prop.getProperty("grizzly.version");
         populate();
