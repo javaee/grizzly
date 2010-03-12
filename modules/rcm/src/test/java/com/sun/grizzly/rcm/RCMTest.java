@@ -74,7 +74,7 @@ public class RCMTest extends TestCase {
         final ResourceAllocationFilter parser = new ResourceAllocationFilter();
 
         // Create a FilterChain using FilterChainBuilder
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(parser);
         filterChainBuilder.add(new BaseFilter() {
