@@ -267,15 +267,30 @@ public class SSLConfigHolder {
                     sslConfigHolder.setNeedClientAuth(true);
                 }
             }
-            if (ssl.getClassname() != null) {
-                SSLImplementation impl = (SSLImplementation) ClassLoaderUtil.load(ssl.getClassname());
-                if (impl != null) {
-                    sslConfigHolder.setSSLImplementation(impl);
+            
+            try {
+                final String sslImplClassName = ssl.getClassname();
+                if (sslImplClassName != null) {
+                    SSLImplementation impl =
+                            (SSLImplementation) ClassLoaderUtil.load(sslImplClassName);
+                    if (impl != null) {
+                        sslConfigHolder.setSSLImplementation(impl);
+                    } else {
+                        logger.log(Level.WARNING,
+                                "Unable to load SSLImplementation: " +
+                                sslImplClassName);
+                        sslConfigHolder.setSSLImplementation(
+                                SSLImplementation.getInstance());
+                    }
                 } else {
-                    logger.log(Level.WARNING, "Unable to load SSLImplementation");
-
+                    sslConfigHolder.setSSLImplementation(
+                            SSLImplementation.getInstance());
                 }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "SSL support could not be configured!", e);
+                return false;
             }
+            
             tmpSSLArtifactsList.clear();
             // ssl3-tls-ciphers
             final String ssl3Ciphers = ssl.getSsl3TlsCiphers();
@@ -321,7 +336,8 @@ public class SSLConfigHolder {
      */
     private static void initializeSSL(final Ssl ssl,
             final SSLConfigHolder sslConfigHolder) throws Exception {
-        final SSLImplementation sslHelper = SSLImplementation.getInstance();
+        SSLImplementation sslHelper = sslConfigHolder.getSSLImplementation();
+
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
 
         if (ssl != null) {
@@ -345,7 +361,6 @@ public class SSLConfigHolder {
         // cert nick name
         serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
         serverSF.init();
-        sslConfigHolder.setSSLImplementation(sslHelper);
         sslConfigHolder.setSSLContext(serverSF.getSSLContext());
     }
 
