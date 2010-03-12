@@ -44,26 +44,42 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import com.sun.grizzly.utils.IdleTimeoutFilter;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 
 /**
- *
- * @author oleksiys
+ * Simple HTTP (Web) server, which listens on a specific TCP port and shares
+ * static resources (files), located in a passed folder.
+ * 
+ * @author Alexey Stashok
  */
 public class Server {
     private static final Logger logger = Grizzly.logger(Server.class);
 
+    // TCP Host
     public static final String HOST = "localhost";
+    // TCP port
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
+        // Construct filter chain
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
+        // Add transport filter
         serverFilterChainBuilder.add(new TransportFilter());
+        // Add IdleTimeoutFilter, which will close connetions, which stay
+        // idle longer than 10 seconds.
+        serverFilterChainBuilder.add(new IdleTimeoutFilter(10, TimeUnit.SECONDS));
+        // Add HttpServerFilter, which transforms Buffer <-> HttpContent
         serverFilterChainBuilder.add(new HttpServerFilter());
+        // Simple server implementation, which locates a resource in a local file system
+        // and transfers it via HTTP
         serverFilterChainBuilder.add(new WebServerFilter("/Users/oleksiys"));
 
+        // Initialize Transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        // Set filterchain as a Transport Processor
         transport.setProcessor(serverFilterChainBuilder.build());
 
         try {
