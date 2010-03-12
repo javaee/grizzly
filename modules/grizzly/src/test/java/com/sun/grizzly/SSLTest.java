@@ -156,7 +156,7 @@ public class SSLTest extends GrizzlyTestCase {
         final SSLPingPongFilter pingPongFilter = new SSLPingPongFilter(
                 sslFilter, pingPongTurnArounds);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(sslFilter);
         filterChainBuilder.add(new StringFilter());
@@ -220,7 +220,7 @@ public class SSLTest extends GrizzlyTestCase {
             fail("Failed to validate SSLContextConfiguration.");
         }
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
                 clientSSLEngineConfigurator));

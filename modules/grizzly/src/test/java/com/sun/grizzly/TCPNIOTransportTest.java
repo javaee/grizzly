@@ -231,7 +231,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         StreamReader reader = null;
         StreamWriter writer = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
 
@@ -280,7 +280,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         StreamReader reader = null;
         StreamWriter writer = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
         
@@ -331,7 +331,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         StreamReader reader = null;
         StreamWriter writer = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter());
         
@@ -383,7 +383,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
         StreamReader reader = null;
         StreamWriter writer = null;
         
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter() {
 
@@ -495,7 +495,7 @@ public class TCPNIOTransportTest extends GrizzlyTestCase {
 
         CheckSizeFilter checkSizeFilter = new CheckSizeFilter(fullMessageSize);
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(checkSizeFilter);
         filterChainBuilder.add(new EchoFilter());

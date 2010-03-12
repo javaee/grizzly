@@ -184,7 +184,7 @@ public class HttpRequestParseTest extends TestCase {
         StreamReader reader = null;
         StreamWriter writer = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(2));
         filterChainBuilder.add(new HttpServerFilter());

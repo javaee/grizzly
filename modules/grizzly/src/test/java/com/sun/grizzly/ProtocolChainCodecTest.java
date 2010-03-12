@@ -137,7 +137,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
         final String clientMessage = "Hello server! It's a client";
         final String serverMessage = "Hello client! It's a server";
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         for (Filter filter : filters) {
             filterChainBuilder.add(filter);
@@ -173,7 +173,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             assertTrue(connection != null);
 
             FilterChainBuilder clientFilterChainBuilder =
-                    FilterChainBuilder.singleton();
+                    FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();

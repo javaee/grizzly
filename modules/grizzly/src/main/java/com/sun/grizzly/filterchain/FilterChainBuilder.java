@@ -54,10 +54,14 @@ public abstract class FilterChainBuilder {
         patternFilterChain = new DefaultFilterChain();
     }
 
-    public static final FilterChainBuilder singleton() {
-        return new SingletonFilterChainBuilder();
+    public static final FilterChainBuilder stateless() {
+        return new StatelessFilterChainBuilder();
     }
     
+    public static final FilterChainBuilder stateful() {
+        throw new UnsupportedOperationException("Not implemented yet");
+    }
+
     public abstract FilterChain build();
 
 
@@ -114,7 +118,7 @@ public abstract class FilterChainBuilder {
         return this;
     }
 
-    public static class SingletonFilterChainBuilder extends FilterChainBuilder {
+    public static class StatelessFilterChainBuilder extends FilterChainBuilder {
         @Override
         public FilterChain build() {
             return patternFilterChain;

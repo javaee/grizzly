@@ -107,7 +107,7 @@ public class ContentTest extends TestCase {
 
         Connection connection = null;
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(2));
         filterChainBuilder.add(new HttpServerFilter());
@@ -125,7 +125,7 @@ public class ContentTest extends TestCase {
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.singleton();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(2));
             clientFilterChainBuilder.add(new HttpClientFilter());

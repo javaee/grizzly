@@ -38,9 +38,6 @@
 
 package com.sun.grizzly.nio.transport;
 
-import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.ReadResult;
-import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.nio.SelectorRunner;

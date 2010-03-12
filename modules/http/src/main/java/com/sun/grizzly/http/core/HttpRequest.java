@@ -162,9 +162,16 @@ public class HttpRequest extends HttpHeader {
 
     @Override
     public String toString() {
-        return "HttpRequest( " + getRequestURI() + ")";
-    }
+        final StringBuilder sb = new StringBuilder(256);
+        sb.append("HttpRequest (method=").append(getMethod())
+                .append(" url=").append(getRequestURI())
+                .append(" protocol=").append(getProtocol())
+                .append(" content-length=").append(getContentLength())
+                .append(" headers=").append(getHeaders())
+                .append(')');
 
+        return sb.toString();
+    }
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
             packet = new HttpRequest();

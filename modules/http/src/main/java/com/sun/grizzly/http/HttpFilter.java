@@ -86,7 +86,9 @@ public abstract class HttpFilter extends BaseFilter {
         
         Buffer input = (Buffer) ctx.getMessage();
 
-        if (!httpPacket.isHeaderParsed()) {
+        final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
+
+        if (!wasHeaderParsed) {
             if (!decodeHttpPacket(httpPacket, input)) {
                 return ctx.getStopAction(input);
             } else {
@@ -110,6 +112,7 @@ public abstract class HttpFilter extends BaseFilter {
                 // if it's chunked HTTP message
                 final boolean isLastChunk = contentParsingState.isLastChunk;
                 if (!isLastChunk && contentParsingState.chunkRemainder == 0) {
+                    // We expect next chunk header
                     if (!parseHttpChunkLength(httpPacket, input)) {
                         // if we don't have enough data to parse chunk length - stop execution
                         return ctx.getStopAction(input);
@@ -157,6 +160,10 @@ public abstract class HttpFilter extends BaseFilter {
                     return ctx.getInvokeAction(remainder);
                 }
             } else {
+                if (!wasHeaderParsed) {
+                    contentParsingState.chunkRemainder = httpHeader.getContentLength();
+                }
+
                 // if it's fixed length HTTP message
                 final long thisPacketRemaining = contentParsingState.chunkRemainder;
                 final int available = input.remaining();
@@ -400,8 +407,12 @@ public abstract class HttpFilter extends BaseFilter {
         httpChunkBuffer.trim();
         httpChunkBuffer.allowBufferDispose(true);
 
-        httpChunkBuffer = BufferUtils.appendBuffers(memoryManager,
-                httpChunkBuffer, content);
+        final boolean hasContent = chunkSize > 0;
+        
+        if (hasContent) {
+            httpChunkBuffer = BufferUtils.appendBuffers(memoryManager,
+                    httpChunkBuffer, content);
+        }
         
         Buffer httpChunkTrailer = memoryManager.allocate(256);
 
@@ -409,7 +420,7 @@ public abstract class HttpFilter extends BaseFilter {
             httpChunkTrailer = put(memoryManager, httpChunkTrailer,
                     Constants.CRLF_BYTES);
         } else {
-            if (chunkSize > 0) {
+            if (hasContent) {
                 httpChunkTrailer = put(memoryManager, httpChunkTrailer,
                         Constants.CRLF_BYTES);
                 httpChunkTrailer = put(memoryManager, httpChunkTrailer,

@@ -58,7 +58,7 @@ public class Server {
     public static final int PORT = 7777;
 
     public static void main(String[] args) throws IOException {
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
         serverFilterChainBuilder.add(new TransportFilter());
         serverFilterChainBuilder.add(new HttpServerFilter());
         serverFilterChainBuilder.add(new WebServerFilter("/Users/oleksiys"));

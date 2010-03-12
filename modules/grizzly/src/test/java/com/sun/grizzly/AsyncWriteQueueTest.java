@@ -80,7 +80,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
 
         final AtomicInteger serverRcvdBytes = new AtomicInteger();
 
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new EchoFilter() {
 

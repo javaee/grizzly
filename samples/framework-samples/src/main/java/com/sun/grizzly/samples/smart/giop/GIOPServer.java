@@ -60,7 +60,7 @@ public class GIOPServer {
         SmartCodec smartCodec = new SmartCodec(GIOPMessage.class);
         
         // Create a FilterChain using FilterChainBuilder
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         // Add filters to the chain
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new SmartFilter(smartCodec));

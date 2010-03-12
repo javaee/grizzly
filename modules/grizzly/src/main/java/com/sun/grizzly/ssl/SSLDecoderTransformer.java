@@ -95,6 +95,17 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
             return HANDSHAKE_NOT_EXECUTED_RESULT;
         }
 
+        final int expectedLength;
+        try {
+            expectedLength = SSLFilter.getSSLPacketSize(originalMessage);
+            if (expectedLength == -1 || originalMessage.remaining() < expectedLength) {
+                return TransformationResult.<Buffer, Buffer>createIncompletedResult(
+                            originalMessage);
+            }
+        } catch (SSLException e) {
+            throw new TransformationException(e);
+        }
+        
         final Buffer targetBuffer = memoryManager.allocate(
                     sslEngine.getSession().getApplicationBufferSize());
 
@@ -111,11 +122,10 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
                 sslEngineResult = sslEngine.unwrap(originalMessage.toByteBuffer(),
                         targetBuffer.toByteBuffer());
             } else {
-                final int packetBufferSize = sslEngine.getSession().getPacketBufferSize();
                 final int pos = originalMessage.position();
                 final ByteBuffer originalByteBuffer =
                         originalMessage.toByteBuffer(pos,
-                        pos + Math.min(packetBufferSize, originalMessage.remaining()));
+                        pos + expectedLength);
 
                 sslEngineResult = sslEngine.unwrap(originalByteBuffer,
                         targetBuffer.toByteBuffer());

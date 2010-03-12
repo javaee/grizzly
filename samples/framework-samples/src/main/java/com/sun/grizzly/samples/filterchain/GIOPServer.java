@@ -55,7 +55,7 @@ public class GIOPServer {
     
     public static void main(String[] args) throws Exception {
         // Create a FilterChain using FilterChainBuilder
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         // Add filters to the chain
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new GIOPFilter());

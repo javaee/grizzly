@@ -155,6 +155,19 @@ public class HttpResponse extends HttpHeader {
         return false;
     }
 
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder(256);
+        sb.append("HttpResponse (status=").append(getStatus())
+                .append(" reason=").append(getReasonPhrase())
+                .append(" protocol=").append(getProtocol())
+                .append(" content-length=").append(getContentLength())
+                .append(" headers=").append(getHeaders())
+                .append(')');
+        
+        return sb.toString();
+    }
+
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
             packet = new HttpResponse();

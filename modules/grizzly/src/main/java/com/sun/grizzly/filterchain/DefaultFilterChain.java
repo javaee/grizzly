@@ -257,7 +257,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * @return <tt>false</tt> to terminate exectution, or <tt>true</tt> for
      *         normal exection process
      */
-    protected boolean executeChainPart(FilterChainContext ctx,
+    protected final boolean executeChainPart(FilterChainContext ctx,
             FilterExecutor executor, int start, int end) throws Exception {
         final IOEvent ioEvent = ctx.getIoEvent();
         
@@ -289,19 +289,10 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 
                 ctx.setMessage(storedMessage);
             }
-            
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.fine("Execute filter. filter=" + currentFilter +
-                        " context=" + ctx);
-            }
-            // execute the task
-            final NextAction nextNextAction =
-                    executor.execute(currentFilter, ctx);
 
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.fine("after execute filter. filter=" + currentFilter +
-                        " context=" + ctx + " nextAction=" + nextNextAction);
-            }
+            // execute the task
+            final NextAction nextNextAction = executeFilter(executor,
+                    currentFilter, ctx);
 
             final int nextNextActionType = nextNextAction.type();
             
@@ -361,6 +352,37 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         }
 
         return true;
+    }
+
+    /**
+     * Execute the {@link Filter}, using specific {@link FilterExecutor} and
+     * {@link FilterChainContext}.
+     * 
+     * @param executor
+     * @param currentFilter
+     * @param ctx
+     *
+     * @return {@link NextAction}.
+     * 
+     * @throws IOException
+     */
+    protected NextAction executeFilter(FilterExecutor executor,
+            Filter currentFilter, FilterChainContext ctx) throws IOException {
+        
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.fine("Execute filter. filter=" + currentFilter +
+                        " context=" + ctx);
+            }
+            // execute the task
+            final NextAction nextNextAction =
+                    executor.execute(currentFilter, ctx);
+
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.fine("after execute filter. filter=" + currentFilter +
+                        " context=" + ctx + " nextAction=" + nextNextAction);
+            }
+
+            return nextNextAction;
     }
 
     /**

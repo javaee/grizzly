@@ -72,7 +72,7 @@ public class HttpCommTest extends TestCase {
     public static int PORT = 8002;
 
     public void testSinglePacket() throws Exception {
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.singleton();
+        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
         serverFilterChainBuilder.add(new TransportFilter());
         serverFilterChainBuilder.add(new ChunkingFilter(2));
         serverFilterChainBuilder.add(new HttpServerFilter());
@@ -90,7 +90,7 @@ public class HttpCommTest extends TestCase {
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
-            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.singleton();
+            FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(2));
             clientFilterChainBuilder.add(new HttpClientFilter());
