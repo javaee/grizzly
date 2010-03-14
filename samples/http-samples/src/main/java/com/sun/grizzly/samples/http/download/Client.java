@@ -56,13 +56,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
- * @author oleksiys
+ * Simple asynchronous HTTP client implementation, which downloads HTTP resource
+ * and saves its content in a local file.
+ * 
+ * @author Alexey Stashok
  */
 public class Client {
     private static final Logger logger = Grizzly.logger(Client.class);
     
     public static void main(String[] args) throws IOException, URISyntaxException {
+        // Check command line parameters
         if (args.length < 1) {
             System.out.println("To download the resource, please run: Client <url>");
             System.exit(0);
@@ -72,6 +75,7 @@ public class Client {
 
 //        String url = "http://www.google.com";
         
+        // Parse passed URL
         final URI uri = new URI(url);
         final String scheme = uri.getScheme();
         final String host = uri.getHost();
@@ -79,14 +83,23 @@ public class Client {
         
         final FutureImpl<String> completeFuture = FutureImpl.create();
 
-        FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
-        serverFilterChainBuilder.add(new TransportFilter());
-        serverFilterChainBuilder.add(new IdleTimeoutFilter(10, TimeUnit.SECONDS));
-        serverFilterChainBuilder.add(new HttpClientFilter());
-        serverFilterChainBuilder.add(new ClientDownloadFilter(uri, completeFuture));
+        // Build HTTP client filter chain
+        FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+        // Add transport filter
+        clientFilterChainBuilder.add(new TransportFilter());
+        // Add IdleTimeoutFilter, which will close connetions, which stay
+        // idle longer than 10 seconds.
+        clientFilterChainBuilder.add(new IdleTimeoutFilter(10, TimeUnit.SECONDS));
+        // Add HttpClientFilter, which transforms Buffer <-> HttpContent
+        clientFilterChainBuilder.add(new HttpClientFilter());
+        // Add HTTP client download filter, which is responsible for downloading
+        // HTTP resource asynchronously
+        clientFilterChainBuilder.add(new ClientDownloadFilter(uri, completeFuture));
 
+        // Initialize Transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.setProcessor(serverFilterChainBuilder.build());
+        // Set filterchain as a Transport Processor
+        transport.setProcessor(clientFilterChainBuilder.build());
 
         try {
             // start the transport
@@ -94,9 +107,14 @@ public class Client {
 
             Connection connection = null;
             
+            // Connecting to a remote Web server
             Future<Connection> connectFuture = transport.connect(host, port);
             try {
+                // Wait until the client connect operation will be completed
+                // Once connection will be established - downloading will
+                // start @ ClientDownloadFilter.onConnect(...)
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
+                // Wait until download will be completed
                 String filename = completeFuture.get();
                 logger.log(Level.INFO, "File " + filename + " was successfully downloaded");
             } catch (Exception e) {
@@ -106,6 +124,7 @@ public class Client {
                     logger.log(Level.WARNING, "Error downloading the resource");
                 }
             } finally {
+                // Close the client connection
                 if (connection != null) {
                     connection.close();
                 }

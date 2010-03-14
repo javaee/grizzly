@@ -327,7 +327,7 @@ public class WebServerFilter extends BaseFilter {
         }
 
         /**
-         * The method will be called, when file transfering was cancelled
+         * The method will be called, when file transferring was cancelled
          */
         @Override
         public void cancelled() {
@@ -338,7 +338,7 @@ public class WebServerFilter extends BaseFilter {
         }
 
         /**
-         * The method will be called, if file transfering was failed.
+         * The method will be called, if file transferring was failed.
          * @param throwable the cause
          */
         @Override

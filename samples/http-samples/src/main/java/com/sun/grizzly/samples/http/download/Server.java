@@ -75,7 +75,7 @@ public class Server {
         serverFilterChainBuilder.add(new HttpServerFilter());
         // Simple server implementation, which locates a resource in a local file system
         // and transfers it via HTTP
-        serverFilterChainBuilder.add(new WebServerFilter("/Users/oleksiys"));
+        serverFilterChainBuilder.add(new WebServerFilter("."));
 
         // Initialize Transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
