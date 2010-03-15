@@ -39,10 +39,27 @@
 package com.sun.grizzly.http;
 
 /**
+ * Abstraction, which represents any type of HTTP message: {@link HttpRequest},
+ * {@link HttpResponse}, {@link HttpContent}.
  *
- * @author oleksiys
+ * @see HttpRequest
+ * @see HttpResponse
+ * @see HttpContent
+ * 
+ * @author Alexey Stashok
  */
 public interface HttpPacket {
+    /**
+     * Returns <tt>true</tt>, if this HTTP message represents HTTP messsage header,
+     * or <tt>false</tt> otherwise.
+     * 
+     * @return <tt>true</tt>, if this HTTP message represents HTTP messsage header,
+     * or <tt>false</tt> otherwise.
+     */
     public boolean isHeader();
+
+    /**
+     * Recycle the {@link HttpPacket} and associated abstractions.
+     */
     public void recycle();
 }

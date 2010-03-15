@@ -1,7 +1,8 @@
 /*
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -33,63 +34,19 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  *
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *
- * Copyright 2004 The Apache Software Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.RequestURIRef;
-import com.sun.grizzly.http.util.UDecoder;
 
 /**
- * This is a low-level, efficient representation of a server request. Most 
- * fields are GC-free, expensive operations are delayed until the  user code 
- * needs the information.
+ * The {@link HttpHeader} object, which represents HTTP request message.
  *
- * Processing is delegated to modules, using a hook mechanism.
+ * @see HttpHeader
+ * @see HttpResponse
  * 
- * This class is not intended for user code - it is used internally by tomcat
- * for processing the request in the most efficient way. Users ( servlets ) can
- * access the information using a facade, which provides the high-level view
- * of the request.
- *
- * For lazy evaluation, the request uses the getInfo() hook. The following ids
- * are defined:
- * <ul>
- *  <li>req.encoding - returns the request encoding
- *  <li>req.attribute - returns a module-specific attribute ( like SSL keys, etc ).
- * </ul>
- *
- * Tomcat defines a number of attributes:
- * <ul>
- *   <li>"org.apache.tomcat.request" - allows access to the low-level
- *       request object in trusted applications 
- * </ul>
- *
- * @author James Duncan Davidson [duncan@eng.sun.com]
- * @author James Todd [gonzo@eng.sun.com]
- * @author Jason Hunter [jch@eng.sun.com]
- * @author Harish Prabandham
- * @author Alex Cruikshank [alex@epitonic.com]
- * @author Hans Bergsten [hans@gefionsoftware.com]
- * @author Costin Manolache
- * @author Remy Maucherat
+ * @author Alexey Stashok
  */
 public class HttpRequest extends HttpHeader {
 
@@ -98,6 +55,11 @@ public class HttpRequest extends HttpHeader {
     private RequestURIRef requestURIRef = new RequestURIRef();
     private BufferChunk queryBC = BufferChunk.newInstance();
 
+    /**
+     * Returns {@link HttpRequest} builder.
+     *
+     * @return {@link Builder}.
+     */
     public static Builder builder() {
         return new Builder();
     }
@@ -109,39 +71,93 @@ public class HttpRequest extends HttpHeader {
     }
 
     // -------------------- Request data --------------------
+    /**
+     * Get the HTTP request method as {@link BufferChunk}
+     * (avoiding creation of a String object). The result format is "GET|POST...".
+     *
+     * @return the HTTP request method as {@link BufferChunk}
+     * (avoiding creation of a String object). The result format is "GET|POST...".
+     */
     public BufferChunk getMethodBC() {
         return methodBC;
     }
 
+    /**
+     * Get the HTTP request method. The result format is "GET|POST...".
+     *
+     * @return the HTTP request method. The result format is "GET|POST...".
+     */
     public String getMethod() {
         return methodBC.toString();
     }
 
+    /**
+     * Set the HTTP request method.
+     * @param method the HTTP request method. Format is "GET|POST...".
+     */
     public void setMethod(String method) {
         this.methodBC.setString(method);
     }
 
+    /**
+     * Returns the request URL of the HTTP request as {@link RequestURIRef}
+     * (avoiding creation of a String object).
+     * 
+     * @return the request URL of the HTTP request as {@link RequestURIRef}
+     * (avoiding creation of a String object).
+     */
     public RequestURIRef getRequestURIRef() {
         return requestURIRef;
     }
 
+    /**
+     * Returns the request URL.
+     *
+     * @return the request URL.
+     */
     public String getRequestURI() {
         return requestURIRef.getURI();
     }
 
+    /**
+     * Set the request URL.
+     *
+     * @param requestURI the request URL.
+     */
     public void setRequestURI(String requestURI) {
         this.requestURIRef.setURI(requestURI);
     }
 
+    /**
+     * Returns the query string that is contained in the request URL after the
+     * path. This method returns null if the URL does not have a query string.
+     * The result is represented as {@link BufferChunk} (avoifing creation of a
+     * String object).
+     * 
+     * @return the query string that is contained in the request URL after the
+     * path. This method returns null if the URL does not have a query string.
+     * The result is represented as {@link BufferChunk} (avoifing creation of a
+     * String object).
+     */
     public BufferChunk getQueryStringBC() {
         return queryBC;
     }
 
+    /**
+     * Returns the query string that is contained in the request URL after the
+     * path. This method returns null if the URL does not have a query string.
+     *
+     * @return the query string that is contained in the request URL after the
+     * path. This method returns null if the URL does not have a query string.
+     */
     public String getQueryString() {
         return queryBC.toString();
     }
 
     // -------------------- Recycling -------------------- 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void recycle() {
         super.recycle();
@@ -157,11 +173,17 @@ public class HttpRequest extends HttpHeader {
         protocolBC.setString("HTTP/1.0");
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final boolean isRequest() {
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder(256);
@@ -174,21 +196,39 @@ public class HttpRequest extends HttpHeader {
 
         return sb.toString();
     }
+
+    /**
+     * <tt>HttpRequest</tt> message builder.
+     */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
             packet = new HttpRequest();
         }
 
+        /**
+         * Set the HTTP request method.
+         * @param method the HTTP request method. Format is "GET|POST...".
+         */
         public Builder method(String method) {
             ((HttpRequest) packet).setMethod(method);
             return this;
         }
 
+        /**
+         * Set the request URL.
+         *
+         * @param requestURI the request URL.
+         */
         public Builder uri(String uri) {
             ((HttpRequest) packet).setRequestURI(uri);
             return this;
         }
 
+        /**
+         * Build the <tt>HttpRequest</tt> message.
+         *
+         * @return <tt>HttpRequest</tt>
+         */
         public final HttpRequest build() {
             return (HttpRequest) packet;
         }

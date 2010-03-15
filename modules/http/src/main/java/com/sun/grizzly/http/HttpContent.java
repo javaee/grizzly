@@ -42,10 +42,27 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.memory.BufferUtils;
 
 /**
+ * Object represents HTTP message content: complete or part.
+ * The <tt>HttpContent</tt> object could be used both with
+ * fixed-size and chunked HTTP messages.
+ * To get the HTTP message header - call {@link HttpContent#getHttpHeader()}.
  *
- * @author oleksiys
+ * To build <tt>HttpContent</tt> message, use {@link Builder} object, which
+ * could be get following way: {@link HttpContent#builder(com.sun.grizzly.http.HttpHeader)}.
+ *
+ * @see HttpPacket
+ * @see HttpHeader
+ *
+ * @author Alexey Stashok
  */
 public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpContent> {
+
+    /**
+     * Returns {@link HttpContent} builder.
+     * 
+     * @param httpHeader related HTTP message header
+     * @return {@link Builder}.
+     */
     public static Builder builder(HttpHeader httpHeader) {
         return new Builder(httpHeader);
     }
@@ -64,6 +81,11 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
         this.httpHeader = httpHeader;
     }
 
+    /**
+     * Get the HTTP message content {@link Buffer}.
+     *
+     * @return {@link Buffer}.
+     */
     public final Buffer getContent() {
         return content;
     }
@@ -72,10 +94,22 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
         this.content = content;
     }
 
+    /**
+     * Get the HTTP message header, associated with this content.
+     *
+     * @return {@link HttpHeader}.
+     */
     public final HttpHeader getHttpHeader() {
         return httpHeader;
     }
 
+    /**
+     * Return <tt>true</tt>, if the current content chunk is last,
+     * or <tt>false</tt>, if there are content chunks to follow.
+     * 
+     * @return <tt>true</tt>, if the current content chunk is last,
+     * or <tt>false</tt>, if there are content chunks to follow.
+     */
     public boolean isLast() {
         return isLast;
     }
@@ -84,6 +118,9 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
         this.isLast = isLast;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final boolean isHeader() {
         return false;
@@ -108,6 +145,9 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
         return this;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void recycle() {
         isLast = false;
@@ -115,6 +155,9 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
         httpHeader = null;
     }
 
+    /**
+     * <tt>HttpContent</tt> message builder.
+     */
     public static class Builder<T extends Builder> {
 
         protected HttpContent packet;
@@ -127,16 +170,33 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
             return new HttpContent(httpHeader);
         }
 
+        /**
+         * Set whether this <tt>HttpContent</tt> chunk is the last.
+         *
+         * @param isLast is this <tt>HttpContent</tt> chunk last.
+         * @return <tt>Builder</tt>
+         */
         public final T last(boolean isLast) {
             packet.setLast(isLast);
             return (T) this;
         }
         
+        /**
+         * Set the <tt>HttpContent</tt> chunk content {@link Buffer}.
+         *
+         * @param content the <tt>HttpContent</tt> chunk content {@link Buffer}.
+         * @return <tt>Builder</tt>
+         */
         public final T content(Buffer content) {
             packet.setContent(content);
             return (T) this;
         }
 
+        /**
+         * Build the <tt>HttpContent</tt> message.
+         *
+         * @return <tt>HttpContent</tt>
+         */
         public HttpContent build() {
             return packet;
         }

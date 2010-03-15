@@ -42,35 +42,70 @@ import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.MimeHeaders;
 
 /**
+ * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
+ * of this class: {@link HttpRequest} and {@link HttpResponse}.
  *
- * @author oleksiys
+ * @see HttpRequest
+ * @see HttpResponse
+ * 
+ * @author Alexey Stashok
  */
 public abstract class HttpHeader implements HttpPacket {
 
     protected boolean isCommited;
-    
     protected MimeHeaders headers = new MimeHeaders();
     protected BufferChunk protocolBC = BufferChunk.newInstance();
-
     protected boolean isChunked;
-
     protected long contentLength = -1;
 
+    /**
+     * Returns <tt>true</tt>, if the current <tt>HttpHeader</tt> represent
+     * HTTP request message, or <tt>false</tt> otherwise.
+     * 
+     * @return <tt>true</tt>, if the current <tt>HttpHeader</tt> represent
+     * HTTP request message, or <tt>false</tt> otherwise.
+     */
     public abstract boolean isRequest();
 
+    /**
+     * Returns <tt>true</tt>.
+     * @return <tt>true</tt>.
+     */
     @Override
     public final boolean isHeader() {
         return true;
     }
 
+    /**
+     * Returns <tt>true</tt>, if this {@link HttpPacket} content will be transferred
+     * in chunking mode, or <tt>false</tt> if case of fixed-length message.
+     * 
+     * @return <tt>true</tt>, if this {@link HttpPacket} content will be transferred
+     * in chunking mode, or <tt>false</tt> if case of fixed-length message.
+     */
     public boolean isChunked() {
         return isChunked;
     }
 
+    /**
+     * Set <tt>true</tt>, if this {@link HttpPacket} content will be transferred
+     * in chunking mode, or <tt>false</tt> if case of fixed-length message.
+     *
+     * @param isChunked  <tt>true</tt>, if this {@link HttpPacket} content
+     * will be transferred in chunking mode, or <tt>false</tt> if case
+     * of fixed-length message.
+     */
     public void setChunked(boolean isChunked) {
         this.isChunked = isChunked;
     }
 
+    /**
+     * Get the content-length of this {@link HttpPacket}. Applicable only in case
+     * of fixed-length HTTP message.
+     * 
+     * @return the content-length of this {@link HttpPacket}. Applicable only
+     * in case of fixed-length HTTP message.
+     */
     public long getContentLength() {
         if (contentLength == -1) {
             final BufferChunk contentLengthChunk =
@@ -83,60 +118,145 @@ public abstract class HttpHeader implements HttpPacket {
         return contentLength;
     }
 
+    /**
+     * Set the content-length of this {@link HttpPacket}. Applicable only in case
+     * of fixed-length HTTP message.
+     *
+     * @param contentLength  the content-length of this {@link HttpPacket}.
+     * Applicable only in case of fixed-length HTTP message.
+     */
     public void setContentLength(long contentLength) {
         this.contentLength = contentLength;
     }
-    
+
+    /**
+     * Is this <tt>HttpHeader</tt> written? <tt>true</tt>, if this
+     * <tt>HttpHeader</tt> has been already serialized, and only {@link HttpContent}
+     * messages might be serialized for this {@link HttpPacket}.
+     * 
+     * @return  <tt>true</tt>, if this <tt>HttpHeader</tt> has been already
+     * serialized, and only {@link HttpContent} messages might be serialized
+     * for this {@link HttpPacket}.
+     */
     public boolean isCommited() {
         return isCommited;
     }
 
+    /**
+     * Is this <tt>HttpHeader</tt> written? <tt>true</tt>, if this
+     * <tt>HttpHeader</tt> has been already serialized, and only {@link HttpContent}
+     * messages might be serialized for this {@link HttpPacket}.
+     *
+     * @param isCommited   <tt>true</tt>, if this <tt>HttpHeader</tt> has been
+     * already serialized, and only {@link HttpContent} messages might be
+     * serialized for this {@link HttpPacket}.
+     */
     public void setCommited(boolean isCommited) {
         this.isCommited = isCommited;
     }
 
     // -------------------- Headers --------------------
+    /**
+     * Get all {@link MimeHeaders}, associated with the <tt>HttpHeader</tt>.
+     * 
+     * @return all {@link MimeHeaders}, associated with the <tt>HttpHeader</tt>.
+     */
     public MimeHeaders getHeaders() {
         return headers;
     }
 
+    /**
+     * Get the value, of the specific HTTP mime header.
+     * @param name the mime header name.
+     * 
+     * @return the value, of the specific HTTP mime header.
+     */
     public String getHeader(String name) {
         return headers.getHeader(name);
     }
 
+    /**
+     * Set the value, of the specific HTTP mime header.
+     *
+     * @param name the mime header name.
+     * @param value the mime header value.
+     */
     public void setHeader(String name, String value) {
         headers.setValue(name).setString(value);
     }
 
+    /**
+     * Add the HTTP mime header.
+     *
+     * @param name the mime header name.
+     * @param value the mime header value.
+     */
     public void addHeader(String name, String value) {
         headers.addValue(name).setString(value);
     }
 
+    /**
+     * Returns <tt>true</tt>, if the mime header with the specific name is present
+     * among the <tt>HttpHeader</tt> mime headers, or <tt>false</tt> otherwise.
+     * 
+     * @param name the mime header name.
+     * 
+     * @return <tt>true</tt>, if the mime header with the specific name is present
+     * among the <tt>HttpHeader</tt> mime headers, or <tt>false</tt> otherwise.
+     */
     public boolean containsHeader(String name) {
         return headers.getHeader(name) != null;
     }
 
-    // Common HTTP packet attributes
+    /**
+     * Get the HTTP message protocol version as {@link BufferChunk}
+     * (avoiding creation of a String object). The result format is "HTTP/1.x".
+     * 
+     * @return the HTTP message protocol version as {@link BufferChunk}
+     * (avoiding creation of a String object). The result format is "HTTP/1.x".
+     */
     public BufferChunk getProtocolBC() {
         return protocolBC;
     }
 
+    /**
+     * Get the HTTP message protocol version. The result format is "HTTP/1.x".
+     *
+     * @return the HTTP message protocol version. The result format is "HTTP/1.x".
+     */
     public String getProtocol() {
         return getProtocolBC().toString();
     }
 
+    /**
+     * Set the HTTP message protocol version.
+     * @param protocol protocol version in format "HTTP/1.x".
+     */
     public void setProtocol(String protocol) {
         this.protocolBC.setString(protocol);
     }
 
+    /**
+     * Get the HTTP message content builder.
+     *
+     * @return {@link HttpContent.Builder}.
+     */
     public final HttpContent.Builder httpContentBuilder() {
         return HttpContent.builder(this);
     }
 
+    /**
+     * Get the HTTP message trailer-chunk builder.
+     *
+     * @return {@link HttpTrailer.Builder}.
+     */
     public HttpTrailer.Builder httpTrailerBuilder() {
         return HttpTrailer.builder(this);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void recycle() {
         protocolBC.recycle();
@@ -146,25 +266,53 @@ public abstract class HttpHeader implements HttpPacket {
         contentLength = -1;
     }
 
+    /**
+     * <tt>HttpHeader</tt> message builder.
+     */
     public static abstract class Builder<T extends Builder> {
 
         protected HttpHeader packet;
 
+        /**
+         * Set the HTTP message protocol version.
+         * @param protocol protocol version in format "HTTP/1.x".
+         */
         public final T protocol(String protocol) {
             packet.setProtocol(protocol);
             return (T) this;
         }
 
+        /**
+         * Set <tt>true</tt>, if this {@link HttpPacket} content will be transferred
+         * in chunking mode, or <tt>false</tt> if case of fixed-length message.
+         *
+         * @param isChunked  <tt>true</tt>, if this {@link HttpPacket} content
+         * will be transferred in chunking mode, or <tt>false</tt> if case
+         * of fixed-length message.
+         */
         public final T chunked(boolean isChunked) {
             packet.setChunked(isChunked);
             return (T) this;
         }
 
+        /**
+         * Set the content-length of this {@link HttpPacket}. Applicable only in case
+         * of fixed-length HTTP message.
+         *
+         * @param contentLength  the content-length of this {@link HttpPacket}.
+         * Applicable only in case of fixed-length HTTP message.
+         */
         public final T contentLength(long contentLength) {
             packet.setContentLength(contentLength);
             return (T) this;
         }
 
+        /**
+         * Add the HTTP mime header.
+         *
+         * @param name the mime header name.
+         * @param value the mime header value.
+         */
         public final T header(String name, String value) {
             packet.addHeader(name, value);
             return (T) this;

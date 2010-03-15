@@ -1,7 +1,8 @@
 /*
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -33,41 +34,21 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  *
- *
- * This file incorporates work covered by the following copyright and
- * permission notice:
- *
- * Copyright 2004 The Apache Software Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.util.BufferChunk;
-import com.sun.grizzly.http.util.MimeHeaders;
 
 
 
 /**
- * Response object.
- * 
- * @author James Duncan Davidson [duncan@eng.sun.com]
- * @author Jason Hunter [jch@eng.sun.com]
- * @author James Todd [gonzo@eng.sun.com]
- * @author Harish Prabandham
- * @author Hans Bergsten <hans@gefionsoftware.com>
- * @author Remy Maucherat
+ * The {@link HttpHeader} object, which represents HTTP response message.
+ *
+ * @see HttpHeader
+ * @see HttpRequest
+ *
+ * @author Alexey Stashok
  */
 public class HttpResponse extends HttpHeader {
     public static final int NON_PARSED_STATUS = Integer.MIN_VALUE;
@@ -86,6 +67,11 @@ public class HttpResponse extends HttpHeader {
      */
     private BufferChunk reasonPhraseBC = BufferChunk.newInstance();
 
+    /**
+     * Returns {@link HttpResponse} builder.
+     *
+     * @return {@link Builder}.
+     */
     public static Builder builder() {
         return new Builder();
     }
@@ -94,18 +80,23 @@ public class HttpResponse extends HttpHeader {
     protected HttpResponse() {
     }
 
-    // ------------------------------------------------------------- Properties
-    public MimeHeaders getMimeHeaders() {
-        return headers;
-    }
-
-
     // -------------------- State --------------------
-
+    /**
+     * Gets the status code for this response as {@link BufferChunk} (avoid
+     * the status code parsing}.
+     *
+     * @return the status code for this response as {@link BufferChunk} (avoid
+     * the status code parsing}.
+     */
     public BufferChunk getStatusBC() {
         return statusBC;
     }
 
+    /**
+     * Gets the status code for this response.
+     *
+     * @return the status code for this response.
+     */
     public int getStatus() {
         if (parsedStatusInt == NON_PARSED_STATUS) {
             parsedStatusInt = Integer.parseInt(statusBC.toString());
@@ -114,21 +105,32 @@ public class HttpResponse extends HttpHeader {
         return parsedStatusInt;
     }
     
-    /** 
-     * Set the response status 
-     */ 
+    /**
+     * Sets the status code for this response.
+     *
+     * @param status the status code for this response.
+     */
     public void setStatus(int status) {
         parsedStatusInt = status;
         statusBC.setString(Integer.toString(status));
     }
 
 
+    /**
+     * Gets the status reason phrase for this response as {@link BufferChunk}
+     * (avoid creation of a String object}.
+     *
+     * @return the status reason phrase for this response as {@link BufferChunk}
+     * (avoid creation of a String object}.
+     */
     public BufferChunk getReasonPhraseBC() {
         return reasonPhraseBC;
     }
 
     /**
-     * Get the status message.
+     * Gets the status reason phrase for this response.
+     *
+     * @return the status reason phrase for this response.
      */
     public String getReasonPhrase() {
         return reasonPhraseBC.toString();
@@ -136,7 +138,9 @@ public class HttpResponse extends HttpHeader {
 
 
     /**
-     * Set the status message.
+     * Sets the status reason phrase for this response.
+     *
+     * @param message the status reason phrase for this response.
      */
     public void setReasonPhrase(String message) {
         reasonPhraseBC.setString(message);
@@ -144,6 +148,9 @@ public class HttpResponse extends HttpHeader {
 
     // --------------------
     
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void recycle() {
         super.recycle();
@@ -151,11 +158,17 @@ public class HttpResponse extends HttpHeader {
         reasonPhraseBC.recycle();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final boolean isRequest() {
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder(256);
@@ -169,21 +182,39 @@ public class HttpResponse extends HttpHeader {
         return sb.toString();
     }
 
+    /**
+     * <tt>HttpResponse</tt> message builder.
+     */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
             packet = new HttpResponse();
         }
 
+        /**
+         * Sets the status code for this response.
+         *
+         * @param status the status code for this response.
+         */
         public Builder status(int status) {
             ((HttpResponse) packet).setStatus(status);
             return this;
         }
 
+        /**
+         * Sets the status reason phrase for this response.
+         *
+         * @param message the status reason phrase for this response.
+         */
         public Builder reasonPhrase(String reasonPhrase) {
             ((HttpResponse) packet).setReasonPhrase(reasonPhrase);
             return this;
         }
 
+        /**
+         * Build the <tt>HttpResponse</tt> message.
+         *
+         * @return <tt>HttpResponse</tt>
+         */
         public final HttpResponse build() {
             return (HttpResponse) packet;
         }
