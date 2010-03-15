@@ -56,61 +56,133 @@ import com.sun.grizzly.memory.BufferUtils;
 import java.io.IOException;
 
 /**
+ * The {@link Filter}, responsible for transforming {@link Buffer} into
+ * {@link HttpPacket} and vice versa in asynchronous mode.
+ * When the <tt>HttpFilter</tt> is added to a {@link FilterChain}, on read phase
+ * it consumes incoming {@link Buffer} and provides {@link HttpContent} as
+ * the result of transformation. On write phase the <tt>HttpFilter</tt> consumes
+ * input {@link HttpPacket} and serializes it to a {@link Buffer}, which
+ * gets passed farther as the result of transformation.
+ * So transformations, provided by this filter are following:
+ * (read phase): {@link Buffer} -> {@link HttpContent}
+ * (write phase): {@link HttpPacket} -> {@link Buffer}.
  *
- * @author oleksiys
+ * @see HttpServerFilter
+ * @see HttpClientFilter
+ * 
+ * @author Alexey Stashok
  */
 public abstract class HttpFilter extends BaseFilter {
     public static final String HTTP_1_0 = "HTTP/1.0";
     public static final String HTTP_1_1 = "HTTP/1.1";
 
-    public static final int DEFAULT_MAX_HEADERS_SIZE = 8192;
+    public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
 
-    private static final int MAX_CHUNK_SIZE_LENGTH = 16;
+    private static final int MAX_HTTP_CHUNK_SIZE_LENGTH = 16;
 
+    /**
+     * Method is responsible for parsing initial line of HTTP message (different
+     * for {@link HttpRequest} and {@link HttpResponse}).
+     *
+     * @param httpPacket HTTP packet, which is being parsed
+     * @param parsingState HTTP packet parsing state
+     * @param input input {@link Buffer}
+     *
+     * @return <tt>true</tt>, if initial line has been parsed,
+     * or <tt>false</tt> otherwise.
+     */
     abstract boolean decodeInitialLine(HttpPacketParsing httpPacket,
             ParsingState parsingState, Buffer input);
 
+    /**
+     * Method is responsible for serializing initial line of HTTP message (different
+     * for {@link HttpRequest} and {@link HttpResponse}).
+     *
+     * @param httpPacket HTTP packet, which is being serialized
+     * @param output output {@link Buffer}
+     * @param memoryManager {@link MemoryManager}
+     *
+     * @return result {@link Buffer}.
+     */
     abstract Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output,
             MemoryManager memoryManager);
 
+    /**
+     * Callback method, called when {@link HttpPacket} parsing has been completed.
+     * @param ctx processing context.
+     */
     abstract void onHttpPacketParsed(FilterChainContext ctx);
 
     protected final int maxHeadersSize;
 
+    /**
+     * Constructor, which creates <tt>HttpFilter</tt> instance, with the specific
+     * max header size parameter.
+     *
+     * @param maxHeadersSize the maximum size of the HTTP message header.
+     */
     public HttpFilter(int maxHeadersSize) {
         this.maxHeadersSize = maxHeadersSize;
     }
 
+    /**
+     * The method is called by the specific <tt>HttpFilter</tt> implementation,
+     * once we have received a {@link Buffer}, which has to be transformed
+     * into HTTP packet part.
+     *
+     * Filter gets {@link Buffer}, which represents a part or complete HTTP
+     * message. As the result of "read" transformation - we will get
+     * {@link HttpContent} message, which will represent HTTP packet content
+     * (might be zero length content) and reference to a {@link HttpHeader},
+     * which contains HTTP message header.
+     *
+     * @param ctx Request processing context
+     * @param httpPacket the current HttpPacket, which is being processed.
+     *
+     * @return {@link NextAction}
+     * @throws IOException
+     */
     public final NextAction handleRead(FilterChainContext ctx,
             HttpPacketParsing httpPacket) throws IOException {
         
+        // Get the input buffer
         Buffer input = (Buffer) ctx.getMessage();
 
+        // Check if HTTP header has been parsed
         final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
 
         if (!wasHeaderParsed) {
+            // if header wasn't parsed - parse
             if (!decodeHttpPacket(httpPacket, input)) {
+                // if there is not enough data to parse the HTTP header - stop
+                // filterchain processing
                 return ctx.getStopAction(input);
             } else {
+                // if headers get parsed - set the flag
                 httpPacket.setHeaderParsed(true);
+                // recycle header parsing state
                 httpPacket.getHeaderParsingState().recycle();
             }
         }
 
         Buffer remainder = null;
 
+        // Get HTTP content parsing state
         final ContentParsingState contentParsingState =
                 httpPacket.getContentParsingState();
         
         boolean isLast = false;
 
         final HttpHeader httpHeader = (HttpHeader) httpPacket;
+        // Is it chunked HTTP message?
         final boolean isChunked = httpHeader.isChunked();
         
+        // Check if input buffer has some HTTP content
         if (input.hasRemaining()) {
             if (isChunked) {
                 // if it's chunked HTTP message
                 final boolean isLastChunk = contentParsingState.isLastChunk;
+                // Check if HTTP chunk length was parsed
                 if (!isLastChunk && contentParsingState.chunkRemainder == 0) {
                     // We expect next chunk header
                     if (!parseHttpChunkLength(httpPacket, input)) {
@@ -118,30 +190,42 @@ public abstract class HttpFilter extends BaseFilter {
                         return ctx.getStopAction(input);
                     }
                 } else {
+                    // HTTP content starts from position 0 in the input Buffer (HTTP chunk header is not part of the input Buffer)
                     contentParsingState.chunkContentStart = 0;
                 }
 
+                // Get the position in the input Buffer, where actual HTTP content starts
                 int chunkContentStart =
                         contentParsingState.chunkContentStart;
 
                 if (contentParsingState.chunkLength == 0) {
+                    // if it's the last HTTP chunk
                     if (!isLastChunk) {
+                        // set it's the last chunk
                         contentParsingState.isLastChunk = true;
+                        // start trailer parsing
                         initTrailerParsing(httpPacket);
                     }
 
+                    // Check if trailer is present
                     if (!parseLastChunkTrailer(httpPacket, input)) {
+                        // if yes - and there is not enough input data - stop the
+                        // filterchain processing
                         return ctx.getStopAction(input);
                     }
 
+                    // move the content start position after trailer parsing
                     chunkContentStart = httpPacket.getHeaderParsingState().offset;
                 }
 
+                // Get the number of bytes remaining in the current chunk
                 final long thisPacketRemaining =
                         contentParsingState.chunkRemainder;
+                // Get the number of content bytes available in the current input Buffer
                 final int contentAvailable = input.limit() - chunkContentStart;
 
                 if (contentAvailable > thisPacketRemaining) {
+                    // If input Buffer has part of the next message - slice it
                     remainder = input.slice(
                             (int) (chunkContentStart + thisPacketRemaining),
                             input.limit());
@@ -150,57 +234,87 @@ public abstract class HttpFilter extends BaseFilter {
                     input.position(chunkContentStart);
                 }
 
+                // recalc the HTTP chunk remaining content
                 contentParsingState.chunkRemainder -= (input.limit() - chunkContentStart);
 
                 if (isLastChunk) {
+                    // if it's the last HTTP chunk - notify parent Filter about
+                    // message parsing completion
                     onHttpPacketParsed(ctx);
+                    // Build last chunk content message
                     ctx.setMessage(((HttpHeader) httpPacket).httpTrailerBuilder().
                             headers(contentParsingState.trailerHeaders).build());
                     
+                    // pass the last chunk content to a next filter
                     return ctx.getInvokeAction(remainder);
                 }
             } else {
+                // if it's fixed length HTTP message
                 if (!wasHeaderParsed) {
+                    // if we have just parsed a HTTP message header
+                    // assign chunkRemainder to the HTTP message content length
                     contentParsingState.chunkRemainder = httpHeader.getContentLength();
                 }
 
-                // if it's fixed length HTTP message
                 final long thisPacketRemaining = contentParsingState.chunkRemainder;
                 final int available = input.remaining();
 
                 if (available > thisPacketRemaining) {
+                    // if input Buffer has part of the next HTTP message - slice it
                     remainder = input.slice(
                             (int) (input.position() + thisPacketRemaining), input.limit());
                     input.limit((int) (input.position() + thisPacketRemaining));
                 }
 
+                // recalc. the HTTP message remaining bytes
                 contentParsingState.chunkRemainder -= input.remaining();
                 if (contentParsingState.chunkRemainder == 0) {
+                    // if remainder is 0 - we've read out entire HTTP message
                     isLast = true;
                     onHttpPacketParsed(ctx);
                 }
             }
-        } else if (!isChunked && httpHeader.getContentLength() <= 0) { // If content wasn't parsed this time - check if we expect any
+        } else if (!isChunked && httpHeader.getContentLength() <= 0) {
+            // If content is not present this time - check if we expect any
             isLast = true;
             onHttpPacketParsed(ctx);
         }
 
+        // Build HttpContent message on top of existing content chunk and parsed Http message header
         final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
         final HttpContent message = builder.content(input).last(isLast).build();
         ctx.setMessage(message);
-        
+
+        // Instruct filterchain to continue the processing.
         return ctx.getInvokeAction(remainder);
     }
 
+    /**
+     * The method is called, once we need to serialize a {@link HttpPacket},
+     * which may represent HTTP packet header, content or content chunk.
+     *
+     * Filter gets {@link HttpPacket}, which represents a HTTP header, content,
+     * or content part. As the result of "write" transformation - we will get
+     * {@link Buffer}, which will represent serialized HTTP packet.
+     *
+     * @param ctx Request processing context
+     *
+     * @return {@link NextAction}
+     * @throws IOException
+     */
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+        // Get HttpPacket
         final HttpPacket input = (HttpPacket) ctx.getMessage();
+        // Get Connection
         final Connection connection = ctx.getConnection();
 
+        // transform HttpPacket into Buffer
         final Buffer output = encodeHttpPacket(
                 connection.getTransport().getMemoryManager(), input);
 
         ctx.setMessage(output);
+        // Invoke next filter in the chain.
         return ctx.getInvokeAction();
     }
     
@@ -239,7 +353,7 @@ public abstract class HttpFilter extends BaseFilter {
                     final int pos = input.position();
                     parsingState.start = pos;
                     parsingState.offset = pos;
-                    parsingState.packetLimit = pos + MAX_CHUNK_SIZE_LENGTH;
+                    parsingState.packetLimit = pos + MAX_HTTP_CHUNK_SIZE_LENGTH;
                     parsingState.state = 1;
                 }
 

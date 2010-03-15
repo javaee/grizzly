@@ -50,18 +50,35 @@ import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
 
 /**
+ * Server side {@link HttpFilter} implementation, which is responsible for
+ * decoding {@link HttpRequest} and encoding {@link HttpResponse} messages.
  *
- * @author oleksiys
+ * This <tt>Filter</tt> is usually used, when we build an asynchronous HTTP server
+ * connection.
+ *
+ * @see HttpFilter
+ * @see HttpClientFilter
+ *
+ * @author Alexey Stashok
  */
 public class HttpServerFilter extends HttpFilter {
     protected static final int HEADER_PARSED_STATE = 2;
     
     private final Attribute<HttpRequestImpl> httpRequestInProcessAttr;
 
+    /**
+     * Constructor, which creates <tt>HttpServerFilter</tt> instance
+     */
     public HttpServerFilter() {
-        this(DEFAULT_MAX_HEADERS_SIZE);
+        this(DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE);
     }
 
+    /**
+     * Constructor, which creates <tt>HttpServerFilter</tt> instance,
+     * with the specific max header size parameter.
+     *
+     * @param maxHeadersSize the maximum size of the HTTP message header.
+     */
     public HttpServerFilter(int maxHeadersSize) {
         super(maxHeadersSize);
         
@@ -70,6 +87,21 @@ public class HttpServerFilter extends HttpFilter {
                 "HttpServerFilter.httpRequest");
     }
 
+    /**
+     * The method is called, once we have received a {@link Buffer},
+     * which has to be transformed into HTTP request packet part.
+     *
+     * Filter gets {@link Buffer}, which represents a part or complete HTTP
+     * request message. As the result of "read" transformation - we will get
+     * {@link HttpContent} message, which will represent HTTP request packet
+     * content (might be zero length content) and reference
+     * to a {@link HttpHeader}, which contains HTTP request message header.
+     *
+     * @param ctx Request processing context
+     *
+     * @return {@link NextAction}
+     * @throws IOException
+     */
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         Buffer input = (Buffer) ctx.getMessage();

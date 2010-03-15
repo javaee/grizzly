@@ -51,19 +51,35 @@ import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
 
 /**
+ * Client side {@link HttpFilter} implementation, which is responsible for
+ * decoding {@link HttpResponse} and encoding {@link HttpRequest} messages.
  *
- * @author oleksiys
+ * This <tt>Filter</tt> is usually used, when we build an asynchronous HTTP client
+ * connection.
+ *
+ * @see HttpFilter
+ * @see HttpServerFilter
+ *
+ * @author Alexey Stashok
  */
 public class HttpClientFilter extends HttpFilter {
     protected static final int HEADER_PARSED_STATE = 2;
 
-    
     private final Attribute<HttpResponseImpl> httpResponseInProcessAttr;
 
+    /**
+     * Constructor, which creates <tt>HttpClientFilter</tt> instance
+     */
     public HttpClientFilter() {
-        this(DEFAULT_MAX_HEADERS_SIZE);
+        this(DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE);
     }
 
+    /**
+     * Constructor, which creates <tt>HttpClientFilter</tt> instance,
+     * with the specific max header size parameter.
+     *
+     * @param maxHeadersSize the maximum size of the HTTP message header.
+     */
     public HttpClientFilter(int maxHeadersSize) {
         super(maxHeadersSize);
         
@@ -72,6 +88,21 @@ public class HttpClientFilter extends HttpFilter {
                 "HttpServerFilter.httpRequest");
     }
 
+    /**
+     * The method is called, once we have received a {@link Buffer},
+     * which has to be transformed into HTTP response packet part.
+     *
+     * Filter gets {@link Buffer}, which represents a part or complete HTTP
+     * response message. As the result of "read" transformation - we will get
+     * {@link HttpContent} message, which will represent HTTP response packet
+     * content (might be zero length content) and reference
+     * to a {@link HttpHeader}, which contains HTTP response message header.
+     *
+     * @param ctx Request processing context
+     *
+     * @return {@link NextAction}
+     * @throws IOException
+     */
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         Buffer input = (Buffer) ctx.getMessage();
@@ -86,18 +117,6 @@ public class HttpClientFilter extends HttpFilter {
         }
 
         return handleRead(ctx, httpResponse);
-    }
-
-    @Override
-    public NextAction handleWrite(FilterChainContext ctx) throws IOException {
-        final HttpPacket input = (HttpPacket) ctx.getMessage();
-        final Connection connection = ctx.getConnection();
-
-        final Buffer output = encodeHttpPacket(
-                connection.getTransport().getMemoryManager(), input);
-
-        ctx.setMessage(output);
-        return ctx.getInvokeAction();
     }
     
     @Override
