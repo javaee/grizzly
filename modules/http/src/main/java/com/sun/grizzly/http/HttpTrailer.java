@@ -35,63 +35,34 @@
  * holder.
  *
  */
-package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.util.Ascii;
+package com.sun.grizzly.http;
+
 import com.sun.grizzly.http.util.MimeHeaders;
 
 /**
  *
  * @author oleksiys
  */
-public abstract class HttpHeader implements HttpPacket {
+public class HttpTrailer extends HttpContent {
+    public static Builder builder(HttpHeader httpHeader) {
+        return new Builder(httpHeader);
+    }
 
-    protected boolean isCommited;
+    private MimeHeaders headers;
     
-    protected MimeHeaders headers = new MimeHeaders();
-    protected BufferChunk protocolBC = BufferChunk.newInstance();
+    protected HttpTrailer() {
+        this(null);
+    }
 
-    protected boolean isChunked;
-
-    protected long contentLength = -1;
-
-    public abstract boolean isRequest();
+    protected HttpTrailer(HttpHeader httpHeader) {
+        super(httpHeader);
+        headers = new MimeHeaders();
+    }
 
     @Override
-    public final boolean isHeader() {
+    public final boolean isLast() {
         return true;
-    }
-
-    public boolean isChunked() {
-        return isChunked;
-    }
-
-    public void setChunked(boolean isChunked) {
-        this.isChunked = isChunked;
-    }
-
-    public long getContentLength() {
-        if (contentLength == -1) {
-            final BufferChunk contentLengthChunk =
-                    headers.getValue("content-length");
-            if (contentLengthChunk != null) {
-                contentLength = Ascii.parseLong(contentLengthChunk);
-            }
-        }
-
-        return contentLength;
-    }
-
-    public void setContentLength(long contentLength) {
-        this.contentLength = contentLength;
-    }
-    
-    public boolean isCommited() {
-        return isCommited;
-    }
-
-    public void setCommited(boolean isCommited) {
-        this.isCommited = isCommited;
     }
 
     // -------------------- Headers --------------------
@@ -115,58 +86,40 @@ public abstract class HttpHeader implements HttpPacket {
         return headers.getHeader(name) != null;
     }
 
-    // Common HTTP packet attributes
-    public BufferChunk getProtocolBC() {
-        return protocolBC;
-    }
-
-    public String getProtocol() {
-        return getProtocolBC().toString();
-    }
-
-    public void setProtocol(String protocol) {
-        this.protocolBC.setString(protocol);
-    }
-
-    public final HttpContent.Builder httpContentBuilder() {
-        return HttpContent.builder(this);
-    }
-
-    public HttpTrailer.Builder httpTrailerBuilder() {
-        return HttpTrailer.builder(this);
+    protected void setHeaders(MimeHeaders mimeHeaders) {
+        this.headers = mimeHeaders;
     }
 
     @Override
     public void recycle() {
-        protocolBC.recycle();
-        headers.clear();
-        isCommited = false;
-        isChunked = false;
-        contentLength = -1;
+        this.headers.recycle();
+        super.recycle();
     }
 
-    public static abstract class Builder<T extends Builder> {
+    public static final class Builder extends HttpContent.Builder<Builder> {
 
-        protected HttpHeader packet;
-
-        public final T protocol(String protocol) {
-            packet.setProtocol(protocol);
-            return (T) this;
+        protected Builder(HttpHeader httpHeader) {
+            super(httpHeader);
         }
 
-        public final T chunked(boolean isChunked) {
-            packet.setChunked(isChunked);
-            return (T) this;
+        @Override
+        protected HttpContent create(HttpHeader httpHeader) {
+            return new HttpTrailer(httpHeader);
         }
 
-        public final T contentLength(long contentLength) {
-            packet.setContentLength(contentLength);
-            return (T) this;
+        public final Builder headers(MimeHeaders mimeHeaders) {
+            ((HttpTrailer) packet).setHeaders(mimeHeaders);
+            return this;
         }
 
-        public final T header(String name, String value) {
-            packet.addHeader(name, value);
-            return (T) this;
+        public final Builder header(String name, String value) {
+            ((HttpTrailer) packet).setHeader(name, value);
+            return this;
+        }
+
+        @Override
+        public final HttpTrailer build() {
+            return (HttpTrailer) packet;
         }
     }
 }

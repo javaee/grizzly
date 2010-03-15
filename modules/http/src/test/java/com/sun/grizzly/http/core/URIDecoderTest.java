@@ -38,6 +38,8 @@
 
 package com.sun.grizzly.http.core;
 
+import com.sun.grizzly.http.util.URLDecoder;
+import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.memory.MemoryManager;

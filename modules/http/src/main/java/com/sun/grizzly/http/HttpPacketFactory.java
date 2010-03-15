@@ -36,13 +36,42 @@
  *
  */
 
-package com.sun.grizzly.http.core;
+package com.sun.grizzly.http;
 
 /**
  *
  * @author oleksiys
  */
-public interface HttpPacket {
-    public boolean isHeader();
-    public void recycle();
+public interface HttpPacketFactory {
+    public HttpRequest createHttpRequest();
+
+    public HttpResponse createHttpResponse();
+
+    public HttpContent createHttpContent(HttpHeader httpHeader);
+
+    public HttpTrailer createHttpTrailer(HttpHeader httpHeader);
+
+    public static final class DefaultHttpPacketFactory
+            implements HttpPacketFactory {
+        
+        @Override
+        public HttpRequest createHttpRequest() {
+            return new HttpRequest();
+        }
+
+        @Override
+        public HttpResponse createHttpResponse() {
+            return new HttpResponse();
+        }
+
+        @Override
+        public HttpContent createHttpContent(HttpHeader httpHeader) {
+            return new HttpContent(httpHeader);
+        }
+
+        @Override
+        public HttpTrailer createHttpTrailer(HttpHeader httpHeader) {
+            return new HttpTrailer(httpHeader);
+        }
+    }
 }

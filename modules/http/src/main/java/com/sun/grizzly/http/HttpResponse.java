@@ -52,8 +52,9 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.http.core;
+package com.sun.grizzly.http;
 
+import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
 
 

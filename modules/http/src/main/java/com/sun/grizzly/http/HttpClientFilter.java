@@ -38,15 +38,12 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.http.core.HttpPacket;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.http.core.HttpRequest;
-import com.sun.grizzly.http.core.HttpResponse;
 import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
 

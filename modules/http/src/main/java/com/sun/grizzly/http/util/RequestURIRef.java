@@ -36,7 +36,7 @@
  *
  */
 
-package com.sun.grizzly.http.core;
+package com.sun.grizzly.http.util;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;

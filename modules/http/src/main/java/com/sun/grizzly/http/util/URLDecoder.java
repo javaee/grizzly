@@ -36,42 +36,71 @@
  *
  */
 
-package com.sun.grizzly.http.core;
+package com.sun.grizzly.http.util;
+
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.HexUtils;
 
 /**
  *
  * @author oleksiys
  */
-public interface HttpPacketFactory {
-    public HttpRequest createHttpRequest();
+public class URLDecoder {
+    public static void decode(BufferChunk bufferChunk) {
+        decode(bufferChunk, true);
+    }
+    
+    /**
+     * URLDecode the {@link ByteChunk}
+     */
+    public static void decode(final BufferChunk bufferChunk,
+            final boolean allowEncodedSlash) {
 
-    public HttpResponse createHttpResponse();
-
-    public HttpContent createHttpContent(HttpHeader httpHeader);
-
-    public HttpTrailer createHttpTrailer(HttpHeader httpHeader);
-
-    public static final class DefaultHttpPacketFactory
-            implements HttpPacketFactory {
+        boolean onContentChanged = false;
         
-        @Override
-        public HttpRequest createHttpRequest() {
-            return new HttpRequest();
+        final Buffer buffer = bufferChunk.getBuffer();
+        int start = bufferChunk.getStart();
+        int end = bufferChunk.getEnd();
+
+        int idx = start;
+        for (int j = start; j < end; j++, idx++) {
+            final byte b = buffer.get(j);
+
+            if (b == '+') {
+                buffer.put(idx , (byte) ' ');
+            } else if (b != '%') {
+                buffer.put(idx, b);
+            } else {
+                // read next 2 digits
+                if (j + 2 >= end) {
+                    throw new IllegalStateException("Unexpected termination");
+                }
+                byte b1 = buffer.get(j + 1);
+                byte b2 = buffer.get(j + 2);
+                
+                if (!HexUtils.isHexDigit(b1) || !HexUtils.isHexDigit(b2)) {
+                    throw new IllegalStateException("isHexDigit");
+                }
+
+                j += 2;
+                int res = x2c(b1, b2);
+                if (!allowEncodedSlash && (res == '/')) {
+                    throw new IllegalStateException("noSlash");
+                }
+                buffer.put(idx, (byte) res);
+            }
         }
 
-        @Override
-        public HttpResponse createHttpResponse() {
-            return new HttpResponse();
-        }
+        bufferChunk.setEnd(idx);
 
-        @Override
-        public HttpContent createHttpContent(HttpHeader httpHeader) {
-            return new HttpContent(httpHeader);
+        if (onContentChanged) {
+            bufferChunk.onContentChanged();
         }
+        return;
+    }
 
-        @Override
-        public HttpTrailer createHttpTrailer(HttpHeader httpHeader) {
-            return new HttpTrailer(httpHeader);
-        }
+    private static int x2c(byte b1, byte b2) {
+        return (HexUtils.hexDigit2Dec(b1) << 4) + HexUtils.hexDigit2Dec(b2);
     }
 }

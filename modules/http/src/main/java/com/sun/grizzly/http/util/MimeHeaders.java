@@ -55,7 +55,6 @@ package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.http.core.BufferChunk;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Enumeration;

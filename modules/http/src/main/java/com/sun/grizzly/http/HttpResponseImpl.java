@@ -40,7 +40,6 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.HttpFilter.ContentParsingState;
 import com.sun.grizzly.http.HttpFilter.ParsingState;
-import com.sun.grizzly.http.core.HttpResponse;
 
 /**
  *

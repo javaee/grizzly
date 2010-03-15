@@ -56,7 +56,7 @@
 
 package com.sun.grizzly.http.util;
 
-import com.sun.grizzly.http.core.HttpRequest;
+import com.sun.grizzly.http.HttpRequest;
 import java.io.IOException;
 
 import com.sun.grizzly.http.util.ByteChunk;

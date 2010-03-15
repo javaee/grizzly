@@ -51,8 +51,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.sun.grizzly.http.core;
+package com.sun.grizzly.http;
 
+import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.RequestURIRef;
 import com.sun.grizzly.http.util.UDecoder;
 
 /**

@@ -53,7 +53,6 @@
  */
 package com.sun.grizzly.http.util;
 
-import com.sun.grizzly.http.core.BufferChunk;
 import com.sun.grizzly.Buffer;
 
 /**

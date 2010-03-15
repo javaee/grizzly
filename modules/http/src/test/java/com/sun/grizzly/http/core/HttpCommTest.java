@@ -37,6 +37,9 @@
  */
 package com.sun.grizzly.http.core;
 
+import com.sun.grizzly.http.HttpContent;
+import com.sun.grizzly.http.HttpResponse;
+import com.sun.grizzly.http.HttpRequest;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ReadResult;

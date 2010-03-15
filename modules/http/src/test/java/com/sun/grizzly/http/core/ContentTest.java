@@ -38,6 +38,10 @@
 
 package com.sun.grizzly.http.core;
 
+import com.sun.grizzly.http.HttpPacket;
+import com.sun.grizzly.http.HttpContent;
+import com.sun.grizzly.http.HttpHeader;
+import com.sun.grizzly.http.HttpRequest;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
