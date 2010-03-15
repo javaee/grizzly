@@ -69,13 +69,13 @@ public interface Buffer extends Comparable<Buffer> {
     public void trim();
 
     /**
-     * Trim the buffer by current position/limit values, if possible.
+     * Disposes the buffer part, outside [position, limit] interval if possible.
      * May return without changing capacity.
-     * After trimByWindows is called, postion/limit/capacity values may have
+     * After disposeUnused is called, postion/limit/capacity values may have
      * different values, than before, by still point to the same <tt>Buffer</tt>
      * elements.
      */
-    public void trimRegion();
+    public void disposeUnused();
 
     public boolean allowBufferDispose();
 
