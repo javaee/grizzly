@@ -94,7 +94,7 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public void trimRegion() {
+    public void disposeUnused() {
         checkDispose();
     }
 

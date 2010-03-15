@@ -142,7 +142,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             final Buffer buffer = input.getBuffer();
             if (buffer != null && buffer.remaining() >= 2) {
                 final char result = buffer.getChar();
-                buffer.trimRegion();
+                buffer.disposeUnused();
                 return result;
             }
         }
@@ -159,7 +159,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             final Buffer buffer = input.getBuffer();
             if (buffer != null && buffer.remaining() >= 2) {
                 final short result = buffer.getShort();
-                buffer.trimRegion();
+                buffer.disposeUnused();
                 return result;
             }
         }
@@ -176,7 +176,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             final Buffer buffer = input.getBuffer();
             if (buffer != null && buffer.remaining() >= 4) {
                 final int result = buffer.getInt();
-                buffer.trimRegion();
+                buffer.disposeUnused();
                 return result;
             }
         }
@@ -193,7 +193,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             final Buffer buffer = input.getBuffer();
             if (buffer != null && buffer.remaining() >= 8) {
                 final long result = buffer.getLong();
-                buffer.trimRegion();
+                buffer.disposeUnused();
                 return result;
             }
         }
@@ -210,7 +210,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             final Buffer buffer = input.getBuffer();
             if (buffer != null && buffer.remaining() >= 4) {
                 final float result = buffer.getFloat();
-                buffer.trimRegion();
+                buffer.disposeUnused();
                 return result;
             }
         }
@@ -227,7 +227,7 @@ public abstract class AbstractStreamReader implements StreamReader {
             final Buffer buffer = input.getBuffer();
             if (buffer != null && buffer.remaining() >= 8) {
                 final double result = buffer.getDouble();
-                buffer.trimRegion();
+                buffer.disposeUnused();
                 return result;
             }
         }
@@ -269,7 +269,7 @@ public abstract class AbstractStreamReader implements StreamReader {
         if (input.isBuffered()) {
             final Buffer buffer = input.getBuffer();
             buffer.get(data, offset, length);
-            buffer.trimRegion();
+            buffer.disposeUnused();
         } else {
             for(int i = offset; i < length; i++) {
                 data[i] = input.read();
@@ -300,7 +300,7 @@ public abstract class AbstractStreamReader implements StreamReader {
                 inputBuffer.limit(save);
             }
             
-            inputBuffer.trimRegion();
+            inputBuffer.disposeUnused();
         } else {
             while(buffer.hasRemaining()) {
                 buffer.put(input.read());

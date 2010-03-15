@@ -412,7 +412,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public void trimRegion() {
+    public void disposeUnused() {
         checkDispose();
 
         if (position == limit) {

@@ -453,11 +453,6 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         }
 
         @Override
-        public void trimRegion() {
-            super.trimRegion();
-        }
-
-        @Override
         public void recycle() {
             allowBufferDispose = false;
             disposeStackTrace = null;
