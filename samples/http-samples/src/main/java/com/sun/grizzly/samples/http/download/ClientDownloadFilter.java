@@ -82,7 +82,7 @@ public class ClientDownloadFilter extends BaseFilter {
      * <tt>ClientDownloadFilter</tt> constructor
      *
      * @param uri {@link URI} of a remote resource to download
-     * @param completeFuture download completion handler ({@link Future})
+     * @param completeFuture download completion handler ({@link FutureImpl})
      */
     public ClientDownloadFilter(URI uri, FutureImpl<String> completeFuture) {
         this.uri = uri;
@@ -207,9 +207,9 @@ public class ClientDownloadFilter extends BaseFilter {
 
     /**
      * Method closes the local file channel, and if download wasn't completed -
-     * notify {@link Future} about download failure.
+     * notify {@link FutureImpl} about download failure.
      * 
-     * @throws IOException
+     * @throws IOException If failed to close <em>localOutput</em>.
      */
     private void close() throws IOException {
         final FileChannel localOutput = this.output;
@@ -219,6 +219,7 @@ public class ClientDownloadFilter extends BaseFilter {
         }
 
         if (!completeFuture.isDone()) {
+            //noinspection ThrowableInstanceNeverThrown
             completeFuture.failure(new IOException("Connection was closed"));
         }
     }

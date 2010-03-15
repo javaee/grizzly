@@ -15,6 +15,6 @@
     <url>https://grizzly.dev.java.net</url>
     <modules>
         <module>framework-samples</module>
-<!--        <module>http-samples</module> -->
+        <module>http-samples</module>
     </modules>
 </project>

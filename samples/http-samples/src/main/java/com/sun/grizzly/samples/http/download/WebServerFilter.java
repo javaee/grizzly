@@ -222,7 +222,7 @@ public class WebServerFilter extends BaseFilter {
     }
 
     /**
-     * {@link CompletionHandler}, responsible for asynchronous file transferring
+     * {@link com.sun.grizzly.CompletionHandler}, responsible for asynchronous file transferring
      * via HTTP protocol.
      */
     private static class DownloadCompletionHandler

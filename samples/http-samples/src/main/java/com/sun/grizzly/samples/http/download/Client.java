@@ -77,7 +77,6 @@ public class Client {
         
         // Parse passed URL
         final URI uri = new URI(url);
-        final String scheme = uri.getScheme();
         final String host = uri.getHost();
         final int port = uri.getPort() > 0 ? uri.getPort() : 80;
         
@@ -87,7 +86,7 @@ public class Client {
         FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
         // Add transport filter
         clientFilterChainBuilder.add(new TransportFilter());
-        // Add IdleTimeoutFilter, which will close connetions, which stay
+        // Add IdleTimeoutFilter, which will close connections, which stay
         // idle longer than 10 seconds.
         clientFilterChainBuilder.add(new IdleTimeoutFilter(10, TimeUnit.SECONDS));
         // Add HttpClientFilter, which transforms Buffer <-> HttpContent
