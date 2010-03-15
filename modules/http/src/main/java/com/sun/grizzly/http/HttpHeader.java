@@ -50,7 +50,7 @@ import com.sun.grizzly.http.util.MimeHeaders;
  * 
  * @author Alexey Stashok
  */
-public abstract class HttpHeader implements HttpPacket {
+public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
 
     protected boolean isCommited;
     protected MimeHeaders headers = new MimeHeaders();
@@ -157,53 +157,41 @@ public abstract class HttpHeader implements HttpPacket {
 
     // -------------------- Headers --------------------
     /**
-     * Get all {@link MimeHeaders}, associated with the <tt>HttpHeader</tt>.
-     * 
-     * @return all {@link MimeHeaders}, associated with the <tt>HttpHeader</tt>.
+     * {@inheritDoc}
      */
+    @Override
     public MimeHeaders getHeaders() {
         return headers;
     }
 
     /**
-     * Get the value, of the specific HTTP mime header.
-     * @param name the mime header name.
-     * 
-     * @return the value, of the specific HTTP mime header.
+     * {@inheritDoc}
      */
+    @Override
     public String getHeader(String name) {
         return headers.getHeader(name);
     }
 
     /**
-     * Set the value, of the specific HTTP mime header.
-     *
-     * @param name the mime header name.
-     * @param value the mime header value.
+     * {@inheritDoc}
      */
+    @Override
     public void setHeader(String name, String value) {
         headers.setValue(name).setString(value);
     }
 
     /**
-     * Add the HTTP mime header.
-     *
-     * @param name the mime header name.
-     * @param value the mime header value.
+     * {@inheritDoc}
      */
+    @Override
     public void addHeader(String name, String value) {
         headers.addValue(name).setString(value);
     }
 
     /**
-     * Returns <tt>true</tt>, if the mime header with the specific name is present
-     * among the <tt>HttpHeader</tt> mime headers, or <tt>false</tt> otherwise.
-     * 
-     * @param name the mime header name.
-     * 
-     * @return <tt>true</tt>, if the mime header with the specific name is present
-     * among the <tt>HttpHeader</tt> mime headers, or <tt>false</tt> otherwise.
+     * {@inheritDoc}
      */
+    @Override
     public boolean containsHeader(String name) {
         return headers.getHeader(name) != null;
     }

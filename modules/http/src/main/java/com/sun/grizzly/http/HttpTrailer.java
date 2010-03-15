@@ -41,10 +41,17 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.http.util.MimeHeaders;
 
 /**
- *
- * @author oleksiys
+ * {@link HttpContent} message, which represents HTTP trailer message.
+ * Applicable only for chunked HTTP messages.
+ * 
+ * @author Alexey Stashok
  */
-public class HttpTrailer extends HttpContent {
+public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
+    /**
+     * Returns {@link HttpTrailer} builder.
+     *
+     * @return {@link Builder}.
+     */
     public static Builder builder(HttpHeader httpHeader) {
         return new Builder(httpHeader);
     }
@@ -60,44 +67,78 @@ public class HttpTrailer extends HttpContent {
         headers = new MimeHeaders();
     }
 
+    /**
+     * Always true <tt>true</tt> for the trailer message.
+     * 
+     * @return Always true <tt>true</tt> for the trailer message.
+     */
     @Override
     public final boolean isLast() {
         return true;
     }
 
     // -------------------- Headers --------------------
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public MimeHeaders getHeaders() {
         return headers;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public String getHeader(String name) {
         return headers.getHeader(name);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void setHeader(String name, String value) {
         headers.setValue(name).setString(value);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void addHeader(String name, String value) {
         headers.addValue(name).setString(value);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public boolean containsHeader(String name) {
         return headers.getHeader(name) != null;
     }
 
+    /**
+     * Set the mime headers.
+     * @param mimeHeaders {@link MimeHeaders}.
+     */
     protected void setHeaders(MimeHeaders mimeHeaders) {
         this.headers = mimeHeaders;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void recycle() {
         this.headers.recycle();
         super.recycle();
     }
 
+    /**
+     * <tt>HttpTrailer</tt> message builder.
+     */
     public static final class Builder extends HttpContent.Builder<Builder> {
-
         protected Builder(HttpHeader httpHeader) {
             super(httpHeader);
         }
@@ -107,16 +148,31 @@ public class HttpTrailer extends HttpContent {
             return new HttpTrailer(httpHeader);
         }
 
+        /**
+         * Set the mime headers.
+         * @param mimeHeaders {@link MimeHeaders}.
+         */
         public final Builder headers(MimeHeaders mimeHeaders) {
             ((HttpTrailer) packet).setHeaders(mimeHeaders);
             return this;
         }
 
+        /**
+         * Add the HTTP mime header.
+         *
+         * @param name the mime header name.
+         * @param value the mime header value.
+         */
         public final Builder header(String name, String value) {
             ((HttpTrailer) packet).setHeader(name, value);
             return this;
         }
 
+        /**
+         * Build the <tt>HttpTrailer</tt> message.
+         *
+         * @return <tt>HttpTrailer</tt>
+         */
         @Override
         public final HttpTrailer build() {
             return (HttpTrailer) packet;
