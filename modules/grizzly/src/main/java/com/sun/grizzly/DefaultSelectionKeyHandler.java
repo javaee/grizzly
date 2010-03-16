@@ -40,8 +40,6 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.util.Copyable;
 import com.sun.grizzly.util.SelectionKeyAttachment;
-import java.io.IOException;
-import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
