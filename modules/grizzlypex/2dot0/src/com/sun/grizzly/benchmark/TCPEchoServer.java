@@ -42,6 +42,7 @@ import java.lang.reflect.Constructor;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
@@ -71,11 +72,14 @@ public class TCPEchoServer {
                 setPoolName("Grizzly-BM").
                 setCorePoolSize(poolSize).setMaxPoolSize(poolSize);
 
+        FilterChainBuilder builder = FilterChainBuilder.stateless();
+        builder.add(new TransportFilter());
+        builder.add(new EchoFilter());
+
         TCPNIOTransport transport = transportFactory.createTCPTransport();
+        transport.setProcessor(builder.build());
         transport.setThreadPool(GrizzlyExecutorService.createInstance(tpc));
         transport.setSelectorRunnersCount(settings.getSelectorThreads());
-        transport.getFilterChain().add(new TransportFilter());
-        transport.getFilterChain().add(new EchoFilter());
 
         Strategy strategy = loadStrategy(settings.getStrategyClass(), transport);
 
