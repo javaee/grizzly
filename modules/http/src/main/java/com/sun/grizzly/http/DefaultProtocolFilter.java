@@ -41,6 +41,7 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.ProtocolFilter;
+import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
 import com.sun.grizzly.tcp.Response;
@@ -83,6 +84,11 @@ public class DefaultProtocolFilter implements ProtocolFilter {
     }
     
     public boolean execute(Context ctx) throws IOException {
+        if (Boolean.TRUE.equals(ctx.getAttribute(ReadFilter.DELAYED_CLOSE_NOTIFICATION))) {
+            ctx.setKeyRegistrationState(Context.KeyRegistrationState.CANCEL);
+            return false;
+        }
+
         HttpWorkerThread workerThread =
                 ((HttpWorkerThread)Thread.currentThread());
         

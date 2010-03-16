@@ -40,6 +40,7 @@ package com.sun.grizzly.arp;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.SelectorHandler;
+import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.DefaultProtocolFilter;
 import com.sun.grizzly.http.HttpWorkerThread;
 import com.sun.grizzly.http.ProcessorTask;
@@ -102,6 +103,11 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
      */
     @Override
     public boolean execute(Context ctx) throws IOException{
+        if (Boolean.TRUE.equals(ctx.getAttribute(ReadFilter.DELAYED_CLOSE_NOTIFICATION))) {
+            ctx.setKeyRegistrationState(Context.KeyRegistrationState.CANCEL);
+            return false;
+        }
+
         HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());         
         SelectionKey key = ctx.getSelectionKey();      
         ByteBuffer byteBuffer = workerThread.getByteBuffer();        
