@@ -51,12 +51,13 @@
  *  limitations under the License.
  */
 
-package com.sun.grizzly.http;
+package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.util.buf.ByteChunk;
 
 /**
  * Constants. Inspired from class com.sun.grizzly.tcp.http11.Constants
+ * TODO: A lot of this is duplicated in com.sun.grizzly.Constants - clean up
  * 
  * @author Jean-Francois Arcand
  */
@@ -66,7 +67,7 @@ public final class Constants {
     /**
      * Package name.
      */
-    public static final String Package = "com.sun.grizzly.http.res";
+    public static final String Package = "com.sun.grizzly.http.server.res";
 
     public static final int DEFAULT_CONNECTION_LINGER = -1;
     public static final int DEFAULT_CONNECTION_UPLOAD_TIMEOUT = 300000;

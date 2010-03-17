@@ -35,7 +35,7 @@
  * holder.
  *
  */
-package com.sun.grizzly.http;
+package com.sun.grizzly.http.server;
 
 import java.io.IOException;
 import java.util.concurrent.Callable;

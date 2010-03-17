@@ -36,7 +36,7 @@
  *
  */
 
-package com.sun.grizzly.http;
+package com.sun.grizzly.http.server;
 
 
 /**

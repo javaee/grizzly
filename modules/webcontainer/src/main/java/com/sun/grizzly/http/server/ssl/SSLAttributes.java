@@ -52,7 +52,7 @@
  * limitations under the License.
  */
 
-package com.sun.grizzly.ssl;
+package com.sun.grizzly.http.server.ssl;
 
 /**
  * Taken from:

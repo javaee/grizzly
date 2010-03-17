@@ -21,7 +21,7 @@
  * Copyright 2007 Sun Microsystems, Inc. All rights reserved.
  */
 
-package com.sun.grizzly.http.embed;
+package com.sun.grizzly.http.server.embed;
 
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.arp.AsyncFilter;

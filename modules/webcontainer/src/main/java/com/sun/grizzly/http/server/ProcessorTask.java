@@ -51,7 +51,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.sun.grizzly.http;
+package com.sun.grizzly.http.server;
 
 
 import com.sun.grizzly.streams.StreamWriter;
