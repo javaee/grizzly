@@ -141,22 +141,16 @@ public abstract class AbstractNIOAsyncQueueWriter
             if (isLocked && isFinished(connection, queueRecord)) { // if direct write was completed
                 // If buffer was written directly - set next queue element as current
                 // Notify callback handler
+                currentElement.set(null);
+                
                 onWriteCompleted(connection, queueRecord);
-                queueRecord.recycle();
 
-                AsyncWriteQueueRecord nextRecord = queue.poll();
-                if (nextRecord != null) { // if there is something in queue
-                    currentElement.set(nextRecord);
+                // if there is something in queue - try to make it current
+                AsyncWriteQueueRecord nextRecord = queue.peek();
+                if (nextRecord != null
+                        && currentElement.compareAndSet(null, nextRecord)) {
+                    queue.remove(nextRecord);
                     onReadyToWrite(connection);
-                } else { // if nothing in queue
-                    currentElement.set(null);
-                    // try one more time
-                    nextRecord = queue.peek();
-                    if (nextRecord != null &&
-                            currentElement.compareAndSet(null, nextRecord)) {
-                        queue.remove(nextRecord);
-                        onReadyToWrite(connection);
-                    }
                 }
 
                 return ReadyFutureImpl.<WriteResult<M, SocketAddress>>create(currentResult);
@@ -240,22 +234,16 @@ public abstract class AbstractNIOAsyncQueueWriter
 
                 // check if buffer was completely written
                 if (isFinished(connection, queueRecord)) {
+                    currentElement.set(null);
                     onWriteCompleted(connection, queueRecord);
-                    queueRecord.recycle();
                     
-                    queueRecord = queue.poll();
-                    currentElement.set(queueRecord);
+                    queueRecord = queue.peek();
+                    if (queueRecord != null
+                            && currentElement.compareAndSet(null, queueRecord)) {
 
-                    // If last element in queue is null - we have to be careful
-                    if (queueRecord == null) {
-                        queueRecord = queue.peek();
-                        if (queueRecord != null &&
-                                currentElement.compareAndSet(null, queueRecord)) {
-
-                            queue.remove(queueRecord);
-                        } else { // If there are no elements - return
-                            break;
-                        }
+                        queue.remove(queueRecord);
+                    } else { // If there are no elements - return
+                        break;
                     }
                 } else { // if there is still some data in current message
                     onReadyToWrite(connection);
@@ -394,25 +382,26 @@ public abstract class AbstractNIOAsyncQueueWriter
             AsyncWriteQueueRecord record) throws IOException {
 
         final Transformer transformer = record.getTransformer();
+        final WriteResult currentResult = record.getCurrentResult();
+        final FutureImpl future = (FutureImpl) record.getFuture();
+        final CompletionHandler<WriteResult> completionHandler =
+                record.getCompletionHandler();
+        final Object originalMessage = record.getOriginalMessage();
+
+        record.recycle();
+        
         if (transformer != null) {
             transformer.release(connection);
         }
         
-        final WriteResult currentResult = record.getCurrentResult();
-
-        final FutureImpl future = (FutureImpl) record.getFuture();
         if (future != null) {
             future.result(currentResult);
-        }
-        
-        final CompletionHandler<WriteResult> completionHandler =
-                record.getCompletionHandler();
+        }        
 
         if (completionHandler != null) {
             completionHandler.completed(currentResult);
         }
 
-        final Object originalMessage = record.getOriginalMessage();
         if (originalMessage instanceof Buffer) {
             // try to dispose originalBuffer (if allowed)
             ((Buffer) originalMessage).tryDispose();
