@@ -35,48 +35,25 @@
  * holder.
  *
  */
-package com.sun.grizzly.utils;
 
-import com.sun.grizzly.Buffer;
-import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.filterchain.NextAction;
-import java.io.IOException;
-import java.util.logging.Filter;
-import java.util.logging.Logger;
-import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import java.nio.ByteBuffer;
-import java.util.logging.Level;
+package com.sun.grizzly;
+
+import java.util.concurrent.Executor;
 
 /**
- * Echo {@link Filter} implementation
+ * Executor, which is reponsible for running {@link IOEvent} procesing.
+ * Executors should be aware whether they spawn new {@link Thread}(s) or use
+ * the current one.
  * 
  * @author Alexey Stashok
  */
-public class EchoFilter extends BaseFilter {
-
-    private static final Logger logger = Grizzly.logger(EchoFilter.class);
-
-    @Override
-    public NextAction handleRead(final FilterChainContext ctx)
-            throws IOException {
-        final Object message = ctx.getMessage();
-        final Connection connection = ctx.getConnection();
-        final Object address = ctx.getAddress();
-
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.log(Level.FINEST, "EchoFilter. connection=" + connection
-                    + " dstAddress=" + address + " message=" + message);
-        }
-        
-        if (message instanceof Buffer) {
-            ByteBuffer bb = ((Buffer) message).toByteBuffer();
-            ((Buffer) message).allowBufferDispose(true);
-        }
-
-        ctx.write(address, message, null);
-
-        return ctx.getStopAction();
-    }
+public interface EventExecutor extends Executor {
+    /**
+     * Returns <tt>true</tt> if {@link EventExecutor} uses current
+     * {@link Thread} to run I/O event processing, or <tt>false</tt> otherwise.
+     * 
+     * @return <tt>true</tt> if {@link EventExecutor} uses current
+     * {@link Thread} to run I/O event processing, or <tt>false</tt> otherwise.
+     */
+    public boolean isCurrentThreadExecutor();
 }

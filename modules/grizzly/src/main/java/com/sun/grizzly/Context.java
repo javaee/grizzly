@@ -101,6 +101,12 @@ public class Context implements AttributeStorage, Cacheable {
     private final AttributeHolder attributes;
 
     /**
+     * PostProcessor is called, when Context is ready to be recycled,
+     * though the task might be still processed.
+     */
+    private PostProcessor postProcessor;
+
+    /**
      * {@link Future}, which will be notified, when {@link Processor} will
      * complete processing of a task.
      */
@@ -174,6 +180,14 @@ public class Context implements AttributeStorage, Cacheable {
         this.processor = processor;
     }
 
+    public PostProcessor getPostProcessor() {
+        return postProcessor;
+    }
+
+    public void setPostProcessor(PostProcessor postProcessor) {
+        this.postProcessor = postProcessor;
+    }    
+
     public FutureImpl getCompletionFuture() {
         return completionFuture;
     }
@@ -213,6 +227,7 @@ public class Context implements AttributeStorage, Cacheable {
         attributes.clear();
         
         processor = null;
+        postProcessor = null;
         connection = null;
         completionFuture = null;
         completionHandler = null;

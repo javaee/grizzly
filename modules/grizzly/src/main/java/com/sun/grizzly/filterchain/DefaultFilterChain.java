@@ -52,6 +52,7 @@ import com.sun.grizzly.Appender;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
@@ -162,7 +163,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     @Override
     public ProcessorResult process(Context context) throws IOException {
         final IOEvent ioEvent = context.getIoEvent();
-        if (ioEvent == IOEvent.WRITE) {
+        if (ioEvent == IOEvent.WRITE && !((FilterChainContext) context).isUserWrite()) {
             final Connection connection = context.getConnection();
             final AsyncQueueEnabledTransport transport =
                     (AsyncQueueEnabledTransport) connection.getTransport();
@@ -191,11 +192,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 this, connection, IOEvent.WRITE, future, completionHandler);
         context.setAddress(dstAddress);
         context.setMessage(message);
-
-        final ProcessorResult result = execute(context);
-        if (result.getStatus() != ProcessorResult.Status.TERMINATE) {
-            context.recycle();
-        }
+        context.setUserWrite(true);
+        ProcessorExecutor.resume(context);
 
         return future;
     }

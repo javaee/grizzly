@@ -38,7 +38,7 @@
 
 package com.sun.grizzly.utils;
 
-import com.sun.grizzly.ProcessorExecutor;
+import com.sun.grizzly.EventExecutor;
 import java.util.concurrent.Executor;
 
 /**
@@ -46,7 +46,7 @@ import java.util.concurrent.Executor;
  * 
  * @author Alexey Stashok
  */
-public final class CurrentThreadExecutor implements ProcessorExecutor {
+public final class CurrentThreadExecutor implements EventExecutor {
     @Override
     public void execute(Runnable command) {
         command.run();

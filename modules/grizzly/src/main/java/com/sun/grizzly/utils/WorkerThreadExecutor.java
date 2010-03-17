@@ -39,7 +39,7 @@
 package com.sun.grizzly.utils;
 
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.ProcessorExecutor;
+import com.sun.grizzly.EventExecutor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.logging.Level;
@@ -51,7 +51,7 @@ import java.util.logging.Logger;
  *
  * @author Alexey Stashok
  */
-public class WorkerThreadExecutor implements ProcessorExecutor {
+public class WorkerThreadExecutor implements EventExecutor {
     private static Logger logger = Grizzly.logger(WorkerThreadExecutor.class);
 
     private final ExecutorService workerThreadPool;

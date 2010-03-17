@@ -267,7 +267,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                     listener.result(connection);
                 }
 
-                transport.fireIOEvent(IOEvent.ACCEPTED, connection);
+                transport.fireIOEvent(IOEvent.ACCEPTED, connection, null);
             } catch (Exception e) {
                 logger.log(Level.FINE, "Exception happened, when "
                         + "trying to accept the connection", e);

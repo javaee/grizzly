@@ -46,7 +46,6 @@ import java.util.logging.Filter;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.AbstractCodecFilter;
@@ -307,9 +306,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
                         buffer.trim();
 
-                        final GrizzlyFuture writeFuture = context.write(dstAddress,
-                                buffer, null);
-                        writeFuture.markForRecycle(true);
+                        context.write(dstAddress, buffer, null);
 
                         handshakeStatus = sslEngine.getHandshakeStatus();
                     } catch (SSLException e) {

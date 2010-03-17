@@ -42,8 +42,8 @@ import java.io.IOException;
 import java.util.concurrent.Executor;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Strategy;
-import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
 
@@ -52,7 +52,7 @@ import com.sun.grizzly.utils.CurrentThreadExecutor;
  *
  * @author Alexey Stashok
  */
-public final class SameThreadStrategy implements Strategy {
+public final class SameThreadStrategy extends AbstractStrategy {
     private final Executor sameThreadProcessorExecutor;
 
     public SameThreadStrategy() {
@@ -62,13 +62,14 @@ public final class SameThreadStrategy implements Strategy {
     @Override
     public boolean executeIoEvent(Connection connection,
             IOEvent ioEvent) throws IOException {
-        final IOEventReg regResult =
-                connection.getTransport().fireIOEvent(ioEvent, connection);
-        if (regResult == IOEventReg.DEREGISTER
-                && (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE)) {
+        final boolean isReadWrite = (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
+        PostProcessor pp = null;
+        if (isReadWrite) {
             ((NIOConnection) connection).disableIOEvent(ioEvent);
+            pp = enableInterestPostProcessor;
         }
-
+        
+        connection.getTransport().fireIOEvent(ioEvent, connection, pp);
         return true;
     }
 }

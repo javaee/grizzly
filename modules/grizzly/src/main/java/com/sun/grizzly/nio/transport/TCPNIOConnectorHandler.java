@@ -142,7 +142,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 nioTransport.selectorRegistrationHandler.completed(result);
                 newConnection.resetAddresses();
                 
-                transport.fireIOEvent(IOEvent.CONNECTED, newConnection);
+                transport.fireIOEvent(IOEvent.CONNECTED, newConnection, null);
 
                 if (completionHandler != null) {
                     completionHandler.completed(newConnection);

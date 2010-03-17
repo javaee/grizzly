@@ -42,6 +42,7 @@ import java.util.concurrent.Executor;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport.IOEventReg;
@@ -57,7 +58,7 @@ import java.util.logging.Logger;
  *
  * @author Alexey Stashok
  */
-public final class WorkerThreadStrategy implements Strategy {
+public final class WorkerThreadStrategy extends AbstractStrategy {
     private static final Logger logger = Grizzly.logger(WorkerThreadStrategy.class);
     
     /*
@@ -98,8 +99,13 @@ public final class WorkerThreadStrategy implements Strategy {
         
         final boolean disableInterest = (ioEvent == IOEvent.READ
                 || ioEvent == IOEvent.WRITE);
+        
+        final PostProcessor pp;
         if (disableInterest) {
             nioConnection.disableIOEvent(ioEvent);
+            pp = enableInterestPostProcessor;
+        } else {
+            pp = null;
         }
 
         final Executor executor = executors[ioEvent.ordinal()];
@@ -107,13 +113,8 @@ public final class WorkerThreadStrategy implements Strategy {
             @Override
             public void run() {
                 try {
-                    final IOEventReg regResult =
-                            connection.getTransport().fireIOEvent(
-                            ioEvent, connection);
-
-                    if (regResult == IOEventReg.REGISTER && disableInterest) {
-                        nioConnection.enableIOEvent(ioEvent);
-                    }
+                    connection.getTransport().fireIOEvent(
+                            ioEvent, connection, pp);
                 } catch (IOException e) {
                     logger.log(Level.FINE, "Uncaught exception: ", e);
                     try {

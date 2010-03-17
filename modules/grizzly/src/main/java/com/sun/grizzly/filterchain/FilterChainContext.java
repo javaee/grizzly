@@ -41,18 +41,13 @@ package com.sun.grizzly.filterchain;
 import com.sun.grizzly.Appendable;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.Connection;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.ThreadCache;
-import com.sun.grizzly.Transport;
-import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.WriteResult;
-import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
-import com.sun.grizzly.nio.NIOConnection;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -129,6 +124,8 @@ public final class FilterChainContext extends Context {
 
     private final InvokeAction cachedInvokeAction = new InvokeAction();
 
+    private boolean isUserWrite;
+    
     public FilterChainContext() {
         filterIdx = NO_FILTER_INDEX;
 
@@ -140,21 +137,22 @@ public final class FilterChainContext extends Context {
                         state = State.RUNNING;
                     }
 
-                    final Connection connection = getConnection();
-                    final IOEvent ioEvent = getIoEvent();
+//                    final Connection connection = getConnection();
+//                    final IOEvent ioEvent = getIoEvent();
 
-                    final Transport transport = connection.getTransport();
+//                    final Transport transport = connection.getTransport();
 
-                    // If we're resuming read - we need to make sure key will get reregistered
-                    if (ioEvent == IOEvent.READ) {
-                        final IOEventReg ioEventReg =
-                                transport.fireIOEvent(FilterChainContext.this);
-                        if (ioEventReg == IOEventReg.REGISTER) {
-                            ((NIOConnection) connection).enableIOEvent(ioEvent);
-                        }
-                    } else {
-                        getFilterChain().execute(FilterChainContext.this);
-                    }
+//                    // If we're resuming read - we need to make sure key will get reregistered
+//                    if (ioEvent == IOEvent.READ) {
+//                        final IOEventReg ioEventReg =
+//                                transport.fireIOEvent(FilterChainContext.this);
+//                        if (ioEventReg == IOEventReg.REGISTER) {
+//                            ((NIOConnection) connection).enableIOEvent(ioEvent);
+//                        }
+//                    } else {
+//                        getFilterChain().execute(FilterChainContext.this);
+//                    }
+                    ProcessorExecutor.resume(FilterChainContext.this);
                 } catch (Exception e) {
                     logger.log(Level.FINE, "Exception during running Processor", e);
                 }
@@ -382,30 +380,36 @@ public final class FilterChainContext extends Context {
         return SUSPEND_ACTION;
     }
 
-    public GrizzlyFuture<WriteResult> write(Object message) throws IOException {
-        return write(null, message, null);
+    protected boolean isUserWrite() {
+        return isUserWrite;
     }
 
-    public GrizzlyFuture<WriteResult> write(Object message,
+    protected void setUserWrite(boolean isUserWrite) {
+        this.isUserWrite = isUserWrite;
+    }
+    
+    public void write(Object message) throws IOException {
+        write(null, message, null);
+    }
+
+    public void write(Object message,
             CompletionHandler completionHandler) throws IOException {
-        return write(null, message, completionHandler);
+        write(null, message, completionHandler);
     }
 
-    public GrizzlyFuture<WriteResult> write(Object address, Object message,
+    public void write(Object address, Object message,
             CompletionHandler<WriteResult> completionHandler) throws IOException {
-        final FutureImpl futureImpl = FutureImpl.create();
         final FilterChainContext newContext = (FilterChainContext) getProcessor().context();
         newContext.setIoEvent(IOEvent.WRITE);
         newContext.setConnection(getConnection());
         newContext.setMessage(message);
         newContext.setAddress(address);
-        newContext.setCompletionFuture(futureImpl);
         newContext.setCompletionHandler(completionHandler);
         newContext.setStartIdx(filterIdx - 1);
         newContext.setFilterIdx(filterIdx - 1);
+        newContext.setUserWrite(true);
 
-        getFilterChain().execute(newContext);
-        return futureImpl;
+        ProcessorExecutor.resume(newContext);
     }
 
     /**
@@ -413,6 +417,7 @@ public final class FilterChainContext extends Context {
      */
     @Override
     public void reset() {
+        isUserWrite = false;
         message = null;
         address = null;
         filterIdx = NO_FILTER_INDEX;

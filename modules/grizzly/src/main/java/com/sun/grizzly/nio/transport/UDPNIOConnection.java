@@ -38,9 +38,6 @@
 
 package com.sun.grizzly.nio.transport;
 
-import com.sun.grizzly.CompletionHandler;
-import com.sun.grizzly.ReadResult;
-import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.nio.SelectorRunner;
@@ -53,11 +50,7 @@ import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.GrizzlyFuture;
-import com.sun.grizzly.Processor;
-import com.sun.grizzly.impl.FutureImpl;
 
 /**
  * {@link com.sun.grizzly.Connection} implementation
@@ -101,7 +94,7 @@ public class UDPNIOConnection extends AbstractNIOConnection {
     @Override
     protected void preClose() {
         try {
-            transport.fireIOEvent(IOEvent.CLOSED, this);
+            transport.fireIOEvent(IOEvent.CLOSED, this, null);
         } catch (IOException e) {
             logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
                     "when firing CLOSE event");

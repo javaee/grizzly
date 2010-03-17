@@ -37,10 +37,13 @@
  */
 package com.sun.grizzly.strategies;
 
+import com.sun.grizzly.Context;
+import com.sun.grizzly.ProcessorResult.Status;
 import java.io.IOException;
 import java.util.concurrent.Executor;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.IOEvent;
+import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.nio.NIOConnection;
@@ -55,7 +58,7 @@ import java.util.concurrent.ExecutorService;
  *
  * @author Alexey Stashok
  */
-public final class LeaderFollowerStrategy implements Strategy {
+public final class LeaderFollowerStrategy extends AbstractStrategy {
     /*
      * NONE,
      * SERVER_ACCEPT,
@@ -88,35 +91,26 @@ public final class LeaderFollowerStrategy implements Strategy {
     @Override
     public boolean executeIoEvent(Connection connection, IOEvent ioEvent) throws IOException {
         final Executor executor = executors[ioEvent.ordinal()];
+        final boolean isReadWrite =
+                (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE);
+        
+        final NIOConnection nioConnection = (NIOConnection) connection;
+        PostProcessor pp = null;
+        if (isReadWrite) {
+            nioConnection.disableIOEvent(ioEvent);
+            pp = enableInterestPostProcessor;
+        }
+
         if (executor != null) {
-            final NIOConnection nioConnection = (NIOConnection) connection;
-
-            final boolean disableInterest = (ioEvent == IOEvent.READ ||
-                    ioEvent == IOEvent.WRITE);
-
-            if (disableInterest) nioConnection.disableIOEvent(ioEvent);
-
             final SelectorRunner runner = nioConnection.getSelectorRunner();
             runner.postpone();
             executor.execute(runner);
-            final IOEventReg regResult =
-                    connection.getTransport().fireIOEvent(ioEvent, connection);
-            if (disableInterest && regResult == IOEventReg.REGISTER) {
-                nioConnection.enableIOEvent(ioEvent);
-            }
+            connection.getTransport().fireIOEvent(ioEvent, connection, pp);
 
             return false;
         } else {
-            final IOEventReg regResult =
-                    connection.getTransport().fireIOEvent(ioEvent, connection);
-            if (regResult == IOEventReg.DEREGISTER &&
-                    (ioEvent == IOEvent.READ || ioEvent == IOEvent.WRITE)) {
-                final NIOConnection nioConnection = (NIOConnection) connection;
-                nioConnection.disableIOEvent(ioEvent);
-            }
-
+            connection.getTransport().fireIOEvent(ioEvent, connection, pp);
             return true;
         }
     }
-
 }

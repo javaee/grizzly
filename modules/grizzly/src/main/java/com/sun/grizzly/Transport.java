@@ -379,16 +379,16 @@ public interface Transport extends ExceptionHandler {
      * @param ioEvent I/O event
      * @param connection {@link Connection}, on which we fire the event.
      */
-    public IOEventReg fireIOEvent(IOEvent ioEvent, Connection connection)
-            throws IOException;
+    public IOEventReg fireIOEvent(IOEvent ioEvent, Connection connection,
+            PostProcessor postProcessor) throws IOException;
 
-    /**
-     * Fires the {@link IOEvent} on the {@link Connection} according to the
-     * passed {@link Context}
-     *
-     * @param context I/O event processing context
-     */
-    public IOEventReg fireIOEvent(Context context) throws IOException;
+//    /**
+//     * Fires the {@link IOEvent} on the {@link Connection} according to the
+//     * passed {@link Context}
+//     *
+//     * @param context I/O event processing context
+//     */
+//    public IOEventReg fireIOEvent(Context context) throws IOException;
 
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,

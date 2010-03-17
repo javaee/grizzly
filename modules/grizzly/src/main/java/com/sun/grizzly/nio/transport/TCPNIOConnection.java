@@ -91,7 +91,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
     @Override
     protected void preClose() {
         try {
-            transport.fireIOEvent(IOEvent.CLOSED, this);
+            transport.fireIOEvent(IOEvent.CLOSED, this, null);
         } catch (IOException e) {
             logger.log(Level.FINE, "Unexpected IOExcption occurred, " +
                     "when firing CLOSE event");
