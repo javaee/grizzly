@@ -99,19 +99,22 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         if (message != null) {
             final Connection connection = ctx.getConnection();
             final FutureImpl contextFuture = ctx.getCompletionFuture();
+            final CompletionHandler completionHandler = ctx.getCompletionHandler();
             final Object address = ctx.getAddress();
             
             CompletionHandler writeCompletionHandler = null;
 
-            final boolean hasCompletionListeners = (contextFuture != null);
-            if (hasCompletionListeners) {
+            final boolean hasFuture = (contextFuture != null);
+            if (hasFuture) {
                 writeCompletionHandler = new CompletionHandlerAdapter(
                         contextFuture, ctx.getCompletionHandler());
+            } else if (completionHandler != null) {
+                writeCompletionHandler = completionHandler;
             }
 
             transport.getWriter(connection).write(connection, address,
                     (Buffer) message, writeCompletionHandler).markForRecycle(
-                    !hasCompletionListeners);
+                    !hasFuture);
         }
 
         return ctx.getInvokeAction();
