@@ -39,6 +39,7 @@ package com.sun.grizzly.memory;
 import com.sun.grizzly.Appender;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.TransportFactory;
+import java.io.UnsupportedEncodingException;
 import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -123,9 +124,17 @@ public class BufferUtils {
         }
 
         if (byteBuffer.hasArray()) {
-            return new String(byteBuffer.array(),
-                    position + byteBuffer.arrayOffset(),
-                    limit - position, charset);
+            try {
+                return new String(byteBuffer.array(),
+                        position + byteBuffer.arrayOffset(),
+                        limit - position, charset.name());
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
+            }
+//            Uncomment, when StringDecoder will not create copy of byte[]
+//            return new String(byteBuffer.array(),
+//                    position + byteBuffer.arrayOffset(),
+//                    limit - position, charset);
         } else {
             int oldPosition = byteBuffer.position();
             int oldLimit = byteBuffer.limit();
@@ -135,7 +144,15 @@ public class BufferUtils {
             byteBuffer.get(tmpBuffer);
 
             setPositionLimit(byteBuffer, oldPosition, oldLimit);
-            return new String(tmpBuffer, charset);
+
+            try {
+                return new String(tmpBuffer, charset.name());
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
+            }
+
+//            Uncomment, when StringDecoder will not create copy of byte[]
+//            return new String(tmpBuffer, charset);
         }
     }
     
