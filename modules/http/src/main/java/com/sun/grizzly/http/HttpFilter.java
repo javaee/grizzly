@@ -720,6 +720,8 @@ public abstract class HttpFilter extends BaseFilter {
         final int start = parsingState.start;
         int offset = parsingState.offset;
 
+        final boolean hasShift = (offset != parsingState.checkpoint);
+        
         while(offset < limit) {
             final byte b = input.get(offset);
             if (b == Constants.CR) {
@@ -744,12 +746,14 @@ public abstract class HttpFilter extends BaseFilter {
                 return -1;
             } else if (b == Constants.SP) {
                 finalizeKnownHeaderValues(parsingState);
-                
-                input.put(parsingState.checkpoint++, b);
+
+                if (hasShift)
+                    input.put(parsingState.checkpoint++, b);
             } else {
                 checkKnownHeaderValues(httpHeader, parsingState, b);
                 
-                input.put(parsingState.checkpoint++, b);
+                if (hasShift)
+                    input.put(parsingState.checkpoint++, b);
                 parsingState.checkpoint2 = parsingState.checkpoint;
             }
 
@@ -866,6 +870,8 @@ public abstract class HttpFilter extends BaseFilter {
             offset++;
         }
 
+        state.offset = offset;
+        
         return false;
     }
 
