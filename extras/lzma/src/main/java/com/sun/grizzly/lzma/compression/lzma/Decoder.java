@@ -36,10 +36,11 @@
  *
  */
 
-package SevenZip.Compression.LZMA;
+package com.sun.grizzly.lzma.compression.lzma;
 
-import SevenZip.Compression.RangeCoder.BitTreeDecoder;
-import SevenZip.Compression.LZ.OutWindow;
+import com.sun.grizzly.lzma.compression.rangecoder.BitTreeDecoder;
+import com.sun.grizzly.lzma.compression.lz.OutWindow;
+
 import java.io.IOException;
 
 /**
@@ -65,7 +66,7 @@ public class Decoder {
         }
 
         public void Init() {
-            SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_Choice);
+            com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_Choice);
             for (int posState = 0; posState < m_NumPosStates; posState++) {
                 m_LowCoder[posState].Init();
                 m_MidCoder[posState].Init();
@@ -73,7 +74,7 @@ public class Decoder {
             m_HighCoder.Init();
         }
 
-        public int Decode(SevenZip.Compression.RangeCoder.Decoder rangeDecoder, int posState) throws IOException {
+        public int Decode(com.sun.grizzly.lzma.compression.rangecoder.Decoder rangeDecoder, int posState) throws IOException {
             if (rangeDecoder.DecodeBit(m_Choice, 0) == 0) {
                 return m_LowCoder[posState].Decode(rangeDecoder);
             }
@@ -94,10 +95,10 @@ public class Decoder {
             short[] m_Decoders = new short[0x300];
 
             public void Init() {
-                SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_Decoders);
+                com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_Decoders);
             }
 
-            public byte DecodeNormal(SevenZip.Compression.RangeCoder.Decoder rangeDecoder) throws IOException {
+            public byte DecodeNormal(com.sun.grizzly.lzma.compression.rangecoder.Decoder rangeDecoder) throws IOException {
                 int symbol = 1;
                 do {
                     symbol = (symbol << 1) | rangeDecoder.DecodeBit(m_Decoders, symbol);
@@ -105,7 +106,7 @@ public class Decoder {
                 return (byte) symbol;
             }
 
-            public byte DecodeWithMatchByte(SevenZip.Compression.RangeCoder.Decoder rangeDecoder, byte matchByte) throws IOException {
+            public byte DecodeWithMatchByte(com.sun.grizzly.lzma.compression.rangecoder.Decoder rangeDecoder, byte matchByte) throws IOException {
                 int symbol = 1;
                 do {
                     int matchBit = (matchByte >> 7) & 1;
@@ -153,7 +154,7 @@ public class Decoder {
         }
     }
     OutWindow m_OutWindow = new OutWindow();
-    SevenZip.Compression.RangeCoder.Decoder m_RangeDecoder = new SevenZip.Compression.RangeCoder.Decoder();
+    com.sun.grizzly.lzma.compression.rangecoder.Decoder m_RangeDecoder = new com.sun.grizzly.lzma.compression.rangecoder.Decoder();
     short[] m_IsMatchDecoders = new short[Base.kNumStates << Base.kNumPosStatesBitsMax];
     short[] m_IsRepDecoders = new short[Base.kNumStates];
     short[] m_IsRepG0Decoders = new short[Base.kNumStates];
@@ -203,13 +204,13 @@ public class Decoder {
     void Init() throws IOException {
         m_OutWindow.Init(false);
 
-        SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_IsMatchDecoders);
-        SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_IsRep0LongDecoders);
-        SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_IsRepDecoders);
-        SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_IsRepG0Decoders);
-        SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_IsRepG1Decoders);
-        SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_IsRepG2Decoders);
-        SevenZip.Compression.RangeCoder.Decoder.InitBitModels(m_PosDecoders);
+        com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_IsMatchDecoders);
+        com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_IsRep0LongDecoders);
+        com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_IsRepDecoders);
+        com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_IsRepG0Decoders);
+        com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_IsRepG1Decoders);
+        com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_IsRepG2Decoders);
+        com.sun.grizzly.lzma.compression.rangecoder.Decoder.InitBitModels(m_PosDecoders);
 
         m_LiteralDecoder.Init();
         int i;

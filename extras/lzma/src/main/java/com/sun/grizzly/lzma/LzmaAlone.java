@@ -36,7 +36,10 @@
  *
  */
 
-package SevenZip;
+package com.sun.grizzly.lzma;
+
+import com.sun.grizzly.lzma.compression.lzma.Decoder;
+import com.sun.grizzly.lzma.compression.lzma.Encoder;
 
 /**
  * LzmaAlone
@@ -201,7 +204,7 @@ public class LzmaAlone {
             if (params.MatchFinder > 1) {
                 throw new Exception("Unsupported match finder");
             }
-            SevenZip.LzmaBench.LzmaBenchmark(params.NumBenchmarkPasses, dictionary);
+            LzmaBench.LzmaBenchmark(params.NumBenchmarkPasses, dictionary);
         } else if (params.Command == CommandLine.kEncode || params.Command == CommandLine.kDecode) {
             java.io.File inFile = new java.io.File(params.InFile);
             java.io.File outFile = new java.io.File(params.OutFile);
@@ -214,7 +217,7 @@ public class LzmaAlone {
                 eos = true;
             }
             if (params.Command == CommandLine.kEncode) {
-                SevenZip.Compression.LZMA.Encoder encoder = new SevenZip.Compression.LZMA.Encoder();
+                Encoder encoder = new Encoder();
                 if (!encoder.SetAlgorithm(params.Algorithm)) {
                     throw new Exception("Incorrect compression mode");
                 }
@@ -248,7 +251,7 @@ public class LzmaAlone {
                 if (inStream.read(properties, 0, propertiesSize) != propertiesSize) {
                     throw new Exception("input .lzma file is too short");
                 }
-                SevenZip.Compression.LZMA.Decoder decoder = new SevenZip.Compression.LZMA.Decoder();
+                Decoder decoder = new Decoder();
                 if (!decoder.SetDecoderProperties(properties)) {
                     throw new Exception("Incorrect stream properties");
                 }

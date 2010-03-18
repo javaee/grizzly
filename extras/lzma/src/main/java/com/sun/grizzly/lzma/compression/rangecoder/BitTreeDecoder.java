@@ -36,21 +36,19 @@
  *
  */
 
-package SevenZip.Compression.RangeCoder;
-
-import java.io.IOException;
+package com.sun.grizzly.lzma.compression.rangecoder;
 
 /**
- * BitTreeEncoder
+ * BitTreeDecoder
  *
  * @author Igor Pavlov
  */
-public class BitTreeEncoder {
+public class BitTreeDecoder {
 
     short[] Models;
     int NumBitLevels;
 
-    public BitTreeEncoder(int numBitLevels) {
+    public BitTreeDecoder(int numBitLevels) {
         NumBitLevels = numBitLevels;
         Models = new short[1 << numBitLevels];
     }
@@ -59,71 +57,36 @@ public class BitTreeEncoder {
         Decoder.InitBitModels(Models);
     }
 
-    public void Encode(Encoder rangeEncoder, int symbol) throws IOException {
+    public int Decode(Decoder rangeDecoder) throws java.io.IOException {
         int m = 1;
-        for (int bitIndex = NumBitLevels; bitIndex != 0;) {
-            bitIndex--;
-            int bit = (symbol >>> bitIndex) & 1;
-            rangeEncoder.Encode(Models, m, bit);
-            m = (m << 1) | bit;
+        for (int bitIndex = NumBitLevels; bitIndex != 0; bitIndex--) {
+            m = (m << 1) + rangeDecoder.DecodeBit(Models, m);
         }
+        return m - (1 << NumBitLevels);
     }
 
-    public void ReverseEncode(Encoder rangeEncoder, int symbol) throws IOException {
+    public int ReverseDecode(Decoder rangeDecoder) throws java.io.IOException {
         int m = 1;
-        for (int i = 0; i < NumBitLevels; i++) {
-            int bit = symbol & 1;
-            rangeEncoder.Encode(Models, m, bit);
-            m = (m << 1) | bit;
-            symbol >>= 1;
+        int symbol = 0;
+        for (int bitIndex = 0; bitIndex < NumBitLevels; bitIndex++) {
+            int bit = rangeDecoder.DecodeBit(Models, m);
+            m <<= 1;
+            m += bit;
+            symbol |= (bit << bitIndex);
         }
+        return symbol;
     }
 
-    public int GetPrice(int symbol) {
-        int price = 0;
+    public static int ReverseDecode(short[] Models, int startIndex,
+            Decoder rangeDecoder, int NumBitLevels) throws java.io.IOException {
         int m = 1;
-        for (int bitIndex = NumBitLevels; bitIndex != 0;) {
-            bitIndex--;
-            int bit = (symbol >>> bitIndex) & 1;
-            price += Encoder.GetPrice(Models[m], bit);
-            m = (m << 1) + bit;
+        int symbol = 0;
+        for (int bitIndex = 0; bitIndex < NumBitLevels; bitIndex++) {
+            int bit = rangeDecoder.DecodeBit(Models, startIndex + m);
+            m <<= 1;
+            m += bit;
+            symbol |= (bit << bitIndex);
         }
-        return price;
-    }
-
-    public int ReverseGetPrice(int symbol) {
-        int price = 0;
-        int m = 1;
-        for (int i = NumBitLevels; i != 0; i--) {
-            int bit = symbol & 1;
-            symbol >>>= 1;
-            price += Encoder.GetPrice(Models[m], bit);
-            m = (m << 1) | bit;
-        }
-        return price;
-    }
-
-    public static int ReverseGetPrice(short[] Models, int startIndex,
-            int NumBitLevels, int symbol) {
-        int price = 0;
-        int m = 1;
-        for (int i = NumBitLevels; i != 0; i--) {
-            int bit = symbol & 1;
-            symbol >>>= 1;
-            price += Encoder.GetPrice(Models[startIndex + m], bit);
-            m = (m << 1) | bit;
-        }
-        return price;
-    }
-
-    public static void ReverseEncode(short[] Models, int startIndex,
-            Encoder rangeEncoder, int NumBitLevels, int symbol) throws IOException {
-        int m = 1;
-        for (int i = 0; i < NumBitLevels; i++) {
-            int bit = symbol & 1;
-            rangeEncoder.Encode(Models, startIndex + m, bit);
-            m = (m << 1) | bit;
-            symbol >>= 1;
-        }
+        return symbol;
     }
 }

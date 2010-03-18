@@ -36,7 +36,7 @@
  *
  */
 
-package SevenZip.Compression.RangeCoder;
+package com.sun.grizzly.lzma.compression.rangecoder;
 
 import java.io.IOException;
 

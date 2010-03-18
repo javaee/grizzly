@@ -36,7 +36,7 @@
  *
  */
 
-package SevenZip.Compression.LZMA;
+package com.sun.grizzly.lzma.compression.lzma;
 
 /**
  * Base

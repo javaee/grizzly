@@ -36,7 +36,10 @@
  *
  */
 
-package SevenZip;
+package com.sun.grizzly.lzma;
+
+import com.sun.grizzly.lzma.compression.lzma.Decoder;
+import com.sun.grizzly.lzma.compression.lzma.Encoder;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -346,8 +349,8 @@ public class LzmaBench {
         }
         System.out.print("\n       Compressing                Decompressing\n\n");
 
-        SevenZip.Compression.LZMA.Encoder encoder = new SevenZip.Compression.LZMA.Encoder();
-        SevenZip.Compression.LZMA.Decoder decoder = new SevenZip.Compression.LZMA.Decoder();
+        Encoder encoder = new Encoder();
+        Decoder decoder = new Decoder();
 
         if (!encoder.SetDictionarySize(dictionarySize)) {
             throw new Exception("Incorrect dictionary size");

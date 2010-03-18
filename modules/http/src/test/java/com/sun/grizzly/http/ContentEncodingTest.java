@@ -36,7 +36,7 @@
 
 package com.sun.grizzly.http;
 
-import SevenZip.Compression.LZMA.Decoder;
+import com.sun.grizzly.lzma.compression.lzma.Decoder;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;

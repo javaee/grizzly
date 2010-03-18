@@ -43,6 +43,7 @@
 
 package com.sun.grizzly.tcp.http11.filters;
 
+import com.sun.grizzly.lzma.compression.lzma.Encoder;
 import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.OutputFilter;
@@ -77,7 +78,7 @@ public class LzmaOutputFilter implements OutputFilter {
     /**
      * Compression output stream.
      */
-    protected SevenZip.Compression.LZMA.Encoder encoder;
+    protected Encoder encoder;
     protected final LzmaProperties lzmaProperties = new LzmaProperties();
     protected final ReusableByteArrayInputStream byteArrayInputStream =
             new ReusableByteArrayInputStream();
@@ -152,7 +153,7 @@ public class LzmaOutputFilter implements OutputFilter {
     }
 
     private void initEncoder() throws IOException {
-        encoder = new SevenZip.Compression.LZMA.Encoder();
+        encoder = new Encoder();
         encoder.SetAlgorithm(lzmaProperties.getAlgorithm());
         encoder.SetDictionarySize(lzmaProperties.getDictionarySize());
         encoder.SetNumFastBytes(lzmaProperties.getNumFastBytes());

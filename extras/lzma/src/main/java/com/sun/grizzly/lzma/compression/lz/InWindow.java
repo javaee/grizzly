@@ -36,7 +36,7 @@
  *
  */
 
-package SevenZip.Compression.LZ;
+package com.sun.grizzly.lzma.compression.lz;
 
 import java.io.IOException;
 

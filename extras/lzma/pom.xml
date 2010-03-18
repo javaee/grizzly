@@ -34,7 +34,7 @@
                     <instructions>
                         <Import-Package>*</Import-Package>
                         <Export-Package>
-                            SevenZip.*
+                            com.sun.grizzly.lzma.*
                         </Export-Package>
                     </instructions>
                     <unpackBundle>true</unpackBundle>
