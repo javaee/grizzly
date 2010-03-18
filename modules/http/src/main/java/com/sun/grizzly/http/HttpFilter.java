@@ -924,13 +924,16 @@ public abstract class HttpFilter extends BaseFilter {
             headerBuffer.put(bufferChunk.getBuffer(), bufferChunk.getStart(),
                     length);
         } else {
-            byte[] bytes = bufferChunk.toString().getBytes(Constants.ASCII_CHARSET);
-            if (headerBuffer.remaining() < bytes.length) {
+            final String s = bufferChunk.toString();
+            final int size = s.length();
+            if (headerBuffer.remaining() < size) {
                 headerBuffer =
-                        resizeBuffer(memoryManager, headerBuffer, bytes.length);
+                        resizeBuffer(memoryManager, headerBuffer, size);
             }
 
-            headerBuffer.put(bytes, 0, bytes.length);
+            for(int i = 0; i < size; i++) {
+                headerBuffer.put((byte) s.charAt(i));
+            }
         }
 
         return headerBuffer;
