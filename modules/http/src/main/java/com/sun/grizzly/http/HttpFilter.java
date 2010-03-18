@@ -52,9 +52,9 @@ import com.sun.grizzly.memory.BufferUtils;
 import java.io.IOException;
 
 /**
- * The {@link Filter}, responsible for transforming {@link Buffer} into
+ * The {@link com.sun.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
  * {@link HttpPacket} and vice versa in asynchronous mode.
- * When the <tt>HttpFilter</tt> is added to a {@link FilterChain}, on read phase
+ * When the <tt>HttpFilter</tt> is added to a {@link com.sun.grizzly.filterchain.FilterChain}, on read phase
  * it consumes incoming {@link Buffer} and provides {@link HttpContent} as
  * the result of transformation. On write phase the <tt>HttpFilter</tt> consumes
  * input {@link HttpPacket} and serializes it to a {@link Buffer}, which
@@ -747,19 +747,24 @@ public abstract class HttpFilter extends BaseFilter {
             } else if (b == Constants.SP) {
                 finalizeKnownHeaderValues(parsingState);
 
-                if (hasShift)
+                if (hasShift) {
                     input.put(parsingState.checkpoint++, b);
+                } else {
+                    parsingState.checkpoint++;
+                }
             } else {
                 checkKnownHeaderValues(httpHeader, parsingState, b);
                 
-                if (hasShift)
+                if (hasShift) {
                     input.put(parsingState.checkpoint++, b);
+                } else {
+                    parsingState.checkpoint++;
+                }
                 parsingState.checkpoint2 = parsingState.checkpoint;
             }
 
             offset++;
         }
-
         parsingState.offset = offset;
         return -1;
     }
