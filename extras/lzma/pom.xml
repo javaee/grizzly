@@ -10,7 +10,7 @@
     <groupId>com.sun.grizzly</groupId>
     <artifactId>grizzly-lzma</artifactId>
     <packaging>jar</packaging>
-    <version>4.65-SNAPSHOT</version>
+    <version>1.9.19-SNAPSHOT</version>
     <name>grizzly-lzma</name>
     <url>https://grizzly.dev.java.net</url>    
     <build>
@@ -51,21 +51,4 @@
             </plugin>
         </plugins>
     </build>   
-    <dependencies>
-        <dependency>
-            <groupId>com.sun.commons</groupId>
-            <artifactId>beanutils</artifactId>
-            <version>1.6.1-20070314</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.commons</groupId>
-            <artifactId>logging-api</artifactId>
-            <version>1.0.4</version>
-        </dependency>
-        <dependency>
-            <groupId>com.sun.commons</groupId>
-            <artifactId>modeler</artifactId>
-            <version>1.1</version>
-        </dependency>
-    </dependencies>
 </project>

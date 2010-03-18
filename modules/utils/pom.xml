@@ -58,7 +58,7 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-lzma</artifactId>
-            <version>4.65-SNAPSHOT</version>
+            <version>${grizzly-version}</version>
         </dependency>
     </dependencies>
 </project>
