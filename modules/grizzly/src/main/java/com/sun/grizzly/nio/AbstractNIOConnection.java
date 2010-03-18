@@ -50,6 +50,7 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ReadResult;
@@ -60,6 +61,8 @@ import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Common {@link Connection} implementation for Java NIO <tt>Connection</tt>s.
@@ -67,6 +70,8 @@ import com.sun.grizzly.attributes.IndexedAttributeHolder;
  * @author Alexey Stashok
  */
 public abstract class AbstractNIOConnection implements NIOConnection {
+    private static final Logger logger = Grizzly.logger(AbstractNIOConnection.class);
+    
     protected final NIOTransport transport;
 
     protected volatile int readBufferSize;
@@ -305,7 +310,18 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     public void close() throws IOException {
         if (!isClosed.getAndSet(true)) {
             preClose();
-            ((AbstractNIOTransport) transport).closeConnection(this);
+            transport.getSelectorHandler().executeInSelectorThread(
+                    selectorRunner, new Runnable() {
+
+                @Override
+                public void run() {
+                    try {
+                        ((AbstractNIOTransport) transport).closeConnection(AbstractNIOConnection.this);
+                    } catch (IOException e) {
+                        logger.log(Level.FINE, "Error during connection close", e);
+                    }
+                }
+            }, null).markForRecycle(true);
         }
     }
 

@@ -257,6 +257,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         try {
             state.setState(State.STOP);
+            stopServerConnections();
+
             stopSelectorRunners();
 
             if (threadPool != null) {
@@ -264,7 +266,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 threadPool = null;
             }
 
-            stopServerConnections();
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -452,34 +453,34 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         SelectableChannel nioChannel = ((NIOConnection) connection).getChannel();
 
         // channel could be either SocketChannel or ServerSocketChannel
-        if (nioChannel instanceof SocketChannel) {
-            Socket socket = ((SocketChannel) nioChannel).socket();
-
-            try {
-                if (!socket.isInputShutdown()) {
-                    socket.shutdownInput();
-                }
-            } catch (IOException e) {
-                logger.log(Level.FINE,
-                        "TCPNIOTransport.closeChannel exception", e);
-            }
-
-            try {
-                if (!socket.isOutputShutdown()) {
-                    socket.shutdownOutput();
-                }
-            } catch (IOException e) {
-                logger.log(Level.FINE,
-                        "TCPNIOTransport.closeChannel exception", e);
-            }
-
-            try {
-                socket.close();
-            } catch (IOException e) {
-                logger.log(Level.FINE,
-                        "TCPNIOTransport.closeChannel exception", e);
-            }
-        }
+//        if (nioChannel instanceof SocketChannel) {
+//            Socket socket = ((SocketChannel) nioChannel).socket();
+//
+//            try {
+//                if (!socket.isInputShutdown()) {
+//                    socket.shutdownInput();
+//                }
+//            } catch (IOException e) {
+//                logger.log(Level.FINE,
+//                        "TCPNIOTransport.closeChannel exception", e);
+//            }
+//
+//            try {
+//                if (!socket.isOutputShutdown()) {
+//                    socket.shutdownOutput();
+//                }
+//            } catch (IOException e) {
+//                logger.log(Level.FINE,
+//                        "TCPNIOTransport.closeChannel exception", e);
+//            }
+//
+//            try {
+//                socket.close();
+//            } catch (IOException e) {
+//                logger.log(Level.FINE,
+//                        "TCPNIOTransport.closeChannel exception", e);
+//            }
+//        }
 
         if (nioChannel != null) {
             try {

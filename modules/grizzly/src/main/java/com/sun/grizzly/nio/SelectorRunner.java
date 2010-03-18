@@ -43,7 +43,6 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport.State;
-import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import com.sun.grizzly.threadpool.WorkerThread;
 import com.sun.grizzly.utils.ExceptionHandler.Severity;
 import com.sun.grizzly.utils.StateHolder;
@@ -176,7 +175,7 @@ public final class SelectorRunner implements Runnable {
                                     transport.getSelectionKeyHandler().
                                     getConnectionForKey(selectionKey);
                             try {
-                                connection.close();
+                                ((AbstractNIOTransport) transport).closeConnection(connection);
                             } catch (IOException e) {
                             }
                         }

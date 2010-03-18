@@ -451,9 +451,11 @@ public class DefaultSelectorHandler implements SelectorHandler {
         private final FutureImpl<Runnable> future;
         private final CompletionHandler<Runnable> completionHandler;
 
-        private RunnableTask(Runnable runnableTask, FutureImpl<Runnable> future,
+        private RunnableTask(Runnable task, FutureImpl<Runnable> future,
                 CompletionHandler<Runnable> completionHandler) {
-            throw new UnsupportedOperationException("Not yet implemented");
+            this.task = task;
+            this.future = future;
+            this.completionHandler = completionHandler;
         }
 
         @Override
