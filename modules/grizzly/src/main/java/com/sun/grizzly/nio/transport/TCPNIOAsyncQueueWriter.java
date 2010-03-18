@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.nio.transport;
 
-import com.sun.grizzly.Context;
 import com.sun.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import com.sun.grizzly.nio.NIOTransport;
 import java.io.IOException;
