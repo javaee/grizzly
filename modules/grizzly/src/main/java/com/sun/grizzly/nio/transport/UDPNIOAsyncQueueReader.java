@@ -38,8 +38,6 @@
 
 package com.sun.grizzly.nio.transport;
 
-import com.sun.grizzly.Context;
-import com.sun.grizzly.asyncqueue.*;
 import com.sun.grizzly.nio.AbstractNIOAsyncQueueReader;
 import com.sun.grizzly.nio.NIOTransport;
 import java.io.IOException;
@@ -51,6 +49,7 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.Transformer;
+import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.nio.NIOConnection;
 

@@ -130,15 +130,14 @@ public abstract class AbstractNIOAsyncQueueReader
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
                         || (interceptor == null && isFinished(connection, queueRecord))) { // if direct read is completed
 
+                    // If message was read directly - set next queue element as current
+                    AsyncReadQueueRecord nextRecord = queue.poll();
+                    currentElement.set(nextRecord);
+                    
                     // Notify callback handler
                     onReadCompleted(connection, queueRecord);
 
-                    // If message was read directly - set next queue element as current
-                    AsyncReadQueueRecord nextRecord = queue.poll();
-                    if (nextRecord != null) { // if there is something in queue
-                        currentElement.set(nextRecord);
-                        onReadyToRead(connection);
-                    } else { // if nothing in queue
+                    if (nextRecord == null) { // if nothing in queue
                         currentElement.set(null);
                         // try one more time
                         nextRecord = queue.peek();
@@ -147,6 +146,8 @@ public abstract class AbstractNIOAsyncQueueReader
                             queue.remove(nextRecord);
                             onReadyToRead(connection);
                         }
+                    } else { // if there is something in queue
+                        onReadyToRead(connection);
                     }
 
                     intercept(connection, COMPLETE_EVENT, queueRecord, null);
@@ -242,15 +243,17 @@ public abstract class AbstractNIOAsyncQueueReader
 
                 if ((interceptInstructions & Interceptor.COMPLETED) != 0
                         || (interceptor == null && isFinished(connection, queueRecord))) {
+
+                    AsyncReadQueueRecord nextRecord = queue.poll();
+                    currentElement.set(nextRecord);
+
                     onReadCompleted(connection, queueRecord);
 
                     intercept(connection, Reader.COMPLETE_EVENT,
                             queueRecord, null);
                     queueRecord.recycle();
 
-                    queueRecord = queue.poll();
-                    currentElement.set(queueRecord);
-
+                    queueRecord = nextRecord;
                     // If last element in queue is null - we have to be careful
                     if (queueRecord == null) {
                         queueRecord = queue.peek();

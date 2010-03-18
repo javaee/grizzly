@@ -38,9 +38,7 @@
 
 package com.sun.grizzly.nio.transport;
 
-import com.sun.grizzly.Context;
 import com.sun.grizzly.WriteResult;
-import com.sun.grizzly.asyncqueue.*;
 import com.sun.grizzly.nio.AbstractNIOAsyncQueueWriter;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.nio.NIOTransport;

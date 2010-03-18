@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.nio.transport;
 
-import com.sun.grizzly.Context;
 import com.sun.grizzly.nio.AbstractNIOAsyncQueueReader;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.ReadResult;
