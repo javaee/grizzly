@@ -118,7 +118,7 @@ public class StringEncoder extends AbstractTransformer<String, Buffer> {
 
         final TransformationResult<String, Buffer> result =
                 TransformationResult.<String, Buffer>createCompletedResult(
-                output, null, false);
+                output, null);
         return result;
     }
 

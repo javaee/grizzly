@@ -94,7 +94,7 @@ public class ArrayDecoder extends SequenceDecoder<Object> {
             input.get(byteArray);
             return saveState(storage, byteArray, byteArray.length,
                     TransformationResult.<Buffer, Object>createCompletedResult(
-                        sequence, input, false));
+                        sequence, input));
         }
 
         return super.transform(storage, input);

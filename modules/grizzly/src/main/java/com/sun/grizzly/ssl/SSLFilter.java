@@ -348,11 +348,12 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private void notifyHandshakeCompleted(final Connection connection,
             final SSLEngine sslEngine) {
 
-        final int dumpVolatileRead = dumbVolatile;
-        final CompletionHandler<SSLEngine> completionHandler =
-                handshakeCompletionHandlerAttr.get(connection);
-        if (completionHandler != null) {
-            completionHandler.completed(sslEngine);
+        if (dumbVolatile != 0) {
+            final CompletionHandler<SSLEngine> completionHandler =
+                    handshakeCompletionHandlerAttr.get(connection);
+            if (completionHandler != null) {
+                completionHandler.completed(sslEngine);
+            }
         }
     }
 

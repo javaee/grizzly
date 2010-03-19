@@ -158,7 +158,7 @@ public abstract class BufferedInput implements Input {
     @Override
     public Buffer takeBuffer() {
         final Buffer duplicate = compositeBuffer.duplicate();
-        compositeBuffer.removeAll();
+        compositeBuffer.tryDisposeInternalBuffers();
         return duplicate;
     }
 

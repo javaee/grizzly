@@ -94,7 +94,7 @@ public class ArrayEncoder extends SequenceEncoder<Object> {
             output.flip();
             
             return TransformationResult.<Object, Buffer>createCompletedResult(
-                    output, null, false);
+                    output, null);
         } else {
             return super.transform(storage, input);
         }

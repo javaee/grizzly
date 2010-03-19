@@ -75,7 +75,7 @@ public interface Buffer extends Comparable<Buffer> {
      * different values, than before, by still point to the same <tt>Buffer</tt>
      * elements.
      */
-    public void disposeUnused();
+    public boolean disposeUnused();
 
     public boolean allowBufferDispose();
 
@@ -84,7 +84,7 @@ public interface Buffer extends Comparable<Buffer> {
     /**
      * Try to dispose <tt>Buffer</tt> if it's allowed.
      */
-    public void tryDispose();
+    public boolean tryDispose();
 
     /**
      * Notify the allocator that the space for this <tt>Buffer</tt> is no

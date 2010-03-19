@@ -59,8 +59,8 @@ public class BufferUtils {
             }
 
             final CompositeBuffer compositeBuffer =
-                    ByteBuffersBuffer.create((MemoryManager) null,
-                    element1.toByteBuffer());
+                    BuffersBuffer.create((MemoryManager) null,
+                    element1);
             compositeBuffer.append(element2);
             return compositeBuffer;
         }
@@ -293,12 +293,10 @@ public class BufferUtils {
             return buffer2;
         } else {
             CompositeBuffer compositeBuffer =
-                    ByteBuffersBuffer.create(memoryManager);
+                    BuffersBuffer.create(memoryManager);
 
             compositeBuffer.append(buffer1);
             compositeBuffer.append(buffer2);
-
-            compositeBuffer.allowBufferDispose(true);
 
             return compositeBuffer;
         }

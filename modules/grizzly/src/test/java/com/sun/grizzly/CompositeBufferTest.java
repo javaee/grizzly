@@ -500,7 +500,8 @@ public class CompositeBufferTest extends GrizzlyTestCase {
             Buffer... buffers) {
         switch(type) {
             case BUFFERS:
-                return new BuffersBuffer(TransportFactory.getInstance().getDefaultMemoryManager(), buffers);
+                return BuffersBuffer.create(
+                        TransportFactory.getInstance().getDefaultMemoryManager(), buffers);
             case BYTE_BUFFERS:
                 CompositeBuffer cb = ByteBuffersBuffer.create(
                         TransportFactory.getInstance().getDefaultMemoryManager());

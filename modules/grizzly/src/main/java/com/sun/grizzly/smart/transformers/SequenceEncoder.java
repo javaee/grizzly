@@ -172,7 +172,7 @@ public abstract class SequenceEncoder<E> extends AbstractSmartMemberEncoder<E> {
         output.flip();
         
         return TransformationResult.<E, Buffer>createCompletedResult(
-                output, null, false);
+                output, null);
     }
 
     @Override

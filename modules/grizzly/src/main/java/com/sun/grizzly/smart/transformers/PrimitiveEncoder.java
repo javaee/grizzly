@@ -59,7 +59,7 @@ public abstract class PrimitiveEncoder<E> extends AbstractSmartMemberEncoder<E> 
         final Buffer output = obtainMemoryManager(storage).allocate(sizeOf());
         
         return TransformationResult.<E, Buffer>createCompletedResult(
-                    put(output, input).flip(), input, false);
+                    put(output, input).flip(), input);
     }
 
     @Override

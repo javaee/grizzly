@@ -395,7 +395,7 @@ public abstract class AbstractNIOAsyncQueueReader
                             buffer.disposeUnused();
                             queueRecord.setRemainderBuffer(buffer);
                             queueRecord.setMessage(remainder);
-                        } else if (buffer != null && !tResult.hasInternalRemainder()) {
+                        } else if (buffer != null) {
                             buffer.dispose();
                         }
 
@@ -407,15 +407,11 @@ public abstract class AbstractNIOAsyncQueueReader
                         if (hasRemaining) {
                             remainderBuffer.disposeUnused();
                             queueRecord.setRemainderBuffer(remainderBuffer);
-                        } else if (buffer != null && !tResult.hasInternalRemainder()) {
+                        } else if (buffer != null) {
                             buffer.dispose();
                         }
 
-                        if (!tResult.hasInternalRemainder()) {
-                            return readBytes;
-                        }
-
-                        buffer = remainder;
+                        return readBytes;
                     } else if (tResult.getStatus() == TransformationResult.Status.ERROR) {
                         throw new IOException("Transformation exception ("
                                 + tResult.getErrorCode() + "): "

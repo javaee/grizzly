@@ -58,7 +58,7 @@ public class GIOPEncoder extends AbstractTransformer<GIOPMessage, Buffer> {
 
         final int size = 4 + 1 + 1 + 1 + 1 + 4 + input.getBodyLength();
         final Buffer output = obtainMemoryManager(storage).allocate(size);
-
+        output.allowBufferDispose(true);
         // GIOP header
         output.put(input.getGIOPHeader());
 
@@ -81,7 +81,7 @@ public class GIOPEncoder extends AbstractTransformer<GIOPMessage, Buffer> {
         output.put(input.getBody());
 
         return TransformationResult.<GIOPMessage, Buffer>createCompletedResult(
-                output.flip(), null, false);
+                output.flip(), null);
     }
 
     @Override

@@ -210,7 +210,7 @@ public abstract class TemporarySelectorReader
 
                     final Buffer remainder = (Buffer) tResult.getExternalRemainder();
                     final boolean hasRemaining = transformer.hasInputRemaining(connection, remainder);
-                    if (buffer != null && !hasRemaining && !tResult.hasInternalRemainder()) {
+                    if (buffer != null && !hasRemaining) {
                         buffer.dispose();
                     }
 
@@ -223,9 +223,7 @@ public abstract class TemporarySelectorReader
                             buffer = remainder;
                         }
 
-                        if (!tResult.hasInternalRemainder()) {
-                            break;
-                        }
+                        break;
                     } else if (tResult.getStatus() == TransformationResult.Status.ERROR) {
                         throw new IOException("Transformation exception ("
                                 + tResult.getErrorCode() + "): "

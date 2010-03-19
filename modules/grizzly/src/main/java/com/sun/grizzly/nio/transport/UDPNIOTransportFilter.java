@@ -97,6 +97,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             throws IOException {
         final Object message = ctx.getMessage();
         if (message != null) {
+            ctx.setMessage(null);
             final Connection connection = ctx.getConnection();
             final FutureImpl contextFuture = ctx.getCompletionFuture();
             final CompletionHandler completionHandler = ctx.getCompletionHandler();

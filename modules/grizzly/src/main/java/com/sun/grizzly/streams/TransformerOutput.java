@@ -46,7 +46,7 @@ import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.memory.ByteBuffersBuffer;
+import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
@@ -106,8 +106,8 @@ public class TransformerOutput extends BufferedOutput {
                 } else if (status == Status.INCOMPLETED) {
                     buffer.compact();
                     if (!buffer.isComposite()) {
-                        buffer = ByteBuffersBuffer.create(
-                                memoryManager, buffer.toByteBuffer());
+                        buffer = BuffersBuffer.create(
+                                memoryManager, buffer);
                     }
                     outputBufferAttr.set(attributeStorage, (CompositeBuffer) buffer);
 

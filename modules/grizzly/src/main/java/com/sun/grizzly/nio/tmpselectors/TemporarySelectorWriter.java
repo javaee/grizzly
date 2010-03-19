@@ -186,8 +186,7 @@ public abstract class TemporarySelectorWriter
                 }
 
                 final Object remainder = tResult.getExternalRemainder();
-                if (!tResult.hasInternalRemainder() &&
-                        (remainder == null || !transformer.hasInputRemaining(connection, remainder))) {
+                if ((remainder == null || !transformer.hasInputRemaining(connection, remainder))) {
                     transformer.release(connection);
                     return currentResult.getWrittenSize();
                 }

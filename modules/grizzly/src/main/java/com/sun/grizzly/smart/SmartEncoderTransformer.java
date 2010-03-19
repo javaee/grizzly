@@ -186,7 +186,7 @@ public class SmartEncoderTransformer<E> extends AbstractTransformer<E, Buffer>
         
         return saveStatus(storage, processingTree, currentElementIndex,
                 TransformationResult.<E, Buffer>createCompletedResult(
-                                output, null, false));
+                                output, null));
     }
 
     @Override

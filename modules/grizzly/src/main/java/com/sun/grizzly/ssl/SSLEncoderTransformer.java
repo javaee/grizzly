@@ -138,13 +138,13 @@ public final class SSLEncoderTransformer extends AbstractTransformer<Buffer, Buf
                 
                 transformationResult =
                         TransformationResult.<Buffer, Buffer>createCompletedResult(
-                        targetBuffer, originalMessage, false);
+                        targetBuffer, originalMessage);
             } else if (status == SSLEngineResult.Status.CLOSED) {
                 targetBuffer.dispose();
                 
                 transformationResult =
                         TransformationResult.<Buffer, Buffer>createCompletedResult(
-                        BufferUtils.EMPTY_BUFFER, originalMessage, false);
+                        BufferUtils.EMPTY_BUFFER, originalMessage);
             } else {
                 targetBuffer.dispose();
 

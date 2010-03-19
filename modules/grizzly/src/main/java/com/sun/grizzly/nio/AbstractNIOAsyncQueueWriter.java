@@ -369,7 +369,6 @@ public abstract class AbstractNIOAsyncQueueWriter
                 TransformationResult tResult = transformer.getLastResult(connection);
                 if (tResult != null &&
                         tResult.getStatus() == TransformationResult.Status.COMPLETED &&
-                        !tResult.hasInternalRemainder() &&
                         !transformer.hasInputRemaining(connection, message)) {
                     return;
                 }

@@ -149,7 +149,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
         input.limit(tmpLimit);
 
         return TransformationResult.<Buffer, String>createCompletedResult(
-                stringMessage, input, false);
+                stringMessage, input);
     }
 
     protected TransformationResult<Buffer, String> parseWithTerminatingSeq(
@@ -184,7 +184,7 @@ public class StringDecoder extends AbstractTransformer<Buffer, String> {
             input.limit(tmpLimit);
             input.position(termIndex + terminationBytesLength);
             return TransformationResult.<Buffer, String>createCompletedResult(
-                    stringMessage, input, false);
+                    stringMessage, input);
         } else {
             offset = input.remaining() - terminationBytesLength;
             if (offset < 0) {

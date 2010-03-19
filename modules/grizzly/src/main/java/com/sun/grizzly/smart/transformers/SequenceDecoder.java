@@ -180,7 +180,7 @@ public abstract class SequenceDecoder<E> extends AbstractSmartMemberDecoder<E> {
 
         return saveState(storage, sequence,
                 TransformationResult.<Buffer, E>createCompletedResult(
-                sequence, input, false));
+                sequence, input));
     }
 
     @Override

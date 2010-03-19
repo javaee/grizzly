@@ -51,7 +51,6 @@ import java.util.Arrays;
  * @author Alexey Stashok
  */
 public final class ByteBuffersBuffer implements CompositeBuffer {
-    private static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
     private static final ThreadCache.CachedTypeIndex<ByteBuffersBuffer> CACHE_IDX =
             ThreadCache.obtainIndex(ByteBuffersBuffer.class, 2);
 
@@ -104,6 +103,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     // Allow to dispose this ByteBuffersBuffer
     private boolean allowBufferDispose = false;
 
+    // Allow to try to dispose internal buffers
+    private boolean allowInternalBuffersDispose = true;
+
     // List of wrapped buffers
     private ByteBuffer[] buffers;
     private int buffersSize;
@@ -151,10 +153,15 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public final void tryDispose() {
+    public final boolean tryDispose() {
         if (allowBufferDispose) {
             dispose();
+            return true;
+        } else if (allowInternalBuffersDispose) {
+            removeBuffers(true);
         }
+
+        return false;
     }
 
     @Override
@@ -163,12 +170,8 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         isDisposed = true;
         removeBuffers(true);
 
-        position = 0;
-        limit = 0;
-
         ThreadCache.putToCache(CACHE_IDX, this);
     }
-
     
     @Override
     public final boolean isComposite() {
@@ -186,15 +189,6 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         limit = capacity;
         
         return this;
-    }
-
-    private void ensureBuffersCapacity(int newElementsNum) {
-        final int newSize = buffersSize + newElementsNum;
-
-        if (newSize > buffers.length) {
-            buffers = Arrays.copyOf(buffers,
-                    Math.max(newSize, (buffers.length * 3) / 2 + 1));
-        }
     }
 
     public ByteBuffersBuffer prepend(ByteBuffer buffer) {
@@ -251,6 +245,15 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             capacity += buffer.remaining();
             limit = capacity;
             return this;
+        }
+    }
+
+    private void ensureBuffersCapacity(int newElementsNum) {
+        final int newSize = buffersSize + newElementsNum;
+
+        if (newSize > buffers.length) {
+            buffers = Arrays.copyOf(buffers,
+                    Math.max(newSize, (buffers.length * 3) / 2 + 1));
         }
     }
 
@@ -400,7 +403,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             final ByteBuffer buffer = buffers[i];
             removedBytes += buffer.remaining();
             
-            if (allowBufferDispose) {
+            if (allowInternalBuffersDispose) {
                 MemoryUtils.releaseByteBuffer(memoryManager, buffer);
             }
         }
@@ -412,14 +415,12 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public void disposeUnused() {
+    public boolean disposeUnused() {
         checkDispose();
 
         if (position == limit) {
             removeBuffers(false);
-            
-            clear();
-            return;
+            return true;
         }
         
         final long posLocation = locateBufferPosition(position);
@@ -432,7 +433,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         final int rightTrim = buffersSize - limitBufferIndex - 1;
 
         if (leftTrim == 0 && rightTrim == 0) {
-            return;
+            return false;
         }
 
         for(int i=0; i<leftTrim; i++) {
@@ -441,7 +442,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             setPosLim(position - bufferSize, limit - bufferSize);
             capacity -= bufferSize;
             
-            if (allowBufferDispose) {
+            if (allowInternalBuffersDispose) {
                 MemoryUtils.releaseByteBuffer(memoryManager, buffer);
             }
         }
@@ -451,7 +452,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             final int bufferSize = buffer.remaining();
             capacity -= bufferSize;
 
-            if (allowBufferDispose) {
+            if (allowInternalBuffersDispose) {
                 MemoryUtils.releaseByteBuffer(memoryManager, buffer);
             }
         }
@@ -460,6 +461,8 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         resetLastLocation();
         
         System.arraycopy(buffers, leftTrim, buffers, 0, buffersSize);
+
+        return false;
     }
 
     @Override
@@ -579,6 +582,17 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     public void allowBufferDispose(boolean allow) {
         this.allowBufferDispose = allow;
     }
+
+    @Override
+    public boolean allowInternalBuffersDispose() {
+        return allowInternalBuffersDispose;
+    }
+
+    @Override
+    public void allowInternalBuffersDispose(boolean allowInternalBuffersDispose) {
+        this.allowInternalBuffersDispose = allowInternalBuffersDispose;
+    }
+
 
     @Override
     public byte get() {
@@ -1198,7 +1212,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
             throw new IndexOutOfBoundsException();
 
         if (buffersSize == 0) {
-            return EMPTY_BYTE_BUFFER_ARRAY;
+            return BufferUtils.EMPTY_BYTE_BUFFER_ARRAY;
         } else if (buffersSize == 1) {
             return new ByteBuffer[] {toByteBuffer(position, limit)};
         }
@@ -1231,13 +1245,16 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     private void removeBuffers(boolean force) {
-        if (force || allowBufferDispose) {
-            for (int i = 0; i < buffersSize; i++) {
+        if (force || allowInternalBuffersDispose) {
+            for (int i = buffersSize - 1; i >= 0; i--) {
                 final ByteBuffer byteBuffer = buffers[i];
                 MemoryUtils.releaseByteBuffer(memoryManager, byteBuffer);
             }
         }
 
+        position = 0;
+        limit = 0;
+        capacity = 0;
         buffersSize = 0;
         Arrays.fill(buffers, null);
         resetLastLocation();
@@ -1427,7 +1444,7 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public void removeAll() {
+    public void tryDisposeInternalBuffers() {
         buffersSize = 0;
         position = 0;
         limit = 0;

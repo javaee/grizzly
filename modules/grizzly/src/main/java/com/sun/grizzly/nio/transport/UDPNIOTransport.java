@@ -408,6 +408,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
 
         try {
             state.setState(State.STOP);
+            stopServerConnections();
+            
             stopSelectorRunners();
 
             if (threadPool != null) {
@@ -415,7 +417,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 threadPool = null;
             }
 
-            stopServerConnections();
         } finally {
             state.getStateLocker().writeLock().unlock();
         }

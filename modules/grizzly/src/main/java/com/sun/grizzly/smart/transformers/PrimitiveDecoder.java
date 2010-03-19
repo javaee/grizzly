@@ -62,7 +62,7 @@ public abstract class PrimitiveDecoder<E> extends AbstractSmartMemberDecoder<E> 
         if (input.remaining() < sizeOf()) {
             result = TransformationResult.<Buffer, E>createIncompletedResult(input);
         } else {
-            result = TransformationResult.<Buffer, E>createCompletedResult(get(input), input, false);
+            result = TransformationResult.<Buffer, E>createCompletedResult(get(input), input);
         }
 
         return result;

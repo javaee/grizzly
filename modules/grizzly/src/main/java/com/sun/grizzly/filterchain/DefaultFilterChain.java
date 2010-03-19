@@ -75,6 +75,7 @@ import java.util.Queue;
  * @author Alexey Stashok
  */
 public final class DefaultFilterChain extends ListFacadeFilterChain {
+
     public enum FILTER_STATE_TYPE {INCOMPLETE, REMAINDER};
     
     protected final static Attribute<FiltersState> FILTERS_STATE_ATTR =
@@ -288,6 +289,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 ctx.setMessage(storedMessage);
             }
 
+            // Save initial inputMessage
+            final Object inputMessage = ctx.getMessage();
+            
             // execute the task
             final NextAction nextNextAction = executeFilter(executor,
                     currentFilter, ctx);
@@ -298,17 +302,26 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 return false;
             }
 
-            if (nextNextActionType == InvokeAction.TYPE) {
+            if (nextNextActionType == InvokeAction.TYPE) { // if we need to execute next filter
+                // Take the remainder, if any?
                 final Object remainder = ((InvokeAction) nextNextAction).getRemainder();
                 if (remainder != null) {
-                    if (filtersState == null) {
-                        filtersState = new FiltersState(size());
-                        FILTERS_STATE_ATTR.set(connection, filtersState);
+                    boolean isStoreRemainder = true;
+                    
+                    if (remainder == inputMessage && remainder instanceof Buffer) {
+                        isStoreRemainder = !((Buffer) remainder).disposeUnused();
                     }
 
-                    filtersState.setState(ioEvent, i,
-                            new FilterStateElement(FILTER_STATE_TYPE.REMAINDER,
-                            remainder, null));
+                    if (isStoreRemainder) {
+                        if (filtersState == null) {
+                            filtersState = new FiltersState(size());
+                            FILTERS_STATE_ATTR.set(connection, filtersState);
+                        }
+
+                        filtersState.setState(ioEvent, i,
+                                new FilterStateElement(FILTER_STATE_TYPE.REMAINDER,
+                                remainder, null));
+                    }
                 }
             } else {
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
@@ -445,7 +458,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     public DefaultFilterChain subList(int fromIndex, int toIndex) {
         return new DefaultFilterChain(filters.subList(fromIndex, toIndex));
     }
-
 
     private GrizzlyFuture registerStandaloneReadListener(
             Connection connection, CompletionHandler completionHandler) {

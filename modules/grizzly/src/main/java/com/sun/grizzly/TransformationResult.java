@@ -51,15 +51,15 @@ public class TransformationResult<I, O> {
     }
 
     public static <I, O> TransformationResult<I, O> createCompletedResult(
-            O message, I externalRemainder, boolean hasInternalRemainder) {
+            O message, I externalRemainder) {
         return new TransformationResult<I, O>(Status.COMPLETED, message,
-                externalRemainder, hasInternalRemainder);
+                externalRemainder);
     }
 
     public static <I, O> TransformationResult<I, O> createIncompletedResult(
             I externalRemainder) {
         return new TransformationResult<I, O>(Status.INCOMPLETED, null,
-                externalRemainder, false);
+                externalRemainder);
     }
 
     public enum Status {
@@ -74,18 +74,14 @@ public class TransformationResult<I, O> {
 
     private I externalRemainder;
 
-    private boolean hasInternalRemainder;
-
     public TransformationResult() {
-        this(Status.COMPLETED, null, null, false);
+        this(Status.COMPLETED, null, null);
     }
 
-    public TransformationResult(Status status, O message, I externalRemainder,
-            boolean hasInternalRemainder) {
+    public TransformationResult(Status status, O message, I externalRemainder) {
         this.status = status;
         this.message = message;
         this.externalRemainder = externalRemainder;
-        this.hasInternalRemainder = hasInternalRemainder;
     }
 
     /**
@@ -116,14 +112,6 @@ public class TransformationResult<I, O> {
         this.externalRemainder = externalRemainder;
     }
 
-    public boolean hasInternalRemainder() {
-        return hasInternalRemainder;
-    }
-
-    public void setInternalRemainder(boolean hasInternalRemainder) {
-        this.hasInternalRemainder = hasInternalRemainder;
-    }
-   
     public Status getStatus() {
         return status;
     }

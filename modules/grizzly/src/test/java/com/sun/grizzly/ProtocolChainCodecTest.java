@@ -226,7 +226,7 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             } catch (Exception e) {
             }
             
-            return TransformationResult.createCompletedResult(input, null, false);
+            return TransformationResult.createCompletedResult(input, null);
         }
 
         @Override

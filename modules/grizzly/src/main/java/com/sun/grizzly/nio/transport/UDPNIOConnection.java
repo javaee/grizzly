@@ -51,6 +51,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
+import java.util.concurrent.TimeUnit;
 
 /**
  * {@link com.sun.grizzly.Connection} implementation
@@ -75,10 +76,18 @@ public class UDPNIOConnection extends AbstractNIOConnection {
         return channel != null && ((DatagramChannel) channel).isConnected();
     }
 
-    public Future register() throws IOException {
-        return transport.getNioChannelDistributor().registerChannelAsync(
+    public void register() throws IOException {
+
+        final Future future =
+                transport.getNioChannelDistributor().registerChannelAsync(
                 channel, SelectionKey.OP_READ, this,
                 ((UDPNIOTransport) transport).registerChannelCompletionHandler);
+
+        try {
+            future.get(10, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new IOException("Error registering server channel key", e);
+        }
     }
 
     @Override

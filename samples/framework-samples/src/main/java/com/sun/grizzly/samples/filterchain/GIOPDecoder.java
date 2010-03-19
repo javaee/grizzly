@@ -163,7 +163,7 @@ public class GIOPDecoder extends AbstractTransformer<Buffer, GIOPMessage> {
             preparsedMessageAttr.remove(storage);
             stateAttr.remove(storage);
 
-            return TransformationResult.<Buffer, GIOPMessage>createCompletedResult(message, input, false);
+            return TransformationResult.<Buffer, GIOPMessage>createCompletedResult(message, input);
         }
     }
 

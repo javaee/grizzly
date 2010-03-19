@@ -40,7 +40,7 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.memory.ByteBuffersBuffer;
+import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -89,7 +89,7 @@ public abstract class BufferedOutput implements Output {
     @Override
     public void write(Buffer bufferToWrite) throws IOException {
         if (multiBufferWindow == null) {
-            multiBufferWindow = ByteBuffersBuffer.create();
+            multiBufferWindow = BuffersBuffer.create();
         }
 
         final boolean isInternalBufferEmpty = buffer == null ||
@@ -157,7 +157,7 @@ public abstract class BufferedOutput implements Output {
                     completionHandler);
 
             if (future.isDone()) {
-                multiBufferWindow.removeAll();
+                multiBufferWindow.tryDisposeInternalBuffers();
                 multiBufferWindow.clear();
                 if (buffer != null) {
                     buffer.clear();

@@ -45,7 +45,7 @@ import com.sun.grizzly.TransformationResult.Status;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.memory.ByteBuffersBuffer;
+import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.utils.conditions.Condition;
@@ -155,7 +155,7 @@ public final class TransformerInput extends BufferedInput {
                                 inputBufferAttr.set(attributeStorage,
                                         (CompositeBuffer) bufferToTransform);
                             } else {
-                                savedBuffer = ByteBuffersBuffer.create(memoryManager);
+                                savedBuffer = BuffersBuffer.create(memoryManager);
                                 savedBuffer.append(bufferToTransform);
                                 inputBufferAttr.set(attributeStorage, savedBuffer);
                             }

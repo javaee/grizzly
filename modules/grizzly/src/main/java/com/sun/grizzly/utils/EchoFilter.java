@@ -71,7 +71,6 @@ public class EchoFilter extends BaseFilter {
         }
         
         if (message instanceof Buffer) {
-            ByteBuffer bb = ((Buffer) message).toByteBuffer();
             ((Buffer) message).allowBufferDispose(true);
         }
 

@@ -131,7 +131,7 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
             BufferUtils.setPositionLimit(input, oldInputPos + chunkSize, oldInputLimit);
 
             return TransformationResult.<Buffer, Buffer>createCompletedResult(
-                    output, input, false);
+                    output, input);
         }
 
         @Override

@@ -94,8 +94,9 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public void disposeUnused() {
+    public boolean disposeUnused() {
         checkDispose();
+        return false;
     }
 
     @Override
@@ -109,10 +110,13 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public final void tryDispose() {
+    public final boolean tryDispose() {
         if (allowBufferDispose) {
             dispose();
+            return true;
         }
+
+        return false;
     }
 
 

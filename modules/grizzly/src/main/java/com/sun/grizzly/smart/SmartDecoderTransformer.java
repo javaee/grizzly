@@ -200,7 +200,7 @@ public class SmartDecoderTransformer<E> extends AbstractTransformer<Buffer, E>
 
         return saveState(storage, processingTree, currentElementIndex,
         TransformationResult.<Buffer, E>createCompletedResult(
-                (E) processingTree.get(0), input, false));
+                (E) processingTree.get(0), input));
     }
 
     @Override
