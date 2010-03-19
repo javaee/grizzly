@@ -358,7 +358,11 @@ public class SSLConfigHolder {
                 setAttribute(serverSF, "crlFile", ssl.getCrlFile(), null, null);
             }
             if (ssl.getTrustAlgorithm() != null) {
-                setAttribute(serverSF, "trustAlgorithm", ssl.getTrustAlgorithm(), null, null);
+                setAttribute(serverSF, "truststoreAlgorithm", ssl.getTrustAlgorithm(), null, null);
+            }
+
+            if (ssl.getKeyAlgorithm() != null) {
+                setAttribute(serverSF, "algorithm", ssl.getKeyAlgorithm(), null, null);
             }
             setAttribute(serverSF, "trustMaxCertLength", ssl.getTrustMaxCertLength(), null, null);
         }
