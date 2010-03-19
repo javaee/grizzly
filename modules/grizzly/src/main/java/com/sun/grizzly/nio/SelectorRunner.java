@@ -203,8 +203,13 @@ public final class SelectorRunner implements Runnable {
     }
     
     public void wakeupSelector() {
-        if (selector != null) {
-            selector.wakeup();
+        final Selector localSelector = selector;
+        if (localSelector != null) {
+            try {
+                localSelector.wakeup();
+            } catch (Exception e) {
+                logger.log(Level.FINE, "Error during selector wakeup", e);
+            }
         }
     }
 
