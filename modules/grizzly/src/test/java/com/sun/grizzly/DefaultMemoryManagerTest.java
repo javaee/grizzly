@@ -42,17 +42,22 @@ import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.DefaultMemoryManager;
+import com.sun.grizzly.memory.MemoryManagerMonitoringProbe;
 import com.sun.grizzly.threadpool.FixedThreadPool;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.ExecutorService;
+import java.util.logging.Logger;
 
 /**
  *
  * @author oleksiys
  */
 public class DefaultMemoryManagerTest extends GrizzlyTestCase {
+    private static Logger logger = Grizzly.logger(DefaultMemoryManagerTest.class);
+    
     public void testDispose() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        final DefaultMemoryManager mm = new DefaultMemoryManager(
+                new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -80,7 +85,8 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testTrimDispose() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        final DefaultMemoryManager mm = new DefaultMemoryManager(
+                new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -113,7 +119,8 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testReallocate() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        final DefaultMemoryManager mm = new DefaultMemoryManager(
+                new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -159,7 +166,8 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testSimpleAllocateHistory() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        final DefaultMemoryManager mm = new DefaultMemoryManager(
+                new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -218,7 +226,8 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     public void testTrimAllocateHistory() throws Exception {
-        final DefaultMemoryManager mm = new DefaultMemoryManager();
+        final DefaultMemoryManager mm = new DefaultMemoryManager(
+                new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
             @Override
             public void run() {
@@ -285,5 +294,24 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         });
 
         assertTrue(future.get(10, TimeUnit.SECONDS));
+    }
+
+    private static class MyMemoryMonitoringProbe implements MemoryManagerMonitoringProbe {
+
+        @Override
+        public void allocateNewBufferEvent(int size) {
+            logger.info("allocateNewBufferEvent: " + size);
+        }
+
+        @Override
+        public void allocateBufferFromPoolEvent(int size) {
+            logger.info("allocateBufferFromPoolEvent: " + size);
+        }
+
+        @Override
+        public void releaseBufferToPoolEvent(int size) {
+            logger.info("releaseBufferToPoolEvent: " + size);
+        }
+        
     }
 }

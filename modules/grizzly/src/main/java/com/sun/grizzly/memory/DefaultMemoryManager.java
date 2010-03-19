@@ -39,7 +39,6 @@ package com.sun.grizzly.memory;
 import com.sun.grizzly.Cacheable;
 import com.sun.grizzly.ThreadCache;
 import java.nio.ByteBuffer;
-import java.util.concurrent.atomic.AtomicLong;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import java.util.Arrays;
 
@@ -53,6 +52,14 @@ import java.util.Arrays;
 public final class DefaultMemoryManager extends ByteBufferManager {
     private static final ThreadCache.CachedTypeIndex<TrimAwareWrapper> CACHE_IDX =
             ThreadCache.obtainIndex(TrimAwareWrapper.class, 2);
+
+    public DefaultMemoryManager() {
+        super(null);
+    }
+
+    public DefaultMemoryManager(MemoryManagerMonitoringProbe monitoringProbe) {
+        super(monitoringProbe);
+    }
 
     /**
      * Construct {@link Future}.
@@ -77,13 +84,6 @@ public final class DefaultMemoryManager extends ByteBufferManager {
      */
     private volatile int maxThreadBufferSize = DEFAULT_MAX_BUFFER_SIZE;
 
-    private boolean isMonitoring;
-
-    /**
-     * Real amount of bytes, which was allocated.
-     */
-    private final AtomicLong totalBytesAllocated = new AtomicLong();
-    
     /**
      * Get the maximum size of memory pool for one thread.
      *
@@ -103,37 +103,6 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     }
 
     /**
-     * Is monotoring enabled.
-     * 
-     * @return <tt>true</tt>, if monitoring is enabled, or <tt>false</tt>
-     * otherwise.
-     */
-    public boolean isMonitoring() {
-        return isMonitoring;
-    }
-
-    /**
-     * Set monotoring mode.
-     *
-     * @param isMonitoring <tt>true</tt>, if monitoring is enabled, or
-     * <tt>false</tt> otherwise.
-     */
-    public void setMonitoring(boolean isMonitoring) {
-        this.isMonitoring = isMonitoring;
-        ByteBufferWrapper.DEBUG_MODE = isMonitoring;
-    }
-
-    /**
-     * Get real number of bytes allocated by this {@link MemoryManager}.
-     * It doesn't count bytes, which were pooled and then reused.
-     * 
-     * @return real number of bytes allocated by this {@link MemoryManager}.
-     */
-    public long getTotalBytesAllocated() {
-        return totalBytesAllocated.get();
-    }
-
-    /**
      * Allocates {@link ByteBuffer} of required size.
      * First of all <tt>DefaultMemoryManager</tt> tries to reuse thread local
      * memory pool. If it's not possible - it delegates allocation to 
@@ -147,13 +116,13 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     public ByteBuffer allocateByteBuffer(int size) {
         if (size > maxThreadBufferSize) {
             // Don't use pool
-            return incAllocated(super.allocateByteBuffer(size));
+            return super.allocateByteBuffer(size);
         }
 
         if (isDefaultWorkerThread()) {
             ThreadLocalPool threadLocalCache = getThreadLocalPool();
 
-            if (threadLocalCache.hasRemaining()) {
+            if (!threadLocalCache.hasRemaining()) {
                 threadLocalCache = reallocatePoolBuffer();
                 return allocateFromPool(threadLocalCache, size);
             }
@@ -169,13 +138,13 @@ public final class DefaultMemoryManager extends ByteBufferManager {
             }
 
         } else {
-            return incAllocated(super.allocateByteBuffer(size));
+            return super.allocateByteBuffer(size);
         }
     }
 
     private ThreadLocalPool reallocatePoolBuffer() {
-        final ByteBuffer byteBuffer = incAllocated(
-                super.allocateByteBuffer(maxThreadBufferSize));
+        final ByteBuffer byteBuffer =
+                super.allocateByteBuffer(maxThreadBufferSize);
 
         final ThreadLocalPool threadLocalCache = getThreadLocalPool();
         threadLocalCache.reset(byteBuffer);
@@ -203,16 +172,27 @@ public final class DefaultMemoryManager extends ByteBufferManager {
             final ByteBuffer newBuffer =
                     memoryPool.reallocate(oldByteBuffer, newSize);
             
-            if (newBuffer != null) return newBuffer;
+            if (newBuffer != null) {
+                if (monitoringProbe != null) {
+                    monitoringProbe.allocateBufferFromPoolEvent(
+                            newSize - oldByteBuffer.capacity());
+                }
+
+                return newBuffer;
+            }
         }
 
-        return incAllocated(super.reallocateByteBuffer(oldByteBuffer, newSize));
+        return super.reallocateByteBuffer(oldByteBuffer, newSize);
     }
 
 
     private ByteBuffer allocateFromPool(final ThreadLocalPool threadLocalCache,
             final int size) {
         if (threadLocalCache.remaining() >= size) {
+            if (monitoringProbe != null) {
+                monitoringProbe.allocateBufferFromPoolEvent(size);
+            }
+            
             return threadLocalCache.allocate(size);
         }
 
@@ -233,9 +213,15 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         if (isDefaultWorkerThread()) {
             ThreadLocalPool memoryPool = getThreadLocalPool();
 
-            if (memoryPool.release((ByteBuffer) byteBuffer.clear())) return;
+            if (memoryPool.release((ByteBuffer) byteBuffer.clear())) {
+                if (monitoringProbe != null) {
+                    monitoringProbe.releaseBufferToPoolEvent(byteBuffer.capacity());
+                }
 
+                return;
+            }
         }
+        
         super.releaseByteBuffer(byteBuffer);
     }
 
@@ -270,17 +256,6 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         DefaultWorkerThread workerThread =
                 (DefaultWorkerThread) Thread.currentThread();
         return workerThread.getMemoryPool();
-    }
-
-    /**
-     * Counts total allocated memory size.
-     */
-    private ByteBuffer incAllocated(ByteBuffer allocated) {
-        if (isMonitoring) {
-            totalBytesAllocated.addAndGet(allocated.capacity());
-        }
-
-        return allocated;
     }
 
     private boolean isDefaultWorkerThread() {
@@ -318,16 +293,16 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         }
 
         public ByteBuffer reallocate(ByteBuffer oldByteBuffer, int newSize) {
-            if (isLastAllocated(oldByteBuffer) &&
-                    remaining() + oldByteBuffer.capacity() >= newSize) {
-            
-            lastAllocatedIndex--;
+            if (isLastAllocated(oldByteBuffer)
+                    && remaining() + oldByteBuffer.capacity() >= newSize) {
 
-            pool.position(pool.position() - oldByteBuffer.capacity());
-            final ByteBuffer newByteBuffer = BufferUtils.slice(pool, newSize);
-            newByteBuffer.position(oldByteBuffer.position());
+                lastAllocatedIndex--;
 
-            return addHistory(newByteBuffer);
+                pool.position(pool.position() - oldByteBuffer.capacity());
+                final ByteBuffer newByteBuffer = BufferUtils.slice(pool, newSize);
+                newByteBuffer.position(oldByteBuffer.position());
+
+                return addHistory(newByteBuffer);
             }
 
             return null;
@@ -378,13 +353,13 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         }
 
         public int remaining() {
-            if (hasRemaining()) return 0;
+            if (!hasRemaining()) return 0;
 
             return pool.remaining();
         }
 
         public boolean hasRemaining() {
-            return pool == null || !pool.hasRemaining();
+            return pool != null && pool.hasRemaining();
         }
 
         private ByteBuffer addHistory(ByteBuffer allocated) {

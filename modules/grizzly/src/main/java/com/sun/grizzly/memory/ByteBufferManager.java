@@ -59,12 +59,20 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      * Is direct ByteBuffer should be used?
      */
     protected boolean isDirect;
+
+    protected final MemoryManagerMonitoringProbe monitoringProbe;
     
     public ByteBufferManager() {
-        this(false);
+        this(null);
     }
 
-    public ByteBufferManager(boolean isDirect) {
+    public ByteBufferManager(MemoryManagerMonitoringProbe monitoringProbe) {
+        this(monitoringProbe, false);
+    }
+
+    public ByteBufferManager(MemoryManagerMonitoringProbe monitoringProbe,
+            boolean isDirect) {
+        this.monitoringProbe = monitoringProbe;
         this.isDirect = isDirect;
     }
 
@@ -168,6 +176,10 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     @Override
     public ByteBuffer allocateByteBuffer(int size) {
+        if (monitoringProbe != null) {
+            monitoringProbe.allocateNewBufferEvent(size);
+        }
+
         if (isDirect) {
             return ByteBuffer.allocateDirect(size);
         } else {
