@@ -45,11 +45,13 @@ import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.DefaultMemoryManager;
+import com.sun.grizzly.memory.MemoryManagerMonitoringProbe;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import com.sun.grizzly.utils.EchoFilter;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  *
@@ -62,9 +64,12 @@ public class TCPEchoServer {
         
         TransportFactory transportFactory = TransportFactory.getInstance();
 
-        DefaultMemoryManager memoryManager = (DefaultMemoryManager)
-                transportFactory.getDefaultMemoryManager();
-        memoryManager.setMonitoring(settings.isMonitoringMemory());
+        MemoryStatsProbe probe = null;
+        if (settings.isMonitoringMemory()) {
+            probe = new MemoryStatsProbe();
+            DefaultMemoryManager memoryManager = new DefaultMemoryManager(probe);
+            transportFactory.setDefaultMemoryManager(memoryManager);
+        }
 
         int poolSize = (settings.getWorkerThreads());
 
@@ -96,7 +101,9 @@ public class TCPEchoServer {
             TransportFactory.getInstance().close();
         }
 
-        System.out.println("Totaly allocated " + memoryManager.getTotalBytesAllocated() + " bytes");
+        if (probe != null) {
+            System.out.println("Memory stats:\n" + probe.toString());
+        }
     }
 
     public static Strategy loadStrategy(Class<? extends Strategy> strategy, Transport transport) {
@@ -115,6 +122,34 @@ public class TCPEchoServer {
             } catch (Exception ee) {
                 throw new IllegalStateException("Can not initialize strategy: " + strategy + ". Error: " + ee.getClass() + ": " + ee.getMessage());
             }
+        }
+    }
+
+    public static class MemoryStatsProbe implements MemoryManagerMonitoringProbe {
+        private final AtomicInteger allocatedNew = new AtomicInteger();
+        private final AtomicInteger allocatedFromPool = new AtomicInteger();
+        private final AtomicInteger releasedToPool = new AtomicInteger();
+        
+        public void allocateNewBufferEvent(int i) {
+            allocatedNew.addAndGet(i);
+        }
+
+        public void allocateBufferFromPoolEvent(int i) {
+            allocatedFromPool.addAndGet(i);
+        }
+
+        public void releaseBufferToPoolEvent(int i) {
+            releasedToPool.addAndGet(i);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append("allocated-memory=").append(allocatedNew.get());
+            sb.append(" allocated-from-pool=").append(allocatedFromPool.get());
+            sb.append(" released-to-pool=").append(releasedToPool.get());
+
+            return sb.toString();
         }
     }
 }
