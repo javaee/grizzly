@@ -51,7 +51,7 @@ import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import com.sun.grizzly.utils.EchoFilter;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  *
@@ -126,9 +126,9 @@ public class TCPEchoServer {
     }
 
     public static class MemoryStatsProbe implements MemoryManagerMonitoringProbe {
-        private final AtomicInteger allocatedNew = new AtomicInteger();
-        private final AtomicInteger allocatedFromPool = new AtomicInteger();
-        private final AtomicInteger releasedToPool = new AtomicInteger();
+        private final AtomicLong allocatedNew = new AtomicLong();
+        private final AtomicLong allocatedFromPool = new AtomicLong();
+        private final AtomicLong releasedToPool = new AtomicLong();
         
         public void allocateNewBufferEvent(int i) {
             allocatedNew.addAndGet(i);
