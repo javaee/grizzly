@@ -181,8 +181,9 @@ public final class IndexedAttributeHolder implements AttributeHolder {
         @Override
         public Object getAttribute(int index) {
             if (count != 0) {
-                if (index < attributeValues.length) {
-                    return attributeValues[index];
+                final Object[] localAttrValues = attributeValues;
+                if (index < localAttrValues.length) {
+                    return localAttrValues[index];
                 }
             }
 
