@@ -1141,7 +1141,9 @@ public final class BuffersBuffer implements CompositeBuffer {
 
     private void fillByteBuffer(ByteBuffer bb, ByteBuffer[] bbs) {
         for(ByteBuffer srcByteBuffer : bbs) {
+            int oldPostion = srcByteBuffer.position();
             bb.put(srcByteBuffer);
+            srcByteBuffer.position(oldPostion);
         }
     }
 
