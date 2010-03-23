@@ -1260,6 +1260,15 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         resetLastLocation();
     }
 
+    /**
+     * Locates the internal buffer index and the internal buffer position, which
+     * corresponds to this {@link CompositeBuffer}'s position.
+     *
+     * @param position this {@link CompositeBuffer} position.
+     * @return long value, which contains  the internal buffer index and the
+     * internal buffer position, which corresponds to this {@link CompositeBuffer}'s position.
+     * This value is packed following way: ((internalBufferIndex << 32) | internalBufferPosition)
+     */
     private long locateBufferPosition(int position) {
         if (buffersSize == 0) return -1;
 
@@ -1337,6 +1346,15 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         throw new IndexOutOfBoundsException("Position " + position + " is out of bounds");
     }
     
+    /**
+     * Locates the internal buffer index and the internal buffer limit, which
+     * corresponds to this {@link CompositeBuffer}'s limit.
+     *
+     * @param limit this {@link CompositeBuffer} limit.
+     * @return long value, which contains  the internal buffer index and the
+     * internal buffer limit, which corresponds to this {@link CompositeBuffer}'s limit.
+     * This value is packed following way: ((internalBufferIndex << 32) | internalBufferLimit)
+     */
     public long locateBufferLimit(int limit) {
         if (buffersSize == 0) return -1;
 
