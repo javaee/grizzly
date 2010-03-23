@@ -60,19 +60,19 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     protected boolean isDirect;
 
-    protected final MemoryManagerMonitoringProbe monitoringProbe;
+    protected final MemoryProbe memoryProbe;
     
     public ByteBufferManager() {
         this(null);
     }
 
-    public ByteBufferManager(MemoryManagerMonitoringProbe monitoringProbe) {
-        this(monitoringProbe, false);
+    public ByteBufferManager(MemoryProbe memoryProbe) {
+        this(memoryProbe, false);
     }
 
-    public ByteBufferManager(MemoryManagerMonitoringProbe monitoringProbe,
+    public ByteBufferManager(MemoryProbe memoryProbe,
             boolean isDirect) {
-        this.monitoringProbe = monitoringProbe;
+        this.memoryProbe = memoryProbe;
         this.isDirect = isDirect;
     }
 
@@ -176,8 +176,8 @@ public class ByteBufferManager implements MemoryManager<ByteBufferWrapper>,
      */
     @Override
     public ByteBuffer allocateByteBuffer(int size) {
-        if (monitoringProbe != null) {
-            monitoringProbe.allocateNewBufferEvent(size);
+        if (memoryProbe != null) {
+            memoryProbe.allocateNewBufferEvent(size);
         }
 
         if (isDirect) {

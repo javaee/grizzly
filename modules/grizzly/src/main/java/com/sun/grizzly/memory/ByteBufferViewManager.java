@@ -74,18 +74,18 @@ public class ByteBufferViewManager extends ByteBufferManager {
         this(null);
     }
 
-    public ByteBufferViewManager(MemoryManagerMonitoringProbe monitoringProbe) {
-        this(monitoringProbe, false);
+    public ByteBufferViewManager(MemoryProbe memoryProbe) {
+        this(memoryProbe, false);
     }
 
-    public ByteBufferViewManager(MemoryManagerMonitoringProbe monitoringProbe,
+    public ByteBufferViewManager(MemoryProbe memoryProbe,
             boolean isDirect) {
-        this(monitoringProbe, isDirect, DEFAULT_CAPACITY);
+        this(memoryProbe, isDirect, DEFAULT_CAPACITY);
     }
 
-    public ByteBufferViewManager(MemoryManagerMonitoringProbe monitoringProbe,
+    public ByteBufferViewManager(MemoryProbe memoryProbe,
             boolean isDirect, int capacity) {
-        super(monitoringProbe, isDirect);
+        super(memoryProbe, isDirect);
         this.capacity = capacity;
     }
 
@@ -104,8 +104,8 @@ public class ByteBufferViewManager extends ByteBufferManager {
             largeByteBuffer = super.allocateByteBuffer(capacity);
         }
 
-        if (monitoringProbe != null) {
-            monitoringProbe.allocateBufferFromPoolEvent(size);
+        if (memoryProbe != null) {
+            memoryProbe.allocateBufferFromPoolEvent(size);
         }
         
         return BufferUtils.slice(largeByteBuffer, size);

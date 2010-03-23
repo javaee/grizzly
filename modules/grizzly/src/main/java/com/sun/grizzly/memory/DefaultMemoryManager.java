@@ -57,8 +57,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
         super(null);
     }
 
-    public DefaultMemoryManager(MemoryManagerMonitoringProbe monitoringProbe) {
-        super(monitoringProbe);
+    public DefaultMemoryManager(MemoryProbe memoryProbe) {
+        super(memoryProbe);
     }
 
     /**
@@ -173,8 +173,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
                     memoryPool.reallocate(oldByteBuffer, newSize);
             
             if (newBuffer != null) {
-                if (monitoringProbe != null) {
-                    monitoringProbe.allocateBufferFromPoolEvent(
+                if (memoryProbe != null) {
+                    memoryProbe.allocateBufferFromPoolEvent(
                             newSize - oldByteBuffer.capacity());
                 }
 
@@ -189,8 +189,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
     private ByteBuffer allocateFromPool(final ThreadLocalPool threadLocalCache,
             final int size) {
         if (threadLocalCache.remaining() >= size) {
-            if (monitoringProbe != null) {
-                monitoringProbe.allocateBufferFromPoolEvent(size);
+            if (memoryProbe != null) {
+                memoryProbe.allocateBufferFromPoolEvent(size);
             }
             
             return threadLocalCache.allocate(size);
@@ -214,8 +214,8 @@ public final class DefaultMemoryManager extends ByteBufferManager {
             ThreadLocalPool memoryPool = getThreadLocalPool();
 
             if (memoryPool.release((ByteBuffer) byteBuffer.clear())) {
-                if (monitoringProbe != null) {
-                    monitoringProbe.releaseBufferToPoolEvent(byteBuffer.capacity());
+                if (memoryProbe != null) {
+                    memoryProbe.releaseBufferToPoolEvent(byteBuffer.capacity());
                 }
 
                 return;

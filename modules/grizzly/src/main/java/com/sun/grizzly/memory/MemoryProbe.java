@@ -41,7 +41,7 @@ package com.sun.grizzly.memory;
  * 
  * @author Alexey Stashok
  */
-public interface MemoryManagerMonitoringProbe {
+public interface MemoryProbe {
     /**
      * Called by {@link MemoryManager}, when new buffer gets allocated
      * 

@@ -40,9 +40,10 @@ package com.sun.grizzly;
 
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.DefaultMemoryManager;
-import com.sun.grizzly.memory.MemoryManagerMonitoringProbe;
+import com.sun.grizzly.memory.MemoryProbe;
 import com.sun.grizzly.threadpool.FixedThreadPool;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.ExecutorService;
@@ -277,6 +278,40 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         testInWorkerThread(r);
     }
 
+    public void testDisposeUnused() throws Exception {
+        final DefaultMemoryManager mm = new DefaultMemoryManager(
+                new MyMemoryMonitoringProbe());
+        Runnable r = new Runnable() {
+            @Override
+            public void run() {
+                // Initialize memory manager
+                mm.allocate(0);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+
+                BuffersBuffer compositeBuffer = BuffersBuffer.create(mm);
+
+                for (int i = 0; i < 12; i++) {
+                    compositeBuffer.append(mm.allocate(0));
+                }
+
+                Buffer contentBuffer = mm.allocate(1228);
+                contentBuffer.allowBufferDispose(true);
+                
+                compositeBuffer.append(contentBuffer);
+
+                compositeBuffer.position(compositeBuffer.limit());
+
+                compositeBuffer.disposeUnused();
+
+                assertEquals(initialSize,
+                        mm.getReadyThreadBufferSize());
+            }
+        };
+
+        testInWorkerThread(r);
+    }
+
     private void testInWorkerThread(final Runnable task) throws Exception {
         final FutureImpl<Boolean> future = FutureImpl.<Boolean>create();
 
@@ -296,7 +331,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         assertTrue(future.get(10, TimeUnit.SECONDS));
     }
 
-    private static class MyMemoryMonitoringProbe implements MemoryManagerMonitoringProbe {
+    private static class MyMemoryMonitoringProbe implements MemoryProbe {
 
         @Override
         public void allocateNewBufferEvent(int size) {

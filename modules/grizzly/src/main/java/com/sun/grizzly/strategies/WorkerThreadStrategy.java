@@ -45,7 +45,6 @@ import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.Strategy;
-import com.sun.grizzly.Transport.IOEventReg;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.utils.CurrentThreadExecutor;
 import com.sun.grizzly.utils.WorkerThreadExecutor;
