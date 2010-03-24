@@ -45,7 +45,7 @@ import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.DefaultMemoryManager;
-import com.sun.grizzly.memory.MemoryManagerMonitoringProbe;
+import com.sun.grizzly.memory.MemoryProbe;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
@@ -125,7 +125,7 @@ public class TCPEchoServer {
         }
     }
 
-    public static class MemoryStatsProbe implements MemoryManagerMonitoringProbe {
+    public static class MemoryStatsProbe implements MemoryProbe {
         private final AtomicLong allocatedNew = new AtomicLong();
         private final AtomicLong allocatedFromPool = new AtomicLong();
         private final AtomicLong releasedToPool = new AtomicLong();
