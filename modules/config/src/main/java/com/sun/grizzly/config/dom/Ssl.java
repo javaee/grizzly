@@ -82,6 +82,11 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setCrlFile(String crlFile);
 
+    @Attribute
+    String getKeyAlgorithm();
+
+    void setKeyAlgorithm(String algorithm);
+
     /**
      * type of the keystore file
      */
