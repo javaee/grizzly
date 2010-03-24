@@ -51,7 +51,7 @@ public class WorkerThreadFactory implements ThreadFactory{
      * @return
      */
     public Thread newThread(Runnable r){
-        WorkerThreadImpl t = new WorkerThreadImpl(threadGroup,r);
+        WorkerThreadImpl t = new WorkerThreadImpl(threadGroup, r);
         t.setDaemon(true);
         return t;
     }    

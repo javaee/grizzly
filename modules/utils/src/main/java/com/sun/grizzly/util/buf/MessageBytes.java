@@ -59,8 +59,6 @@ package com.sun.grizzly.util.buf;
 
 import java.io.Serializable;
 import java.io.IOException;
-import java.text.DateFormat;
-import java.util.Date;
 
 /**
  * This class is used to represent a subarray of bytes in an HTTP message.
