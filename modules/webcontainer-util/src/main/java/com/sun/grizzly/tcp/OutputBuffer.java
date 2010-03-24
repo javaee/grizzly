@@ -58,7 +58,7 @@ package com.sun.grizzly.tcp;
 
 import java.io.IOException;
 
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.util.ByteChunk;
 
 
 /**

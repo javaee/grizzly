@@ -58,8 +58,8 @@ import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.tcp.http11.InputFilter;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.HexUtils;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.HexUtils;
 import java.io.IOException;
 
 

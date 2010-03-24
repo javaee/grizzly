@@ -58,7 +58,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.GZIPOutputStream;
 
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.util.ByteChunk;
 
 import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Response;

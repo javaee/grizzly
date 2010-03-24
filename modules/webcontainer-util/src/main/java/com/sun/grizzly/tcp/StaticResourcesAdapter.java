@@ -40,7 +40,7 @@
 package com.sun.grizzly.tcp;
 
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.util.ByteChunk;
 import com.sun.grizzly.util.http.HtmlHelper;
 import java.io.File;
 import java.io.FileInputStream;
@@ -257,9 +257,9 @@ public class StaticResourcesAdapter implements Adapter {
         res.setContentType("text/html");
         res.flushHeaders();
         Connection connection = res.getConnection();
-        StreamWriter writer = connection.getStreamWriter();
-        writer.writeBuffer(MemoryUtils.wrap(
-                connection.getTransport().getMemoryManager(), bb));
+        //StreamWriter writer = connection.getStreamWriter();
+        //writer.writeBuffer(MemoryUtils.wrap(
+        //        connection.getTransport().getMemoryManager(), bb));
         req.setNote(14, "SkipAfterService");
     }
 

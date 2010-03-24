@@ -23,36 +23,30 @@
 
 package com.sun.grizzly.http.server.embed;
 
-import com.sun.grizzly.arp.DefaultAsyncHandler;
-import com.sun.grizzly.arp.AsyncFilter;
-import com.sun.grizzly.arp.AsyncHandler;
-import com.sun.grizzly.http.Management;
-import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.Processor;
+import com.sun.grizzly.filterchain.FilterChain;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
+import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.server.Constants;
+import com.sun.grizzly.http.server.WebServerFilter;
+import com.sun.grizzly.ssl.SSLContextConfigurator;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapterChain;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map.Entry;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.management.ObjectInstance;
-import javax.management.ObjectName;
-import com.sun.grizzly.Transport;
+
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.ssl.SSLContextConfigurator;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.utils.IdleTimeoutFilter;
-import com.sun.grizzly.http.WebFilter;
-import com.sun.grizzly.arp.AsyncExecutor;
-import com.sun.grizzly.arp.AsyncWebFilter;
-import com.sun.grizzly.arp.AsyncWebFilterConfig;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.http.mapper.Mapper;
 
@@ -303,362 +297,113 @@ import com.sun.grizzly.util.http.mapper.Mapper;
  * @author Alexey Stashok
  */
 public class GrizzlyWebServer {
-    // The host
-    private static final String DEFAULT_HOST = "0.0.0.0";
 
-    // The port
-    private static final int DEFAULT_PORT = 8080;
 
-    // The web resources path
-    private static final String DEFAULT_WEB_RESOURCES_PATH = ".";
-
-    // Host, on which WebServer will listen
-    private String host;
-
-    // Port, on which WebServer will listen
-    private int port = DEFAULT_PORT;
-
-    // The underlying {@link Transport}
+    /**
+     * The TCPNIOTransport implementation used by this server instance.
+     */
     private TCPNIOTransport transport;
 
-    // The underlying {@link WebFilter}
-    private AsyncWebFilter webFilter;
-    
-    // Flag, which indicates if WebServer uses secured connections
-    private boolean isSecure;
 
-    // SSL configuration
-    private SSLEngineConfigurator sslConfiguration;
-
-    // SelectorThread mBean
-    private ObjectInstance stMBean;
-
-    
-    // The underlying {@link GrizzlyAdapterChain}
-    private GrizzlyAdapterChain adapterChains = new GrizzlyAdapterChain();
-    
-    
-    // List of {@link GrizzlyAdapter} and its associated mapping
-    private HashMap<GrizzlyAdapter,String[]> adapters
-            = new HashMap<GrizzlyAdapter,String[]>();
-
-    
-    // Are we started?
-    private boolean isStarted = false;
-
-    
-    // List of {@link AsyncFilter}
-    private ArrayList<AsyncFilter> asyncFilters = new ArrayList<AsyncFilter>();
-    
-    
-    // The path to static resource.
-    private String webResourcesPath = DEFAULT_WEB_RESOURCES_PATH;
-    
-    
-    // The mBean default object name.
-    private String mBeanName = "com.sun.grizzly.http:type=GrizzlyWebServer,name=GrizzlyHttpEngine-"
-            + DEFAULT_PORT;
-       
-    
-    // The {@link Statistis} instance associated with this instance.
-    private Statistics statistics;
-
-
-  /**
-     * Create a default GrizzlyWebServer
-     */
-    public GrizzlyWebServer() {
-        this(DEFAULT_PORT);
-    }
-    
-    
     /**
-     * Create a WebServer that listen on port
-     * @param port The port opened
+     * Configuration details for this server instance.
      */
-    public GrizzlyWebServer(int port) {
-        this(port, DEFAULT_WEB_RESOURCES_PATH);
-    }
-    
-    
-    /**
-     * Create a WebServer which server files from {@link #webResourcesPath}
-     * @param webResourcesPath the path to the web resource (ex: /var/www)
-     */
-    public GrizzlyWebServer(String webResourcesPath) {
-        this(DEFAULT_PORT, webResourcesPath);
-    }   
+    private final ServerConfiguration configuration = new ServerConfiguration();
 
 
     /**
-     * Create a WebServer that listen on port
-     * @param port The port opened
-     * @param webResourcesPath the path to the web resource (ex: /var/www)
+     * Configuration details for the transport used by the server.
      */
-    public GrizzlyWebServer(int port, String webResourcesPath) {
-        this(port, webResourcesPath, false);
-    }
-    
+    private final ListenerConfiguration listenerConfig = new ListenerConfiguration();
+
 
     /**
-     * Create a WebServer that listen for secure tls/https requests
-     * @param port The port opened
-     * @param webResourcesPath the path to the web resource (ex: /var/www)
-     * @param secure <tt>true</tt> if https needs to be used.
+     * Flag indicating whether or not this server instance has been started.
      */
-    public GrizzlyWebServer(int port, String webResourcesPath, boolean isSecure) {
-        this.port = port;
-        this.host = DEFAULT_HOST;
-        this.webResourcesPath = webResourcesPath;
-        this.isSecure = isSecure;
-        this.webFilter = new AsyncWebFilter(Integer.toString(port));
-        webFilter.getConfig().setAsyncEnabled(false);
-        this.transport = TransportFactory.getInstance().createTCPTransport();
-        
-        sslConfiguration = new SSLEngineConfigurator(
-                SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(), false,
-                false, false);
-    }
+    private boolean started;
+
+
+    // ---------------------------------------------------------- Public Methods
+
 
     /**
-     * Add an {@link AsyncFilter}. Adding {@link AsyncFilter} automatically
-     * enable Grizzly Asynchronous Request Processing mode. {@link AsyncFilter}s
-     * are always invoked before {@link GrizzlyAdapter}
-     *  
-     * @param asyncFilter An {@link AsyncFilter}
+     * @return {@link GrizzlyWebServer} underlying {@link TCPNIOTransport}
      */
-    public void addAsyncFilter(AsyncFilter asyncFilter){
-        asyncFilters.add(asyncFilter);
-    }
-
-    
-    /**
-     * Add a {@link GrizzlyAdapter} with its associated mapping. A request will
-     * be dispatched to a {@link GrizzlyAdapter} based on its mapping value.
-     * @param grizzlyAdapter a {@link GrizzlyAdapter}
-     * @param mapping An array contains the context path mapping information.
-     */
-    public void addGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter, String[] mapping){
-        adapters.put(grizzlyAdapter, mapping);
-        adapterChains.setHandleStaticResources(false);
-        if (isStarted) {
-            grizzlyAdapter.start();
-            Adapter ga = webFilter.getConfig().getAdapter();
-            if (ga instanceof GrizzlyAdapterChain){
-                ((GrizzlyAdapterChain) ga).addGrizzlyAdapter(grizzlyAdapter,
-                        mapping);
-            } else {
-                updateGrizzlyAdapters();
-            }  
-        }
-        
-    }
-
-    /**
-     * Remove a {@link GrizzlyAdapter}
-     * return <tt>true</tt>, if the operation was successful.
-     */
-    public boolean removeGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter){
-        if (adapters.size() > 1){
-            adapterChains.removeAdapter(grizzlyAdapter);
-        }
-        boolean removed = adapters.remove(grizzlyAdapter) != null;
-        if (isStarted) {
-            Adapter ga = webFilter.getConfig().getAdapter();
-            if (ga instanceof GrizzlyAdapterChain){
-                ((GrizzlyAdapterChain)ga).removeAdapter(grizzlyAdapter);
-            } else {
-                updateGrizzlyAdapters();
-            }    
-        }
-        return removed;
-    }
-
-    /**
-     * Returns <tt>true</tt>, if secured connections is enabled,
-     *         or <tt>false</tt> otherwise
-     * @return <tt>true</tt>, if secured connections is enabled,
-     *         or <tt>false</tt> otherwise
-     */
-    public boolean isSecure() {
-        return isSecure;
-    }
-
-    /**
-     * Adjust the secured connection mode.
-     * @param isSecure <tt>true</tt>, if secured connections should be enabled,
-     *         or <tt>false</tt> otherwise
-     */
-    public void setSecure(boolean isSecure) {
-        this.isSecure = isSecure;
-    }
-
-    /**
-     * Get the secured connection configuration.
-     * @return the secured connection configuration.
-     */
-    public SSLEngineConfigurator getSSLConfiguration() {
-        return sslConfiguration;
-    }
-
-    /**
-     * Set the secured connection configuration.
-     * @param sslConfiguration the secured connection configuration.
-     */
-    public void setSSLConfiguration(SSLEngineConfigurator sslConfiguration) {
-        this.sslConfiguration = sslConfiguration;
-    }
-
-    /**
-     * Get {@link GrizzlyWebServer} underlying {@link Transport}.
-     * @return {@link GrizzlyWebServer} underlying {@link Transport}.
-     */
-    public Transport getTransport() {
+    public TCPNIOTransport getTransport() {
         return transport;
     }
 
     /**
-     * Set {@link GrizzlyWebServer} underlying {@link Transport}.
-     * @param transport {@link GrizzlyWebServer} underlying {@link Transport}.
+     * @param transport {@link GrizzlyWebServer} underlying {@link TCPNIOTransport}
      */
-    public void setTransport(Transport transport) {
-        this.transport = (TCPNIOTransport) transport;
+    public void setTransport(TCPNIOTransport transport) {
+        this.transport = transport;
     }
 
-    /**
-     * Get {@link GrizzlyWebServer} underlying {@link AsyncWebFilterConfig}.
-     * @return {@link GrizzlyWebServer} underlying {@link AsyncWebFilterConfig}.
-     */
-    public AsyncWebFilterConfig getWebConfig() {
-        return webFilter.getConfig();
-    }
 
     /**
-     * Set {@link GrizzlyWebServer} underlying {@link AsyncWebFilterConfig}.
-     * @param webFilter {@link GrizzlyWebServer}
-     *                  underlying {@link AsyncWebFilterConfig}.
+     * @return the {@link ServerConfiguration} used to configure this
+     *  {@link GrizzlyWebServer} instance
      */
-    public void setWebFilter(AsyncWebFilterConfig webConfig) {
-        webFilter.setConfig(webConfig);
+    public ServerConfiguration getServerConfiguration() {
+        return configuration;
     }
 
-    /**
-     * Get host, on which {@link GrizzlyWebServer} listens.
-     * Default value is 0.0.0.0
-     *
-     * @return host, on which {@link GrizzlyWebServer} listens.
-     */
-    public String getHost() {
-        return host;
+
+    public ListenerConfiguration getListenerConfiguration() {
+        return listenerConfig;
     }
 
-    /**
-     * Set host, on which {@link GrizzlyWebServer} listens.
-     * Default value is 0.0.0.0
-     *
-     * @param host The host, on which {@link GrizzlyWebServer} listens.
-     */
-    public void setHost(String host) {
-        this.host = host;
-    }
 
-    /**
-     * Get port, on which {@link GrizzlyWebServer} listens.
-     * Default value is 8080.
-     *
-     * @return port, on which {@link GrizzlyWebServer} listens.
-     */
-    public int getPort() {
-        return port;
-    }
-
-    /**
-     * Set port, on which {@link GrizzlyWebServer} listens.
-     * Default value is 8080.
-     *
-     * @param port The port, on which {@link GrizzlyWebServer} listens.
-     */
-    public void setPort(int port) {
-        this.port = port;
-    }
 
     /**
      * Start the GrizzlyWebServer and start listening for http requests. Calling 
      * this method several time has no effect once GrizzlyWebServer has been started.
+     *
      * @throws java.io.IOException
      */
     public void start() throws IOException{
-        if (isStarted) return;
-        isStarted = true;
 
-        if (asyncFilters.size() > 0){
-            webFilter.getConfig().setAsyncEnabled(true);
-            AsyncHandler asyncHandler = new DefaultAsyncHandler();
-            for (AsyncFilter asyncFilter: asyncFilters){
-                asyncHandler.addAsyncFilter(asyncFilter); 
-            }
-            webFilter.getConfig().setAsyncHandler(asyncHandler);
+        if (started) {
+            return;
         }
-        
-        // Use the default
-        updateGrizzlyAdapters();
+        started = true;
 
-        transport.getFilterChain().add(new TransportFilter());
-
-        transport.getFilterChain().add(new IdleTimeoutFilter(
-                webFilter.getConfig().getKeepAliveTimeoutInSeconds(),
-                TimeUnit.SECONDS));
+        TCPNIOTransport trans = getTransport();
+        ServerConfiguration serverConfig = getServerConfiguration();
+        // TODO: Should we assume a full configured transport if explicitly set?
+        if (trans == null) {
+            ListenerConfiguration listenerConf = getListenerConfiguration();
+            trans = buildListener(listenerConf, serverConfig);
+            setTransport(trans);
+            trans.bind(listenerConf.getHost(), listenerConf.getPort());
+        }
+        trans.start();
         
-        if (isSecure) {
-            transport.getFilterChain().add(new SSLFilter(sslConfiguration));
+        GrizzlyAdapter adapter = serverConfig.getAdapter();
+        if (adapter != null) {
+            adapter.start();
         }
 
-        transport.getFilterChain().add(webFilter);
-
-        webFilter.initialize();
-        transport.bind(host, port);
-        transport.start();
     }
 
-    private void updateGrizzlyAdapters() {
-        adapterChains = new GrizzlyAdapterChain();
-        if (adapters.size() == 0) {
-            adapterChains.setRootFolder(webResourcesPath);
-            adapterChains.setHandleStaticResources(true);
-            webFilter.getConfig().setAdapter(adapterChains);
-        } else if (adapters.size() == 1) {
-            webFilter.getConfig().setAdapter(adapters.keySet().iterator().next());
-            adapters.keySet().iterator().next().setRootFolder(webResourcesPath);
-        } else {          
-            for (Entry<GrizzlyAdapter,String[]> entry : adapters.entrySet()) {
-                // For backward compatibility
-                if (entry.getValue().length == 0) {
-                    adapterChains.addGrizzlyAdapter(entry.getKey());
-                } else {
-                    adapterChains.addGrizzlyAdapter(entry.getKey(), entry.getValue());
-                }
-            }
-            webFilter.getConfig().setAdapter(adapterChains);
-            adapterChains.setHandleStaticResources(true);
-            adapterChains.setRootFolder(webResourcesPath);
-        }
-    }
+
 
     /**
      * Enable JMX Management by configuring the {@link Management}
      * @param jmxManagement An instance of the {@link Management} interface
      */
-    public void enableJMX(Management jmxManagement){
-        if (jmxManagement == null) return;
-        
-        webFilter.getJmxManager().setManagement(jmxManagement);
-        try {
-            ObjectName sname = new ObjectName(mBeanName);                   
-            webFilter.getJmxManager().registerComponent(webFilter, sname, null);
-        } catch (Exception ex) {
-            WebFilter.logger().log(Level.SEVERE, "Enabling JMX failed", ex);
-        }      
-    }
+//    public void enableJMX(Management jmxManagement){
+//        if (jmxManagement == null) return;
+//
+//        webFilter.getJmxManager().setManagement(jmxManagement);
+//        try {
+//            ObjectName sname = new ObjectName(mBeanName);
+//            webFilter.getJmxManager().registerComponent(webFilter, sname, null);
+//        } catch (Exception ex) {
+//            WebFilter.logger().log(Level.SEVERE, "Enabling JMX failed", ex);
+//        }
+//    }
     
     
     /**
@@ -667,30 +412,40 @@ public class GrizzlyWebServer {
      * gathering statistics. Invoking {@link Statistics#startGatheringStatistics}
      * will do it.
      */
-    public Statistics getStatistics() {
-        if (statistics == null) {
-            statistics = new Statistics(webFilter);
-        }
-        
-        return statistics;
-    } 
+//    public Statistics getStatistics() {
+//        if (statistics == null) {
+//            statistics = new Statistics(webFilter);
+//        }
+//
+//        return statistics;
+//    }
     
     /**
      * Stop the GrizzlyWebServer.
      */ 
     public void stop() {
-        if (!isStarted) return;
-        isStarted = false;
+
+        if (!started) {
+            return;
+        }
+        started = false;
         try {
-            webFilter.release();
-            transport.stop();
+            GrizzlyAdapter adapter = getServerConfiguration().getAdapter();
+            if (adapter != null) {
+                adapter.destroy();
+            }
+            getTransport().stop();
             TransportFactory.getInstance().close();
         } catch (Exception e) {
             Logger.getLogger(GrizzlyWebServer.class.getName()).log(
                     Level.WARNING, null, e);
         } finally {
-            transport.getFilterChain().clear();
+            Processor p = getTransport().getProcessor();
+            if (p instanceof FilterChain) {
+                ((FilterChain) p).clear();
+            }
         }
+
     }
     
     
@@ -700,23 +455,350 @@ public class GrizzlyWebServer {
      * @param path the directory to serve static resource from.
      * @return a ready to use {@link GrizzlyWebServer} that listen on port 8080
      */
-    public final static GrizzlyWebServer newConfiguredInstance(String path){
-        GrizzlyWebServer ws = new GrizzlyWebServer(8080);
-        ws.addGrizzlyAdapter(new GrizzlyAdapter(path) {
-            {
-                setHandleStaticResources(true);
-            }
-            @Override
-            public void service(GrizzlyRequest request, GrizzlyResponse response) {
-                try {
-                    response.setStatus(404);
-                    response.flushBuffer();
-                } catch (IOException e) {
-                    Logger.getLogger(GrizzlyWebServer.class.getName()).log(
-                            Level.SEVERE, null, e);
+//    public final static GrizzlyWebServer newConfiguredInstance(String path){
+//        GrizzlyWebServer ws = new GrizzlyWebServer(8080);
+//        ws.addGrizzlyAdapter(new GrizzlyAdapter(path) {
+//            {
+//                setHandleStaticResources(true);
+//            }
+//            @Override
+//            public void service(GrizzlyRequest request, GrizzlyResponse response) {
+//                try {
+//                    response.setStatus(404);
+//                    response.flushBuffer();
+//                } catch (IOException e) {
+//                    Logger.getLogger(GrizzlyWebServer.class.getName()).log(
+//                            Level.SEVERE, null, e);
+//                }
+//            }
+//        }, new String[0]);
+//        return ws;
+//    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    private TCPNIOTransport buildListener(ListenerConfiguration config,
+                                          ServerConfiguration serverConfig) {
+
+        TCPNIOTransport trans = TransportFactory.getInstance().createTCPTransport();
+        FilterChain chain = config.getFilterChain();
+        if (chain == null) {
+            FilterChainBuilder builder = FilterChainBuilder.stateless();
+            builder.add(new TransportFilter());
+            builder.add(new IdleTimeoutFilter(config.getKeepAliveTimeoutInSeconds(),
+                                             TimeUnit.SECONDS));
+            if (config.isSecure()) {
+                SSLEngineConfigurator sslConfig = config.getSslEngineConfig();
+                if (sslConfig == null) {
+                    sslConfig =
+                          new SSLEngineConfigurator(
+                                SSLContextConfigurator.DEFAULT_CONFIG.createSSLContext(),
+                                false,
+                                false,
+                                false);
+                    config.setSSLEngineConfig(sslConfig);
                 }
+                builder.add(new SSLFilter(sslConfig, null));
             }
-        }, new String[0]);
-        return ws;
+            int maxHeaderSize = ((config.getMaxHttpHeaderSize() == -1)
+                                 ? HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
+                                 : config.getMaxHttpHeaderSize());
+            builder.add(new HttpServerFilter(maxHeaderSize));
+            builder.add(new WebServerFilter(serverConfig));
+            chain = builder.build();
+            config.setFilterChain(chain);
+            trans.setProcessor(chain);
+        }
+
+        return trans;
+        
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    /**
+     * TODO Documentation
+     */
+    public static class ListenerConfiguration {
+
+        /**
+         * <p>
+         * The network port to which the <code>GrizzlyWebServer<code> will
+         * bind to in order to service <code>HTTP</code> requests.  The network port
+         * number is {@value #DEFAULT_NETWORK_PORT}.
+         * </p>
+         */
+        public static final int DEFAULT_NETWORK_PORT = 8080;
+
+
+        /**
+         * <p>
+         * The network host to which the <code>GrizzlyWebServer<code> will
+         * bind to in order to service <code>HTTP</code> requests.  The host
+         * name is {@value #DEFAULT_NETWORK_HOST}
+         */
+        public static final String DEFAULT_NETWORK_HOST = "0.0.0.0";
+
+
+        /*
+         * The network port to which this server instance will bind to.
+         */
+        private int port = DEFAULT_NETWORK_PORT;
+
+
+        /*
+         * Flag indicating requests to this server instance should be secured via
+         * SSL.
+         */
+        private boolean secure;
+
+
+        /*
+         * The configuration for this server instance's SSL support.
+         */
+        private SSLEngineConfigurator sslEngineConfig;
+
+
+        /*
+         * The network interface address/host name to bind to.
+         */
+        private String host = DEFAULT_NETWORK_HOST;
+
+
+        /*
+         * Number of seconds before idle keep-alive connections expire
+         */
+        private int keepAliveTimeoutInSeconds = Constants.KEEP_ALIVE_TIMEOUT_IN_SECONDS;
+
+
+        /*
+         * FilterChain to be used by this listener.
+         */
+        private FilterChain filterChain;
+
+
+        /*
+         * The maximum size, in bytes, of an HTTP message.
+         */
+        private int maxHttpHeaderSize = -1;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        private ListenerConfiguration() { }
+
+
+        // ------------------------------------------------------ Public Methods
+
+
+        public boolean isSecure() {
+            return secure;
+        }
+
+        public void setSecure(boolean secure) {
+            this.secure = secure;
+        }
+
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public void setPort(int port) {
+            this.port = port;
+        }
+
+        public FilterChain getFilterChain() {
+            return filterChain;
+        }
+
+        public void setFilterChain(FilterChain filterChain) {
+            this.filterChain = filterChain;
+        }
+
+        public SSLEngineConfigurator getSslEngineConfig() {
+            return sslEngineConfig;
+        }
+
+        public void setSSLEngineConfig(SSLEngineConfigurator sslEngineConfig) {
+            this.sslEngineConfig = sslEngineConfig;
+        }
+
+        public int getKeepAliveTimeoutInSeconds() {
+            return keepAliveTimeoutInSeconds;
+        }
+
+        public void setKeepAliveTimeoutInSeconds(int keepAliveTimeoutInSeconds) {
+            this.keepAliveTimeoutInSeconds = keepAliveTimeoutInSeconds;
+        }
+
+        public int getMaxHttpHeaderSize() {
+            return maxHttpHeaderSize;
+        }
+
+        public void setMaxHttpHeaderSize(int maxHttpHeaderSize) {
+            this.maxHttpHeaderSize = maxHttpHeaderSize;
+        }
+
+    } // END ListenerConfig
+
+
+    /**
+     * TODO: Documentation
+     */
+    public static class ServerConfiguration {
+
+        // Configuration Properties
+
+        /**
+         * <p>
+         * The directory from which the <code>GrizzlyWebServer</code> will service
+         * static resources from.  If this value is used, the <code>GrizzlyWebServer</code>
+         * will serve resources from the directory in which the <code>GrizzlyWebServer</code>
+         * was launched.
+         * </p>
+         */
+        public static final String DEFAULT_WEB_RESOURCES_PATH = ".";
+
+
+        /*
+         * The directory from which static resources will be served from.
+         */
+        private String webResourcesPath = DEFAULT_WEB_RESOURCES_PATH;
+
+
+        /*
+         * Static file cache.
+         */
+        //private FileCache fileCache;
+
+
+        // Non-exposed
+
+        private Map<GrizzlyAdapter, String[]> adapters = new LinkedHashMap<GrizzlyAdapter, String[]>();
+        private GrizzlyAdapterChain adapterChain;
+
+
+        // ------------------------------------------------------------ Constructors
+
+
+        private ServerConfiguration() { }
+
+
+        // ---------------------------------------------------------- Public Methods
+
+
+        public String getWebResourcesPath() {
+            return webResourcesPath;
+        }
+
+        public void setWebResourcesPath(String webResourcesPath) {
+            this.webResourcesPath = webResourcesPath;
+        }
+
+//        public FileCache getFileCache() {
+//            return fileCache;
+//        }
+//
+//        public void setFileCache(FileCache fileCache) {
+//            this.fileCache = fileCache;
+//        }
+
+
+
+
+        /**
+         * TODO: Update docs
+         * Add a {@link GrizzlyAdapter} with its associated mapping. A request will
+         * be dispatched to a {@link GrizzlyAdapter} based on its mapping value.
+         *
+         * @param grizzlyAdapter a {@link GrizzlyAdapter}
+         * @param mapping        An array contains the context path mapping information.
+         */
+        public void addGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter,
+                                      String[] mapping) {
+
+            adapters.put(grizzlyAdapter, mapping);
+            if (adapters.size() > 1) {
+                adapterChain = new GrizzlyAdapterChain();
+                adapterChain.setHandleStaticResources(false);
+                for (Map.Entry<GrizzlyAdapter,String[]> e : adapters.entrySet()) {
+                    adapterChain.addGrizzlyAdapter(e.getKey(), e.getValue());
+                }
+                adapters.put(grizzlyAdapter, mapping);
+            }
+
+        }
+
+        /**
+         * TODO: Update docs
+         * Remove a {@link GrizzlyAdapter}
+         * return <tt>true</tt>, if the operation was successful.
+         */
+        public boolean removeGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter) {
+
+            if (adapters.size() > 1) {
+                adapterChain.removeAdapter(grizzlyAdapter);
+            }
+            return (adapters.remove(grizzlyAdapter) != null);
+
+        }
+
+
+        /**
+         * TODO Docs
+         * @return
+         */
+        public GrizzlyAdapter getAdapter() {
+
+            if (adapters.size() == 1) {
+                GrizzlyAdapter adapter = adapters.keySet().iterator().next();
+                adapter.setRootFolder(webResourcesPath);
+                return adapter;
+            }
+            if (adapterChain == null) {
+                adapterChain = new GrizzlyAdapterChain();
+                adapterChain.setHandleStaticResources(true);
+                adapterChain.setRootFolder(webResourcesPath);
+            }
+            return adapterChain;
+
+        }
+
+    } // END ServerConfiguration
+
+
+    // -------------------------------------------------------------------- MAIN
+
+    /**
+     * TODO - REMOVE later
+     * @param args
+     */
+    public static void main(String[] args) {
+
+        GrizzlyWebServer server = new GrizzlyWebServer();
+        try {
+            server.start();
+            System.out.println("Press any key to stop the server...");
+            System.in.read();
+        } catch (IOException ioe) {
+            System.err.println(ioe.toString());
+            ioe.printStackTrace();
+        } finally {
+            server.stop();
+        }
+
     }
 }

@@ -39,10 +39,10 @@
 package com.sun.grizzly.tcp.http11;
 
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.buf.UDecoder;
-import com.sun.grizzly.util.http.HttpRequestURIDecoder;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.MessageBytes;
+import com.sun.grizzly.http.util.UDecoder;
+import com.sun.grizzly.http.util.HttpRequestURIDecoder;
 import com.sun.grizzly.util.http.mapper.Mapper;
 import com.sun.grizzly.util.http.mapper.MappingData;
 import java.util.Map.Entry;
@@ -50,8 +50,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 /**
- * The GrizzlyAdapterChain class allow the invokation of multiple {@link GrizzlyAdapter}
- * every time a new HTTP requests is ready to be handled. Requests are mapped
+ * The GrizzlyAdapterChain class allows the invocation of multiple {@link GrizzlyAdapter}s
+ * every time a new HTTP request is ready to be handled. Requests are mapped
  * to their associated {@link GrizzlyAdapter} at runtime using the mapping
  * information configured when invoking the {@link GrizzlyAdapterChain#addGrizzlyAdapter
  * (com.sun.grizzly.tcp.http11.GrizzlyAdapter, java.lang.String[])
@@ -108,6 +108,14 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
      */
     private boolean oldMappingAlgorithm = false;
 
+
+    /**
+     * Flag indicating this GrizzlyAdapter has been started.  Any subsequent
+     * GrizzlyAdapter instances added to this chain after is has been started
+     * will have their start() method invoked.
+     */
+    private boolean started;
+
     
     public GrizzlyAdapterChain(){
         mapper.setDefaultHostName(LOCAL_HOST);
@@ -119,9 +127,10 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
     
     @Override
     public void start(){
-         for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
+        for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
             entry.getKey().start();
-        }        
+        }
+        started = true;
     }
 
     /**
@@ -211,6 +220,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
      */
     public void addGrizzlyAdapter(GrizzlyAdapter adapter){
         oldMappingAlgorithm = true;
+        adapter.start();
         adapters.put(adapter,new String[]{""});
     }
 
@@ -229,6 +239,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter{
         if (mappings.length == 0){
             addGrizzlyAdapter(adapter);
         } else {
+            adapter.start();
             adapters.put(adapter,mappings);
             for(String mapping: mappings){   
                 String ctx = getContextPath(mapping);

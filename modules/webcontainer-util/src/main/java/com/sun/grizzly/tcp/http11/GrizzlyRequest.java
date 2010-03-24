@@ -57,18 +57,18 @@ package com.sun.grizzly.tcp.http11;
 
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.buf.B2CConverter;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.CharChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.Cookie;
-import com.sun.grizzly.util.http.Cookies;
+import com.sun.grizzly.http.util.B2CConverter;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.CharChunk;
+import com.sun.grizzly.http.util.MessageBytes;
+import com.sun.grizzly.http.util.Cookie;
+import com.sun.grizzly.http.util.Cookies;
 import com.sun.grizzly.util.http.Enumerator;
 import com.sun.grizzly.util.http.FastHttpDateFormat;
 import com.sun.grizzly.util.http.Globals;
 import com.sun.grizzly.util.http.ParameterMap;
-import com.sun.grizzly.util.http.Parameters;
-import com.sun.grizzly.util.http.ServerCookie;
+import com.sun.grizzly.http.util.Parameters;
+import com.sun.grizzly.http.util.ServerCookie;
 import com.sun.grizzly.util.http.StringParser;
 import com.sun.grizzly.util.res.StringManager;
 

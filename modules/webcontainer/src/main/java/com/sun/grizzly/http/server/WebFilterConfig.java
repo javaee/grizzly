@@ -203,25 +203,25 @@ public class WebFilterConfig {
                 TransportFactory.getInstance().getDefaultMemoryManager();
         workerThreadPool =
                 TransportFactory.getInstance().getDefaultWorkerThreadPool();
-        scheduledThreadPool =
-                TransportFactory.getInstance().getDefaultScheduledThreadPool();
+       // scheduledThreadPool =
+       //         TransportFactory.getInstance().getDefaultScheduledThreadPool();
         
         this.properties = new Properties();
     }
 
     // ---------------- Configure ProcessorTask -----------------------
     public ProcessorTask initializeProcessorTask(ProcessorTask task) {
-        task.setMaxHttpHeaderSize(maxHttpHeaderSize);
-        task.setBufferSize(requestBufferSize);
-        task.setDefaultResponseType(defaultResponseType);
-        task.setForcedRequestType(forcedRequestType);
-        task.setMaxPostSize(maxPostSize);
-        task.setTimeout(uploadTimeout);
-        task.setDisableUploadTimeout(disableUploadTimeout);
-        task.setAsyncHttpWriteEnabled(isAsyncHttpWriteEnabled);
-        task.setTransactionTimeout(transactionTimeout);
-        task.setUseChunking(useChunking);
-        task.setHandler(interceptor);
+//        task.setMaxHttpHeaderSize(maxHttpHeaderSize);
+//        task.setBufferSize(requestBufferSize);
+//        task.setDefaultResponseType(defaultResponseType);
+//        task.setForcedRequestType(forcedRequestType);
+//        task.setMaxPostSize(maxPostSize);
+//        task.setTimeout(uploadTimeout);
+//        task.setDisableUploadTimeout(disableUploadTimeout);
+//        task.setAsyncHttpWriteEnabled(isAsyncHttpWriteEnabled);
+//        task.setTransactionTimeout(transactionTimeout);
+//        task.setUseChunking(useChunking);
+//        task.setHandler(interceptor);
 
         initializeCompression(task);
 
@@ -229,12 +229,12 @@ public class WebFilterConfig {
     }
 
     public void initializeCompression(ProcessorTask processorTask){
-        processorTask.addNoCompressionUserAgent(noCompressionUserAgents);
+        //processorTask.addNoCompressionUserAgent(noCompressionUserAgents);
         parseComressableMimeTypes();
-        processorTask.setCompressableMimeTypes(parsedCompressableMimeTypes);
-        processorTask.setCompressionMinSize(compressionMinSize);
-        processorTask.setCompression(compression);
-        processorTask.addRestrictedUserAgent(restrictedUserAgents);
+        //processorTask.setCompressableMimeTypes(parsedCompressableMimeTypes);
+        //processorTask.setCompressionMinSize(compressionMinSize);
+        //processorTask.setCompression(compression);
+        //processorTask.addRestrictedUserAgent(restrictedUserAgents);
     }
 
     public Adapter getAdapter() {

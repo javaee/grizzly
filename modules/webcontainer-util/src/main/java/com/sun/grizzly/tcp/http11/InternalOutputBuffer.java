@@ -57,11 +57,11 @@ package com.sun.grizzly.tcp.http11;
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.CharChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.CharChunk;
+import com.sun.grizzly.http.util.MessageBytes;
 import com.sun.grizzly.util.http.HttpMessages;
-import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.http.util.MimeHeaders;
 
 import java.io.IOException;
 import java.io.OutputStream;

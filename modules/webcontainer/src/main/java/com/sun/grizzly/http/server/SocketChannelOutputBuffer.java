@@ -68,61 +68,74 @@ import com.sun.grizzly.util.buf.ByteChunk;
  */
 public class SocketChannelOutputBuffer extends InternalOutputBuffer
         implements FileOutputBuffer {
-    protected static Logger logger = Grizzly.logger;
+    protected static Logger logger = Grizzly.logger(SocketChannelOutputBuffer.class);
 
     /**
      * {@link StreamWriter}, which will be used to write data.
      */
     protected StreamWriter connectionStreamWriter;
-    
+
     /**
      * Underlying {@link Buffer}
      */
     protected Buffer outputBuffer;
 
-    
+
     /**
      * ACK static bytes.
      */
-    protected final static Buffer ACK = 
+    protected final static Buffer ACK =
             MemoryUtils.wrap(
             TransportFactory.getInstance().getDefaultMemoryManager(),
             "HTTP/1.1 100 Continue\r\n\r\n");
-    
-    
-    
+
+
+
     /**
      * Maximum cached bytes before flushing.
      */
     protected final static int MAX_BUFFERED_BYTES = 32 * 8192;
-    
-    
+
+
     /**
-     * Default max cached bytes.  
+     * Default max cached bytes.
      */
     protected static int maxBufferedBytes = MAX_BUFFERED_BYTES;
-    
-    
+
+
+     /**
+     * Flag, which indicates if async HTTP write is enabled
+     */
+    protected boolean isAsyncHttpWriteEnabled;
+
+
+    private Connection connection;
+
+
     // ----------------------------------------------------------- Constructors
-    
+
 
     /**
      * Alternate constructor.
      */
-    public SocketChannelOutputBuffer(Response response, 
-            int headerBufferSize, boolean useSocketBuffer) {
+    public SocketChannelOutputBuffer(Response response,
+                                     Connection connection,
+                                     int headerBufferSize,
+                                     boolean useSocketBuffer) {
         super(response, headerBufferSize, useSocketBuffer);
-        
+
+        this.connection = connection;
+
         if (!useSocketBuffer){
             outputStream = new NIOOutputStream();
             outputBuffer = createBuffer(headerBufferSize * 16);
         }
     }
 
-    
+
     // ------------------------------------------------------------- Properties
 
-    
+
     /**
      * Create the output {@link Buffer}
      */
@@ -144,7 +157,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         this.connectionStreamWriter = streamWriter;
     }
 
-    
+
     /**
      * Return the underlying {@link StreamWriter}.
      */
@@ -158,7 +171,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * otherwise.
      */
     public boolean isAsyncHttpWriteEnabled() {
-        return !connectionStreamWriter.isBlocking();
+        return isAsyncHttpWriteEnabled;
     }
 
     /**
@@ -167,9 +180,9 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
      * enabled, or <tt>false</tt> otherwise.
      */
     public void setAsyncHttpWriteEnabled(boolean isAsyncHttpWriteEnabled) {
-        connectionStreamWriter.setBlocking(!isAsyncHttpWriteEnabled);
+        this.isAsyncHttpWriteEnabled = isAsyncHttpWriteEnabled;
     }
-    
+
     // --------------------------------------------------------- Public Methods
 
     /**
@@ -180,8 +193,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         if (!committed)
             flushChannel(ACK.slice());
     }
-    
-    
+
+
     /**
      * Callback to write data from the buffer.
      */
@@ -191,13 +204,13 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         if (len > 0) {
             if (!useSocketBuffer){
                 int remaining = outputBuffer.remaining();
-                if (len > remaining){                
+                if (len > remaining){
                     if (outputBuffer.capacity() >= maxBufferedBytes){
                         outputBuffer.put(cbuf,off,remaining);
                         flush();
                         realWriteBytes(cbuf,off+remaining,len-remaining);
                         return;
-                    } else {                
+                    } else {
                         int size = Math.max(outputBuffer.capacity() * 2,
                                             len + outputBuffer.position());
                         Buffer tmp = createBuffer(size);
@@ -215,12 +228,12 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
             }
         }
     }
-    
-    
+
+
     /**
      * Flush the buffer by looping until the {@link ByteBuffer} is empty
      * @param bb the ByteBuffer to write.
-     */   
+     */
     public void flushChannel(Buffer bb) throws IOException {
         connectionStreamWriter.writeBuffer(bb);
         connectionStreamWriter.flush();
@@ -233,17 +246,19 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
     public boolean isSupportFileSend() {
         return true;
     }
-    
+
 
     /**
      * {@inheritDoc}
      */
     public long sendFile(FileChannel fileChannel, long position,
             long length) throws IOException {
-        Connection connection = connectionStreamWriter.getConnection();
+
+        //Connection connection = connectionStreamWriter.getConnection();
         SelectableChannel channel = ((NIOConnection) connection).getChannel();
         return fileChannel.transferTo(position, length,
                 (WritableByteChannel) channel);
+        
     }
 
 
@@ -255,11 +270,11 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         super.flush();
         flushBuffer();
     }
-    
-    
+
+
      /**
      * End request.
-     * 
+     *
      * @throws IOException an undelying I/O error occured
      */
     @Override
@@ -267,8 +282,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         throws IOException {
         super.endRequest();
         flushBuffer();
-    }  
-    
+    }
+
     /**
      * Writes bytes to the underlying channel.
      */
@@ -280,13 +295,13 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         }
     }
 
-    
+
     /**
-     * Recycle the output buffer. This should be called when closing the 
+     * Recycle the output buffer. This should be called when closing the
      * connection.
      */
     @Override
-    public void recycle() {        
+    public void recycle() {
         response.recycle();
         socketBuffer.recycle();
         pos = 0;
@@ -300,23 +315,23 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         connectionStreamWriter = null;
     }
 
-    
+
     // ---------------------------------------------- Class helper ----------//
-    
+
     /**
      * OutputBuffer delegating all writes to the {@link OutputWriter}
      */
-    private final class NIOOutputStream extends OutputStream{   
-        
+    private final class NIOOutputStream extends OutputStream{
+
         @Override
-        public void write(byte[] b, int off, int len) throws IOException{           
+        public void write(byte[] b, int off, int len) throws IOException{
             realWriteBytes(b,off,len);
         }
-        
+
         public void write(int b) throws IOException {
             write((byte)b);
         }
-        
+
         public void write(byte b) throws IOException {
             if(!outputBuffer.hasRemaining()) {
                 Buffer tmp = createBuffer(outputBuffer.capacity() * 2);
@@ -331,7 +346,7 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
 
     /**
      * Reset current response.
-     * 
+     *
      * @throws IllegalStateException if the response has already been committed
      */
     @Override

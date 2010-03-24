@@ -44,7 +44,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.threadpool.ExtendedThreadPool;
+//import com.sun.grizzly.threadpool.ExtendedThreadPool;
 
 /**
  * This class is a placeholde for gathering statistic
@@ -299,9 +299,10 @@ public class ThreadPoolStatistic {
     public int getCountQueued() {
         int size = 0;
 
-        if (threadPool != null && threadPool instanceof ExtendedThreadPool) {
-            size = ((ExtendedThreadPool) threadPool).getQueueSize();
-        }
+        // TODO: RESTORE
+        //if (threadPool != null && threadPool instanceof ExtendedThreadPool) {
+        //    size = ((ExtendedThreadPool) threadPool).getQueueSize();
+        //}
 
         return size;
     }

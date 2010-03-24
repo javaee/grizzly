@@ -57,8 +57,8 @@ package com.sun.grizzly.tcp;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.MimeHeaders;
 import java.io.IOException;
 import java.util.Locale;
 

@@ -57,13 +57,14 @@
 
 package com.sun.grizzly.tcp;
 
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.buf.UDecoder;
-import com.sun.grizzly.util.http.ContentType;
-import com.sun.grizzly.util.http.Cookies;
-import com.sun.grizzly.util.http.MimeHeaders;
-import com.sun.grizzly.util.http.Parameters;
+import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.MessageBytes;
+import com.sun.grizzly.http.util.UDecoder;
+import com.sun.grizzly.http.util.ContentType;
+import com.sun.grizzly.http.util.Cookies;
+import com.sun.grizzly.http.util.MimeHeaders;
+import com.sun.grizzly.http.util.Parameters;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -356,8 +357,10 @@ public class Request {
     public long getContentLengthLong() {
         if( contentLength > -1 ) return contentLength;
 
-        MessageBytes clB = headers.getValue("content-length");
-        contentLength = (clB == null || clB.isNull()) ? -1 : clB.getLong();
+        //MessageBytes clB = headers.getValue("content-length");
+        BufferChunk bc = headers.getValue("content-length");
+
+        contentLength = (bc == null || bc.isNull()) ? -1 : bc.getBuffer().getLong();
 
         return contentLength;
     }
@@ -377,8 +380,11 @@ public class Request {
 
 
     public MessageBytes contentType() {
-        if (contentTypeMB == null)
-            contentTypeMB = headers.getValue("content-type");
+        if (contentTypeMB == null) {
+            BufferChunk bc = headers.getValue("content-type");
+            contentTypeMB.setString(bc.toString()); // inefficient
+        }
+         
         return contentTypeMB;
     }
 

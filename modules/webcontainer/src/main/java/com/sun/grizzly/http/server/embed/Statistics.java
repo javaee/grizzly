@@ -23,9 +23,9 @@
 
 package com.sun.grizzly.http.server.embed;
 
-import com.sun.grizzly.http.KeepAliveStats;
-import com.sun.grizzly.http.ThreadPoolStatistic;
-import com.sun.grizzly.http.WebFilter;
+//import com.sun.grizzly.http.KeepAliveStats;
+//import com.sun.grizzly.http.ThreadPoolStatistic;
+//import com.sun.grizzly.http.WebFilter;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 
 /**
@@ -49,76 +49,76 @@ import com.sun.grizzly.tcp.RequestGroupInfo;
  */
 public class Statistics {
 
-    /**
-     * The underlying WebFilter.
-     */
-    private WebFilter webFilter;
-        
-    
-    /**
-     * Are we gathering
-     */
-    private boolean isGathering = false;
-    
-    
-    /**
-     * Create a Statistic class powered uner the hood by the {@link SelectorThread}.
-     * @param st the {@link SelectorThread}
-     */
-    protected Statistics(WebFilter webFilter) {
-        this.webFilter = webFilter;
-    }
-    
-    
-    /**
-     * Return an instance of {@link ThreadPoolStatistic}, which gather information
-     * about the current thread pool used by Grizzly.
-     * @return an instance of {@link ThreadPoolStatistic}, which gather information
-     * about the current thread pool used by Grizzly.
-     */
-    public ThreadPoolStatistic getThreadPoolStatistics(){
-        return webFilter.getThreadPoolStatistic();
-    }
-    
-    
-    /**
-     * Return an instance of {@link KeepAliveStats} , which gather information
-     * about the connection and the keep-alive mechanism.
-     * @return an instance of {@link KeepAliveStats} , which gather information
-     * about the connection and the keep-alive mechanism.
-     */
-    public KeepAliveStats getKeepAliveStatistics(){
-        return webFilter.getKeepAliveStats();
-    }
-    
-    
-    /**
-     * Return an instance of {@link RequestGroupInfo} , which gather information
-     * about all the requests made to Grizzly.
-     * @return an instance of {@link RequestGroupInfo} , which gather information
-     * about all the requests made to Grizzly.
-     */
-    public RequestGroupInfo getRequestStatistics(){
-        return webFilter.getRequestGroupInfo();
-    }
-    
-    
-    /**
-     * Start gathering statistics.
-     */
-    public void startGatheringStatistics(){   
-        if (isGathering) return;
-        isGathering = true;
-        webFilter.enableMonitoring();
-    }
-    
-    
-    /** 
-     * Stop gathering statistics.
-     */
-    public void stopGatheringStatistics(){
-        if (!isGathering) return;
-        isGathering = false;        
-        webFilter.disableMonitoring();
-    }
+//    /**
+//     * The underlying WebFilter.
+//     */
+//    private WebFilter webFilter;
+//
+//
+//    /**
+//     * Are we gathering
+//     */
+//    private boolean isGathering = false;
+//
+//
+//    /**
+//     * Create a Statistic class powered uner the hood by the {@link SelectorThread}.
+//     * @param st the {@link SelectorThread}
+//     */
+//    protected Statistics(WebFilter webFilter) {
+//        this.webFilter = webFilter;
+//    }
+//
+//
+//    /**
+//     * Return an instance of {@link ThreadPoolStatistic}, which gather information
+//     * about the current thread pool used by Grizzly.
+//     * @return an instance of {@link ThreadPoolStatistic}, which gather information
+//     * about the current thread pool used by Grizzly.
+//     */
+//    public ThreadPoolStatistic getThreadPoolStatistics(){
+//        return webFilter.getThreadPoolStatistic();
+//    }
+//
+//
+//    /**
+//     * Return an instance of {@link KeepAliveStats} , which gather information
+//     * about the connection and the keep-alive mechanism.
+//     * @return an instance of {@link KeepAliveStats} , which gather information
+//     * about the connection and the keep-alive mechanism.
+//     */
+//    public KeepAliveStats getKeepAliveStatistics(){
+//        return webFilter.getKeepAliveStats();
+//    }
+//
+//
+//    /**
+//     * Return an instance of {@link RequestGroupInfo} , which gather information
+//     * about all the requests made to Grizzly.
+//     * @return an instance of {@link RequestGroupInfo} , which gather information
+//     * about all the requests made to Grizzly.
+//     */
+//    public RequestGroupInfo getRequestStatistics(){
+//        return webFilter.getRequestGroupInfo();
+//    }
+//
+//
+//    /**
+//     * Start gathering statistics.
+//     */
+//    public void startGatheringStatistics(){
+//        if (isGathering) return;
+//        isGathering = true;
+//        webFilter.enableMonitoring();
+//    }
+//
+//
+//    /**
+//     * Stop gathering statistics.
+//     */
+//    public void stopGatheringStatistics(){
+//        if (!isGathering) return;
+//        isGathering = false;
+//        webFilter.disableMonitoring();
+//    }
 }

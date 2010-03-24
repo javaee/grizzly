@@ -42,8 +42,8 @@ package com.sun.grizzly.tcp.http11;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.HttpRequestURIDecoder;
+import com.sun.grizzly.http.util.MessageBytes;
+import com.sun.grizzly.http.util.HttpRequestURIDecoder;
 import java.io.IOException;
 import java.util.logging.Level;
 

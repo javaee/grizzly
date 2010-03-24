@@ -38,7 +38,7 @@
 
 package com.sun.grizzly.tcp;
 
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.util.ByteChunk;
 
 /**
  * Filter/transform the {@link Response}'s bytes before they get written.

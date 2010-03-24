@@ -55,12 +55,11 @@
 
 package com.sun.grizzly.tcp.http11;
 
-import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.buf.B2CConverter;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.CharChunk;
-import com.sun.grizzly.util.res.StringManager;
+import com.sun.grizzly.http.util.B2CConverter;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.CharChunk;
+import com.sun.grizzly.http.util.StringManager;
 import java.io.IOException;
 import java.io.Reader;
 import java.security.AccessController;

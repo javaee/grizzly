@@ -58,9 +58,9 @@ import com.sun.grizzly.util.LoggerUtils;
 import javax.naming.NamingException;
 import javax.naming.directory.DirContext;
 
-import com.sun.grizzly.util.buf.CharChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.buf.Ascii;
+import com.sun.grizzly.http.util.CharChunk;
+import com.sun.grizzly.http.util.MessageBytes;
+import com.sun.grizzly.http.util.Ascii;
 // START GlassFish 1024
 import java.util.HashMap;
 // END GlassFish 1024

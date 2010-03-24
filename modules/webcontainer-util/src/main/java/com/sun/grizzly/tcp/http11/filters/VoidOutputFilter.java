@@ -56,7 +56,7 @@ package com.sun.grizzly.tcp.http11.filters;
 
 import java.io.IOException;
 
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.util.ByteChunk;
 
 import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Response;

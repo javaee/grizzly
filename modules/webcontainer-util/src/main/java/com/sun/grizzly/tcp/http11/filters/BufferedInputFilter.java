@@ -58,7 +58,7 @@ import java.io.IOException;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.http11.InputFilter;
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.util.ByteChunk;
 
 /**
  * Input filter responsible for reading and buffering the request body, so that

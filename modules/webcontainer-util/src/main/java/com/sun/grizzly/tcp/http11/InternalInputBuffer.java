@@ -57,10 +57,10 @@ package com.sun.grizzly.tcp.http11;
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.MimeHeaders;
-import com.sun.grizzly.util.res.StringManager;
+import com.sun.grizzly.http.util.ByteChunk;
+import com.sun.grizzly.http.util.MessageBytes;
+import com.sun.grizzly.http.util.MimeHeaders;
+import com.sun.grizzly.http.util.StringManager;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -606,7 +606,7 @@ public class InternalInputBuffer implements InputBuffer {
 
             if (buf[pos] == Constants.COLON) {
                 colon = true;
-                headerValue = headers.addValue(buf, start, pos - start);
+               // headerValue = headers.addValue(buf, start, pos - start);
             }
             chr = buf[pos];
             if ((chr >= Constants.A) && (chr <= Constants.Z)) {
@@ -735,65 +735,66 @@ public class InternalInputBuffer implements InputBuffer {
      */
     protected boolean fill()
         throws IOException {
-
-        int nRead = 0;
-
-        if (parsingHeader) {
-
-            if (lastValid == buf.length) {
-                throw new IllegalArgumentException
-                    (sm.getString("iib.requestheadertoolarge.error"));
-            }
-
-            nRead = Math.min(inputStream.availableDataSize(),
-                    buf.length - lastValid);
-            if (nRead > 0) {
-                inputStream.readByteArray(buf, pos, nRead);
-                lastValid = pos + nRead;
-            } else {
-                Future f = inputStream.notifyAvailable(1);
-                try {
-                    f.get(inputStream.getTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return false;
-                }
-                nRead = Math.min(inputStream.availableDataSize(),
-                        buf.length - lastValid);
-                inputStream.readByteArray(buf, pos, nRead);
-                lastValid = pos + nRead;
-            }
-
-        } else {
-
-            if (buf.length - end < 4500) {
-                // In this case, the request header was really large, so we allocate a 
-                // brand new one; the old one will get GCed when subsequent requests
-                // clear all references
-                buf = new byte[buf.length];
-                end = 0;
-            }
-            pos = end;
-            lastValid = pos;
-            nRead = Math.min(inputStream.availableDataSize(), buf.length - lastValid);
-            if (nRead > 0) {
-                inputStream.readByteArray(buf, pos, nRead);
-                lastValid = pos + nRead;
-            } else {
-                Future f = inputStream.notifyAvailable(1);
-                try {
-                    f.get(inputStream.getTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return false;
-                }
-                nRead = Math.min(inputStream.availableDataSize(),
-                        buf.length - lastValid);
-                inputStream.readByteArray(buf, pos, nRead);
-                lastValid = pos + nRead;
-            }
-        }
-        return (nRead > 0);
+//
+//        int nRead = 0;
+//
+//        if (parsingHeader) {
+//
+//            if (lastValid == buf.length) {
+//                throw new IllegalArgumentException
+//                    (sm.getString("iib.requestheadertoolarge.error"));
+//            }
+//
+//            nRead = Math.min(inputStream.availableDataSize(),
+//                    buf.length - lastValid);
+//            if (nRead > 0) {
+//                inputStream.readByteArray(buf, pos, nRead);
+//                lastValid = pos + nRead;
+//            } else {
+//                Future f = inputStream.notifyAvailable(1);
+//                try {
+//                    f.get(inputStream.getTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                    return false;
+//                }
+//                nRead = Math.min(inputStream.availableDataSize(),
+//                        buf.length - lastValid);
+//                inputStream.readByteArray(buf, pos, nRead);
+//                lastValid = pos + nRead;
+//            }
+//
+//        } else {
+//
+//            if (buf.length - end < 4500) {
+//                // In this case, the request header was really large, so we allocate a
+//                // brand new one; the old one will get GCed when subsequent requests
+//                // clear all references
+//                buf = new byte[buf.length];
+//                end = 0;
+//            }
+//            pos = end;
+//            lastValid = pos;
+//            nRead = Math.min(inputStream.availableDataSize(), buf.length - lastValid);
+//            if (nRead > 0) {
+//                inputStream.readByteArray(buf, pos, nRead);
+//                lastValid = pos + nRead;
+//            } else {
+//                Future f = inputStream.notifyAvailable(1);
+//                try {
+//                    f.get(inputStream.getTimeout(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+//                } catch (Exception e) {
+//                    e.printStackTrace();
+//                    return false;
+//                }
+//                nRead = Math.min(inputStream.availableDataSize(),
+//                        buf.length - lastValid);
+//                inputStream.readByteArray(buf, pos, nRead);
+//                lastValid = pos + nRead;
+//            }
+//        }
+//        return (nRead > 0);
+          return false;
 
     }
 

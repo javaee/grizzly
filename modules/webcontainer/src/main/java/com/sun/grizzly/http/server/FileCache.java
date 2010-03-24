@@ -437,14 +437,14 @@ public class FileCache {
                 return true;
             }
         } catch (IOException ex){
-            WebFilter.logger
-                .fine("File Cache: " + ex.getMessage());
-            return true;
+//            WebFilter.logger
+//                .fine("File Cache: " + ex.getMessage());
+//            return true;
         } catch (Throwable t){
             // If an unexpected exception occurs, try to serve the page
             // as if it wasn't in a cache.
-            WebFilter.logger
-                .fine("File Cache thread race: " + t.getMessage());
+//            WebFilter.logger
+//                .fine("File Cache thread race: " + t.getMessage());
         }
         return false;
     }    
