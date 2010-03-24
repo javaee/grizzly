@@ -436,7 +436,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
         enableRcmSupport(GrizzlyConfig.toBoolean(http.getRcmSupportEnabled()));
         setUploadTimeout(Integer.parseInt(http.getConnectionUploadTimeoutMillis()));
-        setDisableUploadTimeout(GrizzlyConfig.toBoolean(http.getUploadTimeoutEnabled()));
+        setDisableUploadTimeout(!GrizzlyConfig.toBoolean(http.getUploadTimeoutEnabled()));
         setProperty("chunking-enabled", GrizzlyConfig.toBoolean(http.getChunkingEnabled()));
         setProperty("uriEncoding", http.getUriEncoding());
         if (http.getTraceEnabled() != null) {
