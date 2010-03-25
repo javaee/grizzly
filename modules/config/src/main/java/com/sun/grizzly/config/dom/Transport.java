@@ -160,6 +160,11 @@ public interface Transport extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setTcpNoDelay(String noDelay);
 
+    @Attribute(defaultValue="-1", dataType = Integer.class)
+    String getLinger();
+
+    void setLinger(String linger);
+
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
 

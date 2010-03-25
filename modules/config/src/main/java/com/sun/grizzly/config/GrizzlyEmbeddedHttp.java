@@ -247,6 +247,10 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         if (transport.getTcpNoDelay() != null) {
             setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
         }
+
+        if (transport.getLinger() != null) {
+            setLinger(Integer.parseInt(transport.getLinger()));
+        }
     }
 
     protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol,
