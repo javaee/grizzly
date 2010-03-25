@@ -38,7 +38,6 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.SelectionKeyOP.ConnectSelectionKeyOP;
 import com.sun.grizzly.async.AsyncQueueReader;
 import com.sun.grizzly.async.AsyncQueueWriter;
 import com.sun.grizzly.async.TCPAsyncQueueWriter;
@@ -177,7 +176,6 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * The default TCP port.
      */
     protected int port = 18888;
-
 
     /**
      * The ServerSocket instance.
@@ -1029,7 +1027,6 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
         this.pendingIOlimitPerThread = pendingIOlimitPerThread;
     }
-
 
     public final Selector getSelector() {
         return selector;
