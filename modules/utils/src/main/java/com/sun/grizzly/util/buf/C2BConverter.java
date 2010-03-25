@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,10 +58,10 @@
 package com.sun.grizzly.util.buf;
 
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.nio.charset.Charset;
 import java.nio.charset.CoderResult;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
@@ -85,7 +85,7 @@ public class C2BConverter {
     public C2BConverter(ByteChunk output, String encoding) throws IOException {
         this.bb=output;
         this.enc=encoding;
-        encoder = Charset.forName(enc).newEncoder().
+        encoder = Utils.lookupCharset(enc).newEncoder().
 		onMalformedInput(CodingErrorAction.REPLACE).
 		onUnmappableCharacter(CodingErrorAction.REPLACE);
     }

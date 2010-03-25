@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -44,6 +44,8 @@ import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
+import java.nio.charset.Charset;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
@@ -54,7 +56,27 @@ import java.util.regex.Matcher;
  * @author Jean-Francois Arcand
  */
 public class Utils {
-     /**
+    private static ConcurrentHashMap<String, Charset> charsetAliasMap =
+            new ConcurrentHashMap<String, Charset>();
+
+    /**
+     * Lookup a {@link Charset} by name.
+     * Fixes Charset concurrency issue (http://paul.vox.com/library/post/the-mysteries-of-java-character-set-performance.html)
+     *
+     * @param charsetName
+     * @return {@link Charset}
+     */
+    public static Charset lookupCharset(String charsetName) {
+        Charset charset = charsetAliasMap.get(charsetName);
+        if (charset == null) {
+            charset = Charset.forName(charsetName);
+            charsetAliasMap.putIfAbsent(charsetName, charset);
+        }
+
+        return charset;
+    }
+
+    /**
      * Character translation tables.
      */
     private static final byte[] toLower = new byte[256];

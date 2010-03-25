@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -54,6 +54,7 @@
 package com.sun.grizzly.util.buf;
 
 import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.Utils;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -103,7 +104,7 @@ public class B2CConverter {
                 throw new IllegalStateException("Can not initialize blocking converter");
             }
         } else {
-            charset = Charset.forName(encoding);
+            charset = Utils.lookupCharset(encoding);
             decoder = charset.newDecoder().
                     onMalformedInput(CodingErrorAction.REPLACE).
                     onUnmappableCharacter(CodingErrorAction.REPLACE);
