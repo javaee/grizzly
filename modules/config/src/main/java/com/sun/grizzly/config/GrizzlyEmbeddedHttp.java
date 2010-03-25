@@ -240,13 +240,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setSsBackLog(Integer.parseInt(transport.getMaxConnectionsCount()));
         setDisplayConfiguration(GrizzlyConfig.toBoolean(transport.getDisplayConfiguration()));
         setSelectorTimeout(Integer.parseInt(transport.getSelectorPollTimeoutMillis()));
-        if (transport.getTcpNoDelay() != null) {
-            setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
-        }
-
-        if (transport.getLinger() != null) {
-            setLinger(Integer.parseInt(transport.getLinger()));
-        }
+        setTcpNoDelay(GrizzlyConfig.toBoolean(transport.getTcpNoDelay()));
+        setLinger(Integer.parseInt(transport.getLinger()));
     }
 
     protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol,
