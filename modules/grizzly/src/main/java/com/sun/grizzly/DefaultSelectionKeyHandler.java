@@ -197,8 +197,7 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             return;
         }
         nextKeysExpiration = currentTime + timeout;        
-                
-        
+                        
         SelectionKey key;
         while (iterator.hasNext()) {
             key = iterator.next();
@@ -206,7 +205,6 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
             if (!key.isValid()){
                 continue;
             }
-
 
             long expire = getExpirationStamp(key.attachment());
             if (expire != SelectionKeyAttachment.UNLIMITED_TIMEOUT){
@@ -224,7 +222,16 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
         return timeout;
     }
     
-    
+    /**
+     * Set expiration timeout for the {@link SelectionKey}.
+     *
+     * If during that defined timeout the client isn't pushing bytes
+     * (or closing the connection), the SelectionKey will be expired
+     * and its channel closed. The negative timeout value will let
+     * {@link SelectionKey} never expire.
+     *
+     * @param timeout in seconds
+     */
     public void setTimeout(long timeout) {
         this.timeout = timeout;
     }

@@ -284,7 +284,7 @@ public class ReadFilter implements ProtocolFilter, ReinvokeAware {
                 }
 
                 if (state == Context.KeyRegistrationState.CANCEL){
-                    selectorHandler.getSelectionKeyHandler().cancel(key);
+                    selectorHandler.addPendingKeyCancel(key);
                 } else if (state == Context.KeyRegistrationState.REGISTER){
                     selectorHandler.register(key, SelectionKey.OP_READ);
                 }

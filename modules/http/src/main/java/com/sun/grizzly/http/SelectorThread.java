@@ -161,7 +161,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     protected boolean tcpNoDelay=false;
     
     
-    protected int linger=100;
+    protected int linger=-1;
     
     
     protected int socketTimeout=-1;

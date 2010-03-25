@@ -68,8 +68,10 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.concurrent.Callable;
@@ -91,6 +93,7 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaround {
+    private static final Object NULL_ATTACHMENT = new Object();
 
     private int maxAcceptRetries = 5;
 
@@ -106,27 +109,12 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * Selector.select is invoked.
      * can be combined read+write interest or Connect
      */
-    protected final LinkedTransferQueue<SelectionKeyOP> opToRegister
-            = new LinkedTransferQueue<SelectionKeyOP>();
+    protected final Queue<SelectorHandlerTask> selectorHandlerTasks =
+            new LinkedTransferQueue<SelectorHandlerTask>();
 
-    /**
-     *  SelectionKeys to be registered with Read interest in the next Selector.select();
-     */
-    private final LinkedTransferQueue<SelectionKey> readOpToRegister
-            = new LinkedTransferQueue<SelectionKey>();
-
-    /**
-     *  SelectionKeys to be registered with Write interest in the next Selector.select();
-     */
-    private final LinkedTransferQueue<SelectionKey> writeOpToRegister
-            = new LinkedTransferQueue<SelectionKey>();
-
-    /**
-     * SelectionKeys to be registered with Read and Write interest in the next Selector.select();
-     */
-    private final LinkedTransferQueue<SelectionKey> readWriteOpToRegister
-            = new LinkedTransferQueue<SelectionKey>();
-
+    protected final Queue<SelectorHandlerTask> postponedTasks =
+            new LinkedList<SelectorHandlerTask>();
+    
     /**
      *  enqueued events from selectionkey attachment logic.
      */
@@ -452,40 +440,20 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @param ctx
      * @throws java.io.IOException
      */
-    protected void processPendingOperations(Context ctx) throws IOException {
-        SelectionKeyOP operation;
-        while((operation = opToRegister.poll()) != null) {
-            int op = operation.getOp();
-            if ((op & SelectionKey.OP_CONNECT) != 0) {
-                onConnectOp(ctx, (SelectionKeyOP.ConnectSelectionKeyOP) operation);
-            } else{
-                SelectableChannel channel = operation.getChannel();
-                if (channel.isOpen()){
-                    selectionKeyHandler.register(channel,op);
-                }
-            }
-        }
+    protected void processPendingOperations(final Context ctx) throws IOException {
+        processPendingQueue(ctx, postponedTasks);
+        processPendingQueue(ctx, selectorHandlerTasks);
+    }
 
-        SelectionKey key;
-        while((key=readWriteOpToRegister.poll()) != null){
-            if (Controller.isLinux) {
-                key = checkIfSpinnedKey(key);
+    private void processPendingQueue(final Context ctx,
+            final Queue<SelectorHandlerTask> tasks) throws IOException {
+        SelectorHandlerTask task;
+        while((task = tasks.poll()) != null) {
+            if (logger.isLoggable(Level.FINEST)) {
+                logger.finest("Processing pending task: " + task);
             }
-            selectionKeyHandler.register(key, SelectionKey.OP_WRITE | SelectionKey.OP_READ);
-        }
 
-        while((key=writeOpToRegister.poll()) != null){
-            if (Controller.isLinux) {
-                key = checkIfSpinnedKey(key);
-            }
-            selectionKeyHandler.register(key, SelectionKey.OP_WRITE);
-        }
-
-        while((key=readOpToRegister.poll()) != null){
-            if (Controller.isLinux) {
-                key = checkIfSpinnedKey(key);
-            }
-            selectionKeyHandler.register(key, SelectionKey.OP_READ);
+            task.run(ctx);
         }
     }
 
@@ -505,7 +473,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * Handle new OP_CONNECT ops.
      */
     protected void onConnectOp(Context ctx,
-            SelectionKeyOP.ConnectSelectionKeyOP selectionKeyOp) throws IOException {
+            ConnectChannelOperation selectionKeyOp) throws IOException {
         SocketChannel socketChannel = (SocketChannel) selectionKeyOp.getChannel();
         SocketAddress remoteAddress = selectionKeyOp.getRemoteAddress();
         CallbackHandler callbackHandler = selectionKeyOp.getCallbackHandler();
@@ -543,7 +511,11 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      * @return {@link Set} of {@link SelectionKey}
      */
     public Set<SelectionKey> select(Context ctx) throws IOException{
-        selector.select(selectTimeout);
+        if (postponedTasks.isEmpty()) {
+            selector.select(selectTimeout);
+        } else {
+            selector.selectNow();
+        }
         return selector.selectedKeys();
     }
 
@@ -554,66 +526,22 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     public void postSelect(Context ctx) {
         selectionKeyHandler.expire(keys().iterator());
-
-        if (pendingIO.size() > 0 ){
-            final List tasks = pendingIO;
-            // tests with upto 10K selectionkeys was faster with ArrayList then linkedlist
-            // (did only test up to 10k)
-            pendingIO = new ArrayList();
-            int size = tasks.size();
-            for (int x=0;x<size;){
-                ctx.getController().executeUsingKernelExecutor(
-                        doExecutePendiongIO(tasks,x,Math.min(x+=pendingIOlimitPerThread, size)));
-            }
-        }
-    }
-
-    /**
-     * Perform the actual work.
-     * @param tasks
-     * @param start
-     * @param end
-     */
-    private Runnable doExecutePendiongIO(final List tasks, final int start, final int end){
-        Runnable r = new Runnable(){
-            public void run() {
-                for (int i=start;i<end;i++){
-                    Object obj = tasks.get(i);
-                    try{
-                        if (obj instanceof SelectionKey){
-                            selectionKeyHandler.close(((SelectionKey)obj));
-                        }else{
-                            ((Runnable)obj).run();
-                        }
-                    }catch(Throwable t){
-                        logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
-                    }
-                }
-            }
-        };
-        return r;
     }
 
     /**
      * {@inheritDoc}
      */
     public void addPendingIO(Runnable runnable){
-        if (finishIOUsingCurrentThread){
-            runnable.run();
-        }else{
-            pendingIO.add(runnable);
-        }
+        selectorHandlerTasks.add(new RunnableOperation(runnable));
+        wakeUp();
     }
 
     /**
      * {@inheritDoc}
      */
     public void addPendingKeyCancel(SelectionKey key){
-        if (finishIOUsingCurrentThread){
-            selectionKeyHandler.cancel(key);
-        }else{
-            pendingIO.add(key);
-        }
+        selectorHandlerTasks.add(new SelectionKeyCancelOperation(key));
+        wakeUp();
     }
 
 
@@ -630,23 +558,20 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             throw new NullPointerException("SelectionKey parameter is null");
         }
 
-        switch(ops){
-            case SelectionKey.OP_READ: readOpToRegister.offer(key);  break;
-            case SelectionKey.OP_WRITE: writeOpToRegister.offer(key); break;
-            case SelectionKey.OP_WRITE | SelectionKey.OP_READ:
-                readWriteOpToRegister.offer(key);  break;
-            default:
-                opToRegister.offer(new SelectionKeyOP(key,ops));
-        }
+        selectorHandlerTasks.offer(new RegisterKeyOperation(key, ops));
         wakeUp();
     }
 
     public void register(SelectableChannel channel, int ops) {
+        register(channel, ops, NULL_ATTACHMENT);
+    }
+
+    public void register(SelectableChannel channel, int ops, Object attachment) {
         if (channel == null) {
             throw new NullPointerException("SelectableChannel parameter is null");
         }
 
-        opToRegister.offer(new SelectionKeyOP(null,ops,channel));
+        selectorHandlerTasks.offer(new RegisterChannelOperation(channel, ops, attachment));
         wakeUp();
     }
 
@@ -672,12 +597,10 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
     protected void connect(SocketAddress remoteAddress, SocketAddress localAddress,
             CallbackHandler callbackHandler) throws IOException {
         SelectableChannel selectableChannel = getSelectableChannel( remoteAddress, localAddress );
-        SelectionKeyOP.ConnectSelectionKeyOP keyOP = new ConnectSelectionKeyOP();
-        keyOP.setOp(SelectionKey.OP_CONNECT);
-        keyOP.setChannel(selectableChannel);
-        keyOP.setRemoteAddress(remoteAddress);
-        keyOP.setCallbackHandler(callbackHandler);
-        opToRegister.offer(keyOP);
+
+        final ConnectChannelOperation connectKeyOp =
+                new ConnectChannelOperation(selectableChannel, remoteAddress, callbackHandler);
+        selectorHandlerTasks.offer(connectKeyOp);
         wakeUp();
     }
 
@@ -805,9 +728,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
             asyncQueueWriter = null;
         }
 
-        readOpToRegister.clear();
-        writeOpToRegister.clear();
-        opToRegister.clear();
+        selectorHandlerTasks.clear();
 
         attributes = null;
     }
@@ -1578,5 +1499,118 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
      */
     public void setMaxAcceptRetries(int maxAcceptRetries){
         this.maxAcceptRetries = maxAcceptRetries;
+    }
+
+    protected final class RegisterKeyOperation implements SelectorHandlerTask {
+        private final SelectionKey selectionKey;
+        private final int interest;
+
+        public RegisterKeyOperation(SelectionKey selectionKey, int interest) {
+            this.selectionKey = selectionKey;
+            this.interest = interest;
+        }
+
+        public void run(Context context) throws IOException {
+            SelectionKey localSelectionKey = selectionKey;
+            if (Controller.isLinux) {
+                localSelectionKey = checkIfSpinnedKey(selectionKey);
+            }
+
+            selectionKeyHandler.register(localSelectionKey, interest);
+        }
+    }
+
+protected final class RegisterChannelOperation implements SelectorHandlerTask {
+        private final SelectableChannel channel;
+        private final int interest;
+        private final Object attachment;
+
+        public RegisterChannelOperation(SelectableChannel channel,
+                int interest, Object attachment) {
+            this.channel = channel;
+            this.interest = interest;
+            this.attachment = attachment;
+        }
+
+        public void run(Context context) throws IOException {
+            if (channel.isOpen()) {
+                final SelectionKey key = channel.keyFor(selector);
+
+                boolean isKeyValid = true;
+                if (key == null || (isKeyValid = key.isValid())) {
+                    if (attachment == NULL_ATTACHMENT) {
+                        selectionKeyHandler.register(channel, interest);
+                    } else {
+                        selectionKeyHandler.register(channel, interest, attachment);
+                    }
+                    return;
+                }
+
+                if (!isKeyValid) {
+                    postponedTasks.add(this);
+                }
+            }
+        }
+    }
+
+    protected final class ConnectChannelOperation implements SelectorHandlerTask {
+        private final SelectableChannel channel;
+        private final SocketAddress remoteAddress;
+        private final CallbackHandler callbackHandler;
+
+        private ConnectChannelOperation(SelectableChannel channel,
+                SocketAddress remoteAddress, CallbackHandler callbackHandler) {
+            this.channel = channel;
+            this.remoteAddress = remoteAddress;
+            this.callbackHandler = callbackHandler;
+        }
+
+        public void run(Context context) throws IOException {
+            onConnectOp(context, this);
+        }
+
+        public CallbackHandler getCallbackHandler() {
+            return callbackHandler;
+        }
+
+        public SelectableChannel getChannel() {
+            return channel;
+        }
+
+        public SocketAddress getRemoteAddress() {
+            return remoteAddress;
+        }
+    }
+
+    protected final class RunnableOperation implements SelectorHandlerTask {
+        private final Runnable task;
+
+        public RunnableOperation(Runnable task) {
+            this.task = task;
+        }
+
+        public void run(Context context) throws IOException {
+            try {
+                task.run();
+            } catch (Throwable t) {
+                logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
+            }
+        }
+    }
+
+    protected final class SelectionKeyCancelOperation implements SelectorHandlerTask {
+        private final SelectionKey selectionKey;
+
+        public SelectionKeyCancelOperation(SelectionKey selectionKey) {
+            this.selectionKey = selectionKey;
+        }
+
+        public void run(Context context) throws IOException {
+            try {
+                selectionKeyHandler.close(selectionKey);
+            } catch (Throwable t) {
+                logger.log(Level.FINEST, "doExecutePendiongIO failed.", t);
+            }
+        }
     }
 }

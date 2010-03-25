@@ -109,6 +109,16 @@ public interface SelectionKeyHandler extends Handler, Copyable {
     public void register(SelectableChannel channel, 
             int selectionKeyOps) throws ClosedChannelException;
 
+     /**
+     * Register a {@link SelectableChannel} on {@link Selector}.
+     *
+     * @param channel {@link SelectableChannel}
+     * @param selectionKeyOps The interest set to apply when registering.
+     * to register
+     * @param attachment attachment
+     */
+    public void register(SelectableChannel channel,
+            int selectionKeyOps, Object attachment) throws ClosedChannelException;
 
     /**
      * Register a set of {@link SelectionKey}s.
