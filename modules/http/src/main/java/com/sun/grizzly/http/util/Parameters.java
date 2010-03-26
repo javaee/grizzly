@@ -61,13 +61,8 @@ import java.util.LinkedHashMap;
 import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.http.util.ByteChunk;
-import com.sun.grizzly.http.util.CharChunk;
-import com.sun.grizzly.http.util.MessageBytes;
-import com.sun.grizzly.http.util.UDecoder;
-import com.sun.grizzly.http.util.MultiMap;
 
 /**
  * 
@@ -93,11 +88,10 @@ public final class Parameters extends MultiMap {
     private boolean didQueryParameters=false;
     private boolean didMerge=false;
     
-    MessageBytes queryMB;
     MimeHeaders  headers;
+    BufferChunk queryBC;
 
     UDecoder urlDec;
-    MessageBytes decodedQuery=MessageBytes.newInstance();
     
     public static final int INITIAL_SIZE=4;
 
@@ -121,8 +115,8 @@ public final class Parameters extends MultiMap {
 	super( INITIAL_SIZE );
     }
 
-    public void setQuery( MessageBytes queryMB ) {
-	this.queryMB=queryMB;
+    public void setQuery(BufferChunk queryBC) {
+        this.queryBC = queryBC;
     }
 
     public void setHeaders( MimeHeaders headers ) {
@@ -147,7 +141,7 @@ public final class Parameters extends MultiMap {
 	currentChild=null;
 	didMerge=false;
 	encoding=null;
-	decodedQuery.recycle();
+	queryBC.recycle();
     }
     
     // -------------------- Sub-request support --------------------
@@ -310,23 +304,26 @@ public final class Parameters extends MultiMap {
     /** Process the query string into parameters
      */
     public void handleQueryParameters() {
-	if( didQueryParameters ) return;
-
-	didQueryParameters=true;
-
-	if( queryMB==null || queryMB.isNull() )
-	    return;
-	
-	if( debug > 0  )
-	    log( "Decoding query " + decodedQuery + " " + queryStringEncoding);
-
-        try {
-            decodedQuery.duplicate( queryMB );
-        } catch (IOException e) {
-            // Can't happen, as decodedQuery can't overflow
-            e.printStackTrace();
+        if( didQueryParameters ) {
+            return;
         }
+
+        didQueryParameters=true;
+
+        if (queryBC == null || queryBC.isNull()) {
+            return;
+        }
+
+        if( debug > 0  ) {
+            log( "Decoding query " + queryBC + " " + queryStringEncoding);
+        }
+
+        // TODO obtain the bytes instead of converter to string
+        //      then call processParameters(byte[], int, int, String) directly
+        MessageBytes decodedQuery = MessageBytes.newInstance();
+        decodedQuery.setString(queryBC.toString());
         processParameters( decodedQuery, queryStringEncoding );
+
     }
 
     // --------------------

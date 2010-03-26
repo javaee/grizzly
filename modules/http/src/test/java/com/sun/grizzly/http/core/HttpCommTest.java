@@ -41,7 +41,6 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpResponse;
 import com.sun.grizzly.http.HttpRequest;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.WriteResult;
@@ -54,14 +53,13 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 import junit.framework.TestCase;
 
 /**
@@ -70,8 +68,7 @@ import junit.framework.TestCase;
  * @author Alexey Stashok
  */
 public class HttpCommTest extends TestCase {
-    private static final Logger logger = Grizzly.logger(HttpResponseParseTest.class);
-    
+
     public static int PORT = 8002;
 
     public void testSinglePacket() throws Exception {
@@ -90,7 +87,8 @@ public class HttpCommTest extends TestCase {
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
+            int clientPort = ((InetSocketAddress) connection.getLocalAddress()).getPort();
             assertTrue(connection != null);
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
@@ -102,7 +100,8 @@ public class HttpCommTest extends TestCase {
             connection.setProcessor(clientFilterChain);
 
             HttpRequest httpRequest = HttpRequest.builder().method("GET").
-                    uri("/dummyURL").protocol("HTTP/1.0").
+                    uri("/dummyURL").query("p1=v1&p2=v2").protocol("HTTP/1.0").
+                    header("client-port",  Integer.toString(clientPort)).
                     header("Host", "localhost").build();
 
             Future<WriteResult> writeResultFuture = connection.write(httpRequest);
@@ -138,6 +137,15 @@ public class HttpCommTest extends TestCase {
             final HttpRequest request = (HttpRequest) httpContent.getHttpHeader();
 
             System.out.println("Got the request: " + request);
+
+            assertEquals(PORT, request.getLocalPort());
+            assertEquals("127.0.0.1", request.getLocalAddress());
+            assertEquals("localhost", request.getRemoteHost());
+            assertEquals("127.0.0.1", request.getRemoteAddress());
+            assertEquals(request.getHeader("client-port"), 
+                         Integer.toString(request.getRemotePort()));
+            assertEquals("v1", request.getParameters().getParameter("p1"));
+            assertEquals("v2", request.getParameters().getParameter("p2"));
 
             final HttpResponse response = HttpResponse.builder().
                     protocol(request.getProtocol()).status(200).

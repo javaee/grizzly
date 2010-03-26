@@ -76,11 +76,10 @@ public class BufferChunk {
     }
     
     public void setBuffer(Buffer buffer, int start, int end) {
+        recycle();
         this.buffer = buffer;
         this.start = start;
         this.end = end;
-        cachedString = null;
-        cachedStringCharset = null;
     }
 
     public int getStart() {

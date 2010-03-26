@@ -221,6 +221,10 @@ public class HttpClientFilter extends HttpFilter {
         output = put(memoryManager, output, httpRequest.getMethodBC());
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpRequest.getRequestURIRef().getRequestURIBC());
+        if (!httpRequest.getQueryStringBC().isNull()) {
+            output = put(memoryManager, output, (byte) '?'); 
+            output = put(memoryManager, output, httpRequest.getQueryStringBC());
+        }
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpRequest.getProtocolBC());
 

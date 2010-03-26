@@ -337,4 +337,8 @@ public class Constants {
     
     public final static byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
 
+    // TODO Grizzly 2.0, by default, parsed the request URI using UTF-8.
+    // We should probably do so with query parameters
+    public static final String DEFAULT_CHARACTER_ENCODING="ISO-8859-1";
+
 }

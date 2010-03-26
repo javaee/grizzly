@@ -39,7 +39,10 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.Ascii;
+import com.sun.grizzly.http.util.ContentType;
+import com.sun.grizzly.http.util.Cookies;
 import com.sun.grizzly.http.util.MimeHeaders;
+import com.sun.grizzly.http.util.Parameters;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
@@ -57,6 +60,12 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     protected BufferChunk protocolBC = BufferChunk.newInstance();
     protected boolean isChunked;
     protected long contentLength = -1;
+    protected String charEncoding;
+    protected boolean charEncodingParsed;
+    protected boolean contentTypeParsed;
+    protected String contentType;
+    protected Cookies cookies = new Cookies(headers);
+
 
     /**
      * Returns <tt>true</tt>, if the current <tt>HttpHeader</tt> represent
@@ -155,7 +164,79 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
         this.isCommited = isCommited;
     }
 
+
+    // -------------------- encoding/type --------------------
+
+
+    /**
+     * TODO: docs
+     * Get the character encoding used for this request.
+     */
+    public String getCharacterEncoding() {
+
+        if (charEncoding != null || charEncodingParsed) {
+            return charEncoding;
+        }
+
+        charEncoding = ContentType.getCharsetFromContentType(getContentType());
+        charEncodingParsed = true;
+
+        return charEncoding;
+        
+    }
+
+
+    /**
+     * TODO DOCS
+     * @param enc
+     */
+    public void setCharacterEncoding(String enc) {
+        this.charEncoding = enc;
+    }
+
+
+    /**
+     * TODO DOCS
+     * @param len
+     */
+    public void setContentLength(int len) {
+        this.contentLength = len;
+    }
+
+
+    /**
+     * TODO DOCS
+     * @return
+     */
+    public String getContentType() {
+
+        if (!contentTypeParsed) {
+            contentTypeParsed = true;
+
+            BufferChunk bc = headers.getValue("content-type");
+
+            if (bc == null || bc.isNull()) {
+                return null;
+            }
+            contentType = bc.toString();
+        }
+        return contentType;
+
+    }
+
+
+    /**
+     * TODO DOCS
+     * @param type
+     */
+    public void setContentType(String type) {
+        contentType = type;
+    }
+
+
     // -------------------- Headers --------------------
+
+    
     /**
      * {@inheritDoc}
      */
@@ -249,9 +330,14 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     public void recycle() {
         protocolBC.recycle();
         headers.clear();
+        cookies.recycle();
         isCommited = false;
         isChunked = false;
         contentLength = -1;
+        charEncoding = null;
+        charEncodingParsed = false;
+        contentType = null;
+        contentTypeParsed = false;
     }
 
     /**
