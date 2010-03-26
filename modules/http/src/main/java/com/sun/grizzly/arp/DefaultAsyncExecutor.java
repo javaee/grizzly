@@ -269,7 +269,10 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
             StringTokenizer st = new StringTokenizer(
                     System.getProperty(ASYNC_FILTER),",");
             while (st.hasMoreTokens()){
-                al.add((AsyncFilter)ClassLoaderUtil.load(st.nextToken()));
+                AsyncFilter filter = (AsyncFilter)ClassLoaderUtil.load(st.nextToken());
+                if (filter != null) {
+                    al.add(filter);
+                }
             } 
         }
         return al;
