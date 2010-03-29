@@ -35,7 +35,6 @@
  * holder.
  *
  */
-
 package com.sun.grizzly;
 
 import java.util.concurrent.TimeUnit;
@@ -54,12 +53,14 @@ import java.util.logging.Logger;
  * @author oleksiys
  */
 public class DefaultMemoryManagerTest extends GrizzlyTestCase {
+
     private static Logger logger = Grizzly.logger(DefaultMemoryManagerTest.class);
-    
+
     public void testDispose() throws Exception {
         final DefaultMemoryManager mm = new DefaultMemoryManager(
                 new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
+
             @Override
             public void run() {
                 final int allocSize = 16384;
@@ -68,7 +69,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                 mm.allocate(0);
 
                 final int initialSize = mm.getReadyThreadBufferSize();
-                
+
                 Buffer buffer = mm.allocate(allocSize);
 
                 assertEquals(
@@ -89,6 +90,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         final DefaultMemoryManager mm = new DefaultMemoryManager(
                 new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
+
             @Override
             public void run() {
                 final int allocSize = 16384;
@@ -123,6 +125,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         final DefaultMemoryManager mm = new DefaultMemoryManager(
                 new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
+
             @Override
             public void run() {
                 final int allocSize = 16384;
@@ -170,6 +173,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         final DefaultMemoryManager mm = new DefaultMemoryManager(
                 new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
+
             @Override
             public void run() {
                 final int allocSize = 16384;
@@ -180,7 +184,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                 final int initialSize = mm.getReadyThreadBufferSize();
 
                 final int chunkSize = 4096;
-                
+
                 ByteBufferWrapper buffer1 = mm.allocate(chunkSize);
                 assertEquals(
                         initialSize - chunkSize,
@@ -230,6 +234,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         final DefaultMemoryManager mm = new DefaultMemoryManager(
                 new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
+
             @Override
             public void run() {
                 final int allocSize = 16384;
@@ -282,6 +287,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         final DefaultMemoryManager mm = new DefaultMemoryManager(
                 new MyMemoryMonitoringProbe());
         Runnable r = new Runnable() {
+
             @Override
             public void run() {
                 // Initialize memory manager
@@ -291,18 +297,57 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
                 BuffersBuffer compositeBuffer = BuffersBuffer.create(mm);
 
-                for (int i = 0; i < 12; i++) {
-                    compositeBuffer.append(mm.allocate(0));
+                for (int i = 0; i < 11; i++) {
+                    Buffer b = mm.allocate(1228);
+                    b.allowBufferDispose(true);
+                    compositeBuffer.append(b);
                 }
 
-                Buffer contentBuffer = mm.allocate(1228);
-                contentBuffer.allowBufferDispose(true);
-                
-                compositeBuffer.append(contentBuffer);
-
-                compositeBuffer.position(compositeBuffer.limit());
+                compositeBuffer.toByteBufferArray(0, 12280);
+                compositeBuffer.limit(1228);
 
                 compositeBuffer.disposeUnused();
+
+                assertEquals(initialSize - (1228 * 11 - 12280),
+                        mm.getReadyThreadBufferSize());
+
+                compositeBuffer.position(compositeBuffer.limit());
+                compositeBuffer.disposeUnused();
+
+                assertEquals(initialSize,
+                        mm.getReadyThreadBufferSize());
+            }
+        };
+
+        testInWorkerThread(r);
+    }
+
+    public void testCompositeBufferDispose() throws Exception {
+        final DefaultMemoryManager mm = new DefaultMemoryManager(
+                new MyMemoryMonitoringProbe());
+        Runnable r = new Runnable() {
+
+            @Override
+            public void run() {
+                // Initialize memory manager
+
+                mm.allocate(0);
+
+                final int initialSize = mm.getReadyThreadBufferSize();
+
+                BuffersBuffer compositeBuffer = BuffersBuffer.create(mm);
+
+                for (int i = 0; i < 3; i++) {
+                    Buffer b = mm.allocate(100);
+                    b.allowBufferDispose(true);
+                    compositeBuffer.append(b);
+                }
+
+                compositeBuffer.toByteBuffer(0, 100);
+                compositeBuffer.position(100);
+
+                compositeBuffer.dispose();
+
 
                 assertEquals(initialSize,
                         mm.getReadyThreadBufferSize());
@@ -317,6 +362,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
 
         ExecutorService threadPool = new FixedThreadPool(ThreadPoolConfig.DEFAULT);
         threadPool.execute(new Runnable() {
+
             @Override
             public void run() {
                 try {
@@ -347,6 +393,5 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
         public void releaseBufferToPoolEvent(int size) {
             logger.info("releaseBufferToPoolEvent: " + size);
         }
-        
     }
 }
