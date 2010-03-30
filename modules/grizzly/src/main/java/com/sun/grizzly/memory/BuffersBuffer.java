@@ -361,6 +361,7 @@ public final class BuffersBuffer implements CompositeBuffer {
 
         for(int i=startIndex; i<buffersSize; i++) {
             final Buffer buffer = buffers[i];
+            buffers[i] = null;
             removedBytes += buffer.remaining();
 
             if (allowInternalBuffersDispose) {
@@ -407,7 +408,9 @@ public final class BuffersBuffer implements CompositeBuffer {
         }
 
         for(int i=0; i<rightTrim; i++) {
-            final Buffer buffer = buffers[buffersSize - i - 1];
+            final int idx = buffersSize - i - 1;
+            final Buffer buffer = buffers[idx];
+            buffers[idx] = null;
             final int bufferSize = buffer.remaining();
             capacity -= bufferSize;
 
@@ -419,7 +422,10 @@ public final class BuffersBuffer implements CompositeBuffer {
         buffersSize -= (leftTrim + rightTrim);
         resetLastLocation();
         
-        System.arraycopy(buffers, leftTrim, buffers, 0, buffersSize);
+        if (leftTrim > 0) {
+            System.arraycopy(buffers, leftTrim, buffers, 0, buffersSize);
+            Arrays.fill(buffers, buffersSize, buffersSize + leftTrim, null);
+        }
 
         return false;
     }
