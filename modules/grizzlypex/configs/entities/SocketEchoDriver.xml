@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<driver name="SocketEchoDriver" normal="true" xmlns="http://www.sun.com/japex/testSuite">
-    <param name="japex.driverClass" value="org.glassfish.grizzly.benchmark.SocketEchoDriver"/>
-    <param name="description" value="Socket echo driver"/>
-
-    <xi:include href="japex-classpath.xml" xmlns:xi="http://www.w3.org/2001/XInclude"/>
-</driver>
