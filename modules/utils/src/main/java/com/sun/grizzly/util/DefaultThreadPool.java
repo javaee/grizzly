@@ -156,6 +156,7 @@ public class DefaultThreadPool extends FixedThreadPool
                 (aliveWorkers < corePoolSize ||
                 queueSize.get()>0 || !hasIdleWorkersApproximately()) && running){
             if (aliveworkerCount.compareAndSet(aliveWorkers, aliveWorkers+1)){
+                onTaskQueued(task);
                 startWorker(new DefaultThreadWorker(task, false));
                 return;
             }
