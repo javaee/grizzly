@@ -168,7 +168,7 @@ public class BufferChunk {
             }
 
             for(int i = start; i < end; i++) {
-                if (buffer.get(i) != s.charAt(i)) {
+                if (buffer.get(i) != s.charAt(i - start)) {
                     return false;
                 }
             }
