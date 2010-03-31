@@ -3,10 +3,10 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.http.HttpWorkerThread;
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.SelectionKeyAttachment;
+import com.sun.grizzly.util.http.MimeHeaders;
 
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.nio.channels.Selector;
 import java.util.HashMap;
@@ -47,15 +47,25 @@ public class WebSocketEngine {
         try {
             final ClientHandShake clientHandShake =
                     new ClientHandShake(request.getMimeHeaders(), false, request.requestURI().toString());
+            final Response response = request.getResponse();
+            handshake(request, response, clientHandShake);
             if (app != null) {
-                socket = app.createSocket(asyncExecutor, request, request.getResponse(), clientHandShake, getSelector(asyncExecutor));
+                socket = app.createSocket(asyncExecutor, request, response);
             } else {
-                socket = new DefaultWebSocket(asyncExecutor, request, request.getResponse(), clientHandShake, getSelector(asyncExecutor));
+                socket = new DefaultWebSocket(asyncExecutor, request, response);
             }
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
         }
         return socket;
+    }
+
+    private void handshake(Request request, Response response, ClientHandShake client) throws IOException {
+        final MimeHeaders headers = request.getMimeHeaders();
+        final ServerHandShake handshake = new ServerHandShake(headers, client);
+
+        handshake.prepare(response);
+        response.flush();
     }
 
     private Selector getSelector(AsyncExecutor asyncExecutor) {

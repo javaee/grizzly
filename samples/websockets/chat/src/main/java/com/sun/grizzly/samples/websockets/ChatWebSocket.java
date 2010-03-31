@@ -13,8 +13,8 @@ public class ChatWebSocket extends BaseServerWebSocket {
     private ChatApplication app;
 
     public ChatWebSocket(AsyncExecutor asyncExecutor, Request request, Response response,
-            ClientHandShake client, final ChatApplication listener) throws IOException {
-        super(asyncExecutor, request, response, client, listener);
+            final ChatApplication listener) throws IOException {
+        super(asyncExecutor, request, response, listener);
         app = listener;
     }
 

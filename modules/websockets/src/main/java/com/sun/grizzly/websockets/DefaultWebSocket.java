@@ -15,9 +15,8 @@ import java.nio.channels.Selector;
  */
 public class DefaultWebSocket extends BaseServerWebSocket implements WebSocket {
 
-    public DefaultWebSocket(AsyncExecutor asyncExecutor, Request request, Response response,
-            ClientHandShake clientHandShake, Selector selector) throws IOException {
-        super(asyncExecutor, request, response, clientHandShake, null);
+    public DefaultWebSocket(AsyncExecutor asyncExecutor, Request request, Response response) throws IOException {
+        super(asyncExecutor, request, response, null);
     }
 
     public final void doRead(SelectableChannel selectableChannel) {

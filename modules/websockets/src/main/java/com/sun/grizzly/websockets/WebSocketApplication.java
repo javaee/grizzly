@@ -29,8 +29,7 @@ public abstract class WebSocketApplication implements WebSocketListener {
         return listeners.remove(listener);
     }
 
-    public WebSocket createSocket(AsyncExecutor asyncExecutor, Request request, Response response,
-            ClientHandShake client, Selector selector) throws IOException {
-        return new BaseServerWebSocket(asyncExecutor, request, response, client, this);
+    public WebSocket createSocket(AsyncExecutor asyncExecutor, Request request, Response response) throws IOException {
+        return new BaseServerWebSocket(asyncExecutor, request, response, this);
     }
 }

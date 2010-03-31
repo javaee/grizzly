@@ -18,9 +18,8 @@ public class ChatApplication extends WebSocketApplication {
     List<WebSocket> sockets = new ArrayList<WebSocket>();
 
     @Override
-    public WebSocket createSocket(AsyncExecutor asyncExecutor, Request request, Response response,
-                ClientHandShake client, Selector selector) throws IOException {
-        final ChatWebSocket socket = new ChatWebSocket(asyncExecutor, request, response, client, this);
+    public WebSocket createSocket(AsyncExecutor asyncExecutor, Request request, Response response) throws IOException {
+        final ChatWebSocket socket = new ChatWebSocket(asyncExecutor, request, response, this);
 
         sockets.add(socket);
         return socket;
