@@ -57,15 +57,16 @@ import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.rcm.ResourceAllocationFilter;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.RequestGroupInfo;
+import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyListener;
-import com.sun.grizzly.tcp.http11.OutputFilter;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.IntrospectionUtils;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.SelectorFactory;
+import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.res.StringManager;
 
@@ -105,7 +106,7 @@ import java.util.logging.Logger;
 /**
  * The SelectorThread class is the entry point when embedding the Grizzly Web
  * Server. All Web Server configuration must be set on this object before invoking
- * the {@link listen()} method. As an example:
+ * the {@link #listen} method. As an example:
  * <pre><code>
         final SelectorThread selectorThread = new SelectorThread(){
                 public void listen() throws IOException, InstantiationException{
@@ -310,13 +311,13 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     /**
-     * The{@link Algorithm} used to predict the end of the NIO stream
+     * The{@link StreamAlgorithm} used to predict the end of the NIO stream
      */
     protected Class algorithmClass;
     
     
     /**
-     * The{@link Algorithm} used to parse the NIO stream.
+     * The{@link StreamAlgorithm} used to parse the NIO stream.
      */
     protected String algorithmClassName = DEFAULT_ALGORITHM;
     
@@ -578,7 +579,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Return the {@link SelectorThread} which listen on port, or null
      * if there is no {@link SelectorThread}.
      */
-    public final static SelectorThread getSelector(int port){
+    public static SelectorThread getSelector(int port){
         return selectorThreads.get(port);
     }
     
@@ -587,7 +588,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Return an <code>Enumeration</code> of the active 
      * {@link SelectorThread}s
      */
-    public final static Enumeration<SelectorThread> getSelectors(){
+    public static Enumeration<SelectorThread> getSelectors(){
         return selectorThreads.elements();
     }
     
@@ -977,9 +978,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Initialize {@link ProcessorTask}
      */
     protected void rampUpProcessorTask(){
-        Iterator<ProcessorTask> iterator = processorTasks.iterator();
-        while (iterator.hasNext()) {
-            iterator.next().initialize();
+        for (ProcessorTask processorTask : processorTasks) {
+            processorTask.initialize();
         }
     }  
     
@@ -1035,9 +1035,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     protected void reconfigureAsyncExecution(){
         for(ProcessorTask task :processorTasks){
-            ((ProcessorTask)task)
-                .setEnableAsyncExecution(asyncExecution);
-            ((ProcessorTask)task).setAsyncHandler(asyncHandler);  
+            task.setEnableAsyncExecution(asyncExecution);
+            task.setAsyncHandler(asyncHandler);
         }
     }
    
@@ -1055,7 +1054,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * create a new instance.
      */
     public ProcessorTask getProcessorTask(){
-        ProcessorTask processorTask = null;
+        ProcessorTask processorTask;
         processorTask = processorTasks.poll();
         
         if (processorTask == null){
@@ -1158,9 +1157,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * Use reflection to configure Grizzly setter.
      */
     private void configureProperties(){
-        Iterator keys = properties.keySet().iterator();
-        while( keys.hasNext() ) {
-            String name = (String)keys.next();
+        for (String name : properties.keySet()) {
             String value = properties.get(name).toString();
             IntrospectionUtils.setProperty(this, name, value);
         }       
@@ -1272,7 +1269,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             if (task.getType() == Task.PROCESSOR_TASK){
                                 
                 if ( isMonitoringEnabled() ){
-                   activeProcessorTasks.remove(((ProcessorTask)task));
+                   activeProcessorTasks.remove(task);
                 }  
                 
                 processorTasks.offer((ProcessorTask)task);
@@ -1298,7 +1295,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * will return 0, but getPortLowLevel() will return port number assigned by OS.
      * 
      * @return port number, or -1 if {@link SelectorThread} was not started
-     * @depreated - uses {@link getPort} instead
+     * @depreated - uses {@link #getPort} instead
      */
     public int getPortLowLevel() {
         if (selectorHandler != null){
@@ -1511,7 +1508,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     /**
      * Register JMX components supported by this {@link SelectorThread}. This 
-     * include {@link FileCache}, {@link RequestInfo}, {@link KeepAliveCountManager}
+     * include {@link FileCache}, {@link RequestInfo}, {@link KeepAliveStats}
      * and {@link StatsThreadPool}. The {@link Management#registerComponent}
      * will be invoked during the registration process. 
      */
@@ -1553,7 +1550,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     /**
      * Unregister JMX components supported by this {@link SelectorThread}. This 
-     * include {@link FileCache}, {@link RequestInfo}, {@link KeepAliveCountManager}
+     * include {@link FileCache}, {@link RequestInfo}, {@link KeepAliveStats}
      * , {@link StatsThreadPool} and {@link ProcessorTask}.
      * The {@link Management#unregisterComponent} will be invoked during the
      * registration process.
@@ -1581,11 +1578,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             }
             
             Iterator<ProcessorTask> iterator = activeProcessorTasks.iterator();
-            ProcessorTask pt = null;
+            ProcessorTask pt;
             while (iterator.hasNext()) {
                 pt = iterator.next();
                 if (pt instanceof ProcessorTask) {
-                    ((ProcessorTask)pt).unregisterMonitoring();
+                    pt.unregisterMonitoring();
                 }
             }
             
@@ -1594,7 +1591,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             while (iterator.hasNext()) {
                 pt = iterator.next();
                 if (pt instanceof ProcessorTask) {
-                    ((ProcessorTask)pt).unregisterMonitoring();
+                    pt.unregisterMonitoring();
                 }
             }
         }
@@ -1667,7 +1664,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     /**
-     * Initialize the {@link ThreadPoolStat} instance.
+     * Initialize the {@link ThreadPoolStatistic} instance.
      */
     protected void initMonitoringLevel() {
         if (threadPoolStat != null) return;
@@ -2347,7 +2344,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     }
 
     /**
-     * Set the maximum time, in milliseconds, a {@link WrokerThread} processing 
+     * Set the maximum time, in milliseconds, a {@link WorkerThread} processing
      * an instance of this class.
      * 
      * @param transactionTimeout  the maximum time, in milliseconds.
