@@ -59,7 +59,6 @@ import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyListener;
-import com.sun.grizzly.tcp.http11.InputFilter;
 import com.sun.grizzly.tcp.http11.OutputFilter;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
@@ -561,8 +560,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     // ProcessorTaskFactory, which is used to create ProcessorTasks
     protected volatile ProcessorTaskFactory processorTaskFactory;
-    private InputFilter[] inputFilters;
-    private OutputFilter[] outputFilters;
 
     // ---------------------------------------------------- Constructor --//
     
@@ -1018,8 +1015,6 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         task.setTransactionTimeout(transactionTimeout);
         task.setUseChunking(useChunking);
         task.setSendBufferSize(sendBufferSize);
-        task.addActiveFilters(inputFilters);
-        task.addActiveFilters(outputFilters);
 
         // Asynch extentions
         if ( asyncExecution ) {
@@ -2495,13 +2490,5 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     public void setProcessorTaskFactory(ProcessorTaskFactory processorTaskFactory) {
         this.processorTaskFactory = processorTaskFactory;
         clearTasks();
-    }
-
-    public void setInputFilters(InputFilter... filters) {
-        inputFilters = filters;
-    }
-
-    public void setOutputFilters(OutputFilter... filters) {
-        outputFilters = filters;
     }
 }

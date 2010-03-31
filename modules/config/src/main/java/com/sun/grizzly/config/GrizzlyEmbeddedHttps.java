@@ -55,9 +55,8 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     private final SSLConfigHolder sslConfigHolder = new SSLConfigHolder();
     
     @Override
-    protected ProtocolChainInstanceHandler configureProtocol(
-            NetworkListener networkListener, Protocol protocol, Habitat habitat,
-            boolean mayEnableComet) {
+    protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol,
+            Habitat habitat, boolean mayEnableAsync) {
         if (protocol.getHttp() != null && GrizzlyConfig.toBoolean(protocol.getSecurityEnabled())) {
             final Ssl ssl = protocol.getSsl();
 
@@ -71,8 +70,7 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
             }
         }
 
-        return super.configureProtocol(networkListener, protocol, habitat,
-                mayEnableComet);
+        return super.configureProtocol(networkListener, protocol, habitat, mayEnableAsync);
     }
     
     /**

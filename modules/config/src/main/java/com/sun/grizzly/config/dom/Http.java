@@ -54,7 +54,7 @@ import org.jvnet.hk2.config.types.PropertyBag;
  */
 @Configured
 public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
-    @Attribute(defaultValue="com.sun.grizzly.tcp.StaticResourcesAdapter")
+    @Attribute(defaultValue = "com.sun.grizzly.tcp.StaticResourcesAdapter")
     String getAdapter();
 
     void setAdapter(String adapter);
@@ -190,7 +190,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * security-constraint requires SSL transport catalina will automatically redirect the request to the port number
      * specified here
      */
-    @Attribute(dataType=Integer.class)
+    @Attribute(dataType = Integer.class)
     @Max(65535)
     String getRedirectPort();
 
@@ -257,6 +257,11 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getVersion();
 
     void setVersion(final String version);
+
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getWebsocketsSupportEnabled();
+
+    void setWebsocketsSupportEnabled(String enabled);
 
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to

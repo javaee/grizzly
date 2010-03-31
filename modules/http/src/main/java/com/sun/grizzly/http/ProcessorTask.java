@@ -119,8 +119,6 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     private final static Logger logger = SelectorThread.logger();
 
-    private boolean isSecurityEnabled;
-
 
     /**
      * The string manager for this package.
@@ -361,7 +359,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     protected AsyncHandler asyncHandler;
 
 
-    private Semaphore asyncSemaphore = new Semaphore(1);
+    private final Semaphore asyncSemaphore = new Semaphore(1);
 
 
     private int sendBufferSize = Constants.SEND_BUFFER_SIZE;
@@ -467,8 +465,6 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     private boolean setSkipPostExecute;
     private boolean httpExtension = false;
-    private InputFilter[] extraInputFilters = {};
-    private OutputFilter[] extraOutputFilters = {};
 
     // ----------------------------------------------------- Constructor ---- //
 
@@ -499,7 +495,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Initialize the stream and the buffer used to parse the request.
      */
     public void initialize(){
-        isSecurityEnabled = (System.getSecurityManager() != null);
+        boolean securityEnabled = System.getSecurityManager() != null;
         started = true;
         request = createRequest();
 
@@ -599,7 +595,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         // Setting up the I/O
         inputBuffer.setInputStream(input);
         if ( key != null ) {
-            inputStream = (InputReader)input;
+            inputStream = input;
             outputBuffer.setAsyncHttpWriteEnabled(
                     isAsyncHttpWriteEnabled);
             outputBuffer.setAsyncQueueWriter(
@@ -660,7 +656,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                         (float) st.getActiveCount()
                         / (float) st.getMaximumPoolSize();
 
-                    if ((threadRatio > 0.33) && (threadRatio <= 0.66)) {
+                    if (threadRatio > 0.33 && threadRatio <= 0.66) {
                         soTimeout = soTimeout / 2;
                     } else if (threadRatio > 0.66) {
                         soTimeout = soTimeout / 5;
@@ -683,7 +679,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
                 if (Thread.currentThread() instanceof HttpWorkerThread){
                     // Avoid data corruption is the response has been suspended.
-                    HttpWorkerThread workerThread = ((HttpWorkerThread)Thread.currentThread());
+                    HttpWorkerThread workerThread = (HttpWorkerThread)Thread.currentThread();
                     workerThread.getAttachment().setAttribute(Response.SUSPENDED, null);
                 }
 
@@ -1038,12 +1034,12 @@ public class ProcessorTask extends TaskBase implements Processor,
             // Send a 100 status back if it makes sense (response not committed
             // yet, and client specified an expectation for 100-continue)
 
-            if ((response.isCommitted()) || (!http11))
+            if (response.isCommitted() || !http11)
                 return;
 
             MessageBytes expectMB = request.getMimeHeaders().getValue("expect");
-            if ((expectMB != null)
-                && (expectMB.indexOfIgnoreCase("100-continue", 0) != -1)) {
+            if (expectMB != null
+                && expectMB.indexOfIgnoreCase("100-continue", 0) != -1) {
                 try {
                     outputBuffer.sendAck();
                 } catch (IOException e) {
@@ -1105,7 +1101,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         } else if (actionCode == ActionCode.ACTION_REQ_HOST_ADDR_ATTRIBUTE) {
 
-            if ((remoteAddr == null) && (socket != null)) {
+            if (remoteAddr == null && socket != null) {
                 InetAddress inetAddr = socket.getInetAddress();
                 if (inetAddr != null) {
                     remoteAddr = inetAddr.getHostAddress();
@@ -1115,7 +1111,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         } else if (actionCode == ActionCode.ACTION_REQ_LOCAL_NAME_ATTRIBUTE) {
 
-            if ((localName == null) && (socket != null)) {
+            if (localName == null && socket != null) {
                 InetAddress inetAddr = socket.getLocalAddress();
                 if (inetAddr != null) {
                     localName = inetAddr.getHostName();
@@ -1125,7 +1121,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         } else if (actionCode == ActionCode.ACTION_REQ_HOST_ATTRIBUTE) {
 
-            if ((remoteHost == null) && (socket != null)) {
+            if (remoteHost == null && socket != null) {
                 InetAddress inetAddr = socket.getInetAddress();
                 if (inetAddr != null) {
                     remoteHost = inetAddr.getHostName();
@@ -1150,14 +1146,14 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         } else if (actionCode == ActionCode.ACTION_REQ_REMOTEPORT_ATTRIBUTE) {
 
-            if ((remotePort == -1 ) && (socket !=null)) {
+            if (remotePort == -1 && socket !=null) {
                 remotePort = socket.getPort();
             }
             request.setRemotePort(remotePort);
 
         } else if (actionCode == ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE) {
 
-            if ((localPort == -1 ) && (socket !=null)) {
+            if (localPort == -1 && socket !=null) {
                 localPort = socket.getLocalPort();
             }
             request.setLocalPort(localPort);
@@ -1305,15 +1301,15 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
 
         // Check user-agent header
-        if ((restrictedUserAgents != null) && ((http11) || (keepAlive))) {
+        if (restrictedUserAgents != null && (http11 || keepAlive)) {
             MessageBytes userAgentValueMB =
                 request.getMimeHeaders().getValue("user-agent");
             if (userAgentValueMB != null) {
                 // Check in the restricted list, and adjust the http11
                 // and keepAlive flags accordingly
                 String userAgentValue = userAgentValueMB.toString();
-                for (int i = 0; i < restrictedUserAgents.length; i++) {
-                    if (restrictedUserAgents[i].equals(userAgentValue)) {
+                for (String restrictedUserAgent : restrictedUserAgents) {
+                    if (restrictedUserAgent.equals(userAgentValue)) {
                         http11 = false;
                         keepAlive = false;
                     }
@@ -1358,7 +1354,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             int pos = uriBC.indexOf("://", 0, 3, 4);
             int uriBCStart = uriBC.getStart();
-            int slashPos = -1;
+            int slashPos;
             if (pos != -1) {
                 byte[] uriB = uriBC.getBytes();
                 slashPos = uriBC.indexOf('/', pos + 3);
@@ -1382,9 +1378,6 @@ public class ProcessorTask extends TaskBase implements Processor,
         // Input filter setup
         InputFilter[] inputFilters = inputBuffer.getFilters();
         httpExtension = headers.getHeader("Upgrade") != null;
-        for (InputFilter filter : extraInputFilters) {
-            inputBuffer.addActiveFilter(filter);
-        }
 
         // Parse content-length header
         long contentLength = request.getContentLengthLong();
@@ -1404,7 +1397,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             // Parse the comma separated list. "identity" codings are ignored
             int startPos = 0;
             int commaPos = transferEncodingValue.indexOf(',');
-            String encodingName = null;
+            String encodingName;
             while (commaPos != -1) {
                 encodingName = transferEncodingValue.substring
                     (startPos, commaPos).toLowerCase().trim();
@@ -1430,7 +1423,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         MessageBytes valueMB = headers.getValue("host");
 
         // Check host header
-        if (http11 && (valueMB == null)) {
+        if (http11 && valueMB == null) {
             error = true;
             // 400 - Bad request
             response.setStatus(400);
@@ -1476,7 +1469,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             hostNameC = new char[valueL];
         }
 
-        boolean ipv6 = (valueB[valueS] == '[');
+        boolean ipv6 = valueB[valueS] == '[';
         boolean bracketClosed = false;
         for (int i = 0; i < valueL; i++) {
             char b = (char) valueB[i + valueS];
@@ -1515,7 +1508,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                     response.setStatus(400);
                     break;
                 }
-                port = port + (charValue * mult);
+                port = port + charValue * mult;
                 mult = 10 * mult;
             }
             request.setServerPort(port);
@@ -1648,9 +1641,6 @@ public class ProcessorTask extends TaskBase implements Processor,
             outputBuffer.sendHeader(headers.getName(i), headers.getValue(i));
         }
         outputBuffer.endHeaders();
-        for (OutputFilter filter : extraOutputFilters) {
-            outputBuffer.addActiveFilter(filter);
-        }
     }
 
 
@@ -1697,9 +1687,9 @@ public class ProcessorTask extends TaskBase implements Processor,
     protected boolean addInputFilter(InputFilter[] inputFilters,
             String encodingName) {
         if (!httpExtension) {
-            if (encodingName.equals("identity")) {
+            if ("identity".equals(encodingName)) {
                 // Skip
-            } else if (encodingName.equals("chunked")) {
+            } else if ("chunked".equals(encodingName)) {
                 inputBuffer.addActiveFilter
                         (inputFilters[Constants.CHUNKED_FILTER]);
                 contentDelimitation = true;
@@ -1732,7 +1722,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         // Look for first char 
         int srcEnd = b.length;
 
-        for (int i = start; i <= (end - srcEnd); i++) {
+        for (int i = start; i <= end - srcEnd; i++) {
             if (Ascii.toLower(buff[i]) != first) continue;
             // found first char, now look for a match
             int myPos = i+1;
@@ -1763,14 +1753,14 @@ public class ProcessorTask extends TaskBase implements Processor,
 
     protected String messageDropConnection(int status){
         switch(status){
-            case(400): return "BAD REQUEST";
-            case(408): return "REQUEST TIMEOUT";
-            case(411): return "LENGTH REQUIRED";
-            case(413): return "REQUEST ENTITY TOO LARGE";
-            case(414): return "REQUEST URI TOO LARGE";
-            case(500): return "INTERNAL SERVER ERROR";
-            case(503): return "SERVICE UNAVAILABLE";
-            case(501) : return "NOT IMPLEMENTED";
+            case 400: return "BAD REQUEST";
+            case 408: return "REQUEST TIMEOUT";
+            case 411: return "LENGTH REQUIRED";
+            case 413: return "REQUEST ENTITY TOO LARGE";
+            case 414: return "REQUEST URI TOO LARGE";
+            case 500: return "INTERNAL SERVER ERROR";
+            case 503: return "SERVICE UNAVAILABLE";
+            case 501: return "NOT IMPLEMENTED";
             default: return "";
         }
     }
@@ -1796,14 +1786,6 @@ public class ProcessorTask extends TaskBase implements Processor,
             logger.log(Level.SEVERE,sm.getString("processorTask.errorFilter"),
                         new Object[]{className, e});
         }
-    }
-
-    protected void addActiveFilters(InputFilter... filters) {
-        extraInputFilters = filters == null ? new InputFilter[0] : filters;
-    }
-
-    protected void addActiveFilters(OutputFilter... filters) {
-        extraOutputFilters = filters == null ? new OutputFilter[0] : filters;
     }
 
     /**
@@ -2116,20 +2098,20 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Set compression level.
      */
     public void setCompression(String compression) {
-        if (compression.equals("on")) {
-            this.compressionLevel = 1;
-        } else if (compression.equals("force")) {
-            this.compressionLevel = 2;
-        } else if (compression.equals("off")) {
-            this.compressionLevel = 0;
+        if ("on".equals(compression)) {
+            compressionLevel = 1;
+        } else if ("force".equals(compression)) {
+            compressionLevel = 2;
+        } else if ("off".equals(compression)) {
+            compressionLevel = 0;
         } else {
             try {
                 // Try to parse compression as an int, which would give the
                 // minimum compression size
                 compressionMinSize = Integer.parseInt(compression);
-                this.compressionLevel = 1;
+                compressionLevel = 1;
             } catch (Exception e) {
-                this.compressionLevel = 0;
+                compressionLevel = 0;
             }
         }
     }
@@ -2161,7 +2143,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Return the list of no compression user agents.
      */
     public String[] findNoCompressionUserAgents() {
-        return (noCompressionUserAgents);
+        return noCompressionUserAgents;
     }
 
 
@@ -2219,7 +2201,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Return the list of comprassable mime types.
      */
     public String[] findCompressableMimeTypes() {
-        return (compressableMimeTypes);
+        return compressableMimeTypes;
     }
 
 
@@ -2256,8 +2238,8 @@ public class ProcessorTask extends TaskBase implements Processor,
      * @param value string
      */
     private boolean inStringArray(String sArray[], String value) {
-        for (int i = 0; i < sArray.length; i++) {
-            if (sArray[i].equals(value)) {
+        for (String string : sArray) {
+            if (string.equals(value)) {
                 return true;
             }
         }
@@ -2274,8 +2256,8 @@ public class ProcessorTask extends TaskBase implements Processor,
     private boolean startsWithStringArray(String sArray[], String value) {
         if (value == null)
            return false;
-        for (int i = 0; i < sArray.length; i++) {
-            if (value.startsWith(sArray[i])) {
+        for (String string : sArray) {
+            if (value.startsWith(string)) {
                 return true;
             }
         }
@@ -2300,17 +2282,17 @@ public class ProcessorTask extends TaskBase implements Processor,
             request.getMimeHeaders().getValue("accept-encoding");
 
 
-        OutputFilter compressionOutputFilter = null;
+        OutputFilter compressionOutputFilter;
 
-        if ((acceptEncodingMB == null)
-            || ((compressionOutputFilter = compressionFiltersProvider.getOutputFilter(acceptEncodingMB))) == null)
+        if (acceptEncodingMB == null
+            || (compressionOutputFilter = compressionFiltersProvider.getOutputFilter(acceptEncodingMB)) == null)
             return null;
 
         // Check if content is not already gzipped
         MessageBytes contentEncodingMB =
             response.getMimeHeaders().getValue("Content-Encoding");
 
-        if ((contentEncodingMB != null)
+        if (contentEncodingMB != null
             && !compressionOutputFilter.equals(compressionFiltersProvider.getOutputFilter(contentEncodingMB)))
             return null;
 
@@ -2332,12 +2314,12 @@ public class ProcessorTask extends TaskBase implements Processor,
 
         // Check if suffisant len to trig the compression        
         int contentLength = response.getContentLength();
-        if ((contentLength == -1)
-            || (contentLength > compressionMinSize)) {
+        if (contentLength == -1
+            || contentLength > compressionMinSize) {
             // Check for compatible MIME-TYPE
             if (compressableMimeTypes != null)
-                return (startsWithStringArray(compressableMimeTypes,
-                        response.getContentType())) ? compressionOutputFilter : null;
+                return startsWithStringArray(compressableMimeTypes,
+                        response.getContentType()) ? compressionOutputFilter : null;
         }
 
 	return null;
@@ -2379,7 +2361,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Return the list of restricted user agents.
      */
     public String[] findRestrictedUserAgents() {
-        return (restrictedUserAgents);
+        return restrictedUserAgents;
     }
 
 
@@ -2528,7 +2510,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Is keep-alive forced?
      */
     public boolean getForceKeepAlive(){
-        return (keepAlive == connectionHeaderValueSet == true);
+        return keepAlive == connectionHeaderValueSet == true;
     }
 
     /**

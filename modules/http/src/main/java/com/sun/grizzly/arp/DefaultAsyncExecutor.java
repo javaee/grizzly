@@ -38,6 +38,9 @@
 package com.sun.grizzly.arp;
 
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -130,7 +133,7 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      * @return true if the execution can continue, false if delayed.
      */
     public boolean interrupt() throws Exception{
-        if (asyncFilters.size() == 0 ) {
+        if (asyncFilters.isEmpty()) {
             execute();
             return false;
         } else {
@@ -157,9 +160,9 @@ public class DefaultAsyncExecutor implements AsyncExecutor{
      */
     private boolean invokeFilters(){
         boolean continueExec = true;
-        for (int i=0;i<asyncFilters.size();i++){
-            continueExec = asyncFilters.get(i).doFilter(this);
-            if ( !continueExec ){
+        for (AsyncFilter asyncFilter : asyncFilters) {
+            continueExec = asyncFilter.doFilter(this);
+            if (!continueExec) {
                 break;
             }
         }

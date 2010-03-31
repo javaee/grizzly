@@ -3,22 +3,17 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncFilter;
 
-import java.io.IOException;
 import java.util.logging.Logger;
 
 public class WebSocketAsyncFilter implements AsyncFilter {
-    private static final Logger logger = Logger.getLogger("websockets");
+    private static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
 
     public boolean doFilter(AsyncExecutor asyncExecutor) {
-        try {
-            WebSocket socket = getWebSocket(asyncExecutor);
-        } catch (IOException e) {
-            return true;
+        final boolean handled = WebSocketEngine.getEngine().handle(asyncExecutor);
+        if(!handled) {
+            asyncExecutor.getProcessorTask().invokeAdapter();
         }
-        return false;
+        return !handled;
     }
 
-    protected WebSocket getWebSocket(AsyncExecutor asyncExecutor) throws IOException {
-        return new DefaultWebSocket(asyncExecutor);
-    }
 }

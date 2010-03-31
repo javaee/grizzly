@@ -59,7 +59,8 @@ public class ServerHandShake extends HandShake {
             forName("ASCII").encode("\r\nWebSocket-Protocol: ").array();
 
     public ServerHandShake(MimeHeaders headers, ClientHandShake client) {
-        super(headers, client.isSecure(), client.getResourcePath());
+        super(client.isSecure(), client.getOrigin(), client.getServerHostName(), client.getResourcePath());
+        port = client.getPort();
     }
 
     public ByteBuffer generate() {

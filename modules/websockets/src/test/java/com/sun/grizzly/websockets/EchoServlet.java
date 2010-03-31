@@ -1,56 +1,44 @@
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.util.buf.ByteChunk;
-
 import javax.servlet.ServletException;
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.CharBuffer;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class EchoServlet extends HttpServlet {
+    private static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
+    public static final String RESPONSE_TEXT = "Nothing to see";
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        try {
-            ByteChunk chunk = readBytes(request);
-            if (chunk.getLength() > 0) {
-                final ServletOutputStream outputStream = response.getOutputStream();
-                outputStream.write(chunk.getBytes(), 0, chunk.getLength());
-                outputStream.flush();
+    public EchoServlet() {
+        WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
+            public void onRead(WebSocket socket, DataFrame data) {
+                read(socket, data);
             }
+
+            public void onConnect(WebSocket socket) {
+            }
+
+            public void onClose(WebSocket socket) {
+            }
+        });
+    }
+
+    public void read(WebSocket socket, DataFrame data) {
+        try {
+            socket.send(data.getTextPayload());
         } catch (IOException e) {
+            logger.log(Level.SEVERE, e.getMessage(), e);
             throw new RuntimeException(e.getMessage(), e);
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        try {
-            ByteChunk chunk = readBytes(request);
-            if (chunk.getLength() > 0) {
-                final ServletOutputStream outputStream = response.getOutputStream();
-                outputStream.write(chunk.getBytes(), 0, chunk.getLength());
-                outputStream.flush();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-
-    }
-
-    private ByteChunk readBytes(HttpServletRequest request) throws IOException {
-        final CharBuffer buffer = CharBuffer.allocate(1024);
-        request.getReader().read(buffer);
-        ByteChunk chunk = new ByteChunk();
-        final char[] chars = buffer.array();
-        for (int index = 0; index < buffer.position(); index++) {
-            chunk.append(chars[index]);
-        }
-
-        return chunk;
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        resp.setContentType("text/plain; charset=iso-8859-1");
+        resp.getWriter().write(RESPONSE_TEXT);
+        resp.getWriter().flush();
     }
 }

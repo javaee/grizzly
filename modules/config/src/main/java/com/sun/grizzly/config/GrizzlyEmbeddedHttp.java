@@ -52,6 +52,7 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
+import com.sun.grizzly.websockets.WebSocketAsyncFilter;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
@@ -93,7 +94,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     /**
      * Constructor
-     *
      */
     public GrizzlyEmbeddedHttp() {
         setClassLoader(getClass().getClassLoader());
@@ -157,7 +157,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         final DefaultProtocolChainInstanceHandler instanceHandler = new DefaultProtocolChainInstanceHandler() {
             private final Queue<ProtocolChain> chains =
                     DataStructures.getCLQinstance(ProtocolChain.class);
-            
+
             /**
              * Always return instance of ProtocolChain.
              */
@@ -191,7 +191,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     protected ProtocolFilter createReadFilter() {
         final ReadFilter readFilter = new ReadFilter();
         readFilter.setContinuousExecution(
-            Boolean.valueOf(System.getProperty("v3.grizzly.readFilter.continuousExecution", "false")));
+                Boolean.valueOf(System.getProperty("v3.grizzly.readFilter.continuousExecution", "false")));
         return readFilter;
     }
     // ---------------------------------------------- Public get/set ----- //
@@ -212,17 +212,16 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             setAddress(InetAddress.getByName(networkListener.getAddress()));
         } catch (UnknownHostException e) {
             logger.log(Level.WARNING, "Invalid address for {0}: {1}",
-                new Object[]{
-                    networkListener.getName(),
-                    networkListener.getAddress()
-                });
+                    new Object[]{
+                            networkListener.getName(),
+                            networkListener.getAddress()
+                    });
         }
         configureTransport(transport);
         final Protocol protocol = networkListener.findProtocol();
-        final boolean mayEnableComet = !"admin-listener".equalsIgnoreCase(networkListener.getName());
-        configureProtocol(networkListener, protocol, habitat, mayEnableComet);
-        configureThreadPool(networkListener, pool, networkListener.findHttpProtocol().getHttp()
-        );
+        final boolean mayEnableAsync = !"admin-listener".equalsIgnoreCase(networkListener.getName());
+        configureProtocol(networkListener, protocol, habitat, mayEnableAsync);
+        configureThreadPool(networkListener, pool, networkListener.findHttpProtocol().getHttp());
     }
 
     protected void configureTransport(Transport transport) {
@@ -234,10 +233,10 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             }
         } catch (NumberFormatException nfe) {
             logger.log(Level.WARNING, "pewebcontainer.invalid_acceptor_threads",
-                new Object[]{
-                    acceptorThreads,
-                    transport.getName()
-                });
+                    new Object[]{
+                            acceptorThreads,
+                            transport.getName()
+                    });
         }
         // transport settings
         setBufferSize(Integer.parseInt(transport.getBufferSizeBytes()));
@@ -249,8 +248,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     }
 
     protected ProtocolChainInstanceHandler configureProtocol(NetworkListener networkListener, Protocol protocol,
-        Habitat habitat,
-        boolean mayEnableComet) {
+            Habitat habitat, boolean mayEnableAsync) {
         if (protocol.getHttp() != null) {
             // Only HTTP protocol defined
             final Http http = protocol.getHttp();
@@ -260,10 +258,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             configureFileCache(http.getFileCache());
             defaultVirtualServer = http.getDefaultVirtualServer();
             // acceptor-threads
-            if (mayEnableComet && 
-                    (GrizzlyConfig.toBoolean(http.getCometSupportEnabled()) ||
+            if (mayEnableAsync && (GrizzlyConfig.toBoolean(http.getCometSupportEnabled()) ||
                     Boolean.getBoolean("v3.grizzly.cometSupport"))) {
                 configureComet(habitat);
+            }
+            if (mayEnableAsync && GrizzlyConfig.toBoolean(http.getWebsocketsSupportEnabled())) {
+                configureWebSockets(habitat);
             }
         } else if (protocol.getPortUnification() != null) {
             // Port unification
@@ -274,8 +274,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     puFilter = (PUReadFilter) newInstance(puFilterClassname);
                     configureElement(puFilter, pu);
                 } catch (Exception e) {
-                    logger.log(Level.WARNING,
-                        "Can not initialize port unification filter: " +
+                    logger.log(Level.WARNING, "Can not initialize port unification filter: " +
                             puFilterClassname + " default filter will be used instead", e);
                 }
             }
@@ -286,9 +285,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     ProtocolFinder protocolFinder = (ProtocolFinder) newInstance(finderClassname);
                     configureElement(protocolFinder, finderConfig);
                     Protocol subProtocol = finderConfig.findProtocol();
-                    ProtocolChainInstanceHandler protocolChain =
-                        configureProtocol(networkListener, subProtocol,
-                            habitat, mayEnableComet);
+                    ProtocolChainInstanceHandler protocolChain = configureProtocol(networkListener, subProtocol,
+                            habitat, mayEnableAsync);
                     final String protocolName = subProtocol.getName();
                     finders.add(new ConfigProtocolFinderWrapper(protocolName, protocolFinder));
                     final String[] protocols = new String[]{protocolName};
@@ -312,13 +310,13 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     }
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize sub protocol. Finder: " +
-                        finderClassname, e);
+                            finderClassname, e);
                 }
             }
             configurePortUnification();
         } else {
             com.sun.grizzly.config.dom.ProtocolChainInstanceHandler pcihConfig = protocol
-                .getProtocolChainInstanceHandler();
+                    .getProtocolChainInstanceHandler();
             if (pcihConfig == null) {
                 logger.log(Level.WARNING, "Empty protocol declaration");
                 return null;
@@ -332,14 +330,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     configureElement(protocolChain, protocolChainConfig);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize protocol chain: " +
-                        protocolChainClassname + ". Default one will be used", e);
+                            protocolChainClassname + ". Default one will be used", e);
                 }
             }
             if (protocolChain == null) {
                 protocolChain = new DefaultProtocolChain();
             }
             for (com.sun.grizzly.config.dom.ProtocolFilter protocolFilterConfig : protocolChainConfig
-                .getProtocolFilter()) {
+                    .getProtocolFilter()) {
                 String filterClassname = protocolFilterConfig.getClassname();
                 try {
                     ProtocolFilter filter = (ProtocolFilter) newInstance(filterClassname);
@@ -347,9 +345,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     protocolChain.addFilter(filter);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Can not initialize protocol filter: " +
-                        filterClassname, e);
+                            filterClassname, e);
                     throw new IllegalStateException("Can not initialize protocol filter: " +
-                        filterClassname);
+                            filterClassname);
                 }
             }
             // Ignore ProtocolChainInstanceHandler class name configuration
@@ -376,13 +374,13 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     @Override
     public void configurePortUnification(List<ProtocolFinder> protocolFinders,
-        List<ProtocolHandler> protocolHandlers,
-        List<PUPreProcessor> preProcessors) {
+            List<ProtocolHandler> protocolHandlers,
+            List<PUPreProcessor> preProcessors) {
         if (puFilter != null) {
             puFilter.configure(protocolFinders, protocolHandlers, preProcessors);
         } else {
             super.configurePortUnification(protocolFinders, protocolHandlers,
-                preProcessors);
+                    preProcessors);
         }
     }
 
@@ -392,14 +390,36 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      * @param habitat
      */
     private void configureComet(Habitat habitat) {
-        AsyncFilter cometFilter = habitat.getComponent(AsyncFilter.class, "comet");
-        if (cometFilter == null) {
-            cometFilter = new CometAsyncFilter();
+        enableAsyncHandler(habitat, "comet", CometAsyncFilter.class);
+    }
+
+    /**
+     * Enable WebSockets support.
+     *
+     * @param habitat
+     */
+    private void configureWebSockets(Habitat habitat) {
+        enableAsyncHandler(habitat, "websockets", WebSocketAsyncFilter.class);
+    }
+
+    private void enableAsyncHandler(Habitat habitat, final String name,
+            final Class<? extends AsyncFilter> asyncFilterClass) {
+        AsyncFilter filter = habitat.getComponent(AsyncFilter.class, name);
+        if (filter == null) {
+            try {
+                filter = asyncFilterClass.newInstance();
+            } catch (InstantiationException e) {
+                throw new GrizzlyConfigException(e.getMessage(), e);
+            } catch (IllegalAccessException e) {
+                throw new GrizzlyConfigException(e.getMessage(), e);
+            }
         }
         setEnableAsyncExecution(true);
-        asyncHandler = new DefaultAsyncHandler();
-        asyncHandler.addAsyncFilter(cometFilter);
-        setAsyncHandler(asyncHandler);
+        if (getAsyncHandler() == null) {
+            asyncHandler = new DefaultAsyncHandler();
+            setAsyncHandler(asyncHandler);
+        }
+        getAsyncHandler().addAsyncFilter(filter);
     }
 
     /**
@@ -418,7 +438,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     }
 
     private void configureHttpListenerProperty(Http http)
-        throws NumberFormatException {
+            throws NumberFormatException {
         // http settings
         try {
             setAdapter((Adapter) Class.forName(http.getAdapter()).newInstance());
@@ -459,7 +479,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         setForcedRequestType(http.getForcedResponseType());
         setDefaultResponseType(http.getDefaultResponseType());
         String ct = http.getDefaultResponseType();
-        if(getAdapter() instanceof StaticResourcesAdapter) {
+        if (getAdapter() instanceof StaticResourcesAdapter) {
             ((StaticResourcesAdapter) getAdapter()).setDefaultContentType(ct);
         }
         setMaxHttpHeaderSize(Integer.parseInt(http.getHeaderBufferLengthBytes()));
@@ -506,7 +526,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
             final String name = Utils.composeThreadPoolName(networkListener);
             setThreadPool(newThreadPool(name, minThreads, maxThreads, maxQueueSize,
-                keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
+                    keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
             setCoreThreads(minThreads);
             setMaxThreads(maxThreads);
             List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
@@ -531,7 +551,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     }
 
     protected ExtendedThreadPool newThreadPool(String name, int minThreads, int maxThreads,
-        int maxQueueSize, long timeout, TimeUnit timeunit) {
+            int maxQueueSize, long timeout, TimeUnit timeunit) {
         return new StatsThreadPool(name, minThreads, maxThreads, maxQueueSize, timeout, timeunit);
     }
 
@@ -559,7 +579,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     }
 
     private static void configureElement(Object instance,
-        ConfigBeanProxy configuration) {
+            ConfigBeanProxy configuration) {
         if (instance instanceof ConfigAwareElement) {
             ((ConfigAwareElement) instance).configure(configuration);
         }

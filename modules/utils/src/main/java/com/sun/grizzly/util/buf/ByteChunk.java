@@ -58,6 +58,7 @@ package com.sun.grizzly.util.buf;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 /*
  * In a server it is very important to be able to operate on
@@ -86,7 +87,6 @@ import java.io.Serializable;
  * @author Remy Maucherat
  */
 public final class ByteChunk implements Cloneable, Serializable {
-
     // Input interface, used when the buffer is emptied.
     public static interface ByteInputChannel {
         /** 
@@ -833,5 +833,7 @@ public final class ByteChunk implements Cloneable, Serializable {
         return result;
     }
     
-    
+    public ByteBuffer toByteBuffer() {
+        return ByteBuffer.wrap(getBuffer(), getStart(), getLength());
+    }
 }

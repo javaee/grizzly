@@ -39,15 +39,21 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.MimeHeaders;
+import com.sun.grizzly.util.net.URL;
+
+import java.net.MalformedURLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * @author Justin Lee
  */
 public abstract class HandShake {
+    static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
 
     private final String origin;
     private final String serverHostName;
-    private final String port;
+    protected String port = "80";
     private final boolean secure;
     private final String resourcePath;
     private final String location;
@@ -74,7 +80,15 @@ public abstract class HandShake {
         this.origin = origin;
         this.serverHostName = serverHostName;
         secure = isSecure;
-        port = "80";
+        try {
+            URL url = new URL(origin);
+            final int portNumber = url.getPort();
+            if(portNumber != -1) {
+                port = String.valueOf(portNumber);
+            }
+        } catch (MalformedURLException e) {
+            logger.log(Level.SEVERE, e.getMessage(), e);
+        }
         resourcePath = path;
         protocol = null;
         location = buildLocation(isSecure);

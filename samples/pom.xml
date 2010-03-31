@@ -23,6 +23,7 @@
         <module>comet/cometd-echo</module>
         <module>comet/cometd-javaapiupdate-chat</module>
         <module>comet/twitter</module>
+        <module>websockets/chat</module>
         <module>framework/filters-samples</module>
         <!-- This sample requires JDK6. Comments it out for now
         <module>framework/nio-migration-guide</module>
