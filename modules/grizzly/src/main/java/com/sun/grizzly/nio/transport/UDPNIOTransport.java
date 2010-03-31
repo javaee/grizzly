@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.nio.transport;
 
-import java.util.concurrent.Future;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.nio.AbstractNIOTransport;
 import com.sun.grizzly.Connection;
@@ -58,6 +57,7 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.ProcessorExecutor;
@@ -88,6 +88,7 @@ import com.sun.grizzly.strategies.WorkerThreadStrategy;
 import com.sun.grizzly.threadpool.AbstractThreadPool;
 import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
+import java.util.concurrent.TimeUnit;
 
 /**
  * UDP NIO transport implementation
@@ -229,9 +230,16 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (connection != null &&
-                    serverConnections.remove((UDPNIOServerConnection) connection)) {
-                connection.close();
+            if (connection != null
+                    && serverConnections.remove((UDPNIOServerConnection) connection)) {
+                final GrizzlyFuture future = connection.close();
+                try {
+                    future.get(1000, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error unbinding connection: " + connection, e);
+                } finally {
+                    future.markForRecycle(true);
+                }
             }
         } finally {
             state.getStateLocker().writeLock().unlock();
@@ -243,7 +251,17 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         state.getStateLocker().writeLock().lock();
 
         try {
-            stopServerConnections();
+            for (Connection serverConnection : serverConnections) {
+                try {
+                    unbind(serverConnection);
+                } catch (Exception e) {
+                    logger.log(Level.FINE,
+                            "Exception occurred when closing server connection: "
+                            + serverConnection, e);
+                }
+            }
+
+            serverConnections.clear();
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -255,30 +273,30 @@ public final class UDPNIOTransport extends AbstractNIOTransport
      * @return non-connected UDP {@link Connection}.
      * @throws java.io.IOException
      */
-    public Future<Connection> connect() throws IOException {
+    public GrizzlyFuture<Connection> connect() throws IOException {
         return connect(null, null, null);
     }
 
     @Override
-    public Future<Connection> connect(String host, int port)
+    public GrizzlyFuture<Connection> connect(String host, int port)
             throws IOException {
         return connect(new InetSocketAddress(host, port));
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress)
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
         return connect(remoteAddress, (SocketAddress) null);
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
         return connect(remoteAddress, localAddress, null);
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
         return connect(remoteAddress, null, completionHandler);
@@ -286,7 +304,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
@@ -407,9 +425,9 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         state.getStateLocker().writeLock().lock();
 
         try {
-            state.setState(State.STOP);
-            stopServerConnections();
+            unbindAll();
             
+            state.setState(State.STOP);
             stopSelectorRunners();
 
             if (threadPool != null) {
@@ -420,20 +438,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
-    }
-
-    private void stopServerConnections() {
-        for (Connection serverConnection : serverConnections) {
-            try {
-                serverConnection.close();
-            } catch (Exception e) {
-                logger.log(Level.FINE,
-                        "Exception occurred when closing server connection: " +
-                        serverConnection, e);
-            }
-        }
-
-        serverConnections.clear();
     }
 
     @Override

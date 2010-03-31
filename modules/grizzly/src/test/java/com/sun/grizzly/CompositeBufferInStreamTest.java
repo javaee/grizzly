@@ -127,7 +127,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
 
             @Override
             public void run() {
-                while (!transport.isStopped()) {
+//                while (!transport.isStopped()) {
                     try {
                         Future<Connection> acceptFuture = serverConnection.accept();
                         Connection connection = acceptFuture.get(10, TimeUnit.SECONDS);
@@ -189,7 +189,7 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
                             assertTrue("Error accepting connection", false);
                         }
                     }
-                }
+//                }
             }
         }).start();
     }

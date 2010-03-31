@@ -504,7 +504,7 @@ public abstract class AbstractNIOAsyncQueueWriter
 
         failWriteRecord(connection, failedRecord, e);
         try {
-            connection.close();
+            connection.close().markForRecycle(true);
         } catch (IOException ioe) {
         }
     }

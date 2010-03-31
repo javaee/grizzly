@@ -261,7 +261,7 @@ public class IdleTimeoutFilter extends BaseFilter {
                     long diff = currentTimeMillis - expirationTime;
                     if (diff >= 0) {
                         try {
-                            connection.close();
+                            connection.close().markForRecycle(true);
                         } catch (IOException e) {
                             logger.log(Level.FINE, "IdleTimeoutFilter:" +
                                     "unexpected exception, when trying " +

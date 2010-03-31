@@ -35,37 +35,16 @@
  * holder.
  *
  */
+
 package com.sun.grizzly;
 
-import java.util.concurrent.Future;
+import java.io.IOException;
 
 /**
- *
+ * General asynchronous closable interface.
+ * 
  * @author Alexey Stashok
  */
-public interface GrizzlyFuture<R> extends Future<R>, Cacheable {
-    /**
-     * Mark <tt>GrizzlyFuture</tt> as recycleable, so once result will come -
-     * <tt>GrizzlyFuture</tt> object will be recycled and returned to a
-     * thread local object pool.
-     * You can consider to use this method, if you're not interested in using
-     * this <tt>GrizzlyFuture</tt> object.
-     * 
-     * @param recycleResult if <tt>true</tt> - the <tt>GrizzlyFuture</tt> result,
-     * if it support recycleable mechanism, will be also recycled together
-     * with this <tt>GrizzlyFuture</tt> object.
-     */
-    public void markForRecycle(boolean recycleResult);
-
-    /**
-     * Recycle <tt>GrizzlyFuture</tt> now.
-     * This method could be used, if you're not interested in using this
-     * <tt>GrizzlyFuture</tt> object, and you're sure this object is not used
-     * by any other application part.
-     *
-     * @param recycleResult if <tt>true</tt> - the <tt>GrizzlyFuture</tt> result,
-     * if it support recycleable mechanism, will be also recycled together
-     * with this <tt>GrizzlyFuture</tt> object.
-     */
-    public void recycle(boolean recycleResult);
+public interface Closeable {
+    public GrizzlyFuture close() throws IOException;
 }

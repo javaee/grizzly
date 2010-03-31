@@ -38,9 +38,9 @@
 
 package com.sun.grizzly;
 
-import java.io.Closeable;
 import java.io.IOException;
 import com.sun.grizzly.attributes.AttributeStorage;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -173,12 +173,14 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
 
     /**
      * Close the {@link Connection}
-     * 
+     *
+     * @return {@link Future}, which could be checked in case, if close operation
+     *         will be run asynchronously
      * @throws java.io.IOException, if I/O error was detected
      * during {@link Connection} closing.
      */
     @Override
-    public void close() throws IOException;
+    public GrizzlyFuture close() throws IOException;
 
     /**
      * Get the default size of {@link Buffer}s, which will be allocated for

@@ -467,7 +467,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
         failReadRecord(connection, failedRecord, e);
         try {
-            connection.close();
+            connection.close().markForRecycle(true);
         } catch (IOException ioe) {
         }
     }

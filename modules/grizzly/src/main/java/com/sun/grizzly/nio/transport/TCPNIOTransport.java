@@ -66,11 +66,11 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.Future;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.EmptyCompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.Reader;
@@ -90,6 +90,7 @@ import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import com.sun.grizzly.threadpool.WorkerThread;
 import java.io.EOFException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 /**
  * TCP Transport NIO implementation
@@ -138,6 +139,10 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
      * The socket linger.
      */
     protected int linger = -1;
+    /**
+     * The socket keepAlive mode.
+     */
+    protected boolean isKeepAlive = false;
     /**
      * The socket time out
      */
@@ -256,8 +261,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         state.getStateLocker().writeLock().lock();
 
         try {
+            unbindAll();
             state.setState(State.STOP);
-            stopServerConnections();
 
             stopSelectorRunners();
 
@@ -269,20 +274,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
-    }
-
-    private void stopServerConnections() {
-        for (Connection serverConnection : serverConnections) {
-            try {
-                serverConnection.close();
-            } catch (Exception e) {
-                logger.log(Level.FINE,
-                        "Exception occurred when closing server connection: " +
-                        serverConnection, e);
-            }
-        }
-
-        serverConnections.clear();
     }
 
     @Override
@@ -391,9 +382,16 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         state.getStateLocker().writeLock().lock();
 
         try {
-            if (connection != null &&
-                    serverConnections.remove((TCPNIOServerConnection) connection)) {
-                connection.close();
+            if (connection != null
+                    && serverConnections.remove((TCPNIOServerConnection) connection)) {
+                final GrizzlyFuture future = connection.close();
+                try {
+                    future.get(1000, TimeUnit.MILLISECONDS);
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error unbinding connection: " + connection, e);
+                } finally {
+                    future.markForRecycle(true);
+                }
             }
         } finally {
             state.getStateLocker().writeLock().unlock();
@@ -405,32 +403,42 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         state.getStateLocker().writeLock().lock();
 
         try {
-            stopServerConnections();
+            for (Connection serverConnection : serverConnections) {
+                try {
+                    unbind(serverConnection);
+                } catch (Exception e) {
+                    logger.log(Level.FINE,
+                            "Exception occurred when closing server connection: "
+                            + serverConnection, e);
+                }
+            }
+
+            serverConnections.clear();
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
     }
 
     @Override
-    public Future<Connection> connect(String host, int port)
+    public GrizzlyFuture<Connection> connect(String host, int port)
             throws IOException {
         return connect(new InetSocketAddress(host, port));
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress)
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
         return connect(remoteAddress, (SocketAddress) null);
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress) throws IOException {
         return connect(remoteAddress, localAddress, null);
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
         return connect(remoteAddress, null, completionHandler);
@@ -438,7 +446,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     }
 
     @Override
-    public Future<Connection> connect(SocketAddress remoteAddress,
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
@@ -451,36 +459,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     @Override
     protected void closeConnection(Connection connection) throws IOException {
         SelectableChannel nioChannel = ((NIOConnection) connection).getChannel();
-
-        // channel could be either SocketChannel or ServerSocketChannel
-//        if (nioChannel instanceof SocketChannel) {
-//            Socket socket = ((SocketChannel) nioChannel).socket();
-//
-//            try {
-//                if (!socket.isInputShutdown()) {
-//                    socket.shutdownInput();
-//                }
-//            } catch (IOException e) {
-//                logger.log(Level.FINE,
-//                        "TCPNIOTransport.closeChannel exception", e);
-//            }
-//
-//            try {
-//                if (!socket.isOutputShutdown()) {
-//                    socket.shutdownOutput();
-//                }
-//            } catch (IOException e) {
-//                logger.log(Level.FINE,
-//                        "TCPNIOTransport.closeChannel exception", e);
-//            }
-//
-//            try {
-//                socket.close();
-//            } catch (IOException e) {
-//                logger.log(Level.FINE,
-//                        "TCPNIOTransport.closeChannel exception", e);
-//            }
-//        }
 
         if (nioChannel != null) {
             try {
@@ -525,6 +503,10 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             socket.setSoLinger(true, linger);
         }
 
+        if (isKeepAlive) {
+            socket.setKeepAlive(isKeepAlive);
+        }
+        
         try {
             socket.setTcpNoDelay(tcpNoDelay);
         } catch (IOException e) {
@@ -558,6 +540,14 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
     public void setLinger(int linger) {
         this.linger = linger;
+    }
+
+    public boolean isKeepAlive() {
+        return isKeepAlive;
+    }
+
+    public void setKeepAlive(boolean isKeepAlive) {
+        this.isKeepAlive = isKeepAlive;
     }
 
     public boolean isReuseAddress() {

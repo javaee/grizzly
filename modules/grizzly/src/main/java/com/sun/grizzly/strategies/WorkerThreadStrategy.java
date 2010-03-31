@@ -117,7 +117,7 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
                 } catch (IOException e) {
                     logger.log(Level.FINE, "Uncaught exception: ", e);
                     try {
-                        connection.close();
+                        connection.close().markForRecycle(true);
                     } catch (IOException ee) {
                         logger.log(Level.WARNING, "Exception occurred when " +
                                 "closing the connection: ", ee);
@@ -125,7 +125,7 @@ public final class WorkerThreadStrategy extends AbstractStrategy {
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Uncaught exception: ", e);
                     try {
-                        connection.close();
+                        connection.close().markForRecycle(true);
                     } catch (IOException ee) {
                         logger.log(Level.WARNING, "Exception occurred when " +
                                 "closing the connection: ", ee);

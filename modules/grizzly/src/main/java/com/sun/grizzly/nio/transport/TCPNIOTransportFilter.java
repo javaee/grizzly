@@ -122,7 +122,7 @@ public final class TCPNIOTransportFilter extends BaseFilter {
         final Connection connection = ctx.getConnection();
         if (connection != null) {
             try {
-                connection.close();
+                connection.close().markForRecycle(true);
             } catch (IOException e) {
             }
         }

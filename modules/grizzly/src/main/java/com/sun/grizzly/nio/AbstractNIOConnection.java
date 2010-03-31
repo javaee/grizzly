@@ -61,6 +61,7 @@ import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
+import com.sun.grizzly.impl.ReadyFutureImpl;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -307,10 +308,10 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     }
 
     @Override
-    public void close() throws IOException {
+    public GrizzlyFuture close() throws IOException {
         if (!isClosed.getAndSet(true)) {
             preClose();
-            transport.getSelectorHandler().executeInSelectorThread(
+            return transport.getSelectorHandler().executeInSelectorThread(
                     selectorRunner, new Runnable() {
 
                 @Override
@@ -321,8 +322,10 @@ public abstract class AbstractNIOConnection implements NIOConnection {
                         logger.log(Level.FINE, "Error during connection close", e);
                     }
                 }
-            }, null).markForRecycle(true);
+            }, null);
         }
+
+        return ReadyFutureImpl.create(this);
     }
 
     protected abstract void preClose();

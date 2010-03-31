@@ -127,7 +127,7 @@ public final class UDPNIOTransportFilter extends BaseFilter {
         final Connection connection = ctx.getConnection();
         if (connection != null) {
             try {
-                connection.close();
+                connection.close().markForRecycle(true);
             } catch (IOException e) {
             }
         }

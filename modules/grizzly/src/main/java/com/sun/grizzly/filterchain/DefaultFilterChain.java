@@ -230,7 +230,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             try {
                 logger.log(Level.FINE, "Exception during FilterChain execution", e);
                 throwChain(ctx, executor, e);
-                ctx.getConnection().close();
+                ctx.getConnection().close().markForRecycle(true);
             } catch (IOException ioe) {
                 logger.log(Level.FINE, "Exception during reporting the failuer", ioe);
             }
@@ -238,7 +238,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             try {
                 logger.log(Level.WARNING, "Exception during FilterChain execution", e);
                 throwChain(ctx, executor, e);
-                ctx.getConnection().close();
+                ctx.getConnection().close().markForRecycle(true);
             } catch (IOException ioe) {
                 logger.log(Level.FINE, "Exception during reporting the failuer", ioe);
             }
