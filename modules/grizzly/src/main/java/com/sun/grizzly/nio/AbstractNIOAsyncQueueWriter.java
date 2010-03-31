@@ -58,6 +58,7 @@ import com.sun.grizzly.asyncqueue.MessageCloner;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import java.util.Queue;
+import java.util.logging.Level;
 
 /**
  * The {@link AsyncQueueWriter} implementation, based on the Java NIO
@@ -68,13 +69,13 @@ public abstract class AbstractNIOAsyncQueueWriter
         extends AbstractWriter<SocketAddress>
         implements AsyncQueueWriter<SocketAddress> {
 
+    private final static Logger logger = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
+
     private static final AsyncWriteQueueRecord LOCK_RECORD =
             AsyncWriteQueueRecord.create(null, null, null, null, null, null, null,
             null, false);
     
     protected final NIOTransport transport;
-
-    private final static Logger logger = Grizzly.logger(AbstractNIOAsyncQueueWriter.class);
 
     public AbstractNIOAsyncQueueWriter(NIOTransport transport) {
         this.transport = transport;
@@ -106,6 +107,8 @@ public abstract class AbstractNIOAsyncQueueWriter
             Interceptor<WriteResult> interceptor,
             MessageCloner<M> cloner) throws IOException {
 
+        final boolean isLogFine = logger.isLoggable(Level.FINEST);
+        
         if (connection == null) {
             throw new IOException("Connection is null");
         } else if (!connection.isOpen()) {
@@ -132,6 +135,9 @@ public abstract class AbstractNIOAsyncQueueWriter
                 connectionQueue.getCurrentElementAtomic();
 
         final boolean isLocked = currentElement.compareAndSet(null, LOCK_RECORD);
+        if (isLogFine) {
+            logger.log(Level.FINEST, "AsyncQueueWriter.write connection=" + connection + " record=" + queueRecord + " directWrite=" + isLocked);
+        }
 
         try {
             if (isLocked) {
@@ -144,18 +150,31 @@ public abstract class AbstractNIOAsyncQueueWriter
                 AsyncWriteQueueRecord nextRecord = queue.poll();
                 currentElement.set(nextRecord);
                 
+                if (isLogFine) {
+                    logger.log(Level.FINEST, "AsyncQueueWriter.write completed connection=" + connection + " record=" + queueRecord + " nextRecord=" + nextRecord);
+                }
+                
                 onWriteCompleted(connection, queueRecord);
 
                 // if there is next record ready
                 if (nextRecord == null) {
                     // if there is something in queue - try to make it current
                     nextRecord = queue.peek();
+                    if (isLogFine) {
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write peek connection=" + connection + " nextRecord=" + nextRecord);
+                    }
                     if (nextRecord != null
                             && currentElement.compareAndSet(null, nextRecord)) {
+                        if (isLogFine) {
+                            logger.log(Level.FINEST, "AsyncQueueWriter.write peek, onReadyToWrite. connection=" + connection);
+                        }
                         queue.remove(nextRecord);
                         onReadyToWrite(connection);
                     }
                 } else {
+                    if (isLogFine) {
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection=" + connection);
+                    }
                     onReadyToWrite(connection);
                 }
 
@@ -167,6 +186,9 @@ public abstract class AbstractNIOAsyncQueueWriter
                 queueRecord.setFuture(future);
 
                 if (cloner != null) {
+                    if (isLogFine) {
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write clone. connection=" + connection);
+                    }
                     // clone message
                     message = cloner.clone(connection, message);
                     queueRecord.setMessage(message);
@@ -179,18 +201,31 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
 
                 if (isLocked) { // If write wasn't completed
+                    if (isLogFine) {
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection=" + connection);
+                    }
+
                     currentElement.set(queueRecord);
                     onReadyToWrite(connection);
                 } else {  // if queue wasn't empty
+                    if (isLogFine) {
+                        logger.log(Level.FINEST, "AsyncQueueWriter.write queue record. connection=" + connection + " record=" + queueRecord);
+                    }
                     connectionQueue.getQueue().offer(queueRecord);
 
                     if (currentElement.compareAndSet(null, queueRecord)) {
+                        if (isLogFine) {
+                            logger.log(Level.FINEST, "AsyncQueueWriter.write set record as current. connection=" + connection + " record=" + queueRecord);
+                        }
                         queue.remove(queueRecord);
                         onReadyToWrite(connection);
                     }
 
                     // Check whether connection is still open
                     if (!connection.isOpen() && queue.remove(queueRecord)) {
+                        if (isLogFine) {
+                            logger.log(Level.FINEST, "AsyncQueueWriter.write connection is closed. connection=" + connection + " record=" + queueRecord);
+                        }
                         onWriteFailure(connection, queueRecord,
                                 new IOException("Connection is closed"));
                     }
@@ -199,6 +234,9 @@ public abstract class AbstractNIOAsyncQueueWriter
                 return future;
             }
         } catch (IOException e) {
+            if (isLogFine) {
+                logger.log(Level.FINEST, "AsyncQueueWriter.write exception. connection=" + connection + " record=" + queueRecord, e);
+            }
             onWriteFailure(connection, queueRecord, e);
             return ReadyFutureImpl.create(e);
         }
@@ -223,6 +261,8 @@ public abstract class AbstractNIOAsyncQueueWriter
      */
     @Override
     public void processAsync(Connection connection) throws IOException {
+        final boolean isLogFine = logger.isLoggable(Level.FINEST);
+        
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
 
@@ -231,39 +271,65 @@ public abstract class AbstractNIOAsyncQueueWriter
                 connectionQueue.getCurrentElementAtomic();
 
         AsyncWriteQueueRecord queueRecord = currentElement.get();
+        if (isLogFine) {
+            logger.log(Level.FINEST, "AsyncQueueWriter.processAsync connection=" + connection + " record=" + queueRecord + " isLockRecord=" + (queueRecord == LOCK_RECORD));
+        }
+        
         if (queueRecord == LOCK_RECORD) return;
         
         try {
             while (queueRecord != null) {
-
+                if (isLogFine) {
+                    logger.log(Level.FINEST, "AsyncQueueWriter.processAsync doWrite connection=" + connection + " record=" + queueRecord);
+                }
+                
                 doWrite(connection, queueRecord);
 
                 // check if buffer was completely written
                 if (isFinished(connection, queueRecord)) {
 
+                    if (isLogFine) {
+                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync finished connection=" + connection + " record=" + queueRecord);
+                    }
+                    
                     final AsyncWriteQueueRecord nextRecord = queue.poll();
                     currentElement.set(nextRecord);
                     
                     onWriteCompleted(connection, queueRecord);
 
                     queueRecord = nextRecord;
+                    if (isLogFine) {
+                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync nextRecord connection=" + connection + " nextRecord=" + queueRecord);
+                    }
                     // check if there is ready element in the queue
                     if (queueRecord == null) {
                         queueRecord = queue.peek();
+                        if (isLogFine) {
+                            logger.log(Level.FINEST, "AsyncQueueWriter.processAsync peekRecord connection=" + connection + " peekRecord=" + queueRecord);
+                        }
                         if (queueRecord != null
                                 && currentElement.compareAndSet(null, queueRecord)) {
 
+                            if (isLogFine) {
+                                logger.log(Level.FINEST, "AsyncQueueWriter.processAsync set as current connection=" + connection + " peekRecord=" + queueRecord);
+                            }
                             queue.remove(queueRecord);
                         } else { // If there are no elements - return
                             break;
                         }
                     }
                 } else { // if there is still some data in current message
+                    if (isLogFine) {
+                        logger.log(Level.FINEST, "AsyncQueueWriter.processAsync onReadyToWrite connection=" + connection + " peekRecord=" + queueRecord);
+                    }
                     onReadyToWrite(connection);
                     break;
                 }
             }
         } catch (IOException e) {
+            if (isLogFine) {
+                logger.log(Level.FINEST, "AsyncQueueWriter.processAsync exception connection=" + connection + " peekRecord=" + queueRecord, e);
+            }
             onWriteFailure(connection, queueRecord, e);
         }
     }
