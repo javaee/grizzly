@@ -399,6 +399,7 @@ public class HttpRequest extends HttpHeader {
 
 
     /**
+     * TODO : Support parameter processing from POST
      * @return a {@link Parameters} instance representing any query parameters
      *  included with the request URI.
      */
