@@ -45,10 +45,8 @@ public class WebSocketEngine {
         final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request.requestURI().toString());
         WebSocket socket = null;
         try {
-            final ClientHandShake clientHandShake =
-                    new ClientHandShake(request.getMimeHeaders(), false, request.requestURI().toString());
             final Response response = request.getResponse();
-            handshake(request, response, clientHandShake);
+            handshake(request, response);
             if (app != null) {
                 socket = app.createSocket(asyncExecutor, request, response);
             } else {
@@ -60,11 +58,12 @@ public class WebSocketEngine {
         return socket;
     }
 
-    private void handshake(Request request, Response response, ClientHandShake client) throws IOException {
+    private void handshake(Request request, Response response) throws IOException {
         final MimeHeaders headers = request.getMimeHeaders();
-        final ServerHandShake handshake = new ServerHandShake(headers, client);
+        final ClientHandShake client = new ClientHandShake(headers, false, request.requestURI().toString());
+        final ServerHandShake server = new ServerHandShake(headers, client);
 
-        handshake.prepare(response);
+        server.prepare(response);
         response.flush();
     }
 
