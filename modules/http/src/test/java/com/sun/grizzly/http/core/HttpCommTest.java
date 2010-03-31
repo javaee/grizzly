@@ -41,6 +41,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpResponse;
 import com.sun.grizzly.http.HttpRequest;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.WriteResult;
@@ -60,6 +61,7 @@ import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import junit.framework.TestCase;
 
 /**
@@ -68,6 +70,8 @@ import junit.framework.TestCase;
  * @author Alexey Stashok
  */
 public class HttpCommTest extends TestCase {
+
+    private static final Logger logger = Grizzly.logger(HttpCommTest.class);
 
     public static int PORT = 8002;
 
@@ -139,9 +143,9 @@ public class HttpCommTest extends TestCase {
             System.out.println("Got the request: " + request);
 
             assertEquals(PORT, request.getLocalPort());
-            assertEquals("127.0.0.1", request.getLocalAddress());
-            assertEquals("localhost", request.getRemoteHost());
-            assertEquals("127.0.0.1", request.getRemoteAddress());
+            assertTrue(isLocalAddress(request.getLocalAddress()));
+            assertTrue(isLocalAddress(request.getRemoteHost()));
+            assertTrue(isLocalAddress(request.getRemoteAddress()));
             assertEquals(request.getHeader("client-port"), 
                          Integer.toString(request.getRemotePort()));
             assertEquals("v1", request.getParameters().getParameter("p1"));
@@ -156,5 +160,9 @@ public class HttpCommTest extends TestCase {
 
             return ctx.getStopAction();
         }
+    }
+
+    private static boolean isLocalAddress(String address) {
+        return "127.0.0.1".equals(address) || "localhost".equals(address);
     }
 }
