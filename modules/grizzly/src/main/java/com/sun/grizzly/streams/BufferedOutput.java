@@ -157,7 +157,7 @@ public abstract class BufferedOutput implements Output {
                     completionHandler);
 
             if (future.isDone()) {
-                multiBufferWindow.tryDisposeInternalBuffers();
+                multiBufferWindow.removeAll();
                 multiBufferWindow.clear();
                 if (buffer != null) {
                     buffer.clear();

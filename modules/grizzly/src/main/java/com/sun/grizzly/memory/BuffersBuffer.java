@@ -159,7 +159,7 @@ public final class BuffersBuffer implements CompositeBuffer {
             dispose();
             return true;
         } else if (allowInternalBuffersDispose) {
-            removeBuffers(true);
+            removeAndDisposeBuffers(true);
         }
 
         return false;
@@ -169,7 +169,7 @@ public final class BuffersBuffer implements CompositeBuffer {
     public void dispose() {
         checkDispose();
         isDisposed = true;
-        removeBuffers(true);
+        removeAndDisposeBuffers(true);
 
         ThreadCache.putToCache(CACHE_IDX, this);
     }
@@ -1231,19 +1231,28 @@ public final class BuffersBuffer implements CompositeBuffer {
                 Math.max(newCapacity,(originalArray.length * 3) / 2 + 1));
     }
 
-    private void removeBuffers(boolean force) {
+    private void removeAndDisposeBuffers(boolean force) {
+        boolean isNulled = false;
+
         if (force || allowInternalBuffersDispose) {
             for (int i = buffersSize - 1; i >= 0; i--) {
                 final Buffer buffer = buffers[i];
                 buffer.tryDispose();
+                buffers[i] = null;
             }
+
+            isNulled = true;
         }
 
         position = 0;
         limit = 0;
         capacity = 0;
+        if (!isNulled) {
+            Arrays.fill(buffers, 0, buffersSize, null);
+        }
+        
         buffersSize = 0;
-        Arrays.fill(buffers, null);
+        
         resetLastLocation();
     }
 
@@ -1449,12 +1458,14 @@ public final class BuffersBuffer implements CompositeBuffer {
     }
 
     @Override
-    public void tryDisposeInternalBuffers() {
-        buffersSize = 0;
+    public void removeAll() {
         position = 0;
         limit = 0;
         capacity = 0;
-        Arrays.fill(buffers, null);
+        Arrays.fill(buffers, 0, buffersSize, null);
+
+        buffersSize = 0;
+        resetLastLocation();
     }
 
     @Override

@@ -50,7 +50,10 @@ public interface CompositeBuffer extends Buffer, Appendable<Buffer> {
     @Override
     public Object[] underlying();
 
-    public void tryDisposeInternalBuffers();
+    /**
+     * Removes underlying {@link Buffer}s, without disposing
+     */
+    public void removeAll();
 
     public void allowInternalBuffersDispose(boolean allow);
 
