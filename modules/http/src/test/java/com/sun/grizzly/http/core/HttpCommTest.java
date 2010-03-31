@@ -57,8 +57,10 @@ import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -162,7 +164,14 @@ public class HttpCommTest extends TestCase {
         }
     }
 
-    private static boolean isLocalAddress(String address) {
-        return "127.0.0.1".equals(address) || "localhost".equals(address);
+    private static boolean isLocalAddress(String address) throws UnknownHostException {
+        final InetAddress[] inetAddrs = InetAddress.getAllByName(address);
+        final InetAddress localAddr = InetAddress.getLocalHost();
+
+        for (InetAddress inetAddr : inetAddrs) {
+            if (localAddr.equals(inetAddr)) return true;
+        }
+
+        return false;
     }
 }
