@@ -170,8 +170,17 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 ? defaultCompletionHandler
                 : new RegisterAcceptedChannelCompletionHandler(listener);
 
-        connection.setProcessor(transport.getProcessor());
-        connection.setProcessorSelector(transport.getProcessorSelector());
+        if (processor != null) {
+            connection.setProcessor(processor);
+        } else {
+            connection.setProcessor(transport.getProcessor());
+        }
+
+        if (processorSelector != null) {
+            connection.setProcessorSelector(processorSelector);
+        } else {
+            connection.setProcessorSelector(transport.getProcessorSelector());
+        }
 
         tcpNIOTransport.getNioChannelDistributor().registerChannelAsync(
                 acceptedChannel, SelectionKey.OP_READ, connection, handler);
