@@ -59,8 +59,9 @@ import com.sun.grizzly.utils.ChunkingFilter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.NetworkInterface;
 import java.net.SocketAddress;
-import java.net.UnknownHostException;
+import java.util.Enumeration;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -115,7 +116,7 @@ public class HttpCommTest extends TestCase {
 
             Future<ReadResult> readResultFuture = connection.read();
             ReadResult<HttpContent, SocketAddress> readResult =
-                    readResultFuture.get(10, TimeUnit.SECONDS);
+                    readResultFuture.get(1000, TimeUnit.SECONDS);
 
             HttpContent response = readResult.getMessage();
             HttpResponse responseHeader = (HttpResponse) response.getHttpHeader();
@@ -164,12 +165,19 @@ public class HttpCommTest extends TestCase {
         }
     }
 
-    private static boolean isLocalAddress(String address) throws UnknownHostException {
-        final InetAddress[] inetAddrs = InetAddress.getAllByName(address);
-        final InetAddress localAddr = InetAddress.getLocalHost();
-
-        for (InetAddress inetAddr : inetAddrs) {
-            if (localAddr.equals(inetAddr)) return true;
+    private static boolean isLocalAddress(String address) throws IOException {
+        final InetAddress inetAddr = InetAddress.getByName(address);
+        
+        Enumeration<NetworkInterface> e = NetworkInterface.getNetworkInterfaces();
+        while(e.hasMoreElements()) {
+            NetworkInterface ni = e.nextElement();
+            Enumeration<InetAddress> inetAddrs = ni.getInetAddresses();
+            while(inetAddrs.hasMoreElements()) {
+                InetAddress addr = inetAddrs.nextElement();
+                if (addr.equals(inetAddr)) {
+                    return true;
+                }
+            }
         }
 
         return false;
