@@ -15,6 +15,7 @@ import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 @Test
@@ -53,21 +54,8 @@ public class ServerSideTest {
         }
     }
 
-    private long time(Date start, Date end) {
-        return 5 * ITERATIONS / (end.getTime() - start.getTime());
-    }
-
-    private OutputStream handshake(Socket socket) throws IOException {
-        final OutputStream outputStream = socket.getOutputStream();
-        outputStream.write(CLIENT_HANDSHAKE.getBytes());
-        outputStream.flush();
-        read(socket);
-        return outputStream;
-    }
-
     @SuppressWarnings({"StringContatenationInLoop"})
-//    @Test(enabled = false)
-public void asynchronous() throws IOException, InstantiationException, InterruptedException {
+    public void asynchronous() throws IOException, InstantiationException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
 
         final Socket socket = new Socket("localhost", PORT);
@@ -95,6 +83,65 @@ public void asynchronous() throws IOException, InstantiationException, Interrupt
             socket.close();
             thread.stopEndpoint();
         }
+    }
+
+    public void synchronousMultiClient() throws IOException, InstantiationException {
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+
+        List<Thread> clients = new ArrayList<Thread>();
+        try {
+            for (int x = 0; x < 5; x++) {
+                clients.add(syncClient("client " + x));
+            }
+            while (!clients.isEmpty()) {
+                final Iterator<Thread> it = clients.iterator();
+                while (it.hasNext()) {
+                    if (!it.next().isAlive()) {
+                        it.remove();
+                    }
+                }
+            }
+        } finally {
+            thread.stopEndpoint();
+        }
+    }
+
+    private Thread syncClient(final String name) throws IOException {
+        final Thread thread = new Thread(new Runnable() {
+            public void run() {
+                Socket socket = null;
+                try {
+                    socket = new Socket("localhost", PORT);
+                    try {
+                        final OutputStream outputStream = handshake(socket);
+                        validate(socket, outputStream, name + ": test message");
+                        validate(socket, outputStream, name + ": let's try again");
+                        validate(socket, outputStream, name + ": 3rd time's the charm!");
+                        validate(socket, outputStream, name + ": ok.  just one more.");
+                        validate(socket, outputStream, name + ": now, we're done");
+                    } finally {
+                        socket.close();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e.getMessage(), e);
+                }
+            }
+        }, "syncClient " + name);
+        thread.start();
+
+        return thread;
+    }
+
+    private long time(Date start, Date end) {
+        return 5 * ITERATIONS / (end.getTime() - start.getTime());
+    }
+
+    private OutputStream handshake(Socket socket) throws IOException {
+        final OutputStream outputStream = socket.getOutputStream();
+        outputStream.write(CLIENT_HANDSHAKE.getBytes());
+        outputStream.flush();
+        read(socket);
+        return outputStream;
     }
 
     private void queue(OutputStream outputStream, String text, final List<String> sent) throws IOException {

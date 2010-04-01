@@ -24,7 +24,6 @@ public class BaseServerWebSocket extends BaseWebSocket {
         add(listener);
     }
 
-
     @Override
     protected void unframe() throws IOException {
         final ByteChunk chunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
