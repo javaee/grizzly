@@ -13,7 +13,7 @@ import com.sun.grizzly.util.http.MimeHeaders;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -55,15 +55,17 @@ public class WebSocketEngine {
             final Response response = request.getResponse();
             handshake(request, response);
             if (app != null) {
-                socket = (BaseServerWebSocket) app.createSocket(asyncExecutor, request, response);
+                socket = (BaseServerWebSocket) app.createSocket(request, response);
             } else {
-                socket = new DefaultWebSocket(asyncExecutor, request, response);
+                socket = new DefaultWebSocket(request, response);
             }
-            ProcessorTask task = asyncExecutor.getProcessorTask();
-            register(asyncExecutor, socket, task.getSelectionKey());
             checkBuffered(socket, request);
 
-            enableRead(task);
+            ProcessorTask task = asyncExecutor.getProcessorTask();
+            final SelectionKey key = task.getSelectionKey();
+            register(asyncExecutor, socket, key);
+
+            enableRead(task, key);
 
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
@@ -75,16 +77,18 @@ public class WebSocketEngine {
             final SelectionKey selectionKey) {
         selectionKey.attach(new SelectionKeyActionAttachment() {
             public void process(SelectionKey key) {
-                final ProcessorTask task = asyncExecutor.getProcessorTask();
                 if (key.isValid()) {
                     if (key.isReadable()) {
+                        final ProcessorTask task = asyncExecutor.getProcessorTask();
                         try {
                             socket.doRead();
                         } catch (IOException e) {
-                            handle(e, task);
+                            task.setAptCancelKey(true);
+                            task.terminateProcess();
+                            logger.log(Level.INFO, e.getMessage(), e);
                         }
+                        enableRead(task, key);
                     }
-                    enableRead(task);
                 }
             }
 
@@ -103,18 +107,8 @@ public class WebSocketEngine {
         }
     }
 
-    final void enableRead(ProcessorTask task) {
-        task.getSelectorHandler().register(getKey(task), SelectionKey.OP_READ);
-    }
-
-    protected SelectionKey getKey(ProcessorTask task) {
-        return task.getSelectionKey();
-    }
-
-    private void handle(Exception e, final ProcessorTask task) {
-        task.setAptCancelKey(true);
-        task.terminateProcess();
-        logger.log(Level.INFO, e.getMessage(), e);
+    final void enableRead(ProcessorTask task, SelectionKey key) {
+        task.getSelectorHandler().register(key, SelectionKey.OP_READ);
     }
 
     private void handshake(Request request, Response response) throws IOException {
@@ -126,13 +120,7 @@ public class WebSocketEngine {
         response.flush();
     }
 
-    private Selector getSelector(AsyncExecutor asyncExecutor) {
-        return asyncExecutor.getProcessorTask().getSelectionKey().selector();
-    }
-
-
     public void register(String name, WebSocketApplication app) {
         applications.put(name, app);
     }
-
 }

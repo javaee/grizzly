@@ -1,10 +1,10 @@
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 
 import java.io.IOException;
+import java.nio.channels.Channel;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -28,7 +28,7 @@ public abstract class WebSocketApplication implements WebSocketListener {
         return listeners.remove(listener);
     }
 
-    public WebSocket createSocket(AsyncExecutor asyncExecutor, Request request, Response response) throws IOException {
-        return new BaseServerWebSocket(request, response, this);
+    public WebSocket createSocket(Request request, Response response) throws IOException {
+        return new BaseServerWebSocket(this, request, response);
     }
 }

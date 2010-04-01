@@ -1,11 +1,9 @@
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 
 import java.io.IOException;
-import java.nio.channels.SelectableChannel;
 
 /**
  * This is the default implementation for websockets support.  It will read the incoming data
@@ -14,11 +12,12 @@ import java.nio.channels.SelectableChannel;
  */
 public class DefaultWebSocket extends BaseServerWebSocket implements WebSocket {
 
-    public DefaultWebSocket(AsyncExecutor asyncExecutor, Request request, Response response) throws IOException {
-        super(request, response, null);
+    public DefaultWebSocket(Request request, Response response) throws IOException {
+        super(null, request, response);
     }
 
-    public final void doRead(SelectableChannel selectableChannel) {
+    @Override
+    public final void doRead() {
 //        asyncTask.getAsyncExecutor().getProcessorTask().invokeAdapter();
     }
 }

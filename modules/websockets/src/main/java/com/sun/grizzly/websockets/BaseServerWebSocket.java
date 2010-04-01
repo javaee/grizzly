@@ -7,14 +7,20 @@ import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.buf.ByteChunk;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
+import java.nio.channels.SocketChannel;
 
 public class BaseServerWebSocket extends BaseWebSocket {
+    private SocketChannel channel;
     private final Request request;
     private final Response response;
     private final InternalInputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
 
-    public BaseServerWebSocket(final Request request, final Response response, WebSocketListener listener) {
+    public BaseServerWebSocket(WebSocketListener listener, final Request request, final Response response) {
         this.request = request;
         this.response = response;
 

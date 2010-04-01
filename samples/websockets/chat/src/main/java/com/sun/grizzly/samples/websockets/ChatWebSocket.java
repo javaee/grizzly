@@ -1,6 +1,5 @@
 package com.sun.grizzly.samples.websockets;
 
-import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.websockets.BaseServerWebSocket;
@@ -9,11 +8,10 @@ import java.io.IOException;
 
 public class ChatWebSocket extends BaseServerWebSocket {
     private String user;
-    private ChatApplication app;
+    private final ChatApplication app;
 
-    public ChatWebSocket(AsyncExecutor asyncExecutor, Request request, Response response,
-            final ChatApplication listener) throws IOException {
-        super(request, response, listener);
+    public ChatWebSocket(final ChatApplication listener, Request request, Response response) {
+        super(listener, request, response);
         app = listener;
     }
 

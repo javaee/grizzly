@@ -1,15 +1,13 @@
 package com.sun.grizzly.samples.websockets;
 
-import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.websockets.ClientHandShake;
 import com.sun.grizzly.websockets.DataFrame;
 import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketApplication;
 
 import java.io.IOException;
-import java.nio.channels.Selector;
+import java.nio.channels.Channel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -18,8 +16,8 @@ public class ChatApplication extends WebSocketApplication {
     List<WebSocket> sockets = new ArrayList<WebSocket>();
 
     @Override
-    public WebSocket createSocket(AsyncExecutor asyncExecutor, Request request, Response response) throws IOException {
-        final ChatWebSocket socket = new ChatWebSocket(asyncExecutor, request, response, this);
+    public WebSocket createSocket(Request request, Response response) throws IOException {
+        final ChatWebSocket socket = new ChatWebSocket(this, request, response);
 
         sockets.add(socket);
         return socket;
