@@ -6,7 +6,6 @@ import com.sun.grizzly.tcp.Response;
 
 import java.io.IOException;
 import java.nio.channels.SelectableChannel;
-import java.nio.channels.Selector;
 
 /**
  * This is the default implementation for websockets support.  It will read the incoming data
@@ -16,10 +15,10 @@ import java.nio.channels.Selector;
 public class DefaultWebSocket extends BaseServerWebSocket implements WebSocket {
 
     public DefaultWebSocket(AsyncExecutor asyncExecutor, Request request, Response response) throws IOException {
-        super(asyncExecutor, request, response, null);
+        super(request, response, null);
     }
 
     public final void doRead(SelectableChannel selectableChannel) {
-        asyncTask.getAsyncExecutor().getProcessorTask().invokeAdapter();
+//        asyncTask.getAsyncExecutor().getProcessorTask().invokeAdapter();
     }
 }

@@ -66,6 +66,7 @@ import com.sun.grizzly.util.IntrospectionUtils;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.SelectorFactory;
+import com.sun.grizzly.util.StreamAlgorithm;
 import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.res.StringManager;
@@ -1295,7 +1296,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      * will return 0, but getPortLowLevel() will return port number assigned by OS.
      * 
      * @return port number, or -1 if {@link SelectorThread} was not started
-     * @depreated - uses {@link #getPort} instead
+     * @deprecated - uses {@link #getPort} instead
      */
     public int getPortLowLevel() {
         if (selectorHandler != null){

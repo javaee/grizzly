@@ -9,7 +9,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.logging.Level;
 
@@ -71,6 +70,19 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
         }
     }
 
+    protected void process(SelectionKey key) throws IOException {
+        if (key.isValid()) {
+            if (key.isConnectable()) {
+                disableOp(SelectionKey.OP_CONNECT);
+                doConnect();
+            } else if (key.isReadable()) {
+                doRead();
+            }
+            enableOp(SelectionKey.OP_READ);
+            key.selector().wakeup();
+        }
+    }
+
     @Override
     protected void doConnect() throws IOException {
         channel.finishConnect();
@@ -84,7 +96,7 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
     protected void doRead() throws IOException {
         switch (state) {
             case WAITING_ON_HANDSHAKE:
-                final ByteBuffer buffer = ByteBuffer.allocate(INITIAL_BUFFER_SIZE);
+                final ByteBuffer buffer = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
                 final int read = channel.read(buffer);
                 state = State.READY;
                 setConnected(true);
@@ -100,7 +112,7 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
     protected void unframe() throws IOException {
         int count;
         do {
-            ByteBuffer bytes = ByteBuffer.allocate(INITIAL_BUFFER_SIZE);
+            ByteBuffer bytes = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
             count = channel.read(bytes);
             bytes.flip();
             unframe(bytes);
@@ -119,7 +131,6 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
         return channel.keyFor(getSelector());
     }
 
-    @Override
     void enableOp(final int op) {
         final SelectionKey key = getKey();
         final int ops = key.interestOps();
@@ -130,7 +141,6 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
         key.selector().wakeup();
     }
 
-    @Override
     void disableOp(final int op) {
         final SelectionKey key = getKey();
         final int ops = key.interestOps();

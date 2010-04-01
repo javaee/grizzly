@@ -20,8 +20,6 @@ public abstract class BaseWebSocket implements WebSocket {
         CLOSED
     }
 
-    static final int INITIAL_BUFFER_SIZE = 8192;
-
     protected static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
     protected State state = State.STARTING;
     private final Set<WebSocketListener> listeners = new LinkedHashSet<WebSocketListener>();
@@ -86,18 +84,6 @@ public abstract class BaseWebSocket implements WebSocket {
         return incoming.poll();
     }
 
-    protected void process(SelectionKey key) throws IOException {
-        if (key.isValid()) {
-            if (key.isConnectable()) {
-                disableOp(SelectionKey.OP_CONNECT);
-                doConnect();
-            } else if (key.isReadable()) {
-                doRead();
-            }
-            enableOp(SelectionKey.OP_READ);
-            key.selector().wakeup();
-        }
-    }
 
     protected void doConnect() throws IOException {
         connected = true;
@@ -136,8 +122,4 @@ public abstract class BaseWebSocket implements WebSocket {
     protected abstract void unframe() throws IOException;
 
     protected abstract void write(byte[] bytes) throws IOException;
-
-    abstract void disableOp(final int op);
-
-    abstract void enableOp(final int op);
 }

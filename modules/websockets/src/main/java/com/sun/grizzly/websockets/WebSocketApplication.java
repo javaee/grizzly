@@ -5,7 +5,6 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 
 import java.io.IOException;
-import java.nio.channels.Selector;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -30,6 +29,6 @@ public abstract class WebSocketApplication implements WebSocketListener {
     }
 
     public WebSocket createSocket(AsyncExecutor asyncExecutor, Request request, Response response) throws IOException {
-        return new BaseServerWebSocket(asyncExecutor, request, response, this);
+        return new BaseServerWebSocket(request, response, this);
     }
 }
