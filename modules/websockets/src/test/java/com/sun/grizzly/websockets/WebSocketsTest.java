@@ -4,7 +4,6 @@ import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Adapter;
-import junit.framework.TestCase;
 import org.junit.Assert;
 import org.testng.annotations.Test;
 
@@ -33,7 +32,7 @@ public class WebSocketsTest {
         WebSocket client = new WebSocketClient("ws://localhost:1725/echo");
         final Set<String> sent = new ConcurrentSkipListSet<String>();
         client.add(new WebSocketListener() {
-            public void onRead(WebSocket socket, DataFrame data) {
+            public void onMessage(WebSocket socket, DataFrame data) {
                 sent.remove(data.getTextPayload());
             }
 
@@ -100,7 +99,7 @@ public class WebSocketsTest {
         final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(new EchoServlet() {
             {
                 WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
-                    public void onRead(WebSocket socket, DataFrame data) {
+                    public void onMessage(WebSocket socket, DataFrame data) {
                         Assert.fail("A GET should never get here.");
                     }
 
@@ -198,7 +197,7 @@ public class WebSocketsTest {
             servlet = echoServlet;
         }
 
-        public void onRead(WebSocket socket, DataFrame data) {
+        public void onMessage(WebSocket socket, DataFrame data) {
             servlet.read(socket, data);
         }
 

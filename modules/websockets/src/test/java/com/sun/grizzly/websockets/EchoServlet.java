@@ -14,7 +14,7 @@ public class EchoServlet extends HttpServlet {
 
     public EchoServlet() {
         WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
-            public void onRead(WebSocket socket, DataFrame data) {
+            public void onMessage(WebSocket socket, DataFrame data) {
                 read(socket, data);
             }
 

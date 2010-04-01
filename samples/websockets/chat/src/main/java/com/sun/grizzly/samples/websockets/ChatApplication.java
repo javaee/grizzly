@@ -23,12 +23,11 @@ public class ChatApplication extends WebSocketApplication {
         return socket;
     }
 
-    public void onRead(WebSocket socket, DataFrame frame) {
+    public void onMessage(WebSocket socket, DataFrame frame) {
         final String data = frame.getTextPayload();
         if (data.startsWith("login:")) {
             login((ChatWebSocket) socket, frame);
         } else {
-            send(socket, data);
             broadcast(socket, data);
         }
     }
@@ -36,12 +35,10 @@ public class ChatApplication extends WebSocketApplication {
     public void onConnect(WebSocket socket) {
     }
 
-    void broadcast(WebSocket origination, String text) {
+    private void broadcast(WebSocket origination, String text) {
         WebSocketsServlet.logger.info("Broadcasting : " + text);
         for (WebSocket webSocket : sockets) {
-            if (webSocket != origination) {
-                send(webSocket, text);
-            }
+            send(webSocket, text);
         }
 
     }
@@ -63,7 +60,6 @@ public class ChatApplication extends WebSocketApplication {
         if (socket.getUser() == null) {
             WebSocketsServlet.logger.info("ChatApplication.login");
             socket.setUser(frame.getTextPayload().split(":")[1].trim());
-            send(socket, socket.getUser() + " has joined the chat.");
             broadcast(socket, socket.getUser() + " has joined the chat.");
         }
     }

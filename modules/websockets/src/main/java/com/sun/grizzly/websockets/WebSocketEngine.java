@@ -13,7 +13,6 @@ import com.sun.grizzly.util.http.MimeHeaders;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.SocketChannel;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
@@ -54,14 +53,15 @@ public class WebSocketEngine {
         try {
             final Response response = request.getResponse();
             handshake(request, response);
+            ProcessorTask task = asyncExecutor.getProcessorTask();
             if (app != null) {
                 socket = (BaseServerWebSocket) app.createSocket(request, response);
+                app.onConnect(socket);
             } else {
-                socket = new DefaultWebSocket(request, response);
+                socket = new PassThroughWebSocket(request, response, task);
             }
             checkBuffered(socket, request);
 
-            ProcessorTask task = asyncExecutor.getProcessorTask();
             final SelectionKey key = task.getSelectionKey();
             register(asyncExecutor, socket, key);
 

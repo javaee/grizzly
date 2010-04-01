@@ -8,10 +8,17 @@ import com.sun.grizzly.tcp.http11.Constants;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
@@ -104,6 +111,28 @@ public class ServerSideTest {
         } finally {
             thread.stopEndpoint();
         }
+    }
+
+    @Test(enabled = false)
+    public void applessServlet() throws IOException, InstantiationException {
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new HttpServlet() {
+            @Override
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+                resp.setContentType("text-plain");
+                resp.getWriter().write(req.getRequestURI());
+            }
+        }));
+
+        URL url = new URL("http://localhost:1726/echo/me/right/back");
+        final URLConnection urlConnection = url.openConnection();
+        final InputStream stream = (InputStream) urlConnection.getContent();
+        final byte[] b = new byte[1024];
+        final int read = stream.read(b);
+        String s = new String(b, 0, read);
+        System.out.println("ServerSideTest.applessServlet: s = " + s);
+        final byte[] bytes = s.getBytes("UTF-8");
+        Assert.assertTrue(b[0] == (byte)0x00);
+        Assert.assertTrue(b[b.length-1] == (byte)0xFF);
     }
 
     private Thread syncClient(final String name) throws IOException {

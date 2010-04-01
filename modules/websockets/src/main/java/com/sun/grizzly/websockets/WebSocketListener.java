@@ -1,9 +1,9 @@
 package com.sun.grizzly.websockets;
 
 public interface WebSocketListener {
-    void onRead(WebSocket socket, DataFrame data);
+    void onClose(WebSocket socket);
 
     void onConnect(WebSocket socket);
 
-    void onClose(WebSocket socket);
+    void onMessage(WebSocket socket, DataFrame data);
 }

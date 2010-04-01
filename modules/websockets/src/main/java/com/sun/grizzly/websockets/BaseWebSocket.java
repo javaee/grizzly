@@ -2,7 +2,6 @@ package com.sun.grizzly.websockets;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.util.LinkedHashSet;
 import java.util.Queue;
@@ -104,7 +103,7 @@ public abstract class BaseWebSocket implements WebSocket {
         DataFrame frame;
         while ((frame = incoming()) != null) {
             for (WebSocketListener listener : listeners) {
-                listener.onRead(this, frame);
+                listener.onMessage(this, frame);
             }
         }
     }
