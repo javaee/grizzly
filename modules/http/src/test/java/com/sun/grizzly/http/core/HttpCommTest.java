@@ -116,7 +116,7 @@ public class HttpCommTest extends TestCase {
 
             Future<ReadResult> readResultFuture = connection.read();
             ReadResult<HttpContent, SocketAddress> readResult =
-                    readResultFuture.get(1000, TimeUnit.SECONDS);
+                    readResultFuture.get(10, TimeUnit.SECONDS);
 
             HttpContent response = readResult.getMessage();
             HttpResponse responseHeader = (HttpResponse) response.getHttpHeader();
