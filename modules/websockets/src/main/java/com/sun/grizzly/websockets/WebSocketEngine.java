@@ -6,6 +6,8 @@ import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.tcp.http11.InternalInputBuffer;
+import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.SelectionKeyActionAttachment;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.buf.ByteChunk;
@@ -57,16 +59,15 @@ public class WebSocketEngine {
             if (app != null) {
                 socket = (BaseServerWebSocket) app.createSocket(request, response);
                 app.onConnect(socket);
+                checkBuffered(socket, request);
+
+                final SelectionKey key = task.getSelectionKey();
+                register(asyncExecutor, socket, key);
+
+                enableRead(task, key);
             } else {
-                socket = new PassThroughWebSocket(request, response, task);
+                ((InternalOutputBuffer)response.getOutputBuffer()).addActiveFilter(new WebSocketOutputFilter());
             }
-            checkBuffered(socket, request);
-
-            final SelectionKey key = task.getSelectionKey();
-            register(asyncExecutor, socket, key);
-
-            enableRead(task, key);
-
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
         }

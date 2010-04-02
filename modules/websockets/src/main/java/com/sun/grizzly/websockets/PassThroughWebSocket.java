@@ -3,6 +3,8 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.tcp.http11.InternalInputBuffer;
+import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 
 /**
  * This is the default implementation for websockets support.  This will hand off processing of the request
