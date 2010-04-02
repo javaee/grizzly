@@ -1,7 +1,7 @@
 /*
  *   DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- *   Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ *   Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  *   The contents of this file are subject to the terms of either the GNU
  *   General Public License Version 2 only ("GPL") or the Common Development
@@ -95,6 +95,11 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     String getKeyStoreType();
 
     void setKeyStoreType(String type);
+
+    @Attribute(defaultValue="plain")
+    String getKeyStorePasswordProvider();
+
+    void setKeyStorePasswordProvider(String provider);
 
     /**
      * password of the keystore file
@@ -199,6 +204,11 @@ public interface Ssl extends ConfigBeanProxy, Injectable, PropertyBag {
     String getTrustStoreType();
 
     void setTrustStoreType(String type);
+
+    @Attribute(defaultValue="plain")
+    String getTrustStorePasswordProvider();
+
+    void setTrustStorePasswordProvider(String provider);
 
     /**
      * password of the truststore file

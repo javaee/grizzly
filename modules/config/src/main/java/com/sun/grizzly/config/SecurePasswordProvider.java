@@ -34,41 +34,15 @@
  *   holder.
  *
  */
-package com.sun.grizzly.config.dom;
 
-import org.jvnet.hk2.component.Injectable;
-import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBeanProxy;
-import org.jvnet.hk2.config.Configured;
-import org.jvnet.hk2.config.Element;
-import org.jvnet.hk2.config.types.PropertyBag;
-
-import java.util.List;
+package com.sun.grizzly.config;
 
 /**
- * Defines the type of protocol chain and describes protocol filters, which will participate in request processing
+ * Common secure store password provider.
+ * Used to customize the way of retrieving passwords for the key and trust stores.
+ * 
+ * @author Alexey Stashok
  */
-@Configured
-public interface ProtocolChain extends ConfigBeanProxy, Injectable, PropertyBag {
-    /**
-     * Protocol chain instance handler implementation class
-     */
-    @Attribute
-    String getClassname();
-
-    void setClassname(String value);
-
-    /**
-     * Protocol chain type. Could be STATEFUL or STATELESS
-     */
-    @Attribute(defaultValue = "STATELESS")
-    String getType();
-
-    void setType(String value);
-
-    /**
-     * Defines protocol filter sequence, which will process a request.
-     */
-    @Element
-    List<ProtocolFilter> getProtocolFilter();
+public interface SecurePasswordProvider {
+    public String getPassword();
 }

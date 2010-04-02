@@ -35,23 +35,16 @@
  * holder.
  *
  */
-package com.sun.grizzly.config.dom;
+package com.sun.grizzly.config;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+/**
+ * Simple {@link SecurePasswordProvider}
+ * 
+ * @author Alexey Stashok
+ */
+public class TestSecurePasswordProvider implements SecurePasswordProvider {
 
-public class NetworkAddressValidator implements ConstraintValidator<NetworkAddress, String> {
-    public void initialize(final NetworkAddress networkAddress) {
-    }
-
-    public boolean isValid(final String s, final ConstraintValidatorContext constraintValidatorContext) {
-        try {
-            InetAddress.getByName(s);
-            return true;
-        } catch (UnknownHostException e) {
-            return false;
-        }
+    public String getPassword() {
+        return "grizzly";
     }
 }
