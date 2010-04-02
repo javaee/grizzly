@@ -132,6 +132,12 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
 
     /**
+     * The socket keepAlive mode.
+     */
+    protected boolean isKeepAlive = false;
+
+    
+    /**
      * The socket linger.
      */
     protected int linger = -1;
@@ -317,6 +323,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         copyHandler.ssBackLog = ssBackLog;
         copyHandler.tcpNoDelay = tcpNoDelay;
         copyHandler.linger = linger;
+        copyHandler.isKeepAlive = isKeepAlive;
         copyHandler.socketTimeout = socketTimeout;
         copyHandler.logger = logger;
         copyHandler.reuseAddress = reuseAddress;
@@ -956,6 +963,15 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
         }
 
         try{
+            socket.setKeepAlive(isKeepAlive);
+        } catch (SocketException ex){
+            if (logger.isLoggable(Level.FINE)){
+                logger.log(Level.FINE,
+                        "setKeepAlive exception ",ex);
+            }
+        }
+
+        try{
             socket.setTcpNoDelay(tcpNoDelay);
         } catch (SocketException ex){
             if (logger.isLoggable(Level.FINE)){
@@ -1163,6 +1179,14 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
     public void setLinger(int linger) {
         this.linger = linger;
+    }
+
+    public boolean isKeepAlive() {
+        return isKeepAlive;
+    }
+
+    public void setKeepAlive(boolean isKeepAlive) {
+        this.isKeepAlive = isKeepAlive;
     }
 
     public int getSocketTimeout() {
