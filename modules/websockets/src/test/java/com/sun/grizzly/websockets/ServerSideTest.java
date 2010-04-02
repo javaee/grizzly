@@ -144,6 +144,34 @@ public class ServerSideTest {
         }
     }
 
+    public void bigPayload() throws IOException, InstantiationException {
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+
+        Socket socket = new Socket("localhost", PORT);
+        try {
+            final OutputStream outputStream = handshake(socket);
+            StringBuilder sb = new StringBuilder();
+            for (int x = 0; x < 100; x++) {
+                sb.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis lectus odio, et" +
+                        " dictum purus. Suspendisse id ante ac tortor facilisis porta. Nullam aliquet dapibus dui, ut" +
+                        " scelerisque diam luctus sit amet. Donec faucibus aliquet massa, eget iaculis velit ullamcorper" +
+                        " eu. Fusce quis condimentum magna. Vivamus eu feugiat mi. Cras varius convallis gravida. Vivamus" +
+                        " et elit lectus. Aliquam egestas, erat sed dapibus dictum, sem ligula suscipit mauris, a" +
+                        " consectetur massa augue vel est. Nam bibendum varius lobortis. In tincidunt, sapien quis" +
+                        " hendrerit vestibulum, lorem turpis faucibus enim, non rhoncus nisi diam non neque. Aliquam eu" +
+                        " urna urna, molestie aliquam sapien. Nullam volutpat, erat condimentum interdum viverra, tortor" +
+                        " lacus venenatis neque, vitae mattis sem felis pellentesque quam. Nullam sodales vestibulum" +
+                        " ligula vitae porta. Aenean ultrices, ligula quis dapibus sodales, nulla risus sagittis sapien," +
+                        " id posuere turpis lectus ac sapien. Pellentesque sed ante nisi. Quisque eget posuere sapien.");
+            }
+            validate(socket, outputStream, sb.toString());
+        } finally {
+            socket.close();
+            thread.stopEndpoint();
+        }
+
+    }
+
     private void write(Socket socket, final String text) throws IOException {
         final OutputStream os = socket.getOutputStream();
         os.write(text.getBytes());
