@@ -597,7 +597,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
                                                             throws Exception{        
         do {
             boolean exitWhile = parseRequest(input, output, false);
-            if (exitWhile) {
+           if (exitWhile) {
                 return exitWhile;
             }
             invokeAdapter();
@@ -710,7 +710,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
             boolean keptAlive) throws Exception {
         
         // Parsing the request header
-        try { 
+        try {
             if (isMonitoringEnabled()){
                 adapter.fireAdapterEvent(Adapter.REQUEST_PROCESSING_STARTED, 
                         request.getRequestProcessor());
@@ -2310,7 +2310,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
      */
     void configureTransactionTimeout(){
         if (key != null){
-            key.attach(Long.valueOf(transactionTimeout));
+            key.attach(System.currentTimeMillis() + Long.valueOf(transactionTimeout));
         }
     }
 }
