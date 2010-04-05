@@ -144,6 +144,7 @@ public class ServerSideTest {
         }
     }
 
+    @Test(enabled = false)
     public void bigPayload() throws IOException, InstantiationException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
 
@@ -151,7 +152,7 @@ public class ServerSideTest {
         try {
             final OutputStream outputStream = handshake(socket);
             StringBuilder sb = new StringBuilder();
-            for (int x = 0; x < 100; x++) {
+            for (int x = 0; x < 10; x++) {
                 sb.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis lectus odio, et" +
                         " dictum purus. Suspendisse id ante ac tortor facilisis porta. Nullam aliquet dapibus dui, ut" +
                         " scelerisque diam luctus sit amet. Donec faucibus aliquet massa, eget iaculis velit ullamcorper" +
@@ -233,6 +234,8 @@ public class ServerSideTest {
             if (text != null) {
                 Assert.assertEquals(frame.getTextPayload(), text);
             }
+        } else {
+            Assert.fail("Failed to read anything from the server.");
         }
     }
 

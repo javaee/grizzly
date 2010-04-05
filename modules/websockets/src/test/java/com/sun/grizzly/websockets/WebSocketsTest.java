@@ -198,7 +198,7 @@ public class WebSocketsTest {
         }
 
         public void onMessage(WebSocket socket, DataFrame data) {
-            servlet.read(socket, data);
+            servlet.echo(socket, data);
         }
 
         public void onConnect(WebSocket socket) {

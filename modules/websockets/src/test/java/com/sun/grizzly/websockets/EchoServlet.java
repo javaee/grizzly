@@ -15,7 +15,7 @@ public class EchoServlet extends HttpServlet {
     public EchoServlet() {
         WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
             public void onMessage(WebSocket socket, DataFrame data) {
-                read(socket, data);
+                echo(socket, data);
             }
 
             public void onConnect(WebSocket socket) {
@@ -26,11 +26,11 @@ public class EchoServlet extends HttpServlet {
         });
     }
 
-    public void read(WebSocket socket, DataFrame data) {
+    public void echo(WebSocket socket, DataFrame data) {
         try {
             socket.send(data.getTextPayload());
         } catch (IOException e) {
-            logger.log(Level.SEVERE, e.getMessage(), e);
+            e.printStackTrace();
             throw new RuntimeException(e.getMessage(), e);
         }
     }
