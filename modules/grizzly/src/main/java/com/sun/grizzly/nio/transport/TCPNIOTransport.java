@@ -499,12 +499,18 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
         channel.configureBlocking(false);
 
-        if (linger >= 0) {
-            socket.setSoLinger(true, linger);
+        try {
+            if (linger >= 0) {
+                socket.setSoLinger(true, linger);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Can not set linger to " + linger, e);
         }
 
-        if (isKeepAlive) {
+        try {
             socket.setKeepAlive(isKeepAlive);
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Can not set keepAlive to " + isKeepAlive, e);
         }
         
         try {
