@@ -290,4 +290,11 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
     protected void setDecodeUrl(boolean decodeURL){
         this.decodeURL = decodeURL;
     }
+
+    /**
+     * Should this class decode the URL
+     */
+    public boolean isDecodeURL() {
+        return decodeURL;
+    }
 }
