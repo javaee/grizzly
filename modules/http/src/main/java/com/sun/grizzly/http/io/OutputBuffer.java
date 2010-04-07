@@ -322,23 +322,6 @@ public class OutputBuffer {
         if (closed) {
             return;
         }
-
-//        int total = len;
-//        do {
-//            int writeLen = requiresDrain(total);
-//            if (writeLen == CAPACITY_OK) {
-//                buf.put(b, off, total);
-//            } else if (writeLen == DEFAULT_BUFFER_SIZE) {
-//                buf.put(b, off, writeLen);
-//                flush();
-//            } else {
-//                buf.put(b, off, total - writeLen);
-//                flush();
-//                buf.put(b, total - writeLen, writeLen);
-//            }
-//            total -= DEFAULT_BUFFER_SIZE;
-//            off += DEFAULT_BUFFER_SIZE;
-//        } while (total > -1);
         int total = len;
         do {
             int writeLen = requiresDrain(total);
