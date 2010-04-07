@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -55,6 +55,7 @@
 
 package com.sun.grizzly.tcp.http11;
 
+import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.http.util.B2CConverter;
@@ -64,7 +65,6 @@ import com.sun.grizzly.http.util.MessageBytes;
 import com.sun.grizzly.http.util.Cookie;
 import com.sun.grizzly.http.util.Cookies;
 import com.sun.grizzly.util.http.Enumerator;
-import com.sun.grizzly.util.http.FastHttpDateFormat;
 import com.sun.grizzly.util.http.Globals;
 import com.sun.grizzly.util.http.ParameterMap;
 import com.sun.grizzly.http.util.Parameters;

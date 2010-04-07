@@ -38,8 +38,15 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.http.io.OutputBuffer;
+import com.sun.grizzly.http.io.ResponseOutputStream;
+import com.sun.grizzly.http.io.ResponseWriter;
 import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.FastHttpDateFormat;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.Writer;
 
 
 /**
@@ -60,12 +67,21 @@ public class HttpResponse extends HttpHeader {
      */
     protected int parsedStatusInt = NON_PARSED_STATUS;
     protected BufferChunk statusBC = BufferChunk.newInstance();
+    protected boolean committed;
+
+    private boolean usingWriter;
+    private boolean usingStream;
+    private ResponseWriter responseWriter;
+    private ResponseOutputStream responseStream;
 
 
     /**
      * Status message.
      */
     private BufferChunk reasonPhraseBC = BufferChunk.newInstance();
+
+    private OutputBuffer outputBuffer;
+
 
     /**
      * Returns {@link HttpResponse} builder.
@@ -146,6 +162,65 @@ public class HttpResponse extends HttpHeader {
         reasonPhraseBC.setString(message);
     }
 
+
+    /**
+     * TODO DOCS
+     * @return
+     */
+    public boolean isCommitted() {
+        return committed;
+    }
+
+
+    /**
+     * TODO DOCS
+     * @param committed
+     */
+    public void setCommitted(boolean committed) {
+        if (this.committed) {
+            return; // once committed, always committed
+        }
+        this.committed = committed;
+
+        prepareResponse();
+
+        outputBuffer.commit();
+
+    }
+
+
+    public void setOutputBuffer(OutputBuffer outputBuffer) {
+        this.outputBuffer = outputBuffer;
+    }
+
+    public OutputBuffer getOutputBuffer() {
+        return outputBuffer;
+    }
+
+    public Writer getWriter() {
+        if (usingStream) {
+            throw new IllegalStateException();
+        }
+        usingWriter = true;
+        if (responseWriter == null) {
+            outputBuffer.processingChars();
+            responseWriter = new ResponseWriter(outputBuffer);
+        }
+        return responseWriter;
+    }
+
+    public OutputStream getOutputStream() {
+        if (usingWriter) {
+            throw new IllegalStateException();
+        }
+        usingStream = true;
+        if (responseStream == null) {
+            responseStream = new ResponseOutputStream(outputBuffer);
+        }
+        return responseStream;
+    }
+
+
     // --------------------
     
     /**
@@ -156,6 +231,7 @@ public class HttpResponse extends HttpHeader {
         super.recycle();
         statusBC.recycle();
         reasonPhraseBC.recycle();
+        committed = false;
     }
 
     /**
@@ -177,10 +253,104 @@ public class HttpResponse extends HttpHeader {
                 .append(" protocol=").append(getProtocol())
                 .append(" content-length=").append(getContentLength())
                 .append(" headers=").append(getHeaders())
+                .append(" committed=").append(isCommited())
                 .append(')');
         
         return sb.toString();
     }
+
+
+    /**
+     * @inheritDoc
+     */
+    @Override public void setHeader(String name, String value) {
+        char c = name.charAt(0);
+        if((c=='C' || c=='c') && checkSpecialHeader(name, value)) {
+            return;
+        }
+        super.setHeader(name, value);
+    }
+
+    
+    /**
+     * @inheritDoc
+     */
+    @Override public void addHeader(String name, String value) {
+        char c = name.charAt(0);
+        if((c=='C' || c=='c') && checkSpecialHeader(name, value)) {
+            return;
+        }
+        super.addHeader(name, value);
+    }
+
+
+    public void finish() throws IOException {
+        if (!isCommitted()) {
+            setCommitted(true);
+        }
+        outputBuffer.endRequest();
+    }
+
+    
+    @Override public void setCharacterEncoding(String enc) {
+        outputBuffer.setEncoding(enc);
+        super.setCharacterEncoding(enc);
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    protected void prepareResponse() {
+
+        // Add date header
+        if (!containsHeader("Date")) {
+            String date = FastHttpDateFormat.getCurrentDate();
+            addHeader("Date", date);
+        }
+
+        if (parsedStatusInt == NON_PARSED_STATUS) {
+            setStatus(200);
+        }
+
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    /**
+     * Set internal fields for special header names.
+     * Called from set/addHeader.
+     * Return true if the header is special, no need to set the header.
+     */
+    private boolean checkSpecialHeader(String name, String value) {
+        // XXX Eliminate redundant fields !!!
+        // ( both header and in special fields )
+        if (name.equalsIgnoreCase("Content-Type")) {
+            setContentType(value);
+            return true;
+        }
+        if (name.equalsIgnoreCase("Content-Length")) {
+            try {
+                int cL = Integer.parseInt(value);
+                setContentLength(cL);
+                return true;
+            } catch (NumberFormatException ex) {
+                // Do nothing - the spec doesn't have any "throws"
+                // and the user might know what he's doing
+                return false;
+            }
+        }
+        if (name.equalsIgnoreCase("Content-Language")) {
+            // XXX XXX Need to construct Locale or something else
+        }
+        return false;
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
 
     /**
      * <tt>HttpResponse</tt> message builder.
@@ -203,7 +373,7 @@ public class HttpResponse extends HttpHeader {
         /**
          * Sets the status reason phrase for this response.
          *
-         * @param message the status reason phrase for this response.
+         * @param reasonPhrase the status reason phrase for this response.
          */
         public Builder reasonPhrase(String reasonPhrase) {
             ((HttpResponse) packet).setReasonPhrase(reasonPhrase);

@@ -68,6 +68,10 @@ public class HttpRequest extends HttpHeader {
     private Parameters parameters = new Parameters();
 
     private boolean parametersParsed;
+    private boolean secure;
+    private boolean secureParsed;
+
+    private String localHost;
 
     private BufferChunk methodBC = BufferChunk.newInstance();
     private BufferChunk queryBC = BufferChunk.newInstance();
@@ -399,6 +403,39 @@ public class HttpRequest extends HttpHeader {
 
 
     /**
+     * TODO Docs
+     * @return
+     */
+    public String getLocalHost() {
+        return localHost;
+    }
+
+
+    /**
+     * TODO Docs
+     * @param host
+     */
+    public void setLocalHost(String host) {
+        this.localHost = host;
+    }
+
+
+    /**
+     * TODO Docs
+     * @return
+     */
+    public boolean isSecure() {
+
+        if (!secureParsed) {
+            secureParsed = true;
+            secure = "https".equals(getProtocol());
+        }
+        return secure;
+        
+    }
+
+
+    /**
      * TODO : Support parameter processing from POST
      * @return a {@link Parameters} instance representing any query parameters
      *  included with the request URI.
@@ -445,6 +482,11 @@ public class HttpRequest extends HttpHeader {
         serverPort = -1;
 
         connection = null;
+        localHost = null;
+
+        secure = false;
+        parametersParsed = false;
+        secureParsed = false;
 
         // XXX Do we need such defaults ?
         methodBC.setString("GET");

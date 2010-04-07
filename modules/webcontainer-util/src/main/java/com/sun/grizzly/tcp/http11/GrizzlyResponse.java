@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -62,7 +62,7 @@ import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.util.MessageBytes;
 import com.sun.grizzly.http.util.UEncoder;
 import com.sun.grizzly.http.util.Cookie;
-import com.sun.grizzly.util.http.FastHttpDateFormat;
+import com.sun.grizzly.http.util.FastHttpDateFormat;
 import com.sun.grizzly.http.util.HttpRequestURIDecoder;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.ServerCookie;

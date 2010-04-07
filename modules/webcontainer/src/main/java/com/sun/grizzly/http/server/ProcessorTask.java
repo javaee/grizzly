@@ -54,58 +54,10 @@
 package com.sun.grizzly.http.server;
 
 
-import com.sun.grizzly.streams.StreamWriter;
 //import com.sun.grizzly.arp.AsyncHandler;
-import java.io.IOException;
-import java.io.InterruptedIOException;
 
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.util.logging.Level;
-
-import com.sun.grizzly.tcp.ActionCode;
-import com.sun.grizzly.tcp.ActionHook;
-import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.tcp.Processor;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.RequestGroupInfo;
-import com.sun.grizzly.tcp.RequestInfo;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.InternalInputBuffer;
-import com.sun.grizzly.tcp.http11.InputFilter;
-import com.sun.grizzly.tcp.http11.OutputFilter;
-import com.sun.grizzly.tcp.http11.filters.ChunkedInputFilter;
-import com.sun.grizzly.tcp.http11.filters.ChunkedOutputFilter;
-import com.sun.grizzly.tcp.http11.filters.GzipOutputFilter;
-import com.sun.grizzly.tcp.http11.filters.IdentityInputFilter;
-import com.sun.grizzly.tcp.http11.filters.IdentityOutputFilter;
-import com.sun.grizzly.tcp.http11.filters.VoidInputFilter;
-import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
-import com.sun.grizzly.tcp.http11.filters.BufferedInputFilter;
-import com.sun.grizzly.util.Interceptor;
-
-import com.sun.grizzly.util.buf.Ascii;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.buf.HexUtils;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.FastHttpDateFormat;
-import com.sun.grizzly.util.http.MimeHeaders;
-
-import com.sun.grizzly.util.res.StringManager;
-import java.util.StringTokenizer;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
-import javax.management.ObjectName;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.ssl.SSLSupport;
-import com.sun.grizzly.streams.StreamReader;
 //import com.sun.grizzly.threadpool.ExtendedThreadPool;
-import com.sun.grizzly.threadpool.WorkerThread;
-import com.sun.grizzly.tcp.SuspendedResponse;
+
 //import com.sun.grizzly.ssl.SSLAttributes;
 
 /**
