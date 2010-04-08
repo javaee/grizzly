@@ -7,7 +7,6 @@ import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketApplication;
 
 import java.io.IOException;
-import java.nio.channels.Channel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -28,14 +27,14 @@ public class ChatApplication extends WebSocketApplication {
         if (data.startsWith("login:")) {
             login((ChatWebSocket) socket, frame);
         } else {
-            broadcast(socket, data);
+            broadcast(data);
         }
     }
 
     public void onConnect(WebSocket socket) {
     }
 
-    private void broadcast(WebSocket origination, String text) {
+    private void broadcast(String text) {
         WebSocketsServlet.logger.info("Broadcasting : " + text);
         for (WebSocket webSocket : sockets) {
             send(webSocket, text);
@@ -60,7 +59,7 @@ public class ChatApplication extends WebSocketApplication {
         if (socket.getUser() == null) {
             WebSocketsServlet.logger.info("ChatApplication.login");
             socket.setUser(frame.getTextPayload().split(":")[1].trim());
-            broadcast(socket, socket.getUser() + " has joined the chat.");
+            broadcast(socket.getUser() + " has joined the chat.");
         }
     }
 }
