@@ -51,6 +51,7 @@ public abstract class BaseWebSocket implements WebSocket {
     }
 
     public void close() throws IOException {
+        onClose();
         connected = false;
         state = State.CLOSED;
         incoming.clear();

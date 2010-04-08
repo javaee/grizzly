@@ -59,7 +59,6 @@ public class WebSocketEngine {
             if (app != null) {
                 socket = (BaseServerWebSocket) app.createSocket(request, response);
                 app.onConnect(socket);
-                checkBuffered(socket, request);
 
                 final SelectionKey key = task.getSelectionKey();
                 register(asyncExecutor, socket, key);
@@ -97,15 +96,6 @@ public class WebSocketEngine {
             public void postProcess(SelectionKey selectionKey1) {
             }
         });
-    }
-
-
-    private void checkBuffered(BaseServerWebSocket socket, Request request) throws IOException {
-        final ByteChunk chunk = new ByteChunk(INITIAL_BUFFER_SIZE);
-        final InputBuffer inputBuffer = request.getInputBuffer();
-        if (inputBuffer.doRead(chunk, request) > 0) {
-            socket.unframe(chunk.toByteBuffer());
-        }
     }
 
     final void enableRead(ProcessorTask task, SelectionKey key) {

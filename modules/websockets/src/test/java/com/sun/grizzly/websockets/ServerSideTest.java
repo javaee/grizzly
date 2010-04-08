@@ -8,7 +8,6 @@ import com.sun.grizzly.tcp.http11.Constants;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -36,7 +35,7 @@ public class ServerSideTest {
             + Constants.CRLF;
     private static final int ITERATIONS = 10000;
 
-    public void synchronous() throws IOException, InstantiationException {
+    public void synchronous() throws IOException, InstantiationException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
 
         Socket socket = new Socket("localhost", PORT);
@@ -116,7 +115,7 @@ public class ServerSideTest {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new HttpServlet() {
             @Override
             protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-                    throws ServletException, IOException {
+                    throws IOException {
                 final ServletOutputStream outputStream = resp.getOutputStream();
                 outputStream.write(req.getRequestURI().getBytes());
                 outputStream.flush();
@@ -179,10 +178,10 @@ public class ServerSideTest {
         os.write(Constants.CRLF_BYTES);
     }
 
-    private Thread syncClient(final String name) throws IOException {
+    private Thread syncClient(final String name) {
         final Thread thread = new Thread(new Runnable() {
             public void run() {
-                Socket socket = null;
+                Socket socket;
                 try {
                     socket = new Socket("localhost", PORT);
                     try {
