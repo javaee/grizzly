@@ -25,7 +25,7 @@ public class ChatWebSocket extends BaseServerWebSocket {
 
     @Override
     public void send(String data) {
-        super.send( toJsonp("System Message", data) );
+        super.send( toJsonp(getUser(), data) );
     }
 
     @Override

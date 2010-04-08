@@ -68,7 +68,7 @@ var app = {
     update: function(data) {
         if (data) {
             var p = document.createElement('p');
-            p.innerHTML = data.name + ':<br/>' + data.message;
+            p.innerHTML = data.name + ': ' + data.message;
 
             $('display').appendChild(p);
 
