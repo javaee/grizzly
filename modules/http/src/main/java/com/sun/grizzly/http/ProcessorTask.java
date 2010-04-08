@@ -1570,6 +1570,8 @@ public class ProcessorTask extends TaskBase implements Processor,
                 String contentType = response.getContentType();
                 if (contentType != null) {
                     headers.setValue("Content-Type").setString(contentType);
+                } else {
+                    headers.setValue("Content-Type").setString(defaultResponseType);
                 }
 
                 String contentLanguage = response.getContentLanguage();
