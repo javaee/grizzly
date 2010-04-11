@@ -108,7 +108,10 @@ public class ConfigurationParser {
             } else if (arg.startsWith("--ajpEnabled")) {
                 conf.ajpEnabled = Boolean
                     .parseBoolean(arg.substring("--ajpEnabled=".length(), arg.length()));
-            }
+            } else if (arg.startsWith("--websocketsEnabled=")) {
+                conf.websocketsEnabled = Boolean
+                .parseBoolean(arg.substring("--websocketsEnabled=".length(), arg.length()));
+            } 
         }
 
         if (conf.locations == null) {
@@ -130,6 +133,7 @@ public class ConfigurationParser {
             .append("  --autodeploy=[path]         AutoDeploy to each applications\n")
             .append("  --webdefault=[path]         webdefault to be used by all applications, can be file or dir with multipe web.xmls\n")
             .append("  --cometEnabled              Starts the AsyncFilter for Comet\n")
+            .append("  --websocketsEnabled         Starts the AsyncFilter for Websockets\n")
             .append("  --forceWar                  Force war's deployment over a expanded folder.\n")
             .append("  --ajpEnabled                Enable mod_jk.\n")
             .append("  --help                      Show this help message.\n")
@@ -146,13 +150,11 @@ public class ConfigurationParser {
         System.err.println("  -a, --application=[path]*   Application(s) path(s).");
         System.err.println();
         System.err.println("                              Application(s) deployed can be :");
-        System.err.println(
-            "                              Servlet(s), war(s) and expanded war folder(s).");
+        System.err.println("                              Servlet(s), war(s) and expanded war folder(s).");
         System.err.println("                              To deploy multiple applications");
         System.err.println("                              use File.pathSeparator");
         System.err.println();
-        System.err.println(
-            "                              Example : -a /app.war:/servlet/web.xml:/warfolder/");
+        System.err.println("                              Example : -a /app.war:/servlet/web.xml:/warfolder/");
         System.err.println();
         System.err.println("  -p, --port=[port]           Runs Servlet on the specified port.");
         System.err.println("                              Default: 8080");
@@ -166,13 +168,11 @@ public class ConfigurationParser {
         System.err.println("                              Useful for Unit testing.");
         System.err.println("                              Default : false");
         System.err.println();
-        System.err
-            .println("  --libraryPath=[path]        Add a libraries folder to the classpath.");
+        System.err.println("  --libraryPath=[path]        Add a libraries folder to the classpath.");
         System.err.println("                              You can append multiple folders using");
         System.err.println("                              File.pathSeparator");
         System.err.println();
-        System.err
-            .println("                              Example : --libraryPath=/libs:/common_libs");
+        System.err.println("                              Example : --libraryPath=/libs:/common_libs");
         System.err.println();
         System.err.println("  --autodeploy=[path]         AutoDeploy to each applications.");
         System.err.println("                              You could add JSP support.");
@@ -187,14 +187,15 @@ public class ConfigurationParser {
         System.err.println("                              Example : --webdefault=webdefault.xml");
         System.err.println();
         System.err.println("  --cometEnabled=[true/false] Starts the AsyncFilter for Comet.");
-        System.err.println(
-            "                              You need to active this for comet applications.");
+        System.err.println("                              You need to active this for comet applications.");
         System.err.println("                              Default : false");
         System.err.println();
-        System.err.println(
-            "  --forceWar=[true/false]     Force war's deployment over a expanded folder.");
-        System.err
-            .println("                              Will deploy the war instead of the folder.");
+        System.err.println("  --websocketsEnabled=[true/false] Starts the AsyncFilter for Websockets.");
+        System.err.println("                              You need to active this for websockets applications.");
+        System.err.println("                              Default : false");
+        System.err.println();
+        System.err.println("  --forceWar=[true/false]     Force war's deployment over a expanded folder.");
+        System.err.println("                              Will deploy the war instead of the folder.");
         System.err.println("                              Default : false");
         System.err.println();
         System.err.println("  --ajpEnabled=[true/false]   Enable mod_jk.");

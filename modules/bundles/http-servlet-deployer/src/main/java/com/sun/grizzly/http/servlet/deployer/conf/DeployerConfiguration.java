@@ -39,6 +39,7 @@ package com.sun.grizzly.http.servlet.deployer.conf;
  * Configuration of {@link com.sun.grizzly.http.servlet.deployer.GrizzlyWebServerDeployer}.
  *
  * @author Hubert Iwaniuk
+ * @author Sebastien Dionne
  */
 public class DeployerConfiguration {
     public String locations;
@@ -50,6 +51,7 @@ public class DeployerConfiguration {
     public boolean cometEnabled = false;
     public boolean forceWarDeployment = false;
     public boolean ajpEnabled = false;
+    public boolean websocketsEnabled = false;
 
     @Override
     public String toString() {
@@ -63,6 +65,7 @@ public class DeployerConfiguration {
                 ", cometEnabled=" + cometEnabled +
                 ", forceWarDeployment=" + forceWarDeployment +
                 ", ajpEnabled=" + ajpEnabled +
+                ", websocketsEnabled=" + websocketsEnabled +
                 '}';
     }
 }

@@ -35,6 +35,23 @@
  */
 package com.sun.grizzly.http.servlet.deployer;
 
+import java.io.File;
+import java.io.FilenameFilter;
+import java.io.IOException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.comet.CometAsyncFilter;
@@ -46,18 +63,10 @@ import com.sun.grizzly.http.servlet.deployer.comparator.WarFileComparator;
 import com.sun.grizzly.http.servlet.deployer.conf.ConfigurationParser;
 import com.sun.grizzly.http.servlet.deployer.conf.DeployerConfiguration;
 import com.sun.grizzly.http.webxml.WebappLoader;
-import com.sun.grizzly.http.webxml.schema.*;
+import com.sun.grizzly.http.webxml.schema.WebApp;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.ExpandJar;
-
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.IOException;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import com.sun.grizzly.websockets.WebSocketAsyncFilter;
 
 /**
  * We have 4 cases : 
@@ -529,6 +538,20 @@ public class GrizzlyWebServerDeployer {
             st.setAsyncHandler(asyncHandler);
 
             st.setEnableAsyncExecution(true);
+        }
+        
+        // Websockets
+        if(conf.websocketsEnabled){
+        	SelectorThread st = ws.getSelectorThread();
+        	
+        	AsyncHandler asyncHandler = st.getAsyncHandler();
+        	if(asyncHandler==null){
+        		asyncHandler = new DefaultAsyncHandler();
+        		st.setAsyncHandler(asyncHandler);
+        	}
+            st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
+            st.setEnableAsyncExecution(true);
+
         }
 
         if (conf.ajpEnabled) {
