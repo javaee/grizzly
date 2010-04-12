@@ -39,11 +39,13 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.Parameters;
 import com.sun.grizzly.http.util.RequestURIRef;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.util.Enumeration;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
@@ -509,13 +511,18 @@ public class HttpRequest extends HttpHeader {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder(256);
-        sb.append("HttpRequest (method=").append(getMethod())
-                .append(" url=").append(getRequestURI())
-                .append(" query=").append(getQueryString())
-                .append(" protocol=").append(getProtocol())
-                .append(" content-length=").append(getContentLength())
-                .append(" headers=").append(getHeaders())
-                .append(')');
+        sb.append("HttpRequest (\n   method=").append(getMethod())
+                .append("\n   url=").append(getRequestURI())
+                .append("\n   query=").append(getQueryString())
+                .append("\n   protocol=").append(getProtocol())
+                .append("\n   content-length=").append(getContentLength())
+                .append("\n   headers=[");
+        MimeHeaders headers = getHeaders();
+        for (Enumeration<String> e = headers.names(); e.hasMoreElements(); ) {
+            String n = e.nextElement();
+            sb.append("\n      ").append(n).append('=').append(headers.getHeader(n));
+        }
+        sb.append("]\n)");
 
         return sb.toString();
     }
