@@ -428,7 +428,7 @@ public class ServerCookie implements Serializable {
             buf.append('"');
             buf.append(escapeDoubleQuotes(value,1,value.length()-1));
             buf.append('"');
-        } else if (allowVersionSwitch && (COOKIE_VERSION_ONE_STRICT_COMPLIANCE) && version==0 && !isToken2(value, literals)) {
+        } else if (allowVersionSwitch && COOKIE_VERSION_ONE_STRICT_COMPLIANCE && version==0 && !isToken2(value, literals)) {
             buf.append('"');
             buf.append(escapeDoubleQuotes(value,0,value.length()));
             buf.append('"');
