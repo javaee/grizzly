@@ -52,11 +52,8 @@ import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.MemoryManager;
-import com.sun.grizzly.tcp.Adapter;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Writer;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 
@@ -115,29 +112,7 @@ public class WebServerFilter extends BaseFilter {
             return ctx.getStopAction();
         }
 
-        response.addHeader("Found", ((HttpRequest) httpContent.getHttpHeader()).getRequestURI());
-        response.setChunked(true);
-        //response.setStatus(200);
-        response.setReasonPhrase("OK");
-        response.setCharacterEncoding("Shift_JIS");
-        //OutputStream output = response.getOutputStream();
-        Writer writer = response.getWriter();
-        //writer.write("Hello, World!\n");
-        //writer.flush();
-        //writer.write("Hello, again!\r\n");
-        writer.write("cccccccccccccccccccccccccccccccccccccccccccccccccc");
-        //int len = 1024 * 8;
-        //StringBuilder sb = new StringBuilder(len);
-        //for (int i = 0; i < len; i++) {
-        //    sb.append('a');
-        //}
-        //sb.append('b');
-        //sb.append('b');
-        //response.setContentLength(sb.length() + 50);
-        //output.write(sb.toString().getBytes());
-        //writer.write(sb.toString());
-
-        response.finish();
+        //HttpRequest request = (HttpRequest) httpContent.getHttpHeader();
         //prepareProcessing(ctx, request, response);
         //Adapter adapter = config.getAdapter();
 
@@ -146,9 +121,8 @@ public class WebServerFilter extends BaseFilter {
         //} catch (Exception e) {
         //    throw new RuntimeException(e);
         //}
-        //
-        //return ctx.getSuspendAction();
 
+        response.finish();
         return ctx.getStopAction();
 
     }
