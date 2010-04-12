@@ -52,6 +52,7 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.AbstractNIOConnection;
@@ -181,7 +182,7 @@ public class HttpRequestParseTest extends TestCase {
             String protocol, Map<String, Pair<String, String>> headers, String eol)
             throws Exception {
         
-        final FutureImpl<Boolean> parseResult = FutureImpl.create();
+        final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
 
         Connection connection = null;
         StreamReader reader = null;

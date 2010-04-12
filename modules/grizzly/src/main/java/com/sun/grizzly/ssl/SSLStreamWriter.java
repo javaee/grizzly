@@ -40,6 +40,7 @@ package com.sun.grizzly.ssl;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.TransformerStreamWriter;
@@ -101,7 +102,7 @@ public class SSLStreamWriter extends TransformerStreamWriter {
             handshakeStatus = sslEngine.getHandshakeStatus();
         }
 
-        final FutureImpl<SSLEngine> future = FutureImpl.create();
+        final FutureImpl<SSLEngine> future = SafeFutureImpl.create();
 
         final HandshakeCompletionHandler hsCompletionHandler =
                 new HandshakeCompletionHandler(future, completionHandler);

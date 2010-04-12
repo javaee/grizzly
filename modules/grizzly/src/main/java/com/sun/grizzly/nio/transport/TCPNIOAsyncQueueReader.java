@@ -51,7 +51,7 @@ import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
-import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.NIOConnection;
 
 /**
@@ -88,7 +88,7 @@ public final class TCPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
             Transformer transformer,
             Interceptor<ReadResult> interceptor) {
         final AsyncReadQueueRecord record = AsyncReadQueueRecord.create(
-                buffer, FutureImpl.create(),
+                buffer, SafeFutureImpl.create(),
                 ReadResult.create(connection),
                 completionHandler, transformer, interceptor);
         ((TCPNIOConnection) connection).getAsyncReadQueue().getQueue().add(record);

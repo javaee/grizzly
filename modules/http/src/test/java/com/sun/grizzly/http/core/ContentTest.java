@@ -55,6 +55,7 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
@@ -107,7 +108,7 @@ public class ContentTest extends TestCase {
     private void doHttpRequestTest(HttpContent... patternContentMessages)
             throws Exception {
 
-        final FutureImpl<HttpPacket> parseResult = FutureImpl.create();
+        final FutureImpl<HttpPacket> parseResult = SafeFutureImpl.create();
 
         Connection connection = null;
 

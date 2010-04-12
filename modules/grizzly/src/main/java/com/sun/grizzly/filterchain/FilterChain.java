@@ -42,6 +42,7 @@ import java.util.List;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.Codec;
 import com.sun.grizzly.ProcessorResult;
+import com.sun.grizzly.ReadResult;
 import java.io.IOException;
 
 /**
@@ -95,5 +96,7 @@ public interface FilterChain extends Processor, List<Filter> {
      * @throws java.io.IOException
      */
     public ProcessorResult execute(FilterChainContext context) throws IOException;
+
+    public ReadResult read(FilterChainContext context) throws IOException;
 
 }

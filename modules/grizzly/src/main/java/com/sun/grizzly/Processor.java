@@ -65,12 +65,12 @@ public interface Processor<E extends Context> {
      */
     public ProcessorResult process(E context) throws IOException;
 
-    public GrizzlyFuture read(Connection connection,
-            CompletionHandler completionHandler) throws IOException;
+    public GrizzlyFuture<ReadResult> read(Connection connection,
+            CompletionHandler<ReadResult> completionHandler) throws IOException;
 
-    public <M> GrizzlyFuture write(Connection connection,
+    public <M> GrizzlyFuture<WriteResult> write(Connection connection,
             Object dstAddress, M message,
-            CompletionHandler completionHandler) throws IOException;
+            CompletionHandler<WriteResult> completionHandler) throws IOException;
     
     /**
      * Is this {@link Processor} interested in processing the i/o event

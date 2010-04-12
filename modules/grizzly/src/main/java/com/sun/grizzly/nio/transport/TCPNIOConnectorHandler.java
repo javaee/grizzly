@@ -55,6 +55,7 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
 import java.util.concurrent.Callable;
 
@@ -150,7 +151,7 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 
                 return ReadyFutureImpl.<Connection>create(newConnection);
             } else {
-                final FutureImpl connectFuture = FutureImpl.create();
+                final FutureImpl connectFuture = SafeFutureImpl.create();
                 newConnection.setConnectHandler(
                         new Callable<Connection>() {
                     

@@ -40,6 +40,7 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import java.io.IOException;
@@ -199,7 +200,7 @@ public abstract class BufferedOutput implements Output {
             throws IOException {
 
         if (!isClosed.getAndSet(true) && buffer != null && buffer.position() > 0) {
-            final FutureImpl<Integer> future = FutureImpl.<Integer>create();
+            final FutureImpl<Integer> future = SafeFutureImpl.<Integer>create();
 
             try {
                 overflow(new CompletionHandler<Integer>() {

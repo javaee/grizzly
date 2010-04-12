@@ -76,7 +76,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
         StreamWriter writer = null;
 
         final int packetNumber = 127;
-        final int packetSize = 1024;
+        final int packetSize = 128000;
 
         final AtomicInteger serverRcvdBytes = new AtomicInteger();
 
@@ -142,7 +142,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                 });
             }
 
-            ExecutorService executorService = Executors.newFixedThreadPool(packetNumber);
+            ExecutorService executorService = Executors.newFixedThreadPool(packetNumber / 10);
             try {
                 executorService.invokeAll(sendTasks);
                 if (!latch.await(10, TimeUnit.SECONDS)) {

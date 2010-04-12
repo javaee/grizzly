@@ -41,6 +41,7 @@ package com.sun.grizzly.nio.transport;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.filterchain.BaseFilter;
@@ -50,6 +51,7 @@ import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.utils.CompletionHandlerAdapter;
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Filter;
 
 /**
@@ -69,9 +71,29 @@ public final class UDPNIOTransportFilter extends BaseFilter {
             throws IOException {
         final UDPNIOConnection connection = (UDPNIOConnection) ctx.getConnection();
 
-        final ReadResult<Buffer, SocketAddress> readResult =
-                ReadResult.create(connection);
-        transport.read(connection, null, readResult);
+        final ReadResult<Buffer, SocketAddress> readResult;
+        if (!connection.isBlocking()) {
+            readResult = ReadResult.create(connection);
+            transport.read(connection, null, readResult);
+
+        } else {
+            GrizzlyFuture<ReadResult> future =
+                    transport.getTemporarySelectorIO().getReader().read(
+                    connection, null);
+            try {
+                readResult = future.get();
+                future.recycle(false);
+            } catch (ExecutionException e) {
+                final Throwable cause = e.getCause();
+                if (cause instanceof IOException) {
+                    throw (IOException) cause;
+                }
+
+                throw new IOException(cause);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
 
         if (readResult.getReadSize() > 0) {
             final Buffer buffer = readResult.getMessage().flip();

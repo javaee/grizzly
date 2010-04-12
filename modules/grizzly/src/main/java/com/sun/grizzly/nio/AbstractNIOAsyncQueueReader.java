@@ -59,6 +59,7 @@ import com.sun.grizzly.asyncqueue.AsyncQueueReader;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import java.util.Queue;
@@ -162,7 +163,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         queueRecord.setMessage(null);
                     }
 
-                    final FutureImpl future = FutureImpl.create();
+                    final FutureImpl future = SafeFutureImpl.create();
                     queueRecord.setFuture(future);
                     currentElement.set(queueRecord);
                     
@@ -176,7 +177,7 @@ public abstract class AbstractNIOAsyncQueueReader
 
             } else { // Read queue is not empty - add new element to a queue
                 // Create future
-                final FutureImpl future = FutureImpl.create();
+                final FutureImpl future = SafeFutureImpl.create();
                 queueRecord.setFuture(future);
 
                 connectionQueue.getQueue().offer(queueRecord);

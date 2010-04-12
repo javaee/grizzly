@@ -54,17 +54,20 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.ReadResult;
+import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.asyncqueue.AsyncQueueEnabledTransport;
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
+import com.sun.grizzly.impl.UnsafeFutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Default {@link FilterChain} implementation
@@ -83,9 +86,6 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
 
     protected final static Attribute<Queue<Pair>> STANDALONE_READ_LISTENERS_ATTR =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("DefaultFilterChain-ReadListener");
-
-    protected final static Attribute<Queue<ReadResult>> STORED_READ_RESULTS_ATTR =
-            Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("DefaultFilterChain-StoredReadResults");
 
     /**
      * NONE,
@@ -143,22 +143,12 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      */
     private Logger logger = Grizzly.logger(DefaultFilterChain.class);
 
-    private boolean awareOfStandaloneRead = false;
-
     public DefaultFilterChain() {
         this(new ArrayList<Filter>());
     }
     
     public DefaultFilterChain(Collection<Filter> initialFilters) {
         super(new ArrayList<Filter>(initialFilters));
-    }
-
-    public boolean awareOfStandaloneRead() {
-        return awareOfStandaloneRead;
-    }
-
-    public void awareOfStandaloneRead(boolean awareOfStandaloneRead) {
-        this.awareOfStandaloneRead = awareOfStandaloneRead;
     }
 
     @Override
@@ -181,14 +171,57 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     @Override
     public GrizzlyFuture read(Connection connection,
             CompletionHandler completionHandler) throws IOException {
-        return registerStandaloneReadListener(connection, completionHandler);
+        final FilterChainContext context = (FilterChainContext) Context.create(
+                this, connection, IOEvent.READ, null, null);
+
+        return ReadyFutureImpl.create(read(context));
     }
 
     @Override
-    public GrizzlyFuture write(Connection connection, Object dstAddress,
-            Object message, CompletionHandler completionHandler)
+    public ReadResult read(FilterChainContext context) throws IOException {
+        final Connection connection = context.getConnection();
+        if (!connection.isBlocking()) {
+            throw new IllegalStateException("FilterChain doesn't support standalone non blocking read. Please use Filter instead.");
+        } else {
+            final UnsafeFutureImpl future = UnsafeFutureImpl.create();
+            context.setCompletionFuture(future);
+
+            final int ioEventIndex = context.getIoEvent().ordinal();
+            final FilterExecutor executor = filterExecutors[ioEventIndex];
+
+            do {
+                checkRemainder(context, executor, 0, context.getEndIdx());
+                executeChainPart(context, executor, context.getFilterIdx(), context.getEndIdx());
+            } while (!future.isDone());
+
+            try {
+                final FilterChainContext retContext = (FilterChainContext) future.get();
+                ReadResult rr = ReadResult.create(connection);
+                rr.setMessage(retContext.getMessage());
+                rr.setSrcAddress(retContext.getAddress());
+
+                future.recycle(false);
+
+                return rr;
+            } catch (ExecutionException e) {
+                Throwable t = e.getCause();
+                if (t instanceof IOException) {
+                    throw (IOException) t;
+                }
+
+                throw new IOException(t);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+    }
+
+    @Override
+    public GrizzlyFuture write(Connection connection,
+            Object dstAddress, Object message,
+            CompletionHandler completionHandler)
             throws IOException {
-        final FutureImpl future = FutureImpl.create();
+        final FutureImpl<WriteResult> future = SafeFutureImpl.create();
         final FilterChainContext context = (FilterChainContext) Context.create(
                 this, connection, IOEvent.WRITE, future, completionHandler);
         context.setAddress(dstAddress);
@@ -216,9 +249,10 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final int startIdx = executor.defaultStartIdx(ctx);
             ctx.setFilterIdx(startIdx);
             ctx.setStartIdx(startIdx);
+            ctx.setEndIdx(executor.defaultEndIdx(ctx));
         }
 
-        final int end = executor.defaultEndIdx(ctx);
+        final int end = ctx.getEndIdx();
 
         try {
             do {
@@ -257,7 +291,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      *         normal exection process
      */
     protected final boolean executeChainPart(FilterChainContext ctx,
-            FilterExecutor executor, int start, int end) throws Exception {
+            FilterExecutor executor, int start, int end) throws IOException {
         final IOEvent ioEvent = ctx.getIoEvent();
         
         final Connection connection = ctx.getConnection();
@@ -348,18 +382,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             ctx.setFilterIdx(i);
         }
 
-        if (i == end && ioEvent == IOEvent.READ) {
-            if (!awareOfStandaloneRead) {
-                logger.log(Level.WARNING, "Message has been processed by a " +
-                        "FilterChain, but the last Filter returned InvokeAction" +
-                        " - so Message will be put to a standalone read queue. " +
-                        "If it's not expected - you have to make your last filer " +
-                        "to not return InvokeAction, otherwise this may lead to" +
-                        " OutOfMemoryError. If this situation is expected " +
-                        " you can disable this message by calling " +
-                        "DefaultFilterChain.awareOfStandaloneRead(true)");
-            }
-            notifyStandaloneReadListener(ctx);
+        if (ioEvent == IOEvent.READ && i == end) {
+            notifyCompleted(ctx, ctx);
         }
 
         return true;
@@ -408,7 +432,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      *         normal exection process
      */
     protected boolean checkRemainder(FilterChainContext ctx,
-            FilterExecutor executor, int start, int end) throws Exception {
+            FilterExecutor executor, int start, int end) {
 
         final Connection connection = ctx.getConnection();
 
@@ -440,6 +464,8 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
     protected void throwChain(FilterChainContext ctx, FilterExecutor executor,
             Throwable exception) {
 
+        notifyFailure(ctx, exception);
+        
         final int endIdx = ctx.getStartIdx();
 
         if (ctx.getFilterIdx() == endIdx) return;
@@ -459,66 +485,30 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         return new DefaultFilterChain(filters.subList(fromIndex, toIndex));
     }
 
-    private GrizzlyFuture registerStandaloneReadListener(
-            Connection connection, CompletionHandler completionHandler) {
-        
-        synchronized(connection) {
-            final Queue<ReadResult> standaloneResults =
-                    STORED_READ_RESULTS_ATTR.get(connection);
+    private void notifyCompleted(FilterChainContext context, Object result) {
+        final CompletionHandler completionHandler = context.getCompletionHandler();
+        final FutureImpl future = context.getCompletionFuture();
 
-            if (standaloneResults != null && !standaloneResults.isEmpty()) {
-                final ReadResult result = standaloneResults.remove();
-                if (completionHandler != null) {
-                    completionHandler.completed(result);
-                }
+        if (completionHandler != null) {
+            completionHandler.completed(result);
+        }
 
-                return ReadyFutureImpl.create(result);
-            }
-
-            final FutureImpl future = FutureImpl.create();
-
-            final Pair<FutureImpl, CompletionHandler> pair =
-                    new Pair<FutureImpl, CompletionHandler>(
-                    future, completionHandler);
-
-            Queue readQueue = STANDALONE_READ_LISTENERS_ATTR.get(connection);
-            if (readQueue == null) {
-                readQueue = new LinkedList<Pair>();
-                STANDALONE_READ_LISTENERS_ATTR.set(connection, readQueue);
-            }
-
-            readQueue.add(pair);
-
-            return future;
+        if (future != null) {
+            future.result(result);
         }
     }
 
-    private void notifyStandaloneReadListener(FilterChainContext ctx) {
-        final Connection connection = ctx.getConnection();
-        synchronized (connection) {
-            final ReadResult readResult = ReadResult.create(connection,
-                    ctx.getMessage(), ctx.getAddress(), 0);
+    private void notifyFailure(FilterChainContext context, Throwable e) {
 
-            final Queue<Pair> listeners =
-                    STANDALONE_READ_LISTENERS_ATTR.get(connection);
-            if (listeners != null && !listeners.isEmpty()) {
-                final Pair<FutureImpl, CompletionHandler> listener =
-                        listeners.remove();
-                if (listener.getSecond() != null) {
-                    listener.getSecond().completed(readResult);
-                }
+        final CompletionHandler completionHandler = context.getCompletionHandler();
+        final FutureImpl future = context.getCompletionFuture();
 
-                listener.getFirst().result(readResult);
-            } else {
-                Queue<ReadResult> results =
-                        STORED_READ_RESULTS_ATTR.get(connection);
-                if (results == null) {
-                    results = new LinkedList<ReadResult>();
-                    STORED_READ_RESULTS_ATTR.set(connection, results);
-                }
+        if (completionHandler != null) {
+            completionHandler.failed(e);
+        }
 
-                results.add(readResult);
-            }
+        if (future != null) {
+            future.failure(e);
         }
     }
     

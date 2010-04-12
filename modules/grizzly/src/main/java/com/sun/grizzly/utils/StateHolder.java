@@ -42,6 +42,7 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.utils.conditions.Condition;
 import java.util.Collection;
 import java.util.Iterator;
@@ -190,7 +191,7 @@ public final class StateHolder<E> {
 
             resultFuture = ReadyFutureImpl.<E>create(state);
         } else {
-            final FutureImpl<E> future = FutureImpl.<E>create();
+            final FutureImpl<E> future = SafeFutureImpl.<E>create();
             final ConditionElement elem = new ConditionElement(
                     condition, future, completionHandler);
 

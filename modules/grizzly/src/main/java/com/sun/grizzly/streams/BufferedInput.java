@@ -40,6 +40,7 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.utils.conditions.Condition;
@@ -206,7 +207,7 @@ public abstract class BufferedInput implements Input {
                 registrationStackTrace = new Exception();
                 isCompletionHandlerRegistered = true;
                 this.completionHandler = completionHandler;
-                final FutureImpl<Integer> localFuture = FutureImpl.<Integer>create();
+                final FutureImpl<Integer> localFuture = SafeFutureImpl.<Integer>create();
                 this.future = localFuture;
                 this.condition = condition;
                 

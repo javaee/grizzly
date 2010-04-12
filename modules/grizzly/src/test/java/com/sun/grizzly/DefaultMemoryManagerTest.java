@@ -39,6 +39,7 @@ package com.sun.grizzly;
 
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.DefaultMemoryManager;
@@ -358,7 +359,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     }
 
     private void testInWorkerThread(final Runnable task) throws Exception {
-        final FutureImpl<Boolean> future = FutureImpl.<Boolean>create();
+        final FutureImpl<Boolean> future = SafeFutureImpl.<Boolean>create();
 
         ExecutorService threadPool = new FixedThreadPool(ThreadPoolConfig.DEFAULT);
         threadPool.execute(new Runnable() {

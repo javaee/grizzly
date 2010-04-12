@@ -57,6 +57,7 @@ import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.asyncqueue.MessageCloner;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import java.util.Queue;
 import java.util.logging.Level;
 
@@ -182,7 +183,7 @@ public abstract class AbstractNIOAsyncQueueWriter
             } else { // If either write is not completed or queue is not empty
                 
                 // Create future
-                final FutureImpl future = FutureImpl.create();
+                final FutureImpl future = SafeFutureImpl.create();
                 queueRecord.setFuture(future);
 
                 if (cloner != null) {

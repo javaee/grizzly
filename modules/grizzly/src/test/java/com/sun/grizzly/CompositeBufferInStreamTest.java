@@ -36,6 +36,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.transport.TCPNIOServerConnection;
@@ -66,9 +67,9 @@ public class CompositeBufferInStreamTest extends GrizzlyTestCase {
         final Buffer portion2 = MemoryUtils.wrap(transport.getMemoryManager(), " ");
         final Buffer portion3 = MemoryUtils.wrap(transport.getMemoryManager(), "world!");
 
-        final FutureImpl lock1 = FutureImpl.create();
-        final FutureImpl lock2 = FutureImpl.create();
-        final FutureImpl lock3 = FutureImpl.create();
+        final FutureImpl lock1 = SafeFutureImpl.create();
+        final FutureImpl lock2 = SafeFutureImpl.create();
+        final FutureImpl lock3 = SafeFutureImpl.create();
 
         final Pair<Buffer, FutureImpl>[] portions = new Pair[]{
             new Pair<Buffer, FutureImpl>(portion1, lock1),

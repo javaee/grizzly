@@ -45,6 +45,7 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.IdleTimeoutFilter;
 import java.io.IOException;
@@ -80,7 +81,7 @@ public class Client {
         final String host = uri.getHost();
         final int port = uri.getPort() > 0 ? uri.getPort() : 80;
         
-        final FutureImpl<String> completeFuture = FutureImpl.create();
+        final FutureImpl<String> completeFuture = SafeFutureImpl.create();
 
         // Build HTTP client filter chain
         FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();

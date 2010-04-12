@@ -50,6 +50,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import java.util.Map;
 import java.util.Queue;
 import java.util.WeakHashMap;
@@ -179,7 +180,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             throws IOException {
 
         final FutureImpl<RegisterChannelResult> future =
-                FutureImpl.<RegisterChannelResult>create();
+                SafeFutureImpl.<RegisterChannelResult>create();
 
         if (Thread.currentThread() == selectorRunner.getRunnerThread()) {
             registerChannel0(selectorRunner, channel, interest, attachment,
@@ -214,7 +215,7 @@ public class DefaultSelectorHandler implements SelectorHandler {
             
             return ReadyFutureImpl.<Runnable>create(runnableTask);
         } else {
-            final FutureImpl<Runnable> future = FutureImpl.<Runnable>create();
+            final FutureImpl<Runnable> future = SafeFutureImpl.<Runnable>create();
 
             final SelectorHandlerTask task = new RunnableTask(runnableTask,
                     future, completionHandler);

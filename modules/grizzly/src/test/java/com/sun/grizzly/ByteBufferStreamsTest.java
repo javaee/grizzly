@@ -36,6 +36,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import java.util.List;
 import java.util.ArrayList;
 
@@ -76,7 +77,7 @@ public class ByteBufferStreamsTest extends GrizzlyTestCase {
 
     public static final int PORT = 7778;
     private static Logger logger = Grizzly.logger(ByteBufferStreamsTest.class);
-    private final FutureImpl<Boolean> poisonFuture = FutureImpl.<Boolean>create();
+    private final FutureImpl<Boolean> poisonFuture = SafeFutureImpl.<Boolean>create();
     private Connection clientconnection = null;
     private TCPNIOTransport servertransport = null;
     private StreamWriter clientWriter = null;

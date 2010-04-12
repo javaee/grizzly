@@ -45,6 +45,7 @@ import com.sun.grizzly.Context;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.ProcessorExecutor;
+import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.memory.BufferUtils;
@@ -119,6 +120,7 @@ public final class FilterChainContext extends Context {
     private int filterIdx;
 
     private int startIdx;
+    private int endIdx;
 
     private final StopAction cachedStopAction = new StopAction();
 
@@ -137,21 +139,6 @@ public final class FilterChainContext extends Context {
                         state = State.RUNNING;
                     }
 
-//                    final Connection connection = getConnection();
-//                    final IOEvent ioEvent = getIoEvent();
-
-//                    final Transport transport = connection.getTransport();
-
-//                    // If we're resuming read - we need to make sure key will get reregistered
-//                    if (ioEvent == IOEvent.READ) {
-//                        final IOEventReg ioEventReg =
-//                                transport.fireIOEvent(FilterChainContext.this);
-//                        if (ioEventReg == IOEventReg.REGISTER) {
-//                            ((NIOConnection) connection).enableIOEvent(ioEvent);
-//                        }
-//                    } else {
-//                        getFilterChain().execute(FilterChainContext.this);
-//                    }
                     ProcessorExecutor.resume(FilterChainContext.this);
                 } catch (Exception e) {
                     logger.log(Level.FINE, "Exception during running Processor", e);
@@ -206,6 +193,14 @@ public final class FilterChainContext extends Context {
 
     protected void setStartIdx(int startIdx) {
         this.startIdx = startIdx;
+    }
+
+    public int getEndIdx() {
+        return endIdx;
+    }
+
+    protected void setEndIdx(int endIdx) {
+        this.endIdx = endIdx;
     }
 
     /**
@@ -388,6 +383,20 @@ public final class FilterChainContext extends Context {
         this.isUserWrite = isUserWrite;
     }
     
+    public ReadResult read() throws IOException {
+        final FilterChainContext newContext = (FilterChainContext) getProcessor().context();
+        newContext.setIoEvent(IOEvent.READ);
+        newContext.setConnection(getConnection());
+        newContext.setStartIdx(0);
+        newContext.setFilterIdx(0);
+        newContext.setEndIdx(filterIdx);
+
+        final ReadResult rr = getFilterChain().read(newContext);
+        newContext.recycle();
+
+        return rr;
+    }
+    
     public void write(Object message) throws IOException {
         write(null, message, null);
     }
@@ -407,6 +416,7 @@ public final class FilterChainContext extends Context {
         newContext.setCompletionHandler(completionHandler);
         newContext.setStartIdx(filterIdx - 1);
         newContext.setFilterIdx(filterIdx - 1);
+        newContext.setEndIdx(-1);
         newContext.setUserWrite(true);
 
         ProcessorExecutor.resume(newContext);

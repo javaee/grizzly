@@ -42,7 +42,6 @@ import com.sun.grizzly.attributes.AttributeStorage;
 import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.DefaultFilterChain;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
@@ -51,8 +50,10 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
+import com.sun.grizzly.utils.LinkedTransferQueue;
 import com.sun.grizzly.utils.StringFilter;
 import java.io.IOException;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -168,6 +169,8 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
+            final BlockingQueue<String> resultQueue = new LinkedTransferQueue<String>();
+            
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
@@ -176,8 +179,16 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
                     FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new StringFilter());
+            clientFilterChainBuilder.add(new BaseFilter() {
+
+                @Override
+                public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                    resultQueue.add((String) ctx.getMessage());
+                    return ctx.getStopAction();
+                }
+
+            });
             final FilterChain clientFilterChain = clientFilterChainBuilder.build();
-            ((DefaultFilterChain) clientFilterChain).awareOfStandaloneRead(true);
 
             connection.setProcessor(clientFilterChain);
 
@@ -189,12 +200,10 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
                         writeFuture.get(10, TimeUnit.SECONDS) != null);
 
 
-                Future<ReadResult> readFuture = connection.read();
-                assertTrue("Read timeout loop: " + i,
-                        readFuture.get(10, TimeUnit.SECONDS) != null);
+                final String message = resultQueue.poll(10, TimeUnit.SECONDS);
 
                 assertEquals("Unexpected response (" + i + ")",
-                        serverMessage + "-" + i, readFuture.get().getMessage());
+                        serverMessage + "-" + i, message);
             }
         } finally {
             if (connection != null) {

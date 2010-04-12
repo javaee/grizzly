@@ -48,6 +48,7 @@ import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.utils.CompletionHandlerResultAdapter;
 import com.sun.grizzly.utils.conditions.Condition;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -393,7 +394,7 @@ public abstract class AbstractStreamReader implements StreamReader {
      */
     @Override
     public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder, CompletionHandler<E> completionHandler) {
-        final FutureImpl<E> future = FutureImpl.<E>create();
+        final FutureImpl<E> future = SafeFutureImpl.<E>create();
 
         final CompletionHandlerResultAdapter completionHandlerWrapper =
                 new CompletionHandlerResultAdapter(future, completionHandler);

@@ -38,212 +38,52 @@
 
 package com.sun.grizzly.impl;
 
-import com.sun.grizzly.Cacheable;
 import com.sun.grizzly.GrizzlyFuture;
-import com.sun.grizzly.ThreadCache;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
- * Simple {@link Future} implementation, which uses synchronization
- * {@link Object} to synchronize during the lifecycle.
+ * Abstract {@link Future} implementation.
  *
  * @see Future
  * 
  * @author Alexey Stashok
  */
-public class FutureImpl<R> implements GrizzlyFuture<R> {
-    private static final ThreadCache.CachedTypeIndex<FutureImpl> CACHE_IDX =
-            ThreadCache.obtainIndex(FutureImpl.class, 4);
-    /**
-     * Construct {@link Future}.
-     */
-    public static <R> FutureImpl<R> create() {
-        final FutureImpl future = ThreadCache.takeFromCache(CACHE_IDX);
-        if (future != null) {
-            return future;
-        }
-
-        return new FutureImpl<R>();
-    }
-
-    private final Object sync = new Object();
+public abstract class FutureImpl<R> implements GrizzlyFuture<R> {
+    protected boolean isDone;
     
-    private boolean isDone;
-    
-    private boolean isCancelled;
-    private Throwable failure;
+    protected boolean isCancelled;
+    protected Throwable failure;
     
     protected R result;
 
-    private int recycleMark;
-
-    private FutureImpl() {
-    }
+    protected int recycleMark;
 
     /**
      * Get current result value without any blocking.
      * 
      * @return current result value without any blocking.
      */
-    public R getResult() {
-        synchronized(sync) {
-            return result;
-        }
-    }
+    public abstract R getResult();
 
     /**
      * Set the result value and notify about operation completion.
      * 
      * @param result the result value
      */
-    public void result(R result) {
-        synchronized(sync) {
-            this.result = result;
-            notifyHaveResult();
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean cancel(boolean mayInterruptIfRunning) {
-        synchronized(sync) {
-            isCancelled = true;
-            notifyHaveResult();
-            return true;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isCancelled() {
-        synchronized(sync) {
-            return isCancelled;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean isDone() {
-        synchronized(sync) {
-            return isDone;
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public R get() throws InterruptedException, ExecutionException {
-        synchronized (sync) {
-            for (;;) {
-                if (isDone) {
-                    if (isCancelled) {
-                        throw new CancellationException();
-                    } else if (failure != null) {
-                        throw new ExecutionException(failure);
-                    } else if (result != null) {
-                        return result;
-                    }
-                }
-
-                sync.wait();
-            }
-        }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public R get(long timeout, TimeUnit unit) throws
-            InterruptedException, ExecutionException, TimeoutException {
-        long startTime = System.currentTimeMillis();
-        long timeoutMillis = TimeUnit.MILLISECONDS.convert(timeout, unit);
-        synchronized (sync) {
-            for (;;) {
-                if (isDone) {
-                    if (isCancelled) {
-                        throw new CancellationException();
-                    } else if (failure != null) {
-                        throw new ExecutionException(failure);
-                    } else if (result != null) {
-                        return result;
-                    }
-                } else if (System.currentTimeMillis() - startTime > timeoutMillis) {
-                    throw new TimeoutException();
-                }
-
-                sync.wait(timeoutMillis);
-            }
-        }
-    }
+    public abstract void result(R result);
 
     /**
      * Notify about the failure, occured during asynchronous operation execution.
      * 
      * @param failure
      */
-    public void failure(Throwable failure) {
-        synchronized(sync) {
-            this.failure = failure;
-            notifyHaveResult();
-        }
-    }
+    public abstract void failure(Throwable failure);
 
-    /**
-     * Notify blocked listeners threads about operation completion.
-     */
-    protected void notifyHaveResult() {
-        if (recycleMark == 0) {
-            isDone = true;
-            sync.notifyAll();
-        } else {
-            recycle(recycleMark == 2);
-        }
-    }
-
-    private void reset() {
+    protected void reset() {
         result = null;
         failure = null;
         isCancelled = false;
         isDone = false;
         recycleMark = 0;
-    }
-
-    @Override
-    public void markForRecycle(boolean recycleResult) {
-        synchronized(sync) {
-            if (isDone) {
-                recycle(recycleResult);
-            } else {
-                recycleMark = 1 + (recycleResult ? 1 : 0);
-            }
-        }
-    }
-
-
-    @Override
-    public void recycle(boolean recycleResult) {
-        if (recycleResult && result != null && result instanceof Cacheable) {
-            ((Cacheable) result).recycle();
-        }
-
-        reset();
-        ThreadCache.putToCache(CACHE_IDX, this);
-    }
-
-    @Override
-    public void recycle() {
-        recycle(false);
     }
 }

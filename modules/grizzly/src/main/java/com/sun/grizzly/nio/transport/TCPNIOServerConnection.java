@@ -51,6 +51,7 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.RegisterChannelResult;
 import com.sun.grizzly.nio.SelectionKeyHandler;
 import java.util.concurrent.TimeUnit;
@@ -133,7 +134,7 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         }
 
         synchronized (acceptSync) {
-            final FutureImpl future = FutureImpl.create();
+            final FutureImpl future = SafeFutureImpl.create();
             final SocketChannel acceptedChannel = doAccept();
             if (acceptedChannel != null) {
                 configureAcceptedChannel(acceptedChannel);

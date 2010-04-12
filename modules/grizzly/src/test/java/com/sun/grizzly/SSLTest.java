@@ -49,6 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
@@ -345,9 +346,9 @@ public class SSLTest extends GrizzlyTestCase {
         private final SSLFilter sslFilter;
 
         private final FutureImpl<Integer> serverCompletedFeature =
-                FutureImpl.<Integer>create();
+                SafeFutureImpl.<Integer>create();
         private final FutureImpl<Integer> clientCompletedFeature =
-                FutureImpl.<Integer>create();
+                SafeFutureImpl.<Integer>create();
 
         public SSLPingPongFilter(SSLFilter sslFilter, int turnaroundNum) {
             this.sslFilter = sslFilter;

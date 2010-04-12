@@ -42,26 +42,26 @@ import com.sun.grizzly.http.HttpResponse;
 import com.sun.grizzly.http.HttpRequest;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.DefaultFilterChain;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
+import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
+import com.sun.grizzly.utils.LinkedTransferQueue;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.NetworkInterface;
-import java.net.SocketAddress;
 import java.util.Enumeration;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
@@ -98,12 +98,23 @@ public class HttpCommTest extends TestCase {
             int clientPort = ((InetSocketAddress) connection.getLocalAddress()).getPort();
             assertTrue(connection != null);
 
+            final BlockingQueue<HttpPacket> resultQueue =
+                    new LinkedTransferQueue<HttpPacket>();
+
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
             clientFilterChainBuilder.add(new ChunkingFilter(2));
             clientFilterChainBuilder.add(new HttpClientFilter());
+            clientFilterChainBuilder.add(new BaseFilter() {
+
+                @Override
+                public NextAction handleRead(FilterChainContext ctx) throws IOException {
+                    resultQueue.add((HttpPacket) ctx.getMessage());
+                    return ctx.getStopAction();
+                }
+
+            });
             FilterChain clientFilterChain = clientFilterChainBuilder.build();
-            ((DefaultFilterChain) clientFilterChain).awareOfStandaloneRead(true);
             connection.setProcessor(clientFilterChain);
 
             HttpRequest httpRequest = HttpRequest.builder().method("GET").
@@ -114,11 +125,7 @@ public class HttpCommTest extends TestCase {
             Future<WriteResult> writeResultFuture = connection.write(httpRequest);
             writeResultFuture.get(10, TimeUnit.SECONDS);
 
-            Future<ReadResult> readResultFuture = connection.read();
-            ReadResult<HttpContent, SocketAddress> readResult =
-                    readResultFuture.get(10, TimeUnit.SECONDS);
-
-            HttpContent response = readResult.getMessage();
+            HttpContent response = (HttpContent) resultQueue.poll(10, TimeUnit.SECONDS);            
             HttpResponse responseHeader = (HttpResponse) response.getHttpHeader();
 
             assertEquals(httpRequest.getRequestURI(), responseHeader.getHeader("Found"));

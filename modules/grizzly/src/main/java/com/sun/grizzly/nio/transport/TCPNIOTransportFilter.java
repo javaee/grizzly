@@ -46,9 +46,12 @@ import java.io.IOException;
 import java.util.logging.Filter;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.GrizzlyFuture;
+import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.utils.CompletionHandlerAdapter;
+import java.util.concurrent.ExecutionException;
 
 /**
  * The {@link TCPNIOTransport}'s transport {@link Filter} implementation
@@ -72,8 +75,29 @@ public final class TCPNIOTransportFilter extends BaseFilter {
             throws IOException {
         final TCPNIOConnection connection = (TCPNIOConnection) ctx.getConnection();
 
-        Buffer buffer = transport.read(connection, null);
-
+        final Buffer buffer;
+        if (!connection.isBlocking()) {
+            buffer = transport.read(connection, null);
+        } else {
+            GrizzlyFuture<ReadResult> future =
+                    transport.getTemporarySelectorIO().getReader().read(
+                    connection, null);
+            try {
+                ReadResult<Buffer, ?> result = future.get();
+                buffer = result.getMessage();
+                future.recycle(true);
+            } catch (ExecutionException e) {
+                final Throwable cause = e.getCause();
+                if (cause instanceof IOException) {
+                    throw (IOException) cause;
+                }
+                
+                throw new IOException(cause);
+            } catch (InterruptedException e) {
+                throw new IOException(e);
+            }
+        }
+        
         if (buffer == null) {
             return ctx.getStopAction();
         } else {

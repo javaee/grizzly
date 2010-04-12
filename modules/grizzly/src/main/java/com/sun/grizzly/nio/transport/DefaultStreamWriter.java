@@ -45,6 +45,7 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.streams.AbstractStreamWriter;
 import com.sun.grizzly.streams.BufferedOutput;
@@ -81,7 +82,7 @@ public final class DefaultStreamWriter extends AbstractStreamWriter {
                 final CompletionHandler<Integer> completionHandler)
                 throws IOException {
             
-            final FutureImpl<Integer> future = FutureImpl.<Integer>create();
+            final FutureImpl<Integer> future = SafeFutureImpl.<Integer>create();
             
             if (buffer == null) {
                 buffer = BufferUtils.EMPTY_BUFFER;
