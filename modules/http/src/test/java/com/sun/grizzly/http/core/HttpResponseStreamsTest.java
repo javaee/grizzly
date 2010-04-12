@@ -54,6 +54,7 @@ import com.sun.grizzly.http.HttpResponse;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.io.OutputBuffer;
 import com.sun.grizzly.impl.FutureImpl;
+import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
@@ -586,7 +587,7 @@ public class HttpResponseStreamsTest extends TestCase {
                         String expectedResult)
     throws Exception {
 
-        final FutureImpl<String> parseResult = FutureImpl.create();
+        final FutureImpl<String> parseResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(2));
