@@ -1556,28 +1556,42 @@ public class SelectorThread extends Thread implements MBeanRegistration{
         }
         
         if (channel != null) {
-            if ( multiSelectorsCount > 1 ) {
-                MultiSelectorThread srt = getSelectorReadThread();
-                srt.addChannel(channel);
-            } else {
-                channel.configureBlocking(false);
-                SelectionKey readKey = 
-                        channel.register(selector, SelectionKey.OP_READ);
-                
-                // The channel got closed just after the register operation.
-                if (!channel.isOpen()){
-                    cancelKey(readKey);
-                    return;
-                }
-                
-                setSocketOptions(((SocketChannel)readKey.channel()).socket());
-                readKey.attach(System.currentTimeMillis());
-            }
+            SelectionKey readKey = null;
+            
+            try {
+                if (multiSelectorsCount > 1) {
+                    MultiSelectorThread srt = getSelectorReadThread();
+                    srt.addChannel(channel);
+                } else {
+                    channel.configureBlocking(false);
+                    readKey = channel.register(selector, SelectionKey.OP_READ);
 
-            if (isMonitoringEnabled()) {
-                pipelineStat.incrementOpenConnectionsCount(channel);
-                getRequestGroupInfo().increaseCountOpenConnections();
-                pipelineStat.incrementTotalAcceptCount();
+                    // The channel got closed just after the register operation.
+                    if (!channel.isOpen()) {
+                        cancelKey(readKey);
+                        return;
+                    }
+
+                    setSocketOptions(((SocketChannel) readKey.channel()).socket());
+                    readKey.attach(System.currentTimeMillis());
+                }
+
+                if (isMonitoringEnabled()) {
+                    pipelineStat.incrementOpenConnectionsCount(channel);
+                    getRequestGroupInfo().increaseCountOpenConnections();
+                    pipelineStat.incrementTotalAcceptCount();
+                }
+            } catch (IOException e) {
+                logger.log(Level.FINE, "selectorThread.errorOnRequest", e);
+                try {
+                    if (readKey != null) {
+                        cancelKey(key);
+                    } else {
+                        channel.close();
+                    }
+                } catch (IOException ee) {
+                    logger.log(Level.FINE, "selectorThread.errorOnRequest", ee);
+                }
             }
         }
     }
