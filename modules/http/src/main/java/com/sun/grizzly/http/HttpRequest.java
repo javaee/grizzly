@@ -97,7 +97,6 @@ public class HttpRequest extends HttpHeader {
 
     protected HttpRequest() {
         methodBC.setString("GET");
-        queryBC.setString("");
     }
 
 
@@ -196,7 +195,7 @@ public class HttpRequest extends HttpHeader {
      * path. This method returns null if the URL does not have a query string.
      */
     public String getQueryString() {
-        return queryBC.toString();
+        return ((queryBC.isNull()) ? null : queryBC.toString());
     }
 
     /**
@@ -492,8 +491,6 @@ public class HttpRequest extends HttpHeader {
 
         // XXX Do we need such defaults ?
         methodBC.setString("GET");
-
-        queryBC.setString("");
         protocolBC.setString("HTTP/1.0");
     }
 
