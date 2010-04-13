@@ -9,8 +9,8 @@ import org.testng.annotations.Test;
 
 import javax.servlet.Servlet;
 import java.io.IOException;
-import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class WebSocketsTest {
     private static int MESSAGE_COUNT = 3;
@@ -30,7 +30,7 @@ public class WebSocketsTest {
         System.out.println("\n\n***** Starting new conversation with " + MESSAGE_COUNT + " elements\n\n");
         final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(servlet));
         WebSocket client = new WebSocketClient("ws://localhost:1725/echo");
-        final Set<String> sent = new ConcurrentSkipListSet<String>();
+        final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
         client.add(new WebSocketListener() {
             public void onMessage(WebSocket socket, DataFrame data) {
                 sent.remove(data.getTextPayload());
@@ -51,7 +51,7 @@ public class WebSocketsTest {
 
             for (int count = 0; count < MESSAGE_COUNT; count++) {
                 final String data = "message " + count;
-                sent.add(data);
+                sent.put(data, Boolean.TRUE);
                 client.send(data);
             }
 
