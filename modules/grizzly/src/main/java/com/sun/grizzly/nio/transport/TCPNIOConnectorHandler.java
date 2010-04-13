@@ -123,6 +123,9 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         
         final TCPNIOConnection newConnection = (TCPNIOConnection)
                 nioTransport.obtainNIOConnection(socketChannel);
+
+        newConnection.setProcessor(defaultProcessor);
+        newConnection.setProcessorSelector(defaultProcessorSelector);
         
         try {
             boolean isConnected = socketChannel.connect(remoteAddress);
@@ -132,7 +135,8 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
                 // OP_READ interest
                 final GrizzlyFuture<RegisterChannelResult> registerChannelFuture =
                         nioTransport.getNioChannelDistributor().
-                        registerChannelAsync(socketChannel, SelectionKey.OP_READ,
+                        registerChannelAsync(socketChannel,
+                        newConnection.isStandalone() ? 0 : SelectionKey.OP_READ,
                         newConnection, null);
 
                 // Wait until the SelectableChannel will be registered on the Selector
@@ -205,10 +209,12 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
             tcpTransport.configureChannel(channel);
 
-            tcpTransport.getSelectorHandler().registerKey(
-                    connection.getSelectorRunner(),
-                    connection.getSelectionKey(),
-                    SelectionKey.OP_READ);
+            if (!connection.isStandalone()) {
+                tcpTransport.getSelectorHandler().registerKey(
+                        connection.getSelectorRunner(),
+                        connection.getSelectionKey(),
+                        SelectionKey.OP_READ);
+            }
 
             if (completionHandler != null) {
                 completionHandler.completed(connection);

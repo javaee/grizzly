@@ -486,6 +486,10 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     protected NIOConnection obtainNIOConnection(SocketChannel channel) {
         TCPNIOConnection connection = new TCPNIOConnection(this, channel);
         connection.configureBlocking(isBlocking);
+        connection.configureStandalone(isStandalone);
+        connection.setProcessor(processor);
+        connection.setProcessorSelector(processorSelector);
+        
         return connection;
     }
 

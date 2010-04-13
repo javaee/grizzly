@@ -80,7 +80,8 @@ public class UDPNIOConnection extends AbstractNIOConnection {
 
         final Future future =
                 transport.getNioChannelDistributor().registerChannelAsync(
-                channel, SelectionKey.OP_READ, this,
+                channel,
+                isStandalone() ? 0 : SelectionKey.OP_READ, this,
                 ((UDPNIOTransport) transport).registerChannelCompletionHandler);
 
         try {

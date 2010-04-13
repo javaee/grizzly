@@ -136,7 +136,8 @@ public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler
         // interest
         Future<RegisterChannelResult> registerChannelFuture =
                 nioTransport.getNioChannelDistributor().
-                registerChannelAsync(datagramChannel, SelectionKey.OP_READ,
+                registerChannelAsync(datagramChannel,
+                newConnection.isStandalone() ? 0 : SelectionKey.OP_READ,
                 newConnection, null);
 
         // Wait until the SelectableChannel will be registered on the Selector

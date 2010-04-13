@@ -492,6 +492,9 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     protected NIOConnection obtainNIOConnection(DatagramChannel channel) {
         final UDPNIOConnection connection = new UDPNIOConnection(this, channel);
         connection.configureBlocking(isBlocking);
+        connection.configureStandalone(isStandalone);
+        connection.setProcessor(processor);
+        connection.setProcessorSelector(processorSelector);
         return connection;
     }
 
