@@ -106,6 +106,8 @@ public class HiddenCometServlet extends HttpServlet {
     
     @Override
     public void init(ServletConfig config) throws ServletException {
+        super.init(config);
+
         ServletContext context = config.getServletContext();
         contextPath = context.getContextPath() + "/hidden_comet";
         

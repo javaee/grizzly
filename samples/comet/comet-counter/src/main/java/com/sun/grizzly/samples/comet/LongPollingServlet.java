@@ -106,6 +106,8 @@ public class LongPollingServlet extends HttpServlet {
     
     @Override
     public void init(ServletConfig config) throws ServletException {
+        super.init(config);
+
         ServletContext context = config.getServletContext();
         contextPath = context.getContextPath() + "/long_polling";
         
