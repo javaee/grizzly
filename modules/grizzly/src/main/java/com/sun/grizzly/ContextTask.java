@@ -68,7 +68,7 @@ public abstract class ContextTask implements Callable, Runnable {
         try {
             call();
         } catch (Exception ex) {
-            // same thing as ignoring Future return value in NIOContextext
+            // same thing as ignoring Future return value in NIOContext
         }
     }
 

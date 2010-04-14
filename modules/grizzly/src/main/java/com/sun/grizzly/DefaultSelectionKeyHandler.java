@@ -96,6 +96,10 @@ public class DefaultSelectionKeyHandler extends BaseSelectionKeyHandler {
      */
     @Override
     public void process(SelectionKey key) {
+/*
+        removeExpirationStamp(key);
+        super.process(key);
+        */
         super.process(key);
         removeExpirationStamp(key);
     }

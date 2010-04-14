@@ -45,6 +45,7 @@ import com.sun.grizzly.util.http.HtmlHelper;
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.Exception;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
@@ -59,10 +60,10 @@ import java.util.logging.Logger;
  * Simple {@link Adapter} that map the {@link Request} URI to a local file. The 
  * file is send synchronously using the NIO send file mechanism 
  * (@link File#transfertTo}.
- * 
+ *
  * This class doesn't not decode the {@link Request} uri and just do 
  * basic security check. If you need more protection, use the {@link GrizzlyAdapter}
- * class instead or extend the {@link StaticResourcesAdapter#service()}
+ * class instead or extend the {@link StaticResourcesAdapter#service}
  * and use {@link HttpRequestURIDecoder} to protect against security attack.
  *
  * @author Jeanfrancois Arcand
@@ -95,7 +96,9 @@ public class StaticResourcesAdapter implements Adapter {
 
         // Ugly workaround
         // See Issue 327
-        if ((System.getProperty("os.name").equalsIgnoreCase("linux") && !System.getProperty("java.version").startsWith("1.7")) || System.getProperty("os.name").equalsIgnoreCase("HP-UX")) {
+        if (System.getProperty("os.name").equalsIgnoreCase("linux")
+                && !System.getProperty("java.version").startsWith("1.7")
+                || System.getProperty("os.name").equalsIgnoreCase("HP-UX")) {
             useSendFile = false;
         }
 
@@ -105,12 +108,11 @@ public class StaticResourcesAdapter implements Adapter {
         }
     }
 
-    /** 
-     * Based on the {@link Request} URI, try to map the file from the 
-     * {@link StaticResourcesAdapter#rootFolder}, and send it synchronously using send file.
+    /**
+     * Based on the {@link Request} URI, try to map the file from the rootFolder, and send it synchronously using send file.
      * @param req the {@link Request} 
      * @param res the {@link Response} 
-     * @throws java.lang.Exception
+     * @throws Exception
      */
     public void service(Request req, final Response res) throws Exception {
         String uri = req.requestURI().toString();
@@ -136,7 +138,7 @@ public class StaticResourcesAdapter implements Adapter {
      * @param uri The request URI
      * @param req the {@link Request}
      * @param res the {@link Response}
-     * @throws java.lang.Exception
+     * @throws Exception
      */
     protected void service(String uri, Request req, final Response res)
             throws Exception {
@@ -244,7 +246,7 @@ public class StaticResourcesAdapter implements Adapter {
      * Customize the error pahe 
      * @param req The {@link Request} object
      * @param res The {@link Response} object
-     * @throws java.lang.Exception
+     * @throws Exception
      */
     protected void customizedErrorPage(Request req,
             Response res) throws Exception {
@@ -277,7 +279,7 @@ public class StaticResourcesAdapter implements Adapter {
      * 
      * @param req {@link Request}
      * @param res {@link Response}
-     * @throws java.lang.Exception
+     * @throws Exception
      */
     public void afterService(Request req, Response res) throws Exception {
         if (req.getNote(14) != null) {

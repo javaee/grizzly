@@ -39,12 +39,14 @@
 package com.sun.grizzly.util;
 
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.charset.Charset;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
@@ -310,6 +312,18 @@ public class Utils {
             bb.limit(curLimit);
             bb.position(curPosition);
         }
+    }
+
+    public static boolean isDebugVM() {
+        boolean debugMode = false;
+        List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
+        for (String s : l) {
+            if (s.trim().startsWith("-Xrunjdwp:") || s.contains("jdwp")) {
+                debugMode = true;
+                break;
+            }
+        }
+        return debugMode;
     }
 
     private static class MyCharSequence implements CharSequence {

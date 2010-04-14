@@ -72,7 +72,6 @@ import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
@@ -544,16 +543,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
             setCoreThreads(minThreads);
             setMaxThreads(maxThreads);
-            List<String> l = ManagementFactory.getRuntimeMXBean().getInputArguments();
-            boolean debugMode = false;
-            for (String s : l) {
-                if (s.trim().startsWith("-Xrunjdwp:")) {
-                    debugMode = true;
-                    break;
-                }
-            }
             final int timeout = Integer.parseInt(http.getTimeoutSeconds());
-            if (!debugMode && timeout > 0) {
+
+            if (!com.sun.grizzly.util.Utils.isDebugVM() && timeout > 0) {
                 // Idle Threads cannot be alive more than 15 minutes by default
                 setTransactionTimeout(timeout * 1000);
             } else {
