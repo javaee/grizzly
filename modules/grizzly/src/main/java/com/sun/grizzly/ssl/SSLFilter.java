@@ -80,7 +80,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private Logger logger = Grizzly.logger(SSLFilter.class);
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
-    private volatile int dumbVolatile;
 
     public SSLFilter() {
         this(null, null);
@@ -193,7 +192,6 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
         if (completionHandler != null) {
             handshakeCompletionHandlerAttr.set(connection, completionHandler);
-            dumbVolatile++;
         }
 
         final FilterChainContext ctx = createContext(connection, IOEvent.WRITE,
@@ -348,12 +346,10 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private void notifyHandshakeCompleted(final Connection connection,
             final SSLEngine sslEngine) {
 
-        if (dumbVolatile != 0) {
-            final CompletionHandler<SSLEngine> completionHandler =
-                    handshakeCompletionHandlerAttr.get(connection);
-            if (completionHandler != null) {
-                completionHandler.completed(sslEngine);
-            }
+        final CompletionHandler<SSLEngine> completionHandler =
+                handshakeCompletionHandlerAttr.get(connection);
+        if (completionHandler != null) {
+            completionHandler.completed(sslEngine);
         }
     }
 
