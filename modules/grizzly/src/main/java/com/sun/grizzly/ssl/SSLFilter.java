@@ -204,7 +204,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
         final CompletionHandler<SSLEngine> completionHandler =
-                handshakeCompletionHandlerAttr.get(connection);
+                handshakeCompletionHandlerAttr.remove(connection);
         if (completionHandler != null) {
             completionHandler.failed(new java.io.EOFException());
         }
