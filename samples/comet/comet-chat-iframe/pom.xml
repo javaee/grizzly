@@ -24,7 +24,7 @@
     <dependency>
       <groupId>com.sun.grizzly</groupId>
       <artifactId>grizzly-comet</artifactId>
-      <version>${grizzly-version}</version>
+      <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
   </dependencies>

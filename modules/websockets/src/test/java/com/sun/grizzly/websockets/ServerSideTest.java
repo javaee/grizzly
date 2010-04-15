@@ -5,6 +5,7 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.http11.Constants;
+import com.sun.grizzly.util.Utils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -34,6 +35,10 @@ public class ServerSideTest {
             + "Origin: http://localhost" + Constants.CRLF
             + Constants.CRLF;
     private static final int ITERATIONS = 10000;
+    private static final boolean DEBUG_MODE = Utils.isDebugVM();
+    // when debugging, sleep() will wait while this is true.  use your debugger to set this to false when
+    // you're ready to move on
+    private boolean wait = true;
 
     public void synchronous() throws IOException, InstantiationException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
@@ -57,6 +62,34 @@ public class ServerSideTest {
             socket.close();
             thread.stopEndpoint();
         }
+    }
+
+    @Test(enabled = false)
+    public void timeouts() throws IOException, InstantiationException, InterruptedException {
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+
+        Socket socket = new Socket("localhost", PORT);
+        try {
+            final OutputStream outputStream = handshake(socket);
+            int count = 0;
+
+            while (count++ < ITERATIONS) {
+                validate(socket, outputStream, "test message");
+                sleep(5000);
+                validate(socket, outputStream, "let's try again");
+            }
+        } finally {
+            socket.close();
+            thread.stopEndpoint();
+        }
+    }
+
+    private void sleep(final int delay) throws InterruptedException {
+        wait = true;
+        while(DEBUG_MODE && wait) {
+            Thread.sleep(10000);
+        }
+        Thread.sleep(delay);
     }
 
     @SuppressWarnings({"StringContatenationInLoop"})
@@ -234,7 +267,9 @@ public class ServerSideTest {
                 Assert.assertEquals(frame.getTextPayload(), text);
             }
         } else {
-            Assert.fail("Failed to read anything from the server.");
+            if (!DEBUG_MODE) {
+                Assert.fail("Failed to read anything from the server.");
+            }
         }
     }
 

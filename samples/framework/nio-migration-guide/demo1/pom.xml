@@ -10,7 +10,7 @@
      <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-nio-migration-demo1</artifactId>
     <packaging>jar</packaging>
-    <version>${grizzly-version}</version>
+    <version>1.9.19-SNAPSHOT</version>
     <name>grizzly-nio-migration-demo1</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
@@ -55,7 +55,7 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

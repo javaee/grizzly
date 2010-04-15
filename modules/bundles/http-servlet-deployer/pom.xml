@@ -85,22 +85,22 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-servlet-deployer</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-websockets</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>

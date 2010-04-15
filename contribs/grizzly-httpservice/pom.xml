@@ -34,37 +34,37 @@
     <dependency>
       <groupId>com.sun.grizzly</groupId>
       <artifactId>grizzly-http-servlet</artifactId>
-      <version>1.9.19-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-utils</artifactId>
-        <version>${grizzly-version}</version>
+        <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.sun.grizzly</groupId>
       <artifactId>grizzly-http</artifactId>
-      <version>1.9.19-SNAPSHOT</version>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-framework</artifactId>
-        <version>${grizzly-version}</version>
+        <version>${project.version}</version>
     </dependency>
     <dependency>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-rcm</artifactId>
-        <version>${grizzly-version}</version>
+        <version>${project.version}</version>
     </dependency>
     <dependency>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-portunif</artifactId>
-        <version>${grizzly-version}</version>
+        <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.sun.grizzly</groupId>
       <artifactId>grizzly-comet</artifactId>
-      <version>${grizzly-version}</version>
+      <version>${project.version}</version>
     </dependency>
 <!-- Prepaartion for integration tests
     <dependency>

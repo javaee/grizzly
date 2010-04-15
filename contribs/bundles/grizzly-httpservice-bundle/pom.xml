@@ -34,17 +34,17 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
-            <version>1.9.19-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-comet</artifactId>
-            <version>1.9.19-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly.osgi</groupId>
             <artifactId>grizzly-httpservice</artifactId>
-            <version>1.9.19-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
     <build>

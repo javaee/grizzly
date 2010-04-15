@@ -48,17 +48,17 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-rcm</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-portunif</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>

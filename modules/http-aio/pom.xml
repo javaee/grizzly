@@ -57,12 +57,12 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-aio</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>${grizzly-version}</version>
+            <version>${project.version}</version>
         </dependency>
     </dependencies>
 </project>
