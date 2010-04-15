@@ -200,6 +200,18 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         doHandshakeStep(sslEngine, ctx);
     }
 
+    @Override
+    public NextAction handleClose(FilterChainContext ctx) throws IOException {
+        final Connection connection = ctx.getConnection();
+        final CompletionHandler<SSLEngine> completionHandler =
+                handshakeCompletionHandlerAttr.get(connection);
+        if (completionHandler != null) {
+            completionHandler.failed(new java.io.EOFException());
+        }
+        
+        return ctx.getInvokeAction();
+    }
+
     protected Buffer doHandshakeStep(final SSLEngine sslEngine,
             FilterChainContext context) throws SSLException, IOException {
 
