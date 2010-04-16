@@ -54,7 +54,8 @@ import java.nio.channels.SocketChannel;
  * @author Jeanfrancois Arcand
  * @author Alexey Stashok
  */
-public class SelectorThreadHandler extends TCPSelectorHandler {
+public class SelectorThreadHandler extends TCPSelectorHandler
+        implements HttpSelectorHandler {
     private SelectorThread selectorThread;
     
     public SelectorThreadHandler() {}
@@ -71,6 +72,10 @@ public class SelectorThreadHandler extends TCPSelectorHandler {
         super.copyTo(copy);
         SelectorThreadHandler copyHandler = (SelectorThreadHandler) copy;
         copyHandler.selectorThread = selectorThread;
+    }
+
+    public SelectorThread getSelectorThread() {
+        return selectorThread;
     }
 
     public void setSelectorThread(SelectorThread selectorThread) {

@@ -1,9 +1,9 @@
 /*
- * 
+ *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +11,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +20,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -35,45 +35,17 @@
  * holder.
  *
  */
-package com.sun.grizzly.ssl;
+package com.sun.grizzly.http;
 
-import com.sun.grizzly.SSLSelectorHandler;
-import com.sun.grizzly.http.HttpSelectorHandler;
-import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.util.Copyable;
+import com.sun.grizzly.SelectorHandler;
 
 /**
- * {@link SelectorHandler} implementation {@link SelectorThread} 
- * passes to {@link Controller}. It is very similar to 
- * {@link TCPSelectorHandler}, however has some difference in preSelect()
- * processing
- * 
- * @author Jeanfrancois Arcand
+ * General HTTP {@link SelectorHandler} interface
+ *
  * @author Alexey Stashok
  */
-public class SSLSelectorThreadHandler extends SSLSelectorHandler
-        implements HttpSelectorHandler {
-    
-    private SelectorThread selectorThread;
-    
-    public SSLSelectorThreadHandler() {}
-    
-    public SSLSelectorThreadHandler(SelectorThread selectorThread) {
-        this.selectorThread = selectorThread;
-    }
-    
-    @Override
-    public void copyTo(Copyable copy) {
-        super.copyTo(copy);
-        SSLSelectorThreadHandler copyHandler = (SSLSelectorThreadHandler) copy;
-        copyHandler.selectorThread = selectorThread;
-    }
+public interface HttpSelectorHandler extends SelectorHandler {
+    public void setSelectorThread(SelectorThread selectorThread);
 
-    public SelectorThread getSelectorThread() {
-        return selectorThread;
-    }
-
-    public void setSelectorThread(SelectorThread selectorThread) {
-        this.selectorThread = selectorThread;
-    }
+    public SelectorThread getSelectorThread();
 }

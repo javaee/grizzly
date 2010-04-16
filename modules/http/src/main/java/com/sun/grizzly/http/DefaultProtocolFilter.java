@@ -91,8 +91,9 @@ public class DefaultProtocolFilter implements ProtocolFilter {
 
         HttpWorkerThread workerThread =
                 ((HttpWorkerThread)Thread.currentThread());
-        
-        SelectorThread selectorThread = SelectorThread.getSelector(port);
+
+        SelectorThread selectorThread =
+                ((HttpSelectorHandler) ctx.getSelectorHandler()).getSelectorThread();
         
         // (1) Get the ByteBuffer from the Thread. Never null
         ByteBuffer byteBuffer = workerThread.getByteBuffer();
