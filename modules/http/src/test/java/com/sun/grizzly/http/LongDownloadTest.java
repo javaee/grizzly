@@ -1,6 +1,7 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.ControllerStateListenerAdapter;
+import com.sun.grizzly.http.utils.SelectorThreadUtils;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import junit.framework.TestCase;
 import org.junit.Assert;
@@ -52,13 +53,17 @@ public class LongDownloadTest extends TestCase {
 
     public void testDownload() throws IOException, InstantiationException {
         final SelectorThread st = newThread();
-        st.setAdapter(new StaticResourcesAdapter(tmp.getAbsolutePath()));
-        st.listen();
-        File file = File.createTempFile("downloaded-largeFile", ".jar", tmp);
-        file.deleteOnExit();
-        download(String.format("http://localhost:%s/%s", PORT, base.getName()), file);
+        try {
+            st.setAdapter(new StaticResourcesAdapter(tmp.getAbsolutePath()));
+            st.listen();
+            File file = File.createTempFile("downloaded-largeFile", ".jar", tmp);
+            file.deleteOnExit();
+            download(String.format("http://localhost:%s/%s", PORT, base.getName()), file);
 
-        Assert.assertEquals("Files should be same size", base.length(), file.length());
+            Assert.assertEquals("Files should be same size", base.length(), file.length());
+        } finally {
+            SelectorThreadUtils.stopSelectorThread(st);
+        }
     }
 
     private void download(final String url, File file) throws IOException {
