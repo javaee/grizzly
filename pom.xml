@@ -4,7 +4,7 @@
     <artifactId>grizzly-project</artifactId>
     <packaging>pom</packaging>
     <name>grizzly-project</name>
-    <version>1.9.19-beta2</version>
+    <version>1.9.19-SNAPSHOT</version>
     <url>https://grizzly.dev.java.net</url>
     <issueManagement>
         <system>bugzilla</system>
@@ -49,9 +49,9 @@
         </license>
     </licenses>
     <scm>
-        <connection>scm:svn:https://www.dev.java.net/svn/grizzly/1_9_19_beta2</connection>
-        <developerConnection>scm:svn:https://www.dev.java.net/svn/grizzly/tags/1_9_19_beta2</developerConnection>
-        <url>https://grizzly.dev.java.net/source/browse/grizzly/#dirlist/1_9_19_beta2</url>
+        <connection>scm:svn:https://www.dev.java.net/svn/grizzly</connection>
+        <developerConnection>scm:svn:https://www.dev.java.net/svn/grizzly</developerConnection>
+        <url>https://grizzly.dev.java.net/source/browse/grizzly/#dirlist</url>
     </scm>
     <organization>
         <name>SUN Microsystems</name>
