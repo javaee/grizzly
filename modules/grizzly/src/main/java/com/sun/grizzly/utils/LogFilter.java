@@ -39,6 +39,7 @@
 package com.sun.grizzly.utils;
 
 import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
@@ -52,39 +53,38 @@ import java.util.logging.Logger;
  * 
  * @author Alexey Stashok
  */
-public class LogFilter implements Filter {
-    private int index;
-    
-    private Logger logger;
-    private Level level;
+public class LogFilter extends BaseFilter {
+    private final Logger logger;
+    private final Level level;
 
     public LogFilter() {
-        this(Grizzly.logger(LogFilter.class));
+        this(null, null);
     }
 
     public LogFilter(Logger logger) {
-        this(logger, Level.INFO);
+        this(logger, null);
     }
 
     public LogFilter(Logger logger, Level level) {
-        this.logger = logger;
-        this.level = level;
+        if (logger != null) {
+            this.logger = logger;
+        } else {
+            this.logger = Grizzly.logger(LogFilter.class);
+        }
+
+        if (level != null) {
+            this.level = level;
+        } else {
+            this.level = Level.INFO;
+        }
     }
 
     public Logger getLogger() {
         return logger;
     }
 
-    public void setLogger(Logger logger) {
-        this.logger = logger;
-    }
-
     public Level getLevel() {
         return level;
-    }
-
-    public void setLevel(Level level) {
-        this.level = level;
     }
 
     @Override
@@ -148,17 +148,5 @@ public class LogFilter implements Filter {
         logger.log(level, "LogFilter exceptionOccured. Connection=" + 
                 ctx.getConnection() + "IOEvent=" + ctx.getIoEvent() +
                 " message=" + ctx.getMessage());
-    }
-
-    public boolean isIndexable() {
-        return true;
-    }
-
-    public int getIndex() {
-        return index;
-    }
-
-    public void setIndex(int index) {
-        this.index = index;
     }
 }
