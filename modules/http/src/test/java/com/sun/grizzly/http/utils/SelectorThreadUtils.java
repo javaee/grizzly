@@ -44,7 +44,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.WorkerThreadImpl;
+
 import java.io.IOException;
 import java.util.logging.Level;
 
@@ -59,7 +61,7 @@ public class SelectorThreadUtils {
     public static void startSelectorThread(final SelectorThread selectorThread) 
             throws IOException {
         
-        selectorThread.setDisplayConfiguration(true);
+        selectorThread.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         try {
             selectorThread.initEndpoint();
         } catch(InstantiationException e){

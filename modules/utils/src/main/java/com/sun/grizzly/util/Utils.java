@@ -60,6 +60,7 @@ import java.util.regex.Matcher;
 public class Utils {
     private static ConcurrentHashMap<String, Charset> charsetAliasMap =
             new ConcurrentHashMap<String, Charset>();
+    public static boolean VERBOSE_TESTS = false;
 
     /**
      * Lookup a {@link Charset} by name.
@@ -324,6 +325,18 @@ public class Utils {
             }
         }
         return debugMode;
+    }
+
+    public static void dumpOut(final Object text) {
+        if(VERBOSE_TESTS) {
+            System.out.println(text);
+        }
+    }
+
+    public static void dumpErr(final Object text) {
+        if(VERBOSE_TESTS) {
+            System.err.println(text);
+        }
     }
 
     private static class MyCharSequence implements CharSequence {

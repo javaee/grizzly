@@ -55,6 +55,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 
 /**
@@ -114,12 +116,12 @@ public class RedirectTest extends TestCase {
         };
 
         st.setPort(PORT);
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
 
     }
     
     public void testRedirectWithHyperlink() throws Exception {
-        System.out.println("Test: testRedirectWithHyperlink");
+        Utils.dumpOut("Test: testRedirectWithHyperlink");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "TestingHyperlinkInRedirectBody";
         final byte[] testData = testString.getBytes();
@@ -147,7 +149,7 @@ public class RedirectTest extends TestCase {
             s.setSoTimeout(5000);
             OutputStream os = s.getOutputStream();
 
-            System.out.println(("GET /foo/password.txt HTTP/1.1\n"));
+            Utils.dumpOut(("GET /foo/password.txt HTTP/1.1\n"));
             os.write(("GET /foo/password.txt HTTP/1.1\n").getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
@@ -156,7 +158,7 @@ public class RedirectTest extends TestCase {
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
                 String line = null;
                 while( (line = br.readLine()) != null){
-                    System.out.println("-> " + line);
+                    Utils.dumpOut("-> " + line);
                     if (line.contains("http://localhost:" + PORT + "/foo/password.txt"))   {
                         assertTrue(true);
                         return;
@@ -170,7 +172,7 @@ public class RedirectTest extends TestCase {
          
          
     public void testRedirectWithInvalidHyperlink() throws Exception {
-        System.out.println("Test: testRedirectWithHyperlink");
+        Utils.dumpOut("Test: testRedirectWithHyperlink");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "TestingHyperlinkInRedirectBody";
         final byte[] testData = testString.getBytes();

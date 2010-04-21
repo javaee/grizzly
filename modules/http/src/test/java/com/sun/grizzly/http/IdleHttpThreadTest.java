@@ -42,6 +42,7 @@ import com.sun.grizzly.http.utils.SelectorThreadUtils;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -56,6 +57,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import junit.framework.TestCase;
 
 /**
@@ -65,7 +67,7 @@ import junit.framework.TestCase;
 public class IdleHttpThreadTest extends TestCase {
 
     public static final int PORT = 18890;
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
     private SelectorThread st;
 
     public void createSelectorThread() {
@@ -113,12 +115,12 @@ public class IdleHttpThreadTest extends TestCase {
             }
         };
         st.setPort(PORT);
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
 
     }
 
     public void testKillIdleThread() throws Exception {
-        System.out.println("Test: testKillIdleThread");
+        Utils.dumpOut("Test: testKillIdleThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
         String response = "";
@@ -130,7 +132,7 @@ public class IdleHttpThreadTest extends TestCase {
                 @Override
                 public void service(final Request req, final Response res) throws IOException {
                     try {
-                        System.out.println("Pausing for 5 seconds");
+                        Utils.dumpOut("Pausing for 5 seconds");
                         Thread.currentThread().join();
                     } catch (Throwable t) {
                         t.printStackTrace();
@@ -162,23 +164,23 @@ public class IdleHttpThreadTest extends TestCase {
             s.setSoTimeout(10 * 1000);
             OutputStream os = s.getOutputStream();
 
-            System.out.println(("GET / HTTP/1.1\n"));
-            os.write(("GET / HTTP/1.1\n").getBytes());
+            Utils.dumpOut("GET / HTTP/1.1\n");
+            os.write("GET / HTTP/1.1\n".getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            String line = null;
+            String line;
             try {
                 InputStream is = new DataInputStream(s.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
                 while ((line = br.readLine()) != null) {
-                    System.out.println("-> " + line);
+                    Utils.dumpOut("-> " + line);
                     response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
-                System.out.println("Timeout!");                
+                Utils.dumpOut("Timeout!");
             }
             assertNotSame(testString, response);
         } finally {
@@ -188,17 +190,16 @@ public class IdleHttpThreadTest extends TestCase {
     }
     
     public void testKeepAliveIdleConnection() throws Exception {
-        System.out.println("Test: testKeepAliveIdleConnection");
+        Utils.dumpOut("Test: testKeepAliveIdleConnection");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "timedout";
-        final byte[] testData = testString.getBytes();
         try {
             createSelectorThread();
             st.setAdapter(new StaticResourcesAdapter() {
 
                 @Override
                 public void service(final Request req, final Response res) throws IOException {
-                    System.out.println("Invoking Adapter.service");
+                    Utils.dumpOut("Invoking Adapter.service");
                     ByteChunk bc = new ByteChunk();
                     bc.append(testString.getBytes(), 0, testString.length());
                     res.doWrite(bc);
@@ -224,26 +225,26 @@ public class IdleHttpThreadTest extends TestCase {
             s.setSoTimeout(10 * 1000);
             OutputStream os = s.getOutputStream();
 
-            System.out.println(("GET / HTTP/1.1\n"));
-            os.write(("GET / HTTP/1.1\n").getBytes());
+            Utils.dumpOut("GET / HTTP/1.1\n");
+            os.write("GET / HTTP/1.1\n".getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
                 
-            String line = null;
+            String line;
             String response = null;
             try {
                 InputStream is = new DataInputStream(s.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
                 while ((line = br.readLine()) != null) {
-                    System.out.println("-> " + line);
+                    Utils.dumpOut("-> " + line);
                     if (line.contains(testString)) {
                         response = line;
                     }
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
-                System.out.println("Timeout!"); 
+                Utils.dumpOut("Timeout!");
             }
             assertEquals(testString, response);
         } finally {
@@ -253,7 +254,7 @@ public class IdleHttpThreadTest extends TestCase {
     }
     
     public void testKillLoopingWhileThread() throws Exception {
-        System.out.println("Test: testKillLoopingWhileThread");
+        Utils.dumpOut("Test: testKillLoopingWhileThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
         String response = "";
@@ -299,23 +300,23 @@ public class IdleHttpThreadTest extends TestCase {
             s.setSoTimeout(10 * 1000);
             OutputStream os = s.getOutputStream();
 
-            System.out.println(("GET / HTTP/1.1\n"));
-            os.write(("GET / HTTP/1.1\n").getBytes());
+            Utils.dumpOut("GET / HTTP/1.1\n");
+            os.write("GET / HTTP/1.1\n".getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            String line = null;
+            String line;
             try {
                 InputStream is = new DataInputStream(s.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
                 while ((line = br.readLine()) != null) {
-                    System.out.println("-> " + line);
+                    Utils.dumpOut("-> " + line);
                     response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
-                System.out.println("Timeout!");                
+                Utils.dumpOut("Timeout!");
             }
             assertNotSame(testString, response);
         } finally {
@@ -325,7 +326,7 @@ public class IdleHttpThreadTest extends TestCase {
     }    
     
    public void testKillBlockingQueueThread() throws Exception {
-        System.out.println("Test: testKillBlockingQueueThread");
+        Utils.dumpOut("Test: testKillBlockingQueueThread");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "killed";
         String response = "";
@@ -371,23 +372,23 @@ public class IdleHttpThreadTest extends TestCase {
             s.setSoTimeout(10 * 1000);
             OutputStream os = s.getOutputStream();
 
-            System.out.println(("GET / HTTP/1.1\n"));
-            os.write(("GET / HTTP/1.1\n").getBytes());
+            Utils.dumpOut("GET / HTTP/1.1\n");
+            os.write("GET / HTTP/1.1\n".getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
 
-            String line = null;
+            String line;
             try {
                 InputStream is = new DataInputStream(s.getInputStream());
                 BufferedReader br = new BufferedReader(new InputStreamReader(is));
 
                 while ((line = br.readLine()) != null) {
-                    System.out.println("-> " + line);
+                    Utils.dumpOut("-> " + line);
                     response = line;
                 }
             } catch (IOException ex) {
                 //ex.printStackTrace();
-                System.out.println("Timeout!");                
+                Utils.dumpOut("Timeout!");
             }
             assertNotSame(testString, response);
         } finally {

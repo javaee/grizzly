@@ -44,6 +44,8 @@ import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.logging.Level;
+
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 
 
@@ -86,7 +88,7 @@ public class BasicCometTest extends TestCase {
     }
 
     public void testOnInterruptExpirationDelay() throws Exception {
-        System.out.println("testOnInterruptExpirationDelay - will wait 2 seconds");
+        Utils.dumpOut("testOnInterruptExpirationDelay - will wait 2 seconds");
         final int delay = 2000;
         test.setExpirationDelay(delay);
         newGWS(PORT+=1);
@@ -104,7 +106,7 @@ public class BasicCometTest extends TestCase {
     }
     
     public void testClientCloseConnection() throws Exception {
-        System.out.println("testClientCloseConnection");
+        Utils.dumpOut("testClientCloseConnection");
         newGWS(PORT+=2);
         test.setExpirationDelay(-1);
         String alias = "/OnClientCloseConnection";
@@ -116,7 +118,7 @@ public class BasicCometTest extends TestCase {
         s.setSoTimeout(1 * 1000);
         OutputStream os = s.getOutputStream();
         String a = "GET " + alias + " HTTP/1.1\n"+"Host: localhost:" + PORT + "\n\n";
-        System.out.println("     "+a);
+        Utils.dumpOut("     "+a);
         os.write(a.getBytes());
         os.flush();
         try {
@@ -127,10 +129,10 @@ public class BasicCometTest extends TestCase {
             Thread.sleep(500);
             assertEquals(onInterrupt, ga.c.wasInterrupt);
         }
-    }  
+    }
 
-   /* public void testOnTerminate() throws IOException {
-        System.out.println("testOnTerminate ");
+    /* public void testOnTerminate() throws IOException {
+        Utils.dumpOut("testOnTerminate ");
         test.setExpirationDelay(-1);
         newGWS(PORT+=3);
         String alias = "/OnTerminate";
@@ -154,7 +156,7 @@ public class BasicCometTest extends TestCase {
     }*/
 
     public void testOnEvent() throws Exception {
-        System.out.println("testOnEvent ");
+        Utils.dumpOut("testOnEvent ");
         newGWS(PORT+=4);
         String alias = "/OnEvent";
         addAdapter(alias, true);
@@ -247,7 +249,7 @@ public class BasicCometTest extends TestCase {
         }
 
         public void onEvent(CometEvent event) throws IOException {
-            System.out.println("     -> onEvent Handler:"+this.hashCode());
+            Utils.dumpOut("     -> onEvent Handler:"+this.hashCode());
             response.addHeader("onEvent", event.attachment().toString());
             response.getWriter().print("onEvent");
             if (resume) {
@@ -256,7 +258,7 @@ public class BasicCometTest extends TestCase {
         }
 
         public void onInitialize(CometEvent event) throws IOException {
-           System.out.println("     -> onInitialize Handler:"+this.hashCode());
+           Utils.dumpOut("     -> onInitialize Handler:"+this.hashCode());
              
             String test = (String) event.attachment();
             if (test == null) {
@@ -266,14 +268,14 @@ public class BasicCometTest extends TestCase {
         }
 
         public void onTerminate(CometEvent event) throws IOException {
-            System.out.println("    -> onTerminate Handler:"+this.hashCode());
+            Utils.dumpOut("    -> onTerminate Handler:"+this.hashCode());
  
             response.addHeader(onTerminate, event.attachment().toString());
             response.getWriter().print(onTerminate);
         }
 
         public void onInterrupt(CometEvent event) throws IOException {
-            System.out.println("    -> onInterrupt Handler:"+this.hashCode());
+            Utils.dumpOut("    -> onInterrupt Handler:"+this.hashCode());
              
             wasInterrupt = onInterrupt;
             String test = (String) event.attachment();

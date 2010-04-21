@@ -48,6 +48,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.logging.Logger;
+
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 
 import org.mortbay.cometd.client.BayeuxLoadGenerator;
@@ -82,7 +84,7 @@ public class BayeuxClientLoadTest extends TestCase {
         AsyncHandler asyncHandler = new DefaultAsyncHandler();
         asyncHandler.addAsyncFilter(new CometAsyncFilter()); 
         st.setAsyncHandler(asyncHandler);
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         
         try {
             st.listen();
@@ -131,7 +133,7 @@ public class BayeuxClientLoadTest extends TestCase {
         BayeuxLoadGenerator generator = new BayeuxLoadGenerator();
         generator.initSocketAddress(host, PORT);
         
-        System.err.println("rooms: "+rooms +" roomsPerclient: "+rooms_per_client+
+        Utils.dumpErr("rooms: "+rooms +" roomsPerclient: "+rooms_per_client+
                 " clients: "+nclients+" publish: "+publish+" msgsize: "+msgsize+
                 " publish pause: "+pause+"ms");
 

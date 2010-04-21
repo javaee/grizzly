@@ -106,7 +106,7 @@ public class GrizzlyExecutorServiceTest {
     }
 
     private void doTest(GrizzlyExecutorService r,int tasks) throws Exception{        
-        System.err.println("threadpool queueImpl : "+r.getQueue().getClass());
+        Utils.dumpErr("threadpool queueImpl : "+r.getQueue().getClass());
         final CountDownLatch cl = new CountDownLatch(tasks);
         while(tasks-->0){
             r.execute(new Runnable() {

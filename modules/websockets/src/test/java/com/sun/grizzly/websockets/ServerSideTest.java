@@ -56,7 +56,7 @@ public class ServerSideTest {
                 validate(socket, outputStream, "now, we're done");
             }
             final Date end = new Date();
-            System.out.println("ServerSideTest.synchronous: message/ms = " + time(start, end));
+            Utils.dumpOut("ServerSideTest.synchronous: message/ms = " + time(start, end));
 
         } finally {
             socket.close();
@@ -115,7 +115,7 @@ public class ServerSideTest {
                 compare(socket, sent);
             }
             final Date end = new Date();
-            System.out.println("ServerSideTest.asynchronous: message/ms = " + time(start, end));
+            Utils.dumpOut("ServerSideTest.asynchronous: message/ms = " + time(start, end));
             Assert.assertTrue(sent.isEmpty(), "Should have gotten everything back by now");
         } finally {
             socket.close();
@@ -316,7 +316,7 @@ public class ServerSideTest {
         st.setCoreThreads(2);
         st.setMaxThreads(2);
         st.setPort(port);
-        st.setDisplayConfiguration(false);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         st.setAdapter(adapter);
         st.setAsyncHandler(new DefaultAsyncHandler());
         st.setEnableAsyncExecution(true);

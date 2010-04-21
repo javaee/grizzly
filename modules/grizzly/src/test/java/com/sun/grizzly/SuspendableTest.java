@@ -42,6 +42,7 @@ import com.sun.grizzly.filter.EchoFilter;
 import com.sun.grizzly.suspendable.Suspendable;
 import com.sun.grizzly.suspendable.SuspendableFilter;
 import com.sun.grizzly.suspendable.SuspendableHandler;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.NonBlockingTCPIOClient;
 import java.io.EOFException;
@@ -78,7 +79,7 @@ public class SuspendableTest extends TestCase {
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
-            System.out.println("Response: " + new String(response));
+            Utils.dumpOut("Response: " + new String(response));
 
 
             byte[] testData2 = echoString.getBytes();
@@ -93,7 +94,7 @@ public class SuspendableTest extends TestCase {
                 ex.printStackTrace();
             }
             long t2 = System.currentTimeMillis() - t1;
-            System.out.println("Resumed after:" + t2);
+            Utils.dumpOut("Resumed after:" + t2);
             assertTrue(Arrays.equals(echoString.getBytes(), response2));
         } finally {
             controller.stop();
@@ -120,7 +121,7 @@ public class SuspendableTest extends TestCase {
             byte[] response2 = new byte[echoString.getBytes().length];
 
             long t1 = System.currentTimeMillis();
-            System.out.println("Now trying to push bytes on a suspended request. Must wait for 5 seconds.");
+            Utils.dumpOut("Now trying to push bytes on a suspended request. Must wait for 5 seconds.");
             client.send(testData2);
 
             try {
@@ -129,7 +130,7 @@ public class SuspendableTest extends TestCase {
                 ex.printStackTrace();
             }
             long t2 = System.currentTimeMillis() - t1;
-            System.out.println("Resumed after:" + t2);
+            Utils.dumpOut("Resumed after:" + t2);
             assertTrue(Arrays.equals(echoString.getBytes(), response2));
         } finally {
             controller.stop();
@@ -142,7 +143,6 @@ public class SuspendableTest extends TestCase {
         final NonBlockingTCPIOClient client = new NonBlockingTCPIOClient("localhost", PORT);
 
         try {
-            byte[] testData = echoString.getBytes();
             ControllerUtils.startController(controller);
             client.connect();
             final byte[] testData2 = echoString.getBytes();
@@ -171,7 +171,7 @@ public class SuspendableTest extends TestCase {
             }
 
             long t2 = System.currentTimeMillis() - t1;
-            System.out.println("Resumed after:" + t2);
+            Utils.dumpOut("Resumed after:" + t2);
             assertFalse(true);
         } catch (InterruptedException ex) {
             Logger.getLogger(SuspendableTest.class.getName()).log(Level.SEVERE, null, ex);
@@ -192,7 +192,7 @@ public class SuspendableTest extends TestCase {
             client.send(testData);
             byte[] response = new byte[echoString.getBytes().length];
             client.receive(response);
-            System.out.println("Response: " + new String(response));
+            Utils.dumpOut("Response: " + new String(response));
 
 
             byte[] testData2 = echoString.getBytes();
@@ -201,7 +201,7 @@ public class SuspendableTest extends TestCase {
 
 
             long t1 = System.currentTimeMillis();
-            System.out.println("Now trying cancelling");
+            Utils.dumpOut("Now trying cancelling");
             Thread.sleep(2000);
             suspendable.cancel();
 
@@ -213,7 +213,7 @@ public class SuspendableTest extends TestCase {
             }
 
             long t2 = System.currentTimeMillis() - t1;
-            System.out.println("Resumed after:" + t2);
+            Utils.dumpOut("Resumed after:" + t2);
             assertFalse(true);
         } catch (InterruptedException ex) {
             Logger.getLogger(SuspendableTest.class.getName()).log(Level.SEVERE, null, ex);
@@ -234,7 +234,7 @@ public class SuspendableTest extends TestCase {
             client.send(testData);
             byte[] response = new byte[echoString.getBytes().length];
             client.receive(response);
-            System.out.println("Response: " + new String(response));
+            Utils.dumpOut("Response: " + new String(response));
 
 
             byte[] testData2 = echoString.getBytes();
@@ -242,20 +242,20 @@ public class SuspendableTest extends TestCase {
             client.send(testData2);
 
             long t1 = System.currentTimeMillis();
-            System.out.println("Now trying cancelling");
+            Utils.dumpOut("Now trying cancelling");
             Thread.sleep(2000);
             suspendable.resume();
 
-            System.out.println("Now trying to push bytes on a resumed request");
+            Utils.dumpOut("Now trying to push bytes on a resumed request");
             client.receive(response2);
             long t2 = System.currentTimeMillis() - t1;
-            System.out.println("Took:" + t2);
+            Utils.dumpOut("Took:" + t2);
 
             if (t2 > 5000) {
                 assertFalse(false);
             }
 
-            System.out.println("Response2: " + new String(response2));
+            Utils.dumpOut("Response2: " + new String(response2));
 
             assertTrue(Arrays.equals(echoString.getBytes(), response2));
         } finally {
@@ -269,14 +269,13 @@ public class SuspendableTest extends TestCase {
         final NonBlockingTCPIOClient client = new NonBlockingTCPIOClient("localhost", PORT);
 
         try {
-            byte[] testData = echoString.getBytes();
             ControllerUtils.startController(controller);
             client.connect();
 
             final byte[] testData2 = echoString.getBytes();
             byte[] response2 = new byte[echoString.getBytes().length];
 
-            System.out.println("Send and get resumed using Suspendable");
+            Utils.dumpOut("Send and get resumed using Suspendable");
             long t1 = System.currentTimeMillis();
             new Thread() {
 
@@ -289,22 +288,22 @@ public class SuspendableTest extends TestCase {
                     }
                 }
             }.start();
-            System.out.println("Now trying resuming");
+            Utils.dumpOut("Now trying resuming");
 
             // Block to let the request go.
             Thread.sleep(5000);
             suspendable.resume();
 
-            System.out.println("Now reading bytes");
+            Utils.dumpOut("Now reading bytes");
             client.receive(response2);
             long t2 = System.currentTimeMillis() - t1;
-            System.out.println("Took:" + t2);
+            Utils.dumpOut("Took:" + t2);
 
             if (t2 > 5000) {
                 assertFalse(false);
             }
 
-            System.out.println("Response2: " + new String(response2));
+            Utils.dumpOut("Response2: " + new String(response2));
 
             assertTrue(Arrays.equals(echoString.getBytes(), response2));
         } finally {
@@ -320,15 +319,15 @@ public class SuspendableTest extends TestCase {
         suspendable = suspendFilter.suspend("suspendable", timeout, null, new SuspendableHandler() {
 
             public void interupted(Object attachment) {
-                System.out.println("interrupted");
+                Utils.dumpOut("interrupted");
             }
 
             public void resumed(Object attachment) {
-                System.out.println("resumed");
+                Utils.dumpOut("resumed");
             }
 
             public void expired(Object attachment) {
-                System.out.println("expired");
+                Utils.dumpOut("expired");
             }
         }, type);
 

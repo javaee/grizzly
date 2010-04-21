@@ -62,6 +62,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.util.Date;
 import java.util.concurrent.CountDownLatch;
+
 import junit.framework.TestCase;
 
 /**
@@ -133,20 +134,20 @@ public class RCMTest extends TestCase implements ControllerStateListener {
                          * <code>CharBuffer</code> used to store the HTML response, containing
                          * the headers and the body of the response.
                          */
-                        private CharBuffer reponseBuffer = CharBuffer.allocate(4096);
+                        private final CharBuffer reponseBuffer = CharBuffer.allocate(4096);
                         
                         
                         /**
                          * Encoder used to encode the HTML response
                          */
-                        private CharsetEncoder encoder =
+                        private final CharsetEncoder encoder =
                                 Charset.forName("UTF-8").newEncoder();
                         
                         public boolean execute(Context ctx){
                             try{
                                 ByteBufferInputStream inputStream = (ByteBufferInputStream)
                                         ctx.getAttribute(ResourceAllocationFilter.BYTEBUFFER_INPUTSTREAM);
-                                final WorkerThread workerThread = ((WorkerThread)Thread.currentThread());
+                                final WorkerThread workerThread = (WorkerThread)Thread.currentThread();
                                 ByteBuffer bb = workerThread.getByteBuffer();
                                 bb.flip();
                                 inputStream.setByteBuffer(bb);
@@ -228,7 +229,7 @@ public class RCMTest extends TestCase implements ControllerStateListener {
             OutputStream os = s.getOutputStream();
             s.setSoTimeout(10000);
 
-            os.write(("GET /index.html HTTP/1.0\n").getBytes());
+            os.write("GET /index.html HTTP/1.0\n".getBytes());
             os.write("\n".getBytes());
 
             InputStream is = s.getInputStream();
@@ -243,7 +244,7 @@ public class RCMTest extends TestCase implements ControllerStateListener {
                 }
             }
         } catch (Throwable ex){
-            System.out.println("Unable to connect to: " + port);
+            com.sun.grizzly.util.Utils.dumpOut("Unable to connect to: " + port);
             ex.printStackTrace();
         }
         fail("Wrong header response");

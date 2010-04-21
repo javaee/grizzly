@@ -43,6 +43,7 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.ResponseFilter;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -55,6 +56,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import junit.framework.TestCase;
 
 /**
@@ -113,12 +115,12 @@ public class ResponseFilterTest extends TestCase {
         };
 
         st.setPort(PORT);
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
 
     }
 
     public void testResponseFilter() throws Exception {
-        System.out.println("Test: testResponseFilter");
+        Utils.dumpOut("Test: testResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Added after invoking Adapter";
         final byte[] testData = testString.getBytes();
@@ -167,7 +169,7 @@ public class ResponseFilterTest extends TestCase {
             s.setSoTimeout(500000);
             OutputStream os = s.getOutputStream();
 
-            System.out.println(("GET / HTTP/1.1\n"));
+            Utils.dumpOut(("GET / HTTP/1.1\n"));
             os.write(("GET / HTTP/1.1\n").getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
@@ -176,7 +178,7 @@ public class ResponseFilterTest extends TestCase {
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             String line = null;
             while ((line = br.readLine()) != null) {
-                System.out.println("-> " + line);
+                Utils.dumpOut("-> " + line);
                 if (line.contains(testString)) {
                     assertTrue(true);
                     return;
@@ -190,7 +192,7 @@ public class ResponseFilterTest extends TestCase {
     }
 
     public void testCompleteNewBCResponseFilter() throws Exception {
-        System.out.println("Test: testCompleteNewBCResponseFilter");
+        Utils.dumpOut("Test: testCompleteNewBCResponseFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "Added after invoking Adapter";
         final byte[] testData = testString.getBytes();
@@ -234,7 +236,7 @@ public class ResponseFilterTest extends TestCase {
             s.setSoTimeout(500000);
             OutputStream os = s.getOutputStream();
 
-            System.out.println(("GET / HTTP/1.1\n"));
+            Utils.dumpOut(("GET / HTTP/1.1\n"));
             os.write(("GET / HTTP/1.1\n").getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
@@ -243,7 +245,7 @@ public class ResponseFilterTest extends TestCase {
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             String line = null;
             while ((line = br.readLine()) != null) {
-                System.out.println("-> " + line);
+                Utils.dumpOut("-> " + line);
                 if (line.contains("AppendingNewBytes")) {
                     assertTrue(true);
                     return;
@@ -257,7 +259,7 @@ public class ResponseFilterTest extends TestCase {
     }
 
     public void testComplexByteChunkManipulation() throws Exception {
-        System.out.println("Test: testComplexByteChunkManipulation");
+        Utils.dumpOut("Test: testComplexByteChunkManipulation");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         try {
             createSelectorThread();
@@ -300,7 +302,7 @@ public class ResponseFilterTest extends TestCase {
             s.setSoTimeout(500000);
             OutputStream os = s.getOutputStream();
 
-            System.out.println(("GET / HTTP/1.1\n"));
+            Utils.dumpOut(("GET / HTTP/1.1\n"));
             os.write(("GET / HTTP/1.1\n").getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
@@ -310,7 +312,7 @@ public class ResponseFilterTest extends TestCase {
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             String line = null;
             while ((line = br.readLine()) != null) {
-                System.out.println("-> " + line);
+                Utils.dumpOut("-> " + line);
                 if (line.contains("AppendingNewBytes")) {
                     assertTrue(true);
                     return;

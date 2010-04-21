@@ -42,6 +42,7 @@ package com.sun.grizzly.utils;
  * @author Alexey Stashok
  */
 public class Utils {
+
     public static String reverseString(String inString) {
         char[] inChars = new char[inString.length()];
         for(int i=0; i<inChars.length; i++) {

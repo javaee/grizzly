@@ -37,27 +37,26 @@
  */
 package com.sun.grizzly;
 
-import com.sun.grizzly.Controller.Protocol;
-import com.sun.grizzly.filter.ParserProtocolFilter;
-import com.sun.grizzly.filter.EchoFilter;
-import com.sun.grizzly.filter.SSLEchoFilter;
-import com.sun.grizzly.utils.ControllerUtils;
-import com.sun.grizzly.utils.NonBlockingTCPIOClient;
-import com.sun.grizzly.utils.NonBlockingSSLIOClient;
 import com.sun.grizzly.connectioncache.server.CacheableSelectionKeyHandler;
+import com.sun.grizzly.filter.EchoFilter;
+import com.sun.grizzly.filter.ParserProtocolFilter;
+import com.sun.grizzly.filter.SSLEchoFilter;
+import com.sun.grizzly.util.Utils;
+import com.sun.grizzly.utils.ControllerUtils;
+import com.sun.grizzly.utils.NonBlockingSSLIOClient;
+import com.sun.grizzly.utils.NonBlockingTCPIOClient;
+import junit.framework.TestCase;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.net.URL;
-
-import junit.framework.TestCase;
 
 /**
  * Tests the default {@link Controller} configuration
@@ -80,7 +79,7 @@ public class ProtocolParserTest extends TestCase {
             client.connect();
             client.send(testData);
             
-            System.out.println("Sleeping 5 seconds");
+            Utils.dumpOut("Sleeping 5 seconds");
             try{
                 Thread.sleep(5 * 1000); //Wait 5 second before sending the bytes
             } catch (Throwable t){
@@ -107,7 +106,7 @@ public class ProtocolParserTest extends TestCase {
             client.connect();
             client.send(testData);
 
-            System.out.println("Sleeping 5 seconds");
+            Utils.dumpOut("Sleeping 5 seconds");
             try{
                 Thread.sleep(5 * 1000); //Wait 5 second before sending the bytes
             } catch (Throwable t){

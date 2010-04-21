@@ -165,7 +165,7 @@ public class TCPAsyncQueueWriterTest extends TestCase {
                                 Controller.logger().log(Level.INFO, "KEY " + key + " QUEUE HAS ELEMENTS? : " + tcpConnector.getSelectorHandler().getAsyncQueueWriter().isReady(key));
                             }
                         }
-//                        System.out.println("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2);
+//                        Utils.dumpOut("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2);
                         assertEquals(val1, val2);
                     }
                 } finally {

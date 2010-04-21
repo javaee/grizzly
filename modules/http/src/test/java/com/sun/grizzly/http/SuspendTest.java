@@ -48,6 +48,7 @@ import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
@@ -67,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
@@ -129,7 +131,7 @@ public class SuspendTest {
         }
 
         st.setPort(PORT);
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(com.sun.grizzly.util.Utils.VERBOSE_TESTS);
     }
 
     private SSLConfig configureSSL() throws Exception {
@@ -173,7 +175,7 @@ public class SuspendTest {
     // See https://grizzly.dev.java.net/issues/show_bug.cgi?id=592
     @Test(dataProvider="isSslEnabled", enabled=false)
     public void __testSuspendDoubleCancelInvokation(boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendDoubleCancelInvokation");
+        Utils.dumpErr("Test: testSuspendDoubleCancelInvokation");
         final CountDownLatch latch = new CountDownLatch(1);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -183,7 +185,7 @@ public class SuspendTest {
 
                     @Override
                     public void cancelled(StaticResourcesAdapter attachment) {
-                        System.err.println("cancelled");
+                        Utils.dumpErr("cancelled");
                         latch.countDown();
                     }
                 });
@@ -206,7 +208,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendResumeSameTransaction(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendResumeSameTransaction isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendResumeSameTransaction isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -226,7 +228,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendResumeNoArgs(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendResumeNoArgs isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendResumeNoArgs isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -245,7 +247,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendNoArgs(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendNoArgs isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendNoArgs isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -265,7 +267,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendResumedCompletionHandler(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendResumedCompletionHandler isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendResumedCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -285,7 +287,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendCancelledCompletionHandler(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendCancelledCompletionHandler isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendCancelledCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -310,7 +312,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendSuspendedExceptionCompletionHandler(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendSuspendedExceptionCompletionHandler isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendSuspendedExceptionCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -324,7 +326,7 @@ public class SuspendTest {
                         if (!first.compareAndSet(true, false)) {
                             fail("recursive resume");
                         }
-                        System.err.println("Resumed.");
+                        Utils.dumpErr("Resumed.");
                         try {
                             res.resume();
                             fail("should not reach here");
@@ -341,7 +343,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendTimeoutCompletionHandler(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendTimeoutCompletionHandler isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendTimeoutCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -351,7 +353,7 @@ public class SuspendTest {
                     @Override
                     public void cancelled(StaticResourcesAdapter attachment) {
                         try {
-                            System.err.println("Time out");
+                            Utils.dumpErr("Time out");
                             write(res, testData);
                         } catch (Throwable ex) {
                             ex.printStackTrace();
@@ -365,7 +367,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendDoubleSuspendInvokation(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendDoubleSuspendInvokation isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendDoubleSuspendInvokation isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -374,7 +376,7 @@ public class SuspendTest {
 
                     @Override
                     public void resumed(StaticResourcesAdapter attachment) {
-                        System.err.println("resumed");
+                        Utils.dumpErr("resumed");
                     }
                 });
 
@@ -385,7 +387,7 @@ public class SuspendTest {
                             res.suspend();
                             fail("should not reach here");
                         } catch (IllegalStateException t) {
-                            System.err.println("catched suspended suspend");
+                            Utils.dumpErr("catched suspended suspend");
                             writeToSuspendedClient(res);
                             try {
                                 res.resume();
@@ -403,7 +405,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendDoubleResumeInvokation(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendDoubleResumeInvokation isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendDoubleResumeInvokation isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -413,7 +415,7 @@ public class SuspendTest {
                     @Override
                     public void resumed(StaticResourcesAdapter attachment) {
                         try {
-                            System.err.println("trying to resume");
+                            Utils.dumpErr("trying to resume");
                             res.resume();
                             fail("should no get here");
                         } catch (IllegalStateException ex) {
@@ -429,7 +431,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendResumedCompletionHandlerGrizzlyAdapter(boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendResumedCompletionHandlerGrizzlyAdapter isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendResumedCompletionHandlerGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
 
             @Override
@@ -440,7 +442,7 @@ public class SuspendTest {
                         @Override
                         public void resumed(GrizzlyAdapter attachment) {
                             if (res.isSuspended()) {
-                                System.err.println("Resumed");
+                                Utils.dumpErr("Resumed");
                                 try {
                                     res.getWriter().write(testString);
                                 } catch (Exception ex) {
@@ -464,7 +466,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendTimeoutCompletionHandlerGrizzlyAdapter(boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendTimeoutCompletionHandlerGrizzlyAdapter isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendTimeoutCompletionHandlerGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
 
             @Override
@@ -476,7 +478,7 @@ public class SuspendTest {
                         @Override
                         public void cancelled(String attachment) {
                             try {
-                                System.err.println("Cancelling TOOK: " + (System.currentTimeMillis() - t1));
+                                Utils.dumpErr("Cancelling TOOK: " + (System.currentTimeMillis() - t1));
                                 res.getWriter().write(testString);
                             } catch (Throwable ex) {
                                 ex.printStackTrace();
@@ -493,7 +495,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testFastSuspendResumeGrizzlyAdapter(boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testFastSuspendResumeGrizzlyAdapter isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testFastSuspendResumeGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
 
             @Override
@@ -505,7 +507,7 @@ public class SuspendTest {
                         @Override
                         public void resumed(String attachment) {
                             try {
-                                System.err.println("Resumed TOOK: " + (System.currentTimeMillis() - t1));
+                                Utils.dumpErr("Resumed TOOK: " + (System.currentTimeMillis() - t1));
                                 res.getWriter().write(testString);
                                 res.finishResponse();
                                 // res.flushBuffer();
@@ -529,7 +531,7 @@ public class SuspendTest {
                         }
 
                         if (!res.isCommitted()) {
-                            System.err.println("Resuming");
+                            Utils.dumpErr("Resuming");
                             res.resume();
                         } else {
                             fail("response is commited so we dont resume");
@@ -543,7 +545,7 @@ public class SuspendTest {
 
     @Test(dataProvider="isSslEnabled", enabled=true)
     public void testSuspendResumeOneTransaction(final boolean isSslEnabled) throws Exception {
-        System.err.println("Test: testSuspendResumeOneTransaction isSslEnabled=" + isSslEnabled);
+        Utils.dumpErr("Test: testSuspendResumeOneTransaction isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
             @Override
@@ -567,7 +569,7 @@ public class SuspendTest {
             public void run() {
                 if (res.isSuspended()) {
                     try {
-                        System.err.println("Now Resuming");
+                        Utils.dumpErr("Now Resuming");
                         res.resume();
                     } catch (Throwable ex) {
                         ex.printStackTrace();
@@ -607,7 +609,7 @@ public class SuspendTest {
             s.setSoTimeout(30 * 1000);
             OutputStream os = s.getOutputStream();
 
-            System.err.println(("GET / HTTP/1.1\n"));
+            Utils.dumpErr(("GET / HTTP/1.1\n"));
             os.write(("GET / HTTP/1.1\n").getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
@@ -616,10 +618,10 @@ public class SuspendTest {
             InputStream is = new DataInputStream(s.getInputStream());
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             String line = null;
-            System.err.println("================== reading the response");
+            Utils.dumpErr("================== reading the response");
             boolean gotCorrectResponse = false;
             while ((line = br.readLine()) != null) {
-                System.err.println("-> " + line + " --> " + line.startsWith(testString));
+                Utils.dumpErr("-> " + line + " --> " + line.startsWith(testString));
                 if (line.startsWith(testString)) {
                     gotCorrectResponse = true;
                     break;
@@ -680,7 +682,7 @@ public class SuspendTest {
                 public void run() {
                     if (res.isSuspended()) {
                         try {
-                            System.err.println("Now cancel");
+                            Utils.dumpErr("Now cancel");
                             res.cancel();
                         } catch (Throwable ex) {
                             ex.printStackTrace();
@@ -699,7 +701,7 @@ public class SuspendTest {
                 public void run() {
                     if (res.isSuspended()) {
                         try {
-                            System.err.println("Now Resuming");
+                            Utils.dumpErr("Now Resuming");
                             res.resume();
                         } catch (Throwable ex) {
                             ex.printStackTrace();

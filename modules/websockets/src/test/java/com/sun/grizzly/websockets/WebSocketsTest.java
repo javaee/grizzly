@@ -4,6 +4,7 @@ import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.util.Utils;
 import org.junit.Assert;
 import org.testng.annotations.Test;
 
@@ -27,7 +28,7 @@ public class WebSocketsTest {
 
     private void run(final Servlet servlet) throws IOException, InstantiationException {
 
-        System.out.println("\n\n***** Starting new conversation with " + MESSAGE_COUNT + " elements\n\n");
+        Utils.dumpOut("\n\n***** Starting new conversation with " + MESSAGE_COUNT + " elements\n\n");
         final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(servlet));
         WebSocket client = new WebSocketClient("ws://localhost:1725/echo");
         final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
@@ -40,12 +41,12 @@ public class WebSocketsTest {
             }
 
             public void onClose(WebSocket socket) {
-                System.out.println("closed");
+                Utils.dumpOut("closed");
             }
         });
         try {
             while (!client.isConnected()) {
-                System.out.println("WebSocketsTest.run: client = " + client);
+                Utils.dumpOut("WebSocketsTest.run: client = " + client);
                 Thread.sleep(1000);
             }
 
@@ -179,7 +180,7 @@ public class WebSocketsTest {
         st.setCoreThreads(2);
         st.setMaxThreads(2);
         st.setPort(port);
-        st.setDisplayConfiguration(false);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         st.setAdapter(adapter);
         st.setAsyncHandler(new DefaultAsyncHandler());
         st.setEnableAsyncExecution(true);

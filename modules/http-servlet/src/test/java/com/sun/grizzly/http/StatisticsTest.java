@@ -43,6 +43,7 @@ import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.http.embed.Statistics;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
+import com.sun.grizzly.util.Utils;
 
 import java.net.HttpURLConnection;
 import java.io.IOException;
@@ -73,7 +74,7 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
             int count = 0;
             int calls = 0;
             for (int i = 0; i < 10; i++) {
-                System.out.println("Request " + i);
+                Utils.dumpOut("Request " + i);
                 conn = getConnection("/data", PORT);
                 readResponse(conn);
                 count += 1024;
@@ -85,7 +86,7 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
 /*
                 conn = getConnection("/stats", PORT);
                 String s = readResponse(conn);
-                System.out.println(s);
+                Utils.dumpOut(s);
                 count += s.getBytes().length + 1;
                 calls += 1;
                 assertEquals(calls, requestStatistics.getRequestCount());
@@ -93,9 +94,9 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
 */
             }
             conn = getConnection("/stats", PORT);
-            System.out.println(readResponse(conn));
+            Utils.dumpOut(readResponse(conn));
             conn = getConnection("/stats", PORT);
-            System.out.println(readResponse(conn));
+            Utils.dumpOut(readResponse(conn));
 
         } finally {
             stopGrizzlyWebServer();
@@ -106,7 +107,7 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
     class ZerowingAdapter extends GrizzlyAdapter {
         public void service(GrizzlyRequest request, GrizzlyResponse response) {
             try {
-                System.out.println("Zerowing");
+                Utils.dumpOut("Zerowing");
                 OutputStream outputStream = response.getStream();
                 outputStream.write(new byte[1024]);
                 outputStream.flush();
@@ -128,7 +129,7 @@ public class StatisticsTest extends GrizzlyWebServerAbstractTest {
 
         public void service(GrizzlyRequest request, GrizzlyResponse response) {
             try {
-                System.out.println("StatisticsAdapter");
+                Utils.dumpOut("StatisticsAdapter");
                 RequestGroupInfo requestStatistics = statistics.getRequestStatistics();
                 PrintWriter out = response.getWriter();
                 out.println(requestStatistics.getRequestCount() + ";" +

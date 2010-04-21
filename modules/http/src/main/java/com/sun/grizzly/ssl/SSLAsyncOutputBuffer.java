@@ -41,6 +41,8 @@ package com.sun.grizzly.ssl;
 import com.sun.grizzly.http.SocketChannelOutputBuffer;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.SSLOutputWriter;
+import com.sun.grizzly.util.buf.ByteChunk;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;

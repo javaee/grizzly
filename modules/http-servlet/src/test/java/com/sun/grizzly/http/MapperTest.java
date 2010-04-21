@@ -38,8 +38,9 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapterChain;
+import com.sun.grizzly.util.Utils;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -48,17 +49,17 @@ import java.net.HttpURLConnection;
 import java.util.logging.Logger;
 
 /**
- * Test {@link com.sun.grizzly.tcp.http11.GrizzlyAdapterChain} use of the {@link com.sun.grizzly.http.MapperTest}
+ * Test {@link GrizzlyAdapterChain} use of the {@link MapperTest}
  *
  * @author Jeanfrancois Arcand
  */
 public class MapperTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18080;
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
 
-    public void testOverlapingMapping() throws IOException {
-        System.out.println("testOverlapingMapping");
+    public void testOverlappingMapping() throws IOException {
+        Utils.dumpOut("testOverlappingMapping");
         try {
             startGrizzlyWebServer(PORT);
             String[] aliases = new String[]{"/aaa/bbb", "/aaa/ccc"};
@@ -78,8 +79,8 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
    }
 
     
-    public void testOverlapingMapping2() throws IOException {
-        System.out.println("testOverlapingMapping2");
+    public void testOverlappingMapping2() throws IOException {
+        Utils.dumpOut("testOverlappingMapping2");
         try {
             startGrizzlyWebServer(PORT);
             
@@ -114,7 +115,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
     
     
     public void testRootMapping() throws IOException {
-        System.out.println("testRootMapping");
+        Utils.dumpOut("testRootMapping");
         try {
             startGrizzlyWebServer(PORT);
             String alias = "/";
@@ -129,7 +130,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testWrongMapping() throws IOException {
-        System.out.println("testWrongMapping");
+        Utils.dumpOut("testWrongMapping");
         try {
             startGrizzlyWebServer(PORT);
             String alias = "/a/b/c";
@@ -143,7 +144,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testComplexMapping() throws IOException {
-        System.out.println("testComplexMapping");
+        Utils.dumpOut("testComplexMapping");
         try {
             startGrizzlyWebServer(PORT);
             String alias = "/a/b/c/*.html";
@@ -158,7 +159,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testWildcardMapping() throws IOException {
-        System.out.println("testWildcardMapping");
+        Utils.dumpOut("testWildcardMapping");
         try {
             startGrizzlyWebServer(PORT);
             String alias = "/*.html";
@@ -173,7 +174,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
     }
 
      public void testWrongMappingRootContext() throws IOException {
-        System.out.println("testWrongMappingRootContext");
+        Utils.dumpOut("testWrongMappingRootContext");
         try {
             startGrizzlyWebServer(PORT);
             String alias = "/*.a";
@@ -190,9 +191,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
         ServletAdapter adapter = new ServletAdapter(new HttpServlet() {
 
             @Override
-            protected void doGet(
-                    HttpServletRequest req, HttpServletResponse resp)
-                    throws ServletException, IOException {
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
                 logger.info("Servlet : " + alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(alias);
@@ -208,7 +207,7 @@ public class MapperTest extends GrizzlyWebServerAbstractTest {
             @Override
             protected void doGet(
                     HttpServletRequest req, HttpServletResponse resp)
-                    throws ServletException, IOException {
+                    throws IOException {
                 logger.info("Servlet : " + alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(alias);

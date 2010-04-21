@@ -51,6 +51,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.Socket;
 import java.util.logging.Logger;
+
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 
 /**
@@ -75,7 +77,7 @@ public class InvalidRequestTest extends TestCase {
         st.setAdapter(new CometdAdapter());
         st.initThreadPool();
         ((ExtendedThreadPool) st.getThreadPool()).setMaximumPoolSize(5);
-        st.setEnableAsyncExecution(true);
+        st.setEnableAsyncExecution(Utils.VERBOSE_TESTS);
         st.setBufferResponse(false);    
         st.setFileCacheIsEnabled(false);
         st.setLargeFileCacheEnabled(false);
@@ -83,7 +85,7 @@ public class InvalidRequestTest extends TestCase {
         asyncHandler.addAsyncFilter(new CometAsyncFilter()); 
         st.setAsyncHandler(asyncHandler);
         st.setAdapter(new CometdAdapter());
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         
         try {
             st.listen();
@@ -147,7 +149,7 @@ public class InvalidRequestTest extends TestCase {
 
         int i=0;
         while ((line = bis.readLine()) != null) {
-            System.out.println(i++ + ": " + line);
+            Utils.dumpOut(i++ + ": " + line);
             if (line.contains("402::")){
                 assertTrue(true);
                 return;

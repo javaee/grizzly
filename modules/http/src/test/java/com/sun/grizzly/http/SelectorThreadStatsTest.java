@@ -44,6 +44,7 @@ import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.ExtendedThreadPool;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -58,6 +59,7 @@ import java.net.URL;
 import java.util.concurrent.CountDownLatch;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import junit.framework.TestCase;
 
 /**
@@ -119,7 +121,7 @@ public class SelectorThreadStatsTest extends TestCase {
         st.setPort(PORT);
         st.setAdapter(new MyAdapter());
         st.setCompression("off"); // don't let proxy compress stuff that's already compressed.
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         st.setFileCacheIsEnabled(false);
         st.setLargeFileCacheEnabled(false);
         st.setBufferResponse(false);
@@ -156,7 +158,7 @@ public class SelectorThreadStatsTest extends TestCase {
             InputStream is = new DataInputStream(connection.getInputStream());
             response = new byte[testData.length];
             is.read(response);
-            System.out.println("Response: " + new String(response));
+            Utils.dumpOut("Response: " + new String(response));
             assertEquals(testString, new String(response));
             connection.disconnect();
         } finally {
@@ -192,9 +194,9 @@ public class SelectorThreadStatsTest extends TestCase {
             boolean flip = true;
             boolean first = true;
             while ((line = bis.readLine()) != null) {
-                System.out.println("-> " + line);
+                Utils.dumpOut("-> " + line);
                 if (line.startsWith("HTTP/1.1 200") && flip){
-                    System.out.println("Post second request");
+                    Utils.dumpOut("Post second request");
                     os.write("POST / HTTP/1.1\r\n".getBytes());
                     os.write("Content-type: text/plain\r\n".getBytes());
                     os.write("Host: localhost\r\n".getBytes());
@@ -213,7 +215,7 @@ public class SelectorThreadStatsTest extends TestCase {
                 }
             }  
 
-            System.out.println("Response: " + response);
+            Utils.dumpOut("Response: " + response);
              
             assertEquals(testString, response);
         } finally {
@@ -225,7 +227,7 @@ public class SelectorThreadStatsTest extends TestCase {
         // Just in case this code is cut&pasted
         public synchronized void service(Request request, Response response) throws Exception {
             
-            System.out.println("Request: " + request);
+            Utils.dumpOut("Request: " + request);
             
             KeepAliveStats kas = st.getKeepAliveStats();
             String s;
@@ -237,7 +239,7 @@ public class SelectorThreadStatsTest extends TestCase {
                         + ", refusals=" + kas.getCountRefusals() + ", timeouts=" 
                         + kas.getCountTimeouts() + "\n";
             }
-            System.out.println("----->" + s);
+            Utils.dumpOut("----->" + s);
             byte[] b = s.getBytes("iso-8859-1");
             sendPlainText(response, b);
         }

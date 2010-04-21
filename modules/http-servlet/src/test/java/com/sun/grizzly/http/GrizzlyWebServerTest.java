@@ -43,6 +43,7 @@ import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.Utils;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -67,10 +68,10 @@ import java.util.logging.Logger;
 public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18890+10;
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
 
     public void testAddGrizzlyAdapterAfterStart() throws IOException {
-        System.out.println("testAddGrizzlyAdapterAfterStart");
+        Utils.dumpOut("testAddGrizzlyAdapterAfterStart");
         try {
             final int port = PORT + 1;
             startGrizzlyWebServer(port);
@@ -86,7 +87,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testMultipleAddGrizzlyAdapterAfterStart() throws IOException {
-        System.out.println("testMultipleAddGrizzlyAdapterAfterStart");
+        Utils.dumpOut("testMultipleAddGrizzlyAdapterAfterStart");
         try {
             final int port = PORT + 2;
             startGrizzlyWebServer(port);
@@ -107,7 +108,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testOverlapingAddGrizzlyAdapterAfterStart() throws IOException {
-        System.out.println("testOverlapingAddGrizzlyAdapterAfterStart");
+        Utils.dumpOut("testOverlapingAddGrizzlyAdapterAfterStart");
         try {
             final int port = PORT + 3;
             startGrizzlyWebServer(port);
@@ -132,7 +133,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testAddRemoveMixAfterStart() throws IOException {
-        System.out.println("testAddRemoveMixAfterStart");
+        Utils.dumpOut("testAddRemoveMixAfterStart");
         try {
             final int port = PORT + 4;
             startGrizzlyWebServer(port);
@@ -163,7 +164,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
      * @throws IOException Error.
      */
     public void testStartContract() throws IOException {
-        System.out.println("testStartContract");
+        Utils.dumpOut("testStartContract");
         // lock port
         Socket soc = new Socket();
         int port = PORT + 5;
@@ -173,7 +174,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
             fail("Could not bind to port: " + port + ". " + e.getMessage());
         }
 
-        System.out.println("Bound to port: " + port);
+        Utils.dumpOut("Bound to port: " + port);
 
         try {
             gws = new GrizzlyWebServer(port);
@@ -181,7 +182,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
             gws.start();
             fail("Should throw exception that can't bind to port.");
         } catch (IOException e) {
-            System.out.println("Ha got you this time.");
+            Utils.dumpOut("Ha got you this time.");
         } finally {
             soc.close();
             stopGrizzlyWebServer();
@@ -189,11 +190,11 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     }
 
     /**
-     * Tests that {@link GrizzlyWebServer} should not start if default {@link com.sun.grizzly.SSLConfig} is supposed to
+     * Tests that {@link GrizzlyWebServer} should not start if default {@link SSLConfig} is supposed to
      * be used but defaults doesn't resolve to valid configuration.
      */
     public void testStartSecureFailDefault() {
-        System.out.println("testStartSecureFailDefault");
+        Utils.dumpOut("testStartSecureFailDefault");
         final int port = PORT + 6;
         gws = new GrizzlyWebServer(port, ".", true);
         try {
@@ -211,13 +212,13 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     /**
      * Tests that {@link GrizzlyWebServer} will start properly in secure mode with modified configuration.
      *
-     * @throws java.io.IOException Not much to say here.
-     * @throws java.net.URISyntaxException Could not find keystore file.
-     * @throws java.security.GeneralSecurityException Security failure.
+     * @throws IOException Not much to say here.
+     * @throws URISyntaxException Could not find keystore file.
+     * @throws GeneralSecurityException Security failure.
      */
     public void testStartSecureWithConfiguration()
             throws IOException, URISyntaxException, GeneralSecurityException {
-        System.out.println("testStartSecureWithConfiguration");
+        Utils.dumpOut("testStartSecureWithConfiguration");
         URL resource = getClass().getClassLoader().getResource("test-keystore.jks");
         SSLConfig cfg = new SSLConfig(true);
         cfg.setKeyStorePass("changeit");
@@ -279,7 +280,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     /**
      * Tests if {@link Filter} is getting destroyed on {@link GrizzlyWebServer#stop}.
      *
-     * @throws java.io.IOException Couldn't start {@link GrizzlyWebServer}.
+     * @throws IOException Couldn't start {@link GrizzlyWebServer}.
      */
     public void testServletFilterDestroy() throws IOException {
 
@@ -291,8 +292,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
 
         ServletAdapter sa = new ServletAdapter();
         sa.addFilter(new Filter() {
-            public void init(final FilterConfig filterConfig)
-                throws ServletException {
+            public void init(final FilterConfig filterConfig) {
                 init[0] = true;
             }
 
@@ -321,7 +321,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
      * @throws IOException Fail.
      */
     public void testAddGrizzlyAdapterBeforeAndAfterStart() throws IOException {
-        System.out.println("testAddGrizzlyAdapterBeforeAndAfterStart");
+        Utils.dumpOut("testAddGrizzlyAdapterBeforeAndAfterStart");
         try {
             final int port = PORT + 9;
             gws = new GrizzlyWebServer(port);
@@ -349,7 +349,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testMultipleAddGrizzlyAdapterBeforeStartAndOneAfter() throws IOException {
-        System.out.println("testAddGrizzlyAdapterBeforeAndAfterStart");
+        Utils.dumpOut("testAddGrizzlyAdapterBeforeAndAfterStart");
         try {
             final int port = PORT + 10;
             gws = new GrizzlyWebServer(port);
@@ -382,7 +382,7 @@ public class GrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
             @Override
             protected void doGet(
                     HttpServletRequest req, HttpServletResponse resp)
-                    throws ServletException, IOException {
+                    throws IOException {
                 logger.info(alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.getWriter().write(alias);

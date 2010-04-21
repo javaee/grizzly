@@ -67,6 +67,8 @@ import java.util.logging.Formatter ;
 import java.util.logging.LogRecord ;
 
 import java.io.IOException ;
+
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 
 /**
@@ -94,7 +96,7 @@ public class ConnectionCacheImplTest extends TestCase {
                 setEncoding(null);
                 setOutputStream(System.out);
             } catch (Exception exc) {
-                System.out.println( "Caught unexpected exception " + exc ) ;
+                Utils.dumpOut( "Caught unexpected exception " + exc ) ;
             }
         }
         
@@ -141,10 +143,10 @@ public class ConnectionCacheImplTest extends TestCase {
     // A simple implementation of Connection for testing.  No
     // synchronization is required to use this class.
     public static class ConnectionImpl implements Closeable {
-        private String name ;
-        private long id ;
-        private ContactInfoImpl cinfo ;
-        private AtomicBoolean isClosed ;
+        private final String name ;
+        private final long id ;
+        private final ContactInfoImpl cinfo ;
+        private final AtomicBoolean isClosed ;
         
         public ConnectionImpl( String name, long id, ContactInfoImpl cinfo ) {
             this.name = name ;
@@ -180,14 +182,14 @@ public class ConnectionCacheImplTest extends TestCase {
     // XXX Do we need to list all ContactInfos?
     // XXX Do we need to list all connections created from a ContactInfo?
     public static class ContactInfoImpl implements ContactInfo<ConnectionImpl> {
-        private String address ;
+        private final String address ;
         
-        private static AtomicLong nextId =
+        private static final AtomicLong nextId =
                 new AtomicLong() ;
-        private AtomicBoolean simulateAddressUnreachable =
+        private final AtomicBoolean simulateAddressUnreachable =
                 new AtomicBoolean() ;
         
-        private static ConcurrentMap<String,ContactInfoImpl> cinfoMap =
+        private static final ConcurrentMap<String,ContactInfoImpl> cinfoMap =
                 new ConcurrentHashMap<String,ContactInfoImpl>() ;
         
         private ContactInfoImpl( String address ) {
@@ -219,8 +221,7 @@ public class ConnectionCacheImplTest extends TestCase {
                         + " is currently unreachable" ) ;
             } else {
                 long id = nextId.getAndIncrement() ;
-                ConnectionImpl result = new ConnectionImpl( address, id, this ) ;
-                return result ;
+                return new ConnectionImpl( address, id, this);
             }
         }
         
@@ -233,23 +234,17 @@ public class ConnectionCacheImplTest extends TestCase {
         }
     }
     
-    private void testBanner( String msg ) {
+    private void banner( String msg ) {
         if (DEBUG) {
-            System.out.println(
-                    "======================================="
-                    + "==============================" ) ;
-            
-            System.out.println( msg ) ;
-            
-            System.out.println(
-                    "======================================="
-                    + "==============================" ) ;
+            Utils.dumpOut("=====================================================================" ) ;
+            Utils.dumpOut( msg ) ;
+            Utils.dumpOut("=====================================================================" ) ;
         }
     }
     
     // Test ConcurrentQueue
     public void testNonBlockingConcurrentQueueTest() {
-        testBanner( "nonBlockingConccurentQueueTest" ) ;
+        banner( "nonBlockingConccurentQueueTest" ) ;
         ConcurrentQueue<Integer> testQ =
                 ConcurrentQueueFactory.<Integer>makeConcurrentQueue() ;
         testConcurrentQueue( testQ ) ;
@@ -324,7 +319,7 @@ public class ConnectionCacheImplTest extends TestCase {
     
     // Do a single get/release/responseReceived cycle
     public void testOutboundTest1() throws IOException {
-        testBanner( "outboundTest1: single cycle" ) ;
+        banner( "outboundTest1: single cycle" ) ;
         ContactInfoImpl cinfo = ContactInfoImpl.get( "FirstContact" ) ;
         ConnectionImpl c1 = obcache.get( cinfo ) ;
         checkStats( obcache, 0, 0, 1, 1 ) ;
@@ -341,7 +336,7 @@ public class ConnectionCacheImplTest extends TestCase {
     
     // Do two interleaved get/release/responseReceived cycles
     public void testOutboundTest2() throws IOException {
-        testBanner( "outboundTest2: 2 cycles interleaved" ) ;
+        banner( "outboundTest2: 2 cycles interleaved" ) ;
         ContactInfoImpl cinfo = ContactInfoImpl.get( "FirstContact" ) ;
         ConnectionImpl c1 = obcache.get( cinfo ) ;
         checkStats( obcache, 0, 0, 1, 1 ) ;
@@ -372,7 +367,7 @@ public class ConnectionCacheImplTest extends TestCase {
     
     // Do enough gets to start using busy connections.
     public void testOutboundTest3() throws IOException {
-        testBanner( "outboundTest3: cycle to busy connections" ) ;
+        banner( "outboundTest3: cycle to busy connections" ) ;
         ContactInfoImpl cinfo = ContactInfoImpl.get( "FirstContact" ) ;
         Set<ConnectionImpl> conns = new HashSet<ConnectionImpl>() ;
         for (int ctr=0; ctr<MAX_PARALLEL_CONNECTIONS; ctr++) {
@@ -407,7 +402,7 @@ public class ConnectionCacheImplTest extends TestCase {
     
     // Do enough gets on enough ContactInfos to start reclaiming
     public void testOutboundTest4() throws IOException {
-        testBanner( "outboundTest4: test reclamation" ) ;
+        banner( "outboundTest4: test reclamation" ) ;
         final int numContactInfo = HIGH_WATER_MARK/MAX_PARALLEL_CONNECTIONS;
         final List<ContactInfoImpl> cinfos = new ArrayList<ContactInfoImpl>() ;
         for (int ctr=0; ctr<numContactInfo; ctr++) {
@@ -471,7 +466,7 @@ public class ConnectionCacheImplTest extends TestCase {
     // Test a ContactInfoImpl that throws an IOException
     public void testOutboundTest5() throws IOException {
         boolean exception = false;
-        testBanner( "outboundTest5: test connection open error" ) ;
+        banner( "outboundTest5: test connection open error" ) ;
         ContactInfoImpl cinfo = ContactInfoImpl.get( "ExceptionTest" ) ;
         cinfo.setUnreachable( true ) ;
         try {
@@ -487,7 +482,6 @@ public class ConnectionCacheImplTest extends TestCase {
     
     private static <V> V getSecondOrFirst( Collection<V> coll ) {
         V first = null ;
-        V second = null ;
         int count = 0 ;
         for (V v : coll) {
             if (count == 0) {
@@ -503,31 +497,25 @@ public class ConnectionCacheImplTest extends TestCase {
     }
     
     // Several tests for ConnectionFinders
-    private static ConnectionFinder<ConnectionImpl> cf1 =
+    private static final ConnectionFinder<ConnectionImpl> cf1 =
             new ConnectionFinder<ConnectionImpl>() {
-        public ConnectionImpl find(
-                ContactInfo<ConnectionImpl> cinfo,
-                Collection<ConnectionImpl> idleConnections,
-                Collection<ConnectionImpl> busyConnections
-                ) throws IOException {
-            
+        public ConnectionImpl find(ContactInfo<ConnectionImpl> cinfo, Collection<ConnectionImpl> idleConnections,
+                Collection<ConnectionImpl> busyConnections) {
+
             return getSecondOrFirst( idleConnections ) ;
         }
     } ;
     
-    private static ConnectionFinder<ConnectionImpl> cf2 =
+    private static final ConnectionFinder<ConnectionImpl> cf2 =
             new ConnectionFinder<ConnectionImpl>() {
-        public ConnectionImpl find(
-                ContactInfo<ConnectionImpl> cinfo,
-                Collection<ConnectionImpl> idleConnections,
-                Collection<ConnectionImpl> busyConnections
-                ) throws IOException {
-            
+        public ConnectionImpl find(ContactInfo<ConnectionImpl> cinfo, Collection<ConnectionImpl> idleConnections,
+                Collection<ConnectionImpl> busyConnections) {
+
             return getSecondOrFirst( busyConnections ) ;
         }
     } ;
     
-    private static ConnectionFinder<ConnectionImpl> cf3 =
+    private static final ConnectionFinder<ConnectionImpl> cf3 =
             new ConnectionFinder<ConnectionImpl>() {
         public ConnectionImpl find(
                 ContactInfo<ConnectionImpl> cinfo,
@@ -539,20 +527,17 @@ public class ConnectionCacheImplTest extends TestCase {
         }
     } ;
     
-    private static ConnectionFinder<ConnectionImpl> cf4 =
+    private static final ConnectionFinder<ConnectionImpl> cf4 =
             new ConnectionFinder<ConnectionImpl>() {
-        public ConnectionImpl find(
-                ContactInfo<ConnectionImpl> cinfo,
-                Collection<ConnectionImpl> idleConnections,
-                Collection<ConnectionImpl> busyConnections
-                ) throws IOException {
-            
+        public ConnectionImpl find(ContactInfo<ConnectionImpl> cinfo, Collection<ConnectionImpl> idleConnections,
+                Collection<ConnectionImpl> busyConnections) {
+
             return null ;
         }
     } ;
     
     public void testOutboundTest6() throws IOException {
-        testBanner( "outboundTest6: test ConnectionFinder non-error case" ) ;
+        banner( "outboundTest6: test ConnectionFinder non-error case" ) ;
         ContactInfoImpl cinfo = ContactInfoImpl.get( "CFTest" ) ;
         
         // Set up 2 idle and 2 busy connections on cinfo
@@ -606,11 +591,11 @@ public class ConnectionCacheImplTest extends TestCase {
     public void testOutboundTest7() throws IOException {
         boolean exception = false;
         
-        testBanner( "outboundTest7: test ConnectionFinder error case" ) ;
+        banner( "outboundTest7: test ConnectionFinder error case" ) ;
         ContactInfoImpl cinfo = ContactInfoImpl.get( "CFTest" ) ;
         cinfo.setUnreachable( true ) ;
         try {
-            ConnectionImpl test = obcache.get( cinfo, cf3 ) ;
+            obcache.get(cinfo, cf3);
         } catch(IOException e) {
             exception = true;
         } finally {
@@ -624,7 +609,7 @@ public class ConnectionCacheImplTest extends TestCase {
     //
     // Do a single requestReceived/requestProcessed/responseSent cycle
     public void testInboundTest1() throws IOException {
-        testBanner( "inboundTest1: single cycle" ) ;
+        banner( "inboundTest1: single cycle" ) ;
         ContactInfoImpl cinfo = ContactInfoImpl.get( "FirstContact" ) ;
         ConnectionImpl c1 = cinfo.createConnection() ;
         ibcache.requestReceived( c1 ) ;
@@ -642,7 +627,7 @@ public class ConnectionCacheImplTest extends TestCase {
     
     // Do two interleaved requestReceived/requestProcessed/responseSent cycles
     public void testInboundTest2() throws IOException {
-        testBanner( "inboundTest2: 2 cycles interleaved" ) ;
+        banner( "inboundTest2: 2 cycles interleaved" ) ;
         ContactInfoImpl cinfo = ContactInfoImpl.get( "FirstContact" ) ;
         ConnectionImpl c1 = cinfo.createConnection() ;
         ibcache.requestReceived( c1 ) ;
@@ -675,7 +660,7 @@ public class ConnectionCacheImplTest extends TestCase {
     
     // Do enough gets on enough ContactInfos to start reclaiming
     public void testInboundTest3() throws IOException {
-        testBanner( "inboundTest3: test reclamation" ) ;
+        banner( "inboundTest3: test reclamation" ) ;
         final int numContactInfo = HIGH_WATER_MARK/MAX_PARALLEL_CONNECTIONS;
         final List<ContactInfoImpl> cinfos = new ArrayList<ContactInfoImpl>() ;
         for (int ctr=0; ctr<numContactInfo; ctr++) {

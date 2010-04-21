@@ -47,6 +47,7 @@ import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletResponse;
 
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
@@ -65,11 +66,11 @@ import javax.servlet.http.HttpServletRequest;
 public class HelloGrizzlyWebServerTest extends TestCase {
 
     public static final int PORT = 18890 + 11;
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
     private GrizzlyWebServer gws;
 
     public void testNPERegression() throws IOException {
-        System.out.println("testNPERegression");
+        Utils.dumpOut("testNPERegression");
         try {
             startGrizzlyWebServer(PORT);
             String[] aliases = new String[] { "*.php" };
@@ -102,7 +103,7 @@ public class HelloGrizzlyWebServerTest extends TestCase {
     }
     
     public void testMultiPath() throws IOException {
-        System.out.println("testMultiPath");
+        Utils.dumpOut("testMultiPath");
         try {
             startGrizzlyWebServer(PORT);
             String[] aliases = new String[] { "*.php" };
@@ -122,9 +123,9 @@ public class HelloGrizzlyWebServerTest extends TestCase {
 
             gws.start();
            
-            String url = null;
-            HttpURLConnection conn = null;
-            String response = null;
+            String url;
+            HttpURLConnection conn;
+            String response;
             
             url = context + servletPath + "/index.php";
             conn = getConnection(url);
@@ -149,7 +150,7 @@ public class HelloGrizzlyWebServerTest extends TestCase {
         BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
        
         StringBuffer sb = new StringBuffer();
-        String line = null;
+        String line;
        
         while((line = reader.readLine())!=null){
             logger.info("received line " + line);
@@ -160,7 +161,7 @@ public class HelloGrizzlyWebServerTest extends TestCase {
     }
 
     public void testProtocolFilter() throws IOException {
-        System.out.println("testProtocolFilter");
+        Utils.dumpOut("testProtocolFilter");
         try {
             String[] aliases = new String[] { "*.foo" };
 
@@ -171,7 +172,7 @@ public class HelloGrizzlyWebServerTest extends TestCase {
             gws.start();
 
             ProtocolChain pc = gws.getSelectorThread().getController().getProtocolChainInstanceHandler().poll();
-            System.out.println("ProtcolChain: " + pc);
+            Utils.dumpOut("ProtcolChain: " + pc);
             assertNotNull(pc);
         } finally {
             stopGrizzlyWebServer();
@@ -191,7 +192,7 @@ public class HelloGrizzlyWebServerTest extends TestCase {
     }
 
    
-    private void startGrizzlyWebServer(int port) throws IOException {
+    private void startGrizzlyWebServer(int port) {
         gws = new GrizzlyWebServer(port);
 
     }
@@ -210,7 +211,7 @@ public class HelloGrizzlyWebServerTest extends TestCase {
        * browser method.
        *
        * @param request the request object, containing data from the browser
-       * @param repsonse the response object to send data to the browser
+       * @param response the response object to send data to the browser
        */
       public void doGet (HttpServletRequest request,
                          HttpServletResponse response)

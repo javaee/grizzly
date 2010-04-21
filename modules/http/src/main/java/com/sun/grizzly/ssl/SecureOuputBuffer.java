@@ -49,11 +49,11 @@ public interface SecureOuputBuffer {
     /**
      * Set the{@link SSLEngine}.
      */
-    public SSLEngine getSSLEngine();
+    SSLEngine getSSLEngine();
 
 
     /**
      * Get the{@link SSLEngine}.
      */
-    public void setSSLEngine(SSLEngine sslEngine);
+    void setSSLEngine(SSLEngine sslEngine);
 }

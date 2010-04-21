@@ -167,7 +167,7 @@ public class TCPAsyncQueueReaderTest extends TestCase {
                             Controller.logger().log(Level.INFO, "EchoFilter processed bytes: " + echoBytesProcessed.get());
                             Controller.logger().log(Level.INFO, "QUEUE HAS ELEMENTS? : " + tcpConnector.getSelectorHandler().getAsyncQueueWriter().isReady(tcpConnector.getUnderlyingChannel().keyFor(tcpConnector.getSelectorHandler().getSelector())));
                         }
-//                        System.out.println("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2);
+//                        Utils.dumpOut("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2);
                         assertEquals(val1, val2);
                     }
                 } finally {

@@ -39,6 +39,8 @@
 package com.sun.grizzly.utils;
 
 import com.sun.grizzly.UDPConnectorHandler;
+import com.sun.grizzly.util.Utils;
+
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -82,8 +84,8 @@ public class NonBlockingUDPIOClient implements NonBlockingIOClient {
     public int receive(byte[] buf, int length) throws IOException {
         ByteBuffer byteBuffer = ByteBuffer.wrap(buf,0,length);
         SocketAddress sa = udpConnectorHandler.receive(byteBuffer);
-        System.out.println("sa: " + sa);
-        System.out.println("nRead: " + byteBuffer.position());
+        Utils.dumpOut("sa: " + sa);
+        Utils.dumpOut("nRead: " + byteBuffer.position());
         return byteBuffer.position();
     }
     

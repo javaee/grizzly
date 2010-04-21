@@ -39,8 +39,8 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.util.Utils;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -57,7 +57,7 @@ import java.util.logging.Logger;
 public class ComplexGrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18890 + 10;
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
 
     /**
      * Want to test multiple servletMapping
@@ -75,7 +75,7 @@ public class ComplexGrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
      * @throws IOException Error.
      */
     public void testComplexAliasMapping() throws IOException {
-        System.out.println("testComplexAliasMapping");
+        Utils.dumpOut("testComplexAliasMapping");
         try {
             startGrizzlyWebServer(PORT);
             String[] aliases = new String[] { "/1", "/2", "/3", "/*.a" };
@@ -109,10 +109,10 @@ public class ComplexGrizzlyWebServerTest extends GrizzlyWebServerAbstractTest {
         ServletAdapter adapter = new ServletAdapter(new HttpServlet() {
 
             @Override
-            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+            protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
                 logger.info(alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
-                resp.getWriter().write( (alias.indexOf("*") == 0 ? alias : req.getRequestURI()));
+                resp.getWriter().write(alias.indexOf("*") == 0 ? alias : req.getRequestURI());
             }
         });
        

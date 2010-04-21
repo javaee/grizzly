@@ -128,12 +128,6 @@
             <artifactId>config-types</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <classifier>jdk15</classifier>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>osgi-adapter</artifactId>
         </dependency>

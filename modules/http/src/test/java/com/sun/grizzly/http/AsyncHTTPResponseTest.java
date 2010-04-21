@@ -43,6 +43,7 @@ import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 
@@ -63,7 +64,7 @@ import junit.framework.TestCase;
  * @author Alexey Stashok
  */
 public class AsyncHTTPResponseTest extends TestCase {
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
 
     public static final int PORT = 18890;
 
@@ -89,7 +90,7 @@ public class AsyncHTTPResponseTest extends TestCase {
 
             int length = connection.getContentLength();
             long time = System.currentTimeMillis() - start;
-            System.out.println("Took " + time + "ms to complete.");
+            Utils.dumpOut("Took " + time + "ms to complete.");
             assertEquals(length, responseLength);
 
             byte[] content = new byte[length];
@@ -146,7 +147,7 @@ public class AsyncHTTPResponseTest extends TestCase {
 
             int length = connection.getContentLength();
             long time = System.currentTimeMillis() - start;
-            System.out.println("Took " + time + "ms to complete.");
+            Utils.dumpOut("Took " + time + "ms to complete.");
             assertEquals(length, responseLength);
 
             byte[] content = new byte[length];
@@ -169,8 +170,8 @@ public class AsyncHTTPResponseTest extends TestCase {
     }
 
     public static class BigResponseAdapter implements Adapter {
-        private int bufferSize;
-        private int length;
+        private final int bufferSize;
+        private final int length;
 
         public BigResponseAdapter(int bufferSize, int length) {
             this.bufferSize = bufferSize;

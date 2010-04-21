@@ -53,6 +53,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 
 /**
@@ -61,7 +63,7 @@ import junit.framework.TestCase;
  */
 public class ArpBasicTest extends TestCase {
 
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
     private SelectorThread st;
 
     public void createSelectorThread(int port) {
@@ -110,7 +112,7 @@ public class ArpBasicTest extends TestCase {
         };
 
         st.setPort(port);
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
 
     }
     
@@ -122,7 +124,7 @@ public class ArpBasicTest extends TestCase {
     }
 
     public void testMultipleAsyncFilter() throws Exception {
-        System.out.println("Test: testMultipleAsyncFilter");
+        Utils.dumpOut("Test: testMultipleAsyncFilter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "HelloWorld";
         final byte[] testData = testString.getBytes();
@@ -157,14 +159,14 @@ public class ArpBasicTest extends TestCase {
         public boolean doFilter(AsyncExecutor executor) {
             try {
                 if (count++ == 0){
-                    System.out.println(this + "-execute");
+                    Utils.dumpOut(this + "-execute");
                     executor.getProcessorTask().getRequest().getResponse()
                             .addHeader("AsyncFilter-1", "1");
                     executor.execute();
                 } else {
                     executor.getProcessorTask().getRequest().getResponse()
                             .addHeader("AsyncFilter-2", "2");
-                    System.out.println(this + "-postExecute");
+                    Utils.dumpOut(this + "-postExecute");
                     executor.postExecute();
                 }
             } catch (Exception ex) {
@@ -179,7 +181,7 @@ public class ArpBasicTest extends TestCase {
 
         public void service(GrizzlyRequest request, GrizzlyResponse response){
             count++;
-            System.out.println(count);
+            Utils.dumpOut(count);
             response.addHeader("Count", String.valueOf(count));
         }
     }

@@ -48,6 +48,7 @@ import java.io.FileWriter;
 import java.net.Socket;
 
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.util.Utils;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -61,7 +62,6 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
     private static final String KEEP_ALIVE_END = "KeepAlive:end";
     private static final String KEEP_ALIVE_PASS = "KeepAlive:PASS";
     private static final Integer PORT_ONE = 38082;
-    private static final Integer PORT_TWO = PORT_ONE + 1;
     private static final String HOST = "localhost";
     private boolean debug = true;
 
@@ -125,7 +125,7 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
 //                found = true;
 //            }
 //            Assert.assertTrue(found, "Should have gotten the document content");
-//            System.out.println("getting again");
+//            Utils.dumpOut("getting again");
 //            send(os, "GET /index.html HTTP/1.1\n");
 //            send(os, "\n");
 //            Assert.fail("Second GET should fail");
@@ -144,7 +144,7 @@ public class KeepAliveTest extends BaseGrizzlyConfigTest {
 
     private String read(final BufferedReader bis) throws IOException {
         String line = bis.readLine();
-        System.out.println("from server: " + line);
+        Utils.dumpOut("from server: " + line);
         return line;
     }
 

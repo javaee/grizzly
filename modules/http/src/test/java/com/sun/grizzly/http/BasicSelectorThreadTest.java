@@ -42,6 +42,7 @@ import com.sun.grizzly.http.utils.SelectorThreadUtils;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
@@ -56,17 +57,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import junit.framework.TestCase;
 
 /**
- * Basic {@link SelectoThread} test.
+ * Basic {@link SelectorThread} test.
  * 
  * @author Jeanfrancois Arcand
  */
 public class BasicSelectorThreadTest extends TestCase {
+    private final static Logger logger = SelectorThread.logger();
 
     public static final int PORT = 18890;
-    private static Logger logger = Logger.getLogger("grizzly.test");
     private SelectorThread st;
 
     public void createSelectorThread(int port) {
@@ -115,7 +117,7 @@ public class BasicSelectorThreadTest extends TestCase {
         };
 
         st.setPort(port);
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
 
     }
 
@@ -127,7 +129,7 @@ public class BasicSelectorThreadTest extends TestCase {
     }
 
     public void testKeepAliveTest() throws Exception{
-        System.out.println("Test: testKeepAliveTest");
+        Utils.dumpOut("Test: testKeepAliveTest");
         try {
             createSelectorThread(0);
             st.setAdapter(new HelloWorldAdapter());
@@ -147,7 +149,7 @@ public class BasicSelectorThreadTest extends TestCase {
     }
 
     public void testMultipleBytesMimeHeaders() throws Exception{
-        System.out.println("Test: testMultipleBytesMimeHeaders");
+        Utils.dumpOut("Test: testMultipleBytesMimeHeaders");
         try {
             createSelectorThread(0);
             st.setAdapter(new GrizzlyAdapter() {
@@ -169,6 +171,7 @@ public class BasicSelectorThreadTest extends TestCase {
 
             st.setMaxKeepAliveRequests(0);
             SelectorThread.enableNioLogging = true;
+            logger.setLevel(Level.WARNING);
 
             st.listen();
 
@@ -176,8 +179,8 @@ public class BasicSelectorThreadTest extends TestCase {
             s.setSoTimeout(30 * 1000);
             OutputStream os = s.getOutputStream();
 
-            System.err.println(("GET / HTTP/1.1\n"));
-            os.write(("GET / HTTP/1.1\n").getBytes());
+            Utils.dumpErr("GET / HTTP/1.1\n");
+            os.write("GET / HTTP/1.1\n".getBytes());
             os.write(("Host: localhost:" + PORT + "\n").getBytes());
             os.write("\n".getBytes());
             os.flush();
@@ -185,11 +188,11 @@ public class BasicSelectorThreadTest extends TestCase {
             InputStream is = new DataInputStream(s.getInputStream());
             BufferedReader br = new BufferedReader(new InputStreamReader(is));
             String line = null;
-            System.err.println("================== reading the response");
+            Utils.dumpErr("================== reading the response");
             boolean gotCorrectResponse = false;
             int i = 0;
             while ((line = br.readLine()) != null) {
-                System.err.println("-> " + line);
+                Utils.dumpErr("-> " + line);
                 if (line.startsWith("Set-Cookie")) {
                     if (line.endsWith("test-" + ++i)){
                         gotCorrectResponse = true;
@@ -206,7 +209,7 @@ public class BasicSelectorThreadTest extends TestCase {
     }
 
     public void testKeepAliveNotFoundTest() throws Exception{
-        System.out.println("Test: testKeepAliveNotFoundTest");
+        Utils.dumpOut("Test: testKeepAliveNotFoundTest");
         try {
             createSelectorThread(0);
             st.setAdapter(new NotFoundAdapter());
@@ -226,7 +229,7 @@ public class BasicSelectorThreadTest extends TestCase {
     }
 
     public void testEphemeralPort() throws Exception {
-        System.out.println("Test: testEphemeralPort");
+        Utils.dumpOut("Test: testEphemeralPort");
         final String testString = "HelloWorld";
         final byte[] testData = testString.getBytes();
         try {
@@ -244,7 +247,7 @@ public class BasicSelectorThreadTest extends TestCase {
     }
 
     public void testHelloWorldGrizzlyAdapter() throws Exception {
-        System.out.println("Test: testHelloWorldGrizzlyAdapter");
+        Utils.dumpOut("Test: testHelloWorldGrizzlyAdapter");
         final ScheduledThreadPoolExecutor pe = new ScheduledThreadPoolExecutor(1);
         final String testString = "HelloWorld";
         final byte[] testData = testString.getBytes();
@@ -294,7 +297,6 @@ public class BasicSelectorThreadTest extends TestCase {
 
     private String sendRequest(byte[] testData, String testString, boolean assertTrue, int port)
             throws Exception {
-        byte[] response = new byte[testData.length];
 
         URL url = new URL("http://localhost:" + port);
         HttpURLConnection connection =
@@ -306,13 +308,13 @@ public class BasicSelectorThreadTest extends TestCase {
         os.flush();
 
         InputStream is = new DataInputStream(connection.getInputStream());
-        response = new byte[testData.length];
+        byte[] response = new byte[testData.length];
         is.read(response);
 
 
         String r = new String(response);
         if (assertTrue) {
-            System.out.println("Response: " + r);
+            Utils.dumpOut("Response: " + r);
             assertEquals(testString, r);
         }
         connection.disconnect();

@@ -159,7 +159,7 @@ public class SSLConnectionTest extends TestCase {
         try {
             
             for(int i=0; i<CLIENTS_COUNT; i++) {
-                //System.out.println("Client#" + i);
+                //Utils.dumpOut("Client#" + i);
                 final SSLConnectorHandler sslConnector =
                         (SSLConnectorHandler) controller.acquireConnectorHandler(Controller.Protocol.TLS);
                 sslConnector.setController(controller);
@@ -188,7 +188,7 @@ public class SSLConnectionTest extends TestCase {
                             sslConnector.isHandshakeDone());
 
                     for(int j=0; j<PACKETS_COUNT; j++) {
-                        //System.out.println("Packet#" + j);
+                        //Utils.dumpOut("Packet#" + j);
                         synchronized(sslConnector) {
                             CountDownLatch responseArrivedLatch = new CountDownLatch(1);
                             responseArrivedLatchHolder.set(responseArrivedLatch);
@@ -234,7 +234,7 @@ public class SSLConnectionTest extends TestCase {
         try {
             
             for(int i=0; i<CLIENTS_COUNT; i++) {
-                //System.out.println("Client#" + i);
+                //Utils.dumpOut("Client#" + i);
                 final SSLConnectorHandler sslConnector = new SSLConnectorHandler();
                 final byte[] testData = new String("Hello. Client#" + i + " Packet#000").getBytes();
                 final byte[] response = new byte[sslConnector.getApplicationBufferSize()];
@@ -263,7 +263,7 @@ public class SSLConnectionTest extends TestCase {
                         
                         String val1 = new String(testData);
                         String val2 = new String(toArray(readBB));
-                        //System.out.println("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2 + " nRead: " + nRead + " Buffer: " + readBB);
+                        //Utils.dumpOut("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2 + " nRead: " + nRead + " Buffer: " + readBB);
                         assertEquals(val1, val2);
                         readBB.clear();
                     }

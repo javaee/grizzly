@@ -458,7 +458,6 @@ public class HttpRequestURIDecoder {
                     // This is '/../' ==> search backward to reset lastSlash and parentSlash
                     if (parentSlash == -1) {
                         // This is an error
-                        System.out.print("Incorrect URI");
                         return false;
                     }
                     else {

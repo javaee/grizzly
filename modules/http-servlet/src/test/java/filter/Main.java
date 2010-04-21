@@ -41,6 +41,7 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.standalone.StaticStreamAlgorithm;
 import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.util.Utils;
 import com.sun.jersey.api.core.ClasspathResourceConfig;
 import com.sun.jersey.spi.container.servlet.ServletContainer;
 import java.io.File;
@@ -61,14 +62,13 @@ public class Main {
         initParams.put("com.sun.jersey.config.property.packages",
                 "filter");
 
-        System.out.println("Starting grizzly...");
-        SelectorThread threadSelector = create(BASE_URI, initParams);
-        return threadSelector;
+        Utils.dumpOut("Starting grizzly...");
+        return create(BASE_URI, initParams);
     }
 
     public static void main(String[] args) throws IOException {
         SelectorThread threadSelector = startServer();
-        System.out.println(String.format("Jersey app started with WADL available at " + "%sapplication.wadl\nHit enter to stop it...",
+        Utils.dumpOut(String.format("Jersey app started with WADL available at " + "%sapplication.wadl\nHit enter to stop it...",
                 BASE_URI));
         System.in.read();
         threadSelector.stopEndpoint();

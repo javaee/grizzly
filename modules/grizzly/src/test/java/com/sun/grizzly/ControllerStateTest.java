@@ -42,6 +42,7 @@ import com.sun.grizzly.filter.EchoFilter;
 import com.sun.grizzly.filter.LogFilter;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.util.SyncThreadPool;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import com.sun.grizzly.utils.ControllerUtils;
 import com.sun.grizzly.utils.TCPIOClient;
@@ -167,13 +168,13 @@ public class ControllerStateTest extends TestCase {
         
         callables[SIMULT_CONTROLLER_START - 1] = new Callable() {
             public Object call() throws Exception {
-                System.out.println("Sleeping 10 seconds....");
+                Utils.dumpOut("Sleeping 10 seconds....");
                 Thread.sleep(10000);
                 resultControllerStarted[0] = controller.getSelectorHandlers().size();
 
-                System.out.println("Shutdown controller");
+                Utils.dumpOut("Shutdown controller");
                 controller.stop();
-                System.out.println("Shutdown completed");
+                Utils.dumpOut("Shutdown completed");
                 return null;
             }
         };

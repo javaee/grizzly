@@ -38,6 +38,7 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.util.Utils;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
@@ -46,7 +47,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.logging.Logger;
 
 /**
@@ -57,11 +57,11 @@ import java.util.logging.Logger;
 public class BasicServletTest extends GrizzlyWebServerAbstractTest {
 
     public static final int PORT = 18890;
-    private static Logger logger = Logger.getLogger("grizzly.test");
-    private String header = "text/html;charset=utf8";
+    private static final Logger logger = Logger.getLogger("grizzly.test");
+    private final String header = "text/html;charset=utf8";
 
     public void testServletName() throws IOException {
-        System.out.println("testServletName");
+        Utils.dumpOut("testServletName");
         try {
             newGWS(PORT);
             String alias = "/contextPath/servletPath/";
@@ -79,7 +79,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testSetHeaderTest() throws IOException {
-        System.out.println("testSetHeaderTest");
+        Utils.dumpOut("testSetHeaderTest");
         try {
             startGrizzlyWebServer(PORT);
             String alias = "/1";
@@ -93,7 +93,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testPathInfo() throws IOException {
-        System.out.println("testPathInfo");
+        Utils.dumpOut("testPathInfo");
         try {
             newGWS(PORT);
             String alias = "/contextPath/servletPath/";
@@ -110,7 +110,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testNotAllowEncodedSlash() throws IOException {
-        System.out.println("testNotAllowEncodedSlash");
+        Utils.dumpOut("testNotAllowEncodedSlash");
         try {
             newGWS(PORT);
             String alias = "/contextPath/servletPath/";
@@ -127,7 +127,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testAllowEncodedSlash() throws IOException {
-        System.out.println("testAllowEncodedSlash");
+        Utils.dumpOut("testAllowEncodedSlash");
         try {
             newGWS(PORT);
             String alias = "/contextPath/servletPath/";
@@ -145,7 +145,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testDoubleSlash() throws IOException {
-        System.out.println("testDoubleSlash");
+        Utils.dumpOut("testDoubleSlash");
         try {
             newGWS(PORT);
             String alias = "/*.html";
@@ -157,7 +157,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
             assertEquals(HttpServletResponse.SC_OK,
                     getResponseCodeFromAlias(conn));
             String s = conn.getHeaderField("Request-Was");
-            System.out.println("s: " +s );
+            Utils.dumpOut("s: " +s );
             assertEquals(s, "/index.html");
         } finally {
             stopGrizzlyWebServer();
@@ -165,7 +165,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
     }
 
     public void testInitParameters() throws IOException {
-        System.out.println("testContextParameters");
+        Utils.dumpOut("testContextParameters");
         try {
             newGWS(PORT);
             ServletAdapter sa1 = new ServletAdapter(new HttpServlet() {
@@ -174,8 +174,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
                     super.init(config);
                     this.config = config;
                 }
-                @Override protected void service(HttpServletRequest req, HttpServletResponse resp)
-                        throws ServletException, IOException {
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
                     String init = config.getInitParameter("servlet");
                     String ctx = config.getServletContext().getInitParameter("ctx");
                     boolean ok = "sa1".equals(init) && "something".equals(ctx);
@@ -190,8 +189,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
                     super.init(config);
                     this.config = config;
                 }
-                @Override protected void service(HttpServletRequest req, HttpServletResponse resp)
-                        throws ServletException, IOException {
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
                     String init = config.getInitParameter("servlet");
                     String ctx = config.getServletContext().getInitParameter("ctx");
                     boolean ok = "sa2".equals(init) && "something".equals(ctx);
@@ -214,14 +212,13 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
      * Covers issue with "No Content" returned by Servlet.
      * <a href="http://twitter.com/shock01/status/2136930089">http://twitter.com/shock01/status/2136930089</a>
      *
-     * @throws java.io.IOException I/O
+     * @throws IOException I/O
      */
     public void testNoContentServlet() throws IOException {
         try {
             newGWS(PORT);
             ServletAdapter noContent = new ServletAdapter(new HttpServlet() {
-                @Override protected void service(HttpServletRequest req, HttpServletResponse resp)
-                        throws ServletException, IOException {
+                @Override protected void service(HttpServletRequest req, HttpServletResponse resp) {
                     resp.setStatus(HttpServletResponse.SC_NO_CONTENT);
                 }
             });
@@ -240,7 +237,7 @@ public class BasicServletTest extends GrizzlyWebServerAbstractTest {
             @Override
             protected void doGet(
                     HttpServletRequest req, HttpServletResponse resp)
-                    throws ServletException, IOException {
+                    throws IOException {
                 logger.info(alias + " received request " + req.getRequestURI());
                 resp.setStatus(HttpServletResponse.SC_OK);
                 resp.setHeader("Content-Type", header);

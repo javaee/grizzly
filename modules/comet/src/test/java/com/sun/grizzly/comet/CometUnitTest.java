@@ -51,6 +51,8 @@ import java.net.SocketAddress;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 
 
@@ -93,10 +95,10 @@ public class CometUnitTest extends TestCase {
     protected void init(boolean useconcurrentcomethandler) throws Exception{
         connectadr = new InetSocketAddress("localhost", port);
         RuntimeMXBean rmx = ManagementFactory.getRuntimeMXBean();
-        System.err.println("JVM: "+rmx.getVmVendor()+" "+rmx.getVmName()+" "+rmx.getVmVersion()+" params: "+rmx.getInputArguments());
+        Utils.dumpErr("JVM: "+rmx.getVmVendor()+" "+rmx.getVmName()+" "+rmx.getVmVersion()+" params: "+rmx.getInputArguments());
         st = new SelectorThread();
         st.setPort(port);
-        st.setDisplayConfiguration(false);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         st.setAdapter(new CometTestAdapter(context,useconcurrentcomethandler,-1));
         st.setEnableAsyncExecution(true);
         AsyncHandler asyncHandler = new DefaultAsyncHandler();
@@ -142,7 +144,7 @@ public class CometUnitTest extends TestCase {
 
     protected void doActualLogic(final boolean socketreuse,final boolean streaming,
             final int secondspertest,final int threadcount, boolean spreadnotify) throws Throwable{
-        System.err.println((streaming?"STREAMING-":"LONGPOLLING-")+(socketreuse?"SOCKETREUSE":"NEWSOCKET")+" client threads: "+threadcount+" spreadNotifyToManyThreads: "+spreadnotify);
+        Utils.dumpErr((streaming?"STREAMING-":"LONGPOLLING-")+(socketreuse?"SOCKETREUSE":"NEWSOCKET")+" client threads: "+threadcount+" spreadNotifyToManyThreads: "+spreadnotify);
        //int cpus = Runtime.getRuntime().availableProcessors();
          ((DefaultNotificationHandler)CometTestAdapter.cometContext.notificationHandler).
                  setSpreadNotifyToManyToThreads(spreadnotify);
@@ -189,7 +191,7 @@ public class CometUnitTest extends TestCase {
                 if (deltatime>4500){
                     t1 = t2;
                     int currenttotalmsg = msgc.get();
-                    System.err.println(
+                    Utils.dumpErr(
                       "  K events/sec : "+((currenttotalmsg-oldtotal+500)/deltatime)+
                       "  comethandlers: "+CometTestAdapter.cometContext.handlers.size()+
                       "  workqueue: "+queuesize+
@@ -217,9 +219,9 @@ public class CometUnitTest extends TestCase {
                 }
             }
             testisdone = true;
-            System.err.println("test is done. waiting for clients to die.");
+            Utils.dumpErr("test is done. waiting for clients to die.");
             threadsaredone.await(6,TimeUnit.SECONDS);
-            System.err.println("clients are done.");
+            Utils.dumpErr("clients are done.");
             assertTrue(status);
         }catch(Throwable ea){
             throw ea;

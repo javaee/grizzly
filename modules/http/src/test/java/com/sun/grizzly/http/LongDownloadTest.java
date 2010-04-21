@@ -3,6 +3,7 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.util.Utils;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
@@ -34,7 +35,7 @@ public class LongDownloadTest extends TestCase {
 
     public void setUp() throws IOException {
         tmp = new File("/tmp");
-        System.out.println("Generating large file for download");
+        Utils.dumpOut("Generating large file for download");
         if (!tmp.exists()) {
             tmp = new File(System.getProperty("java.io.tmpdir"));
         }

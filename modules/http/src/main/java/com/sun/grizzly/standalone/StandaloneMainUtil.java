@@ -41,16 +41,16 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.ExpandJar;
+
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 
 /**
  * Abstract class that can be extended when Main/Launcher class are required. 
  * Invoking the {@link #start} method of this class will properly parse the command
- * line, set the appropriate {@link Classloader} and if a war/jar is passed as
+ * line, set the appropriate {@link ClassLoader} and if a war/jar is passed as
  * argument, explode it and happens its WEB-INF/classes to the context Classloader
  * and finally start a configured instance of {@link SelectorThread}
  *
@@ -64,7 +64,7 @@ public abstract class StandaloneMainUtil {
     public static final String SELECTOR_THREAD = "com.sun.grizzly.selectorThread";
     public static final String ADAPTER = "com.sun.grizzly.adapterClass";
     
-    private static int port = 8080;
+    private int port = 8080;
     private long t1 = 0L;
 
     public StandaloneMainUtil() {
@@ -137,12 +137,12 @@ public abstract class StandaloneMainUtil {
      * Classloader.
      * @return the exploded war file location.
      */
-    public String appendWarContentToClassPath(String appliPath) throws MalformedURLException, IOException{
+    public String appendWarContentToClassPath(String appliPath) throws IOException{
         
         String path;
-        File file = null;
-        URL appRoot = null;
-        URL classesURL = null;
+        File file;
+        URL appRoot;
+        URL classesURL;
         if (appliPath != null && 
                 (appliPath.endsWith(".war") || appliPath.endsWith(".jar"))) {
             file = new File(appliPath);
@@ -159,13 +159,13 @@ public abstract class StandaloneMainUtil {
 
 	String absolutePath =  new File(path).getAbsolutePath();
         SelectorThread.logger().info("Servicing resources from: " + absolutePath);
-        URL[] urls = null;        
+        URL[] urls;
         File libFiles = new File(absolutePath + File.separator + "WEB-INF"+ File.separator + "lib");
-        int arraySize = (appRoot == null ? 1:2);
+        int arraySize = appRoot == null ? 1:2;
 
         //Must be a better way because that sucks!
-        String separator = (System.getProperty("os.name")
-                .toLowerCase().startsWith("win")? "/" : "//");
+        String separator = System.getProperty("os.name")
+                .toLowerCase().startsWith("win")? "/" : "//";
 
         if (libFiles.exists() && libFiles.isDirectory()){
             urls = new URL[libFiles.listFiles().length + arraySize];

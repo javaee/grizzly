@@ -50,8 +50,8 @@ import java.nio.ByteBuffer;
  * @author Jeanfrancois Arcand
  */
 public class NonBlockingUDPIOClient {
-    private String host;
-    private int port;
+    private final String host;
+    private final int port;
     
     private UDPConnectorHandler udpConnectorHandler;
     

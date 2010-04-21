@@ -158,7 +158,7 @@ public class TCPConnectorHandlerTest extends TestCase {
                         readBB.flip();
                         String val1 = new String(testData);
                         String val2 = new String(toArray(readBB));
-//                        System.out.println("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2);
+//                        Utils.dumpOut("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2);
                         assertEquals(val1, val2);
                     }
                 } finally {
@@ -181,7 +181,7 @@ public class TCPConnectorHandlerTest extends TestCase {
         try {
             
             for(int i=0; i<CLIENTS_COUNT; i++) {
-                //System.out.println("Client#" + i);
+                //Utils.dumpOut("Client#" + i);
                 final TCPConnectorHandler tcpConnector = new TCPConnectorHandler();
                 final byte[] testData = new String("Hello. Client#" + i + " Packet#000").getBytes();
                 final byte[] response = new byte[testData.length];
@@ -208,7 +208,7 @@ public class TCPConnectorHandlerTest extends TestCase {
 
                         String val1 = new String(testData); 
                         String val2 = new String(toArray(readBB));
-                        //System.out.println("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2 + " nRead: " + nRead + " Buffer: " + readBB);
+                        //Utils.dumpOut("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2 + " nRead: " + nRead + " Buffer: " + readBB);
                         assertEquals(val1, val2);
                         readBB.clear();
                     }

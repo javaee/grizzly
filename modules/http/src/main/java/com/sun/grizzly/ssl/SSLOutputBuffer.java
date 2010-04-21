@@ -123,9 +123,8 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer implements Secure
             securedBB = bufferPool.poll();
 
             if (securedBB == null || securedBB.capacity() < requiredBBSize) {
-                 final ByteBuffer newBB = ByteBufferFactory.allocateView(
-                        requiredBBSize * 2, securedBB != null ? securedBB.isDirect() : false);
-                securedBB = newBB;
+                securedBB = ByteBufferFactory.allocateView(
+                       requiredBBSize * 2, securedBB != null && securedBB.isDirect());
             }
 
             securedBB.limit(securedBB.position());
@@ -207,7 +206,7 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer implements Secure
         super.recycle();
     }
     
-    private final boolean associateWithThread(ByteBuffer buffer) {
+    private boolean associateWithThread(ByteBuffer buffer) {
         final Thread currentThread = Thread.currentThread();
         if (currentThread instanceof WorkerThread) {
             ((WorkerThread) currentThread).setOutputBB(buffer);
@@ -219,8 +218,8 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer implements Secure
     
     private static class SSLWritePreProcessor implements AsyncQueueDataProcessor {
 
-        private SSLEngine sslEngine;
-        private ByteBuffer securedOutputBuffer;
+        private final SSLEngine sslEngine;
+        private final ByteBuffer securedOutputBuffer;
 
         public SSLWritePreProcessor(SSLEngine sslEngine, ByteBuffer securedOutputBuffer) {
             this.sslEngine = sslEngine;

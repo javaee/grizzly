@@ -49,6 +49,7 @@ import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.util.ExtendedThreadPool;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import java.io.DataInputStream;
@@ -62,6 +63,7 @@ import java.util.logging.Logger;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLSession;
+
 import junit.framework.TestCase;
 
 /**
@@ -72,7 +74,7 @@ import junit.framework.TestCase;
 public class ArpSSLTest extends TestCase {
 
     public static final int PORT = 18890;
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
     private SSLSelectorThread st;
     private SSLConfig sslConfig;
 
@@ -154,7 +156,7 @@ public class ArpSSLTest extends TestCase {
         st = new SSLSelectorThread();
         st.setPort(PORT);
         st.setAdapter(new MyAdapter());
-        st.setDisplayConfiguration(true);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
         st.setFileCacheIsEnabled(false);
         st.setLargeFileCacheEnabled(false);
         st.setBufferResponse(false);
@@ -185,7 +187,7 @@ public class ArpSSLTest extends TestCase {
 
     private class MyAsyncFilter implements AsyncFilter {
         public boolean doFilter(AsyncExecutor executor) {
-            ProcessorTask processorTask = (ProcessorTask) executor.getProcessorTask();
+            ProcessorTask processorTask = executor.getProcessorTask();
             int contentLenght = processorTask.getRequest().getContentLength();
             ByteChunk byteChunk = new ByteChunk();
             byteChunk.setLimit(contentLenght);

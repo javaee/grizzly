@@ -37,12 +37,9 @@ package com.sun.grizzly.http.servlet.deployer;
 
 import com.sun.grizzly.http.deployer.DeploymentID;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
-import com.sun.grizzly.http.servlet.deployer.WarDeployable;
-import com.sun.grizzly.http.servlet.deployer.WarDeployer;
-import com.sun.grizzly.http.servlet.deployer.WarDeploymentConfiguration;
 import com.sun.grizzly.http.webxml.WebappLoader;
 import com.sun.grizzly.http.webxml.schema.WebApp;
-import static org.junit.Assert.assertEquals;
+import com.sun.grizzly.util.Utils;
 import org.junit.Test;
 
 import java.io.BufferedReader;
@@ -52,6 +49,8 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.List;
 import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * Testing of webdefault.xml
@@ -83,7 +82,7 @@ public class WebDefaultSupportTest {
             assertEquals("/jspTest/index.jsp",
                     new BufferedReader(new InputStreamReader(urlConn.getInputStream())).readLine());
             for (Map.Entry<String, List<String>> entry : urlConn.getHeaderFields().entrySet()) {
-                System.out.println(entry.getKey() + ": " + entry.getValue());
+                Utils.dumpOut(entry.getKey() + ": " + entry.getValue());
             }
         } finally {
             deployer.undeploy(gws, deploymentID);

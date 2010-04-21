@@ -183,7 +183,7 @@ public class UDPAsyncQueueReaderTest extends TestCase {
                                     " processedData(bytes): " + writerQueueEntry.processedDataSize +
                                     " hasElemeents?: " + writer.isReady(clientKey));
                         }
-//                        System.out.println("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2);
+//                        Utils.dumpOut("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2);
                         assertEquals(val1, val2);
                     }
                 } finally {

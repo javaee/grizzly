@@ -90,13 +90,13 @@ public class ThreadPoolIdleTimeoutTest extends GrizzlyServletTestBase {
 //
 //    @Test
 //    public void noTimeout() throws IOException {
-//        System.out.println("ThreadPoolIdleTimeoutTest.noTimeout");
+//        Utils.dumpOut("ThreadPoolIdleTimeoutTest.noTimeout");
 //        timeoutCheck(38084);
 //    }
 //
 //    @Test(expectedExceptions = {IOException.class})
 //    public void timeout() throws IOException {
-//        System.out.println("ThreadPoolIdleTimeoutTest.timeout");
+//        Utils.dumpOut("ThreadPoolIdleTimeoutTest.timeout");
 //        timeoutCheck(38085);
 //    }
 //
