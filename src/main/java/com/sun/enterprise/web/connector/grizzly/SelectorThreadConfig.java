@@ -132,6 +132,9 @@ public class SelectorThreadConfig{
     private final static String OOBInline = 
         "com.sun.enterprise.web.connector.grizzly.OOBInline"; 
     
+    private final static String SOCKET_LINGER =
+        "com.sun.enterprise.web.connector.grizzly.linger";
+
     private final static String MAX_BUFFERED_BYTES =
         "com.sun.grizzly.maxBufferedBytes";
 
@@ -225,6 +228,11 @@ public class SelectorThreadConfig{
                 Boolean.valueOf(System.getProperty(OOBInline)).booleanValue();
         }
         
+        if (System.getProperty(SOCKET_LINGER) != null){
+            selectorThread.linger =
+                Integer.parseInt(System.getProperty(SOCKET_LINGER));
+        }
+
         if (System.getProperty(ENABLE_COMET_SUPPORT) != null){
             selectorThread.enableCometSupport(
                 Boolean.valueOf(
