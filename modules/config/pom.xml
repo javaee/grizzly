@@ -117,35 +117,29 @@
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
-            <version>2.5</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>hk2</artifactId>
-            <version>${hk2.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>config-types</artifactId>
-            <version>${hk2.version}</version>
         </dependency>
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
-            <version>5.10</version>
             <classifier>jdk15</classifier>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.enterprise</groupId>
             <artifactId>osgi-adapter</artifactId>
-            <version>${hk2.version}</version>
         </dependency>
         <dependency>
             <groupId>stax</groupId>
             <artifactId>stax</artifactId>
-            <version>1.2.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -159,8 +153,4 @@
             <version>${project.version}</version>
         </dependency>
     </dependencies>
-    <properties>
-        <hk2.version>0.4.17</hk2.version>
-        <hk2.plugin.version>0.4.17</hk2.plugin.version>
-    </properties>
 </project>

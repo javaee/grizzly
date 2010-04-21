@@ -105,12 +105,10 @@
         <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>servlet-api</artifactId>
-            <version>${servlet-version}</version>
         </dependency>
         <dependency>
            <groupId>javax.annotation</groupId>
            <artifactId>jsr250-api</artifactId>
-           <version>1.0</version>
         </dependency>
     </dependencies>
 </project>

@@ -14,7 +14,6 @@
     <name>Grizzly OSGi HttpService Integration Tests</name>
 
     <properties>
-        <grizzly.version>1.9.19-SNAPSHOT</grizzly.version>
         <felix.version>1.4.3</felix.version>
         <pax.version>1.4</pax.version>
         <org.osgi.service.http.port>8080</org.osgi.service.http.port>
@@ -71,49 +70,47 @@
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.core</artifactId>
-            <version>4.1.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.compendium</artifactId>
-            <version>4.1.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly.osgi</groupId>
             <artifactId>grizzly-httpservice</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-utils</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-portunif</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-rcm</artifactId>
-            <version>${grizzly.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <!--
         Pax Exam API:
@@ -160,7 +157,6 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.5</version>
             <scope>test</scope>
         </dependency>
         <dependency>
