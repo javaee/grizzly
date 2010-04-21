@@ -53,7 +53,7 @@ import javax.net.ssl.SSLEngine;
  * 
  * @author Jean-Francois Arcand
  */
-public class SSLAsyncOutputBuffer extends SocketChannelOutputBuffer{
+public class SSLAsyncOutputBuffer extends SocketChannelOutputBuffer implements SecureOuputBuffer {
     
     /**
      * Encrypted Output {@link ByteBuffer}
