@@ -50,7 +50,10 @@ public abstract class SelectionKeyAttachment {
     public static final long UNLIMITED_TIMEOUT = Long.MIN_VALUE;
     public static final long DEREGISTERED = Long.MIN_VALUE +1;
     
-    protected long timeout = UNLIMITED_TIMEOUT;
+    protected volatile long timeout = UNLIMITED_TIMEOUT;
+    protected volatile long idleTimeoutDelay = UNLIMITED_TIMEOUT;
+    protected volatile TimeOutListener timeoutListener;
+    protected volatile KeySelectionListener keySelectionListener;
 
     public static Object getAttachment(SelectionKey key) {
         Object attachment = key.attachment();
@@ -62,33 +65,55 @@ public abstract class SelectionKeyAttachment {
     }
 
     /**
-     * returns the idle timeout delay.
-     * default it returns Long.MIN_VALUE , meaning null.
-     * -1 means no timeout.
-     * Subclass need to override it.
+     * Returns the idle timeout delay.
+     * Default it returns UNLIMITED_TIMEOUT, meaning no idle timeout delay.
      * @return
      */
     public long getIdleTimeoutDelay(){
-        return UNLIMITED_TIMEOUT;
+        return idleTimeoutDelay;
     }
 
     /**
-     *  Subclass need to override this method for it to work.
-     *  Long.MIN_VALUE  means null , and default value will be used.
-     * -1 means no timeout.
-     * @param idletimeoutdelay
+     * Set the idle timeout delay.
+     * Default it returns UNLIMITED_TIMEOUT, meaning no idle timeout delay.
+     * @param idleTimeoutDelay
      */
-    public void setIdleTimeoutDelay(long idletimeoutdelay){
-        throw new IllegalStateException("setIdleTimeoutDelay not implemented in subclass");
+    public void setIdleTimeoutDelay(long idleTimeoutDelay){
+        this.idleTimeoutDelay = idleTimeoutDelay;
     }
 
-    
+    /**
+     * Get the channel expiration stamp in millis
+     * (last time an opeation on the channel was invoked).
+     * @return the channel expiration stamp in millis.
+     */
     public long getTimeout() {
         return timeout;
     }
     
+    /**
+     * Set the channel expiration stamp in millis
+     * (last time an opeation on the channel was invoked).
+     * @param timeout the channel expiration stamp in millis.
+     */
     public void setTimeout(long timeout) {
         this.timeout = timeout;
+    }
+
+    public TimeOutListener getTimeoutListener() {
+        return timeoutListener;
+    }
+
+    public void setTimeoutListener(TimeOutListener timeoutListener) {
+        this.timeoutListener = timeoutListener;
+    }
+
+    public KeySelectionListener getKeySelectionListener() {
+        return keySelectionListener;
+    }
+
+    public void setKeySelectionListener(KeySelectionListener keySelectionListener) {
+        this.keySelectionListener = keySelectionListener;
     }
 
     /**
@@ -97,12 +122,39 @@ public abstract class SelectionKeyAttachment {
      * @param Key
      * @return
      */
-    public boolean timedOut(SelectionKey Key){
+    public boolean timedOut(SelectionKey Key) {
+        TimeOutListener listener = this.timeoutListener;
+        if (listener != null) {
+            return listener.onTimeOut(Key);
+        }
+
         return true;
     }
 
+    /**
+     * Used for completely custom selector.select logic.
+     *
+     * @param selectionKey
+     */
+    public void handleSelectedKey(SelectionKey selectionKey) {
+        final KeySelectionListener listener = keySelectionListener;
+        if (listener != null) {
+            listener.onKeySelected(selectionKey);
+        }
+    }
 
     public void release(SelectionKey selectionKey) {
+        idleTimeoutDelay = UNLIMITED_TIMEOUT;
         timeout = UNLIMITED_TIMEOUT;
+        timeoutListener = null;
+        keySelectionListener = null;
+    }
+
+    public static interface TimeOutListener {
+        public boolean onTimeOut(SelectionKey key);
+    }
+
+    public static interface KeySelectionListener {
+        public void onKeySelected(SelectionKey selectionKey);
     }
 }

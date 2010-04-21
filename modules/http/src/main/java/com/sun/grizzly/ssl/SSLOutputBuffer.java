@@ -72,14 +72,24 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer {
     private static final AsyncWriteCallbackHandler asyncHttpWriteCallbackHandler =
             new SSLOutputBuffer.AsyncWriteCallbackHandlerImpl();
 
+    private SSLEngine sslEngine;
+    
     /**
      * Alternate constructor.
      */
     public SSLOutputBuffer(Response response, int headerBufferSize, 
                            boolean useSocketBuffer) {
         super(response,headerBufferSize,useSocketBuffer);     
-    }    
-        
+    }
+
+    public SSLEngine getSslEngine() {
+        return sslEngine;
+    }
+
+    public void setSslEngine(SSLEngine sslEngine) {
+        this.sslEngine = sslEngine;
+    }
+    
     /**
      * Flush the buffer by looping until the {@link ByteBuffer} is empty
      * using {@link SSLOutputBuffer}
@@ -92,41 +102,67 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer {
                     isAsyncHttpWriteEnabled + " bb=" + bb);
         }
 
-        if (!isAsyncHttpWriteEnabled) {
-            SSLOutputWriter.flushChannel((SocketChannel) channel, bb);
-        } else if (asyncQueueWriter != null) {
-            WorkerThread workerThread = (WorkerThread) Thread.currentThread();
-            SSLEngine sslEngine = workerThread.getSSLEngine();
+        boolean isBufferAssociated = true;
+        
+        // ---------- Obtain secured output ByteBuffer
+        ByteBuffer securedBB = null;
+        
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread instanceof WorkerThread) {
+            securedBB = ((WorkerThread) currentThread).getOutputBB();
+        }
 
+        int requiredBBSize = sslEngine.getSession().getPacketBufferSize();
+        if (securedBB == null || securedBB.capacity() < requiredBBSize) {
+            securedBB = bufferPool.poll();
+
+            if (securedBB == null || securedBB.capacity() < requiredBBSize) {
+                 final ByteBuffer newBB = ByteBufferFactory.allocateView(
+                        requiredBBSize * 2, securedBB != null ? securedBB.isDirect() : false);
+                securedBB = newBB;
+            }
+
+            securedBB.limit(securedBB.position());
+            isBufferAssociated = associateWithThread(securedBB);
+        }
+        // ---------- Now we have secured output ByteBuffer
+
+        if (!isAsyncHttpWriteEnabled) {
+            SSLOutputWriter.flushChannel((SocketChannel) channel, bb, securedBB, sslEngine);
+            if (!isBufferAssociated) { // If secured ByteBuffer is not associated with the current thread - try to return in to the pool
+                bufferPool.offer(securedBB);
+            } else {
+                securedBB.limit(securedBB.position());
+            }
+        } else if (asyncQueueWriter != null) {
             checkMaxBufferSize(sslEngine);
-            ByteBuffer outputBB = workerThread.getOutputBB();
             
             Future future = asyncQueueWriter.write(selectionKey, bb,
                     asyncHttpWriteCallbackHandler,
-                    new SSLWritePreProcessor(sslEngine, outputBB),
+                    new SSLWritePreProcessor(sslEngine, securedBB),
                     asyncHttpByteBufferCloner);
 
             if (!future.isDone()) {
                 // Replace outputBB, associated with thread
                 ByteBuffer buffer = bufferPool.poll();
-                int requiredBBSize = sslEngine.getSession().getPacketBufferSize();
+                requiredBBSize = sslEngine.getSession().getPacketBufferSize();
                 if (buffer != null && buffer.capacity() >= requiredBBSize) {
                     // take one from pool, if it matches
                     buffer.limit(buffer.position());
-                    workerThread.setOutputBB(buffer);
+                    associateWithThread(buffer);
                 } else {
                     // creaate new one
                     if (buffer != null) {
                         bufferPool.offer(buffer);
                     }
                     
-                    ByteBuffer newBB = ByteBufferFactory.allocateView(
-                            requiredBBSize * 2, outputBB.isDirect());
+                    final ByteBuffer newBB = ByteBufferFactory.allocateView(
+                            requiredBBSize * 2, securedBB.isDirect());
                     newBB.limit(newBB.position());
-                    workerThread.setOutputBB(newBB);
+                    associateWithThread(newBB);
                 }
             } else {
-                outputBB.limit(outputBB.position());
+                securedBB.limit(securedBB.position());
             }
 
             if (logger.isLoggable(Level.FINEST)) {
@@ -156,6 +192,22 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer {
      */
     @Override
     public boolean isSupportFileSend() {
+        return false;
+    }
+
+    @Override
+    public void recycle() {
+        sslEngine = null;
+        super.recycle();
+    }
+    
+    private final boolean associateWithThread(ByteBuffer buffer) {
+        final Thread currentThread = Thread.currentThread();
+        if (currentThread instanceof WorkerThread) {
+            ((WorkerThread) currentThread).setOutputBB(buffer);
+            return true;
+        }
+
         return false;
     }
     

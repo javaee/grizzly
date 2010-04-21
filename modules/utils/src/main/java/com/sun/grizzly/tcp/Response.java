@@ -57,7 +57,8 @@ package com.sun.grizzly.tcp;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.tcp.http11.filters.VoidOutputFilter;
 import com.sun.grizzly.util.LoggerUtils;
-import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
+import com.sun.grizzly.util.SelectionKeyAttachment;
+import com.sun.grizzly.util.ThreadAttachment;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.io.IOException;
@@ -919,22 +920,23 @@ public class Response<A> {
     }
     
     
-    public static class ResponseAttachment<A> extends SelectedKeyAttachmentLogic
-            implements Runnable {
+    public static class ResponseAttachment<A> implements SelectionKeyAttachment.KeySelectionListener,
+                       SelectionKeyAttachment.TimeOutListener {
 
-        private CompletionHandler<? super A> completionHandler;
+        private volatile CompletionHandler<? super A> completionHandler;
         private final A attachment;
-        private long idletimeoutdelay;
         private final Response response;
+        private final long idleTimeoutDelay;
         private volatile boolean isAttached;
+
+        protected volatile ThreadAttachment threadAttachment;
         
-        protected ResponseAttachment(long idletimeoutdelay,A attachment,
-                CompletionHandler<? super A> completionHandler, Response response){
-            this.idletimeoutdelay = idletimeoutdelay;
+        protected ResponseAttachment(long idleTimeoutDelay, A attachment,
+                CompletionHandler<? super A> completionHandler, Response response) {
+            this.idleTimeoutDelay = idleTimeoutDelay;
             this.attachment = attachment;
             this.completionHandler = completionHandler;
-            this.response = response;            
-            resetTimeout();
+            this.response = response;
         }
 
         public boolean isAttached() {
@@ -953,18 +955,28 @@ public class Response<A> {
             return completionHandler;
         }
 
-        public void resetTimeout(){
-            timeout = System.currentTimeMillis();
+        public void resetTimeout() {
+            final ThreadAttachment localThreadAttachment = threadAttachment;
+            if (localThreadAttachment != null) {
+                localThreadAttachment.setTimeout(System.currentTimeMillis());
+            }
         }
 
-        @Override
+        public long getTimeout() {
+            final ThreadAttachment localThreadAttachment = threadAttachment;
+            if (localThreadAttachment != null) {
+                return localThreadAttachment.getTimeout();
+            }
+
+            return SelectionKeyAttachment.UNLIMITED_TIMEOUT;
+        }
+
         public long getIdleTimeoutDelay() {
-            return idletimeoutdelay;
+            return idleTimeoutDelay;
         }
 
-        @Override
-        public void setIdleTimeoutDelay(long idletimeoutdelay){
-            this.idletimeoutdelay = idletimeoutdelay;
+        void setThreadAttachment(ThreadAttachment threadAttachment) {
+            this.threadAttachment = threadAttachment;
         }
 
         public void invokeCompletionHandler(){
@@ -984,9 +996,13 @@ public class Response<A> {
             }
         }
 
-        @Override
-        public boolean timedOut(SelectionKey key) {
-            key.attach(null);
+        /**
+         * {@inheritDoc}
+         */
+        public boolean onTimeOut(SelectionKey key) {
+//            key.attach(null);
+            SuspendResponseUtils.detach(key);
+            
             run();
             return false;
         }
@@ -998,8 +1014,7 @@ public class Response<A> {
         /**
          * {@inheritDoc}
          */
-        @Override
-        public void handleSelectedKey(SelectionKey selectionKey) {
+        public void onKeySelected(SelectionKey selectionKey) {
             if (!selectionKey.isValid() || discardDisconnectEvent){
                 selectionKey.cancel();
                 return;

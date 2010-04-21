@@ -35,25 +35,22 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.util;
-
-import java.nio.channels.SelectionKey;
 
 /**
  * allows for custom selector.select logic, if controller detects
  * SelectedKeyAttachmentLogic attachment
  * on a valid key it does not perform anything.
- *
+ * @deprecated {@link SelectionKeyAttachment} declares {@link SelectionKeyAttachment#handleSelectedKey(java.nio.channels.SelectionKey)}
+ * 
  * @author gustav trede
  */
-public abstract class SelectedKeyAttachmentLogic extends SelectionKeyAttachment{
+public abstract class SelectedKeyAttachmentLogic extends SelectionKeyAttachment {
 
     /**
-     *  used for completely custom selector.select logic.
+     * Used for completely custom selector.select logic.
      * 
      * @param selectionKey
      */
-      public abstract void handleSelectedKey(SelectionKey selectionKey);
-
+//    public abstract void handleSelectedKey(SelectionKey selectionKey);
 }

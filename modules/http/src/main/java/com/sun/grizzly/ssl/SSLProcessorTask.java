@@ -48,7 +48,10 @@ import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.tcp.http11.InputFilter;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.filters.BufferedInputFilter;
+import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.net.SSLSupport;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.logging.Level;
 
 /**
@@ -90,6 +93,13 @@ public class SSLProcessorTask extends ProcessorTask {
         request.setResponse(response);
 
         initializeFilters();
+    }
+
+    @Override
+    public void preProcess(InputStream input, OutputStream output) throws Exception {
+        super.preProcess(input, output);
+
+        ((SSLOutputBuffer) outputBuffer).setSslEngine(((WorkerThread) Thread.currentThread()).getSSLEngine());
     }
     
    
@@ -151,5 +161,5 @@ public class SSLProcessorTask extends ProcessorTask {
         } else {
             super.action(actionCode,param);
         }
-    } 
+    }
 }

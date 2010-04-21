@@ -37,8 +37,9 @@
  */
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.ControllerStateListenerAdapter;
+import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.http.utils.SelectorThreadUtils;
+import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.CompletionHandler;
 import com.sun.grizzly.tcp.Request;
@@ -48,20 +49,29 @@ import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.WorkerThreadImpl;
+import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import java.io.BufferedReader;
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
-import junit.framework.TestCase;
+import java.util.logging.Logger;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
+import org.testng.annotations.Test;
+import static org.testng.AssertJUnit.*;
 
 /**
  * Units test that exercise the {@link Response#suspend}, {@link Response#resume}
@@ -70,7 +80,9 @@ import junit.framework.TestCase;
  * @author Jeanfrancois Arcand
  * @author gustav trede
  */
-public class SuspendTest extends TestCase {
+@Test
+public class SuspendTest {
+    private static Logger logger = Logger.getLogger("grizzly.test");
 
     public static final int PORT = 18890;
     private ScheduledThreadPoolExecutor pe;
@@ -78,82 +90,97 @@ public class SuspendTest extends TestCase {
     private final String testString = "blabla test.";
     private final byte[] testData = testString.getBytes();
 
-    @Override
-    protected void setUp() throws Exception {
-        super.setUp();
-        pe = new ScheduledThreadPoolExecutor(1);
-        createSelectorThread();
+
+    @DataProvider(name = "isSslEnabled")
+    public Object[][] createData1() {
+        return new Object[][]{
+                    {Boolean.FALSE},
+                    {Boolean.TRUE}
+                };
     }
 
-    @Override
-    protected void tearDown() throws Exception {
-        super.tearDown();
+    @BeforeMethod
+    public void before(Object[] parameters) throws Exception {
+        boolean isSslEnabled = parameters[0] != null && ((Boolean) parameters[0]);
+        
+        pe = new ScheduledThreadPoolExecutor(1);
+        createSelectorThread(isSslEnabled);
+    }
+
+    @AfterMethod
+    public void tearDown() throws Exception {
         pe.shutdown();
         SelectorThreadUtils.stopSelectorThread(st);
     }
 
-    public void createSelectorThread() {
-        st = new SelectorThread() {
-            /**
-             * Start the SelectorThread using its own thread and don't block the Thread.
-             *  This method should be used when Grizzly is embedded.
-             */
-            @Override
-            public void listen() throws IOException, InstantiationException {
-                initEndpoint();
-                final CountDownLatch latch = new CountDownLatch(1);
-                controller.addStateListener(new ControllerStateListenerAdapter() {
-
-                    @Override
-                    public void onReady() {
-                        enableMonitoring();
-                        latch.countDown();
-                    }
-
-                    @Override
-                    public void onException(Throwable e) {
-                        if (latch.getCount() > 0) {
-                            logger().log(Level.SEVERE, "Exception during " +
-                                    "starting the controller", e);
-                            latch.countDown();
-                        } else {
-                            logger().log(Level.SEVERE, "Exception during " +
-                                    "controller processing", e);
-                        }
-                    }
-                });
-
-                super.start();
-
-                try {
-                    latch.await();
-                } catch (InterruptedException ex) {
-                }
-
-                if (!controller.isStarted()) {
-                    throw new IllegalStateException("Controller is not started!");
-                }
+    private void createSelectorThread(boolean isSslEnabled) throws Exception {
+        if (isSslEnabled) {
+            SSLConfig sslConfig = configureSSL();
+            SSLSelectorThread sslSelectorThread = new SSLSelectorThread();
+            sslSelectorThread.setSSLConfig(sslConfig);
+            try {
+                sslSelectorThread.setSSLImplementation(new JSSEImplementation());
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
-        };
+            st = sslSelectorThread;
+        } else {
+            st = new SelectorThread();
+        }
 
         st.setPort(PORT);
         st.setDisplayConfiguration(true);
     }
 
-    private void setAdapterAndListen(Adapter adapter) throws Exception{
+    private SSLConfig configureSSL() throws Exception {
+        SSLConfig sslConfig = new SSLConfig();
+        ClassLoader cl = getClass().getClassLoader();
+        // override system properties
+        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
+        if (cacertsUrl != null) {
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
+        }
+
+        logger.log(Level.INFO, "SSL certs path: " + trustStoreFile);
+
+        // override system properties
+        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
+        if (keystoreUrl != null) {
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
+        }
+
+        logger.log(Level.INFO, "SSL keystore path: " + keyStoreFile);
+        SSLConfig.DEFAULT_CONFIG = sslConfig;
+
+        System.setProperty("javax.net.ssl.trustStore", trustStoreFile);
+        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+        System.setProperty("javax.net.ssl.keyStore", keyStoreFile);
+        System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
+
+        return sslConfig;
+    }
+
+    private void setAdapterAndListen(Adapter adapter) throws Exception {
         st.setAdapter(adapter);
         st.listen();
         st.enableMonitoring();
     }
 
     // See https://grizzly.dev.java.net/issues/show_bug.cgi?id=592
-    public void __testSuspendDoubleCancelInvokation() throws Exception {
+    @Test(dataProvider="isSslEnabled", enabled=false)
+    public void __testSuspendDoubleCancelInvokation(boolean isSslEnabled) throws Exception {
         System.err.println("Test: testSuspendDoubleCancelInvokation");
         final CountDownLatch latch = new CountDownLatch(1);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable{
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+
                     @Override
                     public void cancelled(StaticResourcesAdapter attachment) {
                         System.err.println("cancelled");
@@ -162,8 +189,8 @@ public class SuspendTest extends TestCase {
                 });
 
                 cancelLater(res);
-                
-                if(!latch.await(5, TimeUnit.SECONDS)){
+
+                if (!latch.await(5, TimeUnit.SECONDS)) {
                     fail("was canceled too late");
                 }
                 try {
@@ -174,34 +201,37 @@ public class SuspendTest extends TestCase {
                 }
             }
         });
-        sendRequest(false);
+        sendRequest(isSslEnabled, false);
     }
 
-   public void testSuspendResumeSameTransaction() throws Exception {
-        System.err.println("Test: testSuspendResumeSameTransaction");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendResumeSameTransaction(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendResumeSameTransaction isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-            public void service(final Request req, final Response res){
-                try{
+            public void service(final Request req, final Response res) {
+                try {
                     res.suspend();
                     res.resume();
-                    res.getChannel().write(ByteBuffer.wrap(testData));
+                    write(res, testData);
                     res.finish();
                 } catch (Exception ex) {
                     ex.printStackTrace();
                 }
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-
-    public void testSuspendResumeNoArgs() throws Exception {
-        System.err.println("Test: testSuspendResumeNoArgs");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendResumeNoArgs(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendResumeNoArgs isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-            public void service(final Request req, final Response res){
-                try{
+            public void service(final Request req, final Response res) {
+                try {
                     res.suspend();
                     writeToSuspendedClient(res);
                     res.resume();
@@ -210,16 +240,19 @@ public class SuspendTest extends TestCase {
                 }
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testSuspendNoArgs() throws Exception {
-        System.err.println("Test: testSuspendNoArgs");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendNoArgs(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendNoArgs isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
             public void service(final Request req, final Response res) {
                 res.suspend();
                 pe.schedule(new Runnable() {
+
                     public void run() {
                         writeToSuspendedClient(res);
                         res.resume();
@@ -227,15 +260,18 @@ public class SuspendTest extends TestCase {
                 }, 2, TimeUnit.SECONDS);
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testSuspendResumedCompletionHandler() throws Exception {
-        System.err.println("Test: testSuspendResumedCompletionHandler");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendResumedCompletionHandler(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendResumedCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable{
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+
                     @Override
                     public void resumed(StaticResourcesAdapter attachment) {
                         writeToSuspendedClient(res);
@@ -244,15 +280,18 @@ public class SuspendTest extends TestCase {
                 resumeLater(res);
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testSuspendCancelledCompletionHandler() throws Exception {
-        System.err.println("Test: testSuspendCancelledCompletionHandler");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendCancelledCompletionHandler(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendCancelledCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-            public void dologic(final Request req, final Response res) throws  Throwable{
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+
                     @Override
                     public void cancelled(StaticResourcesAdapter attachment) {
                         writeToSuspendedClient(res);
@@ -266,26 +305,30 @@ public class SuspendTest extends TestCase {
                 this.cancelLater(res);
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testSuspendSuspendedExceptionCompletionHandler() throws Exception {
-        System.err.println("Test: testSuspendSuspendedExceptionCompletionHandler");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendSuspendedExceptionCompletionHandler(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendSuspendedExceptionCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable{
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+
                     private AtomicBoolean first = new AtomicBoolean(true);
+
                     @Override
                     public void resumed(StaticResourcesAdapter attachment) {
-                        if (!first.compareAndSet(true, false)){
+                        if (!first.compareAndSet(true, false)) {
                             fail("recursive resume");
                         }
                         System.err.println("Resumed.");
-                        try{
+                        try {
                             res.resume();
-                            fail("should not reach here");;
-                        }catch(IllegalStateException ise){
+                            fail("should not reach here");
+                        } catch (IllegalStateException ise) {
                             writeToSuspendedClient(res);
                         }
                     }
@@ -293,20 +336,23 @@ public class SuspendTest extends TestCase {
                 resumeLater(res);
             }
         });
-        sendRequest(true);
+        sendRequest(isSslEnabled, true);
     }
 
-    public void testSuspendTimeoutCompletionHandler() throws Exception {
-        System.err.println("Test: testSuspendTimeoutCompletionHandler");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendTimeoutCompletionHandler(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendTimeoutCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable{
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(5 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+
                     @Override
                     public void cancelled(StaticResourcesAdapter attachment) {
                         try {
                             System.err.println("Time out");
-                            res.getChannel().write(ByteBuffer.wrap(testData));
+                            write(res, testData);
                         } catch (Throwable ex) {
                             ex.printStackTrace();
                         }
@@ -314,15 +360,18 @@ public class SuspendTest extends TestCase {
                 });
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testSuspendDoubleSuspendInvokation() throws Exception {
-        System.err.println("Test: testSuspendDoubleSuspendInvokation");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendDoubleSuspendInvokation(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendDoubleSuspendInvokation isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-            public void dologic(final Request req, final Response res) throws Throwable{
+            public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+
                     @Override
                     public void resumed(StaticResourcesAdapter attachment) {
                         System.err.println("resumed");
@@ -330,6 +379,7 @@ public class SuspendTest extends TestCase {
                 });
 
                 pe.schedule(new Runnable() {
+
                     public void run() {
                         try {
                             res.suspend();
@@ -337,9 +387,9 @@ public class SuspendTest extends TestCase {
                         } catch (IllegalStateException t) {
                             System.err.println("catched suspended suspend");
                             writeToSuspendedClient(res);
-                            try{
+                            try {
                                 res.resume();
-                            }catch(Throwable at){
+                            } catch (Throwable at) {
                                 at.printStackTrace();
                                 fail(at.getMessage());
                             }
@@ -348,15 +398,18 @@ public class SuspendTest extends TestCase {
                 }, 2, TimeUnit.SECONDS);
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testSuspendDoubleResumeInvokation() throws Exception {
-        System.err.println("Test: testSuspendDoubleResumeInvokation");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendDoubleResumeInvokation(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendDoubleResumeInvokation isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
             public void dologic(final Request req, final Response res) throws Throwable {
                 res.suspend(60 * 1000, this, new TestCompletionHandler<StaticResourcesAdapter>() {
+
                     @Override
                     public void resumed(StaticResourcesAdapter attachment) {
                         try {
@@ -368,29 +421,32 @@ public class SuspendTest extends TestCase {
                         }
                     }
                 });
-               resumeLater(res);
+                resumeLater(res);
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testSuspendResumedCompletionHandlerGrizzlyAdapter() throws Exception {
-        System.err.println("Test: testSuspendResumedCompletionHandlerGrizzlyAdapter");;
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendResumedCompletionHandlerGrizzlyAdapter(boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendResumedCompletionHandlerGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
+
             @Override
             public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
                 try {
                     res.suspend(60 * 1000, this, new TestCompletionHandler<GrizzlyAdapter>() {
+
                         @Override
                         public void resumed(GrizzlyAdapter attachment) {
                             if (res.isSuspended()) {
                                 System.err.println("Resumed");
-                                try{
+                                try {
                                     res.getWriter().write(testString);
                                 } catch (Exception ex) {
                                     ex.printStackTrace();
                                 }
-                            }else{
+                            } else {
                                 fail("resumed without being suspended");
                             }
                         }
@@ -403,17 +459,20 @@ public class SuspendTest extends TestCase {
                 }
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testSuspendTimeoutCompletionHandlerGrizzlyAdapter() throws Exception {
-        System.err.println("Test: testSuspendTimeoutCompletionHandlerGrizzlyAdapter");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendTimeoutCompletionHandlerGrizzlyAdapter(boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendTimeoutCompletionHandlerGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
+
             @Override
             public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
                 try {
                     final long t1 = System.currentTimeMillis();
                     res.suspend(10 * 1000, "foo", new TestCompletionHandler<String>() {
+
                         @Override
                         public void cancelled(String attachment) {
                             try {
@@ -429,27 +488,30 @@ public class SuspendTest extends TestCase {
                 }
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    public void testFastSuspendResumeGrizzlyAdapter() throws Exception {
-        System.err.println("Test: testFastSuspendResumeGrizzlyAdapter");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testFastSuspendResumeGrizzlyAdapter(boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testFastSuspendResumeGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
+
             @Override
             public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
                 try {
                     final long t1 = System.currentTimeMillis();
                     res.suspend(10 * 1000, "foo", new TestCompletionHandler<String>() {
+
                         @Override
                         public void resumed(String attachment) {
                             try {
                                 System.err.println("Resumed TOOK: " + (System.currentTimeMillis() - t1));
                                 res.getWriter().write(testString);
-                                res.finishResponse(); 
-                            // res.flushBuffer();
+                                res.finishResponse();
+                                // res.flushBuffer();
                             } catch (Exception ex) {
                                 ex.printStackTrace();
-                            } 
+                            }
                         }
                     });
                 } catch (Throwable t) {
@@ -457,6 +519,7 @@ public class SuspendTest extends TestCase {
                 }
 
                 new WorkerThreadImpl(new Runnable() {
+
                     public void run() {
                         try {
                             Thread.sleep(5000);
@@ -468,26 +531,26 @@ public class SuspendTest extends TestCase {
                         if (!res.isCommitted()) {
                             System.err.println("Resuming");
                             res.resume();
-                        }else{
+                        } else {
                             fail("response is commited so we dont resume");
                         }
                     }
                 }).start();
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-
-
-    public void testSuspendResumeOneTransaction() throws Exception {
-        System.err.println("Test: testSuspendResumeOneTransaction");
+    @Test(dataProvider="isSslEnabled", enabled=true)
+    public void testSuspendResumeOneTransaction(final boolean isSslEnabled) throws Exception {
+        System.err.println("Test: testSuspendResumeOneTransaction isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
+
             @Override
-                public void service(final Request req, final Response res) {                
+            public void service(final Request req, final Response res) {
                 try {
                     res.suspend();
-                    res.getChannel().write(ByteBuffer.wrap(testData));
+                    write(res, testData);
                     res.flush();
                     res.resume();
                 } catch (Exception ex) {
@@ -495,35 +558,52 @@ public class SuspendTest extends TestCase {
                 }
             }
         });
-        sendRequest();
+        sendRequest(isSslEnabled);
     }
 
-    
-    private void resumeLater(final GrizzlyResponse res){
+    private void resumeLater(final GrizzlyResponse res) {
         pe.schedule(new Runnable() {
-            public void run() {                
+
+            public void run() {
                 if (res.isSuspended()) {
                     try {
                         System.err.println("Now Resuming");
                         res.resume();
                     } catch (Throwable ex) {
                         ex.printStackTrace();
-                        fail("resume failed: "+ex.getMessage());
+                        fail("resume failed: " + ex.getMessage());
                     }
-                }else{
+                } else {
                     fail("not suspended, so we dont resume");
                 }
             }
         }, 2, TimeUnit.SECONDS);
     }
-    
-    private void sendRequest() throws Exception {
-        sendRequest(true);
+
+    private void write(Response response, byte[] data) throws IOException {
+        ByteChunk bc = new ByteChunk();
+        bc.setBytes(data, 0, data.length);
+
+        response.setContentType("custom/response");
+        response.getOutputBuffer().doWrite(bc, response);
+        response.flush();
     }
 
-    private void sendRequest(boolean assertResponse) throws Exception {
-        Socket s = new Socket("localhost", PORT);
-        try{
+    private void sendRequest(boolean isSslEnabled) throws Exception {
+        sendRequest(isSslEnabled, true);
+    }
+
+    private void sendRequest(boolean isSslEnabled, boolean assertResponse)
+            throws Exception {
+        Socket s;
+
+        if (isSslEnabled) {
+            s = SSLConfig.DEFAULT_CONFIG.createSSLContext().getSocketFactory().createSocket("localhost", PORT);
+        } else {
+            s = new Socket("localhost", PORT);
+        }
+
+        try {
             s.setSoTimeout(30 * 1000);
             OutputStream os = s.getOutputStream();
 
@@ -545,29 +625,28 @@ public class SuspendTest extends TestCase {
                     break;
                 }
             }
-            if (assertResponse)
+            if (assertResponse) {
                 assertTrue(gotCorrectResponse);
-        }finally{
+            }
+        } finally {
         }
     }
-    
 
     private class TestStaticResourcesAdapter extends StaticResourcesAdapter {
         @Override
-        public void service(Request req,Response res) {
-                try {
-                    if (res.isSuspended()) {
-                        super.service(req, res);
-                    }else{
-                        dologic(req,res);
-                    }
-                }catch(junit.framework.AssertionFailedError ae){
+        public void service(Request req, Response res) {
+            try {
+                if (res.isSuspended()) {
+                    super.service(req, res);
+                } else {
+                    dologic(req, res);
                 }
-                catch (Throwable t) {
-                    t.printStackTrace();
-                    fail(t.getMessage());
-                }
+            } catch (junit.framework.AssertionFailedError ae) {
+            } catch (Throwable t) {
+                t.printStackTrace();
+                fail(t.getMessage());
             }
+        }
 
         public void dologic(final Request req, final Response res) throws Throwable {
         }
@@ -583,20 +662,21 @@ public class SuspendTest extends TestCase {
             }
         }
 
-        protected void writeToSuspendedClient(Response resp){
+        protected void writeToSuspendedClient(Response resp) {
             if (resp.isSuspended()) {
                 try {
-                    resp.getChannel().write(ByteBuffer.wrap(testData));
+                    write(resp, testData);
                 } catch (Throwable ex) {
                     ex.printStackTrace();
                 }
-            }else{
+            } else {
                 fail("Not Suspended.");
             }
         }
-        
-        protected void cancelLater(final Response res){
+
+        protected void cancelLater(final Response res) {
             pe.schedule(new Runnable() {
+
                 public void run() {
                     if (res.isSuspended()) {
                         try {
@@ -604,17 +684,18 @@ public class SuspendTest extends TestCase {
                             res.cancel();
                         } catch (Throwable ex) {
                             ex.printStackTrace();
-                            fail("cancel failed: "+ex.getMessage());
+                            fail("cancel failed: " + ex.getMessage());
                         }
-                    }else{
+                    } else {
                         fail("not suspended, so we dont cancel");
                     }
                 }
             }, 2, TimeUnit.SECONDS);
         }
 
-        protected void resumeLater(final Response res){
+        protected void resumeLater(final Response res) {
             pe.schedule(new Runnable() {
+
                 public void run() {
                     if (res.isSuspended()) {
                         try {
@@ -622,9 +703,9 @@ public class SuspendTest extends TestCase {
                             res.resume();
                         } catch (Throwable ex) {
                             ex.printStackTrace();
-                            fail("resume failed: "+ex.getMessage());
+                            fail("resume failed: " + ex.getMessage());
                         }
-                    }else{
+                    } else {
                         fail("not suspended, so we dont resume");
                     }
                 }
@@ -632,11 +713,12 @@ public class SuspendTest extends TestCase {
         }
     }
 
-    
     private class TestCompletionHandler<StaticResourcesAdapter> implements CompletionHandler<StaticResourcesAdapter> {
+
         public void resumed(StaticResourcesAdapter attachment) {
             fail("Unexpected resume");
         }
+
         public void cancelled(StaticResourcesAdapter attachment) {
             fail("Unexpected Cancel");
         }

@@ -68,8 +68,11 @@ import java.io.InputStream;
 import java.nio.BufferOverflowException;
 
 public class InternalInputBuffer implements InputBuffer {
+    private static final boolean IS_HEADER_CASE_SENSITIVE;
 
-
+    static {
+        IS_HEADER_CASE_SENSITIVE = Boolean.getBoolean("com.sun.grizzly.http.caseSensitiveHeader");
+    }
     // -------------------------------------------------------------- Constants
 
 
@@ -613,7 +616,7 @@ public class InternalInputBuffer implements InputBuffer {
                 headerValue = headers.addValue(buf, start, pos - start);
             }
             chr = buf[pos];
-            if ((chr >= Constants.A) && (chr <= Constants.Z)) {
+            if (!IS_HEADER_CASE_SENSITIVE && (chr >= Constants.A) && (chr <= Constants.Z)) {
                 buf[pos] = (byte) (chr - Constants.LC_OFFSET);
             }
 

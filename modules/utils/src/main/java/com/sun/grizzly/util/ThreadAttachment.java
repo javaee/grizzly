@@ -57,7 +57,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     /**
      * The maximum time this object can be associated with an active {@link Thread}
      */
-    private long activeThreadTimeout = UNLIMITED_TIMEOUT;
+    private long transactionTimeout = UNLIMITED_TIMEOUT;
 
     public static class Mode {
         public static int ATTRIBUTES_ONLY = 0;
@@ -271,7 +271,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         sslEngine = null;
         inputBB = null;
         outputBB = null;
-        activeThreadTimeout = UNLIMITED_TIMEOUT;
+        transactionTimeout = UNLIMITED_TIMEOUT;
     }
 
     @Override
@@ -307,22 +307,44 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     }
 
     /**
-     * Set the time, in milliseconds, this object can be attached to a {@link Thread}
-     * @param the time, in milliseconds, this object can be attached to a {@link Thread}
-     */
-    @Override
-    public void setIdleTimeoutDelay(long activeThreadTimeout) {
-        this.activeThreadTimeout = activeThreadTimeout;
-        activeThread= Thread.currentThread();
-    }
-
-
-    /**
      * Return the time, in milliseconds, this object can be attached to a {@link Thread}
      * @return the time, in milliseconds, this object can be attached to a {@link Thread}
      */
+    public long getTransactionTimeout() {
+        return transactionTimeout;
+    }
+
+    /**
+     * Set the time, in milliseconds, this object can be attached to a {@link Thread}
+     * @param transactionTimeout the time, in milliseconds, this object can be attached to a {@link Thread}
+     */
+    public void setTransactionTimeout(long transactionTimeout) {
+        this.transactionTimeout = transactionTimeout;
+    }
+
+    @Override
+    public void setIdleTimeoutDelay(long idleTimeoutDelay) {
+        super.setIdleTimeoutDelay(idleTimeoutDelay);
+        activeThread = Thread.currentThread();
+    }
+
+
     @Override
     public long getIdleTimeoutDelay() {
-        return activeThreadTimeout;
+        if (isUnlimitedTimeout(idleTimeoutDelay)) { // the most often case, if async is not used
+            return transactionTimeout;
+        }
+
+        if (transactionTimeout >= 0 && idleTimeoutDelay >= 0) {
+            return Math.min(transactionTimeout, idleTimeoutDelay);
+        } else if (idleTimeoutDelay >= 0) {
+            return idleTimeoutDelay;
+        } else {
+            return transactionTimeout;
+        }
+    }
+
+    protected static final boolean isUnlimitedTimeout(long timeout) {
+        return timeout == SelectionKeyAttachment.UNLIMITED_TIMEOUT;
     }
 }

@@ -64,6 +64,7 @@ import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.Response.ResponseAttachment;
+import com.sun.grizzly.tcp.SuspendResponseUtils;
 import com.sun.grizzly.tcp.http11.InputFilter;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.OutputFilter;
@@ -724,7 +725,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             wt.getAttachment().setAttribute(Response.SUSPENDED,Boolean.TRUE);
             final ResponseAttachment ra = response.getResponseAttachment();
             ra.markAttached(true);
-            key.attach(ra);
+            SuspendResponseUtils.attach(key, ra);
             return;
         }
         finishResponse();
@@ -864,7 +865,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             WorkerThread workerThread = (WorkerThread)Thread.currentThread();
             KeepAliveThreadAttachment k =
                     (KeepAliveThreadAttachment) workerThread.getAttachment();
-            k.setIdleTimeoutDelay(transactionTimeout);
+            k.setTransactionTimeout(transactionTimeout);
 
             request.setStartTime(System.currentTimeMillis());
 
@@ -1195,9 +1196,11 @@ public class ProcessorTask extends TaskBase implements Processor,
             key.attach(null);
         } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
             if (key != null) {
-                Object attachment = key.attachment();
-                if (attachment instanceof Response.ResponseAttachment){
-                    ((Response.ResponseAttachment)attachment).resetTimeout();
+                final Response.ResponseAttachment suspendedResponse =
+                        SuspendResponseUtils.get(key);
+                
+                if (suspendedResponse != null) {
+                    suspendedResponse.resetTimeout();
                 }
             }
         } else if (actionCode == ActionCode.ACTION_CLIENT_FLUSH ) {
