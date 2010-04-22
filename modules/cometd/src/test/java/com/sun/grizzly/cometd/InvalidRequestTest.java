@@ -128,7 +128,7 @@ public class InvalidRequestTest extends TestCase {
 
     
     
-    public void testConnectWitoutHandshake() throws IOException {
+    public void testConnectWithoutHandshake() throws IOException {
         
         Socket socket = new Socket(host, PORT);
         socket.setSoTimeout(30 * 1000);
