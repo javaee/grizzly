@@ -62,27 +62,31 @@ import java.io.OutputStream;
 import java.net.Socket;
 import java.net.URL;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.DataProvider;
-import org.testng.annotations.Test;
-import static org.testng.AssertJUnit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
+import static org.junit.Assert.*;
 
 /**
  * Units test that exercise the {@link Response#suspend}, {@link Response#resume}
  * and {@link Response.cancel} API.
- * 
+ *
  * @author Jeanfrancois Arcand
  * @author gustav trede
  */
-@Test
+@RunWith(Parameterized.class)
 public class SuspendTest {
     private static Logger logger = Logger.getLogger("grizzly.test");
 
@@ -92,30 +96,33 @@ public class SuspendTest {
     private final String testString = "blabla test.";
     private final byte[] testData = testString.getBytes();
 
+    private final boolean isSslEnabled;
 
-    @DataProvider(name = "isSslEnabled")
-    public Object[][] createData1() {
-        return new Object[][]{
+    public SuspendTest(boolean isSslEnabled) {
+        this.isSslEnabled = isSslEnabled;
+    }
+
+    @Parameters
+    public static Collection<Object[]> getSslParameter() {
+        return Arrays.asList(new Object[][]{
                     {Boolean.FALSE},
                     {Boolean.TRUE}
-                };
+                });
     }
 
-    @BeforeMethod
-    public void before(Object[] parameters) throws Exception {
-        boolean isSslEnabled = parameters[0] != null && ((Boolean) parameters[0]);
-        
+    @Before
+    public void before() throws Exception {
         pe = new ScheduledThreadPoolExecutor(1);
-        createSelectorThread(isSslEnabled);
+        createSelectorThread();
     }
 
-    @AfterMethod
-    public void tearDown() throws Exception {
+    @After
+    public void after() throws Exception {
         pe.shutdown();
         SelectorThreadUtils.stopSelectorThread(st);
     }
 
-    private void createSelectorThread(boolean isSslEnabled) throws Exception {
+    private void createSelectorThread() throws Exception {
         if (isSslEnabled) {
             SSLConfig sslConfig = configureSSL();
             SSLSelectorThread sslSelectorThread = new SSLSelectorThread();
@@ -173,8 +180,9 @@ public class SuspendTest {
     }
 
     // See https://grizzly.dev.java.net/issues/show_bug.cgi?id=592
-    @Test(dataProvider="isSslEnabled", enabled=false)
-    public void __testSuspendDoubleCancelInvokation(boolean isSslEnabled) throws Exception {
+    @Ignore
+    @Test
+    public void __testSuspendDoubleCancelInvokation() throws Exception {
         Utils.dumpErr("Test: testSuspendDoubleCancelInvokation");
         final CountDownLatch latch = new CountDownLatch(1);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
@@ -206,8 +214,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled, false);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendResumeSameTransaction(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendResumeSameTransaction() throws Exception {
         Utils.dumpErr("Test: testSuspendResumeSameTransaction isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -226,8 +234,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendResumeNoArgs(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendResumeNoArgs() throws Exception {
         Utils.dumpErr("Test: testSuspendResumeNoArgs isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -245,8 +253,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendNoArgs(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendNoArgs() throws Exception {
         Utils.dumpErr("Test: testSuspendNoArgs isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -265,8 +273,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendResumedCompletionHandler(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendResumedCompletionHandler() throws Exception {
         Utils.dumpErr("Test: testSuspendResumedCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -285,8 +293,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendCancelledCompletionHandler(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendCancelledCompletionHandler() throws Exception {
         Utils.dumpErr("Test: testSuspendCancelledCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -310,8 +318,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendSuspendedExceptionCompletionHandler(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendSuspendedExceptionCompletionHandler() throws Exception {
         Utils.dumpErr("Test: testSuspendSuspendedExceptionCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -341,8 +349,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled, true);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendTimeoutCompletionHandler(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendTimeoutCompletionHandler() throws Exception {
         Utils.dumpErr("Test: testSuspendTimeoutCompletionHandler isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -365,8 +373,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendDoubleSuspendInvokation(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendDoubleSuspendInvokation() throws Exception {
         Utils.dumpErr("Test: testSuspendDoubleSuspendInvokation isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -403,8 +411,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendDoubleResumeInvokation(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendDoubleResumeInvokation() throws Exception {
         Utils.dumpErr("Test: testSuspendDoubleResumeInvokation isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
@@ -429,8 +437,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendResumedCompletionHandlerGrizzlyAdapter(boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendResumedCompletionHandlerGrizzlyAdapter() throws Exception {
         Utils.dumpErr("Test: testSuspendResumedCompletionHandlerGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
 
@@ -464,8 +472,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendTimeoutCompletionHandlerGrizzlyAdapter(boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendTimeoutCompletionHandlerGrizzlyAdapter() throws Exception {
         Utils.dumpErr("Test: testSuspendTimeoutCompletionHandlerGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
 
@@ -493,8 +501,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testFastSuspendResumeGrizzlyAdapter(boolean isSslEnabled) throws Exception {
+    @Test
+    public void testFastSuspendResumeGrizzlyAdapter() throws Exception {
         Utils.dumpErr("Test: testFastSuspendResumeGrizzlyAdapter isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new GrizzlyAdapter() {
 
@@ -543,8 +551,8 @@ public class SuspendTest {
         sendRequest(isSslEnabled);
     }
 
-    @Test(dataProvider="isSslEnabled", enabled=true)
-    public void testSuspendResumeOneTransaction(final boolean isSslEnabled) throws Exception {
+    @Test
+    public void testSuspendResumeOneTransaction() throws Exception {
         Utils.dumpErr("Test: testSuspendResumeOneTransaction isSslEnabled=" + isSslEnabled);
         setAdapterAndListen(new TestStaticResourcesAdapter() {
 
