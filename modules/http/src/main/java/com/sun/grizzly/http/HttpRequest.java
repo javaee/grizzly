@@ -38,11 +38,17 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.http.io.InputBuffer;
+import com.sun.grizzly.http.io.RequestInputStream;
+import com.sun.grizzly.http.io.RequestReader;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.Parameters;
 import com.sun.grizzly.http.util.RequestURIRef;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Enumeration;
@@ -72,6 +78,12 @@ public class HttpRequest extends HttpHeader {
     private boolean parametersParsed;
     private boolean secure;
     private boolean secureParsed;
+    private boolean usingReader;
+    private boolean usingStream;
+
+    private InputStream inputStream;
+    private Reader reader;
+    private InputBuffer inputBuffer;
 
     private String localHost;
 
@@ -111,7 +123,14 @@ public class HttpRequest extends HttpHeader {
         return connection;
     }
 
-    
+    public InputBuffer getInputBuffer() {
+        return inputBuffer;
+    }
+
+    public void setInputBuffer(InputBuffer inputBuffer) {
+        this.inputBuffer = inputBuffer;
+    }
+
     // -------------------- Request data --------------------
 
 
@@ -437,6 +456,35 @@ public class HttpRequest extends HttpHeader {
 
 
     /**
+     * TODO Docs
+     * @return
+     */
+    public InputStream getInputStream() throws IOException {
+        if (usingReader) {
+            throw new IllegalStateException();
+        }
+
+        if (inputStream == null) {
+            inputStream = new RequestInputStream(inputBuffer);
+        }
+        return inputStream;
+    }
+
+
+    public Reader getReader() throws IOException {
+        if (usingStream) {
+            throw new IllegalStateException();
+        }
+
+        if (reader == null) {
+            inputBuffer.processingChars();
+            reader = new RequestReader(inputBuffer);
+        }
+        return reader;
+    }
+
+
+    /**
      * TODO : Support parameter processing from POST
      * @return a {@link Parameters} instance representing any query parameters
      *  included with the request URI.
@@ -477,6 +525,7 @@ public class HttpRequest extends HttpHeader {
         localNameBC.recycle();
         serverNameBC.recycle();
         parameters.recycle();
+        inputBuffer.recycle();
 
         remotePort = -1;
         localPort = -1;
@@ -484,10 +533,14 @@ public class HttpRequest extends HttpHeader {
 
         connection = null;
         localHost = null;
+        inputStream = null;
+        reader = null;
 
         secure = false;
         parametersParsed = false;
         secureParsed = false;
+        usingReader = false;
+        usingStream = false;
 
         // XXX Do we need such defaults ?
         methodBC.setString("GET");
