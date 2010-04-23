@@ -224,7 +224,7 @@ public class Context implements AttributeStorage, Cacheable {
      * {@link Context} will be offered to pool.
      */
     public void reset() {
-        attributes.clear();
+        attributes.recycle();
         
         processor = null;
         postProcessor = null;

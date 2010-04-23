@@ -98,6 +98,13 @@ public class NamedAttributeHolder implements AttributeHolder {
         return attributesMap.keySet();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void recycle() {
+        attributesMap.clear();
+    }
 
     /**
      * {@inheritDoc}

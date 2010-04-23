@@ -141,6 +141,15 @@ public final class IndexedAttributeHolder implements AttributeHolder {
      * {@inheritDoc}
      */
     @Override
+    public void recycle() {
+        // Recycle is not synchronized
+        Arrays.fill(attributeValues, null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public void clear() {
         lock.writeLock().lock();
 

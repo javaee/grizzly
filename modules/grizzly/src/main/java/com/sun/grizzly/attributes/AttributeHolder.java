@@ -88,6 +88,10 @@ public interface AttributeHolder {
      */
     public void clear();
     
+    /**
+     * Recycle <tt>AttributeHolder</tt>
+     */
+    public void recycle();
     
     /**
      * Get AttributeBuilder, associated with this holder
