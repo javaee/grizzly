@@ -21,7 +21,7 @@
         <module>http-servlet</module>
         <module>comet</module>
         <module>cometd</module>
-        <module>http-servlet-deployer</module>
+        <!--<module>http-servlet-deployer</module>-->
         <module>compat</module>
         <module>bundles</module>
         <module>config</module>        
