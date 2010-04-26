@@ -104,6 +104,9 @@ class HttpResponseImpl extends HttpResponse implements HttpPacketParsing {
         super.reset();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void recycle() {
         reset();

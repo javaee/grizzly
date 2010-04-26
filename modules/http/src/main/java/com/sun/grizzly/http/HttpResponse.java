@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.io.OutputBuffer;
 import com.sun.grizzly.http.io.ResponseOutputStream;
 import com.sun.grizzly.http.io.ResponseWriter;
@@ -58,6 +59,19 @@ import java.io.Writer;
  * @author Alexey Stashok
  */
 public class HttpResponse extends HttpHeader {
+    private static final ThreadCache.CachedTypeIndex<HttpResponse> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpResponse.class, 2);
+
+    public static HttpResponse create() {
+        final HttpResponse httpResponse =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (httpResponse != null) {
+            return httpResponse;
+        }
+
+        return new HttpResponse();
+    }
+
     public static final int NON_PARSED_STATUS = Integer.MIN_VALUE;
     
     // ----------------------------------------------------- Instance Variables
@@ -241,6 +255,7 @@ public class HttpResponse extends HttpHeader {
     @Override
     public void recycle() {
         reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
     /**
@@ -366,7 +381,7 @@ public class HttpResponse extends HttpHeader {
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
-            packet = new HttpResponse();
+            packet = HttpResponse.create();
         }
 
         /**

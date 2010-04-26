@@ -57,22 +57,22 @@ public interface HttpPacketFactory {
         
         @Override
         public HttpRequest createHttpRequest() {
-            return new HttpRequest();
+            return HttpRequest.create();
         }
 
         @Override
         public HttpResponse createHttpResponse() {
-            return new HttpResponse();
+            return HttpResponse.create();
         }
 
         @Override
         public HttpContent createHttpContent(HttpHeader httpHeader) {
-            return new HttpContent(httpHeader);
+            return HttpContent.create(httpHeader);
         }
 
         @Override
         public HttpTrailer createHttpTrailer(HttpHeader httpHeader) {
-            return new HttpTrailer(httpHeader);
+            return HttpTrailer.create(httpHeader);
         }
     }
 }

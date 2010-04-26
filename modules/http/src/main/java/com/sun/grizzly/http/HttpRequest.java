@@ -38,6 +38,7 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.io.InputBuffer;
 import com.sun.grizzly.http.io.RequestInputStream;
 import com.sun.grizzly.http.io.RequestReader;
@@ -62,6 +63,18 @@ import java.util.Enumeration;
  * @author Alexey Stashok
  */
 public class HttpRequest extends HttpHeader {
+    private static final ThreadCache.CachedTypeIndex<HttpRequest> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpRequest.class, 2);
+
+    public static HttpRequest create() {
+        final HttpRequest httpRequest =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (httpRequest != null) {
+            return httpRequest;
+        }
+
+        return new HttpRequest();
+    }
 
     // ----------------------------------------------------- Instance Variables
 
@@ -491,13 +504,13 @@ public class HttpRequest extends HttpHeader {
      */
     public Parameters getParameters() {
         if (!parametersParsed) {
-            String charEncoding = getCharacterEncoding();
-            charEncoding = ((charEncoding == null)
+            String charEncodingLocal = getCharacterEncoding();
+            charEncodingLocal = ((charEncodingLocal == null)
                             ? Constants.DEFAULT_CHARACTER_ENCODING
-                            : charEncoding);
+                            : charEncodingLocal);
             parameters.setQuery(queryBC);
-            parameters.setEncoding(charEncoding);
-            parameters.setQueryStringEncoding(charEncoding);
+            parameters.setEncoding(charEncodingLocal);
+            parameters.setQueryStringEncoding(charEncodingLocal);
             parameters.setHeaders(getHeaders());
             parameters.handleQueryParameters();
             parametersParsed = true;
@@ -552,6 +565,7 @@ public class HttpRequest extends HttpHeader {
     @Override
     public void recycle() {
         reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
     /**
@@ -574,10 +588,10 @@ public class HttpRequest extends HttpHeader {
                 .append("\n   protocol=").append(getProtocol())
                 .append("\n   content-length=").append(getContentLength())
                 .append("\n   headers=[");
-        MimeHeaders headers = getHeaders();
-        for (Enumeration<String> e = headers.names(); e.hasMoreElements(); ) {
+        MimeHeaders headersLocal = getHeaders();
+        for (Enumeration<String> e = headersLocal.names(); e.hasMoreElements(); ) {
             String n = e.nextElement();
-            sb.append("\n      ").append(n).append('=').append(headers.getHeader(n));
+            sb.append("\n      ").append(n).append('=').append(headersLocal.getHeader(n));
         }
         sb.append("]\n)");
 
@@ -589,7 +603,7 @@ public class HttpRequest extends HttpHeader {
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
-            packet = new HttpRequest();
+            packet = HttpRequest.create();
         }
 
         /**

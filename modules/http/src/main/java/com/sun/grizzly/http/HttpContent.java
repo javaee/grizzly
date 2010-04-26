@@ -39,6 +39,7 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.memory.BufferUtils;
 
 /**
@@ -56,6 +57,23 @@ import com.sun.grizzly.memory.BufferUtils;
  * @author Alexey Stashok
  */
 public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpContent> {
+    private static final ThreadCache.CachedTypeIndex<HttpContent> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpContent.class, 2);
+
+    public static HttpContent create() {
+        return create(null);
+    }
+
+    public static HttpContent create(HttpHeader httpHeader) {
+        final HttpContent httpContent =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (httpContent != null) {
+            httpContent.httpHeader = httpHeader;
+            return httpContent;
+        }
+
+        return new HttpContent(httpHeader);
+    }
 
     /**
      * Returns {@link HttpContent} builder.
@@ -160,6 +178,7 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
     @Override
     public void recycle() {
         reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
     /**
@@ -174,7 +193,7 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
         }
 
         protected HttpContent create(HttpHeader httpHeader) {
-            return new HttpContent(httpHeader);
+            return HttpContent.create(httpHeader);
         }
 
         /**

@@ -111,6 +111,9 @@ class HttpRequestImpl extends HttpRequest implements HttpPacketParsing {
         super.reset();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void recycle() {
         reset();

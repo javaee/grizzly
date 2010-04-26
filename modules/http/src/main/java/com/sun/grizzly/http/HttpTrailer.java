@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.util.MimeHeaders;
 
 /**
@@ -47,6 +48,24 @@ import com.sun.grizzly.http.util.MimeHeaders;
  * @author Alexey Stashok
  */
 public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
+    private static final ThreadCache.CachedTypeIndex<HttpTrailer> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpTrailer.class, 2);
+
+    public static HttpTrailer create() {
+        return create(null);
+    }
+
+    public static HttpTrailer create(HttpHeader httpHeader) {
+        final HttpTrailer httpTrailer =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (httpTrailer != null) {
+            httpTrailer.httpHeader = httpHeader;
+            return httpTrailer;
+        }
+
+        return new HttpTrailer(httpHeader);
+    }
+
     /**
      * Returns {@link HttpTrailer} builder.
      *
@@ -141,6 +160,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
     @Override
     public void recycle() {
         reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 
     /**
@@ -153,7 +173,7 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
 
         @Override
         protected HttpContent create(HttpHeader httpHeader) {
-            return new HttpTrailer(httpHeader);
+            return HttpTrailer.create(httpHeader);
         }
 
         /**
