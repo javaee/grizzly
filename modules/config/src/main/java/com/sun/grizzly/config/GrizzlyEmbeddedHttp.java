@@ -543,7 +543,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
             setCoreThreads(minThreads);
             setMaxThreads(maxThreads);
-            final int timeout = Integer.parseInt(http.getTimeoutSeconds());
+            final int timeout = Integer.parseInt(http.getRequestTimeoutSeconds());
 
             if (!com.sun.grizzly.util.Utils.isDebugVM() && timeout > 0) {
                 // Idle Threads cannot be alive more than 15 minutes by default
