@@ -199,7 +199,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Time after which the request times out in seconds
      */
-    @Attribute(defaultValue = "30", dataType = Integer.class)
+    @Attribute(defaultValue = "900", dataType = Integer.class)
     @Min(0)
     @Max(Integer.MAX_VALUE)
     String getRequestTimeoutSeconds();
@@ -257,6 +257,11 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getVersion();
 
     void setVersion(final String version);
+
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getWebsocketsSupportEnabled();
+
+    void setWebsocketsSupportEnabled(String enabled);
 
     /**
      * The Servlet 2.4 spec defines a special X-Powered-By: Servlet/2.4 header, which containers may add to

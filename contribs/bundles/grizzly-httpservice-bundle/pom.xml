@@ -4,13 +4,13 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.18-m</version>
+        <version>1.9.18-n</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <packaging>jar</packaging>
     <name>Grizzly OSGi HttpService Bundle</name>
-    <version>1.9.18-m</version>
+    <version>1.9.18-n</version>
     <groupId>com.sun.grizzly.osgi</groupId>
     <artifactId>grizzly-httpservice-bundle</artifactId>
     <dependencies>
@@ -34,17 +34,17 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-http-servlet</artifactId>
-            <version>1.9.18-m</version>
+            <version>1.9.18-n</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-comet</artifactId>
-            <version>1.9.18-m</version>
+            <version>1.9.18-n</version>
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly.osgi</groupId>
             <artifactId>grizzly-httpservice</artifactId>
-            <version>1.9.18-m</version>
+            <version>1.9.18-n</version>
         </dependency>
     </dependencies>
     <build>

@@ -333,7 +333,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * The default response-type
      */
-    protected String defaultResponseType = Constants.DEFAULT_RESPONSE_TYPE;
+    protected String defaultResponseType = null;
      
     
     /**
@@ -702,7 +702,7 @@ public class ProcessorTask extends TaskBase implements Processor,
      * Prepare and post the response.
      * @param input the InputStream to read bytes
      * @param output the OutputStream to write bytes
-     */       
+     */
     public void postResponse() throws Exception{
         if (isProcessingCompleted){
             return;
@@ -1504,7 +1504,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         }
 
         int statusCode = response.getStatus();
-        if ((statusCode == 204) || (statusCode == 205) 
+        if ((statusCode == 204) || (statusCode == 205)
             || (statusCode == 304)) {
             // No entity body
             outputBuffer.addActiveFilter
@@ -1517,13 +1517,13 @@ public class ProcessorTask extends TaskBase implements Processor,
         boolean useCompression = false;
         if (entityBody && (compressionLevel > 0)) {
             useCompression = isCompressable();
-            
+
             // Change content-length to -1 to force chunking
             if (useCompression) {
                 response.setContentLength(-1);
             }
         }
-        
+
         MessageBytes methodMB = request.method();
         if (methodMB.equals("HEAD")) {
             // No entity body
@@ -1539,10 +1539,10 @@ public class ProcessorTask extends TaskBase implements Processor,
             String contentType = response.getContentType();
             if (contentType != null) {
                 headers.setValue("Content-Type").setString(contentType);
-            } else {
+            } else if (defaultResponseType != null) {
                 headers.setValue("Content-Type").setString(defaultResponseType);
             }
-        
+
             String contentLanguage = response.getContentLanguage();
             if (contentLanguage != null && !"".equals(contentLanguage)) {
                 headers.setValue("Content-Language")
@@ -1575,18 +1575,18 @@ public class ProcessorTask extends TaskBase implements Processor,
             // Make Proxies happy via Vary (from mod_deflate)
             response.setHeader("Vary", "Accept-Encoding");
         }
-        
+
         // Add date header
         if (! response.containsHeader("Date")){
             String date = FastHttpDateFormat.getCurrentDate();
             response.addHeader("Date", date);
         }
-         
+
         // Add transfer encoding header
         // FIXME
 
         if ((entityBody) && (!contentDelimitation)) {
-            // Mark as close the connection after the request, and add the 
+            // Mark as close the connection after the request, and add the
             // connection: close header
             keepAlive = false;
         }
@@ -2396,7 +2396,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     }
 
     /**
-     * Set the maximum time, in milliseconds, a {@link WrokerThread} processing 
+     * Set the maximum time, in milliseconds, a {@link WrokerThread} processing
      * an instance of this class.
      * 
      * @param transactionTimeout  the maximum time, in milliseconds.

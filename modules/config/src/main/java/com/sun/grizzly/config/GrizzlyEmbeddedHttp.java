@@ -500,7 +500,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                     break;
                 }
             }
-            final int timeout = Integer.parseInt(http.getTimeoutSeconds());
+            final int timeout = Integer.parseInt(http.getRequestTimeoutSeconds());
             if (!debugMode && timeout > 0) {
                 // Idle Threads cannot be alive more than 15 minutes by default
                 setTransactionTimeout(timeout * 1000);
