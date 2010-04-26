@@ -147,14 +147,14 @@ public class InputBuffer {
 
     /**
      * <p>
-     * Constructs an <code>InputBuffer</code> to be used with the current
-     * {@link HttpRequest}.
+     * Per-request initialization required for the InputBuffer to function
+     * properly.
      * </p>
      *
-     * @param request the current {@link HttpRequest}
-     * @param ctx the current {@link FilterChainContext}
+     * @param request the current request
+     * @param ctx the FilterChainContext for the chain processing this request
      */
-    public InputBuffer(HttpRequest request, FilterChainContext ctx) {
+    public void initialize(HttpRequest request, FilterChainContext ctx) {
 
         if (request == null) {
             throw new IllegalArgumentException();
@@ -166,18 +166,18 @@ public class InputBuffer {
         this.ctx = ctx;
         connection = ctx.getConnection();
         buffers = ByteBuffersBuffer.create(connection.getTransport().getMemoryManager());
-        HttpContent content = (HttpContent) ctx.getMessage();
-        if (content.isLast()) {
-            contentRead = true;
-        }
-        if (content.getContent().position() > 0) {
-            buffers.append(content.getContent());
+        Object message = ctx.getMessage();
+        if (message instanceof HttpContent) {
+            HttpContent content = (HttpContent) ctx.getMessage();
+            if (content.isLast()) {
+                contentRead = true;
+            }
+            if (content.getContent().position() > 0) {
+                buffers.append(content.getContent());
+            }
         }
 
     }
-
-
-    // ---------------------------------------------------------- Public Methods
 
 
     /**
@@ -187,12 +187,11 @@ public class InputBuffer {
      */
     public void recycle() {
 
-        request.recycle();
-        buffers.clear();
-        buffers.dispose();
+        buffers.tryDispose();
+
+        charBuf.clear();
 
         connection = null;
-        charBuf = null;
         decoder = null;
         remainder = null;
         ctx = null;

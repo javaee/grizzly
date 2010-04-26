@@ -53,8 +53,6 @@ import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequest;
 import com.sun.grizzly.http.HttpResponse;
 import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.http.io.InputBuffer;
-import com.sun.grizzly.http.io.OutputBuffer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -114,7 +112,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("GET", null), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -142,7 +139,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -187,7 +183,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -228,7 +223,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -283,7 +277,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -320,7 +313,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -348,7 +340,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -376,7 +367,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -402,7 +392,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", content), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -432,7 +421,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -470,7 +458,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", b.toString()), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -509,7 +496,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", b.toString()), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -542,8 +528,7 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
-        
+
     }
 
 
@@ -569,7 +554,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -595,7 +579,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", content), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -624,7 +607,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -662,7 +644,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", b.toString()), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -700,7 +681,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", b.toString()), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -738,7 +718,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", b.toString()), reader, 1024 * 9);
-        reportThreadErrors();
 
     }
 
@@ -768,7 +747,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -798,7 +776,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -836,7 +813,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", b.toString()), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -868,7 +844,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -912,7 +887,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", b.toString()), reader, len);
-        reportThreadErrors();
 
     }
 
@@ -952,7 +926,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -979,7 +952,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", expected), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -1023,7 +995,6 @@ public class HttpInputStreamsTest extends TestCase {
         };
 
         doTest(createRequest("POST", b.toString()), reader, 1024);
-        reportThreadErrors();
 
     }
 
@@ -1055,7 +1026,7 @@ public class HttpInputStreamsTest extends TestCase {
 
 
     private void doTest(HttpPacket request, ReadStrategy readStrategy, int chunkSize)
-    throws Exception {
+    throws Throwable {
 
         final FutureImpl<Boolean> testResult = SafeFutureImpl.create();
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
@@ -1085,7 +1056,7 @@ public class HttpInputStreamsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get();
+                testResult.get(10, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
@@ -1096,6 +1067,7 @@ public class HttpInputStreamsTest extends TestCase {
             transport.stop();
             ctransport.stop();
             TransportFactory.getInstance().close();
+            reportThreadErrors();
         }
     }
 
@@ -1110,7 +1082,7 @@ public class HttpInputStreamsTest extends TestCase {
     }
 
     
-    private static class SimpleHttpResponseFilter extends BaseFilter {
+    private class SimpleHttpResponseFilter extends BaseFilter {
         private ReadStrategy strategy;
         private boolean readCalled;
 
@@ -1133,9 +1105,9 @@ public class HttpInputStreamsTest extends TestCase {
                 HttpResponse response = HttpResponse.builder().chunked(false).
                         protocol(HttpFilter.HTTP_1_1).status(200).reasonPhrase("OK")
                         .build();
-                response.setOutputBuffer(new OutputBuffer(response, ctx));
+                response.getOutputBuffer().initialize(response, ctx);
                 HttpRequest request = (HttpRequest) httpContent.getHttpHeader();
-                request.setInputBuffer(new InputBuffer(request, ctx));
+                request.getInputBuffer().initialize(request, ctx);
                 readCalled = true;
                 try {
                     if (strategy.doRead(request)) {
@@ -1143,6 +1115,7 @@ public class HttpInputStreamsTest extends TestCase {
                     }
                 } finally {
                     response.finish();
+                    response.recycle();
                 }
             }
             return ctx.getStopAction();

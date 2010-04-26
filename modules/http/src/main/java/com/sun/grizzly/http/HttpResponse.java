@@ -89,12 +89,13 @@ public class HttpResponse extends HttpHeader {
     private ResponseOutputStream responseStream;
 
 
+
     /**
      * Status message.
      */
     private BufferChunk reasonPhraseBC = BufferChunk.newInstance();
 
-    private OutputBuffer outputBuffer;
+    private OutputBuffer outputBuffer = new OutputBuffer();
 
 
     /**
@@ -202,11 +203,6 @@ public class HttpResponse extends HttpHeader {
 
     }
 
-
-    public void setOutputBuffer(OutputBuffer outputBuffer) {
-        this.outputBuffer = outputBuffer;
-    }
-
     public OutputBuffer getOutputBuffer() {
         return outputBuffer;
     }
@@ -245,6 +241,7 @@ public class HttpResponse extends HttpHeader {
         statusBC.recycle();
         reasonPhraseBC.recycle();
         committed = false;
+        outputBuffer.recycle();
 
         super.reset();
     }

@@ -96,7 +96,7 @@ public class HttpRequest extends HttpHeader {
 
     private InputStream inputStream;
     private Reader reader;
-    private InputBuffer inputBuffer;
+    private InputBuffer inputBuffer = new InputBuffer();
 
     private String localHost;
 

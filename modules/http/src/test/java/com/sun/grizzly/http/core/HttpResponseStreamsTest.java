@@ -52,7 +52,6 @@ import com.sun.grizzly.http.HttpFilter;
 import com.sun.grizzly.http.HttpRequest;
 import com.sun.grizzly.http.HttpResponse;
 import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.http.io.OutputBuffer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -661,11 +660,12 @@ public class HttpResponseStreamsTest extends TestCase {
 
             HttpResponse response = HttpResponse.builder().chunked(true).
                   protocol(HttpFilter.HTTP_1_1).status(200).reasonPhrase("OK").build();
-            response.setOutputBuffer(new OutputBuffer(response, ctx));
+            response.getOutputBuffer().initialize(response, ctx);
 
             strategy.doWrite(response);
 
             response.finish();
+            response.recycle();
 
             return ctx.getStopAction();
         }

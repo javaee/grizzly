@@ -80,18 +80,16 @@ public class OutputBuffer {
 
     private CharsetEncoder encoder;
 
-    private CharBuffer charBuf;
+    private CharBuffer charBuf = CharBuffer.allocate(DEFAULT_BUFFER_SIZE);
 
     private MemoryManager memoryManager;
 
 
+    // ---------------------------------------------------------- Public Methods
 
 
-    // ------------------------------------------------------------ Constructors
-
-
-    public OutputBuffer(HttpResponse response,
-                        FilterChainContext ctx) {
+    public void initialize(HttpResponse response,
+                           FilterChainContext ctx) {
 
         this.response = response;
         this.ctx = ctx;
@@ -101,13 +99,8 @@ public class OutputBuffer {
     }
 
 
-
-    // ---------------------------------------------------------- Public Methods
-
-
     public void processingChars() {
         processingChars = true;
-        charBuf = CharBuffer.allocate(DEFAULT_BUFFER_SIZE);
     }
 
 
@@ -143,15 +136,14 @@ public class OutputBuffer {
      */
     public void recycle() {
 
-        // Recycle Request object
-        response.recycle();
+        response = null;
 
-        buf.dispose();
+        buf.tryDispose();
+        charBuf.clear();
 
         buf = null;
         encoder = null;
         ctx = null;
-        charBuf = null;
         memoryManager = null;
 
         committed = false;
