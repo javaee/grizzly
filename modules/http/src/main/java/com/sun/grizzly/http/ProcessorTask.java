@@ -332,7 +332,7 @@ public class ProcessorTask extends TaskBase implements Processor,
     /**
      * The default response-type
      */
-    protected String defaultResponseType = Constants.DEFAULT_RESPONSE_TYPE;
+    protected String defaultResponseType = null;
 
 
     /**
@@ -1573,7 +1573,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 String contentType = response.getContentType();
                 if (contentType != null) {
                     headers.setValue("Content-Type").setString(contentType);
-                } else {
+                } else if (defaultResponseType != null) {
                     headers.setValue("Content-Type").setString(defaultResponseType);
                 }
 
