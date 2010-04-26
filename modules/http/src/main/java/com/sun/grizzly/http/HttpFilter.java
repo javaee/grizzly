@@ -1002,7 +1002,7 @@ public abstract class HttpFilter extends BaseFilter {
         public boolean isContentLengthHeader;
         public boolean isTransferEncodingHeader;
 
-        public ParsingState(int initialOffset, int maxHeaderSize) {
+        public void initialize(int initialOffset, int maxHeaderSize) {
             offset = initialOffset;
             packetLimit = offset + maxHeaderSize;
         }

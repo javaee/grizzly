@@ -220,18 +220,27 @@ public class HttpResponse extends HttpHeader {
         return responseStream;
     }
 
-
     // --------------------
-    
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected void reset() {
+        statusBC.recycle();
+        reasonPhraseBC.recycle();
+        committed = false;
+
+        super.reset();
+    }
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void recycle() {
-        super.recycle();
-        statusBC.recycle();
-        reasonPhraseBC.recycle();
-        committed = false;
+        reset();
     }
 
     /**

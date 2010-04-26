@@ -39,8 +39,9 @@
 package com.sun.grizzly.http;
 
 /**
- *
- * @author oleksiys
+ * Factory for the different HTTP packet types.
+ * 
+ * @author Alexey Stashok
  */
 public interface HttpPacketFactory {
     public HttpRequest createHttpRequest();

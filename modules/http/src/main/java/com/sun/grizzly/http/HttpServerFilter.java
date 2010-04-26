@@ -107,10 +107,8 @@ public class HttpServerFilter extends HttpFilter {
         
         HttpRequestImpl httpRequest = httpRequestInProcessAttr.get(connection);
         if (httpRequest == null) {
-            final ParsingState parsingState =
-                    new ParsingState(input.position(), maxHeadersSize);
-            httpRequest = new HttpRequestImpl(parsingState);
-            httpRequest.setConnection(connection);
+            httpRequest = HttpRequestImpl.create();
+            httpRequest.initialize(connection, input.position(), maxHeadersSize);
             httpRequestInProcessAttr.set(connection, httpRequest);
         }
 

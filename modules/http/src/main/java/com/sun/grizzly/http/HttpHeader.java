@@ -42,7 +42,6 @@ import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.ContentType;
 import com.sun.grizzly.http.util.Cookies;
 import com.sun.grizzly.http.util.MimeHeaders;
-import com.sun.grizzly.http.util.Parameters;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
@@ -324,10 +323,9 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     }
 
     /**
-     * {@inheritDoc}
+     * Reset the internal state.
      */
-    @Override
-    public void recycle() {
+    protected void reset() {
         protocolBC.recycle();
         headers.clear();
         cookies.recycle();
@@ -338,6 +336,14 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
         charEncodingParsed = false;
         contentType = null;
         contentTypeParsed = false;
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void recycle() {
+        reset();
     }
 
     /**

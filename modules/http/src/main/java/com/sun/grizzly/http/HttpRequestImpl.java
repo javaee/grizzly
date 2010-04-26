@@ -38,22 +38,42 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.Connection;
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.HttpFilter.ContentParsingState;
-import com.sun.grizzly.http.HttpFilter.ParsingState;
 
 /**
  *
  * @author oleksiys
  */
 class HttpRequestImpl extends HttpRequest implements HttpPacketParsing {
+    private static final ThreadCache.CachedTypeIndex<HttpRequestImpl> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpRequestImpl.class, 2);
+
+    public static HttpRequestImpl create() {
+        final HttpRequestImpl httpRequestImpl =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (httpRequestImpl != null) {
+            return httpRequestImpl;
+        }
+
+        return new HttpRequestImpl();
+    }
+
     private boolean isHeaderParsed;
     
-    private HttpFilter.ParsingState headerParsingState;
-    private HttpFilter.ContentParsingState contentParsingState;
+    private final HttpFilter.ParsingState headerParsingState;
+    private final HttpFilter.ContentParsingState contentParsingState;
 
-    HttpRequestImpl(ParsingState parsingState) {
-        this.headerParsingState = parsingState;
-        contentParsingState = new HttpFilter.ContentParsingState();
+    private HttpRequestImpl() {
+        this.headerParsingState = new HttpFilter.ParsingState();
+        this.contentParsingState = new HttpFilter.ContentParsingState();
+    }
+
+    public void initialize(Connection connection, int initialOffset,
+            int maxHeaderSize) {
+        headerParsingState.initialize(initialOffset, maxHeaderSize);
+        setConnection(connection);
     }
 
     @Override
@@ -61,17 +81,9 @@ class HttpRequestImpl extends HttpRequest implements HttpPacketParsing {
         return headerParsingState;
     }
 
-    public void setHeaderParsingState(HttpFilter.ParsingState headerParsingState) {
-        this.headerParsingState = headerParsingState;
-    }
-
     @Override
     public ContentParsingState getContentParsingState() {
         return contentParsingState;
-    }
-
-    public void setContentParsingState(ContentParsingState contentParsingState) {
-        this.contentParsingState = contentParsingState;
     }
 
     @Override
@@ -88,11 +100,20 @@ class HttpRequestImpl extends HttpRequest implements HttpPacketParsing {
         this.isHeaderParsed = isHeaderParsed;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void recycle() {
+    protected void reset() {
         headerParsingState.recycle();
         contentParsingState.recycle();
         isHeaderParsed = false;
-        super.recycle();
+        super.reset();
+    }
+
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }

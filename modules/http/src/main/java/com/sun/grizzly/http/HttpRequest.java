@@ -508,14 +508,11 @@ public class HttpRequest extends HttpHeader {
 
     // -------------------- Recycling --------------------
 
-    
     /**
      * {@inheritDoc}
      */
     @Override
-    public void recycle() {
-        super.recycle();
-
+    protected void reset() {
         requestURIRef.recycle();
         queryBC.recycle();
         methodBC.recycle();
@@ -545,6 +542,16 @@ public class HttpRequest extends HttpHeader {
         // XXX Do we need such defaults ?
         methodBC.setString("GET");
         protocolBC.setString("HTTP/1.0");
+
+        super.reset();
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void recycle() {
+        reset();
     }
 
     /**

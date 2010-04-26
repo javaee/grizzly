@@ -38,6 +38,8 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.Cacheable;
+
 /**
  * Abstraction, which represents any type of HTTP message: {@link HttpRequest},
  * {@link HttpResponse}, {@link HttpContent}.
@@ -48,7 +50,7 @@ package com.sun.grizzly.http;
  * 
  * @author Alexey Stashok
  */
-public interface HttpPacket {
+public interface HttpPacket extends Cacheable {
     /**
      * Returns <tt>true</tt>, if this HTTP message represents HTTP messsage header,
      * or <tt>false</tt> otherwise.
@@ -57,9 +59,4 @@ public interface HttpPacket {
      * or <tt>false</tt> otherwise.
      */
     public boolean isHeader();
-
-    /**
-     * Recycle the {@link HttpPacket} and associated abstractions.
-     */
-    public void recycle();
 }

@@ -130,9 +130,17 @@ public class HttpTrailer extends HttpContent implements MimeHeadersPacket {
      * {@inheritDoc}
      */
     @Override
-    public void recycle() {
+    protected void reset() {
         this.headers.recycle();
-        super.recycle();
+        super.reset();
+    }
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void recycle() {
+        reset();
     }
 
     /**

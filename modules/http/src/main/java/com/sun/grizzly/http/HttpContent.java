@@ -146,13 +146,20 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
     }
 
     /**
+     * Reset the internal state.
+     */
+    protected void reset() {
+        isLast = false;
+        content = BufferUtils.EMPTY_BUFFER;
+        httpHeader = null;
+    }
+
+    /**
      * {@inheritDoc}
      */
     @Override
     public void recycle() {
-        isLast = false;
-        content = BufferUtils.EMPTY_BUFFER;
-        httpHeader = null;
+        reset();
     }
 
     /**

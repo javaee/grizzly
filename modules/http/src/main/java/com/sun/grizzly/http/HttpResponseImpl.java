@@ -38,31 +38,44 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.HttpFilter.ContentParsingState;
-import com.sun.grizzly.http.HttpFilter.ParsingState;
 
 /**
  *
  * @author oleksiys
  */
 class HttpResponseImpl extends HttpResponse implements HttpPacketParsing {
-    private boolean isHeaderParsed;
-    
-    private HttpFilter.ParsingState headerParsingState;
-    private HttpFilter.ContentParsingState contentParsingState;
+    private static final ThreadCache.CachedTypeIndex<HttpResponseImpl> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpResponseImpl.class, 2);
 
-    HttpResponseImpl(ParsingState parsingState) {
-        this.headerParsingState = parsingState;
-        contentParsingState = new HttpFilter.ContentParsingState();
+    public static HttpResponseImpl create() {
+        final HttpResponseImpl httpResponseImpl =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (httpResponseImpl != null) {
+            return httpResponseImpl;
+        }
+
+        return new HttpResponseImpl();
     }
 
+    private boolean isHeaderParsed;
+    
+    private final HttpFilter.ParsingState headerParsingState;
+    private final HttpFilter.ContentParsingState contentParsingState;
+
+    private HttpResponseImpl() {
+        this.headerParsingState = new HttpFilter.ParsingState();
+        this.contentParsingState = new HttpFilter.ContentParsingState();
+    }
+
+    public void initialize(int initialOffset, int maxHeaderSize) {
+        headerParsingState.initialize(initialOffset, maxHeaderSize);
+    }
+    
     @Override
     public HttpFilter.ParsingState getHeaderParsingState() {
         return headerParsingState;
-    }
-
-    public void setHeaderParsingState(HttpFilter.ParsingState headerParsingState) {
-        this.headerParsingState = headerParsingState;
     }
 
     @Override
@@ -70,23 +83,30 @@ class HttpResponseImpl extends HttpResponse implements HttpPacketParsing {
         return contentParsingState;
     }
 
-    public void setContentParsingState(ContentParsingState contentParsingState) {
-        this.contentParsingState = contentParsingState;
-    }
-
+    @Override
     public boolean isHeaderParsed() {
         return isHeaderParsed;
     }
 
+    @Override
     public void setHeaderParsed(boolean isHeaderParsed) {
         this.isHeaderParsed = isHeaderParsed;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public void recycle() {
+    protected void reset() {
         headerParsingState.recycle();
         contentParsingState.recycle();
         isHeaderParsed = false;
-        super.recycle();
+        super.reset();
+    }
+
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }
