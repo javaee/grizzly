@@ -505,7 +505,7 @@ public class GrizzlyWebServer {
         if (chain == null) {
             FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
-            builder.add(new ChunkingFilter(2));
+            builder.add(new ChunkingFilter(1024));
             builder.add(new IdleTimeoutFilter(config.getKeepAliveTimeoutInSeconds(),
                                              TimeUnit.SECONDS));
             if (config.isSecure()) {

@@ -38,6 +38,7 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.io.InputBuffer;
 import com.sun.grizzly.http.io.RequestInputStream;
@@ -53,6 +54,8 @@ import java.io.Reader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Enumeration;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
@@ -63,6 +66,14 @@ import java.util.Enumeration;
  * @author Alexey Stashok
  */
 public class HttpRequest extends HttpHeader {
+
+    private static final Logger LOGGER = Grizzly.logger(HttpRequest.class);
+
+    /**
+     * Post data buffer.  TODO: Make this configurable
+     */
+    protected static int CACHED_POST_LEN = 8192;
+
     private static final ThreadCache.CachedTypeIndex<HttpRequest> CACHE_IDX =
             ThreadCache.obtainIndex(HttpRequest.class, 2);
 
@@ -99,6 +110,8 @@ public class HttpRequest extends HttpHeader {
     private InputBuffer inputBuffer = new InputBuffer();
 
     private String localHost;
+
+    protected byte[] postData = null;
 
     private BufferChunk methodBC = BufferChunk.newInstance();
     private BufferChunk queryBC = BufferChunk.newInstance();
@@ -495,13 +508,21 @@ public class HttpRequest extends HttpHeader {
 
 
     /**
-     * TODO : Support parameter processing from POST
      * @return a {@link Parameters} instance representing any query parameters
-     *  included with the request URI.
+     *  included with the request URI or POST data when the request content
+     *  type is <code>application/x-www-form-urlencoded</code>.
      */
     public Parameters getParameters() {
+        
         if (!parametersParsed) {
             String charEncodingLocal = getCharacterEncoding();
+
+            // Delay updating requestParametersParsed to TRUE until
+            // after getCharacterEncoding() has been called, because
+            // getCharacterEncoding() may cause setCharacterEncoding() to be
+            // called, and the latter will ignore the specified encoding if
+            // requestParametersParsed is TRUE
+            parametersParsed = true;
             charEncodingLocal = ((charEncodingLocal == null)
                             ? Constants.DEFAULT_CHARACTER_ENCODING
                             : charEncodingLocal);
@@ -509,10 +530,47 @@ public class HttpRequest extends HttpHeader {
             parameters.setEncoding(charEncodingLocal);
             parameters.setQueryStringEncoding(charEncodingLocal);
             parameters.setHeaders(getHeaders());
+
+            // process the query string
             parameters.handleQueryParameters();
-            parametersParsed = true;
+
+            // processing post if necessary
+            if (!usingReader && !usingStream) {
+                if ("POST".equalsIgnoreCase(getMethod())) {
+                    String contentType = getContentType();
+                    if (contentType != null) {
+                        int semicolon = contentType.indexOf(';');
+                        if (semicolon >= 0) {
+                            contentType =
+                                    contentType.substring(0, semicolon).trim();
+                        } else {
+                            contentType = contentType.trim();
+                        }
+                    }
+                    if (("application/x-www-form-urlencoded".equals(contentType))) {
+                        long len = getContentLength();
+                        if (len > 0) {
+                            try {
+                                byte[] formData = getPostBody(len);
+                                if (formData != null) {
+                                    parameters.processParameters(formData,
+                                                                 0,
+                                                                 (int) len);
+                                }
+                            } catch (Throwable t) {
+                                if (LOGGER.isLoggable(Level.FINE)) {
+                                    LOGGER.log(Level.FINE,
+                                               "Exception processing POST body.",
+                                               t);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
         return parameters;
+
     }
 
 
@@ -594,6 +652,58 @@ public class HttpRequest extends HttpHeader {
 
         return sb.toString();
     }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    /**
+     * Gets the POST body of this request.
+     *
+     * @return The POST body of this request
+     */
+    private byte[] getPostBody(long expectedLen) throws IOException {
+
+        int len = (int) expectedLen;
+        byte[] formData;
+
+        if (len < CACHED_POST_LEN) {
+            if (postData == null)
+                postData = new byte[CACHED_POST_LEN];
+            formData = postData;
+        } else {
+            formData = new byte[len];
+        }
+        int actualLen = readPostBody(formData, len);
+        if (actualLen == len) {
+            return formData;
+        }
+
+        return null;
+    }
+
+
+    /**
+     * Read post body in an array.
+     */
+    private int readPostBody(byte body[], int len)
+    throws IOException {
+
+        int offset = 0;
+        do {
+            int inputLen = getInputStream().read(body, offset, len - offset);
+            if (inputLen <= 0) {
+                return offset;
+            }
+            offset += inputLen;
+        } while ((len - offset) > 0);
+        return len;
+
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
 
     /**
      * <tt>HttpRequest</tt> message builder.
