@@ -202,6 +202,7 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
          * @param isLast is this <tt>HttpContent</tt> chunk last.
          * @return <tt>Builder</tt>
          */
+        @SuppressWarnings({"unchecked"})
         public final T last(boolean isLast) {
             packet.setLast(isLast);
             return (T) this;
@@ -213,6 +214,7 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
          * @param content the <tt>HttpContent</tt> chunk content {@link Buffer}.
          * @return <tt>Builder</tt>
          */
+        @SuppressWarnings({"unchecked"})
         public final T content(Buffer content) {
             packet.setContent(content);
             return (T) this;

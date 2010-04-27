@@ -357,6 +357,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
          * Set the HTTP message protocol version.
          * @param protocol protocol version in format "HTTP/1.x".
          */
+        @SuppressWarnings({"unchecked"})
         public final T protocol(String protocol) {
             packet.setProtocol(protocol);
             return (T) this;
@@ -370,6 +371,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
          * will be transferred in chunking mode, or <tt>false</tt> if case
          * of fixed-length message.
          */
+        @SuppressWarnings({"unchecked"})
         public final T chunked(boolean isChunked) {
             packet.setChunked(isChunked);
             return (T) this;
@@ -382,6 +384,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
          * @param contentLength  the content-length of this {@link HttpPacket}.
          * Applicable only in case of fixed-length HTTP message.
          */
+        @SuppressWarnings({"unchecked"})
         public final T contentLength(long contentLength) {
             packet.setContentLength(contentLength);
             return (T) this;
@@ -393,6 +396,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
          * @param name the mime header name.
          * @param value the mime header value.
          */
+        @SuppressWarnings({"unchecked"})
         public final T header(String name, String value) {
             packet.addHeader(name, value);
             return (T) this;

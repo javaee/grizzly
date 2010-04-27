@@ -140,9 +140,6 @@ public class HttpRequest extends HttpHeader {
         return inputBuffer;
     }
 
-    public void setInputBuffer(InputBuffer inputBuffer) {
-        this.inputBuffer = inputBuffer;
-    }
 
     // -------------------- Request data --------------------
 

@@ -36,10 +36,6 @@
 
 package com.sun.grizzly.http.io;
 
-import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.http.Constants;
-import com.sun.grizzly.http.HttpResponse;
-
 import java.io.IOException;
 import java.io.OutputStream;
 

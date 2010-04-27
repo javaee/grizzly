@@ -600,7 +600,7 @@ public abstract class HttpFilter extends BaseFilter {
         return buffer;
     }
     
-    protected static final boolean parseHeaders(HttpHeader httpHeader,
+    protected static boolean parseHeaders(HttpHeader httpHeader,
             MimeHeaders mimeHeaders, ParsingState parsingState, Buffer input) {
         
         do {
@@ -624,7 +624,7 @@ public abstract class HttpFilter extends BaseFilter {
         } while (true);
     }
 
-    protected static final boolean parseHeader(HttpHeader httpHeader,
+    protected static boolean parseHeader(HttpHeader httpHeader,
             MimeHeaders mimeHeaders, ParsingState parsingState, Buffer input) {
         
         int subState = parsingState.subState;
@@ -681,7 +681,7 @@ public abstract class HttpFilter extends BaseFilter {
         }
     }
 
-    protected static final boolean parseHeaderName(MimeHeaders mimeHeaders,
+    protected static boolean parseHeaderName(MimeHeaders mimeHeaders,
             ParsingState parsingState, Buffer input) {
         final int limit = Math.min(input.limit(), parsingState.packetLimit);
         int start = parsingState.start;
@@ -690,10 +690,9 @@ public abstract class HttpFilter extends BaseFilter {
         while(offset < limit) {
             byte b = input.get(offset);
             if (b == Constants.COLON) {
-                final BufferChunk valueChunk = mimeHeaders.addValue(
-                        input, parsingState.start, offset);
 
-                parsingState.headerValueStorage = valueChunk;
+                parsingState.headerValueStorage =
+                        mimeHeaders.addValue(input, parsingState.start, offset);
                 parsingState.offset = offset + 1;
                 finalizeKnownHeaderNames(parsingState, offset - start);
 
@@ -712,12 +711,11 @@ public abstract class HttpFilter extends BaseFilter {
         return false;
     }
 
-    protected static final int parseHeaderValue(HttpHeader httpHeader,
+    protected static int parseHeaderValue(HttpHeader httpHeader,
             ParsingState parsingState, Buffer input) {
         
         final int limit = Math.min(input.limit(), parsingState.packetLimit);
         
-        final int start = parsingState.start;
         int offset = parsingState.offset;
 
         final boolean hasShift = (offset != parsingState.checkpoint);
@@ -822,7 +820,7 @@ public abstract class HttpFilter extends BaseFilter {
         parsingState.isTransferEncodingHeader = false;
     }
 
-    protected static final int checkEOL(ParsingState parsingState, Buffer input) {
+    protected static int checkEOL(ParsingState parsingState, Buffer input) {
         final int offset = parsingState.offset;
         final int avail = input.limit() - offset;
 
@@ -855,7 +853,7 @@ public abstract class HttpFilter extends BaseFilter {
         return -1;
     }
 
-    protected static final boolean findEOL(ParsingState state, Buffer input) {
+    protected static boolean findEOL(ParsingState state, Buffer input) {
         int offset = state.offset;
         final int limit = Math.min(input.limit(), state.packetLimit);
 
@@ -880,7 +878,7 @@ public abstract class HttpFilter extends BaseFilter {
         return false;
     }
 
-    protected static final int findSpace(Buffer input, int offset, int packetLimit) {
+    protected static int findSpace(Buffer input, int offset, int packetLimit) {
         final int limit = Math.min(input.limit(), packetLimit);
         while(offset < limit) {
             final byte b = input.get(offset);
@@ -894,7 +892,7 @@ public abstract class HttpFilter extends BaseFilter {
         return -1;
     }
 
-    protected static final int skipSpaces(Buffer input, int offset, int packetLimit) {
+    protected static int skipSpaces(Buffer input, int offset, int packetLimit) {
         final int limit = Math.min(input.limit(), packetLimit);
         while(offset < limit) {
             final byte b = input.get(offset);
@@ -908,7 +906,7 @@ public abstract class HttpFilter extends BaseFilter {
         return -1;
     }
 
-    protected static final int indexOf(Buffer input, int offset, byte b, int packetLimit) {
+    protected static int indexOf(Buffer input, int offset, byte b, int packetLimit) {
         final int limit = Math.min(input.limit(), packetLimit);
         while(offset < limit) {
             final byte currentByte = input.get(offset);
@@ -976,6 +974,7 @@ public abstract class HttpFilter extends BaseFilter {
         return headerBuffer;
     }
 
+    @SuppressWarnings({"unchecked"})
     protected static Buffer resizeBuffer(MemoryManager memoryManager,
             Buffer headerBuffer, int grow) {
 
