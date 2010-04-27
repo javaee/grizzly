@@ -47,7 +47,6 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpFilter;
 import com.sun.grizzly.http.HttpRequest;
 import com.sun.grizzly.http.HttpResponse;
-import com.sun.grizzly.http.io.OutputBuffer;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.http.util.MimeHeaders;
@@ -103,7 +102,7 @@ public class WebServerFilter extends BaseFilter {
         }
 
         HttpResponse response = HttpResponse.builder().build();
-        response.setOutputBuffer(new OutputBuffer(response, ctx));
+        response.getOutputBuffer().initialize(response, ctx);
 
         if (!prepareRequest((HttpRequest) httpContent.getHttpHeader(), response)) {
             // invalid request - marshal the response to the client
