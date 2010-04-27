@@ -571,10 +571,10 @@ public class InputBuffer {
     private int fillChar(int requestedLen) throws IOException {
 
         if (remainder != null && remainder.remaining() > 0) {
-            CharsetDecoder decoder = getDecoder();
+            CharsetDecoder decoderLocal = getDecoder();
             charBuf.compact();
             int curPos = charBuf.position();
-            CoderResult result = decoder.decode(remainder, charBuf, false);
+            CoderResult result = decoderLocal.decode(remainder, charBuf, false);
             int read = charBuf.position() - curPos;
             if (result == CoderResult.UNDERFLOW) {
                 remainder = null;
@@ -586,7 +586,7 @@ public class InputBuffer {
             try {
                 connection.configureBlocking(true);
                 int read = 0;
-                CharsetDecoder decoder = getDecoder();
+                CharsetDecoder decoderLocal = getDecoder();
                 charBuf.compact();
                 if (charBuf.position() == charBuf.capacity()) {
                     charBuf.clear();
@@ -596,7 +596,7 @@ public class InputBuffer {
                     ReadResult rr = ctx.read();
                     HttpContent c = (HttpContent) rr.getMessage();
                     ByteBuffer bytes = c.getContent().toByteBuffer();
-                    CoderResult result = decoder.decode(bytes, charBuf, false);
+                    CoderResult result = decoderLocal.decode(bytes, charBuf, false);
                     if (result == CoderResult.UNDERFLOW) {
                         read += charBuf.capacity() - charBuf.remaining();
                     }
