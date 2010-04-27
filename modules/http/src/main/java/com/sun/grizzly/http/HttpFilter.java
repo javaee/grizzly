@@ -78,7 +78,7 @@ public abstract class HttpFilter extends BaseFilter {
 
     /**
      * Method is responsible for parsing initial line of HTTP message (different
-     * for {@link HttpRequest} and {@link HttpResponse}).
+     * for {@link HttpRequestPacket} and {@link HttpResponsePacket}).
      *
      * @param httpPacket HTTP packet, which is being parsed
      * @param parsingState HTTP packet parsing state
@@ -92,7 +92,7 @@ public abstract class HttpFilter extends BaseFilter {
 
     /**
      * Method is responsible for serializing initial line of HTTP message (different
-     * for {@link HttpRequest} and {@link HttpResponse}).
+     * for {@link HttpRequestPacket} and {@link HttpResponsePacket}).
      *
      * @param httpPacket HTTP packet, which is being serialized
      * @param output output {@link Buffer}

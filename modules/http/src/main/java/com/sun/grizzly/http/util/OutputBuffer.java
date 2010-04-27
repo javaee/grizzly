@@ -56,10 +56,8 @@
 
 package com.sun.grizzly.http.util;
 
-import com.sun.grizzly.http.HttpResponse;
+import com.sun.grizzly.http.HttpResponsePacket;
 import java.io.IOException;
-
-import com.sun.grizzly.http.util.ByteChunk;
 
 
 /**
@@ -81,7 +79,7 @@ public interface OutputBuffer {
      *
      * @throws IOException
      */
-    public int doWrite(ByteChunk chunk, HttpResponse response)
+    public int doWrite(ByteChunk chunk, HttpResponsePacket response)
         throws IOException;
 
 

@@ -46,12 +46,8 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpFilter;
-import com.sun.grizzly.http.HttpRequest;
-import com.sun.grizzly.http.HttpResponse;
-import com.sun.grizzly.http.HttpServerFilter;
+import com.sun.grizzly.http.*;
+import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -92,7 +88,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -122,7 +118,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -142,7 +138,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary 
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
@@ -153,7 +149,7 @@ public class HttpResponseStreamsTest extends TestCase {
         doTest(f, sb.toString());
 
         s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
@@ -171,7 +167,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8194); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
@@ -182,7 +178,7 @@ public class HttpResponseStreamsTest extends TestCase {
         doTest(f, sb.toString());
 
         s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
@@ -200,7 +196,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -220,7 +216,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8194); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -241,7 +237,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
@@ -260,7 +256,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
@@ -279,7 +275,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
@@ -298,7 +294,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 3k chunks
@@ -325,7 +321,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 3k chunks
@@ -353,7 +349,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 9k chunks
@@ -380,7 +376,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 9k chunks
@@ -420,7 +416,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -440,7 +436,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -460,7 +456,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -481,7 +477,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 out.write(sb.toString().getBytes());
@@ -500,7 +496,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 out.write(sb.toString().getBytes());
@@ -519,7 +515,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 // write in 3k chunks
@@ -546,7 +542,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponse response)
+            @Override public void doWrite(HttpResponsePacket response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 // write in 9k chunks
@@ -634,7 +630,7 @@ public class HttpResponseStreamsTest extends TestCase {
 
     private interface WriteStrategy {
 
-        void doWrite(HttpResponse response) throws IOException;
+        void doWrite(HttpResponsePacket response) throws IOException;
 
     }
 
@@ -658,7 +654,7 @@ public class HttpResponseStreamsTest extends TestCase {
                 return ctx.getStopAction();
             }
 
-            HttpResponse response = HttpResponse.builder().chunked(true).
+            HttpResponsePacket response = HttpResponsePacket.builder().chunked(true).
                   protocol(HttpFilter.HTTP_1_1).status(200).reasonPhrase("OK").build();
             response.getOutputBuffer().initialize(response, ctx);
 
@@ -699,10 +695,10 @@ public class HttpResponseStreamsTest extends TestCase {
         @Override
         public NextAction handleConnect(FilterChainContext ctx)
               throws IOException {
-            // Build the HttpRequest, which will be sent to a server
+            // Build the HttpRequestPacket, which will be sent to a server
             // We construct HTTP request version 1.1 and specifying the URL of the
             // resource we want to download
-            final HttpRequest httpRequest = HttpRequest.builder().method("GET")
+            final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
                   .uri("/path").protocol(HttpFilter.HTTP_1_1)
                   .header("Host", "localhost").build();
             if (logger.isLoggable(Level.FINE)) {

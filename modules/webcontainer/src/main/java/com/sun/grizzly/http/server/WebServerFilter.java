@@ -45,8 +45,8 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpFilter;
-import com.sun.grizzly.http.HttpRequest;
-import com.sun.grizzly.http.HttpResponse;
+import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.http.util.MimeHeaders;
@@ -101,17 +101,17 @@ public class WebServerFilter extends BaseFilter {
 
         }
 
-        HttpResponse response = HttpResponse.builder().build();
+        HttpResponsePacket response = HttpResponsePacket.builder().build();
         response.getOutputBuffer().initialize(response, ctx);
 
-        if (!prepareRequest((HttpRequest) httpContent.getHttpHeader(), response)) {
+        if (!prepareRequest((HttpRequestPacket) httpContent.getHttpHeader(), response)) {
             // invalid request - marshal the response to the client
             response.setCommitted(true);
             ctx.write(response);
             return ctx.getStopAction();
         }
 
-        //HttpRequest request = (HttpRequest) httpContent.getHttpHeader();
+        //HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
         //prepareProcessing(ctx, request, response);
         //Adapter adapter = config.getAdapter();
 
@@ -140,8 +140,8 @@ public class WebServerFilter extends BaseFilter {
      * @param response
      * @return
      */
-    protected boolean prepareRequest(HttpRequest request,
-                                     HttpResponse response) {
+    protected boolean prepareRequest(HttpRequestPacket request,
+                                     HttpResponsePacket response) {
 
         boolean http11 = false;
 
@@ -316,8 +316,8 @@ public class WebServerFilter extends BaseFilter {
 
 
     public boolean parseHost(BufferChunk valueBC,
-                             HttpRequest request,
-                             HttpResponse response) {
+                             HttpRequestPacket request,
+                             HttpResponsePacket response) {
 
         if (valueBC == null || valueBC.isNull()) {
             // HTTP/1.0

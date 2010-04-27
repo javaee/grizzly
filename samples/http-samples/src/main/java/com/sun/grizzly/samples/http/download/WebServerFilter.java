@@ -46,8 +46,8 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
-import com.sun.grizzly.http.HttpRequest;
-import com.sun.grizzly.http.HttpResponse;
+import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import java.io.File;
@@ -118,7 +118,7 @@ public class WebServerFilter extends BaseFilter {
         // Otherwise cast message to a HttpContent
         final HttpContent httpContent = (HttpContent) ctx.getMessage();
         // Get HTTP request message header
-        final HttpRequest request = (HttpRequest) httpContent.getHttpHeader();
+        final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
 
         // Check if it's the last HTTP request chunk
         if (!httpContent.isLast()) {
@@ -145,7 +145,7 @@ public class WebServerFilter extends BaseFilter {
             return ctx.getStopAction();
         } else {
             // if file exists
-            // suspend HttpRequest processing to send the HTTP response
+            // suspend HttpRequestPacket processing to send the HTTP response
             // asynchronously
             ctx.suspend();
             final NextAction suspendAction = ctx.getSuspendAction();
@@ -160,14 +160,14 @@ public class WebServerFilter extends BaseFilter {
     /**
      * Start asynchronous file download
      *
-     * @param ctx HttpRequest processing context
-     * @param request HttpRequest
+     * @param ctx HttpRequestPacket processing context
+     * @param request HttpRequestPacket
      * @param file local file
      * 
      * @throws IOException
      */
     private void downloadFile(FilterChainContext ctx,
-            HttpRequest request, File file) throws IOException {
+            HttpRequestPacket request, File file) throws IOException {
         // Create DownloadCompletionHandler, responsible for asynchronous
         // file transferring
         final DownloadCompletionHandler downloadHandler =
@@ -177,18 +177,18 @@ public class WebServerFilter extends BaseFilter {
     }
 
     /**
-     * Create a 404 HttpResponse packet
-     * @param request original HttpRequest
+     * Create a 404 HttpResponsePacket packet
+     * @param request original HttpRequestPacket
      *
      * @return 404 HttpContent
      */
-    private static HttpPacket create404(HttpRequest request) {
-        // Build 404 HttpResponse message headers
-        final HttpResponse responseHeader = HttpResponse.builder().
+    private static HttpPacket create404(HttpRequestPacket request) {
+        // Build 404 HttpResponsePacket message headers
+        final HttpResponsePacket responseHeader = HttpResponsePacket.builder().
                 protocol(request.getProtocol()).status(404).
                 reasonPhrase("Not Found").build();
         
-        // Build 404 HttpContent on base of HttpResponse message header
+        // Build 404 HttpContent on base of HttpResponsePacket message header
         final HttpContent content =
                 responseHeader.httpContentBuilder().
                 content(MemoryUtils.wrap(null,
@@ -198,12 +198,12 @@ public class WebServerFilter extends BaseFilter {
     }
 
     /**
-     * Extract URL path from the HttpRequest
+     * Extract URL path from the HttpRequestPacket
      *
-     * @param request HttpRequest message header
+     * @param request HttpRequestPacket message header
      * @return requested URL path
      */
-    private static String extractLocalURL(HttpRequest request) {
+    private static String extractLocalURL(HttpRequestPacket request) {
         // Get requested URL
         String url = request.getRequestURIRef().getDecodedURI();
 
@@ -232,10 +232,10 @@ public class WebServerFilter extends BaseFilter {
         private final MemoryManager memoryManager;
         // Downloading FileInputStream
         private final InputStream in;
-        // Suspended HttpRequest processing context
+        // Suspended HttpRequestPacket processing context
         private final FilterChainContext ctx;
-        // HttpResponse message header
-        private final HttpResponse response;
+        // HttpResponsePacket message header
+        private final HttpResponsePacket response;
 
         // Completion flag
         private volatile boolean isDone;
@@ -243,19 +243,19 @@ public class WebServerFilter extends BaseFilter {
         /**
          * Construct a DownloadCompletionHandler
          * 
-         * @param ctx Suspended HttpRequest processing context
-         * @param request HttpRequest message header
+         * @param ctx Suspended HttpRequestPacket processing context
+         * @param request HttpRequestPacket message header
          * @param file local file to be sent
          * @throws FileNotFoundException
          */
         public DownloadCompletionHandler(FilterChainContext ctx,
-                HttpRequest request, File file) throws FileNotFoundException {
+                HttpRequestPacket request, File file) throws FileNotFoundException {
             
             // Open file input stream
             in = new FileInputStream(file);
             this.ctx = ctx;
-            // Build HttpResponse message header (send file using chunked HTTP messages).
-            response = HttpResponse.builder().
+            // Build HttpResponsePacket message header (send file using chunked HTTP messages).
+            response = HttpResponsePacket.builder().
                 protocol(request.getProtocol()).status(200).
                 reasonPhrase("OK").chunked(true).build();
             memoryManager = ctx.getConnection().getTransport().getMemoryManager();
@@ -295,7 +295,7 @@ public class WebServerFilter extends BaseFilter {
             } else {
                 // Prepare the Buffer
                 buffer.limit(bytesRead);
-                // Create HttpContent, based on HttpResponse message header
+                // Create HttpContent, based on HttpResponsePacket message header
                 content = response.httpContentBuilder().content(buffer).build();
             }
 
@@ -318,7 +318,7 @@ public class WebServerFilter extends BaseFilter {
                 } else {
                     // if transfer is completed - close the local file input stream.
                     close();
-                    // resume(finishing) HttpRequest processing
+                    // resume(finishing) HttpRequestPacket processing
                     resume();
                 }
             } catch (IOException e) {
@@ -333,7 +333,7 @@ public class WebServerFilter extends BaseFilter {
         public void cancelled() {
             // Close local file input stream
             close();
-            // resume the HttpRequest processing
+            // resume the HttpRequestPacket processing
             resume();
         }
 
@@ -345,7 +345,7 @@ public class WebServerFilter extends BaseFilter {
         public void failed(Throwable throwable) {
             // Close local file input stream
             close();
-            // resume the HttpRequest processing
+            // resume the HttpRequestPacket processing
             resume();
         }
 
@@ -372,7 +372,7 @@ public class WebServerFilter extends BaseFilter {
         }
 
         /**
-         * Resume the HttpRequest processing
+         * Resume the HttpRequestPacket processing
          */
         private void resume() {
             // Set this DownloadCompletionHandler as message

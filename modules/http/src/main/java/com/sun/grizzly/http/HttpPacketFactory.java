@@ -44,9 +44,9 @@ package com.sun.grizzly.http;
  * @author Alexey Stashok
  */
 public interface HttpPacketFactory {
-    public HttpRequest createHttpRequest();
+    public HttpRequestPacket createHttpRequest();
 
-    public HttpResponse createHttpResponse();
+    public HttpResponsePacket createHttpResponse();
 
     public HttpContent createHttpContent(HttpHeader httpHeader);
 
@@ -56,13 +56,13 @@ public interface HttpPacketFactory {
             implements HttpPacketFactory {
         
         @Override
-        public HttpRequest createHttpRequest() {
-            return HttpRequest.create();
+        public HttpRequestPacket createHttpRequest() {
+            return HttpRequestPacket.create();
         }
 
         @Override
-        public HttpResponse createHttpResponse() {
-            return HttpResponse.create();
+        public HttpResponsePacket createHttpResponse() {
+            return HttpResponsePacket.create();
         }
 
         @Override

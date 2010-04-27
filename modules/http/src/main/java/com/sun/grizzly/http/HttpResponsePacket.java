@@ -54,22 +54,22 @@ import java.io.Writer;
  * The {@link HttpHeader} object, which represents HTTP response message.
  *
  * @see HttpHeader
- * @see HttpRequest
+ * @see HttpRequestPacket
  *
  * @author Alexey Stashok
  */
-public class HttpResponse extends HttpHeader {
-    private static final ThreadCache.CachedTypeIndex<HttpResponse> CACHE_IDX =
-            ThreadCache.obtainIndex(HttpResponse.class, 2);
+public class HttpResponsePacket extends HttpHeader {
+    private static final ThreadCache.CachedTypeIndex<HttpResponsePacket> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpResponsePacket.class, 2);
 
-    public static HttpResponse create() {
-        final HttpResponse httpResponse =
+    public static HttpResponsePacket create() {
+        final HttpResponsePacket httpResponse =
                 ThreadCache.takeFromCache(CACHE_IDX);
         if (httpResponse != null) {
             return httpResponse;
         }
 
-        return new HttpResponse();
+        return new HttpResponsePacket();
     }
 
     public static final int NON_PARSED_STATUS = Integer.MIN_VALUE;
@@ -99,7 +99,7 @@ public class HttpResponse extends HttpHeader {
 
 
     /**
-     * Returns {@link HttpResponse} builder.
+     * Returns {@link HttpResponsePacket} builder.
      *
      * @return {@link Builder}.
      */
@@ -108,7 +108,7 @@ public class HttpResponse extends HttpHeader {
     }
 
     // ----------------------------------------------------------- Constructors
-    protected HttpResponse() {
+    protected HttpResponsePacket() {
     }
 
     // -------------------- State --------------------
@@ -269,7 +269,7 @@ public class HttpResponse extends HttpHeader {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder(256);
-        sb.append("HttpResponse (status=").append(getStatus())
+        sb.append("HttpResponsePacket (status=").append(getStatus())
                 .append(" reason=").append(getReasonPhrase())
                 .append(" protocol=").append(getProtocol())
                 .append(" content-length=").append(getContentLength())
@@ -374,11 +374,11 @@ public class HttpResponse extends HttpHeader {
 
 
     /**
-     * <tt>HttpResponse</tt> message builder.
+     * <tt>HttpResponsePacket</tt> message builder.
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
-            packet = HttpResponse.create();
+            packet = HttpResponsePacket.create();
         }
 
         /**
@@ -387,7 +387,7 @@ public class HttpResponse extends HttpHeader {
          * @param status the status code for this response.
          */
         public Builder status(int status) {
-            ((HttpResponse) packet).setStatus(status);
+            ((HttpResponsePacket) packet).setStatus(status);
             return this;
         }
 
@@ -397,17 +397,17 @@ public class HttpResponse extends HttpHeader {
          * @param reasonPhrase the status reason phrase for this response.
          */
         public Builder reasonPhrase(String reasonPhrase) {
-            ((HttpResponse) packet).setReasonPhrase(reasonPhrase);
+            ((HttpResponsePacket) packet).setReasonPhrase(reasonPhrase);
             return this;
         }
 
         /**
-         * Build the <tt>HttpResponse</tt> message.
+         * Build the <tt>HttpResponsePacket</tt> message.
          *
-         * @return <tt>HttpResponse</tt>
+         * @return <tt>HttpResponsePacket</tt>
          */
-        public final HttpResponse build() {
-            return (HttpResponse) packet;
+        public final HttpResponsePacket build() {
+            return (HttpResponsePacket) packet;
         }
     }
 }

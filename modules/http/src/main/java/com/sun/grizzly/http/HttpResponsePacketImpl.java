@@ -45,18 +45,18 @@ import com.sun.grizzly.http.HttpFilter.ContentParsingState;
  *
  * @author oleksiys
  */
-class HttpResponseImpl extends HttpResponse implements HttpPacketParsing {
-    private static final ThreadCache.CachedTypeIndex<HttpResponseImpl> CACHE_IDX =
-            ThreadCache.obtainIndex(HttpResponseImpl.class, 2);
+class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketParsing {
+    private static final ThreadCache.CachedTypeIndex<HttpResponsePacketImpl> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpResponsePacketImpl.class, 2);
 
-    public static HttpResponseImpl create() {
-        final HttpResponseImpl httpResponseImpl =
+    public static HttpResponsePacketImpl create() {
+        final HttpResponsePacketImpl httpResponseImpl =
                 ThreadCache.takeFromCache(CACHE_IDX);
         if (httpResponseImpl != null) {
             return httpResponseImpl;
         }
 
-        return new HttpResponseImpl();
+        return new HttpResponsePacketImpl();
     }
 
     private boolean isHeaderParsed;
@@ -64,7 +64,7 @@ class HttpResponseImpl extends HttpResponse implements HttpPacketParsing {
     private final HttpFilter.ParsingState headerParsingState;
     private final HttpFilter.ContentParsingState contentParsingState;
 
-    private HttpResponseImpl() {
+    private HttpResponsePacketImpl() {
         this.headerParsingState = new HttpFilter.ParsingState();
         this.contentParsingState = new HttpFilter.ContentParsingState();
     }

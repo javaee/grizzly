@@ -49,7 +49,7 @@ import java.io.IOException;
 
 /**
  * Client side {@link HttpFilter} implementation, which is responsible for
- * decoding {@link HttpResponse} and encoding {@link HttpRequest} messages.
+ * decoding {@link HttpResponsePacket} and encoding {@link HttpRequestPacket} messages.
  *
  * This <tt>Filter</tt> is usually used, when we build an asynchronous HTTP client
  * connection.
@@ -62,7 +62,7 @@ import java.io.IOException;
 public class HttpClientFilter extends HttpFilter {
     protected static final int HEADER_PARSED_STATE = 2;
 
-    private final Attribute<HttpResponseImpl> httpResponseInProcessAttr;
+    private final Attribute<HttpResponsePacketImpl> httpResponseInProcessAttr;
 
     /**
      * Constructor, which creates <tt>HttpClientFilter</tt> instance
@@ -105,9 +105,9 @@ public class HttpClientFilter extends HttpFilter {
         Buffer input = (Buffer) ctx.getMessage();
         final Connection connection = ctx.getConnection();
         
-        HttpResponseImpl httpResponse = httpResponseInProcessAttr.get(connection);
+        HttpResponsePacketImpl httpResponse = httpResponseInProcessAttr.get(connection);
         if (httpResponse == null) {
-            httpResponse = HttpResponseImpl.create();
+            httpResponse = HttpResponsePacketImpl.create();
             httpResponse.initialize(input.position(), maxHeadersSize);
             httpResponseInProcessAttr.set(connection, httpResponse);
         }
@@ -124,7 +124,7 @@ public class HttpClientFilter extends HttpFilter {
     final boolean decodeInitialLine(HttpPacketParsing httpPacket,
             ParsingState parsingState, Buffer input) {
 
-        final HttpResponse httpResponse = (HttpResponse) httpPacket;
+        final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
         
         final int packetLimit = parsingState.packetLimit;
 
@@ -216,7 +216,7 @@ public class HttpClientFilter extends HttpFilter {
 
     @Override
     Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
-        final HttpRequest httpRequest = (HttpRequest) httpPacket;
+        final HttpRequestPacket httpRequest = (HttpRequestPacket) httpPacket;
         output = put(memoryManager, output, httpRequest.getMethodBC());
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpRequest.getRequestURIRef().getRequestURIBC());

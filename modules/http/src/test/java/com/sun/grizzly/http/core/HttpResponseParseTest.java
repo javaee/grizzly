@@ -39,7 +39,7 @@ package com.sun.grizzly.http.core;
 
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpResponse;
+import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
@@ -261,7 +261,7 @@ public class HttpResponseParseTest extends TestCase {
         public NextAction handleRead(FilterChainContext ctx)
                 throws IOException {
             HttpContent httpContent = (HttpContent) ctx.getMessage();
-            HttpResponse httpResponse = (HttpResponse) httpContent.getHttpHeader();
+            HttpResponsePacket httpResponse = (HttpResponsePacket) httpContent.getHttpHeader();
             
             try {
                 assertEquals(protocol, httpResponse.getProtocol());

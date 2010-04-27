@@ -45,10 +45,10 @@ import com.sun.grizzly.http.util.MimeHeaders;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
- * of this class: {@link HttpRequest} and {@link HttpResponse}.
+ * of this class: {@link HttpRequestPacket} and {@link HttpResponsePacket}.
  *
- * @see HttpRequest
- * @see HttpResponse
+ * @see HttpRequestPacket
+ * @see HttpResponsePacket
  * 
  * @author Alexey Stashok
  */

@@ -61,30 +61,30 @@ import java.util.logging.Logger;
  * The {@link HttpHeader} object, which represents HTTP request message.
  *
  * @see HttpHeader
- * @see HttpResponse
+ * @see HttpResponsePacket
  * 
  * @author Alexey Stashok
  */
-public class HttpRequest extends HttpHeader {
+public class HttpRequestPacket extends HttpHeader {
 
-    private static final Logger LOGGER = Grizzly.logger(HttpRequest.class);
+    private static final Logger LOGGER = Grizzly.logger(HttpRequestPacket.class);
 
     /**
      * Post data buffer.  TODO: Make this configurable
      */
     protected static int CACHED_POST_LEN = 8192;
 
-    private static final ThreadCache.CachedTypeIndex<HttpRequest> CACHE_IDX =
-            ThreadCache.obtainIndex(HttpRequest.class, 2);
+    private static final ThreadCache.CachedTypeIndex<HttpRequestPacket> CACHE_IDX =
+            ThreadCache.obtainIndex(HttpRequestPacket.class, 2);
 
-    public static HttpRequest create() {
-        final HttpRequest httpRequest =
+    public static HttpRequestPacket create() {
+        final HttpRequestPacket httpRequest =
                 ThreadCache.takeFromCache(CACHE_IDX);
         if (httpRequest != null) {
             return httpRequest;
         }
 
-        return new HttpRequest();
+        return new HttpRequestPacket();
     }
 
     // ----------------------------------------------------- Instance Variables
@@ -122,7 +122,7 @@ public class HttpRequest extends HttpHeader {
     private BufferChunk serverNameBC = BufferChunk.newInstance();
 
     /**
-     * Returns {@link HttpRequest} builder.
+     * Returns {@link HttpRequestPacket} builder.
      *
      * @return {@link Builder}.
      */
@@ -133,7 +133,7 @@ public class HttpRequest extends HttpHeader {
     // ----------------------------------------------------------- Constructors
 
 
-    protected HttpRequest() {
+    protected HttpRequestPacket() {
         methodBC.setString("GET");
     }
 
@@ -637,7 +637,7 @@ public class HttpRequest extends HttpHeader {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder(256);
-        sb.append("HttpRequest (\n   method=").append(getMethod())
+        sb.append("HttpRequestPacket (\n   method=").append(getMethod())
                 .append("\n   url=").append(getRequestURI())
                 .append("\n   query=").append(getQueryString())
                 .append("\n   protocol=").append(getProtocol())
@@ -706,11 +706,11 @@ public class HttpRequest extends HttpHeader {
 
 
     /**
-     * <tt>HttpRequest</tt> message builder.
+     * <tt>HttpRequestPacket</tt> message builder.
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
-            packet = HttpRequest.create();
+            packet = HttpRequestPacket.create();
         }
 
         /**
@@ -718,7 +718,7 @@ public class HttpRequest extends HttpHeader {
          * @param method the HTTP request method. Format is "GET|POST...".
          */
         public Builder method(String method) {
-            ((HttpRequest) packet).setMethod(method);
+            ((HttpRequestPacket) packet).setMethod(method);
             return this;
         }
 
@@ -728,7 +728,7 @@ public class HttpRequest extends HttpHeader {
          * @param uri the request URI.
          */
         public Builder uri(String uri) {
-            ((HttpRequest) packet).setRequestURI(uri);
+            ((HttpRequestPacket) packet).setRequestURI(uri);
             return this;
         }
 
@@ -740,17 +740,17 @@ public class HttpRequest extends HttpHeader {
          * @return the current <code>Builder</code>
          */
         public Builder query(String query) {
-            ((HttpRequest) packet).setQueryString(query);
+            ((HttpRequestPacket) packet).setQueryString(query);
             return this;
         }
 
         /**
-         * Build the <tt>HttpRequest</tt> message.
+         * Build the <tt>HttpRequestPacket</tt> message.
          *
-         * @return <tt>HttpRequest</tt>
+         * @return <tt>HttpRequestPacket</tt>
          */
-        public final HttpRequest build() {
-            return (HttpRequest) packet;
+        public final HttpRequestPacket build() {
+            return (HttpRequestPacket) packet;
         }
     }
 }

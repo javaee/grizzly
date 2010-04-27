@@ -40,7 +40,7 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpResponse;
+import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.MemoryManager;
 
@@ -62,7 +62,7 @@ public class OutputBuffer {
     private static final int CAPACITY_OK = -1;
 
 
-    private HttpResponse response;
+    private HttpResponsePacket response;
 
     private FilterChainContext ctx;
 
@@ -88,7 +88,7 @@ public class OutputBuffer {
     // ---------------------------------------------------------- Public Methods
 
 
-    public void initialize(HttpResponse response,
+    public void initialize(HttpResponsePacket response,
                            FilterChainContext ctx) {
 
         this.response = response;

@@ -37,9 +37,8 @@
  */
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpResponse;
-import com.sun.grizzly.http.HttpRequest;
+import com.sun.grizzly.http.*;
+import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
@@ -50,9 +49,6 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpPacket;
-import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.LinkedTransferQueue;
@@ -117,7 +113,7 @@ public class HttpCommTest extends TestCase {
             FilterChain clientFilterChain = clientFilterChainBuilder.build();
             connection.setProcessor(clientFilterChain);
 
-            HttpRequest httpRequest = HttpRequest.builder().method("GET").
+            HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET").
                     uri("/dummyURL").query("p1=v1&p2=v2").protocol("HTTP/1.0").
                     header("client-port",  Integer.toString(clientPort)).
                     header("Host", "localhost").build();
@@ -126,7 +122,7 @@ public class HttpCommTest extends TestCase {
             writeResultFuture.get(10, TimeUnit.SECONDS);
 
             HttpContent response = (HttpContent) resultQueue.poll(10, TimeUnit.SECONDS);            
-            HttpResponse responseHeader = (HttpResponse) response.getHttpHeader();
+            HttpResponsePacket responseHeader = (HttpResponsePacket) response.getHttpHeader();
 
             assertEquals(httpRequest.getRequestURI(), responseHeader.getHeader("Found"));
             
@@ -148,7 +144,7 @@ public class HttpCommTest extends TestCase {
                 throws IOException {
 
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
-            final HttpRequest request = (HttpRequest) httpContent.getHttpHeader();
+            final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
 
             System.out.println("Got the request: " + request);
 
@@ -161,7 +157,7 @@ public class HttpCommTest extends TestCase {
             assertEquals("v1", request.getParameters().getParameter("p1"));
             assertEquals("v2", request.getParameters().getParameter("p2"));
 
-            final HttpResponse response = HttpResponse.builder().
+            final HttpResponsePacket response = HttpResponsePacket.builder().
                     protocol(request.getProtocol()).status(200).
                     reasonPhrase("OK").header("Content-Length", "0").
                     header("Found", request.getRequestURI()).build();

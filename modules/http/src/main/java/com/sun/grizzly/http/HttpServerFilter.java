@@ -49,7 +49,7 @@ import java.io.IOException;
 
 /**
  * Server side {@link HttpFilter} implementation, which is responsible for
- * decoding {@link HttpRequest} and encoding {@link HttpResponse} messages.
+ * decoding {@link HttpRequestPacket} and encoding {@link HttpResponsePacket} messages.
  *
  * This <tt>Filter</tt> is usually used, when we build an asynchronous HTTP server
  * connection.
@@ -62,7 +62,7 @@ import java.io.IOException;
 public class HttpServerFilter extends HttpFilter {
     protected static final int HEADER_PARSED_STATE = 2;
     
-    private final Attribute<HttpRequestImpl> httpRequestInProcessAttr;
+    private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
 
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
@@ -105,9 +105,9 @@ public class HttpServerFilter extends HttpFilter {
         Buffer input = (Buffer) ctx.getMessage();
         final Connection connection = ctx.getConnection();
         
-        HttpRequestImpl httpRequest = httpRequestInProcessAttr.get(connection);
+        HttpRequestPacketImpl httpRequest = httpRequestInProcessAttr.get(connection);
         if (httpRequest == null) {
-            httpRequest = HttpRequestImpl.create();
+            httpRequest = HttpRequestPacketImpl.create();
             httpRequest.initialize(connection, input.position(), maxHeadersSize);
             httpRequestInProcessAttr.set(connection, httpRequest);
         }
@@ -124,7 +124,7 @@ public class HttpServerFilter extends HttpFilter {
     final boolean decodeInitialLine(HttpPacketParsing httpPacket,
             ParsingState parsingState, Buffer input) {
 
-        final HttpRequestImpl httpRequest = (HttpRequestImpl) httpPacket;
+        final HttpRequestPacketImpl httpRequest = (HttpRequestPacketImpl) httpPacket;
 
         final int reqLimit = parsingState.packetLimit;
 
@@ -209,7 +209,7 @@ public class HttpServerFilter extends HttpFilter {
 
     @Override
     Buffer encodeInitialLine(HttpPacket httpPacket, Buffer output, MemoryManager memoryManager) {
-        final HttpResponse httpResponse = (HttpResponse) httpPacket;
+        final HttpResponsePacket httpResponse = (HttpResponsePacket) httpPacket;
         output = put(memoryManager, output, httpResponse.getProtocolBC());
         output = put(memoryManager, output, Constants.SP);
         output = put(memoryManager, output, httpResponse.getStatusBC());
@@ -219,7 +219,7 @@ public class HttpServerFilter extends HttpFilter {
         return output;
     }
 
-    private static boolean parseRequestURI(HttpRequestImpl httpRequest,
+    private static boolean parseRequestURI(HttpRequestPacketImpl httpRequest,
             ParsingState state, Buffer input) {
         
         final int limit = Math.min(input.limit(), state.packetLimit);

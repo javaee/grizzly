@@ -38,10 +38,8 @@
 
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.HttpPacket;
-import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpHeader;
-import com.sun.grizzly.http.HttpRequest;
+import com.sun.grizzly.http.*;
+import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
@@ -52,8 +50,6 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
-import com.sun.grizzly.http.HttpClientFilter;
-import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryUtils;
@@ -76,28 +72,28 @@ public class ContentTest extends TestCase {
     public static int PORT = 8003;
 
     public void testExplicitContentLength() throws Exception {
-        HttpRequest httpRequest = HttpRequest.builder().method("POST").protocol("HTTP/1.1").uri("/default").contentLength(10).build();
+        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").contentLength(10).build();
         HttpContent content = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
 
     public void testHeaderContentLength() throws Exception {
-        HttpRequest httpRequest = HttpRequest.builder().method("POST").protocol("HTTP/1.1").uri("/default").header("Content-Length", "10").build();
+        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").header("Content-Length", "10").build();
         HttpContent content = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
 
     public void testSimpleChunked() throws Exception {
-        HttpRequest httpRequest = HttpRequest.builder().method("POST").protocol("HTTP/1.1").uri("/default").chunked(true).build();
+        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").chunked(true).build();
         HttpContent content = httpRequest.httpTrailerBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
 
     public void testSeveralChunked() throws Exception {
-        HttpRequest httpRequest = HttpRequest.builder().method("POST").protocol("HTTP/1.1").uri("/default").chunked(true).build();
+        HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").chunked(true).build();
         HttpContent content1 = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
         HttpContent content2 = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "0987654321")).build();
         HttpContent content3 = httpRequest.httpTrailerBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "final")).build();
@@ -176,7 +172,7 @@ public class ContentTest extends TestCase {
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
             HttpContent httpContent = (HttpContent) ctx.getMessage();
-            HttpRequest httpRequest = (HttpRequest) httpContent.getHttpHeader();
+            HttpRequestPacket httpRequest = (HttpRequestPacket) httpContent.getHttpHeader();
 
             if (!httpContent.isLast()) {
                 return ctx.getStopAction(httpContent);

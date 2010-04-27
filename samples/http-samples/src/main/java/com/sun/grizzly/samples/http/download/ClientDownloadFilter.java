@@ -45,7 +45,7 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.HttpFilter;
 import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpRequest;
+import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.impl.FutureImpl;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -116,10 +116,10 @@ public class ClientDownloadFilter extends BaseFilter {
      */
     @Override
     public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-        // Build the HttpRequest, which will be sent to a server
+        // Build the HttpRequestPacket, which will be sent to a server
         // We construct HTTP request version 1.1 and specifying the URL of the
         // resource we want to download
-        final HttpRequest httpRequest = HttpRequest.builder().method("GET")
+        final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
                 .uri(uri.toString()).protocol(HttpFilter.HTTP_1_1)
                 .header("Host", uri.getHost()).build();
         logger.log(Level.INFO, "Connected... Sending the request: " + httpRequest);

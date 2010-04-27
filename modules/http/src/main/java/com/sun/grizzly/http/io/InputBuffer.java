@@ -41,7 +41,7 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpRequest;
+import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.util.Constants;
 import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -60,9 +60,9 @@ public class InputBuffer {
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
 
     /**
-     * The {@link HttpRequest} associated with this <code>InputBuffer</code>
+     * The {@link com.sun.grizzly.http.HttpRequestPacket} associated with this <code>InputBuffer</code>
      */
-    private HttpRequest request;
+    private HttpRequestPacket request;
 
     /**
      * The {@link FilterChainContext} associated with this <code>InputBuffer</code>.
@@ -101,7 +101,7 @@ public class InputBuffer {
     private CharBuffer charBuf;
 
     /**
-     * The {@link Connection} associated with this {@link HttpRequest}.
+     * The {@link Connection} associated with this {@link com.sun.grizzly.http.HttpRequestPacket}.
      */
     private Connection connection;
 
@@ -125,7 +125,7 @@ public class InputBuffer {
 
     /**
      * The default character encoding to use if none is specified by the
-     * {@link HttpRequest}.
+     * {@link com.sun.grizzly.http.HttpRequestPacket}.
      */
     private String encoding = Constants.DEFAULT_CHARACTER_ENCODING;
 
@@ -154,7 +154,7 @@ public class InputBuffer {
      * @param request the current request
      * @param ctx the FilterChainContext for the chain processing this request
      */
-    public void initialize(HttpRequest request, FilterChainContext ctx) {
+    public void initialize(HttpRequestPacket request, FilterChainContext ctx) {
 
         if (request == null) {
             throw new IllegalArgumentException();

@@ -56,10 +56,8 @@
 
 package com.sun.grizzly.http.util;
 
-import com.sun.grizzly.http.HttpRequest;
+import com.sun.grizzly.http.HttpRequestPacket;
 import java.io.IOException;
-
-import com.sun.grizzly.http.util.ByteChunk;
 
 
 /**
@@ -78,7 +76,7 @@ public interface InputBuffer {
         buffer and return a pointer to it in ByteChunk ( i.e. the param will
         have chunk.getBytes()==null before call, and the result after the call ).
     */
-    public int doRead(ByteChunk chunk, HttpRequest request)
+    public int doRead(ByteChunk chunk, HttpRequestPacket request)
         throws IOException;
 
 

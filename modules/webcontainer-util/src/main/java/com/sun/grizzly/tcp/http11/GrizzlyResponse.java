@@ -972,7 +972,7 @@ public class GrizzlyResponse<A> {
     }
 
 
-    // --------------------------------------------------- HttpResponse Methods
+    // --------------------------------------------------- HttpResponsePacket Methods
 
 
     /**

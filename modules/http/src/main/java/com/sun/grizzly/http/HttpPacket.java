@@ -41,11 +41,11 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.Cacheable;
 
 /**
- * Abstraction, which represents any type of HTTP message: {@link HttpRequest},
- * {@link HttpResponse}, {@link HttpContent}.
+ * Abstraction, which represents any type of HTTP message: {@link HttpRequestPacket},
+ * {@link HttpResponsePacket}, {@link HttpContent}.
  *
- * @see HttpRequest
- * @see HttpResponse
+ * @see HttpRequestPacket
+ * @see HttpResponsePacket
  * @see HttpContent
  * 
  * @author Alexey Stashok
