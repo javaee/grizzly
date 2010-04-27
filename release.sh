@@ -55,7 +55,7 @@ verify SVN_PWD "Missing --password option for your svn password"
 
 if [ -z "${PREPARE}" ] 
 then
-	SVN_URL="-DconnecitonUrl=scm:svn:https://grizzly.dev.java.net/svn/grizzly/tags/${BRANCH}"
+	SVN_URL="-DconnectionUrl=scm:svn:https://grizzly.dev.java.net/svn/grizzly/tags/${BRANCH}"
 fi
 
 CMD="mvn -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${SVN_PWD} -Dusername=${SVN_USER} ${PREPARE} ${SVN_URL} release:perform"
