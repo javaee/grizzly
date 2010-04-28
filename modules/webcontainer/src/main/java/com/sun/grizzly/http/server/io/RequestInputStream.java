@@ -34,17 +34,15 @@
  * holder.
  */
 
-package com.sun.grizzly.http.io;
+package com.sun.grizzly.http.server.io;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.nio.CharBuffer;
+import java.io.InputStream;
 
 /**
- * {@link Reader} implementation to be used to read character-based request
- * content.
+ * {@link InputStream} implementation to be used to read binary request content.
  */
-public class RequestReader extends Reader {
+public class RequestInputStream extends InputStream {
 
     private final InputBuffer inputBuffer;
 
@@ -53,40 +51,41 @@ public class RequestReader extends Reader {
 
 
     /**
-     * Constructs a new <code>RequestReader</code> using the specified
+     * Constructs a new <code>RequestInputStream</code> using the specified
      * {@link #inputBuffer}
-     * @param inputBuffer the <code>InputBuffer</code> from which character
-     *  content will be supplied
+     * @param inputBuffer the <code>InputBuffer</code> from which binary content
+     *  will be supplied
      */
-    public RequestReader(InputBuffer inputBuffer) {
+    public RequestInputStream(InputBuffer inputBuffer) {
 
         this.inputBuffer = inputBuffer;
 
     }
 
 
-    // ----------------------------------------------------- Methods from Reader
+    // ------------------------------------------------ Methods from InputStream
 
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public int read(CharBuffer target) throws IOException {
-        return inputBuffer.read(target);
-    }
 
     /**
      * {@inheritDoc}
      */
     @Override public int read() throws IOException {
-        return inputBuffer.readChar();
+        return inputBuffer.readByte();
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public int read(byte[] b) throws IOException {
+        return inputBuffer.read(b, 0, b.length);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public int read(char[] cbuf) throws IOException {
-        return inputBuffer.read(cbuf, 0, cbuf.length);
+    @Override public int read(byte[] b, int off, int len) throws IOException {
+        return inputBuffer.read(b, off, len);
     }
 
     /**
@@ -99,39 +98,8 @@ public class RequestReader extends Reader {
     /**
      * {@inheritDoc}
      */
-    @Override public boolean ready() throws IOException {
-        return inputBuffer.ready();
-    }
-
-    /**
-     * This {@link Reader} implementation does not support marking.
-     *
-     * @return <code>false</code>
-     */
-    @Override public boolean markSupported() {
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void mark(int readAheadLimit) throws IOException {
-        throw new IOException();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void reset() throws IOException {
-        throw new IOException();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public int read(char[] cbuf, int off, int len)
-    throws IOException {
-        return inputBuffer.read(cbuf, off, len);
+    @Override public int available() throws IOException {
+        return inputBuffer.available();
     }
 
     /**
@@ -141,4 +109,26 @@ public class RequestReader extends Reader {
         inputBuffer.close();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override public void mark(int readlimit) {
+        inputBuffer.mark(readlimit);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public void reset() throws IOException {
+        inputBuffer.reset();
+    }
+
+    /**
+     * This {@link InputStream} implementation supports marking.
+     *
+     * @return <code>true</code>
+     */
+    @Override public boolean markSupported() {
+        return inputBuffer.markSupported();
+    }
 }

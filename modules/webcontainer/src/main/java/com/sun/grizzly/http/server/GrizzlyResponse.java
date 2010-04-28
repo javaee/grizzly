@@ -56,9 +56,9 @@ package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.io.OutputBuffer;
-import com.sun.grizzly.http.io.ResponseOutputStream;
-import com.sun.grizzly.http.io.ResponseWriter;
+import com.sun.grizzly.http.server.io.OutputBuffer;
+import com.sun.grizzly.http.server.io.ResponseOutputStream;
+import com.sun.grizzly.http.server.io.ResponseWriter;
 import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.util.Cookie;
 import com.sun.grizzly.http.util.FastHttpDateFormat;

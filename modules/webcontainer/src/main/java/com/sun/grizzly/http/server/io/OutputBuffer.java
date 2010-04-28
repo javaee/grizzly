@@ -34,7 +34,7 @@
  * holder.
  */
 
-package com.sun.grizzly.http.io;
+package com.sun.grizzly.http.server.io;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.filterchain.FilterChainContext;

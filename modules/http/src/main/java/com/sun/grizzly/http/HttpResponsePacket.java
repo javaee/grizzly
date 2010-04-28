@@ -39,15 +39,10 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.ThreadCache;
-import com.sun.grizzly.http.server.io.OutputBuffer;
-import com.sun.grizzly.http.server.io.ResponseOutputStream;
-import com.sun.grizzly.http.server.io.ResponseWriter;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Writer;
 
 
 /**
@@ -83,19 +78,11 @@ public class HttpResponsePacket extends HttpHeader {
     protected BufferChunk statusBC = BufferChunk.newInstance();
     protected boolean committed;
 
-    private boolean usingWriter;
-    private boolean usingStream;
-    private ResponseWriter responseWriter;
-    private ResponseOutputStream responseStream;
-
-
 
     /**
      * Status message.
      */
     private BufferChunk reasonPhraseBC = BufferChunk.newInstance();
-
-    private OutputBuffer outputBuffer = new OutputBuffer();
 
 
     /**
@@ -199,36 +186,8 @@ public class HttpResponsePacket extends HttpHeader {
 
         prepareResponse();
 
-        outputBuffer.commit();
-
     }
 
-    public OutputBuffer getOutputBuffer() {
-        return outputBuffer;
-    }
-
-    public Writer getWriter() {
-        if (usingStream) {
-            throw new IllegalStateException();
-        }
-        usingWriter = true;
-        if (responseWriter == null) {
-            outputBuffer.processingChars();
-            responseWriter = new ResponseWriter(outputBuffer);
-        }
-        return responseWriter;
-    }
-
-    public OutputStream getOutputStream() {
-        if (usingWriter) {
-            throw new IllegalStateException();
-        }
-        usingStream = true;
-        if (responseStream == null) {
-            responseStream = new ResponseOutputStream(outputBuffer);
-        }
-        return responseStream;
-    }
 
     // --------------------
 
@@ -241,7 +200,6 @@ public class HttpResponsePacket extends HttpHeader {
         statusBC.recycle();
         reasonPhraseBC.recycle();
         committed = false;
-        outputBuffer.recycle();
 
         super.reset();
     }
@@ -309,12 +267,10 @@ public class HttpResponsePacket extends HttpHeader {
         if (!isCommitted()) {
             setCommitted(true);
         }
-        outputBuffer.endRequest();
     }
 
     
     @Override public void setCharacterEncoding(String enc) {
-        outputBuffer.setEncoding(enc);
         super.setCharacterEncoding(enc);
     }
 

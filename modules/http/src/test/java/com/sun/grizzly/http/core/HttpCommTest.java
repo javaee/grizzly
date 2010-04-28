@@ -154,8 +154,6 @@ public class HttpCommTest extends TestCase {
             assertTrue(isLocalAddress(request.getRemoteAddress()));
             assertEquals(request.getHeader("client-port"), 
                          Integer.toString(request.getRemotePort()));
-            assertEquals("v1", request.getParameters().getParameter("p1"));
-            assertEquals("v2", request.getParameters().getParameter("p2"));
 
             final HttpResponsePacket response = HttpResponsePacket.builder().
                     protocol(request.getProtocol()).status(200).

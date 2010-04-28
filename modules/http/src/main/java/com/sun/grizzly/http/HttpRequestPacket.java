@@ -39,9 +39,6 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.ThreadCache;
-import com.sun.grizzly.http.server.io.InputBuffer;
-import com.sun.grizzly.http.server.io.RequestInputStream;
-import com.sun.grizzly.http.server.io.RequestReader;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.RequestURIRef;
@@ -93,12 +90,6 @@ public class HttpRequestPacket extends HttpHeader {
 
     private boolean secure;
     private boolean secureParsed;
-    private boolean usingReader;
-    private boolean usingStream;
-
-    private InputStream inputStream;
-    private Reader reader;
-    private InputBuffer inputBuffer = new InputBuffer();
 
     private String localHost;
 
@@ -139,11 +130,6 @@ public class HttpRequestPacket extends HttpHeader {
     public Connection getConnection() {
         return connection;
     }
-
-    public InputBuffer getInputBuffer() {
-        return inputBuffer;
-    }
-
 
     // -------------------- Request data --------------------
 
@@ -469,35 +455,6 @@ public class HttpRequestPacket extends HttpHeader {
     }
 
 
-    /**
-     * TODO Docs
-     * @return
-     */
-    public InputStream getInputStream() throws IOException {
-        if (usingReader) {
-            throw new IllegalStateException();
-        }
-
-        if (inputStream == null) {
-            inputStream = new RequestInputStream(inputBuffer);
-        }
-        return inputStream;
-    }
-
-
-    public Reader getReader() throws IOException {
-        if (usingStream) {
-            throw new IllegalStateException();
-        }
-
-        if (reader == null) {
-            inputBuffer.processingChars();
-            reader = new RequestReader(inputBuffer);
-        }
-        return reader;
-    }
-
-
     // -------------------- Recycling --------------------
 
     /**
@@ -513,7 +470,6 @@ public class HttpRequestPacket extends HttpHeader {
         localAddressBC.recycle();
         localNameBC.recycle();
         serverNameBC.recycle();
-        inputBuffer.recycle();
 
         remotePort = -1;
         localPort = -1;
@@ -521,13 +477,9 @@ public class HttpRequestPacket extends HttpHeader {
 
         connection = null;
         localHost = null;
-        inputStream = null;
-        reader = null;
 
         secure = false;
         secureParsed = false;
-        usingReader = false;
-        usingStream = false;
 
         // XXX Do we need such defaults ?
         methodBC.setString("GET");
@@ -573,54 +525,6 @@ public class HttpRequestPacket extends HttpHeader {
         sb.append("]\n)");
 
         return sb.toString();
-    }
-
-
-    // --------------------------------------------------------- Private Methods
-
-
-    /**
-     * Gets the POST body of this request.
-     *
-     * @return The POST body of this request
-     */
-    private byte[] getPostBody(long expectedLen) throws IOException {
-
-        int len = (int) expectedLen;
-        byte[] formData;
-
-        if (len < CACHED_POST_LEN) {
-            if (postData == null)
-                postData = new byte[CACHED_POST_LEN];
-            formData = postData;
-        } else {
-            formData = new byte[len];
-        }
-        int actualLen = readPostBody(formData, len);
-        if (actualLen == len) {
-            return formData;
-        }
-
-        return null;
-    }
-
-
-    /**
-     * Read post body in an array.
-     */
-    private int readPostBody(byte body[], int len)
-    throws IOException {
-
-        int offset = 0;
-        do {
-            int inputLen = getInputStream().read(body, offset, len - offset);
-            if (inputLen <= 0) {
-                return offset;
-            }
-            offset += inputLen;
-        } while ((len - offset) > 0);
-        return len;
-
     }
 
 
