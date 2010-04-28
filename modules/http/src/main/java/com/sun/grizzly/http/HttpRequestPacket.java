@@ -38,14 +38,12 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.ThreadCache;
-import com.sun.grizzly.http.io.InputBuffer;
-import com.sun.grizzly.http.io.RequestInputStream;
-import com.sun.grizzly.http.io.RequestReader;
+import com.sun.grizzly.http.server.io.InputBuffer;
+import com.sun.grizzly.http.server.io.RequestInputStream;
+import com.sun.grizzly.http.server.io.RequestReader;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
-import com.sun.grizzly.http.util.Parameters;
 import com.sun.grizzly.http.util.RequestURIRef;
 
 import java.io.IOException;
@@ -54,8 +52,6 @@ import java.io.Reader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Enumeration;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * The {@link HttpHeader} object, which represents HTTP request message.
@@ -66,8 +62,6 @@ import java.util.logging.Logger;
  * @author Alexey Stashok
  */
 public class HttpRequestPacket extends HttpHeader {
-
-    private static final Logger LOGGER = Grizzly.logger(HttpRequestPacket.class);
 
     /**
      * Post data buffer.  TODO: Make this configurable
@@ -97,9 +91,6 @@ public class HttpRequestPacket extends HttpHeader {
 
     private RequestURIRef requestURIRef = new RequestURIRef();
 
-    private Parameters parameters = new Parameters();
-
-    private boolean parametersParsed;
     private boolean secure;
     private boolean secureParsed;
     private boolean usingReader;
@@ -507,73 +498,6 @@ public class HttpRequestPacket extends HttpHeader {
     }
 
 
-    /**
-     * @return a {@link Parameters} instance representing any query parameters
-     *  included with the request URI or POST data when the request content
-     *  type is <code>application/x-www-form-urlencoded</code>.
-     */
-    public Parameters getParameters() {
-        
-        if (!parametersParsed) {
-            String charEncodingLocal = getCharacterEncoding();
-
-            // Delay updating requestParametersParsed to TRUE until
-            // after getCharacterEncoding() has been called, because
-            // getCharacterEncoding() may cause setCharacterEncoding() to be
-            // called, and the latter will ignore the specified encoding if
-            // requestParametersParsed is TRUE
-            parametersParsed = true;
-            charEncodingLocal = ((charEncodingLocal == null)
-                            ? Constants.DEFAULT_CHARACTER_ENCODING
-                            : charEncodingLocal);
-            parameters.setQuery(queryBC);
-            parameters.setEncoding(charEncodingLocal);
-            parameters.setQueryStringEncoding(charEncodingLocal);
-            parameters.setHeaders(getHeaders());
-
-            // process the query string
-            parameters.handleQueryParameters();
-
-            // processing post if necessary
-            if (!usingReader && !usingStream) {
-                if ("POST".equalsIgnoreCase(getMethod())) {
-                    String contentType = getContentType();
-                    if (contentType != null) {
-                        int semicolon = contentType.indexOf(';');
-                        if (semicolon >= 0) {
-                            contentType =
-                                    contentType.substring(0, semicolon).trim();
-                        } else {
-                            contentType = contentType.trim();
-                        }
-                    }
-                    if (("application/x-www-form-urlencoded".equals(contentType))) {
-                        long len = getContentLength();
-                        if (len > 0) {
-                            try {
-                                byte[] formData = getPostBody(len);
-                                if (formData != null) {
-                                    parameters.processParameters(formData,
-                                                                 0,
-                                                                 (int) len);
-                                }
-                            } catch (Throwable t) {
-                                if (LOGGER.isLoggable(Level.FINE)) {
-                                    LOGGER.log(Level.FINE,
-                                               "Exception processing POST body.",
-                                               t);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        return parameters;
-
-    }
-
-
     // -------------------- Recycling --------------------
 
     /**
@@ -589,7 +513,6 @@ public class HttpRequestPacket extends HttpHeader {
         localAddressBC.recycle();
         localNameBC.recycle();
         serverNameBC.recycle();
-        parameters.recycle();
         inputBuffer.recycle();
 
         remotePort = -1;
@@ -602,7 +525,6 @@ public class HttpRequestPacket extends HttpHeader {
         reader = null;
 
         secure = false;
-        parametersParsed = false;
         secureParsed = false;
         usingReader = false;
         usingStream = false;

@@ -39,9 +39,9 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.ThreadCache;
-import com.sun.grizzly.http.io.OutputBuffer;
-import com.sun.grizzly.http.io.ResponseOutputStream;
-import com.sun.grizzly.http.io.ResponseWriter;
+import com.sun.grizzly.http.server.io.OutputBuffer;
+import com.sun.grizzly.http.server.io.ResponseOutputStream;
+import com.sun.grizzly.http.server.io.ResponseWriter;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
 
