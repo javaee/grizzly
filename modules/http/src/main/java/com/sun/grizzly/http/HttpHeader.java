@@ -214,10 +214,9 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
 
             BufferChunk bc = headers.getValue("content-type");
 
-            if (bc == null || bc.isNull()) {
-                return null;
+            if (bc != null && !bc.isNull()) {
+                contentType = bc.toString();
             }
-            contentType = bc.toString();
         }
         return contentType;
 
