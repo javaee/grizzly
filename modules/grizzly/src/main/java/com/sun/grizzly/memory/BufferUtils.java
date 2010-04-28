@@ -44,6 +44,7 @@ import java.nio.BufferOverflowException;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 
 /**
  *
@@ -299,6 +300,72 @@ public class BufferUtils {
             compositeBuffer.append(buffer2);
 
             return compositeBuffer;
+        }
+    }
+
+    /**
+     * Fill the {@link Buffer} with the specific byte value. {@link Buffer}'s
+     * postion won't be changed.
+     *
+     * @param buffer {@link Buffer}
+     * @param b value
+     */
+    public static final void fill(Buffer buffer, byte b) {
+        fill(buffer, buffer.position(), buffer.limit(), b);
+    }
+
+    /**
+     * Fill the {@link Buffer}'s part [postion, limit) with the specific byte value starting from the
+     * {@link Buffer}'s postion won't be changed.
+     * 
+     * @param buffer {@link Buffer}
+     * @param position {@link Buffer} position to start with (inclusive)
+     * @param limit {@link Buffer} limit, where filling ends (exclusive)
+     * @param b value
+     */
+    public static final void fill(Buffer buffer, int position, int limit, byte b) {
+        if (!buffer.isComposite()) {
+            final ByteBuffer byteBuffer = buffer.toByteBuffer();
+            fill(byteBuffer, position, limit, b);
+        } else {
+            final ByteBuffer[] byteBuffers =
+                    buffer.toByteBufferArray(position, limit);
+            for (ByteBuffer byteBuffer : byteBuffers) {
+                fill(byteBuffer, b);
+            }
+        }
+    }
+
+    /**
+     * Fill the {@link ByteBuffer} with the specific byte value. {@link ByteBuffer}'s
+     * postion won't be changed.
+     *
+     * @param buffer {@link ByteBuffer}
+     * @param b value
+     */
+    public static final void fill(ByteBuffer byteBuffer, byte b) {
+        fill(byteBuffer, byteBuffer.position(), byteBuffer.limit(), b);
+    }
+
+    /**
+     * Fill the {@link ByteBuffer}'s part [postion, limit) with the specific byte value starting from the
+     * {@link ByteBuffer}'s postion won't be changed.
+     *
+     * @param buffer {@link ByteBuffer}
+     * @param position {@link ByteBuffer} position to start with (inclusive)
+     * @param limit {@link Buffer} limit, where filling ends (exclusive)
+     * @param b value
+     */
+    public static final void fill(ByteBuffer byteBuffer, int position,
+            int limit, byte b) {
+        if (byteBuffer.hasArray()) {
+            final int arrayOffset = byteBuffer.arrayOffset();
+            Arrays.fill(byteBuffer.array(), arrayOffset + position,
+                    arrayOffset + limit, b);
+        } else {
+            for (int i = position; i < limit; i++) {
+                byteBuffer.put(i, b);
+            }
         }
     }
 }
