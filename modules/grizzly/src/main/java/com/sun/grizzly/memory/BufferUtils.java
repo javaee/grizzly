@@ -181,8 +181,8 @@ public class BufferUtils {
         }
     }
 
-    public static void put(ByteBuffer srcBuffer, int srcOffset, int length,
-            ByteBuffer dstBuffer) {
+    public static void put(final ByteBuffer srcBuffer, final int srcOffset,
+            final int length, final ByteBuffer dstBuffer) {
         
         if (dstBuffer.remaining() < length) {
             throw new BufferOverflowException();
@@ -197,14 +197,9 @@ public class BufferUtils {
                     length);
             dstBuffer.position(dstBuffer.position() + length);
         } else {
-            int oldPos = srcBuffer.position();
-            int oldLim = srcBuffer.limit();
-            setPositionLimit(srcBuffer, srcOffset, srcOffset + length);
-
-            dstBuffer.put(srcBuffer);
-
-            srcBuffer.position(oldPos);
-            srcBuffer.limit(oldLim);
+            for(int i = srcOffset; i < srcOffset + length; i++) {
+                dstBuffer.put(srcBuffer.get(i));
+            }
         }
     }
 
