@@ -325,6 +325,8 @@ public class Constants {
 
     public final static String CONTENT_LENGTH_HEADER = "content-length";
 
+    public final static String CONTENT_TYPE_HEADER = "content-type";
+
     public final static byte[] CONTENT_LENGTH_HEADER_BYTES = CONTENT_LENGTH_HEADER.getBytes(ASCII_CHARSET);
 
     public final static String TRANSFER_ENCODING_HEADER = "transfer-encoding";

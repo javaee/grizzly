@@ -578,6 +578,14 @@ public abstract class HttpFilter extends BaseFilter {
                 }
             }
         }
+        
+        if (mimeHeaders.getValue(Constants.CONTENT_TYPE_HEADER) == null) {
+            String contentType = httpHeader.getContentType();
+            if (contentType != null) {
+                mimeHeaders.setValue(Constants.CONTENT_TYPE_HEADER).setString(
+                        contentType);
+            }
+        }
     }
     
     private Buffer encodeMimeHeaders(MemoryManager memoryManager,
