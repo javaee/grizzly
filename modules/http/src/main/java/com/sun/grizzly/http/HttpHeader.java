@@ -212,10 +212,12 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
         if (!contentTypeParsed) {
             contentTypeParsed = true;
 
-            BufferChunk bc = headers.getValue("content-type");
+            if (contentType == null) {
+                BufferChunk bc = headers.getValue("content-type");
 
-            if (bc != null && !bc.isNull()) {
-                contentType = bc.toString();
+                if (bc != null && !bc.isNull()) {
+                    contentType = bc.toString();
+                }
             }
         }
         return contentType;
