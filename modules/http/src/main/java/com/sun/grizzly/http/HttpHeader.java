@@ -391,6 +391,17 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
         }
 
         /**
+         * Set the content-type of this {@link HttpPacket}.
+         *
+         * @param contentType  the content-type of this {@link HttpPacket}.
+         */
+        @SuppressWarnings({"unchecked"})
+        public final T contentType(String contentType) {
+            packet.setContentType(contentType);
+            return (T) this;
+        }
+
+        /**
          * Add the HTTP mime header.
          *
          * @param name the mime header name.
