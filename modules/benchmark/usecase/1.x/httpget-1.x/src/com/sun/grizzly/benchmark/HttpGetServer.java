@@ -75,7 +75,7 @@ public class HttpGetServer {
         selectorThread.setController(controller);
         selectorThread.setMaxThreads(poolSize);
         selectorThread.setCoreThreads(poolSize);
-        selectorThread.setInet(InetAddress.getByName(settings.getHost()));
+//        selectorThread.setInet(InetAddress.getByName(settings.getHost()));
         selectorThread.setPort(settings.getPort());
         selectorThread.setTcpNoDelay(true);
 
