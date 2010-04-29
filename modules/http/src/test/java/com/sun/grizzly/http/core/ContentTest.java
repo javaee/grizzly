@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.*;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
@@ -50,6 +49,11 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.http.HttpClientFilter;
+import com.sun.grizzly.http.HttpContent;
+import com.sun.grizzly.http.HttpHeader;
+import com.sun.grizzly.http.HttpPacket;
+import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryUtils;

@@ -43,9 +43,6 @@ import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.RequestURIRef;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.Enumeration;
