@@ -64,7 +64,19 @@ public class BufferChunk {
 
     private String stringValue;
 
-    private BufferChunk() {
+    protected BufferChunk() {
+    }
+
+    public void set(BufferChunk value) {
+        reset();
+
+        if (value.hasBuffer()) {
+            setBuffer(value.buffer, value.start, value.end);
+            cachedString = value.cachedString;
+            cachedStringCharset = value.cachedStringCharset;
+        } else if (value.hasString()) {
+            stringValue = value.stringValue;
+        }
     }
 
     public Buffer getBuffer() {
@@ -250,12 +262,16 @@ public class BufferChunk {
         return !hasBuffer() && !hasString();
     }
 
-    public void recycle() {
+    protected void reset() {
         start = -1;
         end = -1;
         buffer = null;
         cachedString = null;
         cachedStringCharset = null;
         stringValue = null;
+    }
+
+    public void recycle() {
+        reset();
     }
 }

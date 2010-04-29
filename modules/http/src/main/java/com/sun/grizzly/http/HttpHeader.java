@@ -108,6 +108,24 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     }
 
     /**
+     * Obtain content-length value and mark it as serialized.
+     * 
+     * @param bc container for the content-length value.
+     */
+    protected void extractContentLength(BufferChunk bc) {
+        if (contentLength != -1) {
+            bc.setString(Long.toString(contentLength));
+        } else {
+            final BufferChunk value;
+            final int idx = headers.indexOf(Constants.CONTENT_LENGTH_HEADER, 0);
+            if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
+                bc.set(value);
+                headers.getAndSetSerialized(idx, true);
+            }
+        }
+    }
+
+    /**
      * Get the content-length of this {@link HttpPacket}. Applicable only in case
      * of fixed-length HTTP message.
      * 
@@ -117,13 +135,22 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     public long getContentLength() {
         if (contentLength == -1) {
             final BufferChunk contentLengthChunk =
-                    headers.getValue("content-length");
+                    headers.getValue(Constants.CONTENT_LENGTH_HEADER);
             if (contentLengthChunk != null) {
                 contentLength = Ascii.parseLong(contentLengthChunk);
             }
         }
 
         return contentLength;
+    }
+
+
+    /**
+     * TODO DOCS
+     * @param len
+     */
+    public void setContentLength(int len) {
+        this.contentLength = len;
     }
 
     /**
@@ -166,6 +193,23 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
 
     // -------------------- encoding/type --------------------
 
+    /**
+     * Obtain transfer-encoding value and mark it as serialized.
+     *
+     * @param bc container for the transfer-encoding value.
+     */
+    protected void extractTransferEncoding(BufferChunk bc) {
+        final int idx = headers.indexOf(Constants.TRANSFER_ENCODING_HEADER, 0);
+        final BufferChunk value;
+        
+        if (idx == -1) {
+            bc.setString(Constants.CHUNKED_ENCODING);
+        } else if (!((value = headers.getValue(idx)).isNull())) {
+            bc.set(value);
+            headers.getAndSetSerialized(idx, true);
+        }
+    }
+
 
     /**
      * TODO: docs
@@ -195,20 +239,32 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
 
 
     /**
-     * TODO DOCS
-     * @param len
+     * Obtain content-type value and mark it as serialized.
+     *
+     * @param bc container for the content-type value.
      */
-    public void setContentLength(int len) {
-        this.contentLength = len;
-    }
+    protected void extractContentType(BufferChunk bc) {
+        if (!contentTypeParsed) {
+            contentTypeParsed = true;
 
+            if (contentType == null) {
+                final int idx = headers.indexOf(Constants.CONTENT_TYPE_HEADER, 0);
+                final BufferChunk value;
+                if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
+                    contentType = value.toString();
+                    headers.getAndSetSerialized(idx, true);
+                }
+            }
+        }
+
+        bc.setString(contentType);
+    }
 
     /**
      * TODO DOCS
      * @return
      */
     public String getContentType() {
-
         if (!contentTypeParsed) {
             contentTypeParsed = true;
 
@@ -220,8 +276,8 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
                 }
             }
         }
-        return contentType;
 
+        return contentType;
     }
 
 

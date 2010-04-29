@@ -212,7 +212,7 @@ public final class Cookies { // extends MultiMap {
         int pos = 0;
         while (pos >= 0) {
             // Cookie2: version ? not needed
-            pos = headers.findHeader("Cookie", pos);
+            pos = headers.indexOf("Cookie", pos);
             // no more cookie headers headers
             if (pos < 0) {
                 break;

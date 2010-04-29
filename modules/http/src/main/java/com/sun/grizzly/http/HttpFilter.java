@@ -45,6 +45,7 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.CacheableBufferChunk;
 import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;
@@ -461,7 +462,8 @@ public abstract class HttpFilter extends BaseFilter {
             encodedBuffer = encodeInitialLine(httpHeader, encodedBuffer, memoryManager);
             encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
 
-            checkKnownHeaders(httpHeader, httpContent);
+            encodedBuffer = encodeKnownHeaders(memoryManager, encodedBuffer,
+                    httpHeader, httpContent);
             
             final MimeHeaders mimeHeaders = httpHeader.getHeaders();
             encodedBuffer = encodeMimeHeaders(memoryManager, encodedBuffer, mimeHeaders);
@@ -553,39 +555,69 @@ public abstract class HttpFilter extends BaseFilter {
                 httpChunkTrailer);
     }
 
-    protected void checkKnownHeaders(HttpHeader httpHeader,
-            HttpContent httpContent) {
+    protected Buffer encodeKnownHeaders(MemoryManager memoryManager,
+            Buffer buffer, HttpHeader httpHeader, HttpContent httpContent) {
         
-        final MimeHeaders mimeHeaders = httpHeader.getHeaders();
-        
-        if (httpHeader.isChunked()) {
-            if (mimeHeaders.getValue(Constants.TRANSFER_ENCODING_HEADER) == null) {
-                mimeHeaders.setValue(Constants.TRANSFER_ENCODING_HEADER).setString(
-                        Constants.CHUNKED_ENCODING);
-            }
-        } else {
-            if (mimeHeaders.getValue(Constants.CONTENT_LENGTH_HEADER) == null) {
-                long contentLength = httpHeader.getContentLength();
-                if (contentLength == -1) {
-                    if (httpContent != null && httpContent.getContent().hasRemaining()) {
-                        contentLength = httpContent.getContent().remaining();
-                    }
-                }
+//        final MimeHeaders mimeHeaders = httpHeader.getHeaders();
 
-                if (contentLength != -1) {
-                    mimeHeaders.setValue(Constants.CONTENT_LENGTH_HEADER).setString(
-                            Long.toString(contentLength));
-                }
+        final CacheableBufferChunk name = CacheableBufferChunk.create();
+        final CacheableBufferChunk value = CacheableBufferChunk.create();
+
+        if (httpHeader.isChunked()) {
+            name.setString(Constants.TRANSFER_ENCODING_HEADER);
+            httpHeader.extractTransferEncoding(value);
+//            if (mimeHeaders.getValue(Constants.TRANSFER_ENCODING_HEADER) == null) {
+//                mimeHeaders.setValue(Constants.TRANSFER_ENCODING_HEADER).setString(
+//                        Constants.CHUNKED_ENCODING);
+//            }
+            
+        } else {
+            name.setString(Constants.CONTENT_LENGTH_HEADER);
+            httpHeader.extractContentLength(value);
+            if (value.isNull() && httpContent != null
+                    && httpContent.getContent().hasRemaining()) {
+                value.setString(Integer.toString(httpContent.getContent().remaining()));
             }
+//            if (mimeHeaders.getValue(Constants.CONTENT_LENGTH_HEADER) == null) {
+//                long contentLength = httpHeader.getContentLength();
+//                if (contentLength == -1) {
+//                    if (httpContent != null && httpContent.getContent().hasRemaining()) {
+//                        contentLength = httpContent.getContent().remaining();
+//                    }
+//                }
+//
+//                if (contentLength != -1) {
+//                    mimeHeaders.setValue(Constants.CONTENT_LENGTH_HEADER).setString(
+//                            Long.toString(contentLength));
+//                }
+//            }
+        }
+
+        if (!value.isNull()) {
+            buffer = encodeMimeHeader(memoryManager, buffer, name, value);
+        }
+
+        name.reset();
+        value.reset();
+        
+        name.setString(Constants.CONTENT_TYPE_HEADER);
+        httpHeader.extractContentType(value);
+
+        if (!value.isNull()) {
+            buffer = encodeMimeHeader(memoryManager, buffer, name, value);
         }
         
-        if (mimeHeaders.getValue(Constants.CONTENT_TYPE_HEADER) == null) {
-            String contentType = httpHeader.getContentType();
-            if (contentType != null) {
-                mimeHeaders.setValue(Constants.CONTENT_TYPE_HEADER).setString(
-                        contentType);
-            }
-        }
+//        if (mimeHeaders.getValue(Constants.CONTENT_TYPE_HEADER) == null) {
+//            String contentType = httpHeader.getContentType();
+//            if (contentType != null) {
+//                mimeHeaders.setValue(Constants.CONTENT_TYPE_HEADER).setString(
+//                        contentType);
+//            }
+//        }
+        name.recycle();
+        value.recycle();
+
+        return buffer;
     }
     
     private Buffer encodeMimeHeaders(MemoryManager memoryManager,
@@ -593,17 +625,22 @@ public abstract class HttpFilter extends BaseFilter {
         final int mimeHeadersNum = mimeHeaders.size();
 
         for (int i = 0; i < mimeHeadersNum; i++) {
-            buffer = put(memoryManager, buffer,
-                    mimeHeaders.getName(i));
-
-            buffer = put(memoryManager, buffer,
-                    Constants.COLON_BYTES);
-
-            buffer = put(memoryManager, buffer,
-                    mimeHeaders.getValue(i));
-
-            buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+            if (!mimeHeaders.getAndSetSerialized(i, true)) {
+                buffer = encodeMimeHeader(memoryManager, buffer,
+                        mimeHeaders.getName(i), mimeHeaders.getValue(i));
+            }
         }
+
+        return buffer;
+    }
+
+    private Buffer encodeMimeHeader(MemoryManager memoryManager,
+            Buffer buffer, BufferChunk name, BufferChunk value) {
+
+        buffer = put(memoryManager, buffer, name);
+        buffer = put(memoryManager, buffer, Constants.COLON_BYTES);
+        buffer = put(memoryManager, buffer, value);
+        buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
 
         return buffer;
     }

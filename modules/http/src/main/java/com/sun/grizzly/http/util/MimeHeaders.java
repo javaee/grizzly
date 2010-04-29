@@ -54,7 +54,6 @@
 package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.Buffer;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Enumeration;
@@ -202,9 +201,30 @@ public class MimeHeaders {
         return n >= 0 && n < count ? headers[n].getValue() : null;
     }
 
-    /** Find the index of a header with the given name.
+    /**
+     * Set the header's "serialized" flag and return the prev. value.
+     *
+     * @param n the header index
+     * @param newValue the new value
+     * @return the old header "serialized" flag value.
      */
-    public int findHeader(String name, int starting) {
+    public boolean getAndSetSerialized(int n, boolean newValue) {
+        final boolean value;
+        if (n >= 0 && n < count) {
+            final MimeHeaderField field = headers[n];
+            value = field.isSerialized();
+            field.setSerialized(newValue);
+        } else {
+            value = true;
+        }
+
+        return value;
+    }
+
+    /**
+     * Find the index of a header with the given name.
+     */
+    public int indexOf(String name, int fromIndex) {
         // We can use a hash - but it's not clear how much
         // benefit you can get - there is an  overhead
         // and the number of headers is small (4-5 ?)
@@ -212,7 +232,7 @@ public class MimeHeaders {
         // of constructing the hashtable
 
         // A custom search tree may be better
-        for (int i = starting; i < count; i++) {
+        for (int i = fromIndex; i < count; i++) {
             if (headers[i].getName().equalsIgnoreCase(name)) {
                 return i;
             }
@@ -470,6 +490,7 @@ class MimeHeaderField {
     protected final BufferChunk nameB = BufferChunk.newInstance();
     protected final BufferChunk valueB = BufferChunk.newInstance();
 
+    private boolean isSerialized;
     /**
      * Creates a new, uninitialized header field.
      */
@@ -477,6 +498,7 @@ class MimeHeaderField {
     }
 
     public void recycle() {
+        isSerialized = false;
         nameB.recycle();
         valueB.recycle();
     }
@@ -487,5 +509,13 @@ class MimeHeaderField {
 
     public BufferChunk getValue() {
         return valueB;
+    }
+
+    public boolean isSerialized() {
+        return isSerialized;
+    }
+
+    public void setSerialized(boolean isSerialized) {
+        this.isSerialized = isSerialized;
     }
 }
