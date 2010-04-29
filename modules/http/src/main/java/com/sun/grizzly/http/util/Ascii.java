@@ -308,6 +308,34 @@ public final class Ascii {
         return n;
     }
 
+    public static long parseLong(String s, int off, int len)
+            throws NumberFormatException {
+        int c;
+
+        if (s == null || len <= 0 || !isDigit(c = s.charAt(off++))) {
+            throw new NumberFormatException();
+        }
+
+        long n = c - '0';
+        long m;
+
+        while (--len > 0) {
+            if (!isDigit(c = s.charAt(off++))) {
+                throw new NumberFormatException();
+            }
+            m = n * 10 + c - '0';
+
+            if (m < n) {
+                // Overflow
+                throw new NumberFormatException();
+            } else {
+                n = m;
+            }
+        }
+
+        return n;
+    }
+
     /**
      * Parses an unsigned long from the specified subarray of bytes.
      * @param b the Buffer to parse
@@ -342,15 +370,24 @@ public final class Ascii {
         return n;
     }
 
-    public static long parseLong(BufferChunk contentLengthChunk) {
-        if (contentLengthChunk.hasBuffer()) {
-            return parseLong(contentLengthChunk.getBuffer(),
-                    contentLengthChunk.getStart(),
-                    contentLengthChunk.getEnd() - contentLengthChunk.getStart());
+    public static long parseLong(BufferChunk bufferChunk) {
+        if (bufferChunk.hasBuffer()) {
+            return parseLong(bufferChunk.getBuffer(),
+                    bufferChunk.getStart(),
+                    bufferChunk.getEnd() - bufferChunk.getStart());
         } else {
-            return Long.parseLong(contentLengthChunk.toString());
+            return Long.parseLong(bufferChunk.toString());
         }
     }
+
+    public static long parseLong(BufferChunk bufferChunk, int offset, int length) {
+        if (bufferChunk.hasBuffer()) {
+            return parseLong(bufferChunk.getBuffer(), bufferChunk.getStart() + offset, length);
+        } else {
+            return parseLong(bufferChunk.toString(), offset, length);
+        }
+    }
+
     
     public static void intToHexString(Buffer buffer, int i) {
 	intToUnsignedString(buffer, i, 4);

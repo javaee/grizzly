@@ -146,13 +146,50 @@ public class BufferChunk {
     }
 
     /**
+     * Returns the <tt>BufferChunk</tt> length.
+     *
+     * @return the <tt>BufferChunk</tt> length.
+     */
+    public int length() {
+        if (hasBuffer()) {
+            return end - start;
+        } else if (hasString()) {
+            return stringValue.length();
+        }
+
+        return 0;
+    }
+
+    /**
      * Returns true if the message bytes starts with the specified string.
      * @param c the character
-     * @param starting The start position
+     * @param fromIndex The start position
      */
-    public int indexOf(char c, int starting) {
-        int ret = indexOf(buffer, start + starting, end, c);
-        return (ret >= start) ? ret - start : -1;
+    public int indexOf(char c, int fromIndex) {
+        if (hasBuffer()) {
+            int ret = indexOf(buffer, start + fromIndex, end, c);
+            return (ret >= start) ? ret - start : -1;
+        } else if (hasString()) {
+            return stringValue.indexOf(c, fromIndex);
+        }
+
+        return -1;
+    }
+
+    /**
+     * Returns true if the message bytes starts with the specified string.
+     * @param s the string
+     * @param fromIndex The start position
+     */
+    public int indexOf(String s, int fromIndex) {
+        if (hasBuffer()) {
+            int ret = indexOf(buffer, start + fromIndex, end, s);
+            return (ret >= start) ? ret - start : -1;
+        } else if (hasString()) {
+            return stringValue.indexOf(s, fromIndex);
+        }
+
+        return -1;
     }
 
     private static int indexOf(Buffer buffer, int off, int end, char qq) {
@@ -167,6 +204,33 @@ public class BufferChunk {
         return -1;
     }
 
+    private static int indexOf(Buffer buffer, int off, final int end, final CharSequence s) {
+        // Works only for UTF
+        final int strLen = s.length();
+        if (strLen == 0) {
+            return off;
+        }
+        
+        if (strLen > (end - off)) return -1;
+        
+        int strOffs = 0;
+        final int lastOffs = end - strLen;
+
+        while (off <= lastOffs + strOffs) {
+            final byte b = buffer.get(off);
+            if (b == s.charAt(strOffs)) {
+                strOffs++;
+                if (strOffs == strLen) {
+                    return off - strLen + 1;
+                }
+            } else {
+                strOffs = 0;
+            }
+
+            off++;
+        }
+        return -1;
+    }
     
     /**
      * Compares the message bytes to the specified String object.
@@ -250,15 +314,15 @@ public class BufferChunk {
         }
     }
     
-    public boolean hasBuffer() {
+    public final boolean hasBuffer() {
         return buffer != null;
     }
 
-    public boolean hasString() {
+    public final boolean hasString() {
         return stringValue != null;
     }
     
-    public boolean isNull() {
+    public final boolean isNull() {
         return !hasBuffer() && !hasString();
     }
 
