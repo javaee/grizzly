@@ -122,8 +122,7 @@ public class GzipOutputFilter implements OutputFilter {
         if (compressionStream == null) {
             compressionStream = new GZIPOutputStream(fakeOutputStream);
         }
-        compressionStream.write(chunk.getBytes(), chunk.getStart(), 
-                                chunk.getLength());
+        compressionStream.write(chunk.getBytes(), chunk.getStart(), chunk.getLength());
         return chunk.getLength();
     }
 

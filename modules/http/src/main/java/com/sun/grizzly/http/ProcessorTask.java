@@ -1669,10 +1669,6 @@ public class ProcessorTask extends TaskBase implements Processor,
         // Create and add buffered input filter
         inputBuffer.addFilter(new BufferedInputFilter());
 
-        // Create and add the chunked filters.
-        //inputBuffer.addFilter(new GzipInputFilter());
-        outputBuffer.addFilter(new GzipOutputFilter());
-
         // Add compression filters to filter library
         final Collection<OutputFilter> compressionOutputFilters =
                 CompressionFiltersProvider.provider().getOutputFilters();
