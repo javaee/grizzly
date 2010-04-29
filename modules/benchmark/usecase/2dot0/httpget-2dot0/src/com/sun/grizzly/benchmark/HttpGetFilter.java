@@ -70,8 +70,6 @@ public class HttpGetFilter extends BaseFilter {
         final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
         final int size = getSize(request.getQueryStringBC());
 
-        System.out.println("size: " + size);
-        
         final HttpResponsePacket response = HttpResponsePacket.builder()
                 .protocol("HTTP/1.1")
                 .status(200)
