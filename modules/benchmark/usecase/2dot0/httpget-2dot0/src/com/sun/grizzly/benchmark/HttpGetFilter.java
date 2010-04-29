@@ -45,6 +45,8 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.util.Ascii;
+import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
@@ -66,10 +68,10 @@ public class HttpGetFilter extends BaseFilter {
         }
 
         final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
-        final String sizeParam = request.getParameters().getParameter("size");
+        final int size = getSize(request.getQueryStringBC());
 
-        final int size = parseSize(sizeParam);
-
+        System.out.println("size: " + size);
+        
         final HttpResponsePacket response = HttpResponsePacket.builder()
                 .protocol("HTTP/1.1")
                 .status(200)
@@ -89,11 +91,17 @@ public class HttpGetFilter extends BaseFilter {
         return ctx.getStopAction();
     }
 
-    private static final int parseSize(String sizeParam) {
-        if (sizeParam != null) {
-            try {
-                return Integer.parseInt(sizeParam);
-            } catch (NumberFormatException e) {
+    private static int getSize(BufferChunk queryString) {
+        if (!queryString.isNull()) {
+            final int idx = queryString.indexOf("size=", 0);
+            if (idx != -1) {
+                final int sizeIdx = idx + "size=".length();
+                int idx2 = queryString.indexOf('&', sizeIdx);
+                if (idx2 == -1) {
+                    idx2 = queryString.length();
+                }
+                
+                return (int) Ascii.parseLong(queryString, sizeIdx, idx2 - sizeIdx);
             }
         }
 
