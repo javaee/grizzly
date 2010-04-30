@@ -59,7 +59,7 @@ public class ContentTypeTest extends BaseGrizzlyConfigTest {
 
     @BeforeClass
     public void setup() {
-        grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
+        grizzlyConfig = new GrizzlyConfig("grizzly-config-content-type.xml");
         grizzlyConfig.setupNetwork();
         int count = 0;
         for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {

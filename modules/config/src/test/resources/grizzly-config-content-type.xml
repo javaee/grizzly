@@ -1,0 +1,14 @@
+<network-config>
+    <transports>
+        <transport name="tcp"/>
+    </transports>
+    <protocols>
+        <protocol name="http">
+            <http comet-support-enabled="true" default-response-type="text/plain;charset=iso-8859-1"/>
+        </protocol>
+    </protocols>
+    <network-listeners>
+        <thread-pool name="defaultThreadPool"/>
+        <network-listener name="http-listener" port="38082" transport="tcp" protocol="http" thread-pool="defaultThreadPool"/>
+    </network-listeners>
+</network-config>
