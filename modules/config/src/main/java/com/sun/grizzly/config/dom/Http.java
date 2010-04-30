@@ -90,7 +90,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * encoding, language, charset
      */
     @Deprecated
-    @Attribute(defaultValue = "text/plain; charset=iso-8859-1")
+    @Attribute()
     String getDefaultResponseType();
 
     @Deprecated
@@ -150,7 +150,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * extensions. Specified as a semi-colon delimited string consisting of content-type, encoding, language, charset
      */
     @Deprecated
-    @Attribute(defaultValue = "text/plain; charset=iso-8859-1")
+    @Attribute()
     String getForcedResponseType();
 
     @Deprecated
