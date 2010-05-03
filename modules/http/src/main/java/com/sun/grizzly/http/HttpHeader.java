@@ -65,6 +65,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     protected String contentType;
     protected Cookies cookies = new Cookies(headers);
 
+    private TransferEncoding transferEncoding;
 
     /**
      * Returns <tt>true</tt>, if the current <tt>HttpHeader</tt> represent
@@ -82,6 +83,24 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     @Override
     public final boolean isHeader() {
         return true;
+    }
+
+    /**
+     * Get the {@link TransferEncoding}, responsible for the parsing/serialization of the HTTP message content
+     * 
+     * @return the {@link TransferEncoding}, responsible for the parsing/serialization of the HTTP message content
+     */
+    public TransferEncoding getTransferEncoding() {
+        return transferEncoding;
+    }
+
+    /**
+     * Set the {@link TransferEncoding}, responsible for the parsing/serialization of the HTTP message content.
+     *
+     * @param transferEncoding the {@link TransferEncoding}, responsible for the parsing/serialization of the HTTP message content.
+     */
+    public void setTransferEncoding(TransferEncoding transferEncoding) {
+        this.transferEncoding = transferEncoding;
     }
 
     /**
@@ -393,6 +412,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
         charEncodingParsed = false;
         contentType = null;
         contentTypeParsed = false;
+        transferEncoding = null;
     }
     
     /**

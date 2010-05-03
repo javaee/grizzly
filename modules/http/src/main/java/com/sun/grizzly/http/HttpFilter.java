@@ -43,14 +43,15 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.http.TransferEncoding.ParsingResult;
 import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.CacheableBufferChunk;
-import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.BufferUtils;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * The {@link com.sun.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
@@ -75,8 +76,10 @@ public abstract class HttpFilter extends BaseFilter {
 
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
 
-    private static final int MAX_HTTP_CHUNK_SIZE_LENGTH = 16;
-
+    private volatile TransferEncoding[] transferEncodings;
+    
+    private final Object encodingSync = new Object();
+    
     /**
      * Method is responsible for parsing initial line of HTTP message (different
      * for {@link HttpRequestPacket} and {@link HttpResponsePacket}).
@@ -120,6 +123,47 @@ public abstract class HttpFilter extends BaseFilter {
      */
     public HttpFilter(int maxHeadersSize) {
         this.maxHeadersSize = maxHeadersSize;
+        transferEncodings = new TransferEncoding[] {
+            new FixedLengthTransferEncoding(), new ChunkedTransferEncoding(maxHeadersSize)};
+    }
+
+    public boolean addTransferEncoding(TransferEncoding transferEncoding) {
+        synchronized (encodingSync) {
+            if (indexOf(transferEncodings, transferEncoding) == -1) {
+                TransferEncoding[] encodings = Arrays.copyOf(
+                        transferEncodings, transferEncodings.length + 1);
+                encodings[transferEncodings.length] = transferEncoding;
+                transferEncodings = encodings;
+
+                return true;
+            }
+
+            return false;
+        }
+    }
+
+    public boolean removeTransferEncoding(TransferEncoding transferEncoding) {
+        synchronized (encodingSync) {
+            final int idx = indexOf(transferEncodings, transferEncoding);
+            if (idx != -1) {
+                TransferEncoding[] encodings =
+                        new TransferEncoding[transferEncodings.length - 1];
+                if (idx > 0) {
+                    System.arraycopy(transferEncodings, 0, encodings, 0, idx);
+                }
+
+                final int bytesToCopy2 = transferEncodings.length - idx - 1;
+                if (bytesToCopy2 > 0) {
+                    System.arraycopy(transferEncodings, idx + 1, encodings, idx, bytesToCopy2);
+                }
+
+                transferEncodings = encodings;
+
+                return true;
+            }
+
+            return false;
+        }
     }
 
     /**
@@ -159,131 +203,52 @@ public abstract class HttpFilter extends BaseFilter {
                 httpPacket.setHeaderParsed(true);
                 // recycle header parsing state
                 httpPacket.getHeaderParsingState().recycle();
+
+                setTransferEncoding((HttpHeader) httpPacket);
             }
         }
-
-        Buffer remainder = null;
-
-        // Get HTTP content parsing state
-        final ContentParsingState contentParsingState =
-                httpPacket.getContentParsingState();
-        
-        boolean isLast = false;
 
         final HttpHeader httpHeader = (HttpHeader) httpPacket;
-        // Is it chunked HTTP message?
-        final boolean isChunked = httpHeader.isChunked();
-        
-        // Check if input buffer has some HTTP content
-        if (input.hasRemaining()) {
-            if (isChunked) {
-                // if it's chunked HTTP message
-                final boolean isLastChunk = contentParsingState.isLastChunk;
-                // Check if HTTP chunk length was parsed
-                if (!isLastChunk && contentParsingState.chunkRemainder == 0) {
-                    // We expect next chunk header
-                    if (!parseHttpChunkLength(httpPacket, input)) {
-                        // if we don't have enough data to parse chunk length - stop execution
-                        return ctx.getStopAction(input);
-                    }
-                } else {
-                    // HTTP content starts from position 0 in the input Buffer (HTTP chunk header is not part of the input Buffer)
-                    contentParsingState.chunkContentStart = 0;
-                }
+        final TransferEncoding encoding = httpHeader.getTransferEncoding();
 
-                // Get the position in the input Buffer, where actual HTTP content starts
-                int chunkContentStart =
-                        contentParsingState.chunkContentStart;
+        // Check if appropriate HTTP content encoder was found
+        if (encoding != null) {
 
-                if (contentParsingState.chunkLength == 0) {
-                    // if it's the last HTTP chunk
-                    if (!isLastChunk) {
-                        // set it's the last chunk
-                        contentParsingState.isLastChunk = true;
-                        // start trailer parsing
-                        initTrailerParsing(httpPacket);
-                    }
+            final ParsingResult result = parsePacket(ctx.getConnection(), httpHeader, input);
 
-                    // Check if trailer is present
-                    if (!parseLastChunkTrailer(httpPacket, input)) {
-                        // if yes - and there is not enough input data - stop the
-                        // filterchain processing
-                        return ctx.getStopAction(input);
-                    }
+            final HttpContent httpContent = result.getHttpContent();
+            final Buffer remainderBuffer = result.getRemainderBuffer();
 
-                    // move the content start position after trailer parsing
-                    chunkContentStart = httpPacket.getHeaderParsingState().offset;
-                }
+            result.recycle();
 
-                // Get the number of bytes remaining in the current chunk
-                final long thisPacketRemaining =
-                        contentParsingState.chunkRemainder;
-                // Get the number of content bytes available in the current input Buffer
-                final int contentAvailable = input.limit() - chunkContentStart;
-
-                if (contentAvailable > thisPacketRemaining) {
-                    // If input Buffer has part of the next message - slice it
-                    remainder = input.slice(
-                            (int) (chunkContentStart + thisPacketRemaining),
-                            input.limit());
-                    input.limit((int) (chunkContentStart + thisPacketRemaining));
-                } else if (chunkContentStart > 0) {
-                    input.position(chunkContentStart);
-                }
-
-                // recalc the HTTP chunk remaining content
-                contentParsingState.chunkRemainder -= (input.limit() - chunkContentStart);
-
-                if (isLastChunk) {
-                    // if it's the last HTTP chunk - notify parent Filter about
-                    // message parsing completion
+            if (httpContent != null) {
+                if (httpContent.isLast()) {
                     onHttpPacketParsed(ctx);
-                    // Build last chunk content message
-                    ctx.setMessage(((HttpHeader) httpPacket).httpTrailerBuilder().
-                            headers(contentParsingState.trailerHeaders).build());
-                    
-                    // pass the last chunk content to a next filter
-                    return ctx.getInvokeAction(remainder);
                 }
+
+                ctx.setMessage(httpContent);
+
+                // Instruct filterchain to continue the processing.
+                return ctx.getInvokeAction(remainderBuffer);
             } else {
-                // if it's fixed length HTTP message
-                if (!wasHeaderParsed) {
-                    // if we have just parsed a HTTP message header
-                    // assign chunkRemainder to the HTTP message content length
-                    contentParsingState.chunkRemainder = httpHeader.getContentLength();
-                }
-
-                final long thisPacketRemaining = contentParsingState.chunkRemainder;
-                final int available = input.remaining();
-
-                if (available > thisPacketRemaining) {
-                    // if input Buffer has part of the next HTTP message - slice it
-                    remainder = input.slice(
-                            (int) (input.position() + thisPacketRemaining), input.limit());
-                    input.limit((int) (input.position() + thisPacketRemaining));
-                }
-
-                // recalc. the HTTP message remaining bytes
-                contentParsingState.chunkRemainder -= input.remaining();
-                if (contentParsingState.chunkRemainder == 0) {
-                    // if remainder is 0 - we've read out entire HTTP message
-                    isLast = true;
-                    onHttpPacketParsed(ctx);
-                }
+                return ctx.getStopAction(remainderBuffer);
             }
-        } else if (!isChunked && httpHeader.getContentLength() <= 0) {
+
+
+        } else if (!httpHeader.isChunked() && httpHeader.getContentLength() <= 0) {
             // If content is not present this time - check if we expect any
-            isLast = true;
             onHttpPacketParsed(ctx);
+
+            // Build HttpContent message on top of existing content chunk and parsed Http message header
+            final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
+            final HttpContent message = builder.content(input).last(true).build();
+            ctx.setMessage(message);
+
+            // Instruct filterchain to continue the processing.
+            return ctx.getInvokeAction(null);
         }
 
-        // Build HttpContent message on top of existing content chunk and parsed Http message header
-        final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
-        final HttpContent message = builder.content(input).last(isLast).build();
-        ctx.setMessage(message);
-
-        // Instruct filterchain to continue the processing.
-        return ctx.getInvokeAction(remainder);
+        throw new IllegalStateException("Error parsing HTTP packet: " + httpHeader);
     }
 
     /**
@@ -307,103 +272,11 @@ public abstract class HttpFilter extends BaseFilter {
         final Connection connection = ctx.getConnection();
 
         // transform HttpPacket into Buffer
-        final Buffer output = encodeHttpPacket(
-                connection.getTransport().getMemoryManager(), input);
+        final Buffer output = encodeHttpPacket(connection, input);
 
         ctx.setMessage(output);
         // Invoke next filter in the chain.
         return ctx.getInvokeAction();
-    }
-    
-    private void initTrailerParsing(HttpPacketParsing httpPacket) {
-        final ParsingState headerParsingState =
-                httpPacket.getHeaderParsingState();
-        final ContentParsingState contentParsingState =
-                httpPacket.getContentParsingState();
-
-        headerParsingState.subState = 0;
-        final int start = contentParsingState.chunkContentStart;
-        headerParsingState.start = start;
-        headerParsingState.offset = start;
-        headerParsingState.packetLimit = start + maxHeadersSize;
-    }
-
-    private boolean parseLastChunkTrailer(HttpPacketParsing httpPacket,
-            Buffer input) {
-        final ParsingState headerParsingState =
-                httpPacket.getHeaderParsingState();
-        final ContentParsingState contentParsingState =
-                httpPacket.getContentParsingState();
-
-        return parseHeaders(null, contentParsingState.trailerHeaders,
-                headerParsingState, input);
-    }
-
-    private boolean parseHttpChunkLength(HttpPacketParsing httpPacket,
-            Buffer input) {
-        final ParsingState parsingState = httpPacket.getHeaderParsingState();
-
-        while (true) {
-            _1:
-            switch (parsingState.state) {
-                case 0: {// Initialize chunk parsing
-                    final int pos = input.position();
-                    parsingState.start = pos;
-                    parsingState.offset = pos;
-                    parsingState.packetLimit = pos + MAX_HTTP_CHUNK_SIZE_LENGTH;
-                    parsingState.state = 1;
-                }
-
-                case 1: { // Scan chunk size
-                    int offset = parsingState.offset;
-                    int limit = Math.min(parsingState.packetLimit, input.limit());
-                    long value = parsingState.parsingNumericValue;
-
-                    while (offset < limit) {
-                        final byte b = input.get(offset);
-                        if (b == Constants.CR || b == Constants.SEMI_COLON) {
-                            parsingState.checkpoint = offset;
-                        } else if (b == Constants.LF) {
-                            final ContentParsingState contentParsingState =
-                                    httpPacket.getContentParsingState();
-                            contentParsingState.chunkContentStart = offset + 1;
-                            contentParsingState.chunkLength = value;
-                            contentParsingState.chunkRemainder = value;
-                            parsingState.state = 2;
-
-                            return true;
-                        } else if (parsingState.checkpoint == -1) {
-                            value = value * 16 + (HexUtils.DEC[b]);
-                        } else {
-                            throw new IllegalStateException("Unexpected HTTP chunk header");
-                        }
-
-                        offset++;
-                    }
-
-                    parsingState.parsingNumericValue = value;
-                    parsingState.offset = offset;
-                    parsingState.checkOverflow();
-                    return false;
-
-                }
-
-                case 2: { // skip CRLF
-                    while (input.hasRemaining()) {
-                        if (input.get() == Constants.LF) {
-                            parsingState.recycle();
-                            if (input.hasRemaining()) {
-                                break _1;
-                            }
-
-                            return false;
-                        }
-                    }
-
-                    return false;
-                }
-            }
-        }
     }
     
     protected boolean decodeHttpPacket(HttpPacketParsing httpPacket, Buffer input) {
@@ -439,9 +312,8 @@ public abstract class HttpFilter extends BaseFilter {
         }
     }
 
-    protected Buffer encodeHttpPacket(MemoryManager memoryManager,
-            HttpPacket input) {
-
+    protected Buffer encodeHttpPacket(Connection connection, HttpPacket input) {
+        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
         final boolean isHeader = input.isHeader();
         final HttpContent httpContent;
         final HttpHeader httpHeader;
@@ -452,7 +324,6 @@ public abstract class HttpFilter extends BaseFilter {
             httpContent = (HttpContent) input;
             httpHeader = httpContent.getHttpHeader();
         }
-
 
         Buffer encodedBuffer = null;
         
@@ -473,124 +344,49 @@ public abstract class HttpFilter extends BaseFilter {
             encodedBuffer.allowBufferDispose(true);
             
             httpHeader.setCommited(true);
+
+            setTransferEncoding(httpHeader);
         }
 
         if (!isHeader) {
-            final boolean isChunked = httpHeader.isChunked();
-            final boolean isLastChunk = httpContent.isLast();
-            
-            final Buffer content = httpContent.getContent();
+            final TransferEncoding contentEncoder = httpHeader.getTransferEncoding();
 
-            if (content != null &&
-                    (content.hasRemaining() || (isChunked && isLastChunk))) {
-                
-                if (isChunked) {
-                    final Buffer chunkBuffer = encodeHttpChunk(memoryManager,
-                            httpContent, isLastChunk);
+            if (contentEncoder != null) {
+                final Buffer content = serializePacket(connection, httpContent);
+                encodedBuffer = BufferUtils.appendBuffers(memoryManager,
+                        encodedBuffer, content);
 
-                    encodedBuffer = BufferUtils.appendBuffers(memoryManager,
-                            encodedBuffer, chunkBuffer);
-                } else {
-                    encodedBuffer = BufferUtils.appendBuffers(memoryManager,
-                            encodedBuffer, content);
-                }
-                
                 if (encodedBuffer.isComposite()) {
                     // If during buffer appending - composite buffer was created -
                     // allow buffer disposing
                     encodedBuffer.allowBufferDispose(true);
                 }
+            } else {
+                throw new IllegalStateException("Error serializing HTTP packet: " + httpHeader);
             }
         }
 
         return encodedBuffer;
     }
 
-    private Buffer encodeHttpChunk(MemoryManager memoryManager,
-            HttpContent httpContent, boolean isLastChunk) {
-        final Buffer content = httpContent.getContent();
-        
-        Buffer httpChunkBuffer = memoryManager.allocate(16);
-        final int chunkSize = content.remaining();
-        
-        Ascii.intToHexString(httpChunkBuffer, chunkSize);
-        httpChunkBuffer = put(memoryManager, httpChunkBuffer,
-                Constants.CRLF_BYTES);
-        httpChunkBuffer.trim();
-        httpChunkBuffer.allowBufferDispose(true);
-
-        final boolean hasContent = chunkSize > 0;
-        
-        if (hasContent) {
-            httpChunkBuffer = BufferUtils.appendBuffers(memoryManager,
-                    httpChunkBuffer, content);
-        }
-        
-        Buffer httpChunkTrailer = memoryManager.allocate(256);
-
-        if (!isLastChunk) {
-            httpChunkTrailer = put(memoryManager, httpChunkTrailer,
-                    Constants.CRLF_BYTES);
-        } else {
-            if (hasContent) {
-                httpChunkTrailer = put(memoryManager, httpChunkTrailer,
-                        Constants.CRLF_BYTES);
-                httpChunkTrailer = put(memoryManager, httpChunkTrailer,
-                        Constants.LAST_CHUNK_CRLF_BYTES);
-            }
-            
-            final HttpTrailer httpTrailer = (HttpTrailer) httpContent;
-            final MimeHeaders mimeHeaders = httpTrailer.getHeaders();
-            httpChunkTrailer = encodeMimeHeaders(memoryManager,
-                    httpChunkTrailer, mimeHeaders);
-            
-            httpChunkTrailer = put(memoryManager, httpChunkTrailer,
-                    Constants.CRLF_BYTES);
-        }
-
-        httpChunkTrailer.trim();
-        httpChunkTrailer.allowBufferDispose(true);
-
-        return BufferUtils.appendBuffers(memoryManager, httpChunkBuffer,
-                httpChunkTrailer);
-    }
-
     protected Buffer encodeKnownHeaders(MemoryManager memoryManager,
             Buffer buffer, HttpHeader httpHeader, HttpContent httpContent) {
         
-//        final MimeHeaders mimeHeaders = httpHeader.getHeaders();
-
         final CacheableBufferChunk name = CacheableBufferChunk.create();
         final CacheableBufferChunk value = CacheableBufferChunk.create();
 
         if (httpHeader.isChunked()) {
             name.setString(Constants.TRANSFER_ENCODING_HEADER);
             httpHeader.extractTransferEncoding(value);
-//            if (mimeHeaders.getValue(Constants.TRANSFER_ENCODING_HEADER) == null) {
-//                mimeHeaders.setValue(Constants.TRANSFER_ENCODING_HEADER).setString(
-//                        Constants.CHUNKED_ENCODING);
-//            }
-            
         } else {
             name.setString(Constants.CONTENT_LENGTH_HEADER);
             httpHeader.extractContentLength(value);
             if (value.isNull() && httpContent != null
                     && httpContent.getContent().hasRemaining()) {
-                value.setString(Integer.toString(httpContent.getContent().remaining()));
+                final int contentLength = httpContent.getContent().remaining();
+                httpHeader.setContentLength(contentLength);
+                value.setString(Integer.toString(contentLength));
             }
-//            if (mimeHeaders.getValue(Constants.CONTENT_LENGTH_HEADER) == null) {
-//                long contentLength = httpHeader.getContentLength();
-//                if (contentLength == -1) {
-//                    if (httpContent != null && httpContent.getContent().hasRemaining()) {
-//                        contentLength = httpContent.getContent().remaining();
-//                    }
-//                }
-//
-//                if (contentLength != -1) {
-//                    mimeHeaders.setValue(Constants.CONTENT_LENGTH_HEADER).setString(
-//                            Long.toString(contentLength));
-//                }
-//            }
         }
 
         if (!value.isNull()) {
@@ -607,20 +403,13 @@ public abstract class HttpFilter extends BaseFilter {
             buffer = encodeMimeHeader(memoryManager, buffer, name, value);
         }
         
-//        if (mimeHeaders.getValue(Constants.CONTENT_TYPE_HEADER) == null) {
-//            String contentType = httpHeader.getContentType();
-//            if (contentType != null) {
-//                mimeHeaders.setValue(Constants.CONTENT_TYPE_HEADER).setString(
-//                        contentType);
-//            }
-//        }
         name.recycle();
         value.recycle();
 
         return buffer;
     }
     
-    private Buffer encodeMimeHeaders(MemoryManager memoryManager,
+    protected static Buffer encodeMimeHeaders(MemoryManager memoryManager,
             Buffer buffer, MimeHeaders mimeHeaders) {
         final int mimeHeadersNum = mimeHeaders.size();
 
@@ -634,7 +423,7 @@ public abstract class HttpFilter extends BaseFilter {
         return buffer;
     }
 
-    private Buffer encodeMimeHeader(MemoryManager memoryManager,
+    protected static Buffer encodeMimeHeader(MemoryManager memoryManager,
             Buffer buffer, BufferChunk name, BufferChunk value) {
 
         buffer = put(memoryManager, buffer, name);
@@ -1028,6 +817,57 @@ public abstract class HttpFilter extends BaseFilter {
                 (headerBuffer.capacity() * 3) / 2 + 1));
     }
 
+    private static int indexOf(Object[] array, Object element) {
+        for (int i = 0; i < array.length; i++) {
+            if (array[i].equals(element)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    final void setTransferEncoding(HttpHeader httpHeader) {
+        final TransferEncoding[] encodings = transferEncodings;
+        if (httpHeader.isRequest()) {
+            HttpRequestPacket httpRequestPacket = (HttpRequestPacket) httpHeader;
+            for (TransferEncoding encoding : encodings) {
+                if (encoding.isEncodeRequest(httpRequestPacket)) {
+                    httpRequestPacket.setTransferEncoding(encoding);
+                    return;
+                }
+            }
+        } else {
+            HttpResponsePacket httpResponsePacket = (HttpResponsePacket) httpHeader;
+            for (TransferEncoding encoding : encodings) {
+                if (encoding.isEncodeResponse(httpResponsePacket)) {
+                    httpResponsePacket.setTransferEncoding(encoding);
+                    return;
+                }
+            }
+        }
+    }
+
+    private ParsingResult parsePacket(Connection connection,
+            HttpHeader httpHeader, Buffer input) {
+        final TransferEncoding encoding = httpHeader.getTransferEncoding();
+        if (httpHeader.isRequest()) {
+            return encoding.parseRequest(connection, (HttpRequestPacket) httpHeader, input);
+        } else {
+            return encoding.parseResponse(connection, (HttpResponsePacket) httpHeader, input);
+        }
+    }
+
+    private Buffer serializePacket(Connection connection, HttpContent httpContent) {
+        final HttpHeader httpHeader = httpContent.getHttpHeader();
+        final TransferEncoding encoding = httpHeader.getTransferEncoding();
+        if (httpHeader.isRequest()) {
+            return encoding.serializeRequest(connection, httpContent);
+        } else {
+            return encoding.serializeResponse(connection, httpContent);
+        }
+    }
+
     protected static final class ParsingState {
         public int packetLimit;
 
@@ -1080,16 +920,16 @@ public abstract class HttpFilter extends BaseFilter {
 
     protected static final class ContentParsingState {
         public boolean isLastChunk;
-        public int chunkContentStart;
-        public long chunkLength;
-        public long chunkRemainder;
+        public int chunkContentStart = -1;
+        public long chunkLength = -1;
+        public long chunkRemainder = -1;
         public MimeHeaders trailerHeaders = new MimeHeaders();
 
         public void recycle() {
             isLastChunk = false;
             chunkContentStart = -1;
             chunkLength = -1;
-            chunkRemainder = 0;
+            chunkRemainder = -1;
             trailerHeaders.clear();
         }
     }
