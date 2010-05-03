@@ -45,6 +45,7 @@ import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.ByteBufferManager;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.tcp.FileOutputBuffer;
 
 import java.io.IOException;
@@ -387,8 +388,9 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
      * @param byteBuffer the {@link ByteBuffer} to write
      * @throws IOException if an error occurs during the write
      */
+    @SuppressWarnings({"unchecked"})
     public void writeByteBuffer(ByteBuffer byteBuffer) throws IOException {
-        ByteBufferWrapper w = new ByteBufferWrapper((ByteBufferManager) memoryManager, byteBuffer);
+        Buffer w = MemoryUtils.wrap(memoryManager, byteBuffer);
         int total = w.remaining();
         int off = w.position();
         do {
@@ -508,7 +510,6 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
                 return DEFAULT_BUFFER_SIZE - charBuf.position();
             }
             return (len - rem);
-            //return ((ret > DEFAULT_BUFFER_SIZE) ? rem : ret);
         }
     }
 
