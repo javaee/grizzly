@@ -98,6 +98,8 @@ public class HttpServletRequestImpl implements HttpServletRequest {
     
     private Logger logger = LoggerUtils.getLogger();
 
+    private int filterChainPos = 0;
+    
     // ----------------------------------------------------------- Constructors
 
 
@@ -268,11 +270,27 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         return inputStream;
     }
 
+    /**
+     * Get the position of the current Filter in a FilterChain.
+     * @return the position of the current Filter in a FilterChain.
+     */
+    int getFilterChainPos() {
+        return filterChainPos;
+    }
+
+    /**
+     * Set the position of the current Filter in a FilterChain.
+     * @param filterChainPos Set the position of the current Filter in a FilterChain.
+     */
+    void setFilterChainPos(int filterChainPos) {
+        this.filterChainPos = filterChainPos;
+    }
 
     void recycle(){
         if(System.getSecurityManager() != null){
             inputStream = null;
         }
+        filterChainPos = 0;
     }
     
     /**

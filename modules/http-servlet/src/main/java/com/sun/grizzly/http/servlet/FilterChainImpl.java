@@ -94,7 +94,8 @@ public final class FilterChainImpl implements FilterChain {
      * The int which is used to maintain the current position 
      * in the filter chain.
      */
-    private int pos = 0;
+//    private int pos = 0;
+
     /**
      * The int which gives the current number of filters in the chain.
      */
@@ -122,7 +123,7 @@ public final class FilterChainImpl implements FilterChain {
     // ---------------------------------------------------- FilterChain Methods
     protected void invokeFilterChain(ServletRequest request, ServletResponse response)
             throws IOException, ServletException {
-        
+
         ServletRequestEvent event =
                 new ServletRequestEvent(configImpl.getServletContext(), request);
         try {
@@ -135,7 +136,7 @@ public final class FilterChainImpl implements FilterChain {
                     LoggerUtils.getLogger().log(Level.WARNING, "", t);
                 }
             }
-            pos = 0;
+            setPos(request,  0);
             doFilter(request, response);
         } finally {
             for (EventListener l : ((ServletContextImpl) configImpl.getServletContext()).getListeners()) {
@@ -166,11 +167,13 @@ public final class FilterChainImpl implements FilterChain {
             throws IOException, ServletException {
 
         // Call the next filter if there is one
+        int pos = getPos(request);
         if (pos < n) {
             FilterConfigImpl filterConfig = null;
             
             synchronized (lock){
                 filterConfig = filters[pos++];
+                setPos(request, pos);
             }
 
             Filter filter = null;
@@ -227,12 +230,20 @@ public final class FilterChainImpl implements FilterChain {
         }
     }
 
+    protected int getPos(ServletRequest request) {
+        return ((HttpServletRequestImpl) request).getFilterChainPos();
+    }
+
+    protected void setPos(ServletRequest request, int pos) {
+        ((HttpServletRequestImpl) request).setFilterChainPos(pos);
+    }
+    
     /**
      * Release references to the filters and configImpl executed by this chain.
      */
-    protected void recycle() {
-        pos = 0;
-    }
+//    protected void recycle() {
+//        pos = 0;
+//    }
 
     /**
      * Set the servlet that will be executed at the end of this chain.

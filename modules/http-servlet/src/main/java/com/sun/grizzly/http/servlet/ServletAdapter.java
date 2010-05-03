@@ -51,7 +51,6 @@ import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.Cookie;
 
 import com.sun.grizzly.util.http.HttpRequestURIDecoder;
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EventListener;
@@ -475,19 +474,20 @@ public class ServletAdapter extends GrizzlyAdapter {
     @Override
     public void afterService(GrizzlyRequest request, GrizzlyResponse response) 
             throws Exception {
-        try{
-            HttpServletRequestImpl httpRequest = (HttpServletRequestImpl)
+        HttpServletRequestImpl httpRequest = (HttpServletRequestImpl)
                 request.getRequest().getNote(REQUEST_RESPONSE_NOTES);
-            HttpServletResponseImpl httpResponse = (HttpServletResponseImpl)
+        
+        HttpServletResponseImpl httpResponse = (HttpServletResponseImpl)
                 response.getResponse().getNote(REQUEST_RESPONSE_NOTES);
+//        try{
 
-            if (httpRequest != null){
-                httpRequest.recycle();
-                httpResponse.recycle();
-            }
-        } finally {
-            filterChain.recycle();
+        if (httpRequest != null) {
+            httpRequest.recycle();
+            httpResponse.recycle();
         }
+//        } finally {
+//            filterChain.recycle(httpRequest, httpResponse);
+//        }
     }
     
     
