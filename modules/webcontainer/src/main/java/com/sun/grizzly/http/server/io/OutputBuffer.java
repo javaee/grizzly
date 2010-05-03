@@ -467,9 +467,9 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
                 buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
             }
         }
-        //if (includeTrailer) {
-        //    ctx.write(response.httpTrailerBuilder().build());
-        //}
+        if (includeTrailer) {
+            ctx.write(response.httpTrailerBuilder().build());
+        }
     }
 
 
