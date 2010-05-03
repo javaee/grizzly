@@ -395,7 +395,6 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
             int writeLen = requiresDrain(total);
             if (writeLen == CAPACITY_OK) {
                 buf.put(w, off, total);
-                //buf.put(b, off, total);
                 total = 0;
             } else if (writeLen == DEFAULT_BUFFER_SIZE) {
                 buf.put(w, off, writeLen);
