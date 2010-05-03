@@ -245,6 +245,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
     @Override
     protected void configureInputBuffer(InputReader inputStream, Context context, 
             HttpWorkerThread workerThread) {
+        inputStream.recycle();
         inputStream.setSelectionKey(context.getSelectionKey());
         inputStream.setSecure(isSecure());
     }
