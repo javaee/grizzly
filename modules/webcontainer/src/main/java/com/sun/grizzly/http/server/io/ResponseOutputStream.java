@@ -34,7 +34,7 @@
  * holder.
  */
 
-package com.sun.grizzly.http.io;
+package com.sun.grizzly.http.server.io;
 
 import java.io.IOException;
 import java.io.OutputStream;

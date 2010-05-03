@@ -42,11 +42,16 @@ import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.util.Utils;
+import com.sun.grizzly.memory.ByteBufferManager;
+import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.tcp.FileOutputBuffer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CoderResult;
@@ -55,7 +60,7 @@ import java.nio.charset.CodingErrorAction;
 /**
  * TODO DOCS
  */
-public class OutputBuffer {
+public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
 
     private static final int DEFAULT_BUFFER_SIZE = 1024 * 8;
 
@@ -374,6 +379,82 @@ public class OutputBuffer {
     }
 
 
+    /**
+     * <p>
+     * Writes the contents of the specified {@link ByteBuffer} to the client.
+     * </p>
+     *
+     * @param byteBuffer the {@link ByteBuffer} to write
+     * @throws IOException if an error occurs during the write
+     */
+    public void writeByteBuffer(ByteBuffer byteBuffer) throws IOException {
+        ByteBufferWrapper w = new ByteBufferWrapper((ByteBufferManager) memoryManager, byteBuffer);
+        int total = w.remaining();
+        int off = w.position();
+        do {
+            int writeLen = requiresDrain(total);
+            if (writeLen == CAPACITY_OK) {
+                buf.put(w, off, total);
+                //buf.put(b, off, total);
+                total = 0;
+            } else if (writeLen == DEFAULT_BUFFER_SIZE) {
+                buf.put(w, off, writeLen);
+                total -= writeLen;
+                flush();
+            } else {
+                buf.put(w, off, writeLen);
+                flush();
+                buf.put(w, off + writeLen, total - writeLen);
+                total -= (total + total - writeLen);
+            }
+            if (buf.remaining() == 0) {
+                flush();
+            }
+            off += DEFAULT_BUFFER_SIZE;
+        } while (total > 0);
+    }
+
+
+    // ------------------------------------------- Methods from FileOutputBuffer
+
+    /**
+     * <p>
+     * The use of {@link FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     * is supported.
+     * </p>
+     *
+     * @return <code>true</code>
+     */
+    @Override
+    public boolean isSupportFileSend() {
+        return true;
+    }
+
+    /**
+     * @see FileOutputBuffer#sendFile(java.nio.channels.FileChannel, long, long)
+     */
+    @Override
+    public long sendFile(FileChannel fileChannel, long position, long length)
+    throws IOException {
+        return fileChannel.transferTo(position, length, this);
+    }
+
+
+    // ---------------------------------------- Methods from WritableByteChannel
+
+    @Override
+    public int write(ByteBuffer src) throws IOException {
+        int len = src.remaining();
+        writeByteBuffer(src);
+        return len;
+    }
+
+    @Override
+    public boolean isOpen() {
+        return !closed;
+    }
+
+
     // --------------------------------------------------------- Private Methods
 
 
@@ -387,9 +468,9 @@ public class OutputBuffer {
                 buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
             }
         }
-        if (includeTrailer) {
-            ctx.write(response.httpTrailerBuilder().build());
-        }
+        //if (includeTrailer) {
+        //    ctx.write(response.httpTrailerBuilder().build());
+        //}
     }
 
 

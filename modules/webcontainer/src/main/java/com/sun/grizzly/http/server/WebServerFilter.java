@@ -47,6 +47,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpFilter;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.server.apapter.Adapter;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.http.util.MimeHeaders;
@@ -102,7 +103,6 @@ public class WebServerFilter extends BaseFilter {
         }
 
         HttpResponsePacket response = HttpResponsePacket.builder().build();
-        response.getOutputBuffer().initialize(response, ctx);
 
         if (!prepareRequest((HttpRequestPacket) httpContent.getHttpHeader(), response)) {
             // invalid request - marshal the response to the client
@@ -111,15 +111,20 @@ public class WebServerFilter extends BaseFilter {
             return ctx.getStopAction();
         }
 
-        //HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
+        HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
+        // TODO we should cache these
+        GrizzlyRequest req = new GrizzlyRequest();
+        req.initialize(request, ctx);
+        GrizzlyResponse res = new GrizzlyResponse(false, false);
+        res.initialize(req, response, ctx);
         //prepareProcessing(ctx, request, response);
-        //Adapter adapter = config.getAdapter();
+        Adapter adapter = config.getAdapter();
 
-        //try {
-        //    adapter.service(request, response);
-        //} catch (Exception e) {
-        //    throw new RuntimeException(e);
-        //}
+        try {
+            adapter.service(req, res);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 
         response.finish();
         return ctx.getStopAction();

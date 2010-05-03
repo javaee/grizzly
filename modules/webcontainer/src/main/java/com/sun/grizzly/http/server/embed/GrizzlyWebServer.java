@@ -46,11 +46,9 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.server.Constants;
 import com.sun.grizzly.http.server.WebServerFilter;
+import com.sun.grizzly.http.server.apapter.GrizzlyAdapter;
+import com.sun.grizzly.http.server.apapter.GrizzlyAdapterChain;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapterChain;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -65,7 +63,6 @@ import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.IdleTimeoutFilter;
-import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.http.mapper.Mapper;
 
 
@@ -808,6 +805,7 @@ public class GrizzlyWebServer {
     public static void main(String[] args) {
 
         GrizzlyWebServer server = new GrizzlyWebServer();
+        server.getServerConfiguration().setWebResourcesPath("/tmp");
         try {
             server.start();
             System.out.println("Press any key to stop the server...");

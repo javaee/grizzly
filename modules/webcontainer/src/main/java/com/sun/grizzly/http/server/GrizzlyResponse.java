@@ -163,6 +163,7 @@ public class GrizzlyResponse<A> {
                            FilterChainContext ctx) {
         this.request = request;
         this.response = response;
+        outputBuffer = new OutputBuffer();
         outputBuffer.initialize(response, ctx);
         this.ctx = ctx;
     }
@@ -758,6 +759,24 @@ public class GrizzlyResponse<A> {
     public boolean isCommitted() {
         checkResponse();
         return (response.isCommitted());
+    }
+
+
+    /**
+     * TODO DOCS
+     * @throws IOException
+     */
+    public void flush() throws IOException {
+        outputBuffer.flush();
+    }
+
+
+    /**
+     * TODO Docs
+     * @return
+     */
+    public OutputBuffer getOutputBuffer() {
+        return outputBuffer;
     }
 
 
