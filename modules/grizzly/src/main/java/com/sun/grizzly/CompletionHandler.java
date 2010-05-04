@@ -47,20 +47,17 @@ package com.sun.grizzly;
 public interface CompletionHandler<E> {
     /**
      * The operation was cancelled.
-     * @param context
      */
     public void cancelled();
 
     /**
      * The operation was failed.
-     * @param context
      * @param throwable error, which occurred during operation execution
      */
     public void failed(Throwable throwable);
 
     /**
      * The operation was completed.
-     * @param context
      * @param result the operation result
      */
     public void completed(E result);
@@ -68,7 +65,6 @@ public interface CompletionHandler<E> {
     /**
      * The callback method may be called, when there is some progress in
      * operation execution, but it is still not completed
-     * @param context
      * @param result the current result
      */
     public void updated(E result);
