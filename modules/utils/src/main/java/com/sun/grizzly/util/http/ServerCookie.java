@@ -118,7 +118,7 @@ public class ServerCookie implements Serializable {
      */
     static final boolean COOKIE_VERSION_ONE_STRICT_COMPLIANCE =
         Boolean.valueOf(System.getProperty(
-            "com.sun.grizzly.util.http.ServerCookie.COOKIE_VERSION_ONE_STRICT_COMPLIANCE", "false")).booleanValue();
+            "org.glassfish.web.rfc2109_cookie_names_enforced", "false")).booleanValue();
 
     /**
      * If set to false, we don't use the IE6/7 Max-Age/Expires work around
