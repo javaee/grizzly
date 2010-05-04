@@ -52,7 +52,7 @@ public interface FileCache extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
      * Enables the caching of file content
      */
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getEnabled();
 
     void setEnabled(final String enabled);

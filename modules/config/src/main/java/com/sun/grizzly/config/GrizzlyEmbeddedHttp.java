@@ -440,15 +440,14 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      * Configure the Grizzly FileCache mechanism
      */
     private void configureFileCache(FileCache cache) {
-        if (cache == null) {
-            return;
+        if (cache != null) {
+            final boolean enabled = GrizzlyConfig.toBoolean(cache.getEnabled());
+            setFileCacheIsEnabled(enabled);
+            setLargeFileCacheEnabled(enabled);
+            setSecondsMaxAge(Integer.parseInt(cache.getMaxAgeSeconds()));
+            setMaxCacheEntries(Integer.parseInt(cache.getMaxFilesCount()));
+            setMaxLargeCacheSize(Integer.parseInt(cache.getMaxCacheSizeBytes()));
         }
-        final boolean enabled = GrizzlyConfig.toBoolean(cache.getEnabled());
-        setFileCacheIsEnabled(enabled);
-        setLargeFileCacheEnabled(enabled);
-        setSecondsMaxAge(Integer.parseInt(cache.getMaxAgeSeconds()));
-        setMaxCacheEntries(Integer.parseInt(cache.getMaxFilesCount()));
-        setMaxLargeCacheSize(Integer.parseInt(cache.getMaxCacheSizeBytes()));
     }
 
     private void configureHttpListenerProperty(Http http)

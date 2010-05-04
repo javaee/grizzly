@@ -52,14 +52,6 @@ import java.util.List;
 @Configured
 public interface PortUnification extends ConfigBeanProxy, Injectable, PropertyBag {
     /**
-     * Port-unification name, which could be used as reference
-     */
-    @Attribute(key = true)
-    String getName();
-
-    void setName(String value);
-
-    /**
      * Port unification logic implementation class
      */
     @Attribute
