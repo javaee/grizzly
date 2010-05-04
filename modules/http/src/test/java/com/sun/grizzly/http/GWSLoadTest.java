@@ -14,6 +14,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.Socket;
+import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -22,7 +23,7 @@ public class GWSLoadTest extends TestCase {
     private static final Logger logger = Logger.getLogger("grizzly");
     public static final int CLIENT_NUM = 2;
     private static final AtomicInteger done = new AtomicInteger(CLIENT_NUM);
-    private Exception exception;
+    private static Exception exception;
 
     public void testLoadAsync() throws Throwable {
 
@@ -42,7 +43,7 @@ public class GWSLoadTest extends TestCase {
             while (/*true || */done.get() > 0 && exception == null) {
                 Thread.sleep(100);
             }
-            if(exception != null) {
+            if (exception != null) {
                 logger.log(Level.INFO, exception.getMessage(), exception);
             }
             Assert.assertSame("Shouldn't get exception on server", null, exception);
@@ -65,7 +66,7 @@ public class GWSLoadTest extends TestCase {
             for (int index = 0; index < CLIENT_NUM; index++) {
                 new Client().run();
             }
-            if(exception != null) {
+            if (exception != null) {
                 logger.log(Level.INFO, exception.getMessage(), exception);
             }
             Assert.assertSame("Shouldn't get exception on server", null, exception);
@@ -74,12 +75,12 @@ public class GWSLoadTest extends TestCase {
         }
     }
 
-    private class LoadTestAdapter extends GrizzlyAdapter {
+    private static class LoadTestAdapter extends GrizzlyAdapter {
         private final int len;
         private final ByteChunk chunk;
 
         public LoadTestAdapter() throws UnsupportedEncodingException {
-            StringBuilder text = new StringBuilder();
+            StringBuilder text = new StringBuilder(new Date() + " ");
             for (int index = 0; index < 1000; index++) {
                 text.append("0123456789");
             }
@@ -137,6 +138,25 @@ public class GWSLoadTest extends TestCase {
                 exception = e;
             } finally {
                 final int i = done.decrementAndGet();
+            }
+        }
+    }
+
+    private static void main(String[] args) throws IOException, InterruptedException {
+
+        DefaultThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 1000 * 60 * 5;
+        GrizzlyWebServer gws = new GrizzlyWebServer(6666, "", false);
+
+        final SelectorThread thread = gws.getSelectorThread();
+        thread.setCompression("on");
+//        thread.setSendBufferSize(1024 * 1024);
+        gws.addGrizzlyAdapter(new LoadTestAdapter(), new String[]{"/"});
+        gws.start();
+        System.out.println("Listening on port 6666");
+        while(true) {
+            Thread.sleep(1000);
+            if(exception != null) {
+                exception.printStackTrace();
             }
         }
     }
