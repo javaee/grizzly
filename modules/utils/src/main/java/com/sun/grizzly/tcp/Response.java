@@ -926,7 +926,7 @@ public class Response<A> {
         private volatile CompletionHandler<? super A> completionHandler;
         private final A attachment;
         private final Response response;
-        private final long idleTimeoutDelay;
+        private volatile long idleTimeoutDelay;
         private volatile boolean isAttached;
 
         protected volatile ThreadAttachment threadAttachment;
@@ -973,6 +973,10 @@ public class Response<A> {
 
         public long getIdleTimeoutDelay() {
             return idleTimeoutDelay;
+        }
+
+        public void setIdleTimeoutDelay(long idleTimeoutDelay) {
+            this.idleTimeoutDelay = idleTimeoutDelay;
         }
 
         void setThreadAttachment(ThreadAttachment threadAttachment) {
