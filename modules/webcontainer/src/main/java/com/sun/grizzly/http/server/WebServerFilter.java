@@ -96,12 +96,6 @@ public class WebServerFilter extends BaseFilter {
         // Otherwise cast message to a HttpContent
         final HttpContent httpContent = (HttpContent) ctx.getMessage();
 
-        if (!httpContent.isLast()) {
-            // no action until we have all content
-            return ctx.getStopAction();
-
-        }
-
         HttpResponsePacket response = HttpResponsePacket.builder().build();
 
         if (!prepareRequest((HttpRequestPacket) httpContent.getHttpHeader(), response)) {
