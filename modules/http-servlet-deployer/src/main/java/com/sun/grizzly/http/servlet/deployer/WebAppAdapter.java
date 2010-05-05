@@ -280,6 +280,21 @@ public class WebAppAdapter extends ServletAdapter {
                         sa.addInitParameter(element.getParamName(), element.getParamValue());
                     }
                 }
+                
+                // load-on-startup
+                
+                int loadOnStartup = -1;
+                
+                try {
+                	loadOnStartup = Integer.parseInt(servletItem.loadOnStartup);
+                } catch (Exception e){
+                	
+                }
+                
+                if(loadOnStartup!=-1){
+                	sa.setProperty(ServletAdapter.LOAD_ON_STARTUP, Boolean.TRUE);
+                }
+                
                 break;
             }
         }

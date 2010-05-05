@@ -38,19 +38,6 @@
 
 package com.sun.grizzly.http.servlet;
 
-import com.sun.grizzly.util.Grizzly;
-import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.Constants;
-import com.sun.grizzly.tcp.http11.GrizzlyRequest;
-import com.sun.grizzly.tcp.http11.GrizzlyResponse;
-import com.sun.grizzly.util.ClassLoaderUtil;
-import com.sun.grizzly.util.IntrospectionUtils;
-import com.sun.grizzly.util.buf.MessageBytes;
-import com.sun.grizzly.util.http.Cookie;
-
-import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EventListener;
@@ -58,11 +45,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
+
 import javax.servlet.Filter;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
-import javax.servlet.ServletContextListener;
 import javax.servlet.ServletException;
+
+import com.sun.grizzly.tcp.Constants;
+import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
+import com.sun.grizzly.tcp.http11.GrizzlyRequest;
+import com.sun.grizzly.tcp.http11.GrizzlyResponse;
+import com.sun.grizzly.util.ClassLoaderUtil;
+import com.sun.grizzly.util.Grizzly;
+import com.sun.grizzly.util.IntrospectionUtils;
+import com.sun.grizzly.util.buf.MessageBytes;
+import com.sun.grizzly.util.http.Cookie;
+import com.sun.grizzly.util.http.HttpRequestURIDecoder;
 
 /**
  * Adapter class that can initiate a {@link javax.servlet.FilterChain} and execute its
@@ -711,9 +711,28 @@ public class ServletAdapter extends GrizzlyAdapter {
      */
     public void setProperty(String name, Object value) {                 
         
-        if (name.equalsIgnoreCase(LOAD_ON_STARTUP) && value != null
-                && ((new Integer(value.toString())) <= 1)){
-            loadOnStartup = true;
+    	/**
+    	 * Servlet 2.4 specs
+    	 * 
+    	 *  If the value is a negative integer,
+		 *  or the element is not present, the container is free to load the
+		 *  servlet whenever it chooses. If the value is a positive integer
+		 *  or 0, the container must load and initialize the servlet as the
+		 *  application is deployed. 
+    	 */
+        if (name.equalsIgnoreCase(LOAD_ON_STARTUP) && value != null){
+        	if(value instanceof Boolean && ((Boolean)value) == true){
+        		loadOnStartup = true;
+        	} else {
+        		try {
+        			if((new Integer(value.toString())) >= 0){
+        				loadOnStartup = true;
+        			}
+        		} catch(Exception e){
+        			
+        		}
+        	}
+            
         }
         
         // Get rid of "-";
@@ -739,6 +758,13 @@ public class ServletAdapter extends GrizzlyAdapter {
         properties.remove(name);
     } 
     
+    /**
+     * 
+     * @return is the servlet will be loaded at startup
+     */
+    public boolean isLoadOnStartup(){
+    	return loadOnStartup;
+    }
     
     /**
      * Destroy this Servlet and its associated

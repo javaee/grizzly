@@ -36,13 +36,17 @@
 package com.sun.grizzly.http.webxml;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.sun.grizzly.http.servlet.deployer.comparator.ServletLoadOnStartupComparator;
 import com.sun.grizzly.http.webxml.parser.IJAXBWebXmlParser;
 import com.sun.grizzly.http.webxml.parser.helper.WebXmlHelper;
+import com.sun.grizzly.http.webxml.schema.Servlet;
 import com.sun.grizzly.http.webxml.schema.WebApp;
 
 
@@ -149,7 +153,19 @@ public class WebappLoader {
 			logger.log(Level.FINEST, "Version found=" + schemaVersion);
 		}
 
-            return extractWebXmlInfo(schemaVersion, webxml);
+		WebApp webApp = extractWebXmlInfo(schemaVersion, webxml);
+		
+		List<Servlet> servletList = webApp.getServlet();
+		
+		// sort the servlet by load-on-startup values
+		if(servletList!=null && !servletList.isEmpty()){
+			
+			Collections.sort(servletList, new ServletLoadOnStartupComparator()); 
+			
+			webApp.setServlet(servletList);
+		}
+		
+		return webApp;
 	}
 	
 	/**
@@ -160,7 +176,7 @@ public class WebappLoader {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
-	protected static WebApp extractWebXmlInfo(String schemaVersion, String webxml) throws Exception {
+	public static WebApp extractWebXmlInfo(String schemaVersion, String webxml) throws Exception {
 
             IJAXBWebXmlParser parser = (IJAXBWebXmlParser)
                 ((Class) Class.forName(webAppMap.get(schemaVersion))).newInstance();
