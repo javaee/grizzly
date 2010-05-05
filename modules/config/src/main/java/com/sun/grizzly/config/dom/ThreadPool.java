@@ -51,6 +51,7 @@ import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.Dom;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 
@@ -130,7 +131,12 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
     class Duck {
 
         static public List<NetworkListener> findNetworkListeners(ThreadPool threadpool) {
-            final Collection<NetworkListener> listeners = ConfigBean.unwrap(threadpool).getHabitat().getAllByContract(NetworkListener.class);
+            List<NetworkListener> listeners;
+            NetworkListeners parent = threadpool.getParent(NetworkListeners.class);
+            if(parent == null) {
+                parent = ConfigBean.unwrap(threadpool.getParent()).nodeByTypeElement(NetworkListeners.class);
+            }
+            listeners = parent.getNetworkListener();
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
             for (NetworkListener listener : listeners) {
                 if (listener.getThreadPool().equals(threadpool.getName())) {
