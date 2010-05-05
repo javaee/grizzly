@@ -61,6 +61,25 @@
                 </dependency>
             </dependencies>
         </profile>
+        <profile>
+            <id>jdk-1.6</id>
+            <activation>
+                <jdk>1.6</jdk>
+            </activation>
+            <build>
+            	<plugins>
+		            <plugin>
+		                <inherited>true</inherited>
+		                <artifactId>maven-compiler-plugin</artifactId>
+		                <configuration>
+		                    <source>1.6</source>
+		                    <target>1.6</target>
+		                    <compilerArgument>${maven.compiler.argument}</compilerArgument>
+		                </configuration>
+		            </plugin>
+				       </plugins>
+				    </build>
+        </profile>
     </profiles>
 
     <dependencies>
