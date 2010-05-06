@@ -133,7 +133,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     class Duck {
         public static Protocol findProtocol(NetworkListener listener) {
-            return ConfigBean.unwrap(listener).getHabitat().getComponent(Protocol.class, listener.getProtocol());
+            return listener.getParent().getParent(NetworkConfig.class).findProtocol(listener.getProtocol());
         }
 
         public static Protocol findHttpProtocol(NetworkListener listener) {
@@ -160,7 +160,7 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
                 try {
                     Protocol foundHttpProtocol = null;
                     for (ProtocolFinder finder : finders) {
-                        final Protocol subProtocol = habitat.getComponent(Protocol.class, finder.getProtocol());
+                        final Protocol subProtocol = finder.findProtocol();
                         if (subProtocol != null) {
                             final Protocol httpProtocol = findHttpProtocol(tray, subProtocol);
                             if (httpProtocol != null) {
@@ -183,11 +183,26 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
         }
 
         public static ThreadPool findThreadPool(NetworkListener listener) {
-            return ConfigBean.unwrap(listener).getHabitat().getComponent(ThreadPool.class, listener.getThreadPool());
+            List<ThreadPool> list = listener.getParent(NetworkListeners.class).getThreadPool();
+            if(list == null) {
+                list = ConfigBean.unwrap(listener.getParent().getParent().getParent()).nodeByTypeElements(ThreadPool.class);
+            }
+            for (ThreadPool pool : list) {
+                if(listener.getThreadPool().equals(pool.getName())) {
+                    return pool;
+                }
+            }
+            return null;
         }
 
         public static Transport findTransport(NetworkListener listener) {
-            return ConfigBean.unwrap(listener).getHabitat().getComponent(Transport.class, listener.getTransport());
+            List<Transport> list = listener.getParent().getParent(NetworkConfig.class).getTransports().getTransport();
+            for (Transport transport : list) {
+                if(listener.getTransport().equals(transport.getName())) {
+                    return transport;
+                }
+            }
+            return null;
         }
     }
 }

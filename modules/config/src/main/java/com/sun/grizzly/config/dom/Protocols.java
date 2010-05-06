@@ -39,6 +39,7 @@ package com.sun.grizzly.config.dom;
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
 import org.jvnet.hk2.config.types.PropertyBag;
 
@@ -54,4 +55,19 @@ public interface Protocols extends ConfigBeanProxy, Injectable, PropertyBag {
      */
     @Element
     List<Protocol> getProtocol();
+
+    @DuckTyped
+    Protocol findProtocol(String name);
+
+    class Duck {
+        public static Protocol findProtocol(Protocols protocols, String name) {
+            for (Protocol protocol : protocols.getProtocol()) {
+                if (protocol.getName().equals(name)) {
+                    return protocol;
+                }
+            }
+
+            return null;
+        }
+    }
 }

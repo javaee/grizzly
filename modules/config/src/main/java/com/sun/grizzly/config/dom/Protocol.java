@@ -38,16 +38,14 @@ package com.sun.grizzly.config.dom;
 
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.Element;
 import org.jvnet.hk2.config.types.PropertyBag;
 
-import java.util.List;
-import java.util.Collection;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Defines one single high-level protocol like: http, https, iiop, etc.
@@ -109,8 +107,8 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
 
     class Duck {
         static public List<NetworkListener> findNetworkListeners(Protocol protocol) {
-            final Collection<NetworkListener> listeners = ConfigBean.unwrap(protocol).getHabitat()
-                .getAllByContract(NetworkListener.class);
+            final List<NetworkListener> listeners = protocol.getParent().getParent(NetworkConfig.class)
+                    .getNetworkListeners().getNetworkListener();
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
             for (NetworkListener listener : listeners) {
                 if (listener.getProtocol().equals(protocol.getName())) {

@@ -63,7 +63,7 @@ import javax.net.ssl.SSLEngine;
  * 
  * @author Jean-Francois Arcand
  */
-public class SSLOutputBuffer extends SocketChannelOutputBuffer implements SecureOuputBuffer {
+public class SSLOutputBuffer extends SocketChannelOutputBuffer {
 
     /**
      * {@link AsyncWriteCallbackHandler} implementation, which is responsible
@@ -82,17 +82,11 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer implements Secure
         super(response,headerBufferSize,useSocketBuffer);     
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public SSLEngine getSSLEngine() {
+    public SSLEngine getSslEngine() {
         return sslEngine;
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    public void setSSLEngine(SSLEngine sslEngine) {
+    public void setSslEngine(SSLEngine sslEngine) {
         this.sslEngine = sslEngine;
     }
     
