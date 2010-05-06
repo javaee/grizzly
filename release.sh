@@ -23,12 +23,6 @@ parse() {
 			"password")
 				SVN_PWD=${ARGS[1]}
 				;;
-			"rator_user")
-				RATOR_USER=${ARGS[1]}
-				;;
-			"rator_password")
-				RATOR_PWD=${ARGS[1]}
-				;;
 			"prepare")
 				PREPARE="release:clean release:prepare"
 				;;
