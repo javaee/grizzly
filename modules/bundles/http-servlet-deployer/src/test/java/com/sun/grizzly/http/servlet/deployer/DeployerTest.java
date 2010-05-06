@@ -1,13 +1,6 @@
 package com.sun.grizzly.http.servlet.deployer;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
 import junit.framework.TestCase;
-
-import com.sun.grizzly.http.servlet.deployer.conf.DeployableConfiguration;
-import com.sun.grizzly.http.servlet.deployer.conf.DeployerServerConfiguration;
 
 public class DeployerTest extends TestCase {
 	
@@ -85,64 +78,6 @@ public class DeployerTest extends TestCase {
 		
 		// with context
 		assertEquals("/war1", deployer.getContext("war1"));
-		
-	}
-	
-	public void testDeploy() throws Exception {
-		
-		DeployerServerConfiguration conf = new DeployerServerConfiguration();
-	    
-	    conf.cometEnabled = false;
-	    
-	    deployer.launch(conf);
-	    
-	    Thread.sleep(2000);
-	    
-	    System.out.println("Deploying HelloServlet.war");
-	    
-	    DeployableConfiguration warConf = new DeployableConfiguration("src/test/resources/HelloServlet.war");
-	    
-	    deployer.deployApplication(warConf);
-	    
-	    Thread.sleep(2000);
-	    
-	    System.out.println("calling the servlet");
-	    
-	    URL url = new URL("http://localhost:8080/HelloServlet/hello");
-	    
-	    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-	    
-	    InputStream is = conn.getInputStream();
-	    
-	    if(is!=null){
-	    	byte[] buffer = new byte[4096];
-            int count=0;
-            while(is.available()>0) {
-            	count = is.read(buffer);
-            }
-            
-            System.out.println("["+new String(buffer,0,count)+"]");
-	    }
-	    
-	    conn.disconnect();
-	    
-	    System.out.println("Now undeploy HelloServlet");
-	    
-	    deployer.undeployApplication("/HelloServlet");
-	    
-	    Thread.sleep(2000);
-	    
-	    System.out.println("calling the servlet");
-	    
-	    url = new URL("http://localhost:8080/HelloServlet/hello");
-	    
-	    conn = (HttpURLConnection) url.openConnection();
-	    
-	    System.out.println(conn.getResponseCode());
-	    
-	    assertFalse(conn.getResponseCode()!=404);
-	    
-	    Thread.sleep(30000);
 		
 	}
 	
