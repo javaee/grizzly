@@ -82,6 +82,9 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
     private static final String JAVA_IO_TMPDIR = "java.io.tmpdir";
     private static final String EMPTY_SERVLET_PATH = "";
     private static final String ROOT = "/";
+    
+    private String workFolder;
+    private boolean forceCleanUp = false;
 
     /**
      * {@inheritDoc}
@@ -269,12 +272,25 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
         result.put(sa, Collections.singleton(context + ROOT));
         return result;
     }
+    
+    public static String getDefaultWorkFolder(){
+    	return new File("work").getAbsolutePath();
+    }
 
 
-    private static URLClassLoader createWarCL(String explodedLocation, URLClassLoader serverLibLoader) throws DeployException {
+    private URLClassLoader createWarCL(String explodedLocation, URLClassLoader serverLibLoader) throws DeployException {
         URLClassLoader warCL;
+        
+        String deployToFolder = null;
+        
+        if(workFolder!=null){
+        	deployToFolder = workFolder;
+        } else {
+        	deployToFolder = getDefaultWorkFolder();
+        }
+        
         String oldTmp = System.getProperty(JAVA_IO_TMPDIR);
-        System.setProperty(JAVA_IO_TMPDIR, new File("work").getAbsolutePath());
+        System.setProperty(JAVA_IO_TMPDIR, deployToFolder);
         try {
             warCL = ClassLoaderUtil.createURLClassLoader(explodedLocation, serverLibLoader);
             if (logger.isLoggable(Level.FINEST)) {
@@ -301,22 +317,31 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
         return webApp;
     }
 
-    private static String explodeWarFile(URI uri) throws DeployException {
+    private String explodeWarFile(URI uri) throws DeployException {
         String explodedLocation = null;
-        String oldTmp = System.getProperty(JAVA_IO_TMPDIR);
-        String newTmp = new File("work").getAbsolutePath();
-        System.setProperty(JAVA_IO_TMPDIR, newTmp);
+        
+        String deployToFolder = null;
+        
+        if(workFolder!=null){
+        	deployToFolder = workFolder;
+        } else {
+        	deployToFolder = getDefaultWorkFolder();
+        }
+
         try {
         	// clean up previous work folder
-        	cleanup(newTmp);
+        	if(forceCleanUp){
+        		cleanup(deployToFolder);
+        	}
         	
-            explodedLocation = ExpandJar.expand(uri.toURL());
+            explodedLocation = ExpandJar.expand(uri.toURL(), deployToFolder);
         } catch (IOException e) {
         	// clean up work folder
-        	cleanup(newTmp);
+        	if(forceCleanUp){
+        		cleanup(deployToFolder);
+        	}
             throw new DeployException(String.format("Error extracting contents of war file '%s'.", uri), e);
         } finally {
-            System.setProperty(JAVA_IO_TMPDIR, oldTmp);
         }
         return explodedLocation;
     }
@@ -325,7 +350,7 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
      * Will try to delete the folder and his children
      * @param folder foldername
      */
-    private static void cleanup(String folder){
+    public static void cleanup(String folder){
     	if(folder==null){
     		return ;
     	}
@@ -358,4 +383,21 @@ public class WarDeployer extends FromURIDeployer<WarDeployable, WarDeploymentCon
     protected void setExtraConfig(ServletAdapter sa, final WarDeploymentConfiguration configuration){
     	
     }
+    
+	public boolean isForceCleanUp() {
+		return forceCleanUp;
+	}
+
+	public void setForceCleanUp(boolean forceCleanUp) {
+		this.forceCleanUp = forceCleanUp;
+	}
+
+	public String getWorkFolder() {
+		return workFolder;
+	}
+
+	public void setWorkFolder(String workFolder) {
+		this.workFolder = workFolder;
+	}
+    
 }

@@ -35,6 +35,7 @@
  */
 package com.sun.grizzly.http.servlet.deployer.conf;
 
+import java.io.File;
 import java.util.logging.Logger;
 import java.util.logging.Level;
 
@@ -42,6 +43,7 @@ import java.util.logging.Level;
  * {@link com.sun.grizzly.http.servlet.deployer.GrizzlyWebServerDeployer} configuration parser.
  *
  * @author Hubert Iwaniuk
+ * @author Sebastien Dionne
  */
 public class ConfigurationParser {
 
@@ -52,15 +54,34 @@ public class ConfigurationParser {
      *
      * @param args          Command line parameters to parse.
      * @param canonicalName Class canonical name.
-     *
      * @return Parsed configuration.
      */
-    public static DeployerConfiguration parseOptions(String[] args, final String canonicalName) {
-        DeployerConfiguration conf = new DeployerConfiguration();
-        if (args.length == 0) {
+    public static DeployerServerConfiguration parseOptions(String[] args, final String canonicalName) {
+    	return parseOptions(args, canonicalName, null);
+    }
+    
+    /**
+     * Parse command line parameters.
+     *
+     * @param args          Command line parameters to parse.
+     * @param canonicalName Class canonical name.
+     * @param conf 			DeployerServerConfiguration that will hold the command line params
+     * @return Parsed configuration.
+     */
+    public static DeployerServerConfiguration parseOptions(String[] args, final String canonicalName, DeployerServerConfiguration conf) {
+        if (args == null) {
             printHelpAndExit(canonicalName);
         }
-
+        
+        if(conf==null){
+        	conf = new DeployerServerConfiguration();
+        }
+        
+        // params that must be copied to all the applications deployed by command line
+        String forcedContext = null;
+        Boolean forceWarDeployment = null;
+        
+        
         for (int i = 0; i < args.length; i++) {
             String arg = args[i];
 
@@ -71,10 +92,16 @@ public class ConfigurationParser {
             } else if ("-a".equals(arg)) {
                 i++;
                 if (i < args.length) {
-                    conf.locations = args[i];
+                	String locations[] = args[i].split(File.pathSeparator);
+                	for (String location : locations) {
+                		conf.applicationsList.add(new DeployableConfiguration(location));
+					}
                 }
             } else if (arg.startsWith("--application=")) {
-                conf.locations = arg.substring("--application=".length(), arg.length());
+            	String locations[] = args[i].split(File.pathSeparator);
+            	for (String location : locations) {
+            		conf.applicationsList.add(new DeployableConfiguration(location));
+				}
             } else if ("-p".equals(arg)) {
                 i++;
                 if (i < args.length) {
@@ -86,10 +113,10 @@ public class ConfigurationParser {
             } else if ("-c".equals(arg)) {
                 i++;
                 if (i < args.length) {
-                    conf.forcedContext = args[i];
+                    forcedContext = args[i];
                 }
             } else if (arg.startsWith("--context=")) {
-                conf.forcedContext = arg.substring("--context=".length(), arg.length());
+                forcedContext = arg.substring("--context=".length(), arg.length());
             } else if (arg.startsWith("--dontstart=")) {
                 conf.waitToStart = Boolean
                     .parseBoolean(arg.substring("--dontstart=".length(), arg.length()));
@@ -103,7 +130,7 @@ public class ConfigurationParser {
                 conf.cometEnabled = Boolean
                     .parseBoolean(arg.substring("--cometEnabled=".length(), arg.length()));
             } else if (arg.startsWith("--forceWar")) {
-                conf.forceWarDeployment = Boolean
+                forceWarDeployment = Boolean
                     .parseBoolean(arg.substring("--forceWar=".length(), arg.length()));
             } else if (arg.startsWith("--ajpEnabled")) {
                 conf.ajpEnabled = Boolean
@@ -111,12 +138,23 @@ public class ConfigurationParser {
             } else if (arg.startsWith("--websocketsEnabled=")) {
                 conf.websocketsEnabled = Boolean
                 .parseBoolean(arg.substring("--websocketsEnabled=".length(), arg.length()));
+            } else if (arg.startsWith("--watchInterval=")) {
+                conf.watchInterval = Long.parseLong(arg.substring("--watchInterval=".length(), arg.length()));
+            } else if (arg.startsWith("--watchFolder=")) {
+                conf.watchFolder =arg.substring("--watchFolder=".length(), arg.length());
             } 
         }
-
-        if (conf.locations == null) {
-            logger.log(Level.SEVERE, "Illegal War|Jar file or folder location.");
-            printHelpAndExit(canonicalName);
+        
+        // propagate the params to applications if needed
+        if(conf.applicationsList!=null && !conf.applicationsList.isEmpty()){
+        	for (DeployableConfiguration config : conf.applicationsList) {
+        		if(forcedContext!=null){
+        			config.forcedContext = forcedContext;
+        		}
+        		if(forceWarDeployment!=null){
+        			config.forceWarDeployment = forceWarDeployment;
+        		}
+			}
         }
 
         return conf;
@@ -125,7 +163,7 @@ public class ConfigurationParser {
     private static void printHelpAndExit(final String canonicalName) {
         StringBuilder sb = new StringBuilder(1024);
         sb.append("\nUsage: ").append(canonicalName)
-            .append("\n  --application=[path]*       Application(s) path(s).\n")
+            .append("\n  --application=[path]        Application(s) path(s).\n")
             .append("  --port=[port]               Runs Servlet on the specified port.\n")
             .append("  --context=[context]         Force the context for a servlet.\n")
             .append("  --dontstart=[true/false]    Won't start the server.\n")
@@ -136,6 +174,8 @@ public class ConfigurationParser {
             .append("  --websocketsEnabled         Starts the AsyncFilter for Websockets\n")
             .append("  --forceWar                  Force war's deployment over a expanded folder.\n")
             .append("  --ajpEnabled                Enable mod_jk.\n")
+            .append("  --watchInterval=            Watch interval to scan for new applications to deploy in work folder\n")
+            .append("  --watchFolder=              Folder to scan for new applications to deploy in work folder\n")
             .append("  --help                      Show this help message.\n")
             .append("  --longhelp                  Show detailled help message.\n\n")
             .append("  * are mandatory");
@@ -147,7 +187,7 @@ public class ConfigurationParser {
         System.err.println();
         System.err.println("Usage: " + canonicalName);
         System.err.println();
-        System.err.println("  -a, --application=[path]*   Application(s) path(s).");
+        System.err.println("  -a, --application=[path]    Application(s) path(s).");
         System.err.println();
         System.err.println("                              Application(s) deployed can be :");
         System.err.println("                              Servlet(s), war(s) and expanded war folder(s).");
@@ -200,6 +240,12 @@ public class ConfigurationParser {
         System.err.println();
         System.err.println("  --ajpEnabled=[true/false]   Enable mod_jk.");
         System.err.println("                              Default : false");
+        System.err.println();
+        System.err.println("  --watchInterval=[seconds]   Watch interval to scan for new applications to deploy in work folder.");
+        System.err.println("                              Default : -1 ; disabled");
+        System.err.println();
+        System.err.println("  --watchFolder=[path]   	  Folder to scan for new applications to deploy in work folder");
+        System.err.println("                              Default : none");
         System.err.println();
         System.err.println("  Default values will be applied if invalid values are passed.");
         System.err.println();

@@ -58,8 +58,8 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.channels.FileChannel;
@@ -89,8 +89,26 @@ public class ExpandJar {
      * @exception IOException if an input/output error was encountered
      *  during expansion
      */
-    public static String expand(URL jar)
-        throws IOException {
+    public static String expand(URL jar) throws IOException {
+        return expand(jar, System.getProperty("java.io.tmpdir"));
+    }
+    
+    /**
+     * Expand the jar file found at the specified URL into an unpacked
+     * directory structure, and return the absolute pathname to the expanded
+     * directory.
+     *
+     * @param jar URL of the web application archive to be expanded
+     *  (must start with "jar:")
+     *  
+     * @param workFolder the folder where the file will be expanded
+     *
+     * @return Absolute path as in {@link java.io.File#getAbsolutePath()} of location where to find expanded jar.
+     * @exception IllegalArgumentException if this is not a "jar:" URL
+     * @exception IOException if an input/output error was encountered
+     *  during expansion
+     */
+    public static String expand(URL jar, String workFolder) throws IOException {
 
         // Calculate the directory name of the expanded directory
         String pathname = jar.toString().replace('\\', '/');
@@ -104,7 +122,7 @@ public class ExpandJar {
         if (slash >= 0) {
             pathname = pathname.substring(slash + 1);
         }
-        return expand(jar, pathname,System.getProperty("java.io.tmpdir"));
+        return expand(jar, pathname, workFolder);
 
     }
 
@@ -139,9 +157,9 @@ public class ExpandJar {
         InputStream input = null;
         try {
             jarFile = juc.getJarFile();
-            Enumeration jarEntries = jarFile.entries();
+            Enumeration<JarEntry> jarEntries = jarFile.entries();
             while (jarEntries.hasMoreElements()) {
-                JarEntry jarEntry = (JarEntry) jarEntries.nextElement();
+                JarEntry jarEntry = jarEntries.nextElement();
                 String name = jarEntry.getName();
                 int last = name.lastIndexOf('/');
                 if (last >= 0) {

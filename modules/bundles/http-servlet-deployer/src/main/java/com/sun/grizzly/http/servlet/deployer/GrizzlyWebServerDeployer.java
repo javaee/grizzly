@@ -38,6 +38,7 @@ package com.sun.grizzly.http.servlet.deployer;
 import java.io.File;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.AbstractMap;
@@ -49,6 +50,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -57,11 +61,15 @@ import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.comet.CometAsyncFilter;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.deployer.DeployException;
+import com.sun.grizzly.http.deployer.DeploymentID;
 import com.sun.grizzly.http.embed.GrizzlyWebServer;
 import com.sun.grizzly.http.embed.GrizzlyWebServer.PROTOCOL;
 import com.sun.grizzly.http.servlet.deployer.comparator.WarFileComparator;
 import com.sun.grizzly.http.servlet.deployer.conf.ConfigurationParser;
-import com.sun.grizzly.http.servlet.deployer.conf.DeployerConfiguration;
+import com.sun.grizzly.http.servlet.deployer.conf.DeployableConfiguration;
+import com.sun.grizzly.http.servlet.deployer.conf.DeployerServerConfiguration;
+import com.sun.grizzly.http.servlet.deployer.watchdog.Watchdog;
+import com.sun.grizzly.http.servlet.deployer.watchdog.WatchedFile;
 import com.sun.grizzly.http.webxml.WebappLoader;
 import com.sun.grizzly.http.webxml.schema.WebApp;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
@@ -83,7 +91,7 @@ import com.sun.grizzly.websockets.WebSocketAsyncFilter;
  */
 public class GrizzlyWebServerDeployer {
 
-    private static Logger logger = Logger.getLogger("GrizzlyWebServerDeployerLogger");
+    private static Logger logger = Logger.getLogger(GrizzlyWebServerDeployer.class.getName());
 
     protected static final String ROOT = "/";
 
@@ -94,6 +102,17 @@ public class GrizzlyWebServerDeployer {
 
     protected String webxmlPath;
     protected WarDeployer deployer = new WarDeployer();
+    
+    protected URLClassLoader serverLibLoader;
+    protected WebApp webDefault;
+    
+    protected Map<String,DeploymentID> deployedApplicationMap = new HashMap<String, DeploymentID>();
+    
+    // for the Watchdog
+    protected ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+    protected long watchInterval = -1; // disabled by default
+    protected String watchDogFolder;
+    protected Map<String, WatchedFile> watchedFileMap = new HashMap<String, WatchedFile>();
 
     /**
      * @param args Command line parameters.
@@ -102,65 +121,101 @@ public class GrizzlyWebServerDeployer {
         new GrizzlyWebServerDeployer().launch(init(args));
     }
 
-    public static DeployerConfiguration init(String args[]) {
-        DeployerConfiguration cfg = ConfigurationParser.parseOptions(args, GrizzlyWebServerDeployer.class.getCanonicalName());
+    public static DeployerServerConfiguration init(String args[]) {
+        DeployerServerConfiguration cfg = ConfigurationParser.parseOptions(args, GrizzlyWebServerDeployer.class.getCanonicalName());
         if (logger.isLoggable(Level.INFO)) {
             logger.log(Level.INFO, cfg.toString());
         }
         return cfg;
     }
 
-    public void launch(DeployerConfiguration conf) {
+    public void launch(DeployerServerConfiguration conf) {
         try {
             ws = new GrizzlyWebServer(conf.port);
-            configureApplications(conf);
             configureServer(conf);
+            deployApplications(conf);
             // don't start the server is true: useful for unittest
             if (!conf.waitToStart) {
-                ws.start();
+                start();
+            }
+            
+            // start the watchdog
+            if(watchInterval>0){
+            	// launch a first scan
+            	executor.submit(new Watchdog(this));
+            	
+            	// schedule next scans
+            	executor.schedule(new Watchdog(this), watchInterval, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error while launching deployer.", e);
         }
     }
-
-    private void configureApplications(DeployerConfiguration conf) throws Exception {
-        String locations = conf.locations;
-        if (locations != null) {
-            if (logger.isLoggable(Level.FINEST)) {
-                logger.log(Level.FINEST, "Application(s) Found = " + locations);
-            }
-            deployApplications(conf);
+    
+    /**
+     * @see WarDeployer#getWorkFolder()
+     * @return the work folder 
+     */
+    public String getWorkFolder(){
+    	String workFolder = deployer.getWorkFolder();
+    	
+    	if(workFolder==null){
+    		workFolder = ".";
+    	}
+    	
+    	return workFolder;
+    }
+    
+    /**
+     * @return the folder to watch for the WatchDog 
+     */
+    public String getWatchDogFolder(){
+    	return watchDogFolder;
+    }
+    
+    public void deployApplications(final DeployerServerConfiguration conf) throws Exception {
+        if(conf.applicationsList!=null && !conf.applicationsList.isEmpty()){
+	        for (DeployableConfiguration location : conf.applicationsList) {
+	        	if (logger.isLoggable(Level.FINEST)) {
+                    logger.log(Level.FINEST, "Application path = " + location.location);
+                }
+                deployApplication(location, serverLibLoader, webDefault);
+			}
         }
+        
+    }
+    
+    public void deployApplication(final DeployableConfiguration conf) throws Exception {
+    	deployApplication(conf, serverLibLoader, webDefault);
+    }
+    
+    public void undeployApplication(String context) throws Exception {
+    	if(deployedApplicationMap.containsKey(context)){
+    		getWarDeployer().undeploy(ws, deployedApplicationMap.get(context));
+    		
+    		// remove the application from the list
+    		deployedApplicationMap.remove(context);
+    		watchedFileMap.remove(context);
+    	}
     }
 
-    public void deployApplications(final DeployerConfiguration conf) throws Exception {
-        URLClassLoader serverLibLoader = createServerLibClassLoader(conf.libraryPath);
-        final WebApp webDefault = getDefaultSupportWebApp(conf.webdefault);
-        if (conf.locations != null && conf.locations.length() > 0) {
-            for (String loc : conf.locations.split(File.pathSeparator)) {
-                deployApplication(conf, loc, serverLibLoader, webDefault);
-            }
-        }
-    }
-
-    private void deployApplication(final DeployerConfiguration conf, String location, URLClassLoader serverLibLoader, WebApp webDefault) throws Exception {
-        if (location.endsWith(".war")) {// #1
-            deployWar(location, conf.forcedContext, serverLibLoader, webDefault, conf);
-        } else if (location.endsWith(".xml")) {// #2
+    public void deployApplication(final DeployableConfiguration conf, URLClassLoader serverLibLoader, WebApp webDefault) throws Exception {
+        if (conf.location.endsWith(".war")) {// #1
+            deployWar(conf, serverLibLoader, webDefault);
+        } else if (conf.location.endsWith(".xml")) {// #2
             // use the forcedContext if set
-            deployServlet(location, conf.forcedContext, serverLibLoader, webDefault);
+            deployServlet(conf, serverLibLoader, webDefault);
         } else {
 
             // #3-#4
             //obtain the list of potential war to deploy
-            Collection<File> files = getFiles(location, conf.forceWarDeployment);
+            Collection<File> files = getFiles(conf.location, conf.forceWarDeployment);
 
             if (files != null) {
                 for (File file : files) {
 
                     if (file.getName().endsWith(".war")) {
-                        deployWar(file.getPath(), null, serverLibLoader, webDefault, conf);
+                        deployWar(new DeployableConfiguration(file.getPath()), serverLibLoader, webDefault);
                     } else {
                         /*
                         * we could have these cases
@@ -178,27 +233,23 @@ public class GrizzlyWebServerDeployer {
                         */
 
                         // #4 : this folder in a expanded war
-                        if (isWebXmlInWebInf(location)) {
-                            deployExpandedWar(String.format("%s%s", location, File.separator), serverLibLoader, webDefault);
+                        if (isWebXmlInWebInf(conf.location)) {
+                            deployExpandedWar(String.format("%s%s", conf.location, File.separator), serverLibLoader, webDefault);
                         } else {
 
                             // #2 : this folder contains a servlet
-                            File webxmlFile2 = new File(
-                                    String.format("%s%s%s", location, File.separator, WEB_XML));
+                            File webxmlFile2 = new File(String.format("%s%s%s", conf.location, File.separator, WEB_XML));
 
                             if (webxmlFile2.exists()) {
                                 // this one..see #2
-                                deployServlet(webxmlFile2.getPath(), serverLibLoader, webDefault);
+                                deployServlet(new DeployableConfiguration(webxmlFile2.getPath()), serverLibLoader, webDefault);
                             } else {
 
                                 // this folder contains multiple war or webapps
-                                File webapp = new File(
-                                        String.format(
-                                                "%s%s%s", file.getPath(), File.separator, WEB_XML_PATH));
+                                File webapp = new File(String.format("%s%s%s", file.getPath(), File.separator, WEB_XML_PATH));
 
                                 if (webapp.exists()) {
-                                    deployExpandedWar(
-                                            String.format("%s%s", file.getPath(), File.separator), serverLibLoader, webDefault);
+                                    deployExpandedWar(String.format("%s%s", file.getPath(), File.separator), serverLibLoader, webDefault);
                                 } else {
                                     // not a webapp with web.xml, maybe a php application
                                     deployCustom(String.format("%s%s", file.getPath(), File.separator), serverLibLoader, webDefault);
@@ -214,21 +265,27 @@ public class GrizzlyWebServerDeployer {
     private static boolean isWebXmlInWebInf(final String location) {
         return new File(String.format("%s%s%s", location, File.separator, WEB_XML_PATH)).exists();
     }
+    
+    /**
+     * 
+     * @return the WarDeployer instance used to deploy/undeploy applications
+     */
+    protected WarDeployer getWarDeployer(){
+    	return deployer;
+    }
 
     /**
      * Deploy WAR file.
      *
-     * @param location Location of WAR file.
-     * @param context Context to deploy to.
+     * @param configuration of WAR file.
      * @param serverLibLoader Server wide {@link ClassLoader}. Optional.
      * @param defaultWebApp webdefault application, get's merged with application to deploy. Optional.
      * @throws DeployException Deployment failed.
      */
-    public void deployWar(
-            String location, String context, URLClassLoader serverLibLoader, WebApp defaultWebApp, final DeployerConfiguration conf) throws DeployException {
-        String ctx = context;
+    public void deployWar(final DeployableConfiguration conf, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws DeployException {
+        String ctx = conf.forcedContext;
         if (ctx == null) {
-            ctx = getContext(location);
+            ctx = getContext(conf.location);
             int i = ctx.lastIndexOf('.');
             if (i > 0) {
                 ctx = ctx.substring(0, i);
@@ -238,7 +295,13 @@ public class GrizzlyWebServerDeployer {
         if (logger.isLoggable(Level.FINER)) {
             logger.log(Level.FINER, String.format("Configuration for deployment: %s.", config));
         }
-        deployer.deploy(ws, new File(location).toURI(), config);
+        
+        // keep trace of the deployed applications
+        deployedApplicationMap.put(ctx, deployWar(getWarDeployer(), new File(conf.location).toURI(), config));
+    }
+    
+    private DeploymentID deployWar(WarDeployer warDeployer, URI toDeploy, WarDeploymentConfiguration config) throws DeployException {
+    	return warDeployer.deploy(ws, toDeploy, config);
     }
 
     private URLClassLoader createServerLibClassLoader(String libraryPath) throws IOException {
@@ -276,19 +339,14 @@ public class GrizzlyWebServerDeployer {
         return new URLClassLoader(urls.toArray(new URL[urls.size()]));
     }
 
-    private void deployServlet(String location, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws Exception {
-        deployServlet(location, null, serverLibLoader, defaultWebApp);
-    }
-
-    private void deployServlet(String location, String context, URLClassLoader serverLibLoader, WebApp defaultWebApp)
-            throws Exception {
-        String ctx = context;
+    private void deployServlet(final DeployableConfiguration conf, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws Exception {
+        String ctx = conf.forcedContext;
         if (ctx == null) {
             ctx = getContext(ROOT);
         }
         final Map.Entry<String, URLClassLoader> loaderEntry = explodeAndCreateWebAppClassLoader(null, serverLibLoader);
         webxmlPath = loaderEntry.getKey();
-        deploy(null, ctx, location, loaderEntry.getValue(), defaultWebApp);
+        deploy(null, ctx, conf.location, loaderEntry.getValue(), defaultWebApp);
     }
 
     private void deployExpandedWar(String location, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws Exception {
@@ -411,8 +469,7 @@ public class GrizzlyWebServerDeployer {
         deploy(root, context, root + context, loaderEntry.getValue(), defaultSupportWebApp);
     }
 
-    public void deploy(
-            String rootFolder, String context, String path, URLClassLoader webAppCL, WebApp superApp) throws Exception {
+    public void deploy(String rootFolder, String context, String path, URLClassLoader webAppCL, WebApp superApp) throws Exception {
 
         String root = rootFolder;
         if (rootFolder != null) {
@@ -528,7 +585,11 @@ public class GrizzlyWebServerDeployer {
         return webxml == null ? null : WebappLoader.load(webxml);
     }
 
-    private void configureServer(DeployerConfiguration conf) {
+    private void configureServer(DeployerServerConfiguration conf) throws Exception {
+    	
+    	serverLibLoader = createServerLibClassLoader(conf.libraryPath);
+        webDefault = getDefaultSupportWebApp(conf.webdefault);
+        
         // comet
         if (conf.cometEnabled) {
             SelectorThread st = ws.getSelectorThread();
@@ -557,6 +618,18 @@ public class GrizzlyWebServerDeployer {
         if (conf.ajpEnabled) {
             ws.enableProtocol(PROTOCOL.AJP);
         }
+        
+        if(conf.watchInterval>0){
+        	watchInterval = conf.watchInterval;
+        }
+        
+        if(conf.watchFolder!=null){
+        	watchDogFolder = conf.watchFolder;
+        }
+        
+        // set work folder and cleanup before deploying applications
+        deployer.setWorkFolder(new File("work").getAbsolutePath());
+        WarDeployer.cleanup(deployer.getWorkFolder());
     }
 
     public void stop() {
@@ -564,7 +637,8 @@ public class GrizzlyWebServerDeployer {
         if (ws != null) {
             ws.stop();
         }
-
+        
+        executor.shutdownNow();
     }
 
     public void start() throws IOException {
@@ -624,7 +698,7 @@ public class GrizzlyWebServerDeployer {
         return mergeTo.mergeWith(webApp);
     }
 
-    private static class DeployableFilter implements FilenameFilter {
+    public static class DeployableFilter implements FilenameFilter {
         public boolean accept(File dir, String name) {
             boolean result;
             if (name.endsWith(".war")) {
@@ -659,5 +733,9 @@ public class GrizzlyWebServerDeployer {
             }
             return result;
         }
+    }
+    
+    public Map<String, WatchedFile> getWatchedFileMap(){
+    	return watchedFileMap;
     }
 }

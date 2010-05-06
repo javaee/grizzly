@@ -35,11 +35,11 @@
  */
 package com.sun.grizzly.http.servlet.deployer;
 
-import com.sun.grizzly.http.deployer.DeploymentConfiguration;
-import com.sun.grizzly.http.servlet.deployer.conf.DeployerConfiguration;
-import com.sun.grizzly.http.webxml.schema.WebApp;
-
 import java.net.URLClassLoader;
+
+import com.sun.grizzly.http.deployer.DeploymentConfiguration;
+import com.sun.grizzly.http.servlet.deployer.conf.DeployableConfiguration;
+import com.sun.grizzly.http.webxml.schema.WebApp;
 
 /**
  * {@link DeploymentConfiguration} for web application (War file).
@@ -63,7 +63,7 @@ public class WarDeploymentConfiguration implements DeploymentConfiguration {
     /** Web default application, merged with all to be deployed. */
     public WebApp webDefault;
     /** contains command line params **/
-    public DeployerConfiguration conf;
+    public DeployableConfiguration conf;
     
     
     /**
@@ -84,7 +84,7 @@ public class WarDeploymentConfiguration implements DeploymentConfiguration {
      * @param webDefault      Web default application, merged with one to be deployed.
      * @param conf			  Command line params
      */
-    public WarDeploymentConfiguration(String ctx, URLClassLoader serverLibLoader, WebApp webDefault, DeployerConfiguration conf) {
+    public WarDeploymentConfiguration(String ctx, URLClassLoader serverLibLoader, WebApp webDefault, DeployableConfiguration conf) {
         this.serverLibLoader = serverLibLoader;
         this.webDefault = webDefault;
         this.ctx = ctx;
