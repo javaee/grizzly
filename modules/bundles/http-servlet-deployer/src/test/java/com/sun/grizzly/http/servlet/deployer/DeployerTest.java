@@ -92,7 +92,6 @@ public class DeployerTest extends TestCase {
 		
 		DeployerServerConfiguration conf = new DeployerServerConfiguration();
 	    
-	    //conf.locations = "C:/workspaces/workspace_grizzly/modules/bundles/http-servlet-deployer/src/test/resources/HelloServlet.war";
 	    conf.cometEnabled = false;
 	    
 	    deployer.launch(conf);
@@ -101,7 +100,7 @@ public class DeployerTest extends TestCase {
 	    
 	    System.out.println("Deploying HelloServlet.war");
 	    
-	    DeployableConfiguration warConf = new DeployableConfiguration("C:/workspaces/workspace_grizzly/modules/bundles/http-servlet-deployer/src/test/resources/HelloServlet.war");
+	    DeployableConfiguration warConf = new DeployableConfiguration("src/test/resources/HelloServlet.war");
 	    
 	    deployer.deployApplication(warConf);
 	    
