@@ -139,10 +139,11 @@ public class GrizzlyWebServerDeployer {
                 start();
             }
             
+            // launch a first scan
+        	executor.submit(new Watchdog(this));
+        	
             // start the watchdog
             if(watchInterval>0){
-            	// launch a first scan
-            	executor.submit(new Watchdog(this));
             	
             	// schedule next scans
             	executor.schedule(new Watchdog(this), watchInterval, TimeUnit.SECONDS);

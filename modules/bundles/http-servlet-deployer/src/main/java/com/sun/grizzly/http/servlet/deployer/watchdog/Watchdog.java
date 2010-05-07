@@ -85,8 +85,6 @@ public class Watchdog implements Callable<Boolean>  {
 		for (File f : files) {
 			String context = GrizzlyWebServerDeployer.getContext(f.getPath());
 			
-			System.out.println("context=" + context);
-			
 			if(contextMap.containsKey(context)){
 				contextMap.get(context).setFound(true);
 			} else {
