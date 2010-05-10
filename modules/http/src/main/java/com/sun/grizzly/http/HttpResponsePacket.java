@@ -183,7 +183,7 @@ public class HttpResponsePacket extends HttpHeader {
         if (isCommitted()) {
             return;
         }
-        setCommitted(committed);
+        super.setCommitted(committed);
 
         if (committed) {
             prepareResponse();
