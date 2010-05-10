@@ -62,7 +62,7 @@ public interface TransferEncoding {
      * Return <tt>true</tt> if this encoding should be used to parse/serialize the
      * content of the passed {@link HttpRequestPacket}, or <tt>false</tt> otherwise.
      *
-     * @param requestPacket {@link HttpRequestPacket}.
+     * @param responsePacket {@link HttpResponsePacket}.
      * @return <tt>true</tt> if this encoding should be used to parse/serialize the
      * content of the passed {@link HttpRequestPacket}, or <tt>false</tt> otherwise.
      */

@@ -54,7 +54,7 @@ import com.sun.grizzly.http.util.MimeHeaders;
  */
 public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
 
-    protected boolean isCommited;
+    protected boolean isCommitted;
     protected MimeHeaders headers = new MimeHeaders();
     protected BufferChunk protocolBC = BufferChunk.newInstance();
     protected boolean isChunked;
@@ -192,8 +192,8 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
      * serialized, and only {@link HttpContent} messages might be serialized
      * for this {@link HttpPacket}.
      */
-    public boolean isCommited() {
-        return isCommited;
+    public boolean isCommitted() {
+        return isCommitted;
     }
 
     /**
@@ -205,8 +205,8 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
      * already serialized, and only {@link HttpContent} messages might be
      * serialized for this {@link HttpPacket}.
      */
-    public void setCommited(boolean isCommited) {
-        this.isCommited = isCommited;
+    public void setCommitted(boolean isCommited) {
+        this.isCommitted = isCommited;
     }
 
 
@@ -405,7 +405,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
         protocolBC.recycle();
         headers.clear();
         cookies.recycle();
-        isCommited = false;
+        isCommitted = false;
         isChunked = false;
         contentLength = -1;
         charEncoding = null;

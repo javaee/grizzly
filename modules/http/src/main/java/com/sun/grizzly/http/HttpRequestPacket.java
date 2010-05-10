@@ -57,11 +57,6 @@ import java.util.Enumeration;
  */
 public class HttpRequestPacket extends HttpHeader {
 
-    /**
-     * Post data buffer.  TODO: Make this configurable
-     */
-    protected static int CACHED_POST_LEN = 8192;
-
     private static final ThreadCache.CachedTypeIndex<HttpRequestPacket> CACHE_IDX =
             ThreadCache.obtainIndex(HttpRequestPacket.class, 2);
 
@@ -89,8 +84,6 @@ public class HttpRequestPacket extends HttpHeader {
     private boolean secureParsed;
 
     private String localHost;
-
-    protected byte[] postData = null;
 
     private BufferChunk methodBC = BufferChunk.newInstance();
     private BufferChunk queryBC = BufferChunk.newInstance();

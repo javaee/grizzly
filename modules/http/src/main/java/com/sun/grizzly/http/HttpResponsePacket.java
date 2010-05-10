@@ -179,12 +179,15 @@ public class HttpResponsePacket extends HttpHeader {
      * @param committed
      */
     public void setCommitted(boolean committed) {
-        if (this.committed) {
-            return; // once committed, always committed
-        }
-        this.committed = committed;
 
-        prepareResponse();
+        if (isCommitted()) {
+            return;
+        }
+        setCommitted(committed);
+
+        if (committed) {
+            prepareResponse();
+        }
 
     }
 
@@ -232,7 +235,7 @@ public class HttpResponsePacket extends HttpHeader {
                 .append(" protocol=").append(getProtocol())
                 .append(" content-length=").append(getContentLength())
                 .append(" headers=").append(getHeaders())
-                .append(" committed=").append(isCommited())
+                .append(" committed=").append(isCommitted())
                 .append(')');
         
         return sb.toString();

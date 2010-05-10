@@ -327,7 +327,7 @@ public abstract class HttpFilter extends BaseFilter {
 
         Buffer encodedBuffer = null;
         
-        if (!httpHeader.isCommited()) {
+        if (!httpHeader.isCommitted()) {
             encodedBuffer = memoryManager.allocate(8192);
 
             encodedBuffer = encodeInitialLine(httpHeader, encodedBuffer, memoryManager);
@@ -343,7 +343,7 @@ public abstract class HttpFilter extends BaseFilter {
             encodedBuffer.trim();
             encodedBuffer.allowBufferDispose(true);
             
-            httpHeader.setCommited(true);
+            httpHeader.setCommitted(true);
 
             setTransferEncoding(httpHeader);
         }

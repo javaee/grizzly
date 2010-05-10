@@ -59,11 +59,8 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
     public boolean isEncodeRequest(HttpRequestPacket requestPacket) {
         final long contentLength = requestPacket.getContentLength();
 
-        if (contentLength == -1) {
-            return false;
-        }
+        return (contentLength != -1);
 
-        return true;
     }
 
     /**
@@ -73,11 +70,8 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
     public boolean isEncodeResponse(HttpResponsePacket responsePacket) {
         final long contentLength = responsePacket.getContentLength();
 
-        if (contentLength == -1) {
-            return false;
-        }
+        return (contentLength != -1);
 
-        return true;
     }
 
     /**
