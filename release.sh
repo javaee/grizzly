@@ -52,7 +52,7 @@ then
 	SVN_URL="-DconnectionUrl=scm:svn:https://grizzly.dev.java.net/svn/grizzly/tags/${BRANCH}"
 fi
 
-CMD="mvn -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${SVN_PWD} -Dusername=${SVN_USER} ${PREPARE} ${SVN_URL} release:perform"
+CMD="mvn -e -P release-profile -Dmaven.skip.test=true -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${SVN_PWD} -Dusername=${SVN_USER} ${PREPARE} ${SVN_URL} release:perform"
 
 echo ${CMD}
 eval ${CMD}

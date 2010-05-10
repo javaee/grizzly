@@ -99,7 +99,7 @@ public class SSLProcessorTask extends ProcessorTask {
     public void preProcess(InputStream input, OutputStream output) throws Exception {
         super.preProcess(input, output);
 
-        ((SSLOutputBuffer) outputBuffer).setSslEngine(((WorkerThread) Thread.currentThread()).getSSLEngine());
+        ((SecureOutputBuffer) outputBuffer).setSSLEngine(((WorkerThread) Thread.currentThread()).getSSLEngine());
     }
     
    
