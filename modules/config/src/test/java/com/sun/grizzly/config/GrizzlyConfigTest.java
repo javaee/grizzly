@@ -59,9 +59,8 @@ import org.testng.annotations.Test;
 @Test
 public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     public void processConfig() throws IOException, InstantiationException {
-        GrizzlyConfig grizzlyConfig = null;
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         try {
-            grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
@@ -77,9 +76,8 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     }
 
     public void references() {
-        GrizzlyConfig grizzlyConfig = null;
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         try {
-            grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             final List<NetworkListener> list = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener();
             final NetworkListener listener = list.get(0);
             boolean found = false;
@@ -103,9 +101,8 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     }
 
     public void defaults() {
-        GrizzlyConfig grizzlyConfig = null;
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
         try {
-            grizzlyConfig = new GrizzlyConfig("grizzly-config.xml");
             final ThreadPool threadPool = grizzlyConfig.getConfig().getNetworkListeners().getThreadPool().get(0);
             final Http http = grizzlyConfig.getConfig().getNetworkListeners().getNetworkListener().get(0).findHttpProtocol().getHttp();
             Assert.assertEquals(threadPool.getMaxThreadPoolSize(), "5");
@@ -116,10 +113,9 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     }
 
     public void ssl() throws URISyntaxException, IOException {
-        GrizzlyConfig grizzlyConfig = null;
+        configure();
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl.xml");
         try {
-            configure();
-            grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl.xml");
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
@@ -135,10 +131,9 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     }
 
     public void customSecurePasswordProviders() throws URISyntaxException, IOException {
-        GrizzlyConfig grizzlyConfig = null;
+        configure();
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl-passprovider.xml");
         try {
-            configure();
-            grizzlyConfig = new GrizzlyConfig("grizzly-config-ssl-passprovider.xml");
             grizzlyConfig.setupNetwork();
             int count = 0;
             for (GrizzlyServiceListener listener : grizzlyConfig.getListeners()) {
@@ -166,9 +161,8 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     }
 
     public void badConfig() {
-        GrizzlyConfig grizzlyConfig = null;
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
         try {
-            grizzlyConfig = new GrizzlyConfig("grizzly-config-bad.xml");
             grizzlyConfig.setupNetwork();
         } finally {
             grizzlyConfig.shutdown();
@@ -176,9 +170,8 @@ public class GrizzlyConfigTest extends BaseGrizzlyConfigTest {
     }
 
     public void timeoutDisabled() throws IOException, InstantiationException {
-        GrizzlyConfig grizzlyConfig = null;
+        GrizzlyConfig grizzlyConfig = new GrizzlyConfig("grizzly-config-timeout-disabled.xml");
         try {
-            grizzlyConfig = new GrizzlyConfig("grizzly-config-timeout-disabled.xml");
             grizzlyConfig.setupNetwork();
         } finally {
             grizzlyConfig.shutdown();

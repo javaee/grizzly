@@ -37,23 +37,19 @@
 
 package com.sun.grizzly.config.dom;
 
-import java.beans.PropertyVetoException;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import javax.validation.constraints.Max;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
-
 import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
-import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
 import org.jvnet.hk2.config.Dom;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
+
+import javax.validation.constraints.Max;
+import javax.validation.constraints.Min;
+import java.beans.PropertyVetoException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Configured
 public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
@@ -132,12 +128,11 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
 
         static public List<NetworkListener> findNetworkListeners(ThreadPool threadpool) {
             List<NetworkListener> listeners;
-            NetworkListeners parent = threadpool.getParent().getParent(NetworkListeners.class);
-            if(!Dom.unwrap(parent).getProxyType().equals(NetworkListeners.class)) {
-                final NetworkConfig config = Dom.unwrap(parent).element("network-config").createProxy();
-                parent = config.getNetworkListeners();
+            NetworkConfig config = threadpool.getParent().getParent(NetworkConfig.class);
+            if(!Dom.unwrap(config).getProxyType().equals(NetworkConfig.class)) {
+                config = Dom.unwrap(config).element("network-config").createProxy();
             }
-            listeners = parent.getNetworkListener();
+            listeners = config.getNetworkListeners().getNetworkListener();
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
             for (NetworkListener listener : listeners) {
                 if (listener.getThreadPool().equals(threadpool.getName())) {
