@@ -132,9 +132,10 @@ public interface ThreadPool extends ConfigBeanProxy, Injectable, PropertyBag {
 
         static public List<NetworkListener> findNetworkListeners(ThreadPool threadpool) {
             List<NetworkListener> listeners;
-            NetworkListeners parent = threadpool.getParent(NetworkListeners.class);
-            if(parent == null) {
-                parent = ConfigBean.unwrap(threadpool.getParent()).nodeByTypeElement(NetworkListeners.class);
+            NetworkListeners parent = threadpool.getParent().getParent(NetworkListeners.class);
+            if(!Dom.unwrap(parent).getProxyType().equals(NetworkListeners.class)) {
+                final NetworkConfig config = Dom.unwrap(parent).element("network-config").createProxy();
+                parent = config.getNetworkListeners();
             }
             listeners = parent.getNetworkListener();
             List<NetworkListener> refs = new ArrayList<NetworkListener>();
