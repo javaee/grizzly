@@ -8,10 +8,10 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly</groupId>
-    <artifactId>grizzly-http-util</artifactId>
+    <artifactId>grizzly-webcontainer-util</artifactId>
     <packaging>bundle</packaging>
     <version>${grizzly-version}</version>
-    <name>grizzly-http-util</name>
+    <name>grizzly-webcontainer-util</name>
     <url>https://grizzly.dev.java.net</url>
     <build>
         <defaultGoal>install</defaultGoal>
@@ -53,6 +53,11 @@
         <dependency>
             <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-framework</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-http</artifactId>
             <version>${grizzly-version}</version>
         </dependency>
     </dependencies>

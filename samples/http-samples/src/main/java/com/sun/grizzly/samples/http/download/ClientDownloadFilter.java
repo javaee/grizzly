@@ -43,7 +43,7 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.http.HttpFilter;
+import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.impl.FutureImpl;
@@ -120,7 +120,7 @@ public class ClientDownloadFilter extends BaseFilter {
         // We construct HTTP request version 1.1 and specifying the URL of the
         // resource we want to download
         final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
-                .uri(uri.toString()).protocol(HttpFilter.HTTP_1_1)
+                .uri(uri.toString()).protocol(HttpCodecFilter.HTTP_1_1)
                 .header("Host", uri.getHost()).build();
         logger.log(Level.INFO, "Connected... Sending the request: " + httpRequest);
 

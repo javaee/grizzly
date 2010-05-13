@@ -39,7 +39,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.http.HttpFilter.ContentParsingState;
+import com.sun.grizzly.http.HttpCodecFilter.ContentParsingState;
 
 /**
  * Fixed length transfer encoding implementation.

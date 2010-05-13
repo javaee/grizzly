@@ -969,7 +969,7 @@ public class HttpInputStreamsTest extends TestCase {
 
     private HttpPacket createRequest(String method, String content) {
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
-        b.method(method).protocol(HttpFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost");
+        b.method(method).protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost");
         HttpRequestPacket request = b.build();
 
         if (content != null) {
@@ -1060,7 +1060,7 @@ public class HttpInputStreamsTest extends TestCase {
 
             if (!readCalled) {
                 HttpResponsePacket response = HttpResponsePacket.builder().chunked(false).
-                        protocol(HttpFilter.HTTP_1_1).status(200).reasonPhrase("OK")
+                        protocol(HttpCodecFilter.HTTP_1_1).status(200).reasonPhrase("OK")
                         .build();
                 // TODO RETURN TO RUNNING
                 //response.getOutputBuffer().initialize(response, ctx);

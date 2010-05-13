@@ -56,9 +56,9 @@ import java.util.Arrays;
 /**
  * The {@link com.sun.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
  * {@link HttpPacket} and vice versa in asynchronous mode.
- * When the <tt>HttpFilter</tt> is added to a {@link com.sun.grizzly.filterchain.FilterChain}, on read phase
+ * When the <tt>HttpCodecFilter</tt> is added to a {@link com.sun.grizzly.filterchain.FilterChain}, on read phase
  * it consumes incoming {@link Buffer} and provides {@link HttpContent} as
- * the result of transformation. On write phase the <tt>HttpFilter</tt> consumes
+ * the result of transformation. On write phase the <tt>HttpCodecFilter</tt> consumes
  * input {@link HttpPacket} and serializes it to a {@link Buffer}, which
  * gets passed farther as the result of transformation.
  * So transformations, provided by this filter are following:
@@ -70,7 +70,7 @@ import java.util.Arrays;
  * 
  * @author Alexey Stashok
  */
-public abstract class HttpFilter extends BaseFilter {
+public abstract class HttpCodecFilter extends BaseFilter {
     public static final String HTTP_1_0 = "HTTP/1.0";
     public static final String HTTP_1_1 = "HTTP/1.1";
 
@@ -116,12 +116,12 @@ public abstract class HttpFilter extends BaseFilter {
     protected final int maxHeadersSize;
 
     /**
-     * Constructor, which creates <tt>HttpFilter</tt> instance, with the specific
+     * Constructor, which creates <tt>HttpCodecFilter</tt> instance, with the specific
      * max header size parameter.
      *
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
-    public HttpFilter(int maxHeadersSize) {
+    public HttpCodecFilter(int maxHeadersSize) {
         this.maxHeadersSize = maxHeadersSize;
         transferEncodings = new TransferEncoding[] {
             new FixedLengthTransferEncoding(), new ChunkedTransferEncoding(maxHeadersSize)};
@@ -167,7 +167,7 @@ public abstract class HttpFilter extends BaseFilter {
     }
 
     /**
-     * The method is called by the specific <tt>HttpFilter</tt> implementation,
+     * The method is called by the specific <tt>HttpCodecFilter</tt> implementation,
      * once we have received a {@link Buffer}, which has to be transformed
      * into HTTP packet part.
      *

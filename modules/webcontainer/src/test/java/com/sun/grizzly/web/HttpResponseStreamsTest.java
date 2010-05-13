@@ -617,7 +617,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
 
             HttpResponsePacket response = HttpResponsePacket.builder().chunked(true).
-                  protocol(HttpFilter.HTTP_1_1).status(200).reasonPhrase("OK").build();
+                  protocol(HttpCodecFilter.HTTP_1_1).status(200).reasonPhrase("OK").build();
             // TODO RETURN TO RUNNING
             //response.getOutputBuffer().initialize(response, ctx);
 
@@ -662,7 +662,7 @@ public class HttpResponseStreamsTest extends TestCase {
             // We construct HTTP request version 1.1 and specifying the URL of the
             // resource we want to download
             final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
-                  .uri("/path").protocol(HttpFilter.HTTP_1_1)
+                  .uri("/path").protocol(HttpCodecFilter.HTTP_1_1)
                   .header("Host", "localhost").build();
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE,

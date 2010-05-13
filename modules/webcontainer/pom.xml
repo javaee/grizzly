@@ -58,6 +58,11 @@
         </dependency>
         <dependency>
             <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-http-util</artifactId>
+            <version>${grizzly-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.grizzly</groupId>
             <artifactId>grizzly-rcm</artifactId>
             <version>${grizzly-version}</version>
         </dependency>

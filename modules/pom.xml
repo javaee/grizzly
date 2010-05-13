@@ -18,6 +18,8 @@
         <module>rcm</module>
 <!--        <module>http-util</module> -->
         <module>http</module>
+        <module>webcontainer</module>
+        <module>webcontainer-util</module>
 <!--        <module>http-servlet</module>
         <module>bundles</module>
         <module>config</module> -->

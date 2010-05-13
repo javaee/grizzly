@@ -39,8 +39,8 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.http.HttpFilter.ContentParsingState;
-import com.sun.grizzly.http.HttpFilter.ParsingState;
+import com.sun.grizzly.http.HttpCodecFilter.ContentParsingState;
+import com.sun.grizzly.http.HttpCodecFilter.ParsingState;
 import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.HexUtils;
 import com.sun.grizzly.http.util.MimeHeaders;
@@ -214,7 +214,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         final ContentParsingState contentParsingState =
                 httpPacket.getContentParsingState();
 
-        return HttpFilter.parseHeaders(null, contentParsingState.trailerHeaders,
+        return HttpCodecFilter.parseHeaders(null, contentParsingState.trailerHeaders,
                 headerParsingState, input);
     }
 
@@ -293,7 +293,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         final int chunkSize = content.remaining();
 
         Ascii.intToHexString(httpChunkBuffer, chunkSize);
-        httpChunkBuffer = HttpFilter.put(memoryManager, httpChunkBuffer,
+        httpChunkBuffer = HttpCodecFilter.put(memoryManager, httpChunkBuffer,
                 Constants.CRLF_BYTES);
         httpChunkBuffer.trim();
         httpChunkBuffer.allowBufferDispose(true);
@@ -308,22 +308,22 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         Buffer httpChunkTrailer = memoryManager.allocate(256);
 
         if (!isLastChunk) {
-            httpChunkTrailer = HttpFilter.put(memoryManager, httpChunkTrailer,
+            httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
                     Constants.CRLF_BYTES);
         } else {
             if (hasContent) {
-                httpChunkTrailer = HttpFilter.put(memoryManager, httpChunkTrailer,
+                httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
                         Constants.CRLF_BYTES);
-                httpChunkTrailer = HttpFilter.put(memoryManager, httpChunkTrailer,
+                httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
                         Constants.LAST_CHUNK_CRLF_BYTES);
             }
 
             final HttpTrailer httpTrailer = (HttpTrailer) httpContent;
             final MimeHeaders mimeHeaders = httpTrailer.getHeaders();
-            httpChunkTrailer = HttpFilter.encodeMimeHeaders(memoryManager,
+            httpChunkTrailer = HttpCodecFilter.encodeMimeHeaders(memoryManager,
                     httpChunkTrailer, mimeHeaders);
 
-            httpChunkTrailer = HttpFilter.put(memoryManager, httpChunkTrailer,
+            httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
                     Constants.CRLF_BYTES);
         }
 

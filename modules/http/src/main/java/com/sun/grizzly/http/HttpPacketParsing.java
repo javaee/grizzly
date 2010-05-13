@@ -49,9 +49,9 @@ public interface HttpPacketParsing {
 
     public void setHeaderParsed(boolean isHeaderParsed);
 
-    public HttpFilter.ParsingState getHeaderParsingState();
+    public HttpCodecFilter.ParsingState getHeaderParsingState();
 
-    public HttpFilter.ContentParsingState getContentParsingState();
+    public HttpCodecFilter.ContentParsingState getContentParsingState();
 
     public MimeHeaders getHeaders();
 }

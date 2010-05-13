@@ -48,18 +48,18 @@ import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
 
 /**
- * Server side {@link HttpFilter} implementation, which is responsible for
+ * Server side {@link HttpCodecFilter} implementation, which is responsible for
  * decoding {@link HttpRequestPacket} and encoding {@link HttpResponsePacket} messages.
  *
  * This <tt>Filter</tt> is usually used, when we build an asynchronous HTTP server
  * connection.
  *
- * @see HttpFilter
+ * @see HttpCodecFilter
  * @see HttpClientFilter
  *
  * @author Alexey Stashok
  */
-public class HttpServerFilter extends HttpFilter {
+public class HttpServerFilter extends HttpCodecFilter {
     protected static final int HEADER_PARSED_STATE = 2;
     
     private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;

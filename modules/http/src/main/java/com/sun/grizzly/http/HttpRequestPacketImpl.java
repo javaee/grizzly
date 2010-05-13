@@ -40,7 +40,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.ThreadCache;
-import com.sun.grizzly.http.HttpFilter.ContentParsingState;
+import com.sun.grizzly.http.HttpCodecFilter.ContentParsingState;
 
 /**
  *
@@ -62,12 +62,12 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
 
     private boolean isHeaderParsed;
     
-    private final HttpFilter.ParsingState headerParsingState;
-    private final HttpFilter.ContentParsingState contentParsingState;
+    private final HttpCodecFilter.ParsingState headerParsingState;
+    private final HttpCodecFilter.ContentParsingState contentParsingState;
 
     private HttpRequestPacketImpl() {
-        this.headerParsingState = new HttpFilter.ParsingState();
-        this.contentParsingState = new HttpFilter.ContentParsingState();
+        this.headerParsingState = new HttpCodecFilter.ParsingState();
+        this.contentParsingState = new HttpCodecFilter.ContentParsingState();
     }
 
     public void initialize(Connection connection, int initialOffset,
@@ -77,7 +77,7 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
     }
 
     @Override
-    public HttpFilter.ParsingState getHeaderParsingState() {
+    public HttpCodecFilter.ParsingState getHeaderParsingState() {
         return headerParsingState;
     }
 

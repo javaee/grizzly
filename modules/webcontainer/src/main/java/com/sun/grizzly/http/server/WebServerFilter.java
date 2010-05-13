@@ -43,8 +43,8 @@ import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpContent;
-import com.sun.grizzly.http.HttpFilter;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.server.apapter.Adapter;
@@ -151,15 +151,15 @@ public class WebServerFilter extends BaseFilter {
 //            request.scheme().setString("https");
 //        }
         BufferChunk protocolBC = request.getProtocolBC();
-        if (protocolBC.equals(HttpFilter.HTTP_1_1)) {
-            protocolBC.setString(HttpFilter.HTTP_1_1);
-            response.setProtocol(HttpFilter.HTTP_1_1);
+        if (protocolBC.equals(HttpCodecFilter.HTTP_1_1)) {
+            protocolBC.setString(HttpCodecFilter.HTTP_1_1);
+            response.setProtocol(HttpCodecFilter.HTTP_1_1);
             http11 = true;
-        } else if (protocolBC.equals(HttpFilter.HTTP_1_0)) {
+        } else if (protocolBC.equals(HttpCodecFilter.HTTP_1_0)) {
             //http11 = false;
             //keepAlive = false;
-            response.setProtocol(HttpFilter.HTTP_1_1);
-            protocolBC.setString(HttpFilter.HTTP_1_1);
+            response.setProtocol(HttpCodecFilter.HTTP_1_1);
+            protocolBC.setString(HttpCodecFilter.HTTP_1_1);
         //} else if (protocolBC.equals("")) {
             // HTTP/0.9
             //http09 = true;
@@ -171,7 +171,7 @@ public class WebServerFilter extends BaseFilter {
             //error = true;
             // Send 505; Unsupported HTTP version
             response.setStatus(505);
-            response.setProtocol(HttpFilter.HTTP_1_1);
+            response.setProtocol(HttpCodecFilter.HTTP_1_1);
             response.setReasonPhrase("Unsupported Protocol Version");
         }
 
