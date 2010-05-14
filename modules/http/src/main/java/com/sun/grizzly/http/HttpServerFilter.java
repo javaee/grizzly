@@ -133,7 +133,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (httpRequest == null) {
             httpRequest = HttpRequestPacketImpl.create();
             httpRequest.initialize(connection, input.position(), maxHeadersSize);
-            HttpResponsePacket response = HttpResponsePacketImpl.create();
+            HttpResponsePacketImpl response = HttpResponsePacketImpl.create();
             httpRequest.setResponse(response);
             response.setRequest(httpRequest);
             httpRequestInProcessAttr.set(connection, httpRequest);
@@ -180,6 +180,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (input.isHeader()) {
             HttpResponsePacketImpl response = (HttpResponsePacketImpl) input;
             if (!response.isCommitted()) {
+                response.setProtocol(HttpCodecFilter.HTTP_1_1);
                 if (!response.containsHeader("Date")) {
                     String date = FastHttpDateFormat.getCurrentDate();
                     response.addHeader("Date", date);
@@ -361,16 +362,11 @@ public class HttpServerFilter extends HttpCodecFilter {
         HttpResponsePacket response = request.getResponse();
         BufferChunk protocolBC = request.getProtocolBC();
         if (protocolBC.equals(HttpCodecFilter.HTTP_1_1)) {
-            protocolBC.setString(HttpCodecFilter.HTTP_1_1);
-            response.setProtocol(HttpCodecFilter.HTTP_1_1);
             state.http11 = true;
         } else if (protocolBC.equals(HttpCodecFilter.HTTP_1_0)) {
             state.http11 = false;
             state.keepAlive = false;
-            response.setProtocol(HttpCodecFilter.HTTP_1_1);
-            protocolBC.setString(HttpCodecFilter.HTTP_1_1);
-        } else if (protocolBC.equals("")) { // do we support 0.9?
-            // HTTP/0.9
+        } else if (protocolBC.equals(HttpCodecFilter.HTTP_0_9)) { // do we support 0.9?
             state.http09 = true;
             state.http11 = false;
             state.keepAlive = false;
@@ -380,7 +376,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             state.error = true;
             // Send 505; Unsupported HTTP version
             response.setStatus(505);
-            response.setProtocol(HttpCodecFilter.HTTP_1_1);
             response.setReasonPhrase("Unsupported Protocol Version");
         }
 

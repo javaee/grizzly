@@ -71,8 +71,11 @@ import java.util.Arrays;
  * @author Alexey Stashok
  */
 public abstract class HttpCodecFilter extends BaseFilter {
+
+    public static final String HTTP_0_9 = "HTTP/0.9";
     public static final String HTTP_1_0 = "HTTP/1.0";
     public static final String HTTP_1_1 = "HTTP/1.1";
+    
 
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
 

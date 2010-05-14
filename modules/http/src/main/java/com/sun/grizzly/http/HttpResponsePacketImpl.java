@@ -63,12 +63,10 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     
     private final HttpCodecFilter.ParsingState headerParsingState;
     private final HttpCodecFilter.ContentParsingState contentParsingState;
-    private final ProcessingState processingState;
 
     private HttpResponsePacketImpl() {
         this.headerParsingState = new HttpCodecFilter.ParsingState();
         this.contentParsingState = new HttpCodecFilter.ContentParsingState();
-        this.processingState = new ProcessingState();
     }
 
     public void initialize(int initialOffset, int maxHeaderSize) {
@@ -86,7 +84,7 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     }
 
     public ProcessingState getProcessingState() {
-        return processingState;
+        return (((HttpRequestPacketImpl) getRequest()).getProcessingState());
     }
 
     @Override
@@ -106,7 +104,6 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     protected void reset() {
         headerParsingState.recycle();
         contentParsingState.recycle();
-        processingState.recycle();
         isHeaderParsed = false;
         super.reset();
     }

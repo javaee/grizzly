@@ -110,6 +110,23 @@ public class HttpSemanticsTest extends TestCase {
         results.addHeader("Connection", "close");
         results.setStatusMessage("bad request");
         doTest(request, results);
+
+    }
+
+
+    public void testHttp09() throws Throwable {
+
+        HttpRequestPacket request = HttpRequestPacket.create();
+        request.setMethod("GET");
+        request.setRequestURI("/path");
+        request.setProtocol("HTTP/0.9");
+
+        ExpectedResults results = new ExpectedResults();
+        results.setProtocol("HTTP/1.1");
+        results.setStatusCode(200);
+        results.addHeader("Connection", "close");
+        results.setStatusMessage("ok");
+        doTest(request, results);
     }
 
     // --------------------------------------------------------- Private Methods
@@ -130,6 +147,7 @@ public class HttpSemanticsTest extends TestCase {
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(1024));
         filterChainBuilder.add(new HttpServerFilter());
+        filterChainBuilder.add(new SimpleResponseFilter());
         FilterChain filterChain = filterChainBuilder.build();
 
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
@@ -154,7 +172,7 @@ public class HttpSemanticsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get(10, TimeUnit.SECONDS);
+                testResult.get();
             } finally {
                 // Close the client connection
                 if (connection != null) {
@@ -235,7 +253,8 @@ public class HttpSemanticsTest extends TestCase {
                     }
                     if (!expectedResults.getExpectedHeaders().isEmpty()) {
                         for (Map.Entry<String,String> entry : expectedResults.getExpectedHeaders().entrySet()) {
-                            assertTrue(response.containsHeader(entry.getKey()));
+                            assertTrue("Missing header: " + entry.getKey(),
+                                       response.containsHeader(entry.getKey()));
                             assertEquals(entry.getValue().toLowerCase(),
                                          response.getHeader(entry.getKey()).toLowerCase());
                         }
@@ -256,6 +275,22 @@ public class HttpSemanticsTest extends TestCase {
             return ctx.getStopAction();
         }
 
+    }
+
+
+    private static final class SimpleResponseFilter extends BaseFilter {
+        @Override
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
+
+            HttpRequestPacket request =
+                    (HttpRequestPacket)
+                            ((HttpContent) ctx.getMessage()).getHttpHeader();
+            HttpResponsePacket response = request.getResponse();
+            response.setStatus(200);
+            response.setReasonPhrase("OK");
+            ctx.write(response);
+            return ctx.getStopAction();
+        }
     }
 
 
