@@ -114,7 +114,7 @@ public class HttpSemanticsTest extends TestCase {
     }
 
 
-    public void testHttp09() throws Throwable {
+    public void testHttp09ConnectionCloseTest() throws Throwable {
 
         HttpRequestPacket request = HttpRequestPacket.create();
         request.setMethod("GET");
@@ -127,6 +127,59 @@ public class HttpSemanticsTest extends TestCase {
         results.addHeader("Connection", "close");
         results.setStatusMessage("ok");
         doTest(request, results);
+    }
+
+
+    public void testHttp10ConnectionCloseNoConnectionRequestHeaderTest() throws Throwable {
+
+        HttpRequestPacket request = HttpRequestPacket.create();
+        request.setMethod("GET");
+        request.setRequestURI("/path");
+        request.setProtocol("HTTP/1.0");
+
+        ExpectedResults results = new ExpectedResults();
+        results.setProtocol("HTTP/1.1");
+        results.setStatusCode(200);
+        results.addHeader("Connection", "close");
+        results.setStatusMessage("ok");
+        doTest(request, results);
+        
+    }
+
+
+    public void testHttp11RequestCloseTest() throws Throwable {
+
+        HttpRequestPacket request = HttpRequestPacket.create();
+        request.setMethod("GET");
+        request.setRequestURI("/path");
+        request.setProtocol("HTTP/1.1");
+        request.addHeader("Host", "localhost:" + PORT);
+        request.addHeader("Connection", "close");
+
+        ExpectedResults results = new ExpectedResults();
+        results.setProtocol("HTTP/1.1");
+        results.setStatusCode(200);
+        results.addHeader("Connection", "close");
+        results.setStatusMessage("ok");
+        doTest(request, results);
+
+    }
+
+    public void testHttp11NoExplicitRequestCloseTest() throws Throwable {
+
+        HttpRequestPacket request = HttpRequestPacket.create();
+        request.setMethod("GET");
+        request.setRequestURI("/path");
+        request.addHeader("Host", "localhost:" + PORT);
+        request.setProtocol("HTTP/1.1");
+
+        ExpectedResults results = new ExpectedResults();
+        results.setProtocol("HTTP/1.1");
+        results.setStatusCode(200);
+        results.addHeader("!Connection", "close");
+        results.setStatusMessage("ok");
+        doTest(request, results);
+
     }
 
     // --------------------------------------------------------- Private Methods
@@ -253,10 +306,15 @@ public class HttpSemanticsTest extends TestCase {
                     }
                     if (!expectedResults.getExpectedHeaders().isEmpty()) {
                         for (Map.Entry<String,String> entry : expectedResults.getExpectedHeaders().entrySet()) {
-                            assertTrue("Missing header: " + entry.getKey(),
-                                       response.containsHeader(entry.getKey()));
-                            assertEquals(entry.getValue().toLowerCase(),
-                                         response.getHeader(entry.getKey()).toLowerCase());
+                            if (entry.getKey().charAt(0) != '!') {
+                                assertTrue("Missing header: " + entry.getKey(),
+                                           response.containsHeader(entry.getKey()));
+                                assertEquals(entry.getValue().toLowerCase(),
+                                             response.getHeader(entry.getKey()).toLowerCase());
+                            } else {
+                                assertFalse("Header should not be present: " + entry.getKey().substring(1),
+                                           response.containsHeader(entry.getKey().substring(1)));
+                            }
                         }
                     }
                     testResult.result(Boolean.TRUE);
