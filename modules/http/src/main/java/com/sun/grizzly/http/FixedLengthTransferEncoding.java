@@ -92,6 +92,7 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
         return parsePacket(connection, responsePacket, buffer);
     }
 
+    @SuppressWarnings({"UnusedDeclaration"})
     private ParsingResult parsePacket(Connection connection, HttpHeader packet, Buffer input) {
         final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) packet;
         // Get HTTP content parsing state

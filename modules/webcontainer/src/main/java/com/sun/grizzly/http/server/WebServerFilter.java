@@ -100,7 +100,6 @@ public class WebServerFilter extends BaseFilter {
 
         if (!prepareRequest((HttpRequestPacket) httpContent.getHttpHeader(), response)) {
             // invalid request - marshal the response to the client
-            response.setCommitted(true);
             ctx.write(response);
             return ctx.getStopAction();
         }

@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -63,10 +63,12 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     
     private final HttpCodecFilter.ParsingState headerParsingState;
     private final HttpCodecFilter.ContentParsingState contentParsingState;
+    private final ProcessingState processingState;
 
     private HttpResponsePacketImpl() {
         this.headerParsingState = new HttpCodecFilter.ParsingState();
         this.contentParsingState = new HttpCodecFilter.ContentParsingState();
+        this.processingState = new ProcessingState();
     }
 
     public void initialize(int initialOffset, int maxHeaderSize) {
@@ -81,6 +83,10 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     @Override
     public ContentParsingState getContentParsingState() {
         return contentParsingState;
+    }
+
+    public ProcessingState getProcessingState() {
+        return processingState;
     }
 
     @Override
@@ -100,6 +106,7 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     protected void reset() {
         headerParsingState.recycle();
         contentParsingState.recycle();
+        processingState.recycle();
         isHeaderParsed = false;
         super.reset();
     }

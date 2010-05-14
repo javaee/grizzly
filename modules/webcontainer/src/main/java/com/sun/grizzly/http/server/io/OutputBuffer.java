@@ -193,7 +193,6 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
         }
         // The response is now committed
         committed = true;
-        response.setCommitted(true);
 
     }
 
@@ -541,7 +540,6 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     
     private void doCommit() throws IOException {
         if (!committed) {
-            response.setCommitted(true);
             committed = true;
             // flush the message header to the client
             ctx.write(response);

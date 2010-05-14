@@ -1,9 +1,8 @@
 /*
- *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
- *
+ * 
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +10,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- *
+ * 
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +19,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- *
+ * 
  * Contributor(s):
- *
+ * 
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -33,46 +32,28 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
 
 package com.sun.grizzly.http;
 
 /**
- * Factory for the different HTTP packet types.
- * 
- * @author Alexey Stashok
+ * Maintains semantic state necessary to proper HTTP processing.
  */
-public interface HttpPacketFactory {
-    public HttpRequestPacket createHttpRequest();
+public class ProcessingState {
 
-    public HttpResponsePacket createHttpResponse();
+    public boolean keepAlive = true;
+    public boolean error;
+    public boolean http11 = true;
+    public boolean http09 = false;
+    public boolean contentDelimitation = true;
 
-    public HttpContent createHttpContent(HttpHeader httpHeader);
 
-    public HttpTrailer createHttpTrailer(HttpHeader httpHeader);
-
-    public static final class DefaultHttpPacketFactory
-            implements HttpPacketFactory {
-        
-        @Override
-        public HttpRequestPacket createHttpRequest() {
-            return HttpRequestPacket.create();
-        }
-
-        @Override
-        public HttpResponsePacket createHttpResponse() {
-            return HttpResponsePacket.create();
-        }
-
-        @Override
-        public HttpContent createHttpContent(HttpHeader httpHeader) {
-            return HttpContent.create(httpHeader);
-        }
-
-        @Override
-        public HttpTrailer createHttpTrailer(HttpHeader httpHeader) {
-            return HttpTrailer.create(httpHeader);
-        }
+    public void recycle() {
+        keepAlive = true;
+        error = false;
+        http11 = true;
+        http09 = false;
+        contentDelimitation = true;
     }
+
 }

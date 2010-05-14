@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,7 +37,10 @@
  */
 package com.sun.grizzly.http.core;
 
-import com.sun.grizzly.http.*;
+import com.sun.grizzly.http.HttpClientFilter;
+import com.sun.grizzly.http.HttpContent;
+import com.sun.grizzly.http.HttpPacket;
+import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
@@ -49,6 +52,8 @@ import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.LinkedTransferQueue;
@@ -92,7 +97,7 @@ public class HttpCommTest extends TestCase {
             Future<Connection> future = transport.connect("localhost", PORT);
             connection = future.get(10, TimeUnit.SECONDS);
             int clientPort = ((InetSocketAddress) connection.getLocalAddress()).getPort();
-            assertTrue(connection != null);
+            assertNotNull(connection);
 
             final BlockingQueue<HttpPacket> resultQueue =
                     new LinkedTransferQueue<HttpPacket>();
@@ -146,19 +151,20 @@ public class HttpCommTest extends TestCase {
             final HttpContent httpContent = (HttpContent) ctx.getMessage();
             final HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
 
-            System.out.println("Got the request: " + request);
+            logger.fine("Got the request: " + request);
 
             assertEquals(PORT, request.getLocalPort());
             assertTrue(isLocalAddress(request.getLocalAddress()));
             assertTrue(isLocalAddress(request.getRemoteHost()));
             assertTrue(isLocalAddress(request.getRemoteAddress()));
-            assertEquals(request.getHeader("client-port"), 
+            assertEquals(request.getHeader("client-port"),
                          Integer.toString(request.getRemotePort()));
 
-            final HttpResponsePacket response = HttpResponsePacket.builder().
-                    protocol(request.getProtocol()).status(200).
-                    reasonPhrase("OK").header("Content-Length", "0").
-                    header("Found", request.getRequestURI()).build();
+            HttpResponsePacket response = request.getResponse();
+            response.setStatus(200);
+            response.setReasonPhrase("OK");
+            response.addHeader("Content-Length", "0");
+            response.addHeader("Found", request.getRequestURI());
             
             ctx.write(response);
 

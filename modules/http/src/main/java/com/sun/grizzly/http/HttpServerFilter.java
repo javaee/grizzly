@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -34,6 +34,23 @@
  * only if the new code is made subject to such option by the copyright
  * holder.
  *
+ * * This file incorporates work covered by the following copyright and
+ * permission notice:
+ *
+ * Copyright 2004 The Apache Software Foundation
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  */
 
 package com.sun.grizzly.http;
@@ -44,8 +61,16 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.http.util.BufferChunk;
+import com.sun.grizzly.http.util.FastHttpDateFormat;
+import com.sun.grizzly.http.util.HexUtils;
+import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+
+import static com.sun.grizzly.http.HttpResponsePacket.NON_PARSED_STATUS;
 
 /**
  * Server side {@link HttpCodecFilter} implementation, which is responsible for
@@ -60,8 +85,7 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public class HttpServerFilter extends HttpCodecFilter {
-    protected static final int HEADER_PARSED_STATE = 2;
-    
+
     private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
 
     /**
@@ -109,15 +133,80 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (httpRequest == null) {
             httpRequest = HttpRequestPacketImpl.create();
             httpRequest.initialize(connection, input.position(), maxHeadersSize);
+            HttpResponsePacket response = HttpResponsePacketImpl.create();
+            httpRequest.setResponse(response);
+            response.setRequest(httpRequest);
             httpRequestInProcessAttr.set(connection, httpRequest);
         }
 
         return handleRead(ctx, httpRequest);
     }
 
+
     @Override
-    final void onHttpPacketParsed(FilterChainContext ctx) {
-        httpRequestInProcessAttr.remove(ctx.getConnection());
+    final boolean onHttpPacketParsed(FilterChainContext ctx) {
+        HttpRequestPacketImpl request =
+                httpRequestInProcessAttr.get(ctx.getConnection());
+        boolean error = request.getProcessingState().error;
+        if (!error) {
+            httpRequestInProcessAttr.remove(ctx.getConnection());
+        }
+        return error;
+    }
+
+    @Override
+    boolean onHttpHeaderParsed(FilterChainContext ctx) {
+        HttpRequestPacketImpl request =
+                httpRequestInProcessAttr.get(ctx.getConnection());
+        prepareProcessing(httpRequestInProcessAttr.get(ctx.getConnection()));
+        return request.getProcessingState().error;
+    }
+
+    @Override
+    void onHttpError(FilterChainContext ctx) throws IOException {
+
+        HttpRequestPacketImpl request =
+                httpRequestInProcessAttr.remove(ctx.getConnection());
+        // commit the response
+        ctx.setMessage(request.getResponse());
+        Buffer out = encodeHttpPacket(ctx.getConnection(),
+                                      request.getResponse());
+        ctx.write(out);
+
+    }
+
+    @Override
+    protected Buffer encodeHttpPacket(Connection connection, HttpPacket input) {
+        if (input.isHeader()) {
+            HttpResponsePacketImpl response = (HttpResponsePacketImpl) input;
+            if (!response.isCommitted()) {
+                if (!response.containsHeader("Date")) {
+                    String date = FastHttpDateFormat.getCurrentDate();
+                    response.addHeader("Date", date);
+                }
+
+                if (response.parsedStatusInt == NON_PARSED_STATUS) {
+                    response.setStatus(200);
+                }
+                ProcessingState state = response.getProcessingState();
+                MimeHeaders headers = response.getHeaders();
+
+                // If we know that the request is bad this early, add the
+                // Connection: close header.
+                state.keepAlive = (state.keepAlive &&
+                        !statusDropsConnection(response.getStatus()));
+                //       && !dropConnection;
+
+                if (!state.keepAlive) {
+                    headers.setValue("Connection").setString("close");
+                    //connectionHeaderValueSet = false;
+                } else if (!state.http11 && !state.error) {
+                    headers.setValue("Connection").setString("Keep-Alive");
+                }
+            }
+
+        }
+        return super.encodeHttpPacket(connection, input);
     }
 
     @Override
@@ -128,6 +217,7 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         final int reqLimit = parsingState.packetLimit;
 
+        //noinspection LoopStatementThatDoesntLoop
         while(true) {
             int subState = parsingState.subState;
 
@@ -263,5 +353,162 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         state.offset = offset;
         return found;
+    }
+
+    private static void prepareProcessing(HttpRequestPacketImpl request) {
+
+        ProcessingState state = request.getProcessingState();
+        HttpResponsePacket response = request.getResponse();
+        BufferChunk protocolBC = request.getProtocolBC();
+        if (protocolBC.equals(HttpCodecFilter.HTTP_1_1)) {
+            protocolBC.setString(HttpCodecFilter.HTTP_1_1);
+            response.setProtocol(HttpCodecFilter.HTTP_1_1);
+            state.http11 = true;
+        } else if (protocolBC.equals(HttpCodecFilter.HTTP_1_0)) {
+            state.http11 = false;
+            state.keepAlive = false;
+            response.setProtocol(HttpCodecFilter.HTTP_1_1);
+            protocolBC.setString(HttpCodecFilter.HTTP_1_1);
+        } else if (protocolBC.equals("")) { // do we support 0.9?
+            // HTTP/0.9
+            state.http09 = true;
+            state.http11 = false;
+            state.keepAlive = false;
+        } else {
+            // Unsupported protocol
+            state.http11 = false;
+            state.error = true;
+            // Send 505; Unsupported HTTP version
+            response.setStatus(505);
+            response.setProtocol(HttpCodecFilter.HTTP_1_1);
+            response.setReasonPhrase("Unsupported Protocol Version");
+        }
+
+        MimeHeaders headers = request.getHeaders();
+        BufferChunk connectionValueMB = headers.getValue("connection");
+        if (connectionValueMB != null) {
+            if (connectionValueMB.findBytesAscii(Constants.CLOSE_BYTES) != -1) {
+                state.keepAlive = false;
+                //connectionHeaderValueSet = false;
+            } else if (connectionValueMB.findBytesAscii(Constants.KEEPALIVE_BYTES) != -1) {
+                state.keepAlive = true;
+                // connectionHeaderValueSet = true
+            }
+        }
+
+        long contentLength = request.getContentLength();
+        if (contentLength >= 0) {
+            state.contentDelimitation = true;
+        }
+
+        BufferChunk hostBC = headers.getValue("host");
+
+        // Check host header
+        if (state.http11 && hostBC == null) {
+            state.error = true;
+            // 400 - Bad request
+            response.setStatus(400);
+            response.setReasonPhrase("Bad Request");
+        }
+
+        parseHost(hostBC, request, response);
+
+        if (!state.contentDelimitation) {
+            // If there's no content length
+            // (broken HTTP/1.0 or HTTP/1.1), assume
+            // the client is not broken and didn't send a body
+            state.contentDelimitation = true;
+        }
+
+    }
+
+
+    /**
+     * Determine if we must drop the connection because of the HTTP status
+     * code.  Use the same list of codes as Apache/httpd.
+     */
+    private static boolean statusDropsConnection(int status) {
+        return status == 400 /* SC_BAD_REQUEST */ ||
+               status == 408 /* SC_REQUEST_TIMEOUT */ ||
+               status == 411 /* SC_LENGTH_REQUIRED */ ||
+               status == 413 /* SC_REQUEST_ENTITY_TOO_LARGE */ ||
+               status == 414 /* SC_REQUEST_URI_TOO_LARGE */ ||
+               status == 500 /* SC_INTERNAL_SERVER_ERROR */ ||
+               status == 503 /* SC_SERVICE_UNAVAILABLE */ ||
+               status == 501 /* SC_NOT_IMPLEMENTED */ ||
+               status == 505 /* SC_VERSION_NOT_SUPPORTED */;
+    }
+
+
+    private static boolean parseHost(BufferChunk valueBC,
+                                     HttpRequestPacket request,
+                                     HttpResponsePacket response) {
+
+        if (valueBC == null || valueBC.isNull()) {
+            // HTTP/1.0
+            // Default is what the socket tells us. Overridden if a host is
+            // found/parsed
+            Connection connection = request.getConnection();
+            request.setServerPort(((InetSocketAddress) connection.getLocalAddress()).getPort());
+            InetAddress localAddress = ((InetSocketAddress) connection.getLocalAddress()).getAddress();
+            // Setting the socket-related fields. The adapter doesn't know
+            // about socket.
+            request.setLocalHost(localAddress.getHostName());
+            request.serverName().setString(localAddress.getHostName());
+            return true;
+        }
+
+
+        int valueS = valueBC.getStart();
+        int valueL = valueBC.getEnd() - valueS;
+        int colonPos = -1;
+
+        Buffer valueB = valueBC.getBuffer();
+        boolean ipv6 = (valueB.get(valueS) == '[');
+        boolean bracketClosed = false;
+        for (int i = 0; i < valueL; i++) {
+            char b = (char) valueB.get(i + valueS);
+            if (b == ']') {
+                bracketClosed = true;
+            } else if (b == ':') {
+                if (!ipv6 || bracketClosed) {
+                    colonPos = i;
+                    break;
+                }
+            }
+        }
+
+        if (colonPos < 0) {
+            if (!request.isSecure()) {
+                // 80 - Default HTTTP port
+                request.setServerPort(80);
+            } else {
+                // 443 - Default HTTPS port
+                request.setServerPort(443);
+            }
+        } else {
+            request.serverName().setBuffer(valueB, valueS, colonPos + valueS);
+
+            int port = 0;
+            int mult = 1;
+            for (int i = valueL - 1; i > colonPos; i--) {
+                int charValue = HexUtils.DEC[(int) valueB.get(i + valueS)];
+                if (charValue == -1) {
+                    // Invalid character
+                    //error = true; // TODO
+                    // 400 - Bad request
+                    response.setStatus(400);
+                    response.setReasonPhrase("Bad Request");
+                    return false;
+                }
+                port = port + (charValue * mult);
+                mult = 10 * mult;
+            }
+            request.setServerPort(port);
+
+        }
+
+        return true;
+
     }
 }

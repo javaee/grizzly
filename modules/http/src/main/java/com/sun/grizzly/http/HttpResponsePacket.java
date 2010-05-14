@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.util.BufferChunk;
-import com.sun.grizzly.http.util.FastHttpDateFormat;
 
 import java.io.IOException;
 
@@ -70,6 +69,8 @@ public class HttpResponsePacket extends HttpHeader {
     public static final int NON_PARSED_STATUS = Integer.MIN_VALUE;
     
     // ----------------------------------------------------- Instance Variables
+
+    private HttpRequestPacket request;
 
     /**
      * Status code.
@@ -165,30 +166,8 @@ public class HttpResponsePacket extends HttpHeader {
     }
 
 
-    /**
-     * TODO DOCS
-     * @return
-     */
-    public boolean isCommitted() {
-        return committed;
-    }
-
-
-    /**
-     * TODO DOCS
-     * @param committed
-     */
-    public void setCommitted(boolean committed) {
-
-        if (isCommitted()) {
-            return;
-        }
-        super.setCommitted(committed);
-
-        if (committed) {
-            prepareResponse();
-        }
-
+    public HttpRequestPacket getRequest() {
+        return request;
     }
 
 
@@ -278,21 +257,11 @@ public class HttpResponsePacket extends HttpHeader {
     }
 
 
-    // ------------------------------------------------------- Protected Methods
+    // ------------------------------------------------- Package Private Methods
 
 
-    protected void prepareResponse() {
-
-        // Add date header
-        if (!containsHeader("Date")) {
-            String date = FastHttpDateFormat.getCurrentDate();
-            addHeader("Date", date);
-        }
-
-        if (parsedStatusInt == NON_PARSED_STATUS) {
-            setStatus(200);
-        }
-
+    void setRequest(HttpRequestPacket request) {
+        this.request = request;
     }
 
 

@@ -110,8 +110,33 @@ public abstract class HttpCodecFilter extends BaseFilter {
     /**
      * Callback method, called when {@link HttpPacket} parsing has been completed.
      * @param ctx processing context.
+     *
+     * @return <code>true</code> if an error has occurred while processing
+     *  the header portion of the http request, otherwise returns
+     *  <code>false</code>.
      */
-    abstract void onHttpPacketParsed(FilterChainContext ctx);
+    abstract boolean onHttpPacketParsed(FilterChainContext ctx);
+
+
+    /**
+     * TODO Docs.
+     * @param ctx
+     *
+     * @return <code>true</code> if an error has occurred while processing
+     *  the header portion of the http request, otherwise returns
+     *  <code>false</code>.
+     */
+    abstract boolean onHttpHeaderParsed(FilterChainContext ctx);
+
+    
+    /**
+     * <p>
+     * TODO Docs.
+     * </p>
+     *
+     * @param ctx the {@link FilterChainContext} procesing this request
+     */
+    abstract void onHttpError(FilterChainContext ctx) throws IOException;
 
     protected final int maxHeadersSize;
 
@@ -127,6 +152,17 @@ public abstract class HttpCodecFilter extends BaseFilter {
             new FixedLengthTransferEncoding(), new ChunkedTransferEncoding(maxHeadersSize)};
     }
 
+
+    /**
+     * <p>
+     * Adds the specified {@link TransferEncoding} to the <code>HttpCodecFilter</code>.
+     * </p>
+     *
+     * @param transferEncoding the {@link TransferEncoding} to add
+     * @return <code>true</code> if the {@link TransferEncoding} was added, otherwise
+     *  <code>false</code> indicating the {@link TransferEncoding} was already
+     *  present
+     */
     public boolean addTransferEncoding(TransferEncoding transferEncoding) {
         synchronized (encodingSync) {
             if (indexOf(transferEncodings, transferEncoding) == -1) {
@@ -142,6 +178,17 @@ public abstract class HttpCodecFilter extends BaseFilter {
         }
     }
 
+
+    /**
+     * <p>
+     * Removes the specified {@link TransferEncoding} from the <code>HttpCodecFilter</code>.
+     * </p>
+     *
+     * @param transferEncoding the {@link TransferEncoding} to remove
+     * @return <code>true</code> if the {@link TransferEncoding} was removed, otherwise
+     *  <code>false</code> indicating the {@link TransferEncoding} was not already
+     *  present
+     */
     public boolean removeTransferEncoding(TransferEncoding transferEncoding) {
         synchronized (encodingSync) {
             final int idx = indexOf(transferEncodings, transferEncoding);
@@ -204,9 +251,16 @@ public abstract class HttpCodecFilter extends BaseFilter {
                 // recycle header parsing state
                 httpPacket.getHeaderParsingState().recycle();
 
+                if (onHttpHeaderParsed(ctx)) {
+                    onHttpError(ctx);
+                    return ctx.getStopAction();
+                }
+
                 setTransferEncoding((HttpHeader) httpPacket);
+                
             }
         }
+
 
         final HttpHeader httpHeader = (HttpHeader) httpPacket;
         final TransferEncoding encoding = httpHeader.getTransferEncoding();
@@ -237,7 +291,10 @@ public abstract class HttpCodecFilter extends BaseFilter {
 
         } else if (!httpHeader.isChunked() && httpHeader.getContentLength() <= 0) {
             // If content is not present this time - check if we expect any
-            onHttpPacketParsed(ctx);
+            if (onHttpPacketParsed(ctx)) {
+                onHttpError(ctx);
+                return ctx.getStopAction();
+            }
 
             // Build HttpContent message on top of existing content chunk and parsed Http message header
             final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();

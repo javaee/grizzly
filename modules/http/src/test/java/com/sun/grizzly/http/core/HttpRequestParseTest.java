@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.http.core;
 
+import com.sun.grizzly.http.HttpCodecFilter;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
@@ -56,13 +57,12 @@ import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.AbstractNIOConnection;
-import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.Pair;
 import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.Collections;
 import java.util.HashMap;
@@ -85,32 +85,32 @@ public class HttpRequestParseTest extends TestCase {
     public static int PORT = 8000;
 
     public void testHeaderlessRequestLine() throws Exception {
-        doHttpRequestTest("GET", "/index.html", "HTTP/1.0", Collections.EMPTY_MAP, "\r\n");
+        doHttpRequestTest("GET", "/index.html", "HTTP/1.0", Collections.<String, Pair<String, String>>emptyMap(), "\r\n");
     }
 
     public void testSimpleHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
-        headers.put("Host", new Pair("localhost", "localhost"));
-        headers.put("Content-length", new Pair("2345", "2345"));
+        headers.put("Host", new Pair<String,String>("localhost", "localhost"));
+        headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\r\n");
     }
 
     public void testMultiLineHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
-        headers.put("Host", new Pair("localhost", "localhost"));
-        headers.put("Multi-line", new Pair("first\r\n          second\r\n       third", "first seconds third"));
-        headers.put("Content-length", new Pair("2345", "2345"));
+        headers.put("Host", new Pair<String,String>("localhost", "localhost"));
+        headers.put("Multi-line", new Pair<String,String>("first\r\n          second\r\n       third", "first seconds third"));
+        headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\r\n");
     }
 
     public void testHeadersN() throws Exception {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
-        headers.put("Host", new Pair("localhost", "localhost"));
-        headers.put("Multi-line", new Pair("first\r\n          second\n       third", "first seconds third"));
-        headers.put("Content-length", new Pair("2345", "2345"));
+        headers.put("Host", new Pair<String,String>("localhost", "localhost"));
+        headers.put("Multi-line", new Pair<String,String>("first\r\n          second\n       third", "first seconds third"));
+        headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpRequestTest("GET", "/index.html", "HTTP/1.1", headers, "\n");
     }
 
@@ -160,6 +160,7 @@ public class HttpRequestParseTest extends TestCase {
         }
     }
 
+    @SuppressWarnings({"unchecked"})
     private HttpPacket doTestDecoder(String request, int limit) {
 
         MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
@@ -185,15 +186,14 @@ public class HttpRequestParseTest extends TestCase {
         final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
 
         Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(2));
         filterChainBuilder.add(new HttpServerFilter());
         filterChainBuilder.add(new HTTPRequestCheckFilter(parseResult,
-                method, requestURI, protocol, Collections.EMPTY_MAP));
+                method, requestURI, protocol, Collections.<String, Pair<String, String>>emptyMap()));
 
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(filterChainBuilder.build());
@@ -203,14 +203,14 @@ public class HttpRequestParseTest extends TestCase {
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
 
             StringBuffer sb = new StringBuffer();
 
-            sb.append(method + " " + requestURI + " " + protocol + eol);
+            sb.append(method).append(" ").append(requestURI).append(" ").append(protocol).append(eol);
 
             for (Entry<String, Pair<String, String>> entry : headers.entrySet()) {
                 sb.append(entry.getKey()).append(": ").append(entry.getValue().getFirst()).append(eol);
@@ -245,7 +245,7 @@ public class HttpRequestParseTest extends TestCase {
         private final String protocol;
         private final Map<String, Pair<String, String>> headers;
 
-        public HTTPRequestCheckFilter(FutureImpl parseResult, String method,
+        public HTTPRequestCheckFilter(FutureImpl<Boolean> parseResult, String method,
                 String requestURI, String protocol,
                 Map<String, Pair<String, String>> headers) {
             this.parseResult = parseResult;
@@ -264,7 +264,9 @@ public class HttpRequestParseTest extends TestCase {
             try {
                 assertEquals(method, httpRequest.getMethod());
                 assertEquals(requestURI, httpRequest.getRequestURI());
-                assertEquals(protocol, httpRequest.getProtocol());
+                if (HttpCodecFilter.HTTP_1_0.equals(protocol)) {
+                    assertEquals(HttpCodecFilter.HTTP_1_1, httpRequest.getProtocol());
+                }
 
                 for(Entry<String, Pair<String, String>> entry : headers.entrySet()) {
                     assertEquals(entry.getValue().getSecond(),
@@ -282,8 +284,13 @@ public class HttpRequestParseTest extends TestCase {
 
     protected static final class StandaloneConnection extends AbstractNIOConnection {
 
+        private final SocketAddress localAddress;
+        private final SocketAddress peerAddress;
+
         public StandaloneConnection() {
             super(TransportFactory.getInstance().createTCPTransport());
+            localAddress = new InetSocketAddress("127.0.0.1", 0);
+            peerAddress = new InetSocketAddress("127.0.0.1", 0);
         }
 
         @Override
@@ -293,12 +300,12 @@ public class HttpRequestParseTest extends TestCase {
 
         @Override
         public SocketAddress getPeerAddress() {
-            throw new UnsupportedOperationException("Not supported yet.");
+            return peerAddress;
         }
 
         @Override
         public SocketAddress getLocalAddress() {
-            throw new UnsupportedOperationException("Not supported yet.");
+            return localAddress;
         }
     }
 }

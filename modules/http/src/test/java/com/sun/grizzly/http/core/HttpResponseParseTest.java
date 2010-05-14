@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -58,7 +58,6 @@ import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
-import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.Pair;
@@ -85,23 +84,23 @@ public class HttpResponseParseTest extends TestCase {
     public static int PORT = 8001;
 
     public void testHeaderlessResponseLine() throws Exception {
-        doHttpResponseTest("HTTP/1.0", 200, "OK", Collections.EMPTY_MAP, "\r\n");
+        doHttpResponseTest("HTTP/1.0", 200, "OK", Collections.<String, Pair<String, String>>emptyMap(), "\r\n");
     }
 
     public void testSimpleHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
-        headers.put("Header1", new Pair("localhost", "localhost"));
-        headers.put("Content-length", new Pair("2345", "2345"));
+        headers.put("Header1", new Pair<String,String>("localhost", "localhost"));
+        headers.put("Content-length", new Pair<String,String>("2345", "2345"));
         doHttpResponseTest("HTTP/1.0", 200, "ALL RIGHT", headers, "\r\n");
     }
 
     public void testMultiLineHeaders() throws Exception {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
-        headers.put("Header1", new Pair("localhost", "localhost"));
-        headers.put("Multi-line", new Pair("first\r\n          second\r\n       third", "first seconds third"));
-        headers.put("Content-length", new Pair("2345", "2345"));
+        headers.put("Header1", new Pair<String, String>("localhost", "localhost"));
+        headers.put("Multi-line", new Pair<String, String>("first\r\n          second\r\n       third", "first seconds third"));
+        headers.put("Content-length", new Pair<String, String>("2345", "2345"));
         doHttpResponseTest("HTTP/1.0", 200, "DONE", headers, "\r\n");
     }
     
@@ -109,9 +108,9 @@ public class HttpResponseParseTest extends TestCase {
     public void testHeadersN() throws Exception {
         Map<String, Pair<String, String>> headers =
                 new HashMap<String, Pair<String, String>>();
-        headers.put("Header1", new Pair("localhost", "localhost"));
-        headers.put("Multi-line", new Pair("first\n          second\n       third", "first seconds third"));
-        headers.put("Content-length", new Pair("2345", "2345"));
+        headers.put("Header1", new Pair<String, String>("localhost", "localhost"));
+        headers.put("Multi-line", new Pair<String, String>("first\n          second\n       third", "first seconds third"));
+        headers.put("Content-length", new Pair<String, String>("2345", "2345"));
         doHttpResponseTest("HTTP/1.0", 200, "DONE", headers, "\n");
     }
 
@@ -161,6 +160,7 @@ public class HttpResponseParseTest extends TestCase {
         }
     }
 
+    @SuppressWarnings({"unchecked"})
     private HttpPacket doTestDecoder(String response, int limit) {
 
         MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
@@ -185,16 +185,15 @@ public class HttpResponseParseTest extends TestCase {
         
         final FutureImpl<Boolean> parseResult = SafeFutureImpl.create();
 
-        Connection connection = null;
-        StreamReader reader = null;
-        StreamWriter writer = null;
+        Connection<SocketAddress> connection = null;
+        StreamWriter writer;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
         filterChainBuilder.add(new ChunkingFilter(2));
         filterChainBuilder.add(new HttpClientFilter());
         filterChainBuilder.add(new HTTPResponseCheckFilter(parseResult,
-                protocol, code, phrase, Collections.EMPTY_MAP));
+                protocol, code, phrase, Collections.<String, Pair<String, String>>emptyMap()));
 
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(filterChainBuilder.build());
@@ -211,7 +210,7 @@ public class HttpResponseParseTest extends TestCase {
 
             StringBuffer sb = new StringBuffer();
 
-            sb.append(protocol + " " + Integer.toString(code) + " " + phrase + eol);
+            sb.append(protocol).append(" ").append(Integer.toString(code)).append(" ").append(phrase).append(eol);
 
             for (Entry<String, Pair<String, String>> entry : headers.entrySet()) {
                 sb.append(entry.getKey()).append(": ").append(entry.getValue().getFirst()).append(eol);
@@ -247,7 +246,7 @@ public class HttpResponseParseTest extends TestCase {
         private final String phrase;
         private final Map<String, Pair<String, String>> headers;
 
-        public HTTPResponseCheckFilter(FutureImpl parseResult, String protocol,
+        public HTTPResponseCheckFilter(FutureImpl<Boolean> parseResult, String protocol,
                 int code, String phrase,
                 Map<String, Pair<String, String>> headers) {
             this.parseResult = parseResult;

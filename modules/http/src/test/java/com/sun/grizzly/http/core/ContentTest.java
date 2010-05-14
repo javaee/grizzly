@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -40,7 +40,6 @@ package com.sun.grizzly.http.core;
 
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.filterchain.BaseFilter;
@@ -61,9 +60,9 @@ import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
 import java.io.IOException;
+import java.net.SocketAddress;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Logger;
 import junit.framework.TestCase;
 
 /**
@@ -71,33 +70,40 @@ import junit.framework.TestCase;
  * @author oleksiys
  */
 public class ContentTest extends TestCase {
-    private static final Logger logger = Grizzly.logger(ContentTest.class);
 
     public static int PORT = 8003;
 
+    @SuppressWarnings({"unchecked"})
     public void testExplicitContentLength() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").contentLength(10).build();
+        httpRequest.addHeader("Host", "localhost:" + PORT);
         HttpContent content = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
 
+    @SuppressWarnings({"unchecked"})
     public void testHeaderContentLength() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").header("Content-Length", "10").build();
+        httpRequest.addHeader("Host", "localhost:" + PORT);
         HttpContent content = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
 
+    @SuppressWarnings({"unchecked"})
     public void testSimpleChunked() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").chunked(true).build();
+        httpRequest.addHeader("Host", "localhost:" + PORT);
         HttpContent content = httpRequest.httpTrailerBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
 
         doHttpRequestTest(content);
     }
 
+    @SuppressWarnings({"unchecked"})
     public void testSeveralChunked() throws Exception {
         HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("POST").protocol("HTTP/1.1").uri("/default").chunked(true).build();
+        httpRequest.addHeader("Host", "localhost:" + PORT);
         HttpContent content1 = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "1234567890")).build();
         HttpContent content2 = httpRequest.httpContentBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "0987654321")).build();
         HttpContent content3 = httpRequest.httpTrailerBuilder().content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), "final")).build();
@@ -110,7 +116,7 @@ public class ContentTest extends TestCase {
 
         final FutureImpl<HttpPacket> parseResult = SafeFutureImpl.create();
 
-        Connection connection = null;
+        Connection<SocketAddress> connection = null;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
@@ -138,8 +144,8 @@ public class ContentTest extends TestCase {
             connection.setProcessor(clientFilterChain);
 
             for (HttpContent content : patternContentMessages) {
-                Future<WriteResult> writeFuture = connection.write(content);
-                WriteResult writeResult = writeFuture.get(10, TimeUnit.SECONDS);
+                Future<WriteResult<HttpContent, SocketAddress>> writeFuture = connection.write(content);
+                writeFuture.get(10, TimeUnit.SECONDS);
             }
 
             HttpContent result = (HttpContent) parseResult.get(10, TimeUnit.SECONDS);
@@ -176,7 +182,6 @@ public class ContentTest extends TestCase {
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
             HttpContent httpContent = (HttpContent) ctx.getMessage();
-            HttpRequestPacket httpRequest = (HttpRequestPacket) httpContent.getHttpHeader();
 
             if (!httpContent.isLast()) {
                 return ctx.getStopAction(httpContent);

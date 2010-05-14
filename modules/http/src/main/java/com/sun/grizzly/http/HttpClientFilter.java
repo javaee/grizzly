@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -60,7 +60,6 @@ import java.io.IOException;
  * @author Alexey Stashok
  */
 public class HttpClientFilter extends HttpCodecFilter {
-    protected static final int HEADER_PARSED_STATE = 2;
 
     private final Attribute<HttpResponsePacketImpl> httpResponseInProcessAttr;
 
@@ -116,8 +115,19 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
     
     @Override
-    final void onHttpPacketParsed(FilterChainContext ctx) {
+    final boolean onHttpPacketParsed(FilterChainContext ctx) {
         httpResponseInProcessAttr.remove(ctx.getConnection());
+        return false;
+    }
+
+    @Override
+    boolean onHttpHeaderParsed(FilterChainContext ctx) {
+        return false;
+    }
+
+    @Override
+    void onHttpError(FilterChainContext ctx) throws IOException {
+        // no-op
     }
 
     @Override
@@ -128,6 +138,7 @@ public class HttpClientFilter extends HttpCodecFilter {
         
         final int packetLimit = parsingState.packetLimit;
 
+        //noinspection LoopStatementThatDoesntLoop
         while(true) {
             int subState = parsingState.subState;
 

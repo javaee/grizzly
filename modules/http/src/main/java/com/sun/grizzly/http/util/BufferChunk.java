@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -159,6 +159,38 @@ public class BufferChunk {
 
         return 0;
     }
+    
+
+    /**
+     * TODO docs
+     * @param b
+     * @return
+     */
+    public int findBytesAscii(byte[] b) {
+
+        byte first = b[0];
+        int start = getStart();
+        int end = getEnd();
+
+        // Look for first char
+        int srcEnd = b.length;
+
+        for (int i = start; i <= end - srcEnd; i++) {
+            if (Ascii.toLower(buffer.get(i)) != first) continue;
+            // found first char, now look for a match
+            int myPos = i + 1;
+            for (int srcPos = 1; srcPos < srcEnd;) {
+                if (Ascii.toLower(buffer.get(myPos++)) != b[srcPos++]) {
+                    break;
+                }
+                if (srcPos == srcEnd) {
+                    return i - start; // found it
+                }
+            }
+        }
+        return -1;
+    }
+
 
     /**
      * Returns true if the message bytes starts with the specified string.

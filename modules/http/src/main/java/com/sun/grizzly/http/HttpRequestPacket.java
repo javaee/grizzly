@@ -2,7 +2,7 @@
  *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -74,6 +74,8 @@ public class HttpRequestPacket extends HttpHeader {
 
     private Connection connection;
 
+    private HttpResponsePacket response;
+
     private int serverPort = -1;
     private int remotePort = -1;
     private int localPort = -1;
@@ -119,6 +121,10 @@ public class HttpRequestPacket extends HttpHeader {
 
     public Connection getConnection() {
         return connection;
+    }
+
+    public HttpResponsePacket getResponse() {
+        return response;
     }
 
     // -------------------- Request data --------------------
@@ -515,6 +521,14 @@ public class HttpRequestPacket extends HttpHeader {
         sb.append("]\n)");
 
         return sb.toString();
+    }
+
+
+    // ------------------------------------------------- Package Private Methods
+
+
+    void setResponse(HttpResponsePacket response) {
+        this.response = response;
     }
 
 
