@@ -160,4 +160,11 @@ public class SSLProcessorTask extends DefaultProcessorTask{
     public void setSslReadTask(SSLReadTask sslReadTask) {
         this.sslReadTask = sslReadTask;
     }
+
+    /**
+     * Retunr the <code>SSLAsyncOutputBuffer</code>
+     */
+    public SecureOuputBuffer getSecureOutputBuffer(){
+        return (SecureOuputBuffer) outputBuffer;
+    }
 }

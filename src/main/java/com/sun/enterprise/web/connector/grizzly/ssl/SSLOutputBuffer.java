@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 1997-2007 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -39,6 +39,7 @@ package com.sun.enterprise.web.connector.grizzly.ssl;
 import com.sun.enterprise.web.connector.grizzly.SocketChannelOutputBuffer;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import javax.net.ssl.SSLEngine;
 
 import org.apache.coyote.Response;
 
@@ -49,8 +50,19 @@ import org.apache.coyote.Response;
  * 
  * @author Jean-Francois Arcand
  */
-public class SSLOutputBuffer extends SocketChannelOutputBuffer{
+public class SSLOutputBuffer extends SocketChannelOutputBuffer implements SecureOuputBuffer {
     
+    /**
+     * Encrypted Output <code>ByteBuffer</code>
+     */
+    protected ByteBuffer outputBB;
+
+
+    /**
+     * The <code>SSLEngine</code> used to write SSL data.
+     */
+    protected SSLEngine sslEngine;
+
     /**
      * Alternate constructor.
      */
@@ -67,8 +79,45 @@ public class SSLOutputBuffer extends SocketChannelOutputBuffer{
      */   
     @Override
     public void flushChannel(ByteBuffer bb) throws IOException{
-        SSLOutputWriter.flushChannel(socketChannel, bb);
+        SSLOutputWriter.flushChannel(socketChannel, bb, outputBB, sslEngine);
     }   
     
-    
+    /**
+     * Return the encrypted <code>ByteBuffer</code> used to handle response.
+     */
+    public ByteBuffer getOutputBB(){
+        return outputBB;
+    }
+
+
+    /**
+     * Set the encrypted <code>ByteBuffer</code> used to handle response.
+     */
+    public void setOutputBB(ByteBuffer outputBB){
+        this.outputBB = outputBB;
+    }
+
+
+    /**
+     * Set the <code>SSLEngine</code>.
+     */
+    public SSLEngine getSSLEngine() {
+        return sslEngine;
+    }
+
+
+    /**
+     * Get the <code>SSLEngine</code>.
+     */
+    public void setSSLEngine(SSLEngine sslEngine) {
+        this.sslEngine = sslEngine;
+    }
+
+    @Override
+    public void recycle() {
+        sslEngine = null;
+        outputBB = null;
+
+        super.recycle();
+    }
 }

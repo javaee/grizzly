@@ -409,6 +409,9 @@ public class SSLReadTask extends DefaultReadTask {
         SSLSupport sslSupport = sslImplementation.getSSLSupport(sslEngine);
         ((SSLProcessorTask)processorTask).setSSLSupport(sslSupport);
         ((SSLProcessorTask)processorTask).setSslReadTask(this);
+
+        ((SSLProcessorTask)processorTask).getSecureOutputBuffer().setSSLEngine(sslEngine);
+        ((SSLProcessorTask)processorTask).getSecureOutputBuffer().setOutputBB(outputBB);
     }
     
     
@@ -420,6 +423,8 @@ public class SSLReadTask extends DefaultReadTask {
         if ( processorTask != null ){
             ((SSLProcessorTask)processorTask).setSSLSupport(null);
             ((SSLProcessorTask)processorTask).setSslReadTask(null);
+            ((SSLProcessorTask) processorTask).getSecureOutputBuffer().setSSLEngine(null);
+            ((SSLProcessorTask) processorTask).getSecureOutputBuffer().setOutputBB(null);
         }
         super.detachProcessor();
     }   
