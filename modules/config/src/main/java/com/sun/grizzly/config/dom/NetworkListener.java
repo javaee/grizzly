@@ -36,6 +36,7 @@
  */
 package com.sun.grizzly.config.dom;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -46,6 +47,7 @@ import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBean;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.Dom;
 import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 
@@ -183,9 +185,16 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
         }
 
         public static ThreadPool findThreadPool(NetworkListener listener) {
-            List<ThreadPool> list = listener.getParent(NetworkListeners.class).getThreadPool();
-            if(list == null) {
-                list = ConfigBean.unwrap(listener.getParent().getParent().getParent()).nodeByTypeElements(ThreadPool.class);
+            final NetworkListeners listeners = listener.getParent(NetworkListeners.class);
+            List<ThreadPool> list = listeners.getThreadPool();
+            if(list == null || list.isEmpty()) {
+                final ConfigBeanProxy parent = listener.getParent().getParent().getParent();
+                final Dom proxy = Dom.unwrap(parent).element("thread-pools");
+                final List<Dom> domList = proxy.nodeElements("thread-pool");
+                list = new ArrayList<ThreadPool>(domList.size());
+                for (Dom dom : domList) {
+                    list.add(dom.<ThreadPool>createProxy());
+                }
             }
             for (ThreadPool pool : list) {
                 if(listener.getThreadPool().equals(pool.getName())) {

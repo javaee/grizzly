@@ -449,7 +449,7 @@
         <servlet-version>2.5</servlet-version>
         <felix-version>1.4.3</felix-version>
         <jersey-version>1.1.5</jersey-version>
-        <hk2.version>0.4.17</hk2.version>
-        <hk2.plugin.version>0.4.17</hk2.plugin.version>
+        <hk2.version>1.0.15</hk2.version>
+        <hk2.plugin.version>1.0.15</hk2.plugin.version>
     </properties>
 </project>
