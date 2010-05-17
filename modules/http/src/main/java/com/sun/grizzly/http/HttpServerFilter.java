@@ -406,7 +406,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             response.setReasonPhrase("Bad Request");
         }
 
-        parseHost(hostBC, request, response);
+        parseHost(hostBC, request, response, state);
 
         if (!state.contentDelimitation) {
             // If there's no content length
@@ -435,9 +435,10 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
 
-    private static boolean parseHost(BufferChunk valueBC,
-                                     HttpRequestPacket request,
-                                     HttpResponsePacket response) {
+    private static void parseHost(BufferChunk valueBC,
+                                  HttpRequestPacket request,
+                                  HttpResponsePacket response,
+                                  ProcessingState state) {
 
         if (valueBC == null || valueBC.isNull()) {
             // HTTP/1.0
@@ -450,7 +451,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             // about socket.
             request.setLocalHost(localAddress.getHostName());
             request.serverName().setString(localAddress.getHostName());
-            return true;
+            return;
         }
 
 
@@ -490,11 +491,11 @@ public class HttpServerFilter extends HttpCodecFilter {
                 int charValue = HexUtils.DEC[(int) valueB.get(i + valueS)];
                 if (charValue == -1) {
                     // Invalid character
-                    //error = true; // TODO
+                    state.error = true; 
                     // 400 - Bad request
                     response.setStatus(400);
                     response.setReasonPhrase("Bad Request");
-                    return false;
+                    return;
                 }
                 port = port + (charValue * mult);
                 mult = 10 * mult;
@@ -502,8 +503,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             request.setServerPort(port);
 
         }
-
-        return true;
 
     }
 }
