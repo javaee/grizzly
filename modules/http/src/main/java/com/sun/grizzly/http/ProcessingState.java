@@ -39,15 +39,51 @@ package com.sun.grizzly.http;
 /**
  * Maintains semantic state necessary to proper HTTP processing.
  */
-public class ProcessingState {
+class ProcessingState {
 
+    /**
+     * <p>
+     * This flag controls the semantics of the Connection response header.
+     * </p>
+     */
     public boolean keepAlive = true;
+
+    /**
+     * <p>
+     * Indicates if an error occurred during request/response processing.
+     * </p>
+     */
     public boolean error;
+
+    /**
+     * <p>
+     * Flag indicating that the request was made using the HTTP/1.1 protocol.
+     * </p>
+     */
     public boolean http11 = true;
+
+    /**
+     * <p>
+     * Flag indicating that the request was made using the HTTP/0.9 protocol.
+     * </p>
+     */
     public boolean http09 = false;
+
+
+    /**
+     * <p>
+     * Content delimitation for the request.  If <code>false</code>, the
+     * connection will be closed at the end of the request.
+     * </p>
+     */
     public boolean contentDelimitation = true;
 
 
+    /**
+     * <p>
+     * Resets values to their initial states.
+     * </p>
+     */
     public void recycle() {
         keepAlive = true;
         error = false;
