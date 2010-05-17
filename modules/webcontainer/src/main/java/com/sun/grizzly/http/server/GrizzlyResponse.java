@@ -54,6 +54,7 @@
 
 package com.sun.grizzly.http.server;
 
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.server.io.OutputBuffer;
@@ -101,10 +102,23 @@ import java.util.logging.Level;
 
 public class GrizzlyResponse<A> {
 
+    private static final ThreadCache.CachedTypeIndex<GrizzlyResponse> CACHE_IDX =
+            ThreadCache.obtainIndex(GrizzlyResponse.class, 2);
+
+    public static GrizzlyResponse create() {
+        final GrizzlyResponse grizzlyResponse =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (grizzlyResponse != null) {
+            return grizzlyResponse;
+        }
+
+        return new GrizzlyResponse();
+    }
+
 
     // ----------------------------------------------------------- Constructors
 
-    public GrizzlyResponse() {
+    protected GrizzlyResponse() {
         this(false,false);
     }
 
@@ -293,6 +307,10 @@ public class GrizzlyResponse<A> {
         isContentTypeSet = false;
         isCharacterEncodingSet = false;
         detailErrorMsg = null;
+        request = null;
+        response.recycle();
+        response = null;
+        ctx = null;
 
         cookies.clear();
 

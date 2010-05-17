@@ -198,6 +198,9 @@ public class HttpResponsePacket extends HttpHeader {
     protected void reset() {
         statusBC.recycle();
         reasonPhraseBC.recycle();
+        locale = null;
+        contentLanguage = null;
+        request = null;
 
         super.reset();
     }

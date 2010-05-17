@@ -98,7 +98,7 @@ public class InputBuffer {
      * {@link CharBuffer} containing charset decoded bytes.  This is only
      * allocated if {@link #processingChars} is <code>true</code>
      */
-    private CharBuffer charBuf;
+    private CharBuffer charBuf = CharBuffer.allocate(DEFAULT_BUFFER_SIZE);
 
     /**
      * The {@link Connection} associated with this {@link com.sun.grizzly.http.HttpRequestPacket}.
@@ -222,7 +222,6 @@ public class InputBuffer {
     public void processingChars() throws IOException {
 
         processingChars = true;
-        charBuf = CharBuffer.allocate(DEFAULT_BUFFER_SIZE);
         String enc = request.getCharacterEncoding();
         if (enc != null) {
             encoding = enc;

@@ -55,6 +55,7 @@
 
 package com.sun.grizzly.http.server;
 
+import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.io.InputBuffer;
@@ -111,10 +112,25 @@ import java.util.concurrent.TimeUnit;
 
 public class GrizzlyRequest{
 
+
+    private static final ThreadCache.CachedTypeIndex<GrizzlyRequest> CACHE_IDX =
+            ThreadCache.obtainIndex(GrizzlyRequest.class, 2);
+
+    public static GrizzlyRequest create() {
+        final GrizzlyRequest grizzlyRequest =
+                ThreadCache.takeFromCache(CACHE_IDX);
+        if (grizzlyRequest != null) {
+            return grizzlyRequest;
+        }
+
+        return new GrizzlyRequest();
+    }
+
+
     // ----------------------------------------------------------- Constructors
 
 
-    public GrizzlyRequest() {
+    protected GrizzlyRequest() {
          // START OF SJSAS 6231069
         formats = (SimpleDateFormat[]) staticDateFormats.get();
         formats[0].setTimeZone(TimeZone.getTimeZone("GMT"));
@@ -539,6 +555,10 @@ public class GrizzlyRequest{
         localPort = -1;
         localAddr = null;
         localName = null;
+
+        request.recycle();
+        request = null;
+        ctx = null;
 
         attributes.clear();
         cookies = null;

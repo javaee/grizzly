@@ -473,6 +473,7 @@ public class HttpRequestPacket extends HttpHeader {
 
         connection = null;
         localHost = null;
+        response = null;
 
         secure = false;
         secureParsed = false;

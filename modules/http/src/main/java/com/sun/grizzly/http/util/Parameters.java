@@ -135,13 +135,15 @@ public final class Parameters extends MultiMap {
 
     @Override
     public void recycle() {
-	super.recycle();
-	paramHashStringArray.clear();
-	didQueryParameters=false;
-	currentChild=null;
-	didMerge=false;
-	encoding=null;
-	queryBC.recycle();
+        super.recycle();
+        paramHashStringArray.clear();
+        didQueryParameters = false;
+        currentChild = null;
+        didMerge = false;
+        encoding = null;
+        if (queryBC != null) {
+            queryBC.recycle();
+        }
     }
     
     // -------------------- Sub-request support --------------------
