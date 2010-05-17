@@ -158,7 +158,7 @@ public class HttpServerFilter extends HttpCodecFilter {
     boolean onHttpHeaderParsed(FilterChainContext ctx) {
         HttpRequestPacketImpl request =
                 httpRequestInProcessAttr.get(ctx.getConnection());
-        prepareProcessing(httpRequestInProcessAttr.get(ctx.getConnection()));
+        prepareRequest(httpRequestInProcessAttr.get(ctx.getConnection()));
         return request.getProcessingState().error;
     }
 
@@ -180,30 +180,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (input.isHeader()) {
             HttpResponsePacketImpl response = (HttpResponsePacketImpl) input;
             if (!response.isCommitted()) {
-                response.setProtocol(HttpCodecFilter.HTTP_1_1);
-                if (!response.containsHeader("Date")) {
-                    String date = FastHttpDateFormat.getCurrentDate();
-                    response.addHeader("Date", date);
-                }
-
-                if (response.parsedStatusInt == NON_PARSED_STATUS) {
-                    response.setStatus(200);
-                }
-                ProcessingState state = response.getProcessingState();
-                MimeHeaders headers = response.getHeaders();
-
-                // If we know that the request is bad this early, add the
-                // Connection: close header.
-                state.keepAlive = (state.keepAlive &&
-                        !statusDropsConnection(response.getStatus()));
-                //       && !dropConnection;
-
-                if (!state.keepAlive) {
-                    headers.setValue("Connection").setString("close");
-                    //connectionHeaderValueSet = false;
-                } else if (!state.http11 && !state.error) {
-                    headers.setValue("Connection").setString("Keep-Alive");
-                }
+                prepareResponse(response.getRequest(), response);
             }
 
         }
@@ -356,17 +333,106 @@ public class HttpServerFilter extends HttpCodecFilter {
         return found;
     }
 
-    private static void prepareProcessing(HttpRequestPacketImpl request) {
+
+    private static void prepareResponse(HttpRequestPacket request,
+                                        HttpResponsePacketImpl response) {
+
+        response.setProtocol(HttpCodecFilter.HTTP_1_1);
+        if (response.parsedStatusInt == NON_PARSED_STATUS) {
+            response.setStatus(200);
+        }
+        ProcessingState state = response.getProcessingState();
+
+        if (state.http09) {
+            return;
+        }
+
+        boolean entityBody = true;
+        int statusCode = response.getStatus();
+
+        if ((statusCode == 204) || (statusCode == 205)
+                || (statusCode == 304)) {
+            // No entity body
+            entityBody = false;
+            state.contentDelimitation = true;
+        }
+
+//        // TODO: Check for compression
+//        boolean useCompression = false;
+//        if (entityBody && (compressionLevel > 0)) {
+//            useCompression = isCompressable();
+//
+//            // Change content-length to -1 to force chunking
+//            if (useCompression) {
+//                response.setContentLength(-1);
+//            }
+//        }
+
+        BufferChunk methodBC = request.getMethodBC();
+        if (methodBC.equals("HEAD")) {
+            // No entity body
+            state.contentDelimitation = true;
+        }
+
+        MimeHeaders headers = response.getHeaders();
+        if (!entityBody) {
+            response.setContentLength(-1);
+        } else {
+            String contentType = response.getContentType();
+            if (contentType != null) {
+                headers.setValue("Content-Type").setString(contentType);
+            } else {
+                // TODO enable configurable default
+                //headers.setValue("Content-Type").setString(defaultResponseType);
+            }
+
+            String contentLanguage = response.getContentLanguage();
+            if (contentLanguage != null) {
+                headers.setValue("Content-Language").setString(contentLanguage);
+            }
+        }
+
+        if (!response.containsHeader("Date")) {
+            String date = FastHttpDateFormat.getCurrentDate();
+            response.addHeader("Date", date);
+        }
+
+        if ((entityBody) && (!state.contentDelimitation)) {
+            // Mark as close the connection after the request, and add the
+            // connection: close header
+            state.keepAlive = false;
+        }
+
+        // If we know that the request is bad this early, add the
+        // Connection: close header.
+        state.keepAlive = (state.keepAlive &&
+                !statusDropsConnection(response.getStatus()));
+        //       && !dropConnection;
+
+        if (!state.keepAlive) {
+            headers.setValue("Connection").setString("close");
+            //connectionHeaderValueSet = false;
+        } else if (!state.http11 && !state.error) {
+            headers.setValue("Connection").setString("Keep-Alive");
+        }
+
+    }
+    
+
+    private static void prepareRequest(HttpRequestPacketImpl request) {
 
         ProcessingState state = request.getProcessingState();
         HttpResponsePacket response = request.getResponse();
         BufferChunk protocolBC = request.getProtocolBC();
         if (protocolBC.equals(HttpCodecFilter.HTTP_1_1)) {
+            protocolBC.setString(HttpCodecFilter.HTTP_1_1);
             state.http11 = true;
         } else if (protocolBC.equals(HttpCodecFilter.HTTP_1_0)) {
+            protocolBC.setString(HttpCodecFilter.HTTP_1_0);
             state.http11 = false;
             state.keepAlive = false;
-        } else if (protocolBC.equals(HttpCodecFilter.HTTP_0_9)) { // do we support 0.9?
+        } else if (protocolBC.equals(HttpCodecFilter.HTTP_0_9)) {
+            protocolBC.setString(HttpCodecFilter.HTTP_0_9);
             state.http09 = true;
             state.http11 = false;
             state.keepAlive = false;
@@ -380,6 +446,35 @@ public class HttpServerFilter extends HttpCodecFilter {
         }
 
         MimeHeaders headers = request.getHeaders();
+
+        // Check for a full URI (including protocol://host:port/)
+        // Check for a full URI (including protocol://host:port/)
+        BufferChunk uriBC = request.getRequestURIRef().getRequestURIBC();
+        if (uriBC.startsWithIgnoreCase("http", 0)) {
+
+            int pos = uriBC.indexOf("://", 4);
+            int uriBCStart = uriBC.getStart();
+            int slashPos;
+            if (pos != -1) {
+                Buffer uriB = uriBC.getBuffer();
+                slashPos = uriBC.indexOf('/', pos + 3);
+                if (slashPos == -1) {
+                    slashPos = uriBC.length();
+                    // Set URI as "/"
+                    uriBC.setBuffer(uriB, uriBCStart + pos + 1, 1);
+                } else {
+                    uriBC.setBuffer(uriB,
+                                    uriBCStart + slashPos,
+                                    uriBC.length() - slashPos);
+                }
+                BufferChunk hostMB = headers.setValue("host");
+                hostMB.setBuffer(uriB,
+                                 uriBCStart + pos + 3,
+                                 slashPos - pos - 3);
+            }
+
+        }
+
         BufferChunk connectionValueMB = headers.getValue("connection");
         if (connectionValueMB != null) {
             if (connectionValueMB.findBytesAscii(Constants.CLOSE_BYTES) != -1) {

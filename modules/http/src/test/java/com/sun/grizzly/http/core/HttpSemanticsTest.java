@@ -124,9 +124,10 @@ public class HttpSemanticsTest extends TestCase {
         ExpectedResults results = new ExpectedResults();
         results.setProtocol("HTTP/1.1");
         results.setStatusCode(200);
-        results.addHeader("Connection", "close");
+        results.addHeader("!Connection", "close");
         results.setStatusMessage("ok");
         doTest(request, results);
+        
     }
 
 

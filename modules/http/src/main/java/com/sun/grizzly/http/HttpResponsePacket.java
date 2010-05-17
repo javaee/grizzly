@@ -42,6 +42,7 @@ import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.util.BufferChunk;
 
 import java.io.IOException;
+import java.util.Locale;
 
 
 /**
@@ -70,14 +71,27 @@ public class HttpResponsePacket extends HttpHeader {
     
     // ----------------------------------------------------- Instance Variables
 
+    /**
+     * The request that triggered this response.
+     */
     private HttpRequestPacket request;
+
+    /**
+     * The {@link Locale} of the entity body being sent by this response.
+     */
+    private Locale locale;
+
+    /**
+     * The value of the <code>Content-Language</code> response header.
+     */
+    private String contentLanguage;
+
 
     /**
      * Status code.
      */
     protected int parsedStatusInt = NON_PARSED_STATUS;
     protected BufferChunk statusBC = BufferChunk.newInstance();
-    protected boolean committed;
 
 
     /**
@@ -166,6 +180,9 @@ public class HttpResponsePacket extends HttpHeader {
     }
 
 
+    /**
+     * @return the request that triggered this response
+     */
     public HttpRequestPacket getRequest() {
         return request;
     }
@@ -181,7 +198,6 @@ public class HttpResponsePacket extends HttpHeader {
     protected void reset() {
         statusBC.recycle();
         reasonPhraseBC.recycle();
-        committed = false;
 
         super.reset();
     }
@@ -245,21 +261,78 @@ public class HttpResponsePacket extends HttpHeader {
     }
 
 
+    /**
+     * Completes response processing.
+     * @throws IOException if an error occurs during the completion process
+     */
     public void finish() throws IOException {
         if (!isCommitted()) {
             setCommitted(true);
         }
     }
 
-    
-    @Override public void setCharacterEncoding(String enc) {
-        super.setCharacterEncoding(enc);
+
+    /**
+     * @return the {@link Locale} of this response.
+     */
+    public Locale getLocale() {
+        return locale;
+    }
+
+
+    /**
+     * Called explicitly by user to set the Content-Language and
+     * the default encoding
+     */
+    public void setLocale(Locale locale) {
+
+        if (locale == null) {
+            return;  // throw an exception?
+        }
+
+        // Save the locale for use by getLocale()
+        this.locale = locale;
+
+        // Set the contentLanguage for header output
+        contentLanguage = locale.getLanguage();
+        if ((contentLanguage != null) && (contentLanguage.length() > 0)) {
+            String country = locale.getCountry();
+            StringBuilder value = new StringBuilder(contentLanguage);
+            if ((country != null) && (country.length() > 0)) {
+                value.append('-');
+                value.append(country);
+            }
+            contentLanguage = value.toString();
+        }
+
+    }
+
+
+    /**
+     * @return the value that will be used by the <code>Content-Language</code>
+     *  response header
+     */
+    public String getContentLanguage() {
+        return contentLanguage;
+    }
+
+
+    /**
+     * Set the value that will be used by the <code>Content-Language</code>
+     * response header.
+     */
+    public void setContentLanguage() {
+        this.contentLanguage = contentLanguage;
     }
 
 
     // ------------------------------------------------- Package Private Methods
 
 
+    /**
+     * Associates the request that triggered this response.
+     * @param request the request that triggered this response
+     */
     void setRequest(HttpRequestPacket request) {
         this.request = request;
     }
@@ -292,7 +365,7 @@ public class HttpResponsePacket extends HttpHeader {
             }
         }
         if (name.equalsIgnoreCase("Content-Language")) {
-            // XXX XXX Need to construct Locale or something else
+            // TODO XXX XXX Need to construct Locale or something else
         }
         return false;
     }
