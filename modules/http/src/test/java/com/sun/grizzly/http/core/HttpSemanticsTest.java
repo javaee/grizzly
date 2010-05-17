@@ -226,7 +226,7 @@ public class HttpSemanticsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get();
+                testResult.get(10, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
