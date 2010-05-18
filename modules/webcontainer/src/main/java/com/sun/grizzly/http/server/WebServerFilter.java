@@ -101,7 +101,7 @@ public class WebServerFilter extends BaseFilter {
         } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            response.finish();
+            res.finishResponse();
             req.recycle();
             res.recycle();
         }

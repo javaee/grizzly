@@ -41,6 +41,7 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.HttpTrailer;
 import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.ByteBufferManager;
 import com.sun.grizzly.memory.ByteBufferWrapper;
@@ -468,7 +469,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
                 buf = memoryManager.allocate(DEFAULT_BUFFER_SIZE);
             }
         }
-        if (includeTrailer) {
+        if (response.isChunked() && includeTrailer) {
             ctx.write(response.httpTrailerBuilder().build());
         }
     }

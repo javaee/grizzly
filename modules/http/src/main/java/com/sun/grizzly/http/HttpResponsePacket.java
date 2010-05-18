@@ -265,17 +265,6 @@ public class HttpResponsePacket extends HttpHeader {
 
 
     /**
-     * Completes response processing.
-     * @throws IOException if an error occurs during the completion process
-     */
-    public void finish() throws IOException {
-        if (!isCommitted()) {
-            setCommitted(true);
-        }
-    }
-
-
-    /**
      * @return the {@link Locale} of this response.
      */
     public Locale getLocale() {

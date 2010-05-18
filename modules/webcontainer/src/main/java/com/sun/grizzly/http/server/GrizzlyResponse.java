@@ -602,7 +602,7 @@ public class GrizzlyResponse<A> {
         throws IOException {
         // Writing leftover bytes
         try {
-            outputBuffer.close();
+            outputBuffer.endRequest();
         } catch(IOException e) {
             if (LoggerUtils.getLogger().isLoggable(Level.FINEST)) {
                 LoggerUtils.getLogger().log(Level.FINEST,
@@ -764,6 +764,7 @@ public class GrizzlyResponse<A> {
         // TODO re-enable
         //outputBuffer.checkConverter();
         if (writer == null) {
+            outputBuffer.processingChars();
             writer = new PrintWriter(new ResponseWriter(outputBuffer));
         }
         return writer;

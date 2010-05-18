@@ -260,7 +260,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
                 }
 
                 setTransferEncoding((HttpHeader) httpPacket);
-                
+
             }
         }
 
@@ -411,18 +411,16 @@ public abstract class HttpCodecFilter extends BaseFilter {
         if (!isHeader) {
             final TransferEncoding contentEncoder = httpHeader.getTransferEncoding();
 
-            if (contentEncoder != null) {
-                final Buffer content = serializePacket(connection, httpContent);
-                encodedBuffer = BufferUtils.appendBuffers(memoryManager,
-                        encodedBuffer, content);
+            final Buffer content = serializePacket(connection,
+                                                   httpContent,
+                                                   contentEncoder);
+            encodedBuffer = BufferUtils.appendBuffers(memoryManager,
+                    encodedBuffer, content);
 
-                if (encodedBuffer.isComposite()) {
-                    // If during buffer appending - composite buffer was created -
-                    // allow buffer disposing
-                    encodedBuffer.allowBufferDispose(true);
-                }
-            } else {
-                throw new IllegalStateException("Error serializing HTTP packet: " + httpHeader);
+            if (encodedBuffer.isComposite()) {
+                // If during buffer appending - composite buffer was created -
+                // allow buffer disposing
+                encodedBuffer.allowBufferDispose(true);
             }
         }
 
@@ -918,13 +916,20 @@ public abstract class HttpCodecFilter extends BaseFilter {
         }
     }
 
-    private Buffer serializePacket(Connection connection, HttpContent httpContent) {
+    private Buffer serializePacket(Connection connection,
+                                   HttpContent httpContent,
+                                   TransferEncoding encoding) {
         final HttpHeader httpHeader = httpContent.getHttpHeader();
-        final TransferEncoding encoding = httpHeader.getTransferEncoding();
-        if (httpHeader.isRequest()) {
-            return encoding.serializeRequest(connection, httpContent);
+        if (encoding != null) {
+            if (httpHeader.isRequest()) {
+                return encoding.serializeRequest(connection, httpContent);
+            } else {
+                return encoding.serializeResponse(connection, httpContent);
+            }
         } else {
-            return encoding.serializeResponse(connection, httpContent);
+            // if no explicit TransferEncoding is available, then
+            // assume "Identity"
+            return httpContent.getContent();
         }
     }
 

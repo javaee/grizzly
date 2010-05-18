@@ -88,6 +88,8 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     private final Attribute<HttpRequestPacketImpl> httpRequestInProcessAttr;
 
+    private boolean chunking = true;
+
     /**
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
      */
@@ -107,6 +109,18 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.httpRequestInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpServerFilter.httpRequest");
+    }
+
+
+    // ----------------------------------------------------------- Configuration
+
+
+    public boolean isChunking() {
+        return chunking;
+    }
+
+    public void setChunking(boolean chunking) {
+        this.chunking = chunking;
     }
 
     /**
@@ -168,22 +182,28 @@ public class HttpServerFilter extends HttpCodecFilter {
         HttpRequestPacketImpl request =
                 httpRequestInProcessAttr.remove(ctx.getConnection());
         // commit the response
-        ctx.setMessage(request.getResponse());
-        Buffer out = encodeHttpPacket(ctx.getConnection(),
-                                      request.getResponse());
-        ctx.write(out);
+        HttpResponsePacket response = request.getResponse();
+        HttpTrailer trailer = HttpTrailer.builder(response).last(true).build();
+        //Buffer resBuf = encodeHttpPacket(ctx.getConnection(), response);
+        Buffer trailBuf = encodeHttpPacket(ctx.getConnection(), trailer);
+        //ctx.write(resBuf);
+        ctx.write(trailBuf);
 
     }
 
     @Override
     protected Buffer encodeHttpPacket(Connection connection, HttpPacket input) {
+        HttpHeader header;
         if (input.isHeader()) {
-            HttpResponsePacketImpl response = (HttpResponsePacketImpl) input;
-            if (!response.isCommitted()) {
-                prepareResponse(response.getRequest(), response);
-            }
-
+            header = (HttpHeader) input;
+        } else {
+            header = ((HttpContent) input).getHttpHeader();
         }
+        HttpResponsePacketImpl response = (HttpResponsePacketImpl) header;
+        if (!response.isCommitted()) {
+            prepareResponse(response.getRequest(), response);
+        }
+
         return super.encodeHttpPacket(connection, input);
     }
 
@@ -334,8 +354,8 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
 
-    private static void prepareResponse(HttpRequestPacket request,
-                                        HttpResponsePacketImpl response) {
+    private void prepareResponse(HttpRequestPacket request,
+                                 HttpResponsePacketImpl response) {
 
         response.setProtocol(HttpCodecFilter.HTTP_1_1);
         if (response.parsedStatusInt == NON_PARSED_STATUS) {
@@ -368,13 +388,28 @@ public class HttpServerFilter extends HttpCodecFilter {
 //            }
 //        }
 
+        MimeHeaders headers = response.getHeaders();
+
+        long contentLength = response.getContentLength();
+        if (contentLength != -1L) {
+            headers.setValue("Content-Length").setString(Long.toString(contentLength));
+            state.contentDelimitation = true;
+        } else {
+            if (isChunking() && entityBody && state.http11) {
+                state.contentDelimitation = true;
+                response.setChunked(true);
+            } else {
+                //outputBuffer.addActiveFilter
+                //    (outputFilters[Constants.IDENTITY_FILTER]);
+            }
+        }
+
         BufferChunk methodBC = request.getMethodBC();
         if (methodBC.equals("HEAD")) {
             // No entity body
             state.contentDelimitation = true;
         }
 
-        MimeHeaders headers = response.getHeaders();
         if (!entityBody) {
             response.setContentLength(-1);
         } else {

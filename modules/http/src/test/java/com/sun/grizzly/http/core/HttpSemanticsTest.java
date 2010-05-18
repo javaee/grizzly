@@ -347,6 +347,7 @@ public class HttpSemanticsTest extends TestCase {
             HttpResponsePacket response = request.getResponse();
             response.setStatus(200);
             response.setReasonPhrase("OK");
+            response.setContentLength(0);
             ctx.write(response);
             return ctx.getStopAction();
         }

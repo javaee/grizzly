@@ -10,6 +10,10 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.*;
 import com.sun.grizzly.http.*;
+import com.sun.grizzly.http.server.GrizzlyRequest;
+import com.sun.grizzly.http.server.GrizzlyResponse;
+import com.sun.grizzly.http.server.apapter.GrizzlyAdapter;
+import com.sun.grizzly.http.server.embed.GrizzlyWebServer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -50,7 +54,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -59,8 +63,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -80,7 +83,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -89,8 +92,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -100,26 +102,24 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
         s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
 
-        f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -129,26 +129,24 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8194); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
         s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
 
-        f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -158,7 +156,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -167,8 +165,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -178,7 +175,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8194); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -187,8 +184,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -199,15 +195,14 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString());
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -218,15 +213,14 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -237,15 +231,14 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 writer.write(sb.toString().toCharArray());
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -256,7 +249,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 3k chunks
@@ -271,8 +264,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -283,7 +275,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 3k chunks
@@ -300,8 +292,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
     }
 
 
@@ -311,7 +302,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 9k chunks
@@ -326,8 +317,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -338,7 +328,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 Writer writer = response.getWriter();
                 // write in 9k chunks
@@ -355,8 +345,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
     }
 
 
@@ -378,7 +367,7 @@ public class HttpResponseStreamsTest extends TestCase {
         }
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = content.length; i < len; i++) {
@@ -387,8 +376,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -398,7 +386,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -407,8 +395,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -418,7 +405,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(8192); // boundary + 2
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 for (int i = 0, len = sb.length(); i < len; i++) {
@@ -427,8 +414,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -439,15 +425,14 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 out.write(sb.toString().getBytes());
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -458,15 +443,14 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 out.write(sb.toString().getBytes());
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -477,7 +461,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 // write in 3k chunks
@@ -492,8 +476,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -504,7 +487,7 @@ public class HttpResponseStreamsTest extends TestCase {
         final StringBuilder sb = buildBuffer(len);
 
         WriteStrategy s = new WriteStrategy() {
-            @Override public void doWrite(HttpResponsePacket response)
+            @Override public void doWrite(GrizzlyResponse response)
                   throws IOException {
                 OutputStream out = response.getOutputStream();
                 // write in 9k chunks
@@ -519,8 +502,7 @@ public class HttpResponseStreamsTest extends TestCase {
             }
         };
 
-        SimpleHttpResponseFilter f = new SimpleHttpResponseFilter(s);
-        doTest(f, sb.toString());
+        doTest(s, sb.toString());
 
     }
 
@@ -540,28 +522,24 @@ public class HttpResponseStreamsTest extends TestCase {
     }
 
 
-    private void doTest(SimpleHttpResponseFilter filter,
+    private void doTest(WriteStrategy strategy,
                         String expectedResult)
     throws Exception {
 
-        final FutureImpl<String> parseResult = SafeFutureImpl.create();
-        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
-        filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new ChunkingFilter(2));
-        filterChainBuilder.add(new HttpServerFilter());
-        filterChainBuilder.add(filter);
-        FilterChain filterChain = filterChainBuilder.build();
+        GrizzlyWebServer server = new GrizzlyWebServer();
+        GrizzlyWebServer.ServerConfiguration sconfig = server.getServerConfiguration();
+        sconfig.addGrizzlyAdapter(new TestAdapter(strategy), new String[] { "/*" });
+        GrizzlyWebServer.ListenerConfiguration lconfig = server.getListenerConfiguration();
+        lconfig.setPort(PORT);
 
-        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
-        transport.setProcessor(filterChain);
+        final FutureImpl<String> parseResult = SafeFutureImpl.create();
         TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();
         try {
-            transport.bind(PORT);
-            transport.start();
+            server.start();
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
-            clientFilterChainBuilder.add(new ChunkingFilter(2));
+            clientFilterChainBuilder.add(new ChunkingFilter(1024));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(new ClientFilter(parseResult));
             ctransport.setProcessor(clientFilterChainBuilder.build());
@@ -583,7 +561,7 @@ public class HttpResponseStreamsTest extends TestCase {
             assertEquals(expectedResult, res);
 
         } finally {
-            transport.stop();
+            server.stop();
             ctransport.stop();
             TransportFactory.getInstance().close();
         }
@@ -592,41 +570,28 @@ public class HttpResponseStreamsTest extends TestCase {
 
     private interface WriteStrategy {
 
-        void doWrite(HttpResponsePacket response) throws IOException;
+        void doWrite(GrizzlyResponse response) throws IOException;
 
     }
 
 
-    private static class SimpleHttpResponseFilter extends BaseFilter {
+    private static final class TestAdapter extends GrizzlyAdapter {
 
-        private WriteStrategy strategy;
+        private final WriteStrategy strategy;
 
-        public SimpleHttpResponseFilter(WriteStrategy strategy) {
+        // -------------------------------------------------------- Constructors
+
+
+        public TestAdapter(WriteStrategy strategy) {
             this.strategy = strategy;
         }
 
         @Override
-        public NextAction handleRead(FilterChainContext ctx) throws
-              IOException {
+        public void service(GrizzlyRequest req, GrizzlyResponse res) throws Exception {
 
-            final HttpContent httpContent = (HttpContent) ctx.getMessage();
+            res.setStatus(200, "OK");
+            strategy.doWrite(res);
 
-            if (!httpContent.isLast()) {
-                // no action until we have all content
-                return ctx.getStopAction();
-            }
-
-            HttpResponsePacket response = HttpResponsePacket.builder().chunked(true).
-                  protocol(HttpCodecFilter.HTTP_1_1).status(200).reasonPhrase("OK").build();
-            // TODO RETURN TO RUNNING
-            //response.getOutputBuffer().initialize(response, ctx);
-
-            strategy.doWrite(response);
-
-            response.finish();
-            response.recycle();
-
-            return ctx.getStopAction();
         }
     }
 
@@ -663,7 +628,7 @@ public class HttpResponseStreamsTest extends TestCase {
             // resource we want to download
             final HttpRequestPacket httpRequest = HttpRequestPacket.builder().method("GET")
                   .uri("/path").protocol(HttpCodecFilter.HTTP_1_1)
-                  .header("Host", "localhost").build();
+                  .header("Host", "localhost:" + PORT).build();
             if (logger.isLoggable(Level.FINE)) {
                 logger.log(Level.FINE,
                            "Connected... Sending the request: " + httpRequest);
@@ -702,8 +667,6 @@ public class HttpResponseStreamsTest extends TestCase {
                 }
 
                 if (httpContent.isLast()) {
-                    // it's last HttpContent - we close the local file and
-                    // notify about download completion
                     if (logger.isLoggable(Level.FINE)) {
                         logger.log(Level.FINE,
                                    "Response complete: "
