@@ -392,15 +392,11 @@ public class HttpServerFilter extends HttpCodecFilter {
 
         long contentLength = response.getContentLength();
         if (contentLength != -1L) {
-            headers.setValue("Content-Length").setString(Long.toString(contentLength));
             state.contentDelimitation = true;
         } else {
             if (isChunking() && entityBody && state.http11) {
                 state.contentDelimitation = true;
                 response.setChunked(true);
-            } else {
-                //outputBuffer.addActiveFilter
-                //    (outputFilters[Constants.IDENTITY_FILTER]);
             }
         }
 
@@ -413,14 +409,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         if (!entityBody) {
             response.setContentLength(-1);
         } else {
-            String contentType = response.getContentType();
-            if (contentType != null) {
-                headers.setValue("Content-Type").setString(contentType);
-            } else {
-                // TODO enable configurable default
-                //headers.setValue("Content-Type").setString(defaultResponseType);
-            }
-
             String contentLanguage = response.getContentLanguage();
             if (contentLanguage != null) {
                 headers.setValue("Content-Language").setString(contentLanguage);
