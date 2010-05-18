@@ -106,7 +106,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                 httpPacketParsing.getContentParsingState();
 
         // if it's chunked HTTP message
-        final boolean isLastChunk = contentParsingState.isLastChunk;
+        boolean isLastChunk = contentParsingState.isLastChunk;
         // Check if HTTP chunk length was parsed
         if (!isLastChunk && contentParsingState.chunkRemainder <= 0) {
             // We expect next chunk header
@@ -128,6 +128,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             if (!isLastChunk) {
                 // set it's the last chunk
                 contentParsingState.isLastChunk = true;
+                isLastChunk = true;
                 // start trailer parsing
                 initTrailerParsing(httpPacketParsing);
             }
@@ -155,6 +156,7 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             remainder = input.slice(
                     (int) (chunkContentStart + thisPacketRemaining),
                     input.limit());
+            input.position(chunkContentStart);
             input.limit((int) (chunkContentStart + thisPacketRemaining));
         } else if (chunkContentStart > 0) {
             input.position(chunkContentStart);
