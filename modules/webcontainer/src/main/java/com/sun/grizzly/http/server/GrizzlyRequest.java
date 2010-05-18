@@ -337,15 +337,15 @@ public class GrizzlyRequest{
     /**
      * GrizzlyInputStream.
      */
-    protected RequestInputStream inputStream =
-        new RequestInputStream(inputBuffer);
+    protected RequestInputStream inputStream;
+        //new RequestInputStream(inputBuffer);
 
 
     /**
      * Reader.
      */
-    protected BufferedReader reader =
-            new BufferedReader(new RequestReader(inputBuffer));
+    protected BufferedReader reader;
+            //new BufferedReader(new RequestReader(inputBuffer));
 
 
     /**
@@ -996,6 +996,7 @@ public class GrizzlyRequest{
         usingReader = true;
         //inputBuffer.checkConverter();
         if (reader == null) {
+            inputBuffer.processingChars();
             reader = new BufferedReader(new RequestReader(inputBuffer));
         }
         return reader;
