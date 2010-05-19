@@ -71,7 +71,6 @@ import com.sun.grizzly.tcp.http11.OutputFilter;
 import com.sun.grizzly.tcp.http11.filters.BufferedInputFilter;
 import com.sun.grizzly.tcp.http11.filters.ChunkedInputFilter;
 import com.sun.grizzly.tcp.http11.filters.ChunkedOutputFilter;
-import com.sun.grizzly.tcp.http11.filters.GzipOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.IdentityInputFilter;
 import com.sun.grizzly.tcp.http11.filters.IdentityOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.VoidInputFilter;
@@ -1193,7 +1192,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 }
             }
         } else if ( actionCode == ActionCode.CANCEL_SUSPENDED_RESPONSE ) {
-            key.attach(null);
+            SuspendResponseUtils.detach(key);
         } else if ( actionCode == ActionCode.RESET_SUSPEND_TIMEOUT ) {
             if (key != null) {
                 final Response.ResponseAttachment suspendedResponse =
@@ -1229,7 +1228,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                 response.setErrorException(ex);
             }
             if (!keepAlive){
-                selectorThread.cancelKey(key);
+                selectorHandler.addPendingKeyCancel(key);
                 recycle();
                 selectorThread.returnTask(this);
             }
