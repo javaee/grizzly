@@ -151,9 +151,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     public void stopEndpoint() {
         try {
             super.stopEndpoint();
-        } catch (Throwable t) {
+        } catch (Exception t) {
             logger.log(Level.SEVERE, "Unable to stop properly", t);
-        } finally {
             // Force the Selector(s) to be closed in case an unexpected
             // exception occured during shutdown.
             try {
@@ -163,7 +162,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             } catch (IOException ex) {
             }
         }
-
     }
 
     @Override
