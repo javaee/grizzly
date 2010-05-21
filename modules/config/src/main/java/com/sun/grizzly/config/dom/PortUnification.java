@@ -65,6 +65,8 @@ public interface PortUnification extends ConfigBeanProxy, Injectable, PropertyBa
     @Element
     List<ProtocolFinder> getProtocolFinder();
 
+    void setProtocolFinder(List<ProtocolFinder> list);
+
     /**
      * If the data came on a network connection is recognized as HTTP packet
      * and it is passed to a default Web protocol - then, if Web protocol sticky

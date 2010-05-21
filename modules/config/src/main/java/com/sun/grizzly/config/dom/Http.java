@@ -90,7 +90,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * encoding, language, charset
      */
     @Deprecated
-    @Attribute()
+    @Attribute
     String getDefaultResponseType();
 
     @Deprecated
@@ -222,7 +222,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     /**
      * Tells the server what to put in the host name section of any URLs it sends to the client. This affects URLs the
-     * server automatically generates; it doesnt affect the URLs for directories and files stored in the server. This
+     * server automatically generates; it doesn't affect the URLs for directories and files stored in the server. This
      * name should be the alias name if your server uses an alias. If you append a colon and port number, that port will
      * be used in URLs the server sends to the client.
      */
