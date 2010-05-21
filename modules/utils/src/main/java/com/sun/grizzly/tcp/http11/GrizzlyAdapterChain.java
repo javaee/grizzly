@@ -83,7 +83,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     private UDecoder urlDecoder = new UDecoder();
     protected final static int MAPPING_DATA = 12;
     protected final static int MAPPED_ADAPTER = 13;
-    protected final static int INVOKED_ADAPTER = 14;
+    protected final static int INVOKED_ADAPTER = 15;
     
     /**
      * The list of {@link GrizzlyAdapter} instance.
