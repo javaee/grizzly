@@ -83,6 +83,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     private UDecoder urlDecoder = new UDecoder();
     protected final static int MAPPING_DATA = 12;
     protected final static int MAPPED_ADAPTER = 13;
+    protected final static int INVOKED_ADAPTER = 14;
+    
     /**
      * The list of {@link GrizzlyAdapter} instance.
      */
@@ -127,20 +129,24 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     @Override
     public void service(GrizzlyRequest request, GrizzlyResponse response) {
         // For backward compatibility.
+        final Request req = request.getRequest();
+        req.setNote(INVOKED_ADAPTER, null);
+        
         if (oldMappingAlgorithm) {
             int i = 0;
             int size = adapters.size();
             for (Entry<GrizzlyAdapter, String[]> entry : adapters.entrySet()) {
-                entry.getKey().service(request, response);
+                final GrizzlyAdapter adapter = entry.getKey();
+                adapter.service(request, response);
                 if (response.getStatus() == 404 && i != size - 1) {
                     // Reset the
                     response.setStatus(200, "OK");
                 } else {
+                    req.setNote(INVOKED_ADAPTER, adapter);
                     return;
                 }
             }
         } else {
-            Request req = request.getRequest();
             MappingData mappingData = null;
             try {
                 MessageBytes decodedURI = req.decodedURI();
@@ -178,6 +184,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                     // We already decoded the URL.
                     adapter.setDecodeUrl(false);
                     adapter.service(request.getRequest(), response.getResponse());
+                    req.setNote(INVOKED_ADAPTER, adapter);
                 } else {
                     response.getResponse().setStatus(404);
                     customizedErrorPage(req, response.getResponse());
@@ -197,6 +204,17 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
             }
         }
     }
+
+    @Override
+    public void afterService(GrizzlyRequest request,
+            GrizzlyResponse response) throws Exception {
+        final Request req = request.getRequest();
+        final GrizzlyAdapter adapter = (GrizzlyAdapter) req.getNote(INVOKED_ADAPTER);
+        if (adapter != null) {
+            adapter.afterService(request, response);
+        }
+    }
+
 
     /**
      * Add a {@link GrizzlyAdapter} to the chain.
