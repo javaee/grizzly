@@ -116,6 +116,7 @@ public class GWSLoadTest extends TestCase {
                     out.write("GET / HTTP/1.1\n".getBytes());
                     out.write("Host: localhost:6666\n".getBytes());
                     out.write("accept-encoding: gzip\n".getBytes());
+                    out.write("Connection: close\n".getBytes());
                     out.write("\n".getBytes());
                     out.flush();
                     final InputStream stream = socket.getInputStream();

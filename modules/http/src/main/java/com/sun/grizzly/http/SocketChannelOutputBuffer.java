@@ -405,6 +405,12 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         response.recycle();
         socketBuffer.recycle();
         pos = 0;
+
+        // Recycle filters
+        for (int i = 0; i <= lastActiveFilter; i++) {
+            activeFilters[i].recycle();
+        }
+
         lastActiveFilter = -1;
         committed = false;
         finished = false;
