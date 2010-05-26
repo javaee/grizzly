@@ -38,8 +38,6 @@
 
 package com.sun.grizzly;
 
-import com.sun.grizzly.attributes.AttributeStorage;
-import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChain;
@@ -50,6 +48,7 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOConnection;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
+import com.sun.grizzly.utils.DelayFilter;
 import com.sun.grizzly.utils.LinkedTransferQueue;
 import com.sun.grizzly.utils.StringFilter;
 import java.io.IOException;
@@ -102,32 +101,28 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
     public void testSyncDelayedSingleChunkedStringEcho() throws Exception {
         logger.info("This test execution may take several seconds");
         doTestStringEcho(true, 1,
-                new AbstractCodecFilter(new DelayTransformer(1000),
-                new DelayTransformer(20)) {},
+                new DelayFilter(1000, 20),
                 new ChunkingFilter(1));
     }
 
     public void testAsyncDelayedSingleChunkedStringEcho() throws Exception {
         logger.info("This test execution may take several seconds");
         doTestStringEcho(false, 1,
-                new AbstractCodecFilter(new DelayTransformer(1000),
-                new DelayTransformer(20)){},
+                new DelayFilter(1000, 20),
                 new ChunkingFilter(1));
     }
 
     public void testSyncDelayed5ChunkedStringEcho() throws Exception {
         logger.info("This test execution may take several seconds");
         doTestStringEcho(true, 5,
-                new AbstractCodecFilter(new DelayTransformer(1000),
-                new DelayTransformer(20)) {},
+                new DelayFilter(1000, 20),
                 new ChunkingFilter(1));
     }
 
     public void testAsyncDelayed5ChunkedStringEcho() throws Exception {
         logger.info("This test execution may take several seconds");
         doTestStringEcho(false, 5,
-                new AbstractCodecFilter(new DelayTransformer(1000),
-                new DelayTransformer(20)) {},
+                new DelayFilter(1000, 20),
                 new ChunkingFilter(1));
     }
 
@@ -212,35 +207,6 @@ public class ProtocolChainCodecTest extends GrizzlyTestCase {
 
             transport.stop();
             TransportFactory.getInstance().close();
-        }
-    }
-
-    private static class DelayTransformer extends AbstractTransformer {
-        private final long timeoutMillis;
-
-        public DelayTransformer(long timeoutMillis) {
-            this.timeoutMillis = timeoutMillis;
-        }
-
-        @Override
-        public String getName() {
-            return "DelayTransformer-" + hashCode();
-        }
-
-        @Override
-        protected TransformationResult transformImpl(AttributeStorage storage,
-                Object input) throws TransformationException {
-            try {
-                Thread.sleep(timeoutMillis);
-            } catch (Exception e) {
-            }
-            
-            return TransformationResult.createCompletedResult(input, null);
-        }
-
-        @Override
-        public boolean hasInputRemaining(AttributeStorage storage, Object input) {
-            return false;
         }
     }
 }
