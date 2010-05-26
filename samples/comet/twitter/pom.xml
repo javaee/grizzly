@@ -3,14 +3,14 @@
     <parent>
         <groupId>com.sun.grizzly</groupId>
         <artifactId>grizzly-project</artifactId>
-        <version>1.9.19-SNAPSHOT</version>
+        <version>1.9.19-beta4</version>
         <relativePath>../../../pom.xml</relativePath>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.sun.grizzly.samples</groupId>
     <artifactId>grizzly-twitter</artifactId>
     <packaging>war</packaging>
-    <version>1.9.19-SNAPSHOT</version>
+    <version>1.9.19-beta4</version>
     <name>grizzly-twitter</name>
     <url>http://maven.apache.org</url>
     <dependencies>
