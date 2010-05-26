@@ -704,7 +704,7 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             invokeAdapter();
             postResponse();
-        } while (!error && keepAlive &&
+        } while (!error && keepAlive && !response.isSuspended() &&
                 (handleKeepAliveBlockingThread || inputBuffer.available() > 0));
         return error;
     }
