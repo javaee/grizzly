@@ -24,19 +24,20 @@ public class GWSLoadTest extends TestCase {
     public static final int CLIENT_NUM = 2;
     private static final AtomicInteger done = new AtomicInteger(CLIENT_NUM);
     private static Exception exception;
+    private static int PORT = 6667;
 
     public void testLoadAsync() throws Throwable {
 
         DefaultThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 1000 * 60 * 5;
-        GrizzlyWebServer gws = new GrizzlyWebServer(6666, "", false);
+        GrizzlyWebServer gws = new GrizzlyWebServer(PORT, "", false);
 
         final SelectorThread thread = gws.getSelectorThread();
         thread.setCompression("on");
 //        thread.setSendBufferSize(1024 * 1024);
         gws.addGrizzlyAdapter(new LoadTestAdapter(), new String[]{"/"});
-        gws.start();
         done.compareAndSet(CLIENT_NUM, CLIENT_NUM);
         try {
+            gws.start();
             for (int index = 0; index < CLIENT_NUM; index++) {
                 new Thread(new Client()).start();
             }
@@ -55,14 +56,14 @@ public class GWSLoadTest extends TestCase {
     public void testLoadSynchronous() throws Throwable {
 
         DefaultThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 1000 * 60 * 5;
-        GrizzlyWebServer gws = new GrizzlyWebServer(6666, "", false);
+        GrizzlyWebServer gws = new GrizzlyWebServer(PORT, "", false);
 
         final SelectorThread thread = gws.getSelectorThread();
         thread.setCompression("on");
 //        thread.setSendBufferSize(1024 * 1024);
         gws.addGrizzlyAdapter(new LoadTestAdapter(), new String[]{"/"});
-        gws.start();
         try {
+            gws.start();
             for (int index = 0; index < CLIENT_NUM; index++) {
                 new Client().run();
             }
@@ -110,11 +111,11 @@ public class GWSLoadTest extends TestCase {
     private class Client implements Runnable {
         public void run() {
             try {
-                Socket socket = new Socket("localhost", 6666);
+                Socket socket = new Socket("localhost", PORT);
                 try {
                     final OutputStream out = socket.getOutputStream();
                     out.write("GET / HTTP/1.1\n".getBytes());
-                    out.write("Host: localhost:6666\n".getBytes());
+                    out.write(("Host: localhost:\n" + PORT).getBytes());
                     out.write("accept-encoding: gzip\n".getBytes());
                     out.write("Connection: close\n".getBytes());
                     out.write("\n".getBytes());
@@ -147,14 +148,14 @@ public class GWSLoadTest extends TestCase {
     private static void main(String[] args) throws IOException, InterruptedException {
 
         DefaultThreadPool.DEFAULT_IDLE_THREAD_KEEPALIVE_TIMEOUT = 1000 * 60 * 5;
-        GrizzlyWebServer gws = new GrizzlyWebServer(6666, "", false);
+        GrizzlyWebServer gws = new GrizzlyWebServer(PORT, "", false);
 
         final SelectorThread thread = gws.getSelectorThread();
         thread.setCompression("on");
 //        thread.setSendBufferSize(1024 * 1024);
         gws.addGrizzlyAdapter(new LoadTestAdapter(), new String[]{"/"});
         gws.start();
-        System.out.println("Listening on port 6666");
+        System.out.println("Listening on port " + PORT);
         while(true) {
             Thread.sleep(1000);
             if(exception != null) {
