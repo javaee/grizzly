@@ -78,6 +78,7 @@ public class SuspendResponseUtils {
             threadAttachment.setIdleTimeoutDelay(SelectionKeyAttachment.UNLIMITED_TIMEOUT);
             threadAttachment.setTimeoutListener(null);
             threadAttachment.setKeySelectionListener(null);
+            threadAttachment.deassociate();
         }
     }
 

@@ -245,8 +245,8 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     public void deassociate() {
         if (threadLock.isHeldByCurrentThread()) {
             threadLock.unlock();
-            activeThread = null;
         }
+        activeThread = null;
     }
 
     /**
