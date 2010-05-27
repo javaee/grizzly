@@ -73,8 +73,9 @@ public final class UDecoder {
      * Default Logger.
      */
     private final static Logger logger = LoggerUtils.getLogger();
+    private static final String ALLOW_ENCODED_SLASH_NAME = "com.sun.grizzly.util.buf.UDecoder.ALLOW_ENCODED_SLASH";
     public static final boolean ALLOW_ENCODED_SLASH =
-            Boolean.valueOf(System.getProperty("com.sun.grizzly.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "false")).booleanValue();
+            Boolean.valueOf(System.getProperty(ALLOW_ENCODED_SLASH_NAME, "false"));
 
     private boolean allowEncodedSlash;
     
@@ -149,7 +150,8 @@ public final class UDecoder {
                 j += 2;
                 int res = x2c(b1, b2);
                 if (noSlash && (res == '/')) {
-                    throw new CharConversionException("noSlash");
+                    throw new CharConversionException("Encoded slashes are not allowed by default.  To enable encoded" +
+                            "slashes, set the property " + ALLOW_ENCODED_SLASH_NAME + " to true.");
                 }
                 buff[idx] = (byte) res;
             }
