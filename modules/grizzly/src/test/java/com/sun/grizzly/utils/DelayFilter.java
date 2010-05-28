@@ -52,7 +52,7 @@ import com.sun.grizzly.filterchain.AbstractCodecFilter;
 public class DelayFilter extends AbstractCodecFilter {
     public DelayFilter(long decoderTimeoutMillis, long encoderTimeoutMillis) {
         super(new DelayTransformer(decoderTimeoutMillis),
-                new DelayTransformer(decoderTimeoutMillis));
+                new DelayTransformer(encoderTimeoutMillis));
     }
     
     private static class DelayTransformer extends AbstractTransformer {
