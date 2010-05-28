@@ -236,6 +236,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     public void associate() {
         if (!threadLock.isHeldByCurrentThread()) {
             threadLock.lock();
+            activeThread = Thread.currentThread();
         }
     }
 
@@ -245,8 +246,8 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     public void deassociate() {
         if (threadLock.isHeldByCurrentThread()) {
             threadLock.unlock();
+            activeThread = null;
         }
-        activeThread = null;
     }
 
     /**
@@ -325,7 +326,6 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
     @Override
     public void setIdleTimeoutDelay(long idleTimeoutDelay) {
         super.setIdleTimeoutDelay(idleTimeoutDelay);
-        activeThread = Thread.currentThread();
     }
 
 
