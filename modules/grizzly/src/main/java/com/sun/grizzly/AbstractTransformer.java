@@ -51,15 +51,14 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     protected AttributeBuilder attributeBuilder =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER;
 
-    protected Attribute<TransformationResult<K, L>> lastResultAttribute;
+    protected Attribute<LastResultAwareState> stateAttr;
 
     private MemoryManager memoryManager;
 
     public AbstractTransformer() {
         String namePrefix = getNamePrefix();
 
-        lastResultAttribute = attributeBuilder.createAttribute(namePrefix +
-                ".lastResult");
+        stateAttr = attributeBuilder.createAttribute(namePrefix + ".state");
     }
 
     protected String getNamePrefix() {
@@ -79,21 +78,25 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
     @Override
     public final TransformationResult<K, L> getLastResult(
             final AttributeStorage storage) {
-        return lastResultAttribute.get(storage);
+        final LastResultAwareState state = stateAttr.get(storage);
+        if (state != null) {
+            return state.getLastResult();
+        }
+
+        return null;
     }
 
     protected final TransformationResult<K, L> saveLastResult(
             final AttributeStorage storage,
             final TransformationResult<K, L> result) {
-        lastResultAttribute.set(storage, result);
+        obtainStateObject(storage).setLastResult(result);
         return result;
     }
 
     @Override
     public void release(AttributeStorage storage) {
-        lastResultAttribute.remove(storage);
+        stateAttr.remove(storage);
     }
-
 
     protected MemoryManager obtainMemoryManager(AttributeStorage storage) {
         if (memoryManager != null) {
@@ -125,5 +128,33 @@ public abstract class AbstractTransformer<K, L> implements Transformer<K, L> {
         }
 
         return defaultValue;
+    }
+
+    protected final LastResultAwareState obtainStateObject(
+            final AttributeStorage storage) {
+        
+        LastResultAwareState value = stateAttr.get(storage);
+        if (value == null) {
+            value = createStateObject();
+            stateAttr.set(storage, value);
+        }
+
+        return value;
+    }
+    
+    protected LastResultAwareState createStateObject() {
+        return new LastResultAwareState();
+    }
+
+    public static class LastResultAwareState {
+        private TransformationResult lastResult;
+
+        public TransformationResult getLastResult() {
+            return lastResult;
+        }
+
+        public void setLastResult(TransformationResult lastResult) {
+            this.lastResult = lastResult;
+        }
     }
 }

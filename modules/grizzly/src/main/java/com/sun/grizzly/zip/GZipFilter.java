@@ -40,21 +40,12 @@ package com.sun.grizzly.zip;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.attributes.Attribute;
+import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.filterchain.BaseFilter;
-import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.memory.BufferUtils;
-import com.sun.grizzly.memory.MemoryManager;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.zip.CRC32;
-import java.util.zip.DataFormatException;
-import java.util.zip.Deflater;
-import java.util.zip.Inflater;
 
 /**
  * This class implements a {@link Filter} which encodes/decodes data in
@@ -63,51 +54,12 @@ import java.util.zip.Inflater;
  * @author Alexey Stashok
  */
 public class GZipFilter extends BaseFilter {
-
-    private enum InputState {
-        INITIAL, FEXTRA1, FEXTRA2, FNAME, FCOMMENT, FHCRC, PAYLOAD, TRAILER, DONE
-    };
-
-    private static final int GZIP_MAGIC = 0x8b1f;
-
-    /*
-     * Trailer size in bytes.
-     *
-     */
-    private static final int TRAILER_SIZE = 8;
-
-    /*
-     * File header flags.
-     */
-    private final static int FTEXT	= 1;	// Extra text
-    private final static int FHCRC	= 2;	// Header CRC
-    private final static int FEXTRA	= 4;	// Extra field
-    private final static int FNAME	= 8;	// File name
-    private final static int FCOMMENT	= 16;	// File comment
-
-    private static final Buffer header;
-
-    static {
-        header = TransportFactory.getInstance().getDefaultMemoryManager().allocate(10);
-        header.put((byte) GZIP_MAGIC);                // Magic number (short)
-        header.put((byte) (GZIP_MAGIC >> 8));                // Magic number (short)
-        header.put((byte) Deflater.DEFLATED);         // Compression method (CM)
-        header.put((byte) 0);                         // Flags (FLG)
-        header.put((byte) 0);                         // Modification time MTIME (int)
-        header.put((byte) 0);                         // Modification time MTIME (int)
-        header.put((byte) 0);                         // Modification time MTIME (int)
-        header.put((byte) 0);                         // Modification time MTIME (int)
-        header.put((byte) 0);                         // Extra flags (XFLG)
-        header.put((byte) 0);                         // Operating system (OS)
-
-        header.flip();
-    }
-
     private final int inBufferSize;
     private final int outBufferSize;
 
-    private volatile Attribute<GZipConnectionState> gzipStateAttr;
-
+    private final GZipDecoder decoder;
+    private final GZipEncoder encoder;
+    
     /**
      * Construct <tt>GZipFilter</tt> using default buffer sizes.
      */
@@ -123,17 +75,8 @@ public class GZipFilter extends BaseFilter {
     public GZipFilter(int inBufferSize, int outBufferSize) {
         this.inBufferSize = inBufferSize;
         this.outBufferSize = outBufferSize;
-    }
-
-    /**
-     * Perform the Filter initialization.
-     * 
-     * @param filterChain {@link FilterChain}
-     */
-    @Override
-    public void onAdded(FilterChain filterChain) {
-        super.onAdded(filterChain);
-        gzipStateAttr = Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("GZipState");
+        this.decoder = new GZipDecoder(inBufferSize);
+        this.encoder = new GZipEncoder(outBufferSize);
     }
 
     /**
@@ -147,68 +90,59 @@ public class GZipFilter extends BaseFilter {
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        final GZipConnectionState state = gzipStateAttr.remove(connection);
-
-        if (state != null) {
-            if (state.isInputInitialized()) {
-                state.getInflater().end();
-                state.setInputInitialized(false);
-            }
-
-            if (state.isOutputInitialized()) {
-                state.getDeflater().end();
-                state.setOutputInitialized(false);
-            }
-        }
-
-        return ctx.getInvokeAction();
+        decoder.release(connection);
+        encoder.release(connection);
+        
+        return super.handleClose(ctx);
     }
 
     /**
      * Method decodes GZIP encoded data stored in {@link FilterChainContext#getMessage()} and,
      * as the result, produces a {@link Buffer} with a plain data.
      * @param ctx Context of {@link FilterChainContext} processing.
-     * 
+     *
      * @return the next action
      * @throws IOException
      */
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
-        final Buffer buffer = (Buffer) ctx.getMessage();
+        final Buffer input = (Buffer) ctx.getMessage();
+        final TransformationResult<Buffer, Buffer> result =
+                decoder.transform(connection, input);
 
-        final GZipConnectionState state = getState(connection);
+        final Buffer remainder = result.getExternalRemainder();
 
-        if (!state.isInputInitialized()) {
-            if (!initializeInput(buffer, state)) {
-                return ctx.getStopAction(buffer);
+        if (remainder == null) {
+            input.tryDispose();
+        } else {
+            input.disposeUnused();
+        }
+
+        try {
+            switch (result.getStatus()) {
+                case COMPLETED: {
+                    ctx.setMessage(result.getMessage());
+                    return ctx.getInvokeAction(remainder);
+                }
+
+                case INCOMPLETED: {
+                    return ctx.getStopAction(remainder);
+                }
+
+                case ERROR: {
+                    throw new IllegalStateException("GZip decode error. Code: "
+                            + result.getErrorCode() + " Description: "
+                            + result.getErrorDescription());
+                }
+
+                default:
+                    throw new IllegalStateException("Unexpected status: " +
+                            result.getStatus());
             }
+        } finally {
+            result.recycle();
         }
-
-        Buffer decodedBuffer = null;
-        
-        if (state.getInputState() == InputState.PAYLOAD) {
-            if (buffer.hasRemaining()) {
-                decodedBuffer = decodeBuffer(memoryManager, buffer, state);
-            }
-        }
-
-        if (state.getInputState() == InputState.TRAILER && buffer.hasRemaining()) {
-            if (decodeTrailer(buffer, state)) {
-                state.setInputState(InputState.DONE);
-                state.setInputInitialized(false);
-            }
-        }
-
-        final boolean hasRemainder = buffer.hasRemaining();
-
-        if (decodedBuffer == null || !decodedBuffer.hasRemaining()) {
-            return ctx.getStopAction(hasRemainder ? buffer : null);
-        }
-
-        ctx.setMessage(decodedBuffer);
-        return ctx.getInvokeAction(hasRemainder ? buffer : null);
     }
 
     /**
@@ -222,530 +156,43 @@ public class GZipFilter extends BaseFilter {
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
         final Connection connection = ctx.getConnection();
-        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
-        final Buffer buffer = (Buffer) ctx.getMessage();
-        final GZipConnectionState state = getState(connection);
+        final Buffer input = (Buffer) ctx.getMessage();
+        final TransformationResult<Buffer, Buffer> result =
+                encoder.transform(connection, input);
 
-        Buffer headerToWrite = null;
-        if (!state.isOutputInitialized()) {
-            headerToWrite = initializeOutput(state);
-        }
-
-        Buffer encodedBuffer = null;
-        if (buffer != null && buffer.hasRemaining()) {
-            encodedBuffer = encodeBuffer(buffer, state, memoryManager);
-            buffer.tryDispose();
-            encodedBuffer = BufferUtils.appendBuffers(memoryManager,
-                    encodedBuffer, finishOutput(memoryManager, state));
-        }
-
-        if (headerToWrite == null && encodedBuffer == null) {
-            return ctx.getStopAction();
-        }
-
-        encodedBuffer = BufferUtils.appendBuffers(memoryManager,
-                headerToWrite, encodedBuffer);
-
-        ctx.setMessage(encodedBuffer);
-        return ctx.getInvokeAction();
-    }
-    
-    private boolean initializeInput(final Buffer buffer,
-            final GZipConnectionState state) {
+        input.dispose();
         
-        Inflater inflater = state.getInflater();
-        if (inflater == null) {
-            inflater = new Inflater(true);
-            final CRC32 crc32 = new CRC32();
-            crc32.reset();
-            state.setInflater(inflater);
-            state.setInCrc32(crc32);
-        } else if (state.getInputState() == InputState.DONE) {
-            state.setInputState(InputState.INITIAL);
-            inflater.reset();
-            state.getInCrc32().reset();
-        }
-        if (!parseHeader(buffer, state)) {
-            return false;
-        }
-        
-        state.getInCrc32().reset();
-        state.setInputInitialized(true);
-        
-        return true;
-    }
+        try {
+            switch (result.getStatus()) {
+                case COMPLETED:
+                case INCOMPLETED: {
+                    final Buffer readyBuffer = result.getMessage();
+                    final Buffer finishBuffer = encoder.finish(connection);
 
-    private Buffer decodeBuffer(MemoryManager memoryManager, Buffer buffer,
-            GZipConnectionState state) {
-        
-        final Inflater inflater = state.getInflater();
-        final CRC32 inCrc32 = state.getInCrc32();
-        
-        final ByteBuffer[] byteBuffers = buffer.toByteBufferArray();
+                    final Buffer resultBuffer = BufferUtils.appendBuffers(
+                            connection.getTransport().getMemoryManager(),
+                            readyBuffer, finishBuffer);
 
-        Buffer resultBuffer = null;
-        
-        for (ByteBuffer byteBuffer : byteBuffers) {
-            final byte[] array = byteBuffer.array();
-            final int offset = byteBuffer.arrayOffset() + byteBuffer.position();
-
-            inflater.setInput(array, offset, byteBuffer.remaining());
-
-            int lastInflated = 0;
-            do {
-                final Buffer decodedBuffer = memoryManager.allocate(inBufferSize);
-                final ByteBuffer decodedBB = decodedBuffer.toByteBuffer();
-                final byte[] decodedArray = decodedBB.array();
-                final int decodedArrayOffs = decodedBB.arrayOffset();
-                
-                try {
-                    lastInflated = inflater.inflate(decodedArray, decodedArrayOffs, inBufferSize);
-                } catch (DataFormatException e) {
-                    decodedBuffer.dispose();
-                    String s = e.getMessage();
-                    throw new IllegalStateException(s != null ? s : "Invalid ZLIB data format");
-                }
-
-                if (lastInflated > 0) {
-                    inCrc32.update(decodedArray, decodedArrayOffs, lastInflated);
-                    decodedBuffer.position(lastInflated);
-                    decodedBuffer.trim();
-                    resultBuffer = BufferUtils.appendBuffers(memoryManager,
-                            resultBuffer, decodedBuffer);
-                } else {
-                    decodedBuffer.dispose();
-                    if (inflater.finished() || inflater.needsDictionary()) {
-                        final int remainder = inflater.getRemaining();
-                        buffer.position(
-                                buffer.position() + byteBuffer.remaining() - remainder);
-                        
-                        state.setInputState(InputState.TRAILER);
-                        return resultBuffer;
+                    if (resultBuffer != null) {
+                        ctx.setMessage(resultBuffer);
+                        return ctx.getInvokeAction();
+                    } else {
+                        return ctx.getStopAction();
                     }
                 }
-            } while (lastInflated > 0);
 
-            buffer.position(buffer.position() + byteBuffer.remaining());
-        }
-
-        return resultBuffer;
-    }
-
-    /*
-     * Reads GZIP member trailer.
-     */
-    private boolean decodeTrailer(Buffer buffer, GZipConnectionState state)
-            throws IOException {
-
-        if (buffer.remaining() < 8) {
-            return false;
-        }
-
-        final Inflater inflater = state.getInflater();
-        final CRC32 crc32 = state.getInCrc32();
-	// Uses left-to-right evaluation order
-        final long inCrc32Value = crc32.getValue();
-	if ((getUInt(buffer, crc32) != inCrc32Value) ||
-	    // rfc1952; ISIZE is the input size modulo 2^32
-	    (getUInt(buffer, crc32) != (inflater.getBytesWritten() & 0xffffffffL)))
-	    throw new IOException("Corrupt GZIP trailer");
-
-        return true;
-    }
-
-    private Buffer initializeOutput(final GZipConnectionState state) {        
-        final Deflater deflater = new Deflater(Deflater.DEFAULT_COMPRESSION, true);
-        final CRC32 crc32 = new CRC32();
-        crc32.reset();
-        state.setDeflater(deflater);
-        state.setOutCrc32(crc32);
-        state.setOutputInitialized(true);
-        final Buffer headerToWrite = header.duplicate();
-        headerToWrite.allowBufferDispose(false);
-        return headerToWrite;
-    }
-
-    /**
-     * Finishes to compress data to the output stream without closing
-     * the underlying stream. Use this method when applying multiple filters
-     * in succession to the same output stream.
-     *
-     * @return {@link Buffer} with the last GZIP data to be sent.
-     */
-    private Buffer finishOutput(MemoryManager memoryManager,
-            GZipConnectionState state) {
-        
-        Buffer resultBuffer = null;
-        
-        if (state.isOutputInitialized()) {
-            final Deflater deflater = state.getDeflater();
-            if (!deflater.finished()) {
-                deflater.finish();
-
-                while (!deflater.finished()) {
-                    resultBuffer = BufferUtils.appendBuffers(memoryManager,
-                            resultBuffer,
-                            deflate(deflater, memoryManager));
+                case ERROR: {
+                    throw new IllegalStateException("GZip decode error. Code: "
+                            + result.getErrorCode() + " Description: "
+                            + result.getErrorDescription());
                 }
-                
-                // Put GZIP member trailer
-                final Buffer trailer = memoryManager.allocate(TRAILER_SIZE);
-                final CRC32 crc32 = state.getOutCrc32();
-                putUInt(trailer, (int) crc32.getValue());
-                putUInt(trailer, deflater.getTotalIn());
-                trailer.flip();
 
-                resultBuffer = BufferUtils.appendBuffers(memoryManager,
-                        resultBuffer, trailer);
+                default:
+                    throw new IllegalStateException("Unexpected status: " +
+                            result.getStatus());
             }
-
-            state.setOutputInitialized(false);
+        } finally {
+            result.recycle();
         }
-
-        return resultBuffer;
-    }
-
-    private Buffer encodeBuffer(Buffer buffer,
-            GZipConnectionState state, MemoryManager memoryManager) {
-        final CRC32 crc32 = state.getOutCrc32();
-        final Deflater deflater = state.getDeflater();
-        
-	if (deflater.finished()) {
-	    throw new IllegalStateException("write beyond end of stream");
-	}
-
-        // Deflate no more than stride bytes at a time.  This avoids
-        // excess copying in deflateBytes (see Deflater.c)
-        int stride = outBufferSize;
-        Buffer resultBuffer = null;
-        
-        final ByteBuffer[] buffers = buffer.toByteBufferArray();
-
-        for (ByteBuffer byteBuffer : buffers) {
-            final int len = byteBuffer.remaining();
-            if (len > 0) {
-                final byte[] buf = byteBuffer.array();
-                final int off = byteBuffer.arrayOffset() + byteBuffer.position();
-
-                for (int i = 0; i < len; i += stride) {
-                    deflater.setInput(buf, off + i, Math.min(stride, len - i));
-                    while (!deflater.needsInput()) {
-                        final Buffer deflated = deflate(deflater, memoryManager);
-                        if (deflated != null) {
-                            resultBuffer = BufferUtils.appendBuffers(
-                                    memoryManager, resultBuffer, deflated);
-                        }
-                    }
-                }
-
-                crc32.update(buf, off, len);
-            }
-        }
-
-        return resultBuffer;
-    }
-
-    /**
-     * Writes next block of compressed data to the output stream.
-     * @throws IOException if an I/O error has occurred
-     */
-    protected Buffer deflate(Deflater deflater, MemoryManager memoryManager) {
-        final Buffer buffer = memoryManager.allocate(outBufferSize);
-        final ByteBuffer byteBuffer = buffer.toByteBuffer();
-        final byte[] array = byteBuffer.array();
-        final int offset = byteBuffer.arrayOffset();
-        
-	int len = deflater.deflate(array, offset, outBufferSize);
-        if (len <= 0) {
-            buffer.dispose();
-            return null;
-        }
-        
-        buffer.position(len);
-        buffer.trim();
-
-        return buffer;
-    }
-
-    private GZipConnectionState getState(final Connection connection) {
-        GZipConnectionState state = gzipStateAttr.get(connection);
-        if (state == null) {
-            synchronized(connection) {  // gzipStateAttr uses volatile field
-                state = gzipStateAttr.get(connection);
-                if (state == null) {
-                    state = new GZipConnectionState();
-                    gzipStateAttr.set(connection, state);
-                }
-            }
-        }
-
-        return state;
-    }
-
-    /*
-     * Reads GZIP member header.
-     */
-    private boolean parseHeader(Buffer buffer, GZipConnectionState state) {
-
-        final CRC32 crc32 = state.getInCrc32();
-        
-        InputState headerParseState;
-        while((headerParseState = state.getInputState()) != InputState.PAYLOAD) {
-            
-            switch (headerParseState) {
-                case INITIAL: {
-                    if (buffer.remaining() < 10) {
-                        return false;
-                    }
-
-                    // Check header magic
-                    if (getUShort(buffer, crc32) != GZIP_MAGIC) {
-                        throw new IllegalStateException("Not in GZIP format");
-                    }
-
-                    // Check compression method
-                    if (getUByte(buffer, crc32) != 8) {
-                        throw new IllegalStateException("Unsupported compression method");
-                    }
-                    // Read flags
-                    final int flg = getUByte(buffer, crc32);
-                    state.setHeaderFlag(flg);
-
-                    // Skip MTIME, XFL, and OS fields
-                    skipBytes(buffer, 6, crc32);
-
-                    state.setInputState(InputState.FEXTRA1);
-                }
-
-        	// Skip optional extra field
-                case FEXTRA1: {
-                    if ((state.getHeaderFlag() & FEXTRA) != FEXTRA) {
-                        state.setInputState(InputState.FNAME);
-                        break;
-                    }
-                    
-                    if (buffer.remaining() < 2) {
-                        return false;
-                    }
-
-                    state.setHeaderParseStateValue(getUShort(buffer, crc32));
-                    state.setInputState(InputState.FEXTRA2);
-                }
-
-                case FEXTRA2: {
-                    final int fextraSize = state.getHeaderParseStateValue();
-                    if (buffer.remaining() < fextraSize) {
-                        return false;
-                    }
-
-                    skipBytes(buffer, fextraSize, crc32);
-                    state.setHeaderParseStateValue(0);
-                    state.setInputState(InputState.FNAME);
-                }
-
-        	// Skip optional file name
-                case FNAME: {
-                    if ((state.getHeaderFlag() & FNAME) == FNAME) {
-                        boolean found = false;
-                        while (buffer.hasRemaining()) {
-                            if (getUByte(buffer, crc32) == 0) {
-                                found = true;
-                                break;
-                            }
-                        }
-
-                        if (!found) return false;
-                    }
-
-                    state.setInputState(InputState.FCOMMENT);
-                }
-
-        	// Skip optional file comment
-                case FCOMMENT: {
-                    if ((state.getHeaderFlag() & FCOMMENT) == FCOMMENT) {
-                        boolean found = false;
-                        while (buffer.hasRemaining()) {
-                            if (getUByte(buffer, crc32) == 0) {
-                                found = true;
-                                break;
-                            }
-                        }
-
-                        if (!found) return false;
-                    }
-                    
-                    state.setInputState(InputState.FHCRC);
-                }
-
-        	// Check optional header CRC
-                case FHCRC: {
-                    if ((state.getHeaderFlag() & FHCRC) == FHCRC) {
-                        if (buffer.remaining() < 2) {
-                            return false;
-                        }
-
-                        final int myCrc = (int) state.getInCrc32().getValue() & 0xffff;
-                        final int passedCrc = getUShort(buffer, crc32);
-
-                        if (myCrc != passedCrc) {
-                            throw new IllegalStateException("Corrupt GZIP header");
-                        }
-                    }
-
-                    state.setInputState(InputState.PAYLOAD);
-                }
-            }
-        }
-
-        return true;
-    }
-
-    private static long getUInt(Buffer buffer, CRC32 crc32) {
-        final int short1 = getUShort(buffer, crc32);
-        final int short2 = getUShort(buffer, crc32);
-        final long intValue = (((long) short2 << 16) | short1);
-        return intValue;
-    }
-
-    private static int getUShort(Buffer buffer, CRC32 crc32) {
-        final int b1 = getUByte(buffer, crc32);
-        final int b2 = getUByte(buffer, crc32);
-
-        final int shortValue = (b2 << 8) | b1;
-        return shortValue;
-    }
-    
-    private static int getUByte(Buffer buffer, CRC32 crc32) {
-	final byte b = buffer.get();
-        crc32.update(b);
-        
-	return b & 0xff;
-    }
-
-    /*
-     * Writes integer in Intel byte order to a byte array, starting at a
-     * given offset.
-     */
-    private static void putUInt(Buffer buffer, int value) {
-        putUShort(buffer, value & 0xffff);
-        putUShort(buffer, (value >> 16) & 0xffff);
-    }
-
-    /*
-     * Writes short integer in Intel byte order to a byte array, starting
-     * at a given offset
-     */
-    private static void putUShort(Buffer buffer, int value) {
-        buffer.put((byte) (value & 0xff));
-        buffer.put((byte) ((value >> 8) & 0xff));
-    }
-
-    private static void skipBytes(Buffer buffer, int num, CRC32 crc32) {
-        for (int i=0; i<num; i++) {
-            getUByte(buffer, crc32);
-        }
-    }
-
-    private static final class GZipConnectionState {
-        private boolean isInputInitialized;
-        private boolean isOutputInitialized;
-
-        /**
-         * CRC-32 of uncompressed data.
-         */
-        private CRC32 outCrc32;
-
-        /**
-         * Compressor for this stream.
-         */
-        private Deflater deflater;
-        
-        /**
-         * CRC-32 of uncompressed data.
-         */
-        private CRC32 inCrc32;
-
-        /**
-         * Decompressor for this stream.
-         */
-        private Inflater inflater;
-
-        private InputState headerParseState = InputState.INITIAL;
-
-        private int headerFlag;
-        
-        private int headerParseStateValue;
-        
-        public boolean isInputInitialized() {
-            return isInputInitialized;
-        }
-
-        public void setInputInitialized(boolean isInputInitialized) {
-            this.isInputInitialized = isInputInitialized;
-        }
-
-        public boolean isOutputInitialized() {
-            return isOutputInitialized;
-        }
-
-        public void setOutputInitialized(boolean isOutputInitialized) {
-            this.isOutputInitialized = isOutputInitialized;
-        }
-
-        public Deflater getDeflater() {
-            return deflater;
-        }
-
-        public void setDeflater(Deflater deflater) {
-            this.deflater = deflater;
-        }
-
-        public CRC32 getOutCrc32() {
-            return outCrc32;
-        }
-
-        public void setOutCrc32(CRC32 outCrc32) {
-            this.outCrc32 = outCrc32;
-        }
-
-        public Inflater getInflater() {
-            return inflater;
-        }
-
-        public void setInflater(Inflater inflater) {
-            this.inflater = inflater;
-        }
-
-        public CRC32 getInCrc32() {
-            return inCrc32;
-        }
-
-        public void setInCrc32(CRC32 inCrc32) {
-            this.inCrc32 = inCrc32;
-        }
-
-        public InputState getInputState() {
-            return headerParseState;
-        }
-
-        public void setInputState(InputState headerParseState) {
-            this.headerParseState = headerParseState;
-        }
-
-        public int getHeaderFlag() {
-            return headerFlag;
-        }
-
-        public void setHeaderFlag(int headerFlag) {
-            this.headerFlag = headerFlag;
-        }
-        
-        public int getHeaderParseStateValue() {
-            return headerParseStateValue;
-        }
-
-        public void setHeaderParseStateValue(int headerParseStateValue) {
-            this.headerParseStateValue = headerParseStateValue;
-        }
-    }
+    }    
 }

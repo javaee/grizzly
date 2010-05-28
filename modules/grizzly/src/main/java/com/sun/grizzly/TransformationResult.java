@@ -43,23 +43,41 @@ package com.sun.grizzly;
  * 
  * @author Alexey Stashok
  */
-public class TransformationResult<I, O> {
+public class TransformationResult<I, O> implements Cacheable {
+    private static final ThreadCache.CachedTypeIndex<TransformationResult> CACHE_IDX =
+            ThreadCache.obtainIndex(TransformationResult.class, 2);
 
     public static <I, O> TransformationResult<I, O> createErrorResult(
             int errorCode, String errorDescription) {
-        return new TransformationResult<I, O>(errorCode, errorDescription);
+        return create(Status.ERROR, null, null, errorCode, errorDescription);
     }
 
     public static <I, O> TransformationResult<I, O> createCompletedResult(
             O message, I externalRemainder) {
-        return new TransformationResult<I, O>(Status.COMPLETED, message,
-                externalRemainder);
+        return create(Status.COMPLETED, message, externalRemainder, 0, null);
     }
 
     public static <I, O> TransformationResult<I, O> createIncompletedResult(
             I externalRemainder) {
-        return new TransformationResult<I, O>(Status.INCOMPLETED, null,
-                externalRemainder);
+        return create(Status.INCOMPLETED, null, externalRemainder, 0, null);
+    }
+
+    private static final <I, O> TransformationResult<I, O> create(Status status,
+            O message, I externalRemainder, int errorCode, String errorDescription) {
+        
+        final TransformationResult result = ThreadCache.takeFromCache(CACHE_IDX);
+        if (result != null) {
+            result.setStatus(status);
+            result.setMessage(message);
+            result.setExternalRemainder(externalRemainder);
+            result.setErrorCode(errorCode);
+            result.setErrorDescription(errorDescription);
+            
+            return result;
+        }
+
+        return new TransformationResult(status, message, externalRemainder,
+                errorCode, errorDescription);
     }
 
     public enum Status {
@@ -92,6 +110,16 @@ public class TransformationResult<I, O> {
      */
     public TransformationResult(int errorCode, String errorDescription) {
         this.status = Status.ERROR;
+        this.errorCode = errorCode;
+        this.errorDescription = errorDescription;
+    }
+
+    protected TransformationResult(Status status, O message, I externalRemainder,
+            int errorCode, String errorDescription) {
+        this.status = status;
+        this.message = message;
+        this.externalRemainder = externalRemainder;
+
         this.errorCode = errorCode;
         this.errorDescription = errorDescription;
     }
@@ -148,5 +176,28 @@ public class TransformationResult<I, O> {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * If implementation uses {@link ObjectPool} to store and reuse
+     * {@link TransformationResult} instances - this method will be called before
+     * {@link TransformationResult} will be offered to pool.
+     */
+    public void reset() {
+        message = null;
+        status = null;
+
+        errorCode = 0;
+        errorDescription = null;
+        externalRemainder = null;
+    }
+
+    /**
+     * Recycle this {@link Context}
+     */
+    @Override
+    public void recycle() {
+        reset();
+        ThreadCache.putToCache(CACHE_IDX, this);
     }
 }
