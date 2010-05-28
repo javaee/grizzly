@@ -366,9 +366,17 @@ public class SSLSelectorThread extends SelectorThread
             }       
             sslEngine.setUseClientMode(isClientMode()); 
         }
-        sslEngine.setWantClientAuth(isWantClientAuth());     
         sslEngine.getSession().removeValue(String.valueOf(key.hashCode()));
-        sslEngine.setNeedClientAuth(isNeedClientAuth());
+
+        // Carefully set need/want flags, because according to the SSLEngine javadoc, they reset each other.
+        if (isNeedClientAuth()) {
+            sslEngine.setNeedClientAuth(true);
+        } else if (isWantClientAuth()) {
+            sslEngine.setWantClientAuth(true);
+        } else {
+            sslEngine.setNeedClientAuth(false);
+        }
+
         ((SSLReadTask)task).setSSLEngine(sslEngine);           
         return task;
     }           
