@@ -112,7 +112,7 @@ public class ContentEncodingTest extends TestCase {
     }
 
     // Enable, after implementing LZMA
-    public void _testLzma() throws IOException {
+    public void testLzma() throws IOException {
         DataInputStream is = null;
 
         URL url = new URL("http://localhost:".concat(String.valueOf(PORT)).concat("/hello"));
