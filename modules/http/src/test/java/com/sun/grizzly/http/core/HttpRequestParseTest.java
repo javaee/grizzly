@@ -227,7 +227,7 @@ public class HttpRequestParseTest extends TestCase {
             assertTrue("Write timeout", writeFuture.isDone());
             assertEquals(message.length, (int) writeFuture.get());
 
-            assertTrue(parseResult.get(10000, TimeUnit.SECONDS));
+            assertTrue(parseResult.get(10, TimeUnit.SECONDS));
         } finally {
             if (connection != null) {
                 connection.close();
