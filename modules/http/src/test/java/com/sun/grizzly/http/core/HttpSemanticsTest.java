@@ -72,7 +72,7 @@ import java.util.logging.Logger;
  */
 public class HttpSemanticsTest extends TestCase {
 
-    public static final int PORT = 8003;
+    public static final int PORT = 8004;
     private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
 
