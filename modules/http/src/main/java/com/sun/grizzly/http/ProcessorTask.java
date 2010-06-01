@@ -65,6 +65,7 @@ import com.sun.grizzly.tcp.RequestInfo;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.Response.ResponseAttachment;
 import com.sun.grizzly.tcp.SuspendResponseUtils;
+import com.sun.grizzly.tcp.http11.FilterFactory;
 import com.sun.grizzly.tcp.http11.InputFilter;
 import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.OutputFilter;
@@ -1669,11 +1670,11 @@ public class ProcessorTask extends TaskBase implements Processor,
         inputBuffer.addFilter(new BufferedInputFilter());
 
         // Add compression filters to filter library
-        final Collection<OutputFilter> compressionOutputFilters =
-                CompressionFiltersProvider.provider().getOutputFilters();
+        final Collection<FilterFactory> compressionFilterFactories =
+                CompressionFiltersProvider.provider().getFilters();
 
-        for(OutputFilter compressionFilter : compressionOutputFilters) {
-            outputBuffer.addFilter(compressionFilter);
+        for(FilterFactory compressionFilterFactory : compressionFilterFactories) {
+            outputBuffer.addFilter(compressionFilterFactory.createOutputFilter());
         }
     }
 
@@ -2285,7 +2286,7 @@ public class ProcessorTask extends TaskBase implements Processor,
         OutputFilter compressionOutputFilter;
 
         if (acceptEncodingMB == null
-            || (compressionOutputFilter = compressionFiltersProvider.getOutputFilter(acceptEncodingMB)) == null)
+            || (compressionOutputFilter = lookupCompressionFilter(acceptEncodingMB)) == null)
             return null;
 
         // Check if content is not already gzipped
@@ -2293,7 +2294,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             response.getMimeHeaders().getValue("Content-Encoding");
 
         if (contentEncodingMB != null
-            && !compressionOutputFilter.equals(compressionFiltersProvider.getOutputFilter(contentEncodingMB)))
+            && !compressionOutputFilter.equals(lookupCompressionFilter(contentEncodingMB)))
             return null;
 
         // If force mode, always compress (test purposes only)
@@ -2325,7 +2326,18 @@ public class ProcessorTask extends TaskBase implements Processor,
 	return null;
     }
 
+    protected OutputFilter lookupCompressionFilter(MessageBytes encoding) {
+        final OutputFilter[] filters = outputBuffer.getFilters();
+        for (int i = filters.length - 1; i >= 0; i--) {
+            final OutputFilter filter = filters[i];
+            if (filter.getEncodingName().equalsIgnoreCase(encoding.toString())) {
+                return filter;
+            }
+        }
 
+        return null;
+    }
+    
     public int getCompressionMinSize() {
         return compressionMinSize;
     }

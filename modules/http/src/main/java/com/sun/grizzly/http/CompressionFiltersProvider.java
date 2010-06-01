@@ -37,6 +37,8 @@
  */
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.tcp.http11.FilterFactory;
+import com.sun.grizzly.tcp.http11.InputFilter;
 import com.sun.grizzly.tcp.http11.OutputFilter;
 import com.sun.grizzly.tcp.http11.filters.GzipOutputFilter;
 import com.sun.grizzly.tcp.http11.filters.LzmaOutputFilter;
@@ -57,23 +59,52 @@ public class CompressionFiltersProvider {
     private final static CompressionFiltersProvider instance =
             new CompressionFiltersProvider();
     // Compression output filters map (sorted)
-    private final TreeMap<Key, OutputFilter> outputFilters;
+    private final TreeMap<Key, FilterFactory> filterFactories;
     // Id counter for filter map keys
     private final AtomicInteger counter = new AtomicInteger();
 
     private CompressionFiltersProvider() {
-        outputFilters = new TreeMap(new Comparator<Key>() {
+        filterFactories = new TreeMap(new Comparator<Key>() {
 
             public int compare(Key key1, Key key2) {
                 return key1.id - key2.id;
             }
         });
 
-        final GzipOutputFilter gzipOutputFilter = new GzipOutputFilter();
-        outputFilters.put(new Key(counter.getAndIncrement(), "gzip"), gzipOutputFilter);
-        outputFilters.put(new Key(counter.getAndIncrement(), "deflate"), gzipOutputFilter);
-        
-        registerOutputFilter(new LzmaOutputFilter());
+        final FilterFactory lzmaFilterFactory = new FilterFactory() {
+            public String getEncodingName() {
+                return "lzma";
+            }
+
+            public OutputFilter createOutputFilter() {
+                return new LzmaOutputFilter();
+            }
+
+            public InputFilter createInputFilter() {
+                return null;
+            }
+        };
+
+        registerOutputFilter(lzmaFilterFactory);
+
+
+        final FilterFactory gzipFilterFactory = new FilterFactory() {
+            public String getEncodingName() {
+                return "gzip";
+            }
+
+            public OutputFilter createOutputFilter() {
+                return new GzipOutputFilter();
+            }
+
+            public InputFilter createInputFilter() {
+                return null;
+            }
+        };
+
+
+        filterFactories.put(new Key(counter.getAndIncrement(), "deflate"), gzipFilterFactory);        
+        filterFactories.put(new Key(counter.getAndIncrement(), "gzip"), gzipFilterFactory);
     }
 
     /**
@@ -86,24 +117,24 @@ public class CompressionFiltersProvider {
     }
 
     /**
-     * Register compression {@link OutputFilter}.
+     * Register compression {@link FilterFactory}.
      * 
-     * @param outputFilter {@link OutputFilter}.
+     * @param filterFactory {@link FilterFactory}.
      */
-    public void registerOutputFilter(OutputFilter outputFilter) {
-        outputFilters.put(
+    public void registerOutputFilter(FilterFactory filterFactory) {
+        filterFactories.put(
                 new Key(counter.getAndIncrement(),
-                outputFilter.getEncodingName().toString()),
-                outputFilter);
+                filterFactory.getEncodingName()),
+                filterFactory);
     }
 
     /**
-     * Get collection of registered compression {@link OutputFilter}s.
+     * Get collection of registered compression {@link FilterFactory}s.
      * 
-     * @return collection of registered compression {@link OutputFilter}s.
+     * @return collection of registered compression {@link FilterFactory}s.
      */
-    public Collection<OutputFilter> getOutputFilters() {
-        return outputFilters.values();
+    public Collection<FilterFactory> getFilters() {
+        return filterFactories.values();
     }
 
     /**
@@ -118,7 +149,7 @@ public class CompressionFiltersProvider {
      * by any registered filter.
      */
     public boolean supportsOutput(String encoding) {
-        return getOutputFilter(encoding) != null;
+        return getFilterFactory(encoding) != null;
     }
 
     /**
@@ -137,16 +168,16 @@ public class CompressionFiltersProvider {
     }
 
     /**
-     * Get {@link OutputFilter}, which supports passed encoding,
-     * or <tt>null</tt>, if encoding is not supported by any registered filter.
+     * Get {@link FilterFactory}, which supports passed encoding,
+     * or <tt>null</tt>, if encoding is not supported by any registered filter factory.
      *
      * @param encoding
      *
-     * @return {@link OutputFilter}, which supports passed encoding,
-     * or <tt>null</tt>, if encoding is not supported by any registered filter.
+     * @return {@link FilterFactory}, which supports passed encoding,
+     * or <tt>null</tt>, if encoding is not supported by any registered filter factory.
      */
-    public OutputFilter getOutputFilter(String encoding) {
-        for (Entry<Key, OutputFilter> entry : outputFilters.entrySet()) {
+    public FilterFactory getFilterFactory(String encoding) {
+        for (Entry<Key, FilterFactory> entry : filterFactories.entrySet()) {
             if (encoding.indexOf(entry.getKey().encoding) != -1) {
                 return entry.getValue();
             }
@@ -156,16 +187,16 @@ public class CompressionFiltersProvider {
     }
 
     /**
-     * Get {@link OutputFilter}, which supports passed encoding,
-     * or <tt>null</tt>, if encoding is not supported by any registered filter.
+     * Get {@link FilterFactory}, which supports passed encoding,
+     * or <tt>null</tt>, if encoding is not supported by any registered filter factory.
      *
      * @param encoding
      *
-     * @return {@link OutputFilter}, which supports passed encoding,
-     * or <tt>null</tt>, if encoding is not supported by any registered filter.
+     * @return {@link FilterFactory}, which supports passed encoding,
+     * or <tt>null</tt>, if encoding is not supported by any registered filter factory.
      */
-    public OutputFilter getOutputFilter(MessageBytes encoding) {
-        for (Entry<Key, OutputFilter> entry : outputFilters.entrySet()) {
+    public FilterFactory getOutputFilter(MessageBytes encoding) {
+        for (Entry<Key, FilterFactory> entry : filterFactories.entrySet()) {
             if (encoding.indexOf(entry.getKey().encoding) != -1) {
                 return entry.getValue();
             }
