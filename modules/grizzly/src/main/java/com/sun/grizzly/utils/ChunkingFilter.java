@@ -50,14 +50,24 @@ import java.util.logging.Logger;
 
 
 /**
- *
- * @author oleksiys
+ * The Filter is responsible to break the incoming/outgoing data into chunks and
+ * pass them down/up by the {@link FilterChain}.
+ * This Filter could be useful for testing reasons to check if all Filters in
+ * the {@link FilterChain} work properly with chunked data.
+ * 
+ * @author Alexey Stashok
  */
 public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private static final Logger logger = Grizzly.logger(ChunkingFilter.class);
 
     private final int chunkSize;
 
+    /**
+     * Construct a <tt>ChunkFilter</tt>, which will break incoming/outgoing data
+     * into chunks of the specified size.
+     *
+     * @param chunkSize the chunk size.
+     */
     public ChunkingFilter(int chunkSize) {
         super(new ChunkingDecoder(chunkSize),
                 new ChunkingEncoder(chunkSize));
