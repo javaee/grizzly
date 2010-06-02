@@ -233,7 +233,7 @@ public final class UDecoder {
      * URLDecode, will modify the source
      */
     public void convert(MessageBytes mb, boolean query) throws IOException{
-        convert(mb,query,ALLOW_ENCODED_SLASH);
+        convert(mb,query,allowEncodedSlash);
     }
 
     /** URLDecode, will modify the source
