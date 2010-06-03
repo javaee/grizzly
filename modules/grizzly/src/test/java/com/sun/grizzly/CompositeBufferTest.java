@@ -35,6 +35,7 @@
  */
 package com.sun.grizzly;
 
+import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
 import com.sun.grizzly.memory.DefaultMemoryManager;
@@ -411,6 +412,25 @@ public class CompositeBufferTest extends GrizzlyTestCase {
     public void testBuffers() {
         doTestBuffers(CompositeBufferType.BUFFERS);
         doTestBuffers(CompositeBufferType.BYTE_BUFFERS);
+    }
+
+    public void testEmptyBufferPrepend() {
+        MemoryManager manager = new DefaultMemoryManager();
+
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+
+            Buffer buffer1 = MemoryUtils.wrap(manager, "1234");
+            buffer1.position(3);
+
+            Buffer buffer2 = manager.allocate(0);
+
+            CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffer1);
+            assertEquals('4', compositeBuffer.get(0));
+
+            Buffer resultBuffer = BufferUtils.appendBuffers(manager, buffer2, compositeBuffer);
+
+            assertEquals(resultBuffer.toStringContent(), "4");
+        }
     }
 
     private void doTestBuffers(CompositeBufferType type) {

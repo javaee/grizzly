@@ -187,7 +187,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         buffers[buffersSize++] = buffer;
         capacity += buffer.remaining();
         limit = capacity;
-        
+
+        resetLastLocation();
+
         return this;
     }
 
@@ -202,6 +204,9 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         buffersSize++;
         capacity += buffer.remaining();
         limit = capacity;
+
+        resetLastLocation();
+
         return this;
     }
 
