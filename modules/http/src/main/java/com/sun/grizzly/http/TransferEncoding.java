@@ -43,9 +43,12 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.ThreadCache;
 
 /**
- * Class, responsible for parsing and serializing
+ * Abstraction, which represents HTTP transfer-encoding.
  * The implementation should take care about possible HTTP content fragmentation.
  *
+ * @see FixedLengthTransferEncoding
+ * @see ChunkedTransferEncoding
+ * 
  * @author Alexey Stashok
  */
 public interface TransferEncoding {
