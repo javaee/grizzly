@@ -90,6 +90,12 @@ public class Constants {
 
 
     /**
+     * COMMA.
+     */
+    public static final byte COMMA = (byte) ',';
+
+
+    /**
      * COLON.
      */
     public static final byte COLON = (byte) ':';
@@ -182,37 +188,6 @@ public class Constants {
         (byte) 'v',
         (byte) 'e'
     };
-
-
-    /**
-     * Identity filters (input and output).
-     */
-    public static final int IDENTITY_FILTER = 0;
-
-
-    /**
-     * Chunked filters (input and output).
-     */
-    public static final int CHUNKED_FILTER = 1;
-
-
-    /**
-     * Void filters (input and output).
-     */
-    public static final int VOID_FILTER = 2;
-
-
-    /**
-     * GZIP filter (output).
-     */
-    public static final int GZIP_FILTER = 3;
-
-
-    /**
-     * Buffered filter (input)
-     */
-    public static final int BUFFERED_FILTER = 3;
-
 
     /**
      * HTTP/1.0.
@@ -338,6 +313,8 @@ public class Constants {
     public final static byte[] CHUNKED_ENCODING_BYTES = CHUNKED_ENCODING.getBytes(ASCII_CHARSET);
     
     public final static byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
+
+    public final static String CONTENT_ENCODING_HEADER = "content-encoding";
 
     // TODO Grizzly 2.0, by default, parsed the request URI using UTF-8.
     // We should probably do so with query parameters

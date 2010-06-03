@@ -50,50 +50,50 @@ import com.sun.grizzly.ThreadCache;
  */
 public interface TransferEncoding {
     /**
-     * Return <tt>true</tt> if this encoding should be used to parse/serialize the
-     * content of the passed {@link HttpRequestPacket}, or <tt>false</tt> otherwise.
+     * Return <tt>true</tt> if this encoding should be used to parse the
+     * content of the passed {@link HttpHeader}, or <tt>false</tt> otherwise.
      * 
-     * @param requestPacket {@link HttpRequestPacket}.
-     * @return <tt>true</tt> if this encoding should be used to parse/serialize the
-     * content of the passed {@link HttpRequestPacket}, or <tt>false</tt> otherwise.
+     * @param httpPacket {@link HttpHeader}.
+     * @return <tt>true</tt> if this encoding should be used to parse the
+     * content of the passed {@link HttpHeader}, or <tt>false</tt> otherwise.
      */
-    public boolean isEncodeRequest(HttpRequestPacket requestPacket);
-    /**
-     * Return <tt>true</tt> if this encoding should be used to parse/serialize the
-     * content of the passed {@link HttpRequestPacket}, or <tt>false</tt> otherwise.
-     *
-     * @param responsePacket {@link HttpResponsePacket}.
-     * @return <tt>true</tt> if this encoding should be used to parse/serialize the
-     * content of the passed {@link HttpRequestPacket}, or <tt>false</tt> otherwise.
-     */
-    public boolean isEncodeResponse(HttpResponsePacket responsePacket);
+    public boolean wantDecode(HttpHeader httpPacket);
 
     /**
-     * Parse HTTP request payload, represented by {@link Buffer} using specific
+     * Return <tt>true</tt> if this encoding should be used to serialize the
+     * content of the passed {@link HttpHeader}, or <tt>false</tt> otherwise.
+     *
+     * @param httpPacket {@link HttpHeader}.
+     * @return <tt>true</tt> if this encoding should be used to serialize the
+     * content of the passed {@link HttpHeader}, or <tt>false</tt> otherwise.
+     */
+    public boolean wantEncode(HttpHeader httpPacket);
+
+    /**
+     * This method will be called by {@link HttpCodecFilter} to let
+     * <tt>TransferEncoding</tt> prepare itself for the content serialization.
+     * At this time <tt>TransferEncoding</tt> is able to change, update HTTP
+     * packet headers.
+     *
+     * @param httpHeader HTTP packet headers.
+     * @param content ready HTTP content (might be null).
+     */
+    public void prepareSerialize(HttpHeader httpHeader, HttpContent content);
+
+    /**
+     * Parse HTTP packet payload, represented by {@link Buffer} using specific
      * transfer encoding.
      *
      * @param connection {@link Connection}
-     * @param requestPacket {@link HttpRequestPacket} with parsed headers.
+     * @param httpPacket {@link HttpHeader} with parsed headers.
      * @param buffer {@link Buffer} HTTP message payload.
      * @return {@link ParsingResult}
      */
-    public ParsingResult parseRequest(Connection connection,
-            HttpRequestPacket requestPacket, Buffer buffer);
+    public ParsingResult parsePacket(Connection connection,
+            HttpHeader httpPacket, Buffer buffer);
 
     /**
-     * Parse HTTP response payload, represented by {@link Buffer} using specific
-     * transfer encoding.
-     *
-     * @param connection {@link Connection}
-     * @param responsePacket {@link HttpResponsePacket} with parsed headers.
-     * @param buffer {@link Buffer} HTTP message payload.
-     * @return {@link ParsingResult}
-     */
-    public ParsingResult parseResponse(Connection connection,
-            HttpResponsePacket responsePacket, Buffer buffer);
-
-    /**
-     * Serialize HTTP request payload, represented by {@link HttpContent}
+     * Serialize HTTP packet payload, represented by {@link HttpContent}
      * using specific transfer encoding.
      *
      * @param connection {@link Connection}
@@ -101,20 +101,9 @@ public interface TransferEncoding {
      *
      * @return serialized {@link Buffer}
      */
-    public Buffer serializeRequest(Connection connection,
+    public Buffer serializePacket(Connection connection,
             HttpContent httpContent);
 
-    /**
-     * Serialize HTTP response payload, represented by {@link HttpContent}
-     * using specific transfer encoding.
-     *
-     * @param connection {@link Connection}
-     * @param httpContent {@link HttpContent} with parsed {@link HttpContent#getHttpHeader()}.
-     *
-     * @return serialized {@link Buffer}
-     */
-    public Buffer serializeResponse(Connection connection,
-            HttpContent httpContent);
 
     public final class ParsingResult {
         private static final ThreadCache.CachedTypeIndex<ParsingResult> CACHE_IDX =

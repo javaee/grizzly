@@ -38,24 +38,10 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.http.util.MimeHeaders;
-
 /**
  *
  * @author oleksiys
  */
-public interface HttpPacketParsing {
-    public boolean isHeaderParsed();
-
-    public void setHeaderParsed(boolean isHeaderParsed);
-
-    public boolean isExpectContent();
-
-    public void setExpectContent(boolean isExpectContent);
-
-    public HttpCodecFilter.ParsingState getHeaderParsingState();
-
-    public HttpCodecFilter.ContentParsingState getContentParsingState();
-
-    public MimeHeaders getHeaders();
+public interface EncodingFilter {
+    public boolean applyEncoding(HttpHeader httpPacket);
 }

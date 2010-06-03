@@ -115,18 +115,18 @@ public class HttpClientFilter extends HttpCodecFilter {
     }
     
     @Override
-    final boolean onHttpPacketParsed(FilterChainContext ctx) {
+    final boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
         httpResponseInProcessAttr.remove(ctx.getConnection());
         return false;
     }
 
     @Override
-    boolean onHttpHeaderParsed(FilterChainContext ctx) {
+    boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx) {
         return false;
     }
 
     @Override
-    void onHttpError(FilterChainContext ctx) throws IOException {
+    void onHttpError(HttpHeader httpHeader, FilterChainContext ctx) throws IOException {
         // no-op
     }
 

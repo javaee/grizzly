@@ -41,7 +41,6 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.util.BufferChunk;
 
-import java.io.IOException;
 import java.util.Locale;
 
 
@@ -313,7 +312,7 @@ public class HttpResponsePacket extends HttpHeader {
      * Set the value that will be used by the <code>Content-Language</code>
      * response header.
      */
-    public void setContentLanguage() {
+    public void setContentLanguage(String contentLanguage) {
         this.contentLanguage = contentLanguage;
     }
 

@@ -52,8 +52,10 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
 /**
+ * This class implements a {@link Transformer} which decodes data represented in
+ * the GZIP format.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
     protected enum DecodeStatus {
@@ -82,16 +84,25 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
     }
 
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
         return "gzip-decoder";
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input.hasRemaining();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected LastResultAwareState createStateObject() {
         return new GZipInputState();

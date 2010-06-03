@@ -49,7 +49,7 @@ import java.io.IOException;
 
 /**
  * This class implements a {@link Filter} which encodes/decodes data in
- * the GZIP file format.
+ * the GZIP format.
  *
  * @author Alexey Stashok
  */
@@ -194,5 +194,5 @@ public class GZipFilter extends BaseFilter {
         } finally {
             result.recycle();
         }
-    }    
+    }
 }

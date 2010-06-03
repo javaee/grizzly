@@ -158,9 +158,9 @@ public class HttpServerFilter extends HttpCodecFilter {
 
 
     @Override
-    final boolean onHttpPacketParsed(FilterChainContext ctx) {
-        HttpRequestPacketImpl request =
-                httpRequestInProcessAttr.get(ctx.getConnection());
+    final boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
+        HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+
         boolean error = request.getProcessingState().error;
         if (!error) {
             httpRequestInProcessAttr.remove(ctx.getConnection());
@@ -169,25 +169,21 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
 
     @Override
-    boolean onHttpHeaderParsed(FilterChainContext ctx) {
-        HttpRequestPacketImpl request =
-                httpRequestInProcessAttr.get(ctx.getConnection());
-        prepareRequest(httpRequestInProcessAttr.get(ctx.getConnection()));
+    boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx) {
+        HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+        prepareRequest(request);
         return request.getProcessingState().error;
     }
 
     @Override
-    void onHttpError(FilterChainContext ctx) throws IOException {
+    void onHttpError(HttpHeader httpHeader, FilterChainContext ctx) throws IOException {
 
-        HttpRequestPacketImpl request =
-                httpRequestInProcessAttr.remove(ctx.getConnection());
+        HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+
         // commit the response
-        HttpResponsePacket response = request.getResponse();
-        HttpTrailer trailer = HttpTrailer.builder(response).last(true).build();
-        //Buffer resBuf = encodeHttpPacket(ctx.getConnection(), response);
-        Buffer trailBuf = encodeHttpPacket(ctx.getConnection(), trailer);
-        //ctx.write(resBuf);
-        ctx.write(trailBuf);
+        final HttpContent errorHttpResponse = customizeErrorResponse(request.getResponse());
+        Buffer resBuf = encodeHttpPacket(ctx.getConnection(), errorHttpResponse);
+        ctx.write(resBuf);
 
     }
 
@@ -442,11 +438,18 @@ public class HttpServerFilter extends HttpCodecFilter {
     }
     
 
-    private static void prepareRequest(HttpRequestPacketImpl request) {
+    private static void prepareRequest(final HttpRequestPacketImpl request) {
 
-        ProcessingState state = request.getProcessingState();
-        HttpResponsePacket response = request.getResponse();
-        BufferChunk protocolBC = request.getProtocolBC();
+        final ProcessingState state = request.getProcessingState();
+        final HttpResponsePacket response = request.getResponse();
+
+        final BufferChunk methodBC = request.getMethodBC();
+
+        if (methodBC.equals("GET")) {
+            request.setExpectContent(false);
+        }
+
+        final BufferChunk protocolBC = request.getProtocolBC();
         if (protocolBC.equals(HttpCodecFilter.HTTP_1_1)) {
             protocolBC.setString(HttpCodecFilter.HTTP_1_1);
             state.http11 = true;
@@ -535,6 +538,11 @@ public class HttpServerFilter extends HttpCodecFilter {
 
     }
 
+    protected HttpContent customizeErrorResponse(HttpResponsePacket response) {
+        response.setContentLength(0);
+        final HttpContent content = HttpContent.builder(response).last(true).build();
+        return content;
+    }
 
     /**
      * Determine if we must drop the connection because of the HTTP status

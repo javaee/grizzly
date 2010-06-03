@@ -52,6 +52,7 @@ import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.BufferUtils;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * The {@link com.sun.grizzly.filterchain.Filter}, responsible for transforming {@link Buffer} into
@@ -81,8 +82,12 @@ public abstract class HttpCodecFilter extends BaseFilter {
 
     private volatile TransferEncoding[] transferEncodings;
     
-    private final Object encodingSync = new Object();
+    private final Object transferEncodingSync = new Object();
     
+    private volatile ContentEncoding[] contentEncodings;
+
+    private final Object contentEncodingSync = new Object();
+
     /**
      * Method is responsible for parsing initial line of HTTP message (different
      * for {@link HttpRequestPacket} and {@link HttpResponsePacket}).
@@ -112,24 +117,26 @@ public abstract class HttpCodecFilter extends BaseFilter {
 
     /**
      * Callback method, called when {@link HttpPacket} parsing has been completed.
+     * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
      * @param ctx processing context.
      *
      * @return <code>true</code> if an error has occurred while processing
      *  the header portion of the http request, otherwise returns
-     *  <code>false</code>.
+     *  <code>false</code>.s
      */
-    abstract boolean onHttpPacketParsed(FilterChainContext ctx);
+    abstract boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx);
 
 
     /**
      * TODO Docs.
+     * @param httpHeader {@link HttpHeader}, which represents parsed HTTP packet header
      * @param ctx
      *
      * @return <code>true</code> if an error has occurred while processing
      *  the header portion of the http request, otherwise returns
      *  <code>false</code>.
      */
-    abstract boolean onHttpHeaderParsed(FilterChainContext ctx);
+    abstract boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx);
 
     
     /**
@@ -137,9 +144,10 @@ public abstract class HttpCodecFilter extends BaseFilter {
      * TODO Docs.
      * </p>
      *
+     * @param httpHeader {@link HttpHeader}, which represents HTTP packet header
      * @param ctx the {@link FilterChainContext} procesing this request
      */
-    abstract void onHttpError(FilterChainContext ctx) throws IOException;
+    abstract void onHttpError(HttpHeader httpHeader, FilterChainContext ctx) throws IOException;
 
     protected final int maxHeadersSize;
 
@@ -153,34 +161,49 @@ public abstract class HttpCodecFilter extends BaseFilter {
         this.maxHeadersSize = maxHeadersSize;
         transferEncodings = new TransferEncoding[] {
             new FixedLengthTransferEncoding(), new ChunkedTransferEncoding(maxHeadersSize)};
+        contentEncodings = new ContentEncoding[] {new GZipContentEncoding()};
     }
 
-
+    /**
+     * <p>
+     * Gets registered {@link TransferEncoding}s.
+     * </p>
+     *
+     * @return registered {@link TransferEncoding}s.
+     */
+    public TransferEncoding[] getTransferEncodings() {
+        synchronized (transferEncodingSync) {
+            return Arrays.copyOf(transferEncodings, transferEncodings.length);
+        }
+    }
+    
     /**
      * <p>
      * Adds the specified {@link TransferEncoding} to the <code>HttpCodecFilter</code>.
      * </p>
      *
      * @param transferEncoding the {@link TransferEncoding} to add
-     * @return <code>true</code> if the {@link TransferEncoding} was added, otherwise
-     *  <code>false</code> indicating the {@link TransferEncoding} was already
-     *  present
+     * @return index of the added {@link TransferEncoding}. If the {@link TransferEncoding}
+     * was already registered - it will be replaced with the new one on the original position.
      */
-    public boolean addTransferEncoding(TransferEncoding transferEncoding) {
-        synchronized (encodingSync) {
-            if (indexOf(transferEncodings, transferEncoding) == -1) {
+    public int addTransferEncoding(TransferEncoding transferEncoding) {
+        if (transferEncoding == null) throw new IllegalArgumentException("Could not be null");
+
+        synchronized (transferEncodingSync) {
+            final int index = indexOf(transferEncodings, transferEncoding);
+            if (index != -1) {
                 TransferEncoding[] encodings = Arrays.copyOf(
                         transferEncodings, transferEncodings.length + 1);
                 encodings[transferEncodings.length] = transferEncoding;
                 transferEncodings = encodings;
 
-                return true;
+                return encodings.length - 1;
             }
 
-            return false;
+            transferEncodings[index] = transferEncoding;
+            return index;
         }
     }
-
 
     /**
      * <p>
@@ -193,7 +216,9 @@ public abstract class HttpCodecFilter extends BaseFilter {
      *  present
      */
     public boolean removeTransferEncoding(TransferEncoding transferEncoding) {
-        synchronized (encodingSync) {
+        if (transferEncoding == null) throw new IllegalArgumentException("Could not be null");
+
+        synchronized (transferEncodingSync) {
             final int idx = indexOf(transferEncodings, transferEncoding);
             if (idx != -1) {
                 TransferEncoding[] encodings =
@@ -217,6 +242,84 @@ public abstract class HttpCodecFilter extends BaseFilter {
     }
 
     /**
+     * <p>
+     * Gets registered {@link ContentEncoding}s.
+     * </p>
+     *
+     * @return registered {@link ContentEncoding}s.
+     */
+    public ContentEncoding[] getContentEncodings() {
+        synchronized (contentEncodingSync) {
+            return Arrays.copyOf(contentEncodings, contentEncodings.length);
+        }
+    }
+
+    /**
+     * <p>
+     * Adds the specified {@link ContentEncoding} to the <code>HttpCodecFilter</code>.
+     * </p>
+     *
+     * @param contentEncoding the {@link ContentEncoding} to add
+     * @return index of the added {@link ContentEncoding}. If the {@link ContentEncoding}
+     * was already registered - it will be replaced with the new one on the original position.
+     */
+    public int addContentEncoding(ContentEncoding contentEncoding) {
+        if (contentEncoding == null) throw new IllegalArgumentException("Could not be null");
+
+        synchronized (contentEncodingSync) {
+            int index;
+            if ((index = indexOf(contentEncodings, contentEncoding)) == -1) {
+                ContentEncoding[] encodings = Arrays.copyOf(
+                        contentEncodings, contentEncodings.length + 1);
+                encodings[contentEncodings.length] = contentEncoding;
+                contentEncodings = encodings;
+
+                return encodings.length - 1;
+            }
+
+            contentEncodings[index] = contentEncoding;
+            return index;
+        }
+    }
+
+
+    /**
+     * <p>
+     * Removes the specified {@link ContentEncoding} from the <code>HttpCodecFilter</code>.
+     * </p>
+     *
+     * @param contentEncoding the {@link ContentEncoding} to remove
+     * @return <code>true</code> if the {@link ContentEncoding} was removed, otherwise
+     *  <code>false</code> indicating the {@link ContentEncoding} was not already
+     *  present
+     */
+    public boolean removeContentEncoding(ContentEncoding contentEncoding) {
+        if (contentEncoding == null) throw new IllegalArgumentException("Could not be null");
+        
+        synchronized (contentEncodingSync) {
+            final int idx = indexOf(contentEncodings, contentEncoding);
+            if (idx != -1) {
+                ContentEncoding[] encodings =
+                        new ContentEncoding[contentEncodings.length - 1];
+                if (idx > 0) {
+                    System.arraycopy(contentEncodings, 0, encodings, 0, idx);
+                }
+
+                final int bytesToCopy2 = contentEncodings.length - idx - 1;
+                if (bytesToCopy2 > 0) {
+                    System.arraycopy(contentEncodings, idx + 1, encodings, idx, bytesToCopy2);
+                }
+
+                contentEncodings = encodings;
+
+                return true;
+            }
+
+            return false;
+        }
+    }
+    
+    /**
      * The method is called by the specific <tt>HttpCodecFilter</tt> implementation,
      * once we have received a {@link Buffer}, which has to be transformed
      * into HTTP packet part.
@@ -239,6 +342,9 @@ public abstract class HttpCodecFilter extends BaseFilter {
         // Get the input buffer
         Buffer input = (Buffer) ctx.getMessage();
 
+        // Get the Connection
+        final Connection connection = ctx.getConnection();
+
         // Check if HTTP header has been parsed
         final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
 
@@ -254,58 +360,90 @@ public abstract class HttpCodecFilter extends BaseFilter {
                 // recycle header parsing state
                 httpPacket.getHeaderParsingState().recycle();
 
-                if (onHttpHeaderParsed(ctx)) {
-                    onHttpError(ctx);
+                if (onHttpHeaderParsed((HttpHeader) httpPacket,ctx)) {
+                    onHttpError((HttpHeader) httpPacket,ctx);
                     return ctx.getStopAction();
                 }
 
-                setTransferEncoding((HttpHeader) httpPacket);
-
+                input = input.slice();
+                
+                setTransferEncodingOnParsing((HttpHeader) httpPacket);
+                setContentEncodingsOnParsing((HttpHeader) httpPacket);
             }
         }
 
-
         final HttpHeader httpHeader = (HttpHeader) httpPacket;
-        final TransferEncoding encoding = httpHeader.getTransferEncoding();
+        final TransferEncoding transferEncoding = httpHeader.getTransferEncoding();
 
         // Check if appropriate HTTP content encoder was found
-        if (encoding != null) {
+        if (transferEncoding != null) {
 
-            final ParsingResult result = parsePacket(ctx.getConnection(), httpHeader, input);
+            final ParsingResult result = parseWithTransferEncoding(ctx.getConnection(), httpHeader, input);
 
             final HttpContent httpContent = result.getHttpContent();
             final Buffer remainderBuffer = result.getRemainderBuffer();
 
             result.recycle();
 
+            boolean isLast = false;
+            
             if (httpContent != null) {
                 if (httpContent.isLast()) {
-                    onHttpPacketParsed(ctx);
+                    isLast = true;
+                    onHttpPacketParsed(httpHeader, ctx);
                 }
 
-                ctx.setMessage(httpContent);
+                final HttpContent decodedContent = decodeContent(connection, httpContent);
+                if (decodedContent != null) {
+                    ctx.setMessage(decodedContent);
 
-                // Instruct filterchain to continue the processing.
+                    // Instruct filterchain to continue the processing.
+                    return ctx.getInvokeAction(remainderBuffer);
+                }
+            }
+
+            if (!wasHeaderParsed || isLast) {
+                ctx.setMessage(
+                        HttpContent.builder(httpHeader)
+                        .last(isLast)
+                        .build());
                 return ctx.getInvokeAction(remainderBuffer);
             } else {
                 return ctx.getStopAction(remainderBuffer);
             }
 
 
-        } else if (!httpHeader.isChunked() && httpHeader.getContentLength() <= 0) {
-            // If content is not present this time - check if we expect any
-            if (onHttpPacketParsed(ctx)) {
-                onHttpError(ctx);
-                return ctx.getStopAction();
-            }
-
+        } else if (!httpHeader.isChunked() && httpHeader.getContentLength() < 0) {
+            // Transfer-encoding is unknown and there is no content-length header
+            
             // Build HttpContent message on top of existing content chunk and parsed Http message header
             final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
-            final HttpContent message = builder.content(input).last(true).build();
-            ctx.setMessage(message);
+            final HttpContent message = builder.content(input).build();
 
-            // Instruct filterchain to continue the processing.
-            return ctx.getInvokeAction(null);
+            final HttpContent decodedContent = decodeContent(connection, message);
+            if (decodedContent != null) {
+                ctx.setMessage(decodedContent);
+
+                // Instruct filterchain to continue the processing.
+                return ctx.getInvokeAction();
+            }
+
+            if (!wasHeaderParsed) { // If HTTP header was just parsed
+
+                // check if we expect any content
+                final boolean isLast = !httpPacket.isExpectContent();
+                if (isLast) { // if not - call onHttpPacketParsed
+                    onHttpPacketParsed(httpHeader, ctx);
+                }
+
+                ctx.setMessage(
+                        HttpContent.builder(httpHeader)
+                        .last(isLast)
+                        .build());
+                return ctx.getInvokeAction();
+            } else {
+                return ctx.getStopAction();
+            }
         }
 
         throw new IllegalStateException("Error parsing HTTP packet: " + httpHeader);
@@ -334,9 +472,13 @@ public abstract class HttpCodecFilter extends BaseFilter {
         // transform HttpPacket into Buffer
         final Buffer output = encodeHttpPacket(connection, input);
 
-        ctx.setMessage(output);
-        // Invoke next filter in the chain.
-        return ctx.getInvokeAction();
+        if (output != null) {
+            ctx.setMessage(output);
+            // Invoke next filter in the chain.
+            return ctx.getInvokeAction();
+        }
+
+        return ctx.getStopAction();
     }
     
     protected boolean decodeHttpPacket(HttpPacketParsing httpPacket, Buffer input) {
@@ -388,13 +530,16 @@ public abstract class HttpCodecFilter extends BaseFilter {
         Buffer encodedBuffer = null;
         
         if (!httpHeader.isCommitted()) {
+            setTransferEncodingOnSerializing(httpHeader, httpContent);
+            setContentEncodingsOnSerializing(httpHeader);
+
             encodedBuffer = memoryManager.allocate(8192);
 
             encodedBuffer = encodeInitialLine(httpHeader, encodedBuffer, memoryManager);
             encodedBuffer = put(memoryManager, encodedBuffer, Constants.CRLF_BYTES);
 
             encodedBuffer = encodeKnownHeaders(memoryManager, encodedBuffer,
-                    httpHeader, httpContent);
+                    httpHeader);
             
             final MimeHeaders mimeHeaders = httpHeader.getHeaders();
             encodedBuffer = encodeMimeHeaders(memoryManager, encodedBuffer, mimeHeaders);
@@ -404,15 +549,16 @@ public abstract class HttpCodecFilter extends BaseFilter {
             encodedBuffer.allowBufferDispose(true);
             
             httpHeader.setCommitted(true);
-
-            setTransferEncoding(httpHeader);
         }
 
-        if (!isHeader) {
+        final HttpContent encodedHttpContent;
+        if (!isHeader &&
+                (encodedHttpContent = encodeContent(connection, httpContent)) != null) {
+            
             final TransferEncoding contentEncoder = httpHeader.getTransferEncoding();
 
-            final Buffer content = serializePacket(connection,
-                                                   httpContent,
+            final Buffer content = serializeWithTransferEncoding(connection,
+                                                   encodedHttpContent,
                                                    contentEncoder);
             encodedBuffer = BufferUtils.appendBuffers(memoryManager,
                     encodedBuffer, content);
@@ -428,42 +574,60 @@ public abstract class HttpCodecFilter extends BaseFilter {
     }
 
     protected Buffer encodeKnownHeaders(MemoryManager memoryManager,
-            Buffer buffer, HttpHeader httpHeader, HttpContent httpContent) {
+            Buffer buffer, HttpHeader httpHeader) {
         
         final CacheableBufferChunk name = CacheableBufferChunk.create();
         final CacheableBufferChunk value = CacheableBufferChunk.create();
 
-        if (httpHeader.isChunked()) {
-            name.setString(Constants.TRANSFER_ENCODING_HEADER);
-            httpHeader.extractTransferEncoding(value);
-        } else {
-            name.setString(Constants.CONTENT_LENGTH_HEADER);
-            httpHeader.extractContentLength(value);
-            if (value.isNull() && httpContent != null
-                    && httpContent.getContent().hasRemaining()) {
-                final int contentLength = httpContent.getContent().remaining();
-                httpHeader.setContentLength(contentLength);
-                value.setString(Integer.toString(contentLength));
-            }
-        }
-
-        if (!value.isNull()) {
-            buffer = encodeMimeHeader(memoryManager, buffer, name, value);
-        }
-
-        name.reset();
-        value.reset();
-        
         name.setString(Constants.CONTENT_TYPE_HEADER);
         httpHeader.extractContentType(value);
 
         if (!value.isNull()) {
-            buffer = encodeMimeHeader(memoryManager, buffer, name, value);
+            buffer = encodeMimeHeader(memoryManager, buffer, name, value, true);
         }
+
+        name.reset();
+        value.reset();
+
+        final List<ContentEncoding> packetContentEncodings =
+                httpHeader.getContentEncodings(true);
+        final boolean hasContentEncodings = !packetContentEncodings.isEmpty();
         
+        if (hasContentEncodings) {
+            buffer = encodeContentEncodingHeader(memoryManager, buffer,
+                    httpHeader, name, value);
+        }
+
         name.recycle();
         value.recycle();
 
+        return buffer;
+    }
+
+    private Buffer encodeContentEncodingHeader(final MemoryManager memoryManager,
+            Buffer buffer, HttpHeader httpHeader,
+            final CacheableBufferChunk name, final CacheableBufferChunk value) {
+
+        final List<ContentEncoding> packetContentEncodings =
+                httpHeader.getContentEncodings(true);
+
+        name.setString(Constants.CONTENT_ENCODING_HEADER);
+        httpHeader.extractContentEncoding(value);
+        final boolean hasValue = !value.isNull();
+        boolean needComma = hasValue;
+        
+        buffer = encodeMimeHeader(memoryManager, buffer, name, value, false);
+        for (ContentEncoding encoding : packetContentEncodings) {
+            if (needComma) {
+                buffer = put(memoryManager, buffer, Constants.COMMA);
+            }
+            
+            buffer = put(memoryManager, buffer, encoding.getName());
+            needComma = true;
+        }
+
+        buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+        
         return buffer;
     }
     
@@ -474,20 +638,24 @@ public abstract class HttpCodecFilter extends BaseFilter {
         for (int i = 0; i < mimeHeadersNum; i++) {
             if (!mimeHeaders.getAndSetSerialized(i, true)) {
                 buffer = encodeMimeHeader(memoryManager, buffer,
-                        mimeHeaders.getName(i), mimeHeaders.getValue(i));
+                        mimeHeaders.getName(i), mimeHeaders.getValue(i), true);
             }
         }
 
         return buffer;
     }
 
-    protected static Buffer encodeMimeHeader(MemoryManager memoryManager,
-            Buffer buffer, BufferChunk name, BufferChunk value) {
+    protected static Buffer encodeMimeHeader(final MemoryManager memoryManager,
+            Buffer buffer, final BufferChunk name, final BufferChunk value,
+            final boolean encodeLastCRLF) {
 
         buffer = put(memoryManager, buffer, name);
         buffer = put(memoryManager, buffer, Constants.COLON_BYTES);
         buffer = put(memoryManager, buffer, value);
-        buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+        
+        if (encodeLastCRLF) {
+            buffer = put(memoryManager, buffer, Constants.CRLF_BYTES);
+        }
 
         return buffer;
     }
@@ -813,33 +981,41 @@ public abstract class HttpCodecFilter extends BaseFilter {
     }
 
     protected static Buffer put(MemoryManager memoryManager,
-            Buffer headerBuffer, BufferChunk bufferChunk) {
+            Buffer dstBuffer, BufferChunk chunk) {
 
-        if (bufferChunk.hasBuffer()) {
-            final int length = bufferChunk.getEnd() - bufferChunk.getStart();
-            if (headerBuffer.remaining() < length) {
-                headerBuffer =
-                        resizeBuffer(memoryManager, headerBuffer, length);
+        if (chunk.isNull()) return dstBuffer;
+        
+        if (chunk.hasBuffer()) {
+            final int length = chunk.getEnd() - chunk.getStart();
+            if (dstBuffer.remaining() < length) {
+                dstBuffer =
+                        resizeBuffer(memoryManager, dstBuffer, length);
             }
 
-            headerBuffer.put(bufferChunk.getBuffer(), bufferChunk.getStart(),
+            dstBuffer.put(chunk.getBuffer(), chunk.getStart(),
                     length);
+
+            return dstBuffer;
         } else {
-            final String s = bufferChunk.toString();
-            final int size = s.length();
-            if (headerBuffer.remaining() < size) {
-                headerBuffer =
-                        resizeBuffer(memoryManager, headerBuffer, size);
-            }
-
-            for(int i = 0; i < size; i++) {
-                headerBuffer.put((byte) s.charAt(i));
-            }
+            return put(memoryManager, dstBuffer, chunk.toString());
         }
-
-        return headerBuffer;
     }
 
+    protected static Buffer put(MemoryManager memoryManager,
+            Buffer dstBuffer, String s) {
+        final int size = s.length();
+        if (dstBuffer.remaining() < size) {
+            dstBuffer =
+                    resizeBuffer(memoryManager, dstBuffer, size);
+        }
+
+        for (int i = 0; i < size; i++) {
+            dstBuffer.put((byte) s.charAt(i));
+        }
+
+        return dstBuffer;
+    }
+    
     protected static Buffer put(MemoryManager memoryManager,
             Buffer headerBuffer, byte[] array) {
 
@@ -885,52 +1061,197 @@ public abstract class HttpCodecFilter extends BaseFilter {
         return -1;
     }
 
-    final void setTransferEncoding(HttpHeader httpHeader) {
+    final void setTransferEncodingOnParsing(HttpHeader httpHeader) {
         final TransferEncoding[] encodings = transferEncodings;
-        if (httpHeader.isRequest()) {
-            HttpRequestPacket httpRequestPacket = (HttpRequestPacket) httpHeader;
-            for (TransferEncoding encoding : encodings) {
-                if (encoding.isEncodeRequest(httpRequestPacket)) {
-                    httpRequestPacket.setTransferEncoding(encoding);
-                    return;
-                }
-            }
-        } else {
-            HttpResponsePacket httpResponsePacket = (HttpResponsePacket) httpHeader;
-            for (TransferEncoding encoding : encodings) {
-                if (encoding.isEncodeResponse(httpResponsePacket)) {
-                    httpResponsePacket.setTransferEncoding(encoding);
-                    return;
-                }
+        for (TransferEncoding encoding : encodings) {
+            if (encoding.wantDecode(httpHeader)) {
+                httpHeader.setTransferEncoding(encoding);
+                return;
             }
         }
     }
 
-    private ParsingResult parsePacket(Connection connection,
+    final void setTransferEncodingOnSerializing(HttpHeader httpHeader,
+            HttpContent httpContent) {
+
+        final TransferEncoding[] encodings = transferEncodings;
+        for (TransferEncoding encoding : encodings) {
+            if (encoding.wantEncode(httpHeader)) {
+                encoding.prepareSerialize(httpHeader, httpContent);
+                httpHeader.setTransferEncoding(encoding);
+                return;
+            }
+        }
+    }
+
+    final HttpContent decodeContent(final Connection connection,
+            HttpContent httpContent) {
+
+        if (httpContent.getContent().remaining() == 0) {
+            httpContent.recycle();
+            return null;
+        }
+        
+        final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
+        final HttpHeader httpHeader = httpContent.getHttpHeader();
+        final ContentParsingState parsingState =
+                ((HttpPacketParsing) httpHeader).getContentParsingState();
+        final List<ContentEncoding> encodings = httpHeader.getContentEncodings(true);
+
+        final int encodingsNum = encodings.size();
+        for (int i = 0; i < encodingsNum; i++) {
+
+            // Check if there is a remainder buffer left from the last decoding
+            final Buffer oldRemainder = parsingState.removeContentDecodingRemainder(i);
+            if (oldRemainder != null) {
+                // If yes - append the remainder and the new buffer
+                final Buffer newChunk = httpContent.getContent();
+                httpContent.setContent(
+                        BufferUtils.appendBuffers(memoryManager, oldRemainder, newChunk));
+            }
+
+            // Decode
+            final ContentEncoding encoding = encodings.get(i);
+            final ParsingResult result = encoding.decode(connection, httpContent);
+
+            // Check if there is remainder left after decoding
+            final Buffer newRemainder = result.getRemainderBuffer();
+            if (newRemainder != null) {
+                // If yes - save it
+                parsingState.setContentDecodingRemainder(i, newRemainder);
+            }
+
+            final HttpContent decodedContent = result.getHttpContent();
+            
+            result.recycle();
+
+            if (decodedContent == null) {
+                httpContent.recycle();
+                return null;
+            }
+
+            httpContent = decodedContent;
+        }
+
+        return httpContent;
+    }
+
+    final HttpContent encodeContent(final Connection connection,
+            HttpContent httpContent) {
+
+        final HttpHeader httpHeader = httpContent.getHttpHeader();
+        final List<ContentEncoding> encodings = httpHeader.getContentEncodings(true);
+
+        final int encodingsNum = encodings.size();
+        for (int i = 0; i < encodingsNum; i++) {
+            // Encode
+            final ContentEncoding encoding = encodings.get(i);
+            final HttpContent encodedContent = encoding.encode(connection, httpContent);
+
+            if (encodedContent == null) {
+                httpContent.recycle();
+                return null;
+            }
+
+            httpContent = encodedContent;
+        }
+
+        return httpContent;
+    }
+    
+    final void setContentEncodingsOnParsing(HttpHeader httpHeader) {
+        final BufferChunk bc =
+                httpHeader.getHeaders().getValue(Constants.CONTENT_ENCODING_HEADER);
+        
+        if (bc != null) {
+            final List<ContentEncoding> encodings = httpHeader.getContentEncodings(true);
+            int currentIdx = 0;
+
+            int commaIdx;
+            while((commaIdx = bc.indexOf(',', currentIdx)) != -1) {
+                final ContentEncoding ce = lookupContentEncoding(bc, currentIdx, commaIdx);
+                encodings.add(ce);
+                currentIdx = commaIdx + 1;
+            }
+
+            // last ContentEncoding
+            final ContentEncoding ce = lookupContentEncoding(bc, currentIdx, bc.size());
+            encodings.add(ce);
+        }
+    }
+
+    final void setContentEncodingsOnSerializing(HttpHeader httpHeader) {
+        // If user specified content-length - we don't encode the content
+        if (httpHeader.getContentLength() >= 0) return;
+        
+        final BufferChunk bc =
+                httpHeader.getHeaders().getValue(Constants.CONTENT_ENCODING_HEADER);
+
+        final boolean isSomeEncodingApplied = bc != null && bc.size() > 0;
+
+        final ContentEncoding[] encodingsLibrary = contentEncodings;
+        final List<ContentEncoding> httpPacketEncoders = httpHeader.getContentEncodings(true);
+        
+        for (ContentEncoding encoding : encodingsLibrary) {
+            if (isSomeEncodingApplied) {
+                if (lookupAlias(encoding, bc, 0, bc.size())) {
+                    continue;
+                }
+            }
+
+            if (encoding.wantEncode(httpHeader)) {
+                httpPacketEncoders.add(encoding);
+            }
+        }
+    }
+    
+    private ContentEncoding lookupContentEncoding(BufferChunk bc,
+            int startIdx, int endIdx) {
+        final ContentEncoding[] encodings = contentEncodings;
+
+        for (ContentEncoding encoding : encodings) {
+            if (lookupAlias(encoding, bc, startIdx, endIdx)) {
+                return encoding;
+            }
+        }
+
+        throw new ContentEncodingException("Unknown content encoding: "
+                + bc.toString().substring(startIdx, endIdx));
+    }
+    
+    private ParsingResult parseWithTransferEncoding(Connection connection,
             HttpHeader httpHeader, Buffer input) {
         final TransferEncoding encoding = httpHeader.getTransferEncoding();
-        if (httpHeader.isRequest()) {
-            return encoding.parseRequest(connection, (HttpRequestPacket) httpHeader, input);
-        } else {
-            return encoding.parseResponse(connection, (HttpResponsePacket) httpHeader, input);
-        }
+        return encoding.parsePacket(connection, httpHeader, input);
     }
 
-    private Buffer serializePacket(Connection connection,
+    private Buffer serializeWithTransferEncoding(Connection connection,
                                    HttpContent httpContent,
                                    TransferEncoding encoding) {
-        final HttpHeader httpHeader = httpContent.getHttpHeader();
         if (encoding != null) {
-            if (httpHeader.isRequest()) {
-                return encoding.serializeRequest(connection, httpContent);
-            } else {
-                return encoding.serializeResponse(connection, httpContent);
-            }
+            return encoding.serializePacket(connection, httpContent);
         } else {
             // if no explicit TransferEncoding is available, then
             // assume "Identity"
             return httpContent.getContent();
         }
+    }
+
+    private static boolean lookupAlias(ContentEncoding encoding,
+            BufferChunk aliasBuffer, int startIdx, int endIdx) {
+        final String[] aliases = encoding.getAliases();
+        
+        for (String alias : aliases) {
+            final int aliasLen = alias.length();
+
+            for (int i = 0; i < aliasLen; i++) {
+                if (aliasBuffer.startsWithIgnoreCase(alias, startIdx)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     protected static final class ParsingState {
@@ -990,12 +1311,45 @@ public abstract class HttpCodecFilter extends BaseFilter {
         public long chunkRemainder = -1;
         public MimeHeaders trailerHeaders = new MimeHeaders();
 
+        private Buffer[] contentDecodingRemainders = new Buffer[1];
+        private Buffer[] contentEncodingRemainders = new Buffer[1];
+        
         public void recycle() {
             isLastChunk = false;
             chunkContentStart = -1;
             chunkLength = -1;
             chunkRemainder = -1;
             trailerHeaders.clear();
+            Arrays.fill(contentDecodingRemainders, null);
+            Arrays.fill(contentEncodingRemainders, null);
+        }
+
+        private Buffer removeContentDecodingRemainder(int i) {
+            final Buffer remainder = contentDecodingRemainders[i];
+            contentDecodingRemainders[i] = null;
+            return remainder;
+        }
+
+        private void setContentDecodingRemainder(int i, Buffer remainder) {
+            if (i >= contentDecodingRemainders.length) {
+                contentDecodingRemainders = Arrays.copyOf(contentDecodingRemainders, i + 1);
+            }
+            
+            contentDecodingRemainders[i] = remainder;
+        }
+
+        private Buffer removeContentEncodingRemainder(int i) {
+            final Buffer remainder = contentEncodingRemainders[i];
+            contentEncodingRemainders[i] = null;
+            return remainder;
+        }
+
+        private void setContentEncodingRemainder(int i, Buffer remainder) {
+            if (i >= contentEncodingRemainders.length) {
+                contentEncodingRemainders = Arrays.copyOf(contentEncodingRemainders, i + 1);
+            }
+            
+            contentEncodingRemainders[i] = remainder;
         }
     }
 }

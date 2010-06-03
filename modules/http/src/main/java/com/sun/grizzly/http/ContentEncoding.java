@@ -38,24 +38,22 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.http.util.MimeHeaders;
+import com.sun.grizzly.Connection;
+import com.sun.grizzly.http.TransferEncoding.ParsingResult;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
-public interface HttpPacketParsing {
-    public boolean isHeaderParsed();
+public interface ContentEncoding {
 
-    public void setHeaderParsed(boolean isHeaderParsed);
+    public String getName();
 
-    public boolean isExpectContent();
-
-    public void setExpectContent(boolean isExpectContent);
-
-    public HttpCodecFilter.ParsingState getHeaderParsingState();
-
-    public HttpCodecFilter.ContentParsingState getContentParsingState();
-
-    public MimeHeaders getHeaders();
+    public String[] getAliases();
+    
+    public boolean wantEncode(HttpHeader header);
+    
+    public ParsingResult decode(Connection connection, HttpContent httpContent);
+    
+    public HttpContent encode(Connection connection, HttpContent httpContent);
 }

@@ -126,8 +126,10 @@ public class BufferChunk {
     }
     
     public String toString(Charset charset) {
-        if (hasString()) return stringValue;
+        if (isNull()) return null;
         
+        if (hasString()) return stringValue;
+
         if (charset == null) charset = UTF8_CHARSET;
 
         if (cachedString != null && charset.equals(cachedStringCharset)) {

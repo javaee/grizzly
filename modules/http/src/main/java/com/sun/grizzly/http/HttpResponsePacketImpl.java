@@ -60,6 +60,7 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     }
 
     private boolean isHeaderParsed;
+    private boolean isExpectContent;
     
     private final HttpCodecFilter.ParsingState headerParsingState;
     private final HttpCodecFilter.ContentParsingState contentParsingState;
@@ -67,6 +68,7 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
     private HttpResponsePacketImpl() {
         this.headerParsingState = new HttpCodecFilter.ParsingState();
         this.contentParsingState = new HttpCodecFilter.ContentParsingState();
+        isExpectContent = true;
     }
 
     public void initialize(int initialOffset, int maxHeaderSize) {
@@ -97,6 +99,16 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
         this.isHeaderParsed = isHeaderParsed;
     }
 
+    @Override
+    public boolean isExpectContent() {
+        return isExpectContent;
+    }
+
+    @Override
+    public void setExpectContent(boolean isExpectContent) {
+        this.isExpectContent = isExpectContent;
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -105,6 +117,7 @@ class HttpResponsePacketImpl extends HttpResponsePacket implements HttpPacketPar
         headerParsingState.recycle();
         contentParsingState.recycle();
         isHeaderParsed = false;
+        isExpectContent = true;
         super.reset();
     }
 

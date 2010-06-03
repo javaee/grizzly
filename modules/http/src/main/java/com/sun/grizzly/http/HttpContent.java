@@ -158,7 +158,7 @@ public class HttpContent implements HttpPacket, com.sun.grizzly.Appendable<HttpC
         if (element.isLast()) {
             element.setContent(content);
             return element;
-        }        
+        }
 
         return this;
     }

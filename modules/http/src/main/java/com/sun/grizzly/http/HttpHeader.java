@@ -37,11 +37,18 @@
  */
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.attributes.AttributeHolder;
+import com.sun.grizzly.attributes.AttributeStorage;
+import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.ContentType;
 import com.sun.grizzly.http.util.Cookies;
 import com.sun.grizzly.http.util.MimeHeaders;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * {@link HttpPacket}, which represents HTTP message header. There are 2 subtypes
@@ -52,7 +59,7 @@ import com.sun.grizzly.http.util.MimeHeaders;
  * 
  * @author Alexey Stashok
  */
-public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
+public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, AttributeStorage {
 
     protected boolean isCommitted;
     protected MimeHeaders headers = new MimeHeaders();
@@ -66,6 +73,18 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     protected Cookies cookies = new Cookies(headers);
 
     private TransferEncoding transferEncoding;
+    private final List<ContentEncoding> contentEncodings = new ArrayList();
+
+    private final AttributeHolder attributes =
+            new IndexedAttributeHolder(Grizzly.DEFAULT_ATTRIBUTE_BUILDER);
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public AttributeHolder getAttributes() {
+        return attributes;
+    }    
 
     /**
      * Returns <tt>true</tt>, if the current <tt>HttpHeader</tt> represent
@@ -85,6 +104,22 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
         return true;
     }
 
+    protected void addContentEncoding(ContentEncoding contentEncoding) {
+        contentEncodings.add(contentEncoding);
+    }
+
+    protected List<ContentEncoding> getContentEncodings(final boolean isModifiable) {
+        if (isModifiable) {
+            return contentEncodings;
+        } else {
+            return Collections.unmodifiableList(contentEncodings);
+        }
+    }
+
+    public List<ContentEncoding> getContentEncodings() {
+        return getContentEncodings(false);
+    }
+
     /**
      * Get the {@link TransferEncoding}, responsible for the parsing/serialization of the HTTP message content
      * 
@@ -99,7 +134,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
      *
      * @param transferEncoding the {@link TransferEncoding}, responsible for the parsing/serialization of the HTTP message content.
      */
-    public void setTransferEncoding(TransferEncoding transferEncoding) {
+    protected void setTransferEncoding(TransferEncoding transferEncoding) {
         this.transferEncoding = transferEncoding;
     }
 
@@ -127,19 +162,21 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     }
 
     /**
-     * Obtain content-length value and mark it as serialized.
+     * Makes sure content-length header is present.
      * 
-     * @param bc container for the content-length value.
+     * @param defaultLength default content-length value.
      */
-    protected void extractContentLength(BufferChunk bc) {
+    protected void makeContentLengthHeader(long defaultLength) {
         if (contentLength != -1) {
-            bc.setString(Long.toString(contentLength));
-        } else {
-            final BufferChunk value;
+            headers.setValue(Constants.CONTENT_LENGTH_HEADER).setString(
+                    Long.toString(contentLength));
+        } else if (defaultLength != -1) {
             final int idx = headers.indexOf(Constants.CONTENT_LENGTH_HEADER, 0);
-            if (idx != -1 && !((value = headers.getValue(idx)).isNull())) {
-                bc.set(value);
-                headers.getAndSetSerialized(idx, true);
+            if (idx == -1) {
+                headers.addValue(Constants.CONTENT_LENGTH_HEADER).setString(
+                        Long.toString(defaultLength));
+            } else if (headers.getValue(idx).isNull()) {
+                headers.getValue(idx).setString(Long.toString(defaultLength));
             }
         }
     }
@@ -213,22 +250,32 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
     // -------------------- encoding/type --------------------
 
     /**
-     * Obtain transfer-encoding value and mark it as serialized.
+     * Makes sure transfer-encoding header is present.
      *
-     * @param bc container for the transfer-encoding value.
+     * @param defaultValue default transfer-encoding value.
      */
-    protected void extractTransferEncoding(BufferChunk bc) {
+    protected void makeTransferEncodingHeader(String defaultValue) {
         final int idx = headers.indexOf(Constants.TRANSFER_ENCODING_HEADER, 0);
-        final BufferChunk value;
         
         if (idx == -1) {
-            bc.setString(Constants.CHUNKED_ENCODING);
-        } else if (!((value = headers.getValue(idx)).isNull())) {
-            bc.set(value);
-            headers.getAndSetSerialized(idx, true);
+            headers.addValue(Constants.TRANSFER_ENCODING_HEADER).setString(
+                    Constants.CHUNKED_ENCODING);
         }
     }
 
+    /**
+     * Obtain content-encoding value and mark it as serialized.
+     *
+     * @param value container for the content-type value.
+     */
+    protected void extractContentEncoding(BufferChunk value) {
+        final int idx = headers.indexOf(Constants.CONTENT_ENCODING_HEADER, 0);
+
+        if (idx != -1) {
+            headers.getAndSetSerialized(idx, true);
+            value.set(headers.getValue(idx));
+        }
+    }
 
     /**
      * TODO: docs
@@ -402,7 +449,9 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket {
      * Reset the internal state.
      */
     protected void reset() {
+        attributes.recycle();
         protocolBC.recycle();
+        contentEncodings.clear();
         headers.clear();
         cookies.recycle();
         isCommitted = false;

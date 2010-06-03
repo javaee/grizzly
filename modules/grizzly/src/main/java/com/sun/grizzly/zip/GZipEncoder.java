@@ -53,8 +53,10 @@ import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 
 /**
+ * This class implements a {@link Transformer} which encodes plain data to
+ * the GZIP format.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
     private static final int GZIP_MAGIC = 0x8b1f;
@@ -93,21 +95,33 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
     }
 
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String getName() {
         return "gzip-encoder";
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean hasInputRemaining(AttributeStorage storage, Buffer input) {
         return input.hasRemaining();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected LastResultAwareState createStateObject() {
         return new GZipOutputState();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     protected TransformationResult<Buffer, Buffer> transformImpl(
             AttributeStorage storage, Buffer input) throws TransformationException {

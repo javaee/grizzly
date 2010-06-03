@@ -56,45 +56,40 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public boolean isEncodeRequest(HttpRequestPacket requestPacket) {
-        final long contentLength = requestPacket.getContentLength();
+    public boolean wantDecode(HttpHeader httpPacket) {
+        final long contentLength = httpPacket.getContentLength();
 
         return (contentLength != -1);
-
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean isEncodeResponse(HttpResponsePacket responsePacket) {
-        final long contentLength = responsePacket.getContentLength();
+    public boolean wantEncode(HttpHeader httpPacket) {
+        final long contentLength = httpPacket.getContentLength();
 
         return (contentLength != -1);
-
     }
+
+    @Override
+    public void prepareSerialize(HttpHeader httpHeader, HttpContent httpContent) {
+        final int defaultContentLength = httpContent != null ?
+            httpContent.getContent().remaining() : -1;
+        
+        httpHeader.makeContentLengthHeader(defaultContentLength);
+    }
+
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ParsingResult parseRequest(Connection connection,
-            HttpRequestPacket requestPacket, Buffer input) {
-        return parsePacket(connection, requestPacket, input);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public ParsingResult parseResponse(Connection connection,
-            HttpResponsePacket responsePacket, Buffer buffer) {
-        return parsePacket(connection, responsePacket, buffer);
-    }
-
     @SuppressWarnings({"UnusedDeclaration"})
-    private ParsingResult parsePacket(Connection connection, HttpHeader packet, Buffer input) {
-        final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) packet;
+    public ParsingResult parsePacket(Connection connection,
+            HttpHeader httpPacket, Buffer input) {
+
+        final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) httpPacket;
         // Get HTTP content parsing state
         final ContentParsingState contentParsingState =
                 httpPacketParsing.getContentParsingState();
@@ -103,7 +98,7 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
         if (contentParsingState.chunkRemainder == -1) {
             // if we have just parsed a HTTP message header
             // assign chunkRemainder to the HTTP message content length
-            contentParsingState.chunkRemainder = packet.getContentLength();
+            contentParsingState.chunkRemainder = httpPacket.getContentLength();
         }
 
         Buffer remainder = null;
@@ -123,7 +118,7 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
 
         final boolean isLast = (contentParsingState.chunkRemainder == 0);
 
-        return ParsingResult.create(packet.httpContentBuilder().content(input)
+        return ParsingResult.create(httpPacket.httpContentBuilder().content(input)
                 .last(isLast).build(), remainder);
     }
 
@@ -131,15 +126,7 @@ public final class FixedLengthTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public Buffer serializeRequest(Connection connection, HttpContent httpContent) {
-        return httpContent.getContent();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Buffer serializeResponse(Connection connection, HttpContent httpContent) {
+    public Buffer serializePacket(Connection connection, HttpContent httpContent) {
         return httpContent.getContent();
     }
 }

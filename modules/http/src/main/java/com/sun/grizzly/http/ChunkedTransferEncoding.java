@@ -67,39 +67,34 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
      * {@inheritDoc}
      */
     @Override
-    public boolean isEncodeRequest(HttpRequestPacket requestPacket) {
-        return requestPacket.isChunked();
+    public boolean wantDecode(HttpHeader httpPacket) {
+        return httpPacket.isChunked();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public boolean isEncodeResponse(HttpResponsePacket responsePacket) {
-        return responsePacket.isChunked();
+    public boolean wantEncode(HttpHeader httpPacket) {
+        return httpPacket.isChunked();
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ParsingResult parseRequest(Connection connection,
-            HttpRequestPacket requestPacket, Buffer input) {
-        return parsePacket(connection, requestPacket, input);
+    public void prepareSerialize(HttpHeader httpHeader, HttpContent content) {
+        httpHeader.makeTransferEncodingHeader(Constants.CHUNKED_ENCODING);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public ParsingResult parseResponse(Connection connection,
-            HttpResponsePacket responsePacket, Buffer input) {
-        return parsePacket(connection, responsePacket, input);
-    }
-
     @SuppressWarnings({"UnusedDeclaration"})
-    private ParsingResult parsePacket(Connection connection, HttpHeader packet, Buffer input) {
-        final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) packet;
+    public ParsingResult parsePacket(Connection connection,
+            HttpHeader httpPacket, Buffer input) {
+        final HttpPacketParsing httpPacketParsing = (HttpPacketParsing) httpPacket;
 
         // Get HTTP content parsing state
         final ContentParsingState contentParsingState =
@@ -167,31 +162,19 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
 
         if (isLastChunk) {
             // Build last chunk content message
-            return ParsingResult.create(packet.httpTrailerBuilder().
+            return ParsingResult.create(httpPacket.httpTrailerBuilder().
                     headers(contentParsingState.trailerHeaders).build(), remainder);
 
         }
 
-        return ParsingResult.create(packet.httpContentBuilder().content(input).build(), remainder);
+        return ParsingResult.create(httpPacket.httpContentBuilder().content(input).build(), remainder);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public Buffer serializeRequest(Connection connection, HttpContent httpContent) {
-        return serializePacket(connection, httpContent);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Buffer serializeResponse(Connection connection, HttpContent httpContent) {
-        return serializePacket(connection, httpContent);
-    }
-
-    private Buffer serializePacket(Connection connection, HttpContent httpContent) {
+    public Buffer serializePacket(Connection connection, HttpContent httpContent) {
         final MemoryManager memoryManager = connection.getTransport().getMemoryManager();
         return encodeHttpChunk(memoryManager,
                 httpContent, httpContent.isLast());
@@ -321,10 +304,12 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
                         Constants.LAST_CHUNK_CRLF_BYTES);
             }
 
-            final HttpTrailer httpTrailer = (HttpTrailer) httpContent;
-            final MimeHeaders mimeHeaders = httpTrailer.getHeaders();
-            httpChunkTrailer = HttpCodecFilter.encodeMimeHeaders(memoryManager,
-                    httpChunkTrailer, mimeHeaders);
+            if (httpContent instanceof HttpTrailer) {
+                final HttpTrailer httpTrailer = (HttpTrailer) httpContent;
+                final MimeHeaders mimeHeaders = httpTrailer.getHeaders();
+                httpChunkTrailer = HttpCodecFilter.encodeMimeHeaders(memoryManager,
+                        httpChunkTrailer, mimeHeaders);
+            }
 
             httpChunkTrailer = HttpCodecFilter.put(memoryManager, httpChunkTrailer,
                     Constants.CRLF_BYTES);

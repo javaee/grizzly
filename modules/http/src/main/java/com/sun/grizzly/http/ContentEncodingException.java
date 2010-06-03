@@ -38,24 +38,23 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.http.util.MimeHeaders;
-
 /**
  *
  * @author oleksiys
  */
-public interface HttpPacketParsing {
-    public boolean isHeaderParsed();
+public class ContentEncodingException extends IllegalStateException {
+    public ContentEncodingException() {
+    }
 
-    public void setHeaderParsed(boolean isHeaderParsed);
+    public ContentEncodingException(String s) {
+        super(s);
+    }
 
-    public boolean isExpectContent();
+    public ContentEncodingException(Throwable cause) {
+        super(cause);
+    }
 
-    public void setExpectContent(boolean isExpectContent);
-
-    public HttpCodecFilter.ParsingState getHeaderParsingState();
-
-    public HttpCodecFilter.ContentParsingState getContentParsingState();
-
-    public MimeHeaders getHeaders();
+    public ContentEncodingException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
