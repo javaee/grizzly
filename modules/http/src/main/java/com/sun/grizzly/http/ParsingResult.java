@@ -38,59 +38,47 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.Connection;
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Cacheable;
+import com.sun.grizzly.ThreadCache;
 
 /**
- * Abstraction, which represents HTTP content-encoding.
- * Implementation should take care of HTTP content encoding and decoding.
- *
- * @see GZipContentEncoding
+ * Class, which represents result of {@link TransferEncoding} or {@link ContentEncoding} parsing.
  * 
  * @author Alexey Stashok
  */
-public interface ContentEncoding {
+public final class ParsingResult implements Cacheable {
 
-    /**
-     * Get the <tt>ContentEncoding</tt> name.
-     *
-     * @return the <tt>ContentEncoding</tt> name.
-     */
-    public String getName();
+    private static final ThreadCache.CachedTypeIndex<ParsingResult> CACHE_IDX = ThreadCache.obtainIndex(ParsingResult.class, 1);
+    private HttpContent httpContent;
+    private Buffer remainderBuffer;
 
-    /**
-     * Get the <tt>ContentEncoding</tt> aliases.
-     * 
-     * @return the <tt>ContentEncoding</tt> aliases.
-     */
-    public String[] getAliases();
+    public static ParsingResult create(HttpContent httpContent, Buffer remainderBuffer) {
+        ParsingResult resultObject = ThreadCache.takeFromCache(CACHE_IDX);
+        if (resultObject == null) {
+            resultObject = new ParsingResult();
+        }
+        resultObject.httpContent = httpContent;
+        resultObject.remainderBuffer = remainderBuffer;
+        return resultObject;
+    }
 
-    /**
-     * Method should implement the logic, which decides if HTTP packet with
-     * the specific {@link HttpHeader} should be encoded using this <tt>ContentEncoding</tt>.
-     *
-     * @param header HTTP packet header.
-     * @return <tt>true</tt>, if this <tt>ContentEncoding</tt> should be used to
-     * encode the HTTP packet, or <tt>false</tt> otherwise.
-     */
-    public boolean wantEncode(HttpHeader header);
+    private ParsingResult() {
+    }
 
-    /**
-     * Decode HTTP packet content represented by {@link HttpContent}.
-     * 
-     * @param connection {@link Connection}.
-     * @param httpContent {@link HttpContent} to decode.
-     *
-     * @return {@link ParsingResult}, which represents the result of decoding.
-     */
-    public ParsingResult decode(Connection connection, HttpContent httpContent);
-    
-    /**
-     * Encode HTTP packet content represented by {@link HttpContent}.
-     * 
-     * @param connection {@link Connection}.
-     * @param httpContent {@link HttpContent} to encode.
-     *
-     * @return encoded {@link HttpContent}.
-     */
-    public HttpContent encode(Connection connection, HttpContent httpContent);
+    public Buffer getRemainderBuffer() {
+        return remainderBuffer;
+    }
+
+    public HttpContent getHttpContent() {
+        return httpContent;
+    }
+
+    @Override
+    public void recycle() {
+        remainderBuffer = null;
+        httpContent = null;
+
+        ThreadCache.putToCache(CACHE_IDX, this);
+    }
 }

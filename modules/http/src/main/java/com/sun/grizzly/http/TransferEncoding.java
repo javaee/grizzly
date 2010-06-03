@@ -40,7 +40,6 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.ThreadCache;
 
 /**
  * Abstraction, which represents HTTP transfer-encoding.
@@ -106,41 +105,4 @@ public interface TransferEncoding {
      */
     public Buffer serializePacket(Connection connection,
             HttpContent httpContent);
-
-
-    public final class ParsingResult {
-        private static final ThreadCache.CachedTypeIndex<ParsingResult> CACHE_IDX =
-                ThreadCache.obtainIndex(ParsingResult.class, 1);
-
-        private HttpContent httpContent;
-        private Buffer remainderBuffer;
-
-        public static ParsingResult create(HttpContent httpContent, Buffer remainderBuffer) {
-            ParsingResult resultObject = ThreadCache.takeFromCache(CACHE_IDX);
-            if (resultObject == null) {
-                resultObject = new ParsingResult();
-            }
-
-            resultObject.httpContent = httpContent;
-            resultObject.remainderBuffer = remainderBuffer;
-
-            return resultObject;
-        }
-
-        private ParsingResult() {
-        }
-
-        public Buffer getRemainderBuffer() {
-            return remainderBuffer;
-        }
-
-        public HttpContent getHttpContent() {
-            return httpContent;
-        }
-
-        protected void recycle() {
-            remainderBuffer = null;
-            httpContent = null;
-        }
-    }
 }

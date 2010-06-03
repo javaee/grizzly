@@ -43,7 +43,6 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
-import com.sun.grizzly.http.TransferEncoding.ParsingResult;
 import com.sun.grizzly.http.util.Ascii;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.CacheableBufferChunk;

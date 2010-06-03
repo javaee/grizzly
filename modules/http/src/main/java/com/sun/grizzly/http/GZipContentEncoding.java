@@ -41,7 +41,6 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.TransformationResult;
-import com.sun.grizzly.http.TransferEncoding.ParsingResult;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.zip.GZipDecoder;
 import com.sun.grizzly.zip.GZipEncoder;
