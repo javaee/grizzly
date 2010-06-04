@@ -503,7 +503,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
         request.setAttribute(name, value);
         
         List listeners = contextImpl.getListeners();
-        if (listeners.size() == 0)
+        if (listeners.isEmpty())
             return;
         ServletRequestAttributeEvent event = null;
 
@@ -550,7 +550,7 @@ public class HttpServletRequestImpl implements HttpServletRequest {
 
         // Notify interested application event listeners
         List listeners = contextImpl.getListeners();
-        if (listeners.size() == 0)
+        if (listeners.isEmpty())
             return;
         ServletRequestAttributeEvent event = null;
         for (int i = 0; i < listeners.size(); i++) {
