@@ -422,6 +422,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
 
                 // Ephemeral support
                 port = serverSocket.getLocalPort();
+                inet = serverSocket.getInetAddress();
             }
             ctx.getController().notifyReady();
         } catch (SocketException ex){
