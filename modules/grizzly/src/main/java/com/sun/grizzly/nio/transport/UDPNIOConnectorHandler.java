@@ -124,6 +124,8 @@ public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler
         
         UDPNIOConnection newConnection = (UDPNIOConnection)
                 nioTransport.obtainNIOConnection(datagramChannel);
+
+        preConfigure(newConnection);
         
         if (remoteAddress != null) {
             datagramChannel.connect(remoteAddress);

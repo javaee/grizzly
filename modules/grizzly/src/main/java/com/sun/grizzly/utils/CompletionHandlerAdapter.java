@@ -45,22 +45,42 @@ import com.sun.grizzly.impl.FutureImpl;
  *
  * @author Alexey Stashok
  */
-public class CompletionHandlerAdapter<R>
-        implements CompletionHandler<R> {
+public class CompletionHandlerAdapter<A, B>
+        implements CompletionHandler<B> {
 
-    private final FutureImpl<R> future;
-    private final CompletionHandler<R> completionHandler;
+    private final static ResultAdapter DIRECT_ADAPTER = new ResultAdapter() {
+        @Override
+        public Object adapt(Object result) {
+            return result;
+        }
+    };
 
-    public CompletionHandlerAdapter(FutureImpl<R> future) {
+    private final ResultAdapter<A, B> adapter;
+    private final FutureImpl<A> future;
+    private final CompletionHandler<A> completionHandler;
+
+    public CompletionHandlerAdapter(FutureImpl<A> future) {
         this(future, null);
     }
 
-    public CompletionHandlerAdapter(FutureImpl<R> future,
-            CompletionHandler<R> completionHandler) {
+    public CompletionHandlerAdapter(FutureImpl<A> future,
+            CompletionHandler<A> completionHandler) {
+        this(future, completionHandler, null);
+    }
+
+    public CompletionHandlerAdapter(FutureImpl<A> future,
+            CompletionHandler<A> completionHandler,
+            ResultAdapter<A, B> adapter) {
         this.future = future;
         this.completionHandler = completionHandler;
+        if (adapter != null) {
+            this.adapter = adapter;
+        } else {
+            this.adapter = DIRECT_ADAPTER;
+        }
     }
-    
+
+
     @Override
     public void cancelled() {
         future.cancel(false);
@@ -78,18 +98,29 @@ public class CompletionHandlerAdapter<R>
     }
 
     @Override
-    public void completed(R result) {
-        future.result(result);
+    public void completed(B result) {
+        final A adaptedResult = adapter.adapt(result);
+        
+        future.result(adaptedResult);
         if (completionHandler != null) {
-            completionHandler.completed(result);
+            completionHandler.completed(adaptedResult);
         }
     }
 
     @Override
-    public void updated(R result) {
+    public void updated(B result) {
+        final A adaptedResult = adapter.adapt(result);
+
         if (completionHandler != null) {
-            completionHandler.updated(result);
+            completionHandler.updated(adaptedResult);
         }
     }
 
+    protected A adapt(B result) {
+        return adapter.adapt(result);
+    }
+    
+    public interface ResultAdapter<K, V> {
+        public K adapt(V result);
+    }
 }

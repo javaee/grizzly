@@ -49,7 +49,8 @@ import com.sun.grizzly.Transformer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
-import com.sun.grizzly.utils.CompletionHandlerResultAdapter;
+import com.sun.grizzly.utils.CompletionHandlerAdapter;
+import com.sun.grizzly.utils.ResultAware;
 import com.sun.grizzly.utils.conditions.Condition;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -396,8 +397,8 @@ public abstract class AbstractStreamReader implements StreamReader {
     public <E> GrizzlyFuture<E> decode(Transformer<Stream, E> decoder, CompletionHandler<E> completionHandler) {
         final FutureImpl<E> future = SafeFutureImpl.<E>create();
 
-        final CompletionHandlerResultAdapter completionHandlerWrapper =
-                new CompletionHandlerResultAdapter(future, completionHandler);
+        final DecodeCompletionHandler completionHandlerWrapper =
+                new DecodeCompletionHandler(future, completionHandler);
 
         notifyCondition(
                 new StreamDecodeCondition(this, decoder, completionHandlerWrapper),
@@ -526,6 +527,27 @@ public abstract class AbstractStreamReader implements StreamReader {
     @Override
     public Connection getConnection() {
         return connection;
+    }
+
+    private static class DecodeCompletionHandler<A, B> extends CompletionHandlerAdapter<A, B>
+            implements ResultAware<A> {
+
+        private volatile A result;
+        
+        public DecodeCompletionHandler(FutureImpl<A> future,
+                CompletionHandler<A> completionHandler) {
+            super(future, completionHandler);
+        }
+        
+        @Override
+        public void setResult(A result) {
+            this.result = result;
+        }
+
+        @Override
+        protected A adapt(B result) {
+            return this.result;
+        }
     }
 }
 

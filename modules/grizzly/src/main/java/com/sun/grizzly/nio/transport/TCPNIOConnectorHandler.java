@@ -71,9 +71,6 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     protected boolean isReuseAddress;
     protected int connectionTimeout = DEFAULT_CONNECTION_TIMEOUT;
 
-//    private volatile FutureImpl<Connection> connectFuture;
-//    private volatile CompletionHandler<Connection> connectCompletionHandler;
-
     public TCPNIOConnectorHandler(TCPNIOTransport transport) {
         super(transport);
         TCPNIOTransport nioTransport = (TCPNIOTransport) transport;
@@ -124,9 +121,11 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
         final TCPNIOConnection newConnection = (TCPNIOConnection)
                 nioTransport.obtainNIOConnection(socketChannel);
 
+        preConfigure(newConnection);
+
         newConnection.setProcessor(defaultProcessor);
         newConnection.setProcessorSelector(defaultProcessorSelector);
-        
+
         try {
             boolean isConnected = socketChannel.connect(remoteAddress);
 

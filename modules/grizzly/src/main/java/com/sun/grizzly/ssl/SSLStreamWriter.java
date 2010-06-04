@@ -45,7 +45,7 @@ import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.TransformerStreamWriter;
 import com.sun.grizzly.streams.StreamWriter;
-import com.sun.grizzly.utils.CompletionHandlerResultAdapter;
+import com.sun.grizzly.utils.CompletionHandlerAdapter;
 import com.sun.grizzly.utils.conditions.Condition;
 import java.io.IOException;
 import java.util.concurrent.Future;
@@ -105,10 +105,8 @@ public class SSLStreamWriter extends TransformerStreamWriter {
         final FutureImpl<SSLEngine> future = SafeFutureImpl.create();
 
         final HandshakeCompletionHandler hsCompletionHandler =
-                new HandshakeCompletionHandler(future, completionHandler);
+                new HandshakeCompletionHandler(future, completionHandler, sslEngine);
 
-        hsCompletionHandler.setResult(sslEngine);
-        
         sslStreamReader.notifyCondition(new SSLHandshakeCondition(sslStreamReader,
                 this, configurator, sslEngine, hsCompletionHandler),
                 hsCompletionHandler);
@@ -222,11 +220,19 @@ public class SSLStreamWriter extends TransformerStreamWriter {
     }
 
     protected final class HandshakeCompletionHandler extends
-            CompletionHandlerResultAdapter<SSLEngine, Integer> {
+            CompletionHandlerAdapter<SSLEngine, Integer> {
+
+        final SSLEngine sslEngine;
 
         public HandshakeCompletionHandler(FutureImpl<SSLEngine> future,
-                CompletionHandler<SSLEngine> completionHandler) {
+                CompletionHandler<SSLEngine> completionHandler, SSLEngine sslEngine) {
             super(future, completionHandler);
+            this.sslEngine = sslEngine;
+        }
+
+        @Override
+        protected SSLEngine adapt(Integer result) {
+            return sslEngine;
         }
     }
 }

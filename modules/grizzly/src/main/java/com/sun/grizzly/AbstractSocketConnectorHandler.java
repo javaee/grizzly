@@ -114,4 +114,13 @@ public abstract class AbstractSocketConnectorHandler
     public void setProcessorSelector(ProcessorSelector defaultProcessorSelector) {
         this.defaultProcessorSelector = defaultProcessorSelector;
     }
+
+    /**
+     * Preconfigures {@link Connection} object before actual connecting phase
+     * will be started.
+     * 
+     * @param connection {@link Connection} to preconfigure.
+     */
+    protected void preConfigure(Connection connection) {
+    }
 }
