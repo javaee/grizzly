@@ -81,6 +81,10 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
     void setJkEnabled(String enabled);
 
+    @Attribute(defaultValue = "${com.sun.aas.instanceRoot}/config/glassfish-jk.properties")
+    String getJkConfigurationFile();
+
+    void setJkConfigurationFile(String file);
     /**
      * Network-listener name, which could be used as reference
      */
