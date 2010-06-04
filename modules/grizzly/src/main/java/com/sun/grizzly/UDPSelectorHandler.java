@@ -174,7 +174,7 @@ public class UDPSelectorHandler extends TCPSelectorHandler {
                 datagramSocket.setSoTimeout(serverTimeout);
 
                 port = datagramSocket.getLocalPort();
-                inet = datagramSocket.getInetAddress();
+                inet = datagramSocket.getLocalAddress();
             }
             ctx.getController().notifyReady();
         } catch (SocketException ex){
