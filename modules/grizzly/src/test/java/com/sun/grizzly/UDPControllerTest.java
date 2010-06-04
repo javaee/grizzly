@@ -59,7 +59,7 @@ public class UDPControllerTest extends TestCase {
             ControllerUtils.startController(controller);
             int portLowlevel = ((UDPSelectorHandler) controller.getSelectorHandler(Protocol.UDP)).getPortLowLevel();
             int port = ((UDPSelectorHandler) controller.getSelectorHandler(Protocol.UDP)).getPort();
-            assertTrue(port == 0 && portLowlevel > 0);
+            assertTrue(port > 0 && port == portLowlevel);
         } finally {
             controller.stop();
         }
