@@ -99,7 +99,7 @@ public class CompletionHandlerAdapter<A, B>
 
     @Override
     public void completed(B result) {
-        final A adaptedResult = adapter.adapt(result);
+        final A adaptedResult = adapt(result);
         
         future.result(adaptedResult);
         if (completionHandler != null) {
