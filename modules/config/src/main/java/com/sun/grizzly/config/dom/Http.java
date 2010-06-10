@@ -59,21 +59,39 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setAdapter(String adapter);
 
+    /**
+     * Enable pass through of authentication from any front-end server
+     */
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getAuthPassThroughEnabled();
+
+    void setAuthPassThroughEnabled(String bool);
+
     @Attribute(defaultValue = "true", dataType = Boolean.class)
     String getChunkingEnabled();
 
     void setChunkingEnabled(String enabled);
+
+    /**
+     * Enable comet support for this http instance.  The default for this is false until enabling comet support but not
+     * using it can be verified as harmless.  Currently it is unclear what the performance impact of enabling this
+     * feature is.
+     */
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getCometSupportEnabled();
+
+    void setCometSupportEnabled(String enable);
+
+    @Attribute(defaultValue = "text/html,text/xml,text/plain")
+    String getCompressableMimeType();
+
+    void setCompressableMimeType(String type);
 
     @Attribute(defaultValue = "off", dataType = String.class)
     @Pattern(regexp = "on|off|force|\\d+")
     String getCompression();
 
     void setCompression(String compression);
-
-    @Attribute(defaultValue = "text/html,text/xml,text/plain")
-    String getCompressableMimeType();
-
-    void setCompressableMimeType(String type);
 
     @Attribute(defaultValue = "2048", dataType = Integer.class)
     String getCompressionMinSizeBytes();
@@ -104,38 +122,15 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
 
     void setDefaultVirtualServer(final String defaultVirtualServer);
 
-    @Attribute(defaultValue = "true", dataType = Boolean.class)
-    String getUploadTimeoutEnabled();
-
-    void setUploadTimeoutEnabled(String disable);
-
-    /**
-     * Enable pass through of authentication from any front-end server
-     */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
-    String getAuthPassThroughEnabled();
-
-    void setAuthPassThroughEnabled(String bool);
-
-    /**
-     * Enable comet support for this http instance.  The default for this is false until enabling comet support but not
-     * using it can be verified as harmless.  Currently it is unclear what the performance impact of enabling this
-     * feature is.
-     */
-    @Attribute(defaultValue = "false", dataType = Boolean.class)
-    String getCometSupportEnabled();
-
-    void setCometSupportEnabled(String enable);
-
     @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getDnsLookupEnabled();
 
     void setDnsLookupEnabled(String enable);
 
     @Attribute(defaultValue = "false", dataType = Boolean.class)
-    String getRcmSupportEnabled();
-
-    void setRcmSupportEnabled(String enable);
+    String getEncodedSlashEnabled();
+    
+    void setEncodedSlashEnabled(String enabled);
 
     /**
      * Gets the value of the fileCache property.
@@ -184,6 +179,11 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getNoCompressionUserAgents();
 
     void setNoCompressionUserAgents(String agents);
+
+    @Attribute(defaultValue = "false", dataType = Boolean.class)
+    String getRcmSupportEnabled();
+
+    void setRcmSupportEnabled(String enable);
 
     /**
      * if the connector is supporting non-SSL requests and a request is received for which a matching
@@ -244,6 +244,11 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
     String getTraceEnabled();
 
     void setTraceEnabled(String enabled);
+
+    @Attribute(defaultValue = "true", dataType = Boolean.class)
+    String getUploadTimeoutEnabled();
+
+    void setUploadTimeoutEnabled(String disable);
 
     @Attribute(defaultValue = "UTF-8")
     String getUriEncoding();

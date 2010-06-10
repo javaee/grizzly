@@ -145,7 +145,7 @@ public class PUReadFilter extends ReadFilter {
                 protocolHandler.getByteBuffer() :
                 protocolRequest.getByteBuffer();
 
-            if (!super.execute(context, readBuffer)) {
+            if (!execute(context, readBuffer)) {
                 // if ReadFilter didn't succeed - return
                 if (isloglevelfine) {
                     logger.log(Level.FINE, "PUReadFilter. Read failed");
@@ -166,11 +166,10 @@ public class PUReadFilter extends ReadFilter {
                 }
 
                 while (readTry++ < MAX_FIND_TRIES) {
-                    String protocolName = null;
+                    String protocolName;
 
                     if (preProcessors != null) {
-                        for (int i=0;i<preProcessors.size();i++) {
-                            PUPreProcessor preProcessor = preProcessors.get(i);
+                        for (PUPreProcessor preProcessor : preProcessors) {
                             if (isloglevelfine) {
                                 logger.log(Level.FINE, "PUReadFilter. Apply preprocessor process: " + preProcessor);
                             }
@@ -203,10 +202,9 @@ public class PUReadFilter extends ReadFilter {
                         protocolHandler = protocolHandlers.get(protocolName);
 
                         if (protocolHandler != null) {
-                            final boolean result = processProtocolHandler(protocolHandler,
+                            return processProtocolHandler(protocolHandler,
                                     context, protocolRequest,
                                     protocolRequest.isMapSelectionKey());
-                            return result;
                         } else {
                             // Protocol will be processed by next Filters in chain
                             if (protocolRequest.isMapSelectionKey()) {
@@ -273,7 +271,6 @@ public class PUReadFilter extends ReadFilter {
             if (readTry == MAX_FIND_TRIES) {
                 cancelKey(context);
             }
-            protocolHandler = null;
         }
 
         return true;
@@ -380,17 +377,11 @@ public class PUReadFilter extends ReadFilter {
      * Configures port unification depending on passed <code>Properties</code>
      * @param props <code>Properties</code>
      */
+    @SuppressWarnings({"unchecked"})
     public void configure(Properties props) {
-        List<ProtocolFinder> protocolFinders =
-                loadPUArtifacts(props.getProperty(PROTOCOL_FINDERS));
-
-        List<ProtocolHandler> protocolHandlers =
-                loadPUArtifacts(props.getProperty(PROTOCOL_HANDLERS));
-
-        List<PUPreProcessor> puPreProcessors =
-                loadPUArtifacts(props.getProperty(PU_PRE_PROCESSORS));
-
-        configure(protocolFinders, protocolHandlers, puPreProcessors);
+        configure((List<ProtocolFinder>) loadPUArtifacts(props.getProperty(PROTOCOL_FINDERS)),
+                (List<ProtocolHandler>) loadPUArtifacts(props.getProperty(PROTOCOL_HANDLERS)),
+                (List<PUPreProcessor>) loadPUArtifacts(props.getProperty(PU_PRE_PROCESSORS)));
     }
 
 

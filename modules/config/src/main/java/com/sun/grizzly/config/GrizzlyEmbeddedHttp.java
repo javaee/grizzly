@@ -64,9 +64,11 @@ import com.sun.grizzly.portunif.ProtocolFinder;
 import com.sun.grizzly.portunif.ProtocolHandler;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
+import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.DataStructures;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.WorkerThread;
+import com.sun.grizzly.util.buf.UDecoder;
 import com.sun.grizzly.websockets.WebSocketAsyncFilter;
 import org.jvnet.hk2.component.Habitat;
 import org.jvnet.hk2.config.ConfigBeanProxy;
@@ -105,6 +107,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     protected final List<ProtocolFinder> finders = new ArrayList<ProtocolFinder>();
     protected final List<ProtocolHandler> handlers = new ArrayList<ProtocolHandler>();
     protected final List<PUPreProcessor> preprocessors = new ArrayList<PUPreProcessor>();
+    private UDecoder udecoder;
 
     /**
      * Constructor
@@ -216,10 +219,20 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         isHttpSecured = httpSecured;
     }
 
+    public UDecoder getUrlDecoder() {
+        return udecoder;
+    }
+
+    public void setUrlDecoder(UDecoder udecoder) {
+        this.udecoder = udecoder;
+    }
+
     public void configure(NetworkListener networkListener, Habitat habitat) {
         final Transport transport = networkListener.findTransport();
         final ThreadPool pool = networkListener.findThreadPool();
         setPort(Integer.parseInt(networkListener.getPort()));
+        udecoder = new UDecoder(
+                GrizzlyConfig.toBoolean(networkListener.findHttpProtocol().getHttp().getEncodedSlashEnabled()));
         try {
             setAddress(InetAddress.getByName(networkListener.getAddress()));
         } catch (UnknownHostException e) {
@@ -453,6 +466,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         // http settings
         try {
             setAdapter((Adapter) Class.forName(http.getAdapter()).newInstance());
+            if(adapter instanceof GrizzlyAdapter) {
+                ((GrizzlyAdapter)adapter).setAllowEncodedSlash(GrizzlyConfig.toBoolean(http.getEncodedSlashEnabled()));
+            }
         } catch (Exception e) {
             throw new GrizzlyConfigException(e.getMessage(), e);
         }

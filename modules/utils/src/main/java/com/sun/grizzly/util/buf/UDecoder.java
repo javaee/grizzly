@@ -149,7 +149,7 @@ public final class UDecoder {
 
                 j += 2;
                 int res = x2c(b1, b2);
-                if (noSlash && (res == '/')) {
+                if (noSlash && res == '/') {
                     throw new CharConversionException("Encoded slashes are not allowed by default.  To enable encoded" +
                             "slashes, set the property " + ALLOW_ENCODED_SLASH_NAME + " to true.");
                 }
@@ -199,7 +199,7 @@ public final class UDecoder {
 
         for (int j = idx; j < cend; j++, idx++) {
             if (buff[j] == '+' && query) {
-                buff[idx] = (' ');
+                buff[idx] = ' ';
             } else if (buff[j] != '%') {
                 buff[idx] = buff[j];
             } else {
@@ -263,11 +263,11 @@ public final class UDecoder {
 
     // XXX Old code, needs to be replaced !!!!
     // 
-    public final String convert(String str) {
+    public String convert(String str) {
         return convert(str, true);
     }
 
-    public final String convert(String str, boolean query) {
+    public String convert(String str, boolean query) {
         if (str == null) {
             return null;
         }
@@ -287,7 +287,7 @@ public final class UDecoder {
             // look ahead to next URLencoded metacharacter, if any
             for (laPos = strPos; laPos < strLen; laPos++) {
                 char laChar = str.charAt(laPos);
-                if ((laChar == '+' && query) || (laChar == '%')) {
+                if (laChar == '+' && query || laChar == '%') {
                     break;
                 }
             }
@@ -322,25 +322,24 @@ public final class UDecoder {
     }
 
     private static boolean isHexDigit(int c) {
-        return ((c >= '0' && c <= '9') ||
-                (c >= 'a' && c <= 'f') ||
-                (c >= 'A' && c <= 'F'));
+        return c >= '0' && c <= '9' ||
+                c >= 'a' && c <= 'f' ||
+                c >= 'A' && c <= 'F';
     }
 
     private static int x2c(byte b1, byte b2) {
-        int digit = (b1 >= 'A') ? ((b1 & 0xDF) - 'A') + 10 : (b1 - '0');
+        int digit = b1 >= 'A' ? (b1 & 0xDF) - 'A' + 10 : b1 - '0';
         digit *= 16;
-        digit += (b2 >= 'A') ? ((b2 & 0xDF) - 'A') + 10 : (b2 - '0');
+        digit += b2 >= 'A' ? (b2 & 0xDF) - 'A' + 10 : b2 - '0';
         return digit;
     }
 
     private static int x2c(char b1, char b2) {
-        int digit = (b1 >= 'A') ? ((b1 & 0xDF) - 'A') + 10 : (b1 - '0');
+        int digit = b1 >= 'A' ? (b1 & 0xDF) - 'A' + 10 : b1 - '0';
         digit *= 16;
-        digit += (b2 >= 'A') ? ((b2 & 0xDF) - 'A') + 10 : (b2 - '0');
+        digit += b2 >= 'A' ? (b2 & 0xDF) - 'A' + 10 : b2 - '0';
         return digit;
     }
-    private final static int debug = 0;
 
     private static void log(String s) {
         if (logger.isLoggable(Level.FINEST)) {
