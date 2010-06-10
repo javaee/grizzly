@@ -148,8 +148,10 @@ public class HttpServerFilter extends HttpCodecFilter {
             httpRequest = HttpRequestPacketImpl.create();
             httpRequest.initialize(connection, input.position(), maxHeadersSize);
             HttpResponsePacketImpl response = HttpResponsePacketImpl.create();
+            response.setUpgrade(httpRequest.getUpgrade());
             httpRequest.setResponse(response);
             response.setRequest(httpRequest);
+            
             httpRequestInProcessAttr.set(connection, httpRequest);
         }
 
@@ -171,6 +173,10 @@ public class HttpServerFilter extends HttpCodecFilter {
     @Override
     boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx) {
         HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+
+        // If it's upgraded HTTP - don't check semantics
+        if (!request.getUpgradeBC().isNull()) return false;
+        
         prepareRequest(request);
         return request.getProcessingState().error;
     }
@@ -196,7 +202,7 @@ public class HttpServerFilter extends HttpCodecFilter {
             header = ((HttpContent) input).getHttpHeader();
         }
         HttpResponsePacketImpl response = (HttpResponsePacketImpl) header;
-        if (!response.isCommitted()) {
+        if (response.getUpgrade() == null && !response.isCommitted()) {
             prepareResponse(response.getRequest(), response);
         }
 

@@ -312,6 +312,10 @@ public class Constants {
 
     public final static byte[] CHUNKED_ENCODING_BYTES = CHUNKED_ENCODING.getBytes(ASCII_CHARSET);
     
+    public final static String UPGRADE_HEADER = "upgrade";
+
+    public final static byte[] UPGRADE_HEADER_BYTES = UPGRADE_HEADER.getBytes(ASCII_CHARSET);
+
     public final static byte[] LAST_CHUNK_CRLF_BYTES = "0\r\n".getBytes(ASCII_CHARSET);
 
     public final static String CONTENT_ENCODING_HEADER = "content-encoding";

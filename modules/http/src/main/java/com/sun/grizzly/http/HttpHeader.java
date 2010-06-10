@@ -72,6 +72,8 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     protected String contentType;
     protected Cookies cookies = new Cookies(headers);
 
+    protected BufferChunk upgrade = BufferChunk.newInstance();
+
     private TransferEncoding transferEncoding;
     private final List<ContentEncoding> contentEncodings = new ArrayList();
 
@@ -160,6 +162,34 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     public void setChunked(boolean isChunked) {
         this.isChunked = isChunked;
     }
+
+    public String getUpgrade() {
+        if (!upgrade.isNull()) {
+            return upgrade.toString();
+        }
+
+        final String upgradeStr = headers.getHeader(Constants.UPGRADE_HEADER);
+        if (upgradeStr != null) {
+            upgrade.setString(upgradeStr);
+        }
+        
+        return upgradeStr;
+    }
+
+    public BufferChunk getUpgradeBC() {
+        return upgrade;
+    }
+
+    public void setUpgrade(String upgrade) {
+        this.upgrade.setString(upgrade);
+    }
+
+    protected void makeUpgradeHeader() {
+        if (!upgrade.isNull()) {
+            headers.setValue(Constants.UPGRADE_HEADER).set(upgrade);
+        }
+    }
+
 
     /**
      * Makes sure content-length header is present.
@@ -462,6 +492,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
         contentType = null;
         contentTypeParsed = false;
         transferEncoding = null;
+        upgrade.recycle();
     }
     
     /**
@@ -524,6 +555,17 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
         @SuppressWarnings({"unchecked"})
         public final T contentType(String contentType) {
             packet.setContentType(contentType);
+            return (T) this;
+        }
+
+        /**
+         * Set the HTTP upgrade type.
+         *
+         * @param upgrade the type of upgrade.
+         */
+        @SuppressWarnings({"unchecked"})
+        public final T upgrade(String upgrade) {
+            packet.setUpgrade(upgrade);
             return (T) this;
         }
 
