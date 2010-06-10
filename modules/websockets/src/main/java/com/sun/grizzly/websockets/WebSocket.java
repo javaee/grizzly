@@ -40,29 +40,89 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 import java.net.URI;
-import java.util.concurrent.Future;
 
+/**
+ * General WebSocket unit interface.
+ *
+ * @see WebSocketBase
+ * @see ClientWebSocket
+ * @see ServerWebSocket
+ * 
+ * @author Alexey Stashok
+ */
 public interface WebSocket {
 
-    public Future<Frame> send(Frame frame) throws IOException;
+    /**
+     * Send a message, represented as WebSocket {@link Frame}.
+     * @param frame {@link Frame}.
+     * @return {@link GrizzlyFuture}, which could be used to control the sending completion state.
+     * 
+     * @throws IOException
+     */
+    public GrizzlyFuture<Frame> send(Frame frame) throws IOException;
 
-    public Future<Frame> send(Frame frame,
+    /**
+     * Send a message, represented as WebSocket {@link Frame}.
+     * @param frame {@link Frame}.
+     * @param completionHandler {@link CompletionHandler}, which could be used
+     *        to control the message sending state.
+     * @return {@link GrizzlyFuture}, which could be used to control the sending
+     *        completion state.
+     *
+     * @throws IOException
+     */
+    public GrizzlyFuture<Frame> send(Frame frame,
             CompletionHandler<Frame> completionHandler) throws IOException;
-    
-    public enum Status {HANDSHAKE, OPERATE, CLOSE}
-    
+
+    /**
+     * Close the <tt>WebSocket</tt>.
+     * The close operation will do the following steps:
+     * 1) try to send a <tt>close frame</tt>
+     * 2) call {@link WebSocketHandler#onClose(com.sun.grizzly.websockets.WebSocket)} method
+     * 3) close the underlying {@link Connection}
+     *
+     * @throws IOException
+     */
     public void close() throws IOException;
 
+    /**
+     * Returns <tt>true</tt> if the <tt>WebSocket</tt> is connected and ready to
+     * operate, or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt> if the <tt>WebSocket</tt> is connected and ready to
+     * operate, or <tt>false</tt> otherwise.
+     */
     public boolean isConnected();
 
+    /**
+     * Gets the <tt>WebSocket</tt> URI.
+     *
+     * @return the <tt>WebSocket</tt> URI.
+     */
     public URI getURI();
 
+    /**
+     * Gets the <tt>WebSocket</tt>'s underlying {@link Connection}.
+     *
+     * @return the <tt>WebSocket</tt>'s underlying {@link Connection}.
+     */
     public Connection getConnection();
 
+    /**
+     * Returns the <tt>WebSocket</tt>'s meta data.
+     *
+     * @return {@link WebSocketMeta>.
+     */
     public WebSocketMeta getMeta();
 
+    /**
+     * Returns the <tt>WebSocket</tt>'s events handler.
+     * 
+     * @return {@link WebSocketHandler}.
+     */
     public WebSocketHandler getHandler();
 }

@@ -39,21 +39,39 @@
 package com.sun.grizzly.websockets;
 
 /**
- *
- * @author oleksiys
+ * {@link Exception}, which describes the error, occurred during the {@link WebSocket}
+ * handshake phase.
+ * 
+ * @author Alexey Stashok
  */
 public class HandshakeException extends Exception {
     private final int code;
 
+    /**
+     * Construct a <tt>HandshakeException</tt>.
+     *
+     * @param message error description
+     */
     public HandshakeException(String message) {
         this(404, message);
     }
 
+    /**
+     * Construct a <tt>HandshakeException</tt>.
+     *
+     * @param code error code
+     * @param message error description
+     */
     public HandshakeException(int code, String message) {
         super(message);
         this.code = code;
     }
 
+    /**
+     * Get the error code.
+     *
+     * @return the error code.
+     */
     public int getCode() {
         return code;
     }

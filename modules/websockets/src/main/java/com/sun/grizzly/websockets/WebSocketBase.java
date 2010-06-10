@@ -48,48 +48,81 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
+ * {@link WebSocket} base implementation, which partially implements
+ * {@link WebSocket} interface.
  *
- * @author oleksiys
+ * @see WebSocket
+ * @see ClientWebSocket
+ * @see ServerWebSocket
+ * 
+ * @author Alexey Stashok
  */
 public abstract class WebSocketBase implements WebSocket {
     protected final WebSocketMeta meta;
     protected final Connection connection;
 
+    /**
+     * The {@link Frame}, which is being currently decoded.
+     */
     private Frame decodingFrame;
 
     private final AtomicBoolean isClosed = new AtomicBoolean();
 
-    public WebSocketBase(WebSocketMeta meta, Connection connection) {
-        this.meta = meta;
+    /**
+     * Construct a <tt>WebSocketBase</tt>.
+     *
+     * @param connection underlying Grizzly {@link Connection}.
+     * @param meta {@link WebSocketMeta} info
+     */
+    public WebSocketBase(Connection connection, WebSocketMeta meta) {
         this.connection = connection;
+        this.meta = meta;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public URI getURI() {
         return meta.getURI();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public WebSocketMeta getMeta() {
         return meta;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Connection getConnection() {
         return connection;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final GrizzlyFuture<Frame> send(Frame frame) throws IOException {
         return send(frame, null);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public GrizzlyFuture<Frame> send(Frame frame,
             CompletionHandler<Frame> completionHandler) throws IOException {
         return connection.write(frame, completionHandler);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void close() throws IOException {
         if (!isClosed.getAndSet(true)) {
@@ -105,15 +138,28 @@ public abstract class WebSocketBase implements WebSocket {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean isConnected() {
         return !isClosed.get();
     }
 
+    /**
+     * Get the currently decoding {@link Frame}.
+     *
+     * @return the currently decoding {@link Frame}.
+     */
     Frame getDecodingFrame() {
         return decodingFrame;
     }
 
+    /**
+     * Set the currently decoding {@link Frame}.
+     *
+     * @param decodingFrame the currently decoding {@link Frame}.
+     */
     void setDecodingFrame(Frame decodingFrame) {
         this.decodingFrame = decodingFrame;
     }

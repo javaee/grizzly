@@ -42,7 +42,7 @@ import java.net.URI;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public abstract class WebSocketMeta {
     private final URI uri;
@@ -91,6 +91,4 @@ public abstract class WebSocketMeta {
 
         return sb.toString();
     }
-
-    public abstract boolean isServerMetaInfo();
 }

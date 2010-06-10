@@ -41,23 +41,44 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.Connection;
 
 /**
+ * Server-side {@link WebSocket} implementation.
  *
- * @author oleksiys
+ * @see WebSocket
+ * @see WebSocketBase
+ * @see ServerWebSocket
+ *
+ * @author Alexey Stashok
  */
 public class ServerWebSocket extends WebSocketBase {
     private final WebSocketApplication application;
 
+    /**
+     * Construct a server side {@link WebSocket}.
+     *
+     * @param connection underlying Grizzly {@link Connection}.
+     * @param meta {@link ServerWebSocketMeta} info
+     * @param application {@link WebSocketApplication}, this {@link WebSocket} belongs to.
+     */
     public ServerWebSocket(Connection connection,
             ServerWebSocketMeta meta, WebSocketApplication application) {
-        super(meta, connection);
+        super(connection, meta);
         this.application = application;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public WebSocketHandler getHandler() {
         return application;
     }
 
+    /**
+     * Returns {@link WebSocketApplication}, this {@link WebSocket} belongs to.
+     * The result is the same as {@link ServerWebSocket#getHandler()}.
+     * 
+     * @return {@link WebSocketApplication}, this {@link WebSocket} belongs to.
+     */
     public WebSocketApplication getApplication() {
         return application;
     }

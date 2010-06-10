@@ -46,7 +46,7 @@ import java.util.logging.Logger;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class ClientWebSocketMeta extends WebSocketMeta {
     private static final Logger logger = Grizzly.logger(ClientWebSocketMeta.class);
@@ -111,11 +111,6 @@ public class ClientWebSocketMeta extends WebSocketMeta {
 
     public byte[] getKey3() {
         return key3;
-    }
-
-    @Override
-    public final boolean isServerMetaInfo() {
-        return false;
     }
 
     @Override

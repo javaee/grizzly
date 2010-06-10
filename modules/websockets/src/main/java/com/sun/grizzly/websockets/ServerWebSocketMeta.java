@@ -71,11 +71,6 @@ public class ServerWebSocketMeta extends WebSocketMeta {
     }
 
     @Override
-    public final boolean isServerMetaInfo() {
-        return true;
-    }
-
-    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(256);
         sb.append(super.toString())

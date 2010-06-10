@@ -41,18 +41,33 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.Connection;
 
 /**
+ * Client-side {@link WebSocket} implementation.
  *
- * @author oleksiys
+ * @see WebSocket
+ * @see WebSocketBase
+ * @see ServerWebSocket
+ * 
+ * @author Alexey Stashok
  */
 public class ClientWebSocket extends WebSocketBase {
     private final WebSocketClientHandler handler;
 
+    /**
+     * Construct a client side {@link WebSocket}.
+     * 
+     * @param connection underlying Grizzly {@link Connection}.
+     * @param meta {@link ClientWebSocketMeta} info
+     * @param handler {@link WebSocketClientHandler}, which handles client side {@link WebSocket} events.
+     */
     public ClientWebSocket(Connection connection, ClientWebSocketMeta meta,
             WebSocketClientHandler handler) {
-        super(meta, connection);
+        super(connection, meta);
         this.handler = handler;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public WebSocketClientHandler getHandler() {
         return handler;
