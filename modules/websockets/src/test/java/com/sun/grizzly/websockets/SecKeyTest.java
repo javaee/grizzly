@@ -49,7 +49,7 @@ public class SecKeyTest extends TestCase {
         for (int i = 0; i < 1000; i++) {
             SecKey sk = SecKey.generateSecKey();
             try {
-                SecKey.checkSecKey(sk.getSecKey());
+                SecKey.validateSecKey(sk.getSecKey());
             } catch (Exception e) {
                 assertTrue("Wrong key: " + sk.getSecKey() + " for number: " + sk.getSecKeyValue(), false);
             }
