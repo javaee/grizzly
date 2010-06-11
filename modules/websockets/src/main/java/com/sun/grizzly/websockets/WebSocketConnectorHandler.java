@@ -40,7 +40,7 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.filterchain.FilterChain;
+import com.sun.grizzly.Processor;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOConnectorHandler;
@@ -53,30 +53,46 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
- * @author oleksiys
+ * Client-side {@link WebSocket} connector handler, which is used to initiate
+ * client {@link WebSocket} connection.
+ * 
+ * @author Alexey Stashok
  */
 public class WebSocketConnectorHandler {
     private static final Logger logger = Grizzly.logger(WebSocketConnectorHandler.class);
 
     private final TCPNIOTransport transport;
-    private final FilterChain filterChain;
+    private final Processor processor;
 
+    /**
+     * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP {@link Transport} object.
+     *
+     * @param transport {@link TCPNIOTransport}
+     */
     public WebSocketConnectorHandler(TCPNIOTransport transport) {
         this(transport, null);
     }
 
+    /**
+     * Construct a <tt>WebSocketConnectorHandler</tt> basing on the specific TCP {@link Transport} object.
+     * The underlying Grizzly {@link Connection} will use a {@link Processor}, different from one
+     * used by transport {@link TCPNIOTransport}.
+     *
+     * @param transport {@link TCPNIOTransport}
+     * @param processor custom NIO events {@link Processor}
+     */
     public WebSocketConnectorHandler(TCPNIOTransport transport,
-            FilterChain filterChain) {
+            Processor processor) {
         
         this.transport = transport;
-        this.filterChain = filterChain;
+        this.processor = processor;
     }
 
     /**
      * Creates, initializes and connects {@link WebSocket} to the specific application.
      *
      * @param uri WebSocket application URL.
+     * @param handler {@link WebSocketClientHandler}, which will handle {@link WebSocket}'s events.
      * 
      * @return {@link Future} of the connect operation, which could be used to get
      * resulting {@link WebSocket}.
@@ -92,7 +108,9 @@ public class WebSocketConnectorHandler {
     /**
      * Creates, initializes and connects {@link WebSocket} to the specific application.
      *
-     * @param meta {@link WebSocketMeta}.
+     * @param meta {@link ClientWebSocketMeta}.
+     * @param handler {@link WebSocketClientHandler}, which will handle {@link WebSocket}'s events.
+     * 
      * @return {@link Future} of the connect operation, which could be used to get
      * resulting {@link WebSocket}.
      *
@@ -107,10 +125,13 @@ public class WebSocketConnectorHandler {
         }
 
         final FutureImpl<WebSocket> future = SafeFutureImpl.create();
+        // create a connect handler to following TCP connection process.
         final WebSocketConnectHandler connectHandler =
                 new WebSocketConnectHandler(future);
 
         final WebSocketEngine engine = WebSocketEngine.getEngine();
+
+        // Use custom ConnectorHandler to associate a WebSocket client connection context
         final TCPNIOConnectorHandler connectorHandler =
                 new TCPNIOConnectorHandler(transport) {
 
@@ -121,12 +142,13 @@ public class WebSocketConnectorHandler {
             }
         };
 
-        connectorHandler.setProcessor(filterChain);
+        connectorHandler.setProcessor(processor);
         
         final URI uri = meta.getURI();
         final String host = uri.getHost();
         final int port = uri.getPort();
 
+        // start connect
         connectorHandler.connect(new InetSocketAddress(host, port), connectHandler);
 
         return future;

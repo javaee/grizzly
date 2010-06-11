@@ -41,8 +41,9 @@ package com.sun.grizzly.websockets;
 import junit.framework.TestCase;
 
 /**
- *
- * @author oleksiys
+ * Test {@link WebSocket} security keys generation and validation.
+ * 
+ * @author Alexey Stashok
  */
 public class SecKeyTest extends TestCase {
     public void testSecKeyGeneration() {

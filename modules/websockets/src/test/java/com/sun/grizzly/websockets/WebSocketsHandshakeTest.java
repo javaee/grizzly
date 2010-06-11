@@ -56,8 +56,9 @@ import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
 
 /**
- *
- * @author oleksiys
+ * Test {@link WebSocket} handshake phase.
+ * 
+ * @author Alexey Stashok
  */
 public class WebSocketsHandshakeTest extends TestCase {
     public static int PORT = 11000;

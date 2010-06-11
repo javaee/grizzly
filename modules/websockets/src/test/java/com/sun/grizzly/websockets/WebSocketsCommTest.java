@@ -58,8 +58,9 @@ import java.util.concurrent.TimeoutException;
 import junit.framework.TestCase;
 
 /**
+ * Test basic {@link WebSocket} communication.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class WebSocketsCommTest extends TestCase {
     public static int PORT = 11001;
