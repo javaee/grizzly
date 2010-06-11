@@ -40,6 +40,12 @@ package com.sun.grizzly.websockets;
 
 import java.util.Random;
 
+/**
+ * Class represents {@link WebSocket}'s security key, used during the handshake phase.
+ * See Sec-WebSocket-Key1, Sec-WebSocket-Key2.
+ *
+ * @author Alexey Stashok
+ */
 public class SecKey {
     private static final Random random = new Random();
 
@@ -57,11 +63,27 @@ public class SecKey {
     }
 
     private static final long MAX_SEC_KEY_VALUE = 4294967295l;
+
+    /**
+     * Security key string representation, which includes chars and spaces.
+     */
     private final String secKey;
+
+    /**
+     * Original security key value (already divided by number of spaces).
+     */
     private final long secKeyValue;
 
+    /**
+     * Create a <tt>SecKey</tt> object basing on {@link String} representation, which
+     * includes spaces and chars. Method also performs key validation.
+     *
+     * @param secKey security key string representation with spaces and chars included.
+     *
+     * @return <tt>SecKey</tt>
+     */
     public static SecKey create(String secKey) {
-        return checkSecKey(secKey);
+        return validateSecKey(secKey);
     }
 
     private SecKey(String secKey, long secKeyValue) {
@@ -69,14 +91,26 @@ public class SecKey {
         this.secKeyValue = secKeyValue;
     }
 
+    /**
+     * Gets security key string representation, which includes chars and spaces.
+     * 
+     * @return Security key string representation, which includes chars and spaces.
+     */
     public String getSecKey() {
         return secKey;
     }
 
+    /**
+     * Gets original security key value (already divided by number of spaces).
+     * @return original security key value (already divided by number of spaces).
+     */
     public long getSecKeyValue() {
         return secKeyValue;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(secKey.length() + 16);
@@ -84,15 +118,25 @@ public class SecKey {
         return sb.toString();
     }
 
+    /**
+     * Generates random security key.
+     *
+     * @return <tt>SecKey</tt>
+     */
     public static SecKey generateSecKey() {
+        // generate number of spaces we will use
         int spacesNum = random.nextInt(12) + 1;
+
+        // generate the original key value
         long number = Math.abs(random.nextLong()) % (MAX_SEC_KEY_VALUE / spacesNum);
 
+        // product number
         long product = number * spacesNum;
 
         StringBuilder key = new StringBuilder();
         key.append(product);
 
+        // insert chars into product number
         int charsNum = random.nextInt(12) + 1;
         for (int i = 0; i < charsNum; i++) {
             int position = random.nextInt(key.length());
@@ -101,52 +145,66 @@ public class SecKey {
             key.insert(position, c);
         }
 
+        // insert spaces into product number
         for (int i = 0; i < spacesNum; i++) {
             int position = random.nextInt(key.length() - 1) + 1;
 
             key.insert(position, ' ');
         }
 
+        // create SecKey
         return new SecKey(key.toString(), number);
     }
 
-    public static SecKey checkSecKey(String key) {
+    /**
+     * Validate security key, represented as string value (which includes chars and spaces).
+     *
+     * @param key security key, represented as string value (which includes chars and spaces).
+     *
+     * @return validated <tt>SecKey</tt>
+     */
+    public static SecKey validateSecKey(String key) {
         if (key.length() > 256) return null;
 
+        // chars counter
         int charsNum = 0;
+        // spaces counter
         int spacesNum = 0;
-        long keyValue = 0;
+        // product numeric value
+        long productValue = 0;
 
         for (int i=0; i<key.length(); i++) {
             char c = key.charAt(i);
             if (c >= '0' && c <= '9') {
-                keyValue = keyValue * 10 + (c - '0');
-                if (keyValue > MAX_SEC_KEY_VALUE) {
+                productValue = productValue * 10 + (c - '0');
+                if (productValue > MAX_SEC_KEY_VALUE) { // check if productValue is not biffer than max
                     return null;
                 }
-            } else if (c == ' ') {
+            } else if (c == ' ') { // count spaces
                 spacesNum++;
                 if (spacesNum > 12) return null;
-            } else if ((c >= 0x21 && c <= 0x2F) || (c >= 0x3A && c <= 0x7E)) {
+            } else if ((c >= 0x21 && c <= 0x2F) || (c >= 0x3A && c <= 0x7E)) {  // count chars
                 charsNum++;
                 if (charsNum > 12) {
                     return null;
                 }
+            } else {  // unexpected char
+                return null;
             }
         }
 
-        if (spacesNum < 1) {
+        if (spacesNum < 1) {  // number of spaces should be more than 1
             return null;
         }
 
-        if (charsNum < 1) {
+        if (charsNum < 1) {  // number of chars should be more than 1
             return null;
         }
 
-        if ((keyValue % spacesNum) != 0) {
+        if ((productValue % spacesNum) != 0) {  // check if remainder is 0
             return null;
         }
 
-        return new SecKey(key, keyValue / spacesNum);
+        return new SecKey(key, productValue / spacesNum);
     }
 }

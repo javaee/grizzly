@@ -75,6 +75,17 @@ public class ClientWebSocketMeta extends WebSocketMeta {
         this(uri, null, null, null, null, null, null);
     }
 
+    /**
+     * Construct a client-side <tt>WebSocketMeta</tt>.
+     *
+     * @param uri {@link WebSocket} {@link URI}
+     * @param host the {@link WebSocket} "Host" header value
+     * @param origin the {@link WebSocket} "Origin" header value
+     * @param protocol the {@link WebSocket} "Sec-WebSocket-Protocol" header value
+     * @param key1 the {@link WebSocket} "Sec-WebSocket-Key1" header value
+     * @param key2 the {@link WebSocket} "Sec-WebSocket-Key2" header value
+     * @param key3 the {@link WebSocket} key3 value transferred as a payload.
+     */
     public ClientWebSocketMeta(URI uri, String host, String origin,
             String protocol, String key1, String key2, byte[] key3) {
         super(uri, origin != null ? origin : "http://localhost", protocol);
@@ -108,18 +119,38 @@ public class ClientWebSocketMeta extends WebSocketMeta {
         }
     }
 
+    /**
+     * Gets the {@link WebSocket} "Host" header value.
+     * 
+     * @return the {@link WebSocket} "Host" header value.
+     */
     public String getHost() {
         return host;
     }
 
+    /**
+     * Gets the {@link WebSocket} "Sec-WebSocket-Key1" header value.
+     *
+     * @return the {@link WebSocket} "Sec-WebSocket-Key1" header value.
+     */
     public SecKey getKey1() {
         return key1;
     }
 
+    /**
+     * Gets the {@link WebSocket} "Sec-WebSocket-Key2" header value.
+     *
+     * @return the {@link WebSocket} "Sec-WebSocket-Key2" header value.
+     */
     public SecKey getKey2() {
         return key2;
     }
 
+    /**
+     * Gets the {@link WebSocket} key3 value transferred as a payload.
+     *
+     * @return the {@link WebSocket} key3 value transferred as a payload.
+     */
     public byte[] getKey3() {
         return key3;
     }

@@ -42,19 +42,27 @@ import java.net.URI;
 import java.util.Arrays;
 
 /**
+ * Server-side {@link WebSocket} meta information.
  *
- * @author oleksiys
+ * @see WebSocketMeta
+ * @see ClientWebSocketMeta
+ *
+ * @author Alexey Stashok
  */
 public class ServerWebSocketMeta extends WebSocketMeta {
 
     private final String location;
     private final byte[] key;
     
-    public ServerWebSocketMeta(URI uri, byte[] key) {
-        this(uri, key, null, null, null);
-    }
-
-
+    /**
+     * Construct a server-side <tt>WebSocketMeta</tt> using {@link URI} and security key.
+     *
+     * @param uri {@link WebSocket} {@link URI}
+     * @param key the {@link WebSocket} key value transferred as a part of response payload.
+     * @param origin the {@link WebSocket} "Sec-WebSocket-Origin" header value
+     * @param location the {@link WebSocket} "Sec-WebSocket-Location" header value
+     * @param protocol the {@link WebSocket} "Sec-WebSocket-Protocol" header value
+     */
     public ServerWebSocketMeta(URI uri, byte[] key, String origin,
             String location, String protocol) {
         super(uri, origin, protocol);
@@ -62,14 +70,26 @@ public class ServerWebSocketMeta extends WebSocketMeta {
         this.location = location;
     }
 
+    /**
+     * Get the {@link WebSocket} key value transferred as a part of response payload.
+     * 
+     * @return the {@link WebSocket} key value transferred as a part of response payload.
+     */
     public byte[] getKey() {
         return key;
     }
 
+    /**
+     * Get the {@link WebSocket} "Sec-WebSocket-Location" header value
+     * @return the {@link WebSocket} "Sec-WebSocket-Location" header value
+     */
     public String getLocation() {
         return location;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(256);
