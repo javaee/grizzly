@@ -42,18 +42,43 @@ import com.sun.grizzly.Connection;
 import java.io.IOException;
 
 /**
+ * Abstract client-side {@link WebSocketHandler}, which will handle
+ * client {@link WebSocket}s events.
  *
- * @author oleksiys
+ * @see WebSocketHandler
+ * @see WebSocketApplication
+ *
+ * @author Alexey Stashok
  */
 public abstract class WebSocketClientHandler implements WebSocketHandler {
     public abstract void onConnect(WebSocket socket) throws IOException;
 
-    protected void handshake(WebSocket socket, ServerWebSocketMeta serverMeta)
+    /**
+     * Method is called, when inital {@link WebSocket} handshake process was completed,
+     * but <tt>WebSocketClientHandler</tt> may perform additional validation.
+     *
+     * @param socket {@link ClientWebSocket}
+     * @param serverMeta {@link ServerWebSocketMeta}.
+     * 
+     * @throws HandshakeException error, occurred during the handshake.
+     */
+    protected void handshake(ClientWebSocket socket, ServerWebSocketMeta serverMeta)
             throws HandshakeException {
     }
 
+    /**
+     * Method is called before the {@link WebSocketEngine} will create a client-side
+     * {@link ClientWebSocket} object, so the handler may return any customized
+     * subtype of {@link ClientWebSocket}.
+     *
+     * @param connection underlying Grizzly {@link Connection}.
+     * @param meta client-side {@link ClientWebSocketMeta}.
+     *
+     * @return customized {@link ClientWebSocket}, or <tt>null</tt>, if handler wants
+     * to delegate {@link WebSocket} creation to {@link WebSocketEngine}.
+     */
     protected ClientWebSocket createWebSocket(Connection connection,
-            ClientWebSocketMeta meta, WebSocketClientHandler handler) {
+            ClientWebSocketMeta meta) {
         return null;
     }
 }

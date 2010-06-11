@@ -168,8 +168,7 @@ public class WebSocketEngine {
                 throw new HandshakeException("Keys do not match");
             }
 
-            ClientWebSocket websocket = handler.createWebSocket(connection,
-                    meta, handler);
+            ClientWebSocket websocket = handler.createWebSocket(connection, meta);
             if (websocket == null) {
                 websocket = new ClientWebSocket(connection, meta, handler);
             }

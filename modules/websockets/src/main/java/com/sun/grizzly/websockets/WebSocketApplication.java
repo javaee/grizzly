@@ -43,23 +43,73 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Abstract server-side {@link WebSocket} application, which will handle
+ * application {@link WebSocket}s events.
+ *
+ * @see WebSocketHandler
+ * @see WebSocketClientHandler
+ *
+ * @author Alexey Stashok
+ */
 public abstract class WebSocketApplication implements WebSocketHandler {
-    private final Set<WebSocket> sockets = new HashSet<WebSocket>();
+    private final Set<WebSocket> websockets = new HashSet<WebSocket>();
 
+    /**
+     * Method is called, when new {@link WebSocket} gets accepted.
+     *
+     * @param websocket {@link WebSocket}
+     *
+     * @throws IOException
+     */
     public abstract void onAccept(WebSocket socket) throws IOException;
 
-    public boolean add(WebSocket socket) {
-        return sockets.add(socket);
+    /**
+     * Add the {@link WebSocket} to the <tt>WebSocketApplication</tt> websockets list.
+     *
+     * @param websocket {@link WebSocket} to add.
+     *
+     * @return <tt>true</tt>, if the {@link WebSocket} was succeessfully added, or
+     * <tt>false</tt> otherwise.
+     */
+    public boolean add(WebSocket websocket) {
+        return websockets.add(websocket);
     }
     
+    /**
+     * Remove the {@link WebSocket} from the <tt>WebSocketApplication</tt> websockets list.
+     *
+     * @param websocket {@link WebSocket} to remove.
+     *
+     * @return <tt>true</tt>, if the {@link WebSocket} was succeessfully removed, or
+     * <tt>false</tt> otherwise.
+     */
     public boolean remove(WebSocket socket) {
-        return sockets.remove(socket);
+        return websockets.remove(socket);
     }
     
+    /**
+     * Method is called, when inital {@link WebSocket} handshake process was completed,
+     * but <tt>WebSocketApplication</tt> may perform additional validation.
+     *
+     * @param websocketMeta {@link ClientWebSocketMeta}.
+     * @throws HandshakeException error, occurred during the handshake.
+     */
     protected void handshake(ClientWebSocketMeta websocketMeta)
             throws HandshakeException {
     }
 
+    /**
+     * Method is called before the {@link WebSocketEngine} will create a server-side
+     * {@link ServerWebSocket} object, so application may return any customized
+     * subtype of {@link ServerWebSocket}.
+     * 
+     * @param connection underlying Grizzly {@link Connection}.
+     * @param meta server-side {@link ServerWebSocketMeta}.
+     *
+     * @return customized {@link ServerWebSocket}, or <tt>null</tt>, if application wants
+     * to delegate {@link WebSocket} creation to {@link WebSocketEngine}.
+     */
     protected ServerWebSocket createWebSocket(Connection connection,
             ServerWebSocketMeta meta) {
         return null;
