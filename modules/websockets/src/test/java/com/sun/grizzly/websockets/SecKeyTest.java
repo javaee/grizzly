@@ -47,9 +47,9 @@ import junit.framework.TestCase;
 public class SecKeyTest extends TestCase {
     public void testSecKeyGeneration() {
         for (int i = 0; i < 1000; i++) {
-            SecKey sk = SecKeyUtils.generateSecKey();
+            SecKey sk = SecKey.generateSecKey();
             try {
-                SecKeyUtils.checkSecKey(sk.getSecKey());
+                SecKey.checkSecKey(sk.getSecKey());
             } catch (Exception e) {
                 assertTrue("Wrong key: " + sk.getSecKey() + " for number: " + sk.getSecKeyValue(), false);
             }
