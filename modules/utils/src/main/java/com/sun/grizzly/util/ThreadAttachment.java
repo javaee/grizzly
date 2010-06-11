@@ -70,7 +70,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         public static int STORE_ALL = 31;
     };
 
-    private ReentrantLock threadLock = new ReentrantLock();
+    private final ReentrantLock threadLock = new ReentrantLock();
 
     private String threadName;
 
@@ -245,8 +245,8 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
      */
     public void deassociate() {
         if (threadLock.isHeldByCurrentThread()) {
-            threadLock.unlock();
             activeThread = null;
+            threadLock.unlock();
         }
     }
 
@@ -294,7 +294,14 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         sb.append(", sslEngine=").append(sslEngine);
         sb.append(", inputBB=").append(inputBB);
         sb.append(", outputBB=").append(outputBB);
-        sb.append(", attributes=").append(attributes);
+        sb.append(", attributes=");
+        if (threadLock.tryLock()) {
+            sb.append(attributes);
+            threadLock.unlock();
+        } else {
+            sb.append("inaccessible");
+        }
+        
         sb.append(']');
         return sb.toString();
     }
