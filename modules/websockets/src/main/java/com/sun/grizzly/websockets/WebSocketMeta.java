@@ -41,7 +41,11 @@ package com.sun.grizzly.websockets;
 import java.net.URI;
 
 /**
+ * {@link WebSocket} meta information.
  *
+ * @see ClientWebSocketMeta
+ * @see ServerWebSocketMeta
+ * 
  * @author Alexey Stashok
  */
 public abstract class WebSocketMeta {
@@ -49,10 +53,23 @@ public abstract class WebSocketMeta {
     private final String origin;
     private final String protocol;
 
+    /**
+     * Construct a <tt>WebSocketMeta</tt> using {@link URI}.
+     * Origin header will be set to "http://localhost"
+     * 
+     * @param uri {@link WebSocket} {@link URI}
+     */
     public WebSocketMeta(URI uri) {
         this(uri, null, null);
     }
 
+    /**
+     * Construct a <tt>WebSocketMeta</tt> with the passed parameters.
+     *
+     * @param uri {@link WebSocket} {@link URI}
+     * @param origin the {@link WebSocket} Origin header value.
+     * @param protocol the {@link WebSocket} Sec-WebSocket-Protocol header value.
+     */
     public WebSocketMeta(URI uri, String origin,
             String protocol) {
 
@@ -70,18 +87,37 @@ public abstract class WebSocketMeta {
         this.protocol = protocol != null ? protocol : null;
     }
 
+    /**
+     * Gets {@link WebSocket} {@link URI}.
+     *
+     * @return {@link WebSocket} {@link URI}.
+     */
     public URI getURI() {
         return uri;
     }
 
+    /**
+     * Gets the {@link WebSocket} Origin header value.
+     * 
+     * @return the {@link WebSocket} Origin header value.
+     */
     public String getOrigin() {
         return origin;
     }
 
+    /**
+     * Gets the {@link WebSocket} Sec-WebSocket-Protocol header value.
+     * @return the {@link WebSocket} Sec-WebSocket-Protocol header value.
+     */
     public String getProtocol() {
         return protocol;
     }
 
+    /**
+     * The <tt>WebSocketMeta</tt> string description.
+     * 
+     * @return the <tt>WebSocketMeta</tt> string description.
+     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(128);

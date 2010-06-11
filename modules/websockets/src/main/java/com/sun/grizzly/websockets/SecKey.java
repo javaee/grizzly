@@ -38,12 +38,33 @@
 
 package com.sun.grizzly.websockets;
 
-public class SecKey {
+import java.util.Random;
 
+public class SecKey {
+    private static final Random random = new Random();
+
+    private static final char[] CHARS = new char[84];
+
+    static {
+        int idx = 0;
+        for (int i = 0x21; i <= 0x2F; i++) {
+            CHARS[idx++] = (char) i;
+        }
+
+        for (int i = 0x3A; i <= 0x7E; i++) {
+            CHARS[idx++] = (char) i;
+        }
+    }
+
+    private static final long MAX_SEC_KEY_VALUE = 4294967295l;
     private final String secKey;
     private final long secKeyValue;
 
-    public SecKey(String secKey, long secKeyValue) {
+    public static SecKey create(String secKey) {
+        return checkSecKey(secKey);
+    }
+
+    private SecKey(String secKey, long secKeyValue) {
         this.secKey = secKey;
         this.secKeyValue = secKeyValue;
     }
@@ -61,5 +82,71 @@ public class SecKey {
         StringBuilder sb = new StringBuilder(secKey.length() + 16);
         sb.append(secKey).append('(').append(secKeyValue).append(')');
         return sb.toString();
+    }
+
+    public static SecKey generateSecKey() {
+        int spacesNum = random.nextInt(12) + 1;
+        long number = Math.abs(random.nextLong()) % (MAX_SEC_KEY_VALUE / spacesNum);
+
+        long product = number * spacesNum;
+
+        StringBuilder key = new StringBuilder();
+        key.append(product);
+
+        int charsNum = random.nextInt(12) + 1;
+        for (int i = 0; i < charsNum; i++) {
+            int position = random.nextInt(key.length());
+            char c = CHARS[random.nextInt(CHARS.length)];
+
+            key.insert(position, c);
+        }
+
+        for (int i = 0; i < spacesNum; i++) {
+            int position = random.nextInt(key.length() - 1) + 1;
+
+            key.insert(position, ' ');
+        }
+
+        return new SecKey(key.toString(), number);
+    }
+
+    public static SecKey checkSecKey(String key) {
+        if (key.length() > 256) return null;
+
+        int charsNum = 0;
+        int spacesNum = 0;
+        long keyValue = 0;
+
+        for (int i=0; i<key.length(); i++) {
+            char c = key.charAt(i);
+            if (c >= '0' && c <= '9') {
+                keyValue = keyValue * 10 + (c - '0');
+                if (keyValue > MAX_SEC_KEY_VALUE) {
+                    return null;
+                }
+            } else if (c == ' ') {
+                spacesNum++;
+                if (spacesNum > 12) return null;
+            } else if ((c >= 0x21 && c <= 0x2F) || (c >= 0x3A && c <= 0x7E)) {
+                charsNum++;
+                if (charsNum > 12) {
+                    return null;
+                }
+            }
+        }
+
+        if (spacesNum < 1) {
+            return null;
+        }
+
+        if (charsNum < 1) {
+            return null;
+        }
+
+        if ((keyValue % spacesNum) != 0) {
+            return null;
+        }
+
+        return new SecKey(key, keyValue / spacesNum);
     }
 }
