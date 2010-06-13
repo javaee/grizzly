@@ -43,38 +43,65 @@ import com.sun.grizzly.Cacheable;
 import com.sun.grizzly.ThreadCache;
 
 /**
+ * {@link Frame} parse result.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
-public class DecodeResult implements Cacheable {
+public class ParseResult implements Cacheable {
 
-    private static final ThreadCache.CachedTypeIndex<DecodeResult> CACHE_IDX =
-            ThreadCache.obtainIndex(DecodeResult.class, 1);
+    // thread-local object cache
+    private static final ThreadCache.CachedTypeIndex<ParseResult> CACHE_IDX =
+            ThreadCache.obtainIndex(ParseResult.class, 1);
     
+    // is completed
     private boolean isCompleted;
+    // remainder buffer (might not be null only if parsing was completed).
     private Buffer remainder;
 
-    public static DecodeResult create(boolean isCompleted, Buffer remainderBuffer) {
-        DecodeResult resultObject = ThreadCache.takeFromCache(CACHE_IDX);
+    /**
+     * Create a ParseResult object.
+     * 
+     * @param isCompleted was parsing completed?
+     * @param remainderBuffer the remainder.
+     *
+     * @return <tt>ParseResult</tt>
+     */
+    public static ParseResult create(boolean isCompleted, Buffer remainderBuffer) {
+        ParseResult resultObject = ThreadCache.takeFromCache(CACHE_IDX);
         if (resultObject == null) {
-            resultObject = new DecodeResult();
+            resultObject = new ParseResult();
         }
         resultObject.isCompleted = isCompleted;
         resultObject.remainder = remainderBuffer;
         return resultObject;
     }
 
-    private DecodeResult() {
+    private ParseResult() {
     }
 
+    /**
+     * Get the parsing remainder {@link Buffer}. May not be null only in case, when
+     * parsing was completed, but some data is still ready for parsing.
+     *
+     * @return the parsing remainder {@link Buffer}. May not be null only in case, when
+     * parsing was completed, but some data is still ready for parsing.
+     */
     public Buffer getRemainder() {
         return remainder;
     }
 
+    /**
+     * Returns <tt>true</tt>, if parsing was completed, or <tt>false</tt> if more data is expected.
+     * 
+     * @return <tt>true</tt>, if parsing was completed, or <tt>false</tt> if more data is expected.
+     */
     public boolean isCompleted() {
         return isCompleted;
     }
 
+    /**
+     * Recycle the object.
+     */
     @Override
     public void recycle() {
         remainder = null;

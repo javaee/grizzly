@@ -44,27 +44,69 @@ import com.sun.grizzly.memory.MemoryUtils;
 import java.nio.charset.Charset;
 import java.util.logging.Logger;
 
+/**
+ * General abstraction, which represents {@link WebSocket} frame.
+ * Contains a set of static createXXX methods in order to create specific frame.
+ *
+ * @author Alexey Stashok
+ */
 public abstract class Frame {
 
     private static final Logger logger = Grizzly.logger(Frame.class);
     private static final Charset UTF8_CHARSET = Charset.forName("UTF-8");
 
+    /**
+     * Create the stream-based frame, which will contain UTF-8 string.
+     * So far it's the only frame type officially supported for transferring data over {@link WebSocket}s.
+     * @param text the text.
+     *
+     * @return the {@link Frame}.
+     */
     public static final Frame createTextFrame(String text) {
         return createFrame(0, text);
     }
 
+    /**
+     * Create the close frame, after sending which the {@link WebSocket} communication will be closed.
+     *
+     * @return the close frame.
+     */
     public static final Frame createCloseFrame() {
         return new FixedLengthFrame(0xFF, null);
     }
 
+    /**
+     * Create a custom typed frame, which will contain a text, which will be encoded using UTF-8 charset.
+     *
+     * @param type a frame type.
+     * @param text text value.
+     * 
+     * @return the frame.
+     */
     public static final Frame createFrame(int type, String text) {
         return createFrame(type, text, UTF8_CHARSET);
     }
 
+    /**
+     * Create a custom typed frame, which will contain a text, which will be encoded using given charset.
+     *
+     * @param type a frame type.
+     * @param text text value.
+     * @param charset text charset to use during the frame encoding.
+     *
+     * @return the frame.
+     */
     public static final Frame createFrame(int type, String text, Charset charset) {
         return createFrame(type, MemoryUtils.wrap(null, text, charset));
     }
 
+    /**
+     * Create a custom typed frame, which will contain a binary data.
+     * @param type a frame type.
+     * @param data binary data
+     *
+     * @return the frame.
+     */
     public static final Frame createFrame(int type, Buffer data) {
         if ((type & 0x80) == 0) {
             return new StreamFrame(type, data);
@@ -73,26 +115,49 @@ public abstract class Frame {
         }
     }
 
+    // the frame type
     protected int type;
     
+    // the frame text representation
     protected String text;
+    // the charset used during the frame encoding.
+    private Charset lastCharset;
+
+    // the frame binary representation
     protected Buffer buffer;
 
-    private Charset lastCharset;
-    
+    /**
+     * Construct a frame using the given type and binary data.
+     * 
+     * @param type the frame type.
+     * @param buffer the binary data.
+     */
     protected Frame(int type, Buffer buffer) {
         this.type = type;
         this.buffer = buffer;
     }
 
+    /**
+     * Get the frame type.
+     * @return the frame type.
+     */
     public int getType() {
         return type;
     }
 
+    /**
+     * Get the frame pyload as text using UTF-8 charset.
+     * @return the frame pyload as text using UTF-8 charset.
+     */
     public String getAsText() {
         return getAsText(UTF8_CHARSET);
     }
 
+    /**
+     * Get the frame pyload as text using given charset.
+     * @param charset {@link Charset} to use.
+     * @return the frame pyload as text using given charset.
+     */
     public String getAsText(Charset charset) {
         if (text == null || !charset.equals(lastCharset)) {
             text = buffer.toStringContent(charset);
@@ -101,18 +166,40 @@ public abstract class Frame {
         return text;
     }
 
+    /**
+     * Get the frame pyload as binary data.
+     * @return the frame pyload as binary data.
+     */
     public Buffer getAsBinary() {
         return buffer;
     }
 
+    /**
+     * Returns the frame pyload as text using UTF-8 charset.
+     * @return the frame pyload as text using UTF-8 charset.
+     */
     @Override
     public String toString() {
         return getAsText();
     }
 
+    /**
+     * Returns <tt>true</tt>, if this frame is close frame, or <tt>false</tt> otherwise.
+     * @return <tt>true</tt>, if this frame is close frame, or <tt>false</tt> otherwise.
+     */
     public abstract boolean isClose();
 
-    public abstract Buffer encode();
+    /**
+     * Serializes this frame into a Grizzly {@link Buffer}.
+     *
+     * @return {@link Buffer}, which contains serialized <tt>Frame</tt> data.
+     */
+    public abstract Buffer serialize();
 
-    public abstract DecodeResult decode(Buffer buffer);
+    /**
+     * Parses data from the Grizzly {@link Buffer} into this <tt>Frame</tt>
+     *
+     * @return {@link ParseResult}, which represents result of parsing operation.
+     */
+    public abstract ParseResult parse(Buffer buffer);
 }

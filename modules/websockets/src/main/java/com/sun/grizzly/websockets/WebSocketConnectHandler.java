@@ -41,6 +41,12 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.impl.FutureImpl;
 
+/**
+ * {@link WebSocket} connect {@link CompletionHandler}.
+ * Gets notified about client-side {@link WebSocket} connect and handshake completion events.
+ * 
+ * @author Alexey Stashok
+ */
 class WebSocketConnectHandler implements CompletionHandler {
 
     private final FutureImpl<WebSocket> future;

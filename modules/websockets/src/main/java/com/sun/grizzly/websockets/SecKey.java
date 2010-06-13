@@ -38,6 +38,12 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.Buffer;
+import com.sun.grizzly.TransportFactory;
+import com.sun.grizzly.memory.MemoryManager;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Random;
 
 /**
@@ -156,6 +162,41 @@ public class SecKey {
         return new SecKey(key.toString(), number);
     }
 
+    /**
+     * Generate server-side security key, which gets passed to the client during
+     * the handshake phase as part of message payload.
+     * 
+     * @param clientKey1 client's Sec-WebSocket-Key1
+     * @param clientKey2 client's Sec-WebSocket-Key2
+     * @param clientKey3 client's key3, which is sent as part of handshake request payload.
+     *
+     * @return server key.
+     * 
+     * @throws NoSuchAlgorithmException
+     */
+    public static byte[] generateServerKey(SecKey clientKey1, SecKey clientKey2,
+            byte[] clientKey3) throws NoSuchAlgorithmException {
+
+        MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
+        final Buffer b = mm.allocate(8);
+        b.putInt((int) clientKey1.getSecKeyValue());
+        b.putInt((int) clientKey2.getSecKeyValue());
+        b.flip();
+        final ByteBuffer bb = b.toByteBuffer();
+
+        MessageDigest md = MessageDigest.getInstance("MD5");
+
+        md.update(bb);
+        b.dispose();
+
+        final byte[] serverKey = md.digest(clientKey3);
+        md.reset();
+
+        assert serverKey.length == 16;
+
+        return serverKey;
+    }
+    
     /**
      * Validate security key, represented as string value (which includes chars and spaces).
      *

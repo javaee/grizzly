@@ -80,7 +80,7 @@ public class WebSocketsCommTest extends TestCase {
 
         final EchoApplication echoApplication = new EchoApplication(serverFuture);
 
-        WebSocketEngine.getEngine().register("/echo", echoApplication);
+        WebSocketEngine.getEngine().registerApplication("/echo", echoApplication);
         WebSocket clientWebSocket = null;
 
         try {

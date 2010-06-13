@@ -44,30 +44,46 @@ import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.memory.MemoryManager;
 
 /**
+ * Fixed-length {@link Frame}, which contains length prefix before the actual payload.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 class FixedLengthFrame extends Frame {
 
-    private enum DecodeState {TYPE, LENGTH, CONTENT, DONE};
+    // parsing states
+    private enum ParseState {TYPE, LENGTH, CONTENT, DONE};
 
+    // the length encoding masks
     private static int[][] masks = {{0x70000000, 28}, {0xFE00000, 21},
         {0x1FC000, 14}, {0x3F80, 7}, {0x7F, 0}};
 
-    private DecodeState decodeState = DecodeState.TYPE;
+    // last parsing result
+    private ParseState parseState = ParseState.TYPE;
     private int parsedLength;
     
+    /**
+     * Construct a fixed-length {@link Frame}.
+     * 
+     * @param type frame type.
+     * @param buffer binary data.
+     */
     public FixedLengthFrame(int type, Buffer buffer) {
         super(type, buffer);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public final boolean isClose() {
         return type == 0xFF && (buffer == null || buffer.remaining() == 0);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Buffer encode() {
+    public Buffer serialize() {
         final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
         final Buffer startBuffer = mm.allocate(6);
         startBuffer.put((byte) (type & 0xFF));
@@ -81,18 +97,21 @@ class FixedLengthFrame extends Frame {
         return resultBuffer;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public DecodeResult decode(Buffer buffer) {
+    public ParseResult parse(Buffer buffer) {
         final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
 
-        switch(decodeState) {
+        switch(parseState) {
             case TYPE: {
                 if (!buffer.hasRemaining()) {
-                    return DecodeResult.create(false, null);
+                    return ParseResult.create(false, null);
                 }
 
                 type = (buffer.get() & 0xFF);
-                decodeState = DecodeState.LENGTH;
+                parseState = ParseState.LENGTH;
             }
 
             case LENGTH: {
@@ -103,13 +122,13 @@ class FixedLengthFrame extends Frame {
                     parsedLength = (parsedLength << 7) | sevenBits;
 
                     if (sevenBits == gotByte) { // last length byte
-                        decodeState = DecodeState.CONTENT;
+                        parseState = ParseState.CONTENT;
                         break;
                     }
                 }
 
-                if (decodeState == DecodeState.LENGTH) {
-                    return DecodeResult.create(false, null);
+                if (parseState == ParseState.LENGTH) {
+                    return ParseResult.create(false, null);
                 }
             }
 
@@ -128,19 +147,25 @@ class FixedLengthFrame extends Frame {
 
                 buffer = remainder;
                 if (this.buffer.remaining() < parsedLength) {
-                    return DecodeResult.create(false, null);
+                    return ParseResult.create(false, null);
                 }
 
 
-                decodeState = DecodeState.DONE;
+                parseState = ParseState.DONE;
             }
 
-            case DONE: return DecodeResult.create(true, buffer);
+            case DONE: return ParseResult.create(true, buffer);
 
             default: throw new IllegalStateException();
         }
     }
 
+    /**
+     * Encode the length prefix.
+     * 
+     * @param length the length.
+     * @param startBuffer target {@link Buffer}.
+     */
     private static void encodeLength(int length, Buffer startBuffer) {
         boolean written = false;
         for (int i=0; i<masks.length; i++) {

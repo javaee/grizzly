@@ -44,25 +44,41 @@ import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.memory.MemoryManager;
 
 /**
+ * Stream {@link Frame} implementation, which terminates by 0xFF byte.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 class StreamFrame extends Frame {
-    private enum DecodeState {TYPE, CONTENT, DONE};
+    // parsing states
+    private enum ParseState {TYPE, CONTENT, DONE};
     
-    private DecodeState decodeState = DecodeState.TYPE;
+    // last parsing result
+    private ParseState parseState = ParseState.TYPE;
 
+    /**
+     * Construct a stream {@link Frame}.
+     *
+     * @param type frame type.
+     * @param buffer binary data.
+     */
     public StreamFrame(int type, Buffer buffer) {
         super(type, buffer);
     }
 
+    /**
+     * Always returns <tt>false</tt> for stream frame.
+     * @return always returns <tt>false</tt> for stream frame.
+     */
     @Override
     public final boolean isClose() {
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public Buffer encode() {
+    public Buffer serialize() {
         final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
         final Buffer startBuffer = mm.allocate(1);
         startBuffer.put(0, (byte) (type & 0xFF));
@@ -76,18 +92,21 @@ class StreamFrame extends Frame {
         return resultBuffer;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
-    public DecodeResult decode(Buffer buffer) {
+    public ParseResult parse(Buffer buffer) {
         final MemoryManager mm = TransportFactory.getInstance().getDefaultMemoryManager();
 
-        switch(decodeState) {
+        switch(parseState) {
             case TYPE: {
                 if (!buffer.hasRemaining()) {
-                    return DecodeResult.create(false, null);
+                    return ParseResult.create(false, null);
                 }
 
                 type = (buffer.get() & 0xFF);
-                decodeState = DecodeState.CONTENT;
+                parseState = ParseState.CONTENT;
             }
 
             case CONTENT: {
@@ -117,7 +136,7 @@ class StreamFrame extends Frame {
                     }
 
                     buffer = remainder;
-                    decodeState = DecodeState.DONE;
+                    parseState = ParseState.DONE;
                 } else {
                     if (startPos != buffer.position()) {
                         buffer.position(startPos);
@@ -125,11 +144,11 @@ class StreamFrame extends Frame {
                                 this.buffer, buffer);
                     }
 
-                    return DecodeResult.create(false, null);
+                    return ParseResult.create(false, null);
                 }
             }
 
-            case DONE: return DecodeResult.create(true, buffer);
+            case DONE: return ParseResult.create(true, buffer);
 
             default: throw new IllegalStateException();
         }

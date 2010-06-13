@@ -52,7 +52,7 @@ import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
-import com.sun.grizzly.websockets.frame.DecodeResult;
+import com.sun.grizzly.websockets.frame.ParseResult;
 import com.sun.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 import java.net.ConnectException;
@@ -158,7 +158,7 @@ public class WebSocketFilter extends BaseFilter {
                 wsBase.setDecodingFrame(decodingFrame);
             }
 
-            final DecodeResult result = decodingFrame.decode(buffer);
+            final ParseResult result = decodingFrame.parse(buffer);
             
             final boolean isCompleted = result.isCompleted();
             final Buffer remainder = result.getRemainder();
@@ -193,7 +193,7 @@ public class WebSocketFilter extends BaseFilter {
 
         if (websocket != null) {
             final Frame frame = (Frame) ctx.getMessage();
-            final Buffer buffer = frame.encode();
+            final Buffer buffer = frame.serialize();
 
             ctx.setMessage(buffer);
         }
@@ -231,7 +231,11 @@ public class WebSocketFilter extends BaseFilter {
             final int remaining = content.getContent().remaining();
 
             if (remaining >= 16) {
-                handleClientHandshake(ctx, content);
+                try {
+                    handleClientHandshake(ctx, content);
+                } catch (HandshakeException e) {
+                    throw new IOException(e);
+                }
             } else if (remaining > 0) {
                 return ctx.getStopAction(content);
             }
@@ -275,7 +279,7 @@ public class WebSocketFilter extends BaseFilter {
     }
 
     private void handleClientHandshake(FilterChainContext ctx,
-            HttpContent responseContent) throws IOException {
+            HttpContent responseContent) throws HandshakeException, IOException {
 
         final Connection connection = ctx.getConnection();
 

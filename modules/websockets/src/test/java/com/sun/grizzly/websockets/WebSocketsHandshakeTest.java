@@ -76,7 +76,7 @@ public class WebSocketsHandshakeTest extends TestCase {
         FutureImpl<WebSocket> serverFuture = SafeFutureImpl.create();
         FutureImpl<WebSocket> clientFuture = SafeFutureImpl.create();
 
-        WebSocketEngine.getEngine().register("/echo", new EchoApplication(serverFuture));
+        WebSocketEngine.getEngine().registerApplication("/echo", new EchoApplication(serverFuture));
         WebSocket clientWebSocket = null;
 
         try {
