@@ -396,7 +396,7 @@ public class SSLTest extends GrizzlyTestCase {
                 }
 
                 try {
-                    Integer bytesReceived = clientFuture.get(10000, TimeUnit.SECONDS);
+                    Integer bytesReceived = clientFuture.get(10, TimeUnit.SECONDS);
                     assertNotNull(bytesReceived);
                 } catch (TimeoutException e) {
                     throw new TimeoutException("Received " + clientTestFilter.getBytesReceived() + " out of " + clientTestFilter.getPatternString().length());
