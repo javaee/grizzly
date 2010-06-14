@@ -47,11 +47,15 @@ import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
+import com.sun.grizzly.ssl.SSLContextConfigurator;
+import com.sun.grizzly.ssl.SSLEngineConfigurator;
+import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.websockets.frame.Frame;
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.URI;
+import java.net.URL;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -62,12 +66,30 @@ import junit.framework.TestCase;
  *
  * @author Alexey Stashok
  */
-public class WebSocketsCommTest extends TestCase {
+public class WSSCommTest extends TestCase {
     public static int PORT = 11001;
 
     public void testEchoText() throws Exception {
+        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
+        SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        SSLEngineConfigurator serverSSLEngineConfigurator = null;
+
+        if (sslContextConfigurator.validateConfiguration(true)) {
+            clientSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+            serverSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                    false, false, false);
+        } else {
+            fail("Failed to validate SSLContextConfiguration.");
+        }
+
+        final SSLFilter sslFilter = new SSLFilter(serverSSLEngineConfigurator,
+                clientSSLEngineConfigurator);
+
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
         serverFilterChainBuilder.add(new TransportFilter());
+        serverFilterChainBuilder.add(sslFilter);
         serverFilterChainBuilder.add(new ChunkingFilter(2));
         serverFilterChainBuilder.add(new HttpServerFilter());
         serverFilterChainBuilder.add(new WebSocketFilter());
@@ -89,6 +111,7 @@ public class WebSocketsCommTest extends TestCase {
 
             FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
             clientFilterChainBuilder.add(new TransportFilter());
+            clientFilterChainBuilder.add(sslFilter);
             clientFilterChainBuilder.add(new ChunkingFilter(2));
             clientFilterChainBuilder.add(new HttpClientFilter());
             clientFilterChainBuilder.add(new WebSocketFilter());
@@ -99,7 +122,7 @@ public class WebSocketsCommTest extends TestCase {
                     new WebSocketConnectorHandler(transport, clientFilterChain);
 
             MyClientWSHandler clientWSHandler = new MyClientWSHandler(clientFuture);
-            Future<WebSocket> connectFuture = connectorHandler.connect(new URI("ws://localhost:" + PORT + "/echo"), clientWSHandler);
+            Future<WebSocket> connectFuture = connectorHandler.connect(new URI("wss://localhost:" + PORT + "/echo"), clientWSHandler);
             final WebSocket ws = connectFuture.get(10, TimeUnit.SECONDS);
 
             assertNotNull(ws);
@@ -122,6 +145,27 @@ public class WebSocketsCommTest extends TestCase {
         }
     }
 
+    private SSLContextConfigurator createSSLContextConfigurator() {
+        SSLContextConfigurator sslContextConfigurator =
+                new SSLContextConfigurator();
+        ClassLoader cl = getClass().getClassLoader();
+        // override system properties
+        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        if (cacertsUrl != null) {
+            sslContextConfigurator.setTrustStoreFile(cacertsUrl.getFile());
+            sslContextConfigurator.setTrustStorePass("changeit");
+        }
+
+        // override system properties
+        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        if (keystoreUrl != null) {
+            sslContextConfigurator.setKeyStoreFile(keystoreUrl.getFile());
+            sslContextConfigurator.setKeyStorePass("changeit");
+        }
+
+        return sslContextConfigurator;
+    }
+    
     private static class MyClientWSHandler extends WebSocketClientHandler {
         private volatile String state = "INITIAL";
 
