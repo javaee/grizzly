@@ -62,9 +62,9 @@ public abstract class WebSocketBase implements WebSocket {
     protected final Connection connection;
 
     /**
-     * The {@link Frame}, which is being currently decoded.
+     * The {@link Frame}, which is being currently parsed.
      */
-    private Frame decodingFrame;
+    private Frame parsingFrame;
 
     private final AtomicBoolean isClosed = new AtomicBoolean();
 
@@ -147,20 +147,20 @@ public abstract class WebSocketBase implements WebSocket {
     }
 
     /**
-     * Get the currently decoding {@link Frame}.
+     * Get the currently parsing {@link Frame}.
      *
-     * @return the currently decoding {@link Frame}.
+     * @return the currently parsing {@link Frame}.
      */
-    Frame getDecodingFrame() {
-        return decodingFrame;
+    Frame getParsingFrame() {
+        return parsingFrame;
     }
 
     /**
-     * Set the currently decoding {@link Frame}.
+     * Set the currently parsing {@link Frame}.
      *
-     * @param decodingFrame the currently decoding {@link Frame}.
+     * @param parsingFrame the currently parsing {@link Frame}.
      */
-    void setDecodingFrame(Frame decodingFrame) {
-        this.decodingFrame = decodingFrame;
+    void setParsingFrame(Frame parsingFrame) {
+        this.parsingFrame = parsingFrame;
     }
 }

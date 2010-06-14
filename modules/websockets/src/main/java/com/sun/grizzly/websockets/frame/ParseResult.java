@@ -53,25 +53,25 @@ public class ParseResult implements Cacheable {
     private static final ThreadCache.CachedTypeIndex<ParseResult> CACHE_IDX =
             ThreadCache.obtainIndex(ParseResult.class, 1);
     
-    // is completed
-    private boolean isCompleted;
+    // is complete
+    private boolean isComplete;
     // remainder buffer (might not be null only if parsing was completed).
     private Buffer remainder;
 
     /**
      * Create a ParseResult object.
      * 
-     * @param isCompleted was parsing completed?
+     * @param isComplete was parsing completed?
      * @param remainderBuffer the remainder.
      *
      * @return <tt>ParseResult</tt>
      */
-    public static ParseResult create(boolean isCompleted, Buffer remainderBuffer) {
+    public static ParseResult create(boolean isComplete, Buffer remainderBuffer) {
         ParseResult resultObject = ThreadCache.takeFromCache(CACHE_IDX);
         if (resultObject == null) {
             resultObject = new ParseResult();
         }
-        resultObject.isCompleted = isCompleted;
+        resultObject.isComplete = isComplete;
         resultObject.remainder = remainderBuffer;
         return resultObject;
     }
@@ -95,8 +95,8 @@ public class ParseResult implements Cacheable {
      * 
      * @return <tt>true</tt>, if parsing was completed, or <tt>false</tt> if more data is expected.
      */
-    public boolean isCompleted() {
-        return isCompleted;
+    public boolean isComplete() {
+        return isComplete;
     }
 
     /**
@@ -105,7 +105,7 @@ public class ParseResult implements Cacheable {
     @Override
     public void recycle() {
         remainder = null;
-        isCompleted = false;
+        isComplete = false;
 
         ThreadCache.putToCache(CACHE_IDX, this);
     }

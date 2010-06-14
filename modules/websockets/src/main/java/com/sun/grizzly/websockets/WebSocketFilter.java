@@ -45,11 +45,13 @@ import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.Constants;
+import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpHeader;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.websockets.frame.ParseResult;
@@ -62,8 +64,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
+ * WebSocket {@link Filter} implementation, which supposed to be placed into a
+ * {@link FilterChain} right after HTTP Filter: {@link HttpServerFilter}, {@link HttpClientFilter};
+ * depending whether it's server or client side.
+ * The <tt>WebSocketFilter</tt> handles websocket connection, handshake phases and, when
+ * receives a websocket frame - redirects it to appropriate handler ({@link WebSocketApplication}, {@link WebSocketClientHandler}) for processing.
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class WebSocketFilter extends BaseFilter {
     private static final Logger logger = Grizzly.logger(WebSocketFilter.class);
@@ -76,36 +83,74 @@ public class WebSocketFilter extends BaseFilter {
     private static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
     private static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
     
+    /**
+     * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection}
+     * is a client-side {@link WebSocket}, if yes - creates websocket handshake packet
+     * and send it to a server. Otherwise, if it's not websocket connection - pass processing
+     * to the next {@link Filter} in a chain.
+     * 
+     * @param ctx {@link FilterChainContext}
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
     @Override
     public NextAction handleConnect(FilterChainContext ctx) throws IOException {
         logger.log(Level.FINEST, "handleConnect");
 
+        // Get connection
         final Connection connection = ctx.getConnection();
 
+        // check if it's websocket connection
         if (!isWebSocketConnection(connection)) {
+            // if not - pass processing to a next filter
             return ctx.getInvokeAction();
         }
 
+        // get client websocket meta data
         final ClientWebSocketMeta meta = (ClientWebSocketMeta) getWebSocketMeta(connection);
+        // compose client handshake packet
         final HttpContent request = composeWSRequest(connection, meta);
 
+        // send it to a server
         ctx.write(request);
 
+        // call the next filter in the chain
         return ctx.getInvokeAction();
     }
 
+    /**
+     * Method handles Grizzly {@link Connection} close phase. Check if the {@link Connection}
+     * is a {@link WebSocket}, if yes - tries to close the websocket gracefully (sending close frame)
+     * and calls {@link WebSocketHandler#onClose(com.sun.grizzly.websockets.WebSocket)}.
+     * If the Grizzly {@link Connection} is not websocket - passes processing to the next filter in the chain.
+     *
+     * @param ctx {@link FilterChainContext}
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
     @Override
     public NextAction handleClose(FilterChainContext ctx) throws IOException {
+        // Get the Connection
         final Connection connection = ctx.getConnection();
 
+        // check if Connection has associated WebSocket (is websocket)
         if (isWebSocketConnection(connection)) {
+            // if yes - get websocket
             final WebSocket ws = getWebSocket(connection);
             if (ws != null) {
+                // if there is associated websocket object (which means handshake was passed)
+                // close it gracefully
                 ws.close();
             } else {
+                // if handshake wasn't passed
                 WebSocketConnectHandler connectHandler =
                         removeWebSocketConnectHandler(connection);
+
+                // check if it's client socket in connect phase
                 if (connectHandler != null) {
+                    // if yes - notify connect handler
                     connectHandler.failed(new ConnectException());
                 }
             }
@@ -114,12 +159,29 @@ public class WebSocketFilter extends BaseFilter {
         return ctx.getInvokeAction();
     }
 
+    /**
+     * Handle Grizzly {@link Connection} read phase.
+     * If the {@link Connection} has associated {@link WebSocket} object (websocket connection),
+     * we check if websocket handshake has been completed for this connection, if not - initiate/validate handshake.
+     * If handshake has been completed - parse websocket {@link Frame}s one by one and
+     * pass processing to appropriate {@link WebSocketHandler}: {@link WebSocketApplication} or {@link WebSocketClientHandler}
+     * for server- and client- side connections.
+     *
+     * @param ctx {@link FilterChainContext}
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
     @Override
     public NextAction handleRead(FilterChainContext ctx) throws IOException {
+        // Get the Grizzly Connection
         final Connection connection = ctx.getConnection();
+        // Get the parsed HttpContent (we assume prev. filter was HTTP)
         final HttpContent content = (HttpContent) ctx.getMessage();
+        // Get the HTTP header
         final HttpHeader header = content.getHttpHeader();
 
+        // Try to obtain associated WebSocket
         WebSocket ws = getWebSocket(connection);
 
         if (logger.isLoggable(Level.FINE)) {
@@ -128,99 +190,144 @@ public class WebSocketFilter extends BaseFilter {
                     " headers=\n" + header);
         }
 
+        // If websocket is null - it means either non-websocket Connection, or websocket with incompleted handshake
         if (ws == null) {
             if (!isWebSocketConnection(connection) &&
                     (header.getUpgrade() == null ||
                     !WEB_SOCKET.equalsIgnoreCase(header.getUpgrade()))) {
+
+                // if it's not a websocket connection - pass the processing to the next filter
                 return ctx.getInvokeAction();
             }
 
+            // Handle handshake
             final NextAction next = handleHandshake(ctx, content);
             if (next != null) {
+                // we expect peers response, so exit the processing
                 return next;
             }
         }
         
-
+        // this is websocket with the completed handshake
         if (content.getContent().hasRemaining()) {
-            final Buffer buffer = content.getContent();
+            // get the frame(s) content
+            Buffer buffer = content.getContent();
+            content.recycle();
+            
             if (ws == null) {
+                // make sure we got a WebSocket object
                 ws = getWebSocket(connection);
             }
 
             final WebSocketBase wsBase = (WebSocketBase) ws;
+            // check if we're currently parsing a frame
+            Frame parsingFrame = wsBase.getParsingFrame();
 
-            Frame decodingFrame = wsBase.getDecodingFrame();
+            while (buffer != null && buffer.hasRemaining()) {
+                if (parsingFrame == null) { // if not
+                    // create a frame object to decode the payload to
+                    parsingFrame = Frame.createFrame(
+                            buffer.get(buffer.position()) & 0xFF, (Buffer) null);
+                    wsBase.setParsingFrame(parsingFrame);
+                }
 
-            if (decodingFrame == null) {
-                decodingFrame = Frame.createFrame(
-                        buffer.get(buffer.position()) & 0xFF, (Buffer) null);
-                wsBase.setDecodingFrame(decodingFrame);
-            }
+                // parse the frame
+                final ParseResult result = parsingFrame.parse(buffer);
 
-            final ParseResult result = decodingFrame.parse(buffer);
-            
-            final boolean isCompleted = result.isCompleted();
-            final Buffer remainder = result.getRemainder();
-            result.recycle();
-            
-            if (isCompleted) {
-                final HttpContent httpContentRemainder =
-                        (remainder == null ?
-                            null :
-                            HttpContent.builder(header).content(remainder).last(content.isLast()).build());
+                final boolean isComplete = result.isComplete();
+                // assign remainder to a buffer
+                buffer = result.getRemainder();
+                result.recycle();
 
-                content.recycle();
-                wsBase.setDecodingFrame(null);
+                // check if frame is complete
+                if (!isComplete) break;
 
-                if (!decodingFrame.isClose()) {
-                    ws.getHandler().onMessage(ws, decodingFrame);
-                } else {
+                wsBase.setParsingFrame(null);
+
+                if (parsingFrame.isClose()) { // if parsed frame is NOT a "close" frame
+                    // if it's "close" frame - gracefully close the websocket.
                     ws.close();
+                    break;
                 }
                 
-                ctx.setMessage(null);
-                return ctx.getInvokeAction(httpContentRemainder);
+                // call appropriate handler
+                ws.getHandler().onMessage(ws, parsingFrame);
+
+                parsingFrame = null;
             }
         }
 
         return ctx.getStopAction();
     }
 
+    /**
+     * Handle Grizzly {@link Connection} write phase.
+     * If the {@link Connection} has associated {@link WebSocket} object (websocket connection),
+     * we assume that message is websocket {@link Frame} and serialize it into a {@link Buffer}.
+     *
+     * @param ctx {@link FilterChainContext}
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
     @Override
     public NextAction handleWrite(FilterChainContext ctx) throws IOException {
+        // get the associated websocket
         final WebSocket websocket = getWebSocket(ctx.getConnection());
 
+        // if there is one
         if (websocket != null) {
+            // take a message as a websocket frame
             final Frame frame = (Frame) ctx.getMessage();
+            // serialize it into a Buffer
             final Buffer buffer = frame.serialize();
 
+            // set Buffer as message on the context
             ctx.setMessage(buffer);
         }
 
+        // invoke next filter in the chain
         return ctx.getInvokeAction();
     }
 
+    /**
+     * Handle websocket handshake
+     *
+     * @param ctx {@link FilterChainContext}
+     * @param content HTTP message
+     * 
+     * @return {@link NextAction} instruction for {@link FilterChain}, how it
+     *         should continue the execution
+     * @throws {@link java.io.IOException}
+     */
     private NextAction handleHandshake(FilterChainContext ctx,
             HttpContent content) throws IOException {
         
+        // check if it's server or client side handshake
         if (content.getHttpHeader().isRequest()) { // server handshake
             final int remaining = content.getContent().remaining();
+            // the content size should be at least 8 bytes (key3)
             if (remaining >= 8) {
+                // if we have 8 bytes avail - perform server handshake
                 handleServerHandshake(ctx, content);
             } else if (remaining > 0) {
+                // stop the handshake and pass remainder
                 return ctx.getStopAction(content);
             }
 
+            // stop the handshake
             return ctx.getStopAction();
         } else { // client handshake
             final HttpResponsePacket response = (HttpResponsePacket) content.getHttpHeader();
 
+            // check the server handshake response code
             if (response.getStatus() != 101) {
+                // if not 101 - error occurred
                 final WebSocketConnectHandler connectHandler =
                         removeWebSocketConnectHandler(ctx.getConnection());
                 final HandshakeException exception =
                         new HandshakeException(response.getStatus(), response.getReasonPhrase());
+                // if there is a connect handler registered - notify it
                 if (connectHandler != null) {
                     connectHandler.failed(exception);
                 }
@@ -228,32 +335,41 @@ public class WebSocketFilter extends BaseFilter {
                 throw new IOException(exception);
             }
 
+            // if the server response code is fine (101) - process the handshake
             final int remaining = content.getContent().remaining();
 
-            if (remaining >= 16) {
-                try {
-                    handleClientHandshake(ctx, content);
-                } catch (HandshakeException e) {
-                    throw new IOException(e);
-                }
+            if (remaining >= 16) { // we expect 16bytes content (security key length).
+                // handle client handshake
+                handleClientHandshake(ctx, content);
             } else if (remaining > 0) {
+                // return stop action and save the remainder
                 return ctx.getStopAction(content);
             }
         }
 
+        // handshake is completed
         return null;
     }
 
+    /**
+     * Handle server-side websocket handshake
+     *
+     * @param ctx {@link FilterChainContext}
+     * @param content HTTP message
+     *
+     * @throws {@link java.io.IOException}
+     */
     private void handleServerHandshake(FilterChainContext ctx,
             HttpContent requestContent) throws IOException {
-
-        HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
+        // get HTTP request headers
+        final HttpRequestPacket request = (HttpRequestPacket) requestContent.getHttpHeader();
         HttpPacket response;
 
         try {
             final ClientWebSocketMeta clientMeta;
             
             try {
+                // compose the client meta basing on the HTTP request
                 clientMeta = composeClientWSMeta(requestContent);
             } catch (IllegalArgumentException e) {
                 logger.log(Level.WARNING, "Bad client credentials", e);
@@ -262,34 +378,53 @@ public class WebSocketFilter extends BaseFilter {
                 throw new HandshakeException(400, "Bad client credentials");
             }
 
+            // do handshake
             final ServerWebSocket websocket =
                     WebSocketEngine.getEngine().handleServerHandshake(
                     ctx.getConnection(), clientMeta);
 
+            // compose HTTP response basing on server meta data
             response = composeWSResponse(ctx.getConnection(), request,
                     (ServerWebSocketMeta) websocket.getMeta());
 
+            // notify webapplication about new websocket
             websocket.getApplication().onAccept(websocket);
 
         } catch (HandshakeException e) {
             response = composeHandshakeError(request, e);
         }
 
+        // send the response
         ctx.write(response);
     }
 
+    /**
+     * Handle client-side websocket handshake
+     *
+     * @param ctx {@link FilterChainContext}
+     * @param content HTTP message
+     *
+     * @throws {@link java.io.IOException}
+     */
     private void handleClientHandshake(FilterChainContext ctx,
-            HttpContent responseContent) throws HandshakeException, IOException {
+            HttpContent responseContent) throws IOException {
 
+        // Get associated Grizzly connection
         final Connection connection = ctx.getConnection();
-
+        // Compose server meta data basing on the server HTTP response
         final ServerWebSocketMeta serverMeta = composeServerWSMeta(responseContent);
 
-        ClientWebSocket websocket =
-                WebSocketEngine.getEngine().handleClientHandshake(
-                connection, serverMeta);
+        try {
+            // do handshake
+            ClientWebSocket websocket =
+                    WebSocketEngine.getEngine().handleClientHandshake(
+                    connection, serverMeta);
 
-        ((WebSocketClientHandler) websocket.getHandler()).onConnect(websocket);
+            // notify the client handler about websocket connection
+            ((WebSocketClientHandler) websocket.getHandler()).onConnect(websocket);
+        } catch (HandshakeException e) {
+            throw new IOException(e);
+        }
     }
 
     private WebSocket getWebSocket(final Connection connection) {
