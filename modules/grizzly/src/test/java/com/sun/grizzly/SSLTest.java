@@ -50,6 +50,8 @@ import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
+import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
@@ -130,6 +132,18 @@ public class SSLTest extends GrizzlyTestCase {
 
     public void testPingPongFilterChainAsyncChunked() throws Exception {
         doTestPingPongFilterChain(false, 5, 1, new ChunkingFilter(1));
+    }
+
+    public void testSimplePendingSSLClientWrites() throws Exception {
+        doTestPendingSSLClientWrites(1, 1);
+    }
+
+    public void test20on1PendingSSLClientWrites() throws Exception {
+        doTestPendingSSLClientWrites(1, 20);
+    }
+
+    public void test20On5PendingSSLClientWrites() throws Exception {
+        doTestPendingSSLClientWrites(5, 20);
     }
 
     protected void doTestPingPongFilterChain(boolean isBlocking,
@@ -317,6 +331,90 @@ public class SSLTest extends GrizzlyTestCase {
         }
     }
 
+    public void doTestPendingSSLClientWrites(int connectionsNum,
+            int packetsNumber) throws Exception {
+        Connection connection = null;
+        SSLContextConfigurator sslContextConfigurator = createSSLContextConfigurator();
+        SSLEngineConfigurator clientSSLEngineConfigurator = null;
+        SSLEngineConfigurator serverSSLEngineConfigurator = null;
+
+        if (sslContextConfigurator.validateConfiguration(true)) {
+            clientSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext());
+            serverSSLEngineConfigurator =
+                    new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                    false, false, false);
+        } else {
+            fail("Failed to validate SSLContextConfiguration.");
+        }
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        filterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
+                clientSSLEngineConfigurator));
+        filterChainBuilder.add(new EchoFilter());
+
+        TCPNIOTransport transport =
+                TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
+
+        final MemoryManager mm = transport.getMemoryManager();
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            final String messagePattern = "Hello world! Packet#";
+            for (int i = 0; i < connectionsNum; i++) {
+                Future<Connection> future = transport.connect("localhost", PORT);
+                connection = future.get(10, TimeUnit.SECONDS);
+                assertTrue(connection != null);
+
+                final FutureImpl<Integer> clientFuture = SafeFutureImpl.create();
+                FilterChainBuilder clientFilterChainBuilder = FilterChainBuilder.stateless();
+                clientFilterChainBuilder.add(new TransportFilter());
+                clientFilterChainBuilder.add(new SSLFilter(serverSSLEngineConfigurator,
+                        clientSSLEngineConfigurator));
+
+                final ClientTestFilter clientTestFilter = new ClientTestFilter(
+                        clientFuture, messagePattern, packetsNumber);
+
+                clientFilterChainBuilder.add(clientTestFilter);
+
+                connection.setProcessor(clientFilterChainBuilder.build());
+
+                int packetNum = 0;
+                try {
+                    for (int j = 0; j < packetsNumber; j++) {
+                        packetNum = j;
+                        Buffer buffer = MemoryUtils.wrap(mm, messagePattern + j);
+                        connection.write(buffer);
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.WARNING, "Error occurred when testing connection#" + i + " packet#" + packetNum);
+                    throw e;
+                }
+
+                try {
+                    Integer bytesReceived = clientFuture.get(10000, TimeUnit.SECONDS);
+                    assertNotNull(bytesReceived);
+                } catch (TimeoutException e) {
+                    throw new TimeoutException("Received " + clientTestFilter.getBytesReceived() + " out of " + clientTestFilter.getPatternString().length());
+                }
+
+                connection.close();
+                connection = null;
+            }
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+    
     private SSLContextConfigurator createSSLContextConfigurator() {
         SSLContextConfigurator sslContextConfigurator =
                 new SSLContextConfigurator();
@@ -429,6 +527,57 @@ public class SSLTest extends GrizzlyTestCase {
 
         public Future<Integer> getServerCompletedFeature() {
             return serverCompletedFeature;
+        }
+    }
+
+    private static class ClientTestFilter extends BaseFilter {
+
+        private final FutureImpl<Integer> clientFuture;
+        private final String messagePattern;
+        private final int packetsNumber;
+
+        private volatile int bytesReceived = 0;
+
+        private final String patternString;
+
+        private ClientTestFilter(FutureImpl<Integer> clientFuture, String messagePattern, int packetsNumber) {
+            this.clientFuture = clientFuture;
+            this.messagePattern = messagePattern;
+            this.packetsNumber = packetsNumber;
+
+            final StringBuilder sb = new StringBuilder(packetsNumber * (messagePattern.length() + 5));
+            for (int i=0; i<packetsNumber; i++) {
+                sb.append(messagePattern).append(i);
+            }
+
+            patternString = sb.toString();
+        }
+
+        @Override
+        public NextAction handleRead(FilterChainContext ctx) throws IOException {
+            final Buffer buffer = (Buffer) ctx.getMessage();
+
+            final String rcvdStr = buffer.toStringContent();
+            final String expectedChunk = patternString.substring(bytesReceived, bytesReceived + buffer.remaining());
+
+            if (!expectedChunk.equals(rcvdStr)) {
+                clientFuture.failure(new AssertionError("Content doesn't match. Expected: " + expectedChunk + " Got: " + rcvdStr));
+            }
+
+            bytesReceived += buffer.remaining();
+
+            if (bytesReceived == patternString.length()) {
+                clientFuture.result(bytesReceived);
+            }
+            return super.handleRead(ctx);
+        }
+
+        public int getBytesReceived() {
+            return bytesReceived;
+        }
+
+        public String getPatternString() {
+            return patternString;
         }
     }
 }

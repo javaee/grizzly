@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.util.logging.Filter;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.EmptyCompletionHandler;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.attributes.Attribute;
@@ -52,6 +53,9 @@ import com.sun.grizzly.filterchain.AbstractCodecFilter;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.memory.MemoryManager;
 import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.concurrent.CancellationException;
 import java.util.logging.Level;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult;
@@ -154,7 +158,26 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
             return super.handleWrite(ctx);
         } else {
-            throw new IllegalStateException("Handshake is not completed!");
+            synchronized(connection) {
+                sslEngine = SSLUtils.getSSLEngine(connection);
+                if (sslEngine == null) {
+                    handshake(connection,
+                            new PendingWriteCompletionHandler(connection),
+                            null, clientSSLEngineConfigurator);
+                }
+
+                final CompletionHandler completionHandler =
+                        handshakeCompletionHandlerAttr.get(connection);
+                if (completionHandler instanceof PendingWriteCompletionHandler) {
+                    if (!((PendingWriteCompletionHandler) completionHandler).add(ctx)) {
+                        return super.handleWrite(ctx);
+                    }
+                } else {
+                    throw new IllegalStateException("Handshake is not completed!");
+                }
+
+                return ctx.getSuspendAction();
+            }
         }
     }
 
@@ -470,5 +493,68 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         }
 
         return len;
+    }
+
+    private final static class PendingWriteCompletionHandler
+            extends EmptyCompletionHandler<SSLEngine> {
+
+        private final Connection connection;
+        private final List<FilterChainContext> pendingWriteContexts;
+
+        private IOException error;
+        private boolean isComplete;
+        
+        public PendingWriteCompletionHandler(Connection connection) {
+            this.connection = connection;
+            pendingWriteContexts = new LinkedList<FilterChainContext>();
+        }
+
+        public boolean add(FilterChainContext context) throws IOException {
+            synchronized(connection) {
+                if (error != null) throw error;
+                if (isComplete) return false;
+
+                pendingWriteContexts.add(context);
+
+                return true;
+            }
+        }
+        
+        @Override
+        public void completed(SSLEngine result) {
+            try {
+                synchronized (connection) {
+                    for (FilterChainContext ctx : pendingWriteContexts) {
+                        ctx.resume();
+                    }
+                    
+                    pendingWriteContexts.clear();
+                }
+            } catch (Exception e) {
+                failed(e);
+            }
+        }
+
+        @Override
+        public void cancelled() {
+            failed(new CancellationException());
+        }
+
+        @Override
+        public void failed(Throwable throwable) {
+            synchronized(connection) {
+                if (throwable instanceof IOException) {
+                    error = (IOException) throwable;
+                } else {
+                    error = new IOException(throwable);
+                }
+            }
+
+            try {
+                connection.close();
+            } catch (IOException e) {
+            }
+        }
+        
     }
 }
