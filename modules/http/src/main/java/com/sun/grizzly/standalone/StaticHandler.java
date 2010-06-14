@@ -107,7 +107,7 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
             String uri = req.requestURI().toString();                
             fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,
                           uri,
-                          req.serverName().toString(),
+                          req.serverName(),
                           req.getResponse().getMimeHeaders(),
                           false);
         } else if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
