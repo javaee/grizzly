@@ -328,7 +328,7 @@ public class StaticResourcesAdapter implements Adapter {
 
     /**
      * Return the list of folders the adapter can serve file from.
-     * @return a {@link ConcurentLinkedList} of the folders this Adapter can
+     * @return a {@link Queue} of the folders this Adapter can
      * serve file from.
      */
     public Queue<String> getRootFolders() {
@@ -371,18 +371,21 @@ public class StaticResourcesAdapter implements Adapter {
     }
 
     /**
-     * True if {@link File#transfertTo} to send a static resources.
-     * @return True if {@link File#transfertTo} to send a static resources.
+     * @return <code>true</code> if {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     *  to send a static resources.
      */
     public boolean isUseSendFile() {
         return useSendFile;
     }
 
     /**
-     * True if {@link File#transfertTo} to send a static resources, false if
-     * the File needs to be loaded in memory and flushed using {@link ByteBuffer}
-     * @param useSendFile True if {@link File#transfertTo} to send a static resources, false if
-     * the File needs to be loaded in memory and flushed using {@link ByteBuffer}
+     * <code>true</code> if {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     * to send a static resources, false if the File needs to be loaded in
+     * memory and flushed using {@link ByteBuffer}.
+     *
+     * @param useSendFile True if {@link java.nio.channels.FileChannel#transferTo(long, long, java.nio.channels.WritableByteChannel)}
+     *  to send a static resources, false if the File needs to be loaded in
+     *  memory and flushed using {@link ByteBuffer}
      */
     public void setUseSendFile(boolean useSendFile) {
         this.useSendFile = useSendFile;
