@@ -63,8 +63,8 @@ import java.util.logging.Logger;
 
 /**
  * Output buffer.
- * Buffer the bytes until the {@link ByteChunk} is full or the request
- * is completed.
+ * Buffer the bytes until the {@link com.sun.grizzly.util.buf.ByteChunk}
+ * is full or the request is completed.
  * 
  * @author Jean-Francois Arcand
  * @author Scott Oaks
