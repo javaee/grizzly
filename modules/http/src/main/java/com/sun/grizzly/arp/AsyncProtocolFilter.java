@@ -56,6 +56,7 @@ import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -86,13 +87,40 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
     
     /**
      * {@link Interceptor} used when determining if a request must be handled
-     * directly inside this {@link ProtocolFilter}. 
+     * directly inside this {@link com.sun.grizzly.ProtocolFilter}.
      */
     protected Interceptor<ByteBuffer, SocketChannel> interceptor;
-    
-    
-    public AsyncProtocolFilter(Class algorithmClass,int port) {
-        super(algorithmClass,port);
+
+
+    /**
+     * <p>
+     * Invokes {@link com.sun.grizzly.arp.AsyncProtocolFilter#AsyncProtocolFilter(Class, java.net.InetAddress, int)}
+     * with a <code>null</code> {@link InetAddress}.
+     * </p>
+     *
+     * @param algorithmClass the {@link StreamAlgorithm}
+     * @param port the network port to associate with this filter
+     *
+     * @deprecated use {@link com.sun.grizzly.arp.AsyncProtocolFilter#AsyncProtocolFilter(Class, java.net.InetAddress, int)}
+     */
+    @Deprecated
+    public AsyncProtocolFilter(Class algorithmClass, int port) {
+        super(algorithmClass, null, port);
+    }
+
+    /**
+     * Constructs a new <code>AsyncProtocolFilter</code>
+     * .
+     * @param algorithmClass the {@link StreamAlgorithm}
+     * @param address the network address to associate with this filter
+     * @param port the network port to associate with this filter
+     */
+    public AsyncProtocolFilter(Class algorithmClass,
+                               InetAddress address,
+                               int port) {
+
+        super(algorithmClass, address, port);
+
     }
     
     /**
@@ -143,8 +171,8 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
         }
         
                 
-        SelectorThread selectorThread = SelectorThread.getSelector(port);
-        bbSize = SelectorThread.getSelector(port).getMaxHttpHeaderSize();
+        SelectorThread selectorThread = SelectorThread.getSelector(address, port);
+        bbSize = SelectorThread.getSelector(address, port).getMaxHttpHeaderSize();
         
         InputReader inputStream = byteBufferStreams.poll();
         if (inputStream == null) {
@@ -225,7 +253,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
     }    
     
     /**
-     * Configure {@link SSLProcessorTask}.
+     * Configure {@link com.sun.grizzly.ssl.SSLProcessorTask}.
      */
     protected void configureProcessorTask(ProcessorTask processorTask,
             Context context, StreamAlgorithm streamAlgorithm, InputStream inputStream) {
@@ -284,7 +312,7 @@ public class AsyncProtocolFilter extends DefaultProtocolFilter implements TaskLi
 
     /**
      * Set the {@link Interceptor} used to decide if the request must be handled 
-     * by this {@link ProtocolFilter} directly.
+     * by this {@link com.sun.grizzly.ProtocolFilter} directly.
      * 
      * @param interceptor the {@link Interceptor}
      */

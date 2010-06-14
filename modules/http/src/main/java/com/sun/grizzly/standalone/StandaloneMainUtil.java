@@ -44,8 +44,10 @@ import com.sun.grizzly.util.ExpandJar;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.net.UnknownHostException;
 
 /**
  * Abstract class that can be extended when Main/Launcher class are required. 
@@ -65,9 +67,15 @@ public abstract class StandaloneMainUtil {
     public static final String ADAPTER = "com.sun.grizzly.adapterClass";
     
     private int port = 8080;
+    private InetAddress address;
     private long t1 = 0L;
 
     public StandaloneMainUtil() {
+        try {
+            address = InetAddress.getLocalHost();
+        } catch (UnknownHostException uhe) {
+            throw new IllegalStateException(uhe);
+        }
     }
     
     
@@ -85,7 +93,7 @@ public abstract class StandaloneMainUtil {
      * Stop {@link SelectorThread}
      */
     public void stop() throws Exception{
-        SelectorThread.getSelector(port).stopEndpoint();
+        SelectorThread.getSelector(address, port).stopEndpoint();
     }   
 
     

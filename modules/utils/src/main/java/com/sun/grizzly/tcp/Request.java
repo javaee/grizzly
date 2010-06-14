@@ -65,6 +65,7 @@ import com.sun.grizzly.util.http.Cookies;
 import com.sun.grizzly.util.http.MimeHeaders;
 import com.sun.grizzly.util.http.Parameters;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -134,6 +135,7 @@ public class Request {
     private MessageBytes serverNameMB = MessageBytes.newInstance();
 
     private String localHost;
+    private InetAddress localAddress;
     
     private int remotePort;
     private int localPort;
@@ -304,8 +306,16 @@ public class Request {
 
     public void setLocalHost(String host) {
 	this.localHost = host;
-    }    
-    
+    }
+
+    public InetAddress getLocalAddress() {
+        return localAddress;
+    }
+
+    public void setLocalAddress(InetAddress localAddress) {
+        this.localAddress = localAddress;
+    }
+
     public int getRemotePort(){
         return remotePort;
     }

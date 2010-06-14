@@ -50,7 +50,7 @@ import com.sun.grizzly.util.net.SSLImplementation;
 import javax.net.ssl.SSLContext;
 
 /**
- * SSL over NIO {@link Selector} implementation. Mainly, this class
+ * SSL over NIO {@link java.nio.channels.Selector} implementation. Mainly, this class
  * replace the clear text implementation by defining the SSL tasks counterpart:
  * SSLReadTask, SSLProcessorTask and SSLByteBufferInputStream.
  *
@@ -118,9 +118,9 @@ public class SSLSelectorThread extends SelectorThread {
     @Override
     protected ProtocolFilter createHttpParserFilter() {
         if (asyncExecution){
-            return new SSLAsyncProtocolFilter(algorithmClass, port, sslImplementation);
+            return new SSLAsyncProtocolFilter(algorithmClass, inet, port, sslImplementation);
         } else {
-            return new SSLDefaultProtocolFilter(algorithmClass, port, sslImplementation);
+            return new SSLDefaultProtocolFilter(algorithmClass, inet, port, sslImplementation);
         }
     }
 
@@ -213,10 +213,10 @@ public class SSLSelectorThread extends SelectorThread {
     } 
     
     /**
-     * Returns the list of cipher suites to be enabled when {@link SSLEngine}
+     * Returns the list of cipher suites to be enabled when {@link javax.net.ssl.SSLEngine}
      * is initialized.
      * 
-     * @return <tt>null</tt> means 'use {@link SSLEngine}'s default.'
+     * @return <tt>null</tt> means 'use {@link javax.net.ssl.SSLEngine}'s default.'
      */
     public String[] getEnabledCipherSuites() {
         return enabledCipherSuites;
@@ -224,10 +224,11 @@ public class SSLSelectorThread extends SelectorThread {
 
     
     /**
-     * Sets the list of cipher suites to be enabled when {@link SSLEngine}
+     * Sets the list of cipher suites to be enabled when {@link javax.net.ssl.SSLEngine}
      * is initialized.
      * 
-     * @param cipherSuites <tt>null</tt> means 'use {@link SSLEngine}'s default.'
+     * @param enabledCipherSuites <tt>null</tt> means 'use
+     *  {@link javax.net.ssl.SSLEngine}'s default.'
      */
     public void setEnabledCipherSuites(String[] enabledCipherSuites) {
         this.enabledCipherSuites = enabledCipherSuites;
@@ -235,10 +236,10 @@ public class SSLSelectorThread extends SelectorThread {
 
    
     /**
-     * Returns the list of protocols to be enabled when {@link SSLEngine}
+     * Returns the list of protocols to be enabled when {@link javax.net.ssl.SSLEngine}
      * is initialized.
      * 
-     * @return <tt>null</tt> means 'use {@link SSLEngine}'s default.'
+     * @return <tt>null</tt> means 'use {@link javax.net.ssl.SSLEngine}'s default.'
      */  
     public String[] getEnabledProtocols() {
         return enabledProtocols;
@@ -246,10 +247,10 @@ public class SSLSelectorThread extends SelectorThread {
 
     
     /**
-     * Sets the list of protocols to be enabled when {@link SSLEngine}
+     * Sets the list of protocols to be enabled when {@link javax.net.ssl.SSLEngine}
      * is initialized.
      * 
-     * @param enabledProtocols <tt>null</tt> means 'use {@link SSLEngine}'s default.'
+     * @param enabledProtocols <tt>null</tt> means 'use {@link javax.net.ssl.SSLEngine}'s default.'
      */    
     public void setEnabledProtocols(String[] enabledProtocols) {
         this.enabledProtocols = enabledProtocols;

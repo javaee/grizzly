@@ -49,6 +49,7 @@ import com.sun.grizzly.util.InputReader;
 import com.sun.grizzly.util.SelectionKeyAttachment;
 import com.sun.grizzly.util.StreamAlgorithm;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
@@ -63,7 +64,7 @@ import java.util.logging.Logger;
 public class DefaultProtocolFilter implements ProtocolFilter {
     
     /**
-     * The {@link StreamAlgorithm} classes.
+     * The {@link StreamAlgorithm} class.
      */
     protected Class algorithmClass;
     
@@ -71,17 +72,55 @@ public class DefaultProtocolFilter implements ProtocolFilter {
      * The current TCP port.
      */
     protected int port;
+
+    /**
+     * The current address.
+     */
+    protected InetAddress address;
     
     /**
      * Logger
      */
     protected final static Logger logger = SelectorThread.logger();
-    
-    
+
+
+    /**
+     * <p>
+     * Invokes {@link com.sun.grizzly.http.DefaultProtocolFilter#DefaultProtocolFilter(Class, java.net.InetAddress, int)}.
+     * </p>
+     *
+     * @param algorithmClass the {@link StreamAlgorithm}
+     * @param port the network port to associate with this filter
+     *
+     * @deprecated call {@link DefaultProtocolFilter#DefaultProtocolFilter(Class, java.net.InetAddress, int)}
+     */
+    @Deprecated
     public DefaultProtocolFilter(Class algorithmClass, int port) {
         this.algorithmClass = algorithmClass;
         this.port = port;
     }
+
+
+    /**
+     * <p>
+     * Constructs a new <code>DefaultProtocolFilter</code>/
+     * </p>
+     *
+     * @param algorithmClass the {@link StreamAlgorithm}
+     * @param address the network address to associate with this filter
+     * @param port the network port to associate with this filter
+     */
+    public DefaultProtocolFilter(Class algorithmClass,
+                                 InetAddress address,
+                                 int port) {
+
+        this.algorithmClass = algorithmClass;
+        this.address = address;
+        this.port = port;
+
+    }
+
+
     
     public boolean execute(Context ctx) throws IOException {
         if (Boolean.TRUE.equals(ctx.getAttribute(ReadFilter.DELAYED_CLOSE_NOTIFICATION))) {

@@ -402,7 +402,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     // -----------------------------------------  Multi-Selector supports --//
 
     /**
-     * The number of {@link SelectorReadThread}
+     * The number of read threads.
      */
     protected int readThreadsCount = -1;
 
@@ -579,9 +579,19 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     /**
      * Return the {@link SelectorThread} which listen on port, or null
      * if there is no {@link SelectorThread}.
+     *
+     * @deprecated This method is not safe when a machine with multiple
+     *  listeners are bound to different addresses using the same port.
+     *  Use {@link SelectorThread#getSelector(java.net.InetAddress, int)}.
      */
+    @Deprecated
     public static SelectorThread getSelector(int port){
-        return selectorThreads.get(port);
+        return getSelector(null, port);
+    }
+
+
+    public static SelectorThread getSelector(InetAddress address, int port) {
+        return selectorThreads.get(getSelectorThreadLookupKey(address, port));
     }
     
     
@@ -735,13 +745,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     protected ProtocolFilter createHttpParserFilter() {
         if (asyncExecution){
-           AsyncProtocolFilter f = new AsyncProtocolFilter(algorithmClass,port);
+           AsyncProtocolFilter f =
+                   new AsyncProtocolFilter(algorithmClass, inet, port);
            if (asyncInterceptor != null) {
                f.setInterceptor(asyncInterceptor);
            }
            return f;
         } else {
-            return new DefaultProtocolFilter(algorithmClass, port);
+            return new DefaultProtocolFilter(algorithmClass, inet, port);
         }
     }
 
@@ -857,11 +868,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     }
        
     protected FileCacheFactory createFileCacheFactory() {
-        return FileCacheFactory.getFactory(port);
+        return FileCacheFactory.getFactory(inet, port);
     }
 
     protected void configureFileCacheFactory() {
-        fileCacheFactory = FileCacheFactory.getFactory(port);
+        fileCacheFactory = FileCacheFactory.getFactory(inet, port);
         fileCacheFactory.setIsEnabled(isFileCacheEnabled);
         fileCacheFactory.setLargeFileCacheEnabled(isLargeFileCacheEnabled);
         fileCacheFactory.setSecondsMaxAge(secondsMaxAge);
@@ -911,7 +922,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
     
     /**
-     * Load using reflection the{@link Algorithm} class.
+     * Load using reflection the{@link StreamAlgorithm} class.
      */
     protected void initAlgorithm(){
         try{    
@@ -1075,7 +1086,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     public void start() {
         if (port == 0){
-            selectorThreads.put(getPort(), this);
+            selectorThreads.put(getSelectorThreadLookupKey(inet, port), this);
         }
         new WorkerThreadImpl("SelectorThread-" + port,this).start();
     }
@@ -1125,7 +1136,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             SelectorFactory.setMaxSelectors(maxPoolSize);
         }
         if (port != 0){
-            selectorThreads.put(port, this);
+            selectorThreads.put(getSelectorThreadLookupKey(inet, port), this);
         }
 
         initialized = true;     
@@ -1741,7 +1752,8 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     
     /**
      * Get main {@link SelectorHandler}
-     * @deprecated use {@link SelectorHandler}, which is usually provided by the current {@link Context}.
+     * @deprecated use {@link SelectorHandler}, which is usually provided by
+     *  the current {@link com.sun.grizzly.Context}.
      */
     public TCPSelectorHandler getSelectorHandler() {
         return selectorHandler;
@@ -2096,7 +2108,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
     public void setCompressableMimeTypes(String compressableMimeTypes) {
         this.compressableMimeTypes = compressableMimeTypes;
     }
-    
+
+    private static int getSelectorThreadLookupKey(InetAddress address, int port) {
+        int addressHash = ((address != null) ? address.hashCode() : 0);
+        return (addressHash + port);
+    }
     
     private void parseComressableMimeTypes() {
         if (compressableMimeTypes == null) {

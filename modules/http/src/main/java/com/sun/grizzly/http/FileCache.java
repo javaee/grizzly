@@ -48,6 +48,7 @@ import com.sun.grizzly.util.WorkerThreadImpl;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -56,6 +57,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
+
+import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.util.Queue;
 import java.util.StringTokenizer;
@@ -112,7 +115,10 @@ public class FileCache{
     /**
      * The port associated with this cache.
      */
-    private int port = 8080;    
+    private int port = 8080;
+
+
+    private InetAddress address;
     
     
     /**
@@ -283,8 +289,12 @@ public class FileCache{
      * Add a resource to the cache. Currently, only static resources served
      * by the DefaultServlet can be cached.
      */
-    public synchronized void add(String mappedServlet, String baseDir, 
-            String requestURI, MimeHeaders headers, boolean xPoweredBy){
+    public synchronized void add(String mappedServlet,
+                                 String baseDir,
+                                 String requestURI,
+                                 MessageBytes host,
+                                 MimeHeaders headers,
+                                 boolean xPoweredBy){
         
         if (requestURI == null || fileCache.get(requestURI) != null) return;
         
@@ -297,10 +307,12 @@ public class FileCache{
             File file = new File(baseDir + requestURI);
             ByteBuffer bb = mapFile(file);
 
-            String root = SelectorThread.getSelector(port).getWebAppRootPath();
+            SelectorThread selectorThread =
+                    SelectorThread.getSelector(address, port);
+            String root = selectorThread.getWebAppRootPath();
             if (bb == null && !root.equals(baseDir)){
-                Adapter a = SelectorThread.getSelector(port).getAdapter();
-                Queue<String> rootFolders = null;
+                Adapter a = selectorThread.getAdapter();
+                Queue<String> rootFolders;
                 if (a instanceof StaticResourcesAdapter){
                     rootFolders = ((StaticResourcesAdapter)a).getRootFolders();
                     for (String s:rootFolders){
@@ -339,6 +351,7 @@ public class FileCache{
                 entry.date = headers.getHeader("Date");
                 entry.Etag = headers.getHeader("Etag");
                 entry.contentLength = headers.getHeader("Content-Length");
+                entry.host = host;
 
                 incOpenCacheEntries();
                 if ( isMonitoringEnabled ) {
@@ -433,6 +446,13 @@ public class FileCache{
         if ( fileCache.size() != 0 ){
             uri = request.requestURI().toString();
             entry = fileCache.get(uri);
+
+            if (entry != null) {
+                String host = request.serverName().toString();
+                if (!host.equals(entry.host)) {
+                    entry = null;
+                }
+            }
             
             recalcCacheStatsIfMonitoring(entry);
         } else {
@@ -542,8 +562,26 @@ public class FileCache{
         this.port = port;
     }
 
-    
+    /**
+     * @return the network address associated with this cache instance.
+     */
+    public InetAddress getAddress() {
+        return address;
+    }
+
+    /**
+     * <p>
+     * Associates the specified network address with this cache instance.
+     * </p>
+     *
+     * @param address the network address
+     */
+    public void setAddress(InetAddress address) {
+        this.address = address;
+    }
+
     public final class FileCacheEntry implements Runnable{
+        public MessageBytes host;
         public String requestURI;
         public String lastModified = "";
         public String contentType;
@@ -1101,11 +1139,10 @@ public class FileCache{
      * Check if the if-match condition is satisfied.
      *
      * @param request The servlet request we are processing
-     * @param response The servlet response we are creating
-     * @param resourceInfo File object
-     * @return boolean true if the resource meets the specified condition,
-     * and false if the condition is not satisfied, in which case request
-     * processing is stopped
+     * @param entry the FileCacheEntry to validate
+     * @return <code>true</code> if the resource meets the specified condition,
+     *  and false if the condition is not satisfied, in which case request
+     *  processing is stopped
      */
     protected boolean checkIfMatch(Request request, FileCacheEntry entry)
         throws IOException {

@@ -1458,6 +1458,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             InetAddress localAddress = socket.getLocalAddress();
             // Setting the socket-related fields. The adapter doesn't know 
             // about socket.
+            request.setLocalAddress(localAddress);
             request.setLocalHost(localAddress.getHostName());
             request.serverName().setString(localAddress.getHostName());
             return;

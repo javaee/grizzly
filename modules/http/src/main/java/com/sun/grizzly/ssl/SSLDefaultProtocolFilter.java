@@ -45,8 +45,10 @@ import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.SSLSupport;
 
+import java.net.InetAddress;
+
 /**
- * SSL support over NIO. This {@link Task} handles the SSL requests
+ * SSL support over NIO. This {@link com.sun.grizzly.http.Task} handles the SSL requests
  * using a non blocking socket. The SSL handshake is done using this class.
  * Once the handshake is successful, the {@link SSLProcessorTask} is
  * executed.
@@ -55,18 +57,53 @@ import com.sun.grizzly.util.net.SSLSupport;
  */
 public class SSLDefaultProtocolFilter extends DefaultProtocolFilter {
     /**
-     * The Coyote SSLImplementation used to retrive the {@link SSLContext}
+     * The Coyote SSLImplementation used to retrive the {@link javax.net.ssl.SSLContext}
      */
     protected SSLImplementation sslImplementation;
     
     
     // -------------------------------------------------------------------- //
-    
+
+    /**
+     *
+     * <p>
+     * Invokes {@link com.sun.grizzly.ssl.SSLDefaultProtocolFilter#SSLDefaultProtocolFilter(Class, int, com.sun.grizzly.util.net.SSLImplementation)}
+     * with a <code>null</code> {@link InetAddress}.
+     * </p>
+     *
+     * @param algorithmClass the {@link StreamAlgorithm}
+     * @param port the network port to associate with this filter
+     * @param sslImplementation the {@link SSLImplementation} to associate with
+     *  this filter
+     *
+     * @deprecated Use {@link com.sun.grizzly.ssl.SSLDefaultProtocolFilter#DefaultProtocolFilter(Class, java.net.InetAddress, int)}
+     */
     public SSLDefaultProtocolFilter(Class algorithmClass, int port,
             SSLImplementation sslImplementation) {
         super(algorithmClass, port);
         this.sslImplementation = sslImplementation;
     }
+
+
+    /**
+     <p>
+     * Constructs a new <code>SSLDefaultProtocolFilter</code>.
+     * </p>
+     *
+     * @param algorithmClass the {@link StreamAlgorithm}
+     * @param address the network address to associate with this filter
+     * @param port the network port to associate with this filter
+     * @param sslImplementation the {@link SSLImplementation} to associate with
+     *  this filter
+     */
+    public SSLDefaultProtocolFilter(Class algorithmClass,
+                                    InetAddress address,
+                                    int port,
+                                    SSLImplementation sslImplementation) {
+        super(algorithmClass, address, port);
+        this.sslImplementation = sslImplementation;
+    }
+    
     
     /**
      * {@inheritDoc}
@@ -78,7 +115,7 @@ public class SSLDefaultProtocolFilter extends DefaultProtocolFilter {
         
         SSLSupport sslSupport = sslImplementation.
                 getSSLSupport(((WorkerThread)Thread.currentThread()).getSSLEngine());
-        ((SSLProcessorTask)processorTask).setSSLSupport(sslSupport);
+        processorTask.setSSLSupport(sslSupport);
     }    
     
     /**

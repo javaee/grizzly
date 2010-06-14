@@ -84,6 +84,7 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
         this.socketChannel = socketChannel;
         if ( fileCache == null && socketChannel != null){
             fileCache = FileCacheFactory.getFactory(
+                    socketChannel.socket().getLocalAddress(),
                     socketChannel.socket().getLocalPort()).getFileCache();
         }
     }    
@@ -94,14 +95,21 @@ public class StaticHandler implements Interceptor<Request,SocketChannel> {
      * static resource is already cached, return it.
      */
     public int handle(Request req, int handlerCode) throws IOException{
-        if (fileCache == null) return Interceptor.CONTINUE;
+
+        if (fileCache == null) {
+            return Interceptor.CONTINUE;
+        }
         
         if (handlerCode == Interceptor.RESPONSE_PROCEEDED && fileCache.isEnabled()){
-            String docroot = SelectorThread
-                    .getSelector(socketChannel.socket().getLocalPort()).getWebAppRootPath();
+            String docroot = SelectorThread.getSelector(
+                    socketChannel.socket().getLocalAddress(),
+                    socketChannel.socket().getLocalPort()).getWebAppRootPath();
             String uri = req.requestURI().toString();                
-            fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,uri,
-                          req.getResponse().getMimeHeaders(),false);        
+            fileCache.add(FileCache.DEFAULT_SERVLET_NAME,docroot,
+                          uri,
+                          req.serverName().toString(),
+                          req.getResponse().getMimeHeaders(),
+                          false);
         } else if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
             if (fileCache.sendCache(req)){
                 return Interceptor.BREAK;   

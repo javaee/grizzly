@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.http;
 
+import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import com.sun.grizzly.http.FileCache.FileCacheEntry;
 import com.sun.grizzly.util.DataStructures;
@@ -86,8 +87,15 @@ public class FileCacheFactory {
      * The port used
      */
     public int port = 8080;
+
+
     /**
-     * Create a factory per port.
+     * The address associated with the FileCache instance.
+     */
+    public InetAddress address;
+
+    /**
+     * Create a factory per address + port.
      */
     protected final static ConcurrentHashMap<Integer, FileCacheFactory> cache =
             new ConcurrentHashMap<Integer, FileCacheFactory>();
@@ -117,11 +125,15 @@ public class FileCacheFactory {
     /**
      * Configure the factory.
      */
-    public static FileCacheFactory newInstance(int currentPort, Class<? extends FileCache> fcc) {
+    public static FileCacheFactory newInstance(InetAddress currentAddress,
+                                               int currentPort,
+                                               Class<? extends FileCache> fcc) {
         FileCacheFactory fileCacheFactory = new FileCacheFactory();
 
         fileCacheFactory.port = currentPort;
-        cache.put(currentPort, fileCacheFactory);
+        fileCacheFactory.address = currentAddress;
+        int addressHash = getAddressHash(currentAddress);
+        cache.put((addressHash + currentPort), fileCacheFactory);
 
         Queue<FileCacheEntry> cacheManager = 
                 DataStructures.getCLQinstance(FileCacheEntry.class);
@@ -131,24 +143,30 @@ public class FileCacheFactory {
         return fileCacheFactory;
     }
 
+
     /**
      * Return an instance of this Factory.
      */
-    public static FileCacheFactory getFactory(int currentPort) {
-        return getFactory(currentPort, fileCacheClass);
+    public static FileCacheFactory getFactory(InetAddress currentAddress,
+                                              int currentPort) {
+        return getFactory(currentAddress, currentPort, fileCacheClass);
     }
 
     /**
      * Return an instance of this Factory.
      */
-    public static FileCacheFactory getFactory(int currentPort, Class<? extends FileCache> fcc) {
+    public static FileCacheFactory getFactory(InetAddress currentAddress,
+                                              int currentPort,
+                                              Class<? extends FileCache> fcc) {
 
-        FileCacheFactory fileCacheFactory = cache.get(currentPort);
+        int addressHash = getAddressHash(currentAddress);
+        FileCacheFactory fileCacheFactory = cache.get(addressHash + currentPort);
         if (fileCacheFactory == null) {
-            fileCacheFactory = newInstance(currentPort, fcc);
+            fileCacheFactory = newInstance(currentAddress, currentPort, fcc);
         }
 
         return fileCacheFactory;
+        
     }
 
     /**
@@ -188,6 +206,7 @@ public class FileCacheFactory {
         fileCache.setIsMonitoringEnabled(isMonitoringEnabled);
         fileCache.setHeaderBBSize(headerBBSize);
         fileCache.setPort(port);
+        fileCache.setAddress(address);
     }
 
     public void setCacheManager(Queue<FileCacheEntry> cacheManager) {
@@ -506,4 +525,12 @@ public class FileCacheFactory {
     public void setHeaderBBSize(int headerBBSize) {
         this.headerBBSize = headerBBSize;
     }
+
+
+    // --------------------------------------------------------- Private Methods
+
+    private static int getAddressHash(InetAddress currentAddress) {
+        return ((currentAddress != null) ? currentAddress.hashCode() : 0);
+    }
+    
 }

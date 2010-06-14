@@ -104,11 +104,15 @@ public class GrizzlyEmbeddedHttps extends GrizzlyEmbeddedHttp {
     @Override
     protected ProtocolFilter createHttpParserFilter() {
         if (asyncExecution) {
-            return new SSLAsyncProtocolFilter(algorithmClass, port,
-                    sslConfigHolder.getSSLImplementation());
+            return new SSLAsyncProtocolFilter(algorithmClass,
+                                              inet,
+                                              port,
+                                              sslConfigHolder.getSSLImplementation());
         } else {
-            return new SSLDefaultProtocolFilter(algorithmClass, port,
-                    sslConfigHolder.getSSLImplementation());
+            return new SSLDefaultProtocolFilter(algorithmClass, 
+                                                inet,
+                                                port,
+                                                sslConfigHolder.getSSLImplementation());
         }
     }
 

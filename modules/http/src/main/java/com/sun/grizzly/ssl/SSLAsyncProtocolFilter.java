@@ -49,9 +49,10 @@ import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.SSLSupport;
 import java.io.InputStream;
+import java.net.InetAddress;
 
 /**
- * Asynchronous SSL support over NIO. This {@link Task} handles the SSL
+ * Asynchronous SSL support over NIO. This {@link com.sun.grizzly.http.Task} handles the SSL
  * requests using a non blocking socket. The SSL handshake is done using this
  * class. Once the handshake is successful, the {@link SSLProcessorTask} is
  * executed.
@@ -60,14 +61,51 @@ import java.io.InputStream;
  */
 public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
     /**
-     * The Coyote SSLImplementation used to retrive the {@link SSLContext}
+     * The Coyote SSLImplementation used to retrive the {@link javax.net.ssl.SSLContext}
      */
     protected SSLImplementation sslImplementation;
-    
+
+
+    /**
+     * <p>
+     * Invokes {@link com.sun.grizzly.ssl.SSLAsyncProtocolFilter#AsyncProtocolFilter(Class, java.net.InetAddress, int)}
+     * with a <code>null</code> {@link InetAddress}.
+     * </p>
+     *
+     * @param algorithmClass the {@link StreamAlgorithm}
+     * @param port the network port to associate with this filter
+     * @param sslImplementation the {@link SSLImplementation} to associate with
+     *  this filter
+     *
+     * @deprecated Use {@link com.sun.grizzly.ssl.SSLAsyncProtocolFilter#AsyncProtocolFilter(Class, java.net.InetAddress, int)}
+     */
+    @Deprecated
     public SSLAsyncProtocolFilter(Class algorithmClass, int port,
             SSLImplementation sslImplementation) {
         super(algorithmClass, port);
         this.sslImplementation = sslImplementation;
+    }
+
+
+    /**
+     * <p>
+     * Constructs a new <code>SSLAsyncProtocolFilter</code>.
+     * </p>
+     *
+     * @param algorithmClass the {@link StreamAlgorithm}
+     * @param address the network address to associate with this filter
+     * @param port the network port to associate with this filter
+     * @param sslImplementation the {@link SSLImplementation} to associate with
+     *  this filter
+     */
+    public SSLAsyncProtocolFilter(Class algorithmClass,
+                                  InetAddress address,
+                                  int port,
+                                  SSLImplementation sslImplementation) {
+
+        super(algorithmClass, address, port);
+        this.sslImplementation = sslImplementation;
+
     }
     
     /**
@@ -82,7 +120,7 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
         
         SSLSupport sslSupport = sslImplementation.
                 getSSLSupport(workerThread.getSSLEngine());
-        ((SSLProcessorTask)processorTask).setSSLSupport(sslSupport);
+        processorTask.setSSLSupport(sslSupport);
 
         SSLAsyncOutputBuffer outputBuffer =
                 ((SSLAsyncProcessorTask)processorTask).getSSLAsyncOutputBuffer();

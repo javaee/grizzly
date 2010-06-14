@@ -48,7 +48,6 @@ import com.sun.grizzly.tcp.ActionCode;
 import java.io.IOException;
 
 import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.File;
 
 /**
@@ -96,8 +95,12 @@ public class ContainerStaticHandler extends StaticHandler {
                         String docroot = System.getProperty("com.sun.aas.instanceRoot")
                                 + File.separatorChar + "applications";
                         String uri = req.requestURI().toString();
-                        fileCache.add(FileCache.DEFAULT_SERVLET_NAME, docroot, uri,
-                                req.getResponse().getMimeHeaders(), false);
+                        fileCache.add(FileCache.DEFAULT_SERVLET_NAME,
+                                      docroot,
+                                      uri,
+                                      req.serverName(),
+                                      req.getResponse().getMimeHeaders(),
+                                      false);
                     } else {
                         return Interceptor.CONTINUE;
                     }
@@ -110,15 +113,18 @@ public class ContainerStaticHandler extends StaticHandler {
                 //Force caching for nucleus installation.
 
                 req.action(ActionCode.ACTION_REQ_LOCALPORT_ATTRIBUTE, req);
-                String docroot = SelectorThread.getSelector(req.getLocalPort()).getWebAppRootPath();
+                String docroot = SelectorThread.getSelector(req.getLocalAddress(), req.getLocalPort()).getWebAppRootPath();
                 String uri = req.requestURI().toString();
-                fileCache.add(FileCache.DEFAULT_SERVLET_NAME, docroot, uri,
-                        req.getResponse().getMimeHeaders(), false);
+                fileCache.add(FileCache.DEFAULT_SERVLET_NAME,
+                              docroot,
+                              uri,
+                              req.serverName(),
+                              req.getResponse().getMimeHeaders(),
+                              false);
             }
         }
 
         if (handlerCode == Interceptor.REQUEST_LINE_PARSED) {
-            ByteChunk requestURI = req.requestURI().getByteChunk();
             if (fileCache.sendCache(req)) {
                 return Interceptor.BREAK;
             }
