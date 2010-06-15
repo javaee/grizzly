@@ -369,8 +369,11 @@ public abstract class HttpResponsePacket extends HttpHeader {
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder(HttpRequestPacket request) {
-            packet = HttpResponsePacketImpl.create();
-            ((HttpResponsePacket) packet).setRequest(request);
+            packet = request.getResponse();
+            if (packet == null) {
+                packet = HttpResponsePacketImpl.create();
+                ((HttpResponsePacket) packet).setRequest(request);
+            }
         }
 
         /**
