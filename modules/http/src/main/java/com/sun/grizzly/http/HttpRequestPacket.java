@@ -81,9 +81,6 @@ public abstract class HttpRequestPacket extends HttpHeader {
 
     private RequestURIRef requestURIRef = new RequestURIRef();
 
-    private boolean secure;
-    private boolean secureParsed;
-
     private String localHost;
 
     private BufferChunk methodBC = BufferChunk.newInstance();
@@ -434,22 +431,6 @@ public abstract class HttpRequestPacket extends HttpHeader {
         this.localHost = host;
     }
 
-
-    /**
-     * TODO Docs
-     * @return
-     */
-    public boolean isSecure() {
-
-        if (!secureParsed) {
-            secureParsed = true;
-            secure = "https".equals(getProtocol());
-        }
-        return secure;
-        
-    }
-
-
     // -------------------- Recycling --------------------
 
     /**
@@ -474,9 +455,6 @@ public abstract class HttpRequestPacket extends HttpHeader {
         localHost = null;
         response = null;
 
-        secure = false;
-        secureParsed = false;
-
         // XXX Do we need such defaults ?
         methodBC.setString("GET");
         protocolBC.setString("HTTP/1.0");
@@ -484,15 +462,6 @@ public abstract class HttpRequestPacket extends HttpHeader {
         super.reset();
     }
     
-    /**
-     * {@inheritDoc}
-     */
-//    @Override
-//    public void recycle() {
-//        reset();
-//        ThreadCache.putToCache(CACHE_IDX, this);
-//    }
-
     /**
      * {@inheritDoc}
      */

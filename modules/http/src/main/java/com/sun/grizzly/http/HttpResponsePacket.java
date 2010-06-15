@@ -52,19 +52,6 @@ import java.util.Locale;
  * @author Alexey Stashok
  */
 public abstract class HttpResponsePacket extends HttpHeader {
-//    private static final ThreadCache.CachedTypeIndex<HttpResponsePacket> CACHE_IDX =
-//            ThreadCache.obtainIndex(HttpResponsePacket.class, 2);
-//
-//    public static HttpResponsePacket create() {
-//        final HttpResponsePacket httpResponse =
-//                ThreadCache.takeFromCache(CACHE_IDX);
-//        if (httpResponse != null) {
-//            return httpResponse;
-//        }
-//
-//        return new HttpResponsePacket();
-//    }
-
     public static final int NON_PARSED_STATUS = Integer.MIN_VALUE;
     
     // ----------------------------------------------------- Instance Variables
@@ -373,6 +360,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
             if (packet == null) {
                 packet = HttpResponsePacketImpl.create();
                 ((HttpResponsePacket) packet).setRequest(request);
+                packet.setSecure(request.isSecure());
             }
         }
 

@@ -41,6 +41,8 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.Filter;
+import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.util.Ascii;
@@ -49,6 +51,7 @@ import com.sun.grizzly.http.util.CacheableBufferChunk;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.BufferUtils;
+import com.sun.grizzly.ssl.SSLFilter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -86,6 +89,9 @@ public abstract class HttpCodecFilter extends BaseFilter {
     private volatile ContentEncoding[] contentEncodings;
 
     private final Object contentEncodingSync = new Object();
+
+    protected volatile boolean isSecure;
+    private final boolean isSecureSet;
 
     /**
      * Method is responsible for parsing initial line of HTTP message (different
@@ -154,14 +160,45 @@ public abstract class HttpCodecFilter extends BaseFilter {
      * Constructor, which creates <tt>HttpCodecFilter</tt> instance, with the specific
      * max header size parameter.
      *
+     * @param isSecure <tt>true</tt>, if the Filter will be used for secured HTTPS communication,
+     *                 or <tt>false</tt> otherwise. It's possible to pass <tt>null</tt>, in this
+     *                 case Filter will try to autodetect security.
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
-    public HttpCodecFilter(int maxHeadersSize) {
+    public HttpCodecFilter(Boolean isSecure, int maxHeadersSize) {
+        if (isSecure == null) {
+            isSecureSet = false;
+        } else {
+            isSecureSet = true;
+            this.isSecure = isSecure;
+        }
+
         this.maxHeadersSize = maxHeadersSize;
         transferEncodings = new TransferEncoding[] {
             new FixedLengthTransferEncoding(), new ChunkedTransferEncoding(maxHeadersSize)};
         contentEncodings = new ContentEncoding[] {new GZipContentEncoding()};
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onAdded(FilterChain filterChain) {
+        if (!isSecureSet) {
+            autoDetectSecure(filterChain);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onFilterChainChanged(FilterChain filterChain) {
+        if (!isSecureSet) {
+            autoDetectSecure(filterChain);
+        }
+    }
+
 
     /**
      * <p>
@@ -1277,6 +1314,27 @@ public abstract class HttpCodecFilter extends BaseFilter {
         }
 
         return false;
+    }
+
+    /**
+     * Autodetect whether we will deal with HTTP or HTTPS by trying to find
+     * {@link SSLFilter} in the {@link FilterChain}.
+     *
+     * @param filterChain {@link FilterChain}
+     */
+    protected void autoDetectSecure(FilterChain filterChain) {
+        final int httpFilterIdx = filterChain.indexOf(this);
+        if (httpFilterIdx != -1) {
+            for (int i=0; i<httpFilterIdx; i++) {
+                final Filter filter = filterChain.get(i);
+                if (filter.getClass().isAssignableFrom(SSLFilter.class)) {
+                    isSecure = true;
+                    return;
+                }
+            }
+        }
+
+        isSecure = false;
     }
 
     protected static final class ParsingState {

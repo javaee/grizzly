@@ -94,7 +94,7 @@ public class HttpServerFilter extends HttpCodecFilter {
      * Constructor, which creates <tt>HttpServerFilter</tt> instance
      */
     public HttpServerFilter() {
-        this(DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE);
+        this(null, DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE);
     }
 
     /**
@@ -104,14 +104,26 @@ public class HttpServerFilter extends HttpCodecFilter {
      * @param maxHeadersSize the maximum size of the HTTP message header.
      */
     public HttpServerFilter(int maxHeadersSize) {
-        super(maxHeadersSize);
-        
+        this(null, maxHeadersSize);
+    }
+
+    /**
+     * Constructor, which creates <tt>HttpServerFilter</tt> instance,
+     * with the specific max header size parameter.
+     *
+     * @param isSecure <tt>true</tt>, if the Filter will be used for secured HTTPS communication,
+     *                 or <tt>false</tt> otherwise. It's possible to pass <tt>null</tt>, in this
+     *                 case Filter will try to autodetect security.
+     * @param maxHeadersSize the maximum size of the HTTP message header.
+     */
+    public HttpServerFilter(Boolean isSecure, int maxHeadersSize) {
+        super(isSecure, maxHeadersSize);
+
         this.httpRequestInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpServerFilter.httpRequest");
     }
-
-
+    
     // ----------------------------------------------------------- Configuration
 
 
@@ -145,10 +157,13 @@ public class HttpServerFilter extends HttpCodecFilter {
         
         HttpRequestPacketImpl httpRequest = httpRequestInProcessAttr.get(connection);
         if (httpRequest == null) {
+            final boolean isSecureLocal = isSecure;
             httpRequest = HttpRequestPacketImpl.create();
             httpRequest.initialize(connection, input.position(), maxHeadersSize);
+            httpRequest.setSecure(isSecureLocal);
             HttpResponsePacketImpl response = HttpResponsePacketImpl.create();
             response.setUpgrade(httpRequest.getUpgrade());
+            response.setSecure(isSecureLocal);
             httpRequest.setResponse(response);
             response.setRequest(httpRequest);
             

@@ -72,6 +72,8 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     protected String contentType;
     protected Cookies cookies = new Cookies(headers);
 
+    protected boolean secure;
+
     protected BufferChunk upgrade = BufferChunk.newInstance();
 
     private TransferEncoding transferEncoding;
@@ -458,6 +460,22 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     }
 
     /**
+     * TODO Docs
+     * @return
+     */
+    public boolean isSecure() {
+        return secure;
+    }
+
+    /**
+     * TODO Docs
+     * @return
+     */
+    protected void setSecure(boolean secure) {
+        this.secure = secure;
+    }
+    
+    /**
      * Get the HTTP message content builder.
      *
      * @return {@link HttpContent.Builder}.
@@ -479,6 +497,7 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
      * Reset the internal state.
      */
     protected void reset() {
+        secure = false;
         attributes.recycle();
         protocolBC.recycle();
         contentEncodings.clear();
