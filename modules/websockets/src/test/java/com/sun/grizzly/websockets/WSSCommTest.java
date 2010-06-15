@@ -62,7 +62,7 @@ import java.util.concurrent.TimeoutException;
 import junit.framework.TestCase;
 
 /**
- * Test basic {@link WebSocket} communication.
+ * Test basic {@link WebSocket} secured communication.
  *
  * @author Alexey Stashok
  */
@@ -208,12 +208,9 @@ public class WSSCommTest extends TestCase {
         }
 
         @Override
-        public void onAccept(WebSocket socket) {
+        public void onAccept(WebSocket socket) throws IOException {
+            super.onAccept(socket);
             state = "ACCEPTED";
-        }
-
-        @Override
-        public void onClose(WebSocket socket) {
         }
 
         @Override

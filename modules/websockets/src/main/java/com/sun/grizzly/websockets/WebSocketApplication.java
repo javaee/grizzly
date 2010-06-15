@@ -40,8 +40,8 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.Connection;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Abstract server-side {@link WebSocket} application, which will handle
@@ -53,17 +53,40 @@ import java.util.Set;
  * @author Alexey Stashok
  */
 public abstract class WebSocketApplication implements WebSocketHandler {
-    private final Set<WebSocket> websockets = new HashSet<WebSocket>();
+    private final ConcurrentHashMap<WebSocket, Boolean> websockets =
+            new ConcurrentHashMap<WebSocket, Boolean>();
 
     /**
      * Method is called, when new {@link WebSocket} gets accepted.
-     *
+     * Default implementation just register the passed {@link WebSocket} to a
+     * set of application associated {@link WebSocket}s.
+     * 
      * @param websocket {@link WebSocket}
      *
      * @throws IOException
      */
-    public abstract void onAccept(WebSocket socket) throws IOException;
+    public void onAccept(WebSocket websocket) throws IOException {
+        add(websocket);
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void onClose(WebSocket websocket) throws IOException {
+        remove(websocket);
+    }
+
+    /**
+     * Returns a set of {@link WebSocket}s, registered with the application.
+     * The returned set is unmodifiable, the possible modifications may cause exceptions.
+     *
+     * @return a set of {@link WebSocket}s, registered with the application.
+     */
+    protected Set<WebSocket> getWebSockets() {
+        return websockets.keySet();
+    }
+    
     /**
      * Add the {@link WebSocket} to the <tt>WebSocketApplication</tt> websockets list.
      *
@@ -73,7 +96,8 @@ public abstract class WebSocketApplication implements WebSocketHandler {
      * <tt>false</tt> otherwise.
      */
     public boolean add(WebSocket websocket) {
-        return websockets.add(websocket);
+        websockets.put(websocket, Boolean.TRUE);
+        return true;
     }
     
     /**
@@ -85,7 +109,7 @@ public abstract class WebSocketApplication implements WebSocketHandler {
      * <tt>false</tt> otherwise.
      */
     public boolean remove(WebSocket socket) {
-        return websockets.remove(socket);
+        return (websockets.remove(socket) != null);
     }
     
     /**

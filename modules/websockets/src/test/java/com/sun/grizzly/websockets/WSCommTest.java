@@ -164,12 +164,9 @@ public class WSCommTest extends TestCase {
         }
 
         @Override
-        public void onAccept(WebSocket socket) {
+        public void onAccept(WebSocket socket) throws IOException {
+            super.onAccept(socket);
             state = "ACCEPTED";
-        }
-
-        @Override
-        public void onClose(WebSocket socket) {
         }
 
         @Override
