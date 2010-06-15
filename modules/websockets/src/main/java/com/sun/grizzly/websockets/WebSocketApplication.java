@@ -52,9 +52,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author Alexey Stashok
  */
-public abstract class WebSocketApplication implements WebSocketHandler {
-    private final ConcurrentHashMap<WebSocket, Boolean> websockets =
-            new ConcurrentHashMap<WebSocket, Boolean>();
+public abstract class WebSocketApplication<W extends WebSocket>
+        implements WebSocketHandler<W> {
+    private final ConcurrentHashMap<W, Boolean> websockets =
+            new ConcurrentHashMap<W, Boolean>();
 
     /**
      * Method is called, when new {@link WebSocket} gets accepted.
@@ -65,7 +66,7 @@ public abstract class WebSocketApplication implements WebSocketHandler {
      *
      * @throws IOException
      */
-    public void onAccept(WebSocket websocket) throws IOException {
+    public void onAccept(W websocket) throws IOException {
         add(websocket);
     }
 
@@ -73,7 +74,7 @@ public abstract class WebSocketApplication implements WebSocketHandler {
      * {@inheritDoc}
      */
     @Override
-    public void onClose(WebSocket websocket) throws IOException {
+    public void onClose(W websocket) throws IOException {
         remove(websocket);
     }
 
@@ -83,7 +84,7 @@ public abstract class WebSocketApplication implements WebSocketHandler {
      *
      * @return a set of {@link WebSocket}s, registered with the application.
      */
-    protected Set<WebSocket> getWebSockets() {
+    protected Set<W> getWebSockets() {
         return websockets.keySet();
     }
     
@@ -95,7 +96,7 @@ public abstract class WebSocketApplication implements WebSocketHandler {
      * @return <tt>true</tt>, if the {@link WebSocket} was succeessfully added, or
      * <tt>false</tt> otherwise.
      */
-    public boolean add(WebSocket websocket) {
+    public boolean add(W websocket) {
         websockets.put(websocket, Boolean.TRUE);
         return true;
     }
@@ -108,7 +109,7 @@ public abstract class WebSocketApplication implements WebSocketHandler {
      * @return <tt>true</tt>, if the {@link WebSocket} was succeessfully removed, or
      * <tt>false</tt> otherwise.
      */
-    public boolean remove(WebSocket socket) {
+    public boolean remove(W socket) {
         return (websockets.remove(socket) != null);
     }
     
@@ -134,7 +135,7 @@ public abstract class WebSocketApplication implements WebSocketHandler {
      * @return customized {@link WebSocket}, or <tt>null</tt>, if application wants
      * to delegate {@link WebSocket} creation to {@link WebSocketEngine}.
      */
-    protected WebSocket createWebSocket(Connection connection,
+    protected W createWebSocket(Connection connection,
             ServerWebSocketMeta meta) {
         return null;
     }

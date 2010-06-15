@@ -50,8 +50,17 @@ import java.io.IOException;
  *
  * @author Alexey Stashok
  */
-public abstract class WebSocketClientHandler implements WebSocketHandler {
-    public abstract void onConnect(WebSocket socket) throws IOException;
+public abstract class WebSocketClientHandler<W extends WebSocket>
+        implements WebSocketHandler<W> {
+
+    /**
+     * The method is called, when client-side {@link WebSocket} gets connected.
+     * Usually this method is called right after client-server handshake validatation is completed.
+     *
+     * @param websocket connected {@link WebSocket}.
+     * @throws IOException
+     */
+    public abstract void onConnect(W websocket) throws IOException;
 
     /**
      * Method is called, when inital {@link WebSocket} handshake process was completed,
@@ -62,7 +71,7 @@ public abstract class WebSocketClientHandler implements WebSocketHandler {
      * 
      * @throws HandshakeException error, occurred during the handshake.
      */
-    protected void handshake(WebSocket socket, ServerWebSocketMeta serverMeta)
+    protected void handshake(W socket, ServerWebSocketMeta serverMeta)
             throws HandshakeException {
     }
 
@@ -77,7 +86,7 @@ public abstract class WebSocketClientHandler implements WebSocketHandler {
      * @return customized {@link WebSocket}, or <tt>null</tt>, if handler wants
      * to delegate {@link WebSocket} creation to {@link WebSocketEngine}.
      */
-    protected WebSocket createWebSocket(Connection connection,
+    protected W createWebSocket(Connection connection,
             ClientWebSocketMeta meta) {
         return null;
     }

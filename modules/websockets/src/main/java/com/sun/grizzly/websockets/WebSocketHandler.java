@@ -49,14 +49,14 @@ import java.io.IOException;
  * 
  * @author Alexey Stashok
  */
-public interface WebSocketHandler {
+public interface WebSocketHandler<W extends WebSocket> {
     /**
      * Method is called, when {@link WebSocket} gets closed.
      *
      * @param websocket {@link WebSocket}
      * @throws IOException
      */
-    public void onClose(WebSocket websocket) throws IOException;
+    public void onClose(W websocket) throws IOException;
 
     /**
      * Method is called, when {@link WebSocket} receives a {@link Frame}.
@@ -65,5 +65,5 @@ public interface WebSocketHandler {
      * 
      * @throws IOException
      */
-    public void onMessage(WebSocket websocket, Frame frame) throws IOException;
+    public void onMessage(W websocket, Frame frame) throws IOException;
 }
