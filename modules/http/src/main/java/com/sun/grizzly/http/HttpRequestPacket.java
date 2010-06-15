@@ -38,7 +38,6 @@
 package com.sun.grizzly.http;
 
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.RequestURIRef;
@@ -55,20 +54,20 @@ import java.util.Enumeration;
  * 
  * @author Alexey Stashok
  */
-public class HttpRequestPacket extends HttpHeader {
+public abstract class HttpRequestPacket extends HttpHeader {
 
-    private static final ThreadCache.CachedTypeIndex<HttpRequestPacket> CACHE_IDX =
-            ThreadCache.obtainIndex(HttpRequestPacket.class, 2);
-
-    public static HttpRequestPacket create() {
-        final HttpRequestPacket httpRequest =
-                ThreadCache.takeFromCache(CACHE_IDX);
-        if (httpRequest != null) {
-            return httpRequest;
-        }
-
-        return new HttpRequestPacket();
-    }
+//    private static final ThreadCache.CachedTypeIndex<HttpRequestPacket> CACHE_IDX =
+//            ThreadCache.obtainIndex(HttpRequestPacket.class, 2);
+//
+//    public static HttpRequestPacket create() {
+//        final HttpRequestPacket httpRequest =
+//                ThreadCache.takeFromCache(CACHE_IDX);
+//        if (httpRequest != null) {
+//            return httpRequest;
+//        }
+//
+//        return new HttpRequestPacket();
+//    }
 
     // ----------------------------------------------------- Instance Variables
 
@@ -488,11 +487,11 @@ public class HttpRequestPacket extends HttpHeader {
     /**
      * {@inheritDoc}
      */
-    @Override
-    public void recycle() {
-        reset();
-        ThreadCache.putToCache(CACHE_IDX, this);
-    }
+//    @Override
+//    public void recycle() {
+//        reset();
+//        ThreadCache.putToCache(CACHE_IDX, this);
+//    }
 
     /**
      * {@inheritDoc}
@@ -541,7 +540,7 @@ public class HttpRequestPacket extends HttpHeader {
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
-            packet = HttpRequestPacket.create();
+            packet = HttpRequestPacketImpl.create();
         }
 
         /**

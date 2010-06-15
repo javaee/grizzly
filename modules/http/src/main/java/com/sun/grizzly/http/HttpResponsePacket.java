@@ -38,7 +38,6 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.http.util.BufferChunk;
 
 import java.util.Locale;
@@ -52,19 +51,19 @@ import java.util.Locale;
  *
  * @author Alexey Stashok
  */
-public class HttpResponsePacket extends HttpHeader {
-    private static final ThreadCache.CachedTypeIndex<HttpResponsePacket> CACHE_IDX =
-            ThreadCache.obtainIndex(HttpResponsePacket.class, 2);
-
-    public static HttpResponsePacket create() {
-        final HttpResponsePacket httpResponse =
-                ThreadCache.takeFromCache(CACHE_IDX);
-        if (httpResponse != null) {
-            return httpResponse;
-        }
-
-        return new HttpResponsePacket();
-    }
+public abstract class HttpResponsePacket extends HttpHeader {
+//    private static final ThreadCache.CachedTypeIndex<HttpResponsePacket> CACHE_IDX =
+//            ThreadCache.obtainIndex(HttpResponsePacket.class, 2);
+//
+//    public static HttpResponsePacket create() {
+//        final HttpResponsePacket httpResponse =
+//                ThreadCache.takeFromCache(CACHE_IDX);
+//        if (httpResponse != null) {
+//            return httpResponse;
+//        }
+//
+//        return new HttpResponsePacket();
+//    }
 
     public static final int NON_PARSED_STATUS = Integer.MIN_VALUE;
     
@@ -207,11 +206,11 @@ public class HttpResponsePacket extends HttpHeader {
     /**
      * {@inheritDoc}
      */
-    @Override
-    public void recycle() {
-        reset();
-        ThreadCache.putToCache(CACHE_IDX, this);
-    }
+//    @Override
+//    public void recycle() {
+//        reset();
+//        ThreadCache.putToCache(CACHE_IDX, this);
+//    }
 
     /**
      * {@inheritDoc}
@@ -370,7 +369,7 @@ public class HttpResponsePacket extends HttpHeader {
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
         protected Builder() {
-            packet = HttpResponsePacket.create();
+            packet = HttpResponsePacketImpl.create();
         }
 
         /**

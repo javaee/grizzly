@@ -81,11 +81,12 @@ public class HttpSemanticsTest extends TestCase {
 
     public void testUnsupportedProtocol() throws Throwable {
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("GET");
-        request.setHeader("Host", "localhost:" + PORT);
-        request.setRequestURI("/path");
-        request.setProtocol("HTTP/1.2");
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .header("Host", "localhost:" + PORT)
+                .uri("/path")
+                .protocol("HTTP/1.2")
+                .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
@@ -99,10 +100,11 @@ public class HttpSemanticsTest extends TestCase {
 
     public void testHttp11NoHostHeader() throws Throwable {
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("GET");
-        request.setRequestURI("/path");
-        request.setProtocol("HTTP/1.1");
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .protocol("HTTP/1.1")
+                .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
@@ -116,10 +118,11 @@ public class HttpSemanticsTest extends TestCase {
 
     public void testHttp09ConnectionCloseTest() throws Throwable {
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("GET");
-        request.setRequestURI("/path");
-        request.setProtocol("HTTP/0.9");
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .protocol("HTTP/0.9")
+                .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
@@ -133,10 +136,11 @@ public class HttpSemanticsTest extends TestCase {
 
     public void testHttp10ConnectionCloseNoConnectionRequestHeaderTest() throws Throwable {
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("GET");
-        request.setRequestURI("/path");
-        request.setProtocol("HTTP/1.0");
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .protocol("HTTP/1.0")
+                .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
@@ -150,12 +154,13 @@ public class HttpSemanticsTest extends TestCase {
 
     public void testHttp11RequestCloseTest() throws Throwable {
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("GET");
-        request.setRequestURI("/path");
-        request.setProtocol("HTTP/1.1");
-        request.addHeader("Host", "localhost:" + PORT);
-        request.addHeader("Connection", "close");
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost:" + PORT)
+                .header("Connection", "close")
+                .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
@@ -168,11 +173,12 @@ public class HttpSemanticsTest extends TestCase {
 
     public void testHttp11NoExplicitRequestCloseTest() throws Throwable {
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("GET");
-        request.setRequestURI("/path");
-        request.addHeader("Host", "localhost:" + PORT);
-        request.setProtocol("HTTP/1.1");
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/path")
+                .header("Host", "localhost:" + PORT)
+                .protocol("HTTP/1.1")
+                .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");

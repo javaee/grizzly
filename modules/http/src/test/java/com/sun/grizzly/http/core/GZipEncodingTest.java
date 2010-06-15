@@ -103,12 +103,13 @@ public class GZipEncodingTest extends TestCase {
             }
         });
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("GET");
-        request.setHeader("Host", "localhost:" + PORT);
-        request.setRequestURI("/path");
-        request.setHeader("accept-encoding", "gzip");
-        request.setProtocol("HTTP/1.1");
+        HttpRequestPacket request = HttpRequestPacket.builder()
+            .method("GET")
+            .header("Host", "localhost:" + PORT)
+            .uri("/path")
+            .header("accept-encoding", "gzip")
+            .protocol("HTTP/1.1")
+            .build();
 
         ExpectedResult result = new ExpectedResult();
         result.setProtocol("HTTP/1.1");
@@ -133,13 +134,14 @@ public class GZipEncodingTest extends TestCase {
 
         byte[] gzippedContent = baos.toByteArray();
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("POST");
-        request.setHeader("Host", "localhost:" + PORT);
-        request.setRequestURI("/path");
-        request.setProtocol("HTTP/1.1");
-        request.setHeader("content-encoding", "gzip");
-        request.setContentLength(gzippedContent.length);
+        HttpRequestPacket request = HttpRequestPacket.builder()
+            .method("POST")
+            .header("Host", "localhost:" + PORT)
+            .uri("/path")
+            .protocol("HTTP/1.1")
+            .header("content-encoding", "gzip")
+            .contentLength(gzippedContent.length)
+            .build();
         
         HttpContent reqHttpContent = HttpContent.builder(request)
                 .last(true)
@@ -181,14 +183,15 @@ public class GZipEncodingTest extends TestCase {
 
         byte[] gzippedContent = baos.toByteArray();
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("POST");
-        request.setHeader("Host", "localhost:" + PORT);
-        request.setRequestURI("/path");
-        request.setProtocol("HTTP/1.1");
-        request.setHeader("accept-encoding", "gzip");
-        request.setHeader("content-encoding", "gzip");
-        request.setContentLength(gzippedContent.length);
+        HttpRequestPacket request = HttpRequestPacket.builder()
+            .method("POST")
+            .header("Host", "localhost:" + PORT)
+            .uri("/path")
+            .protocol("HTTP/1.1")
+            .header("accept-encoding", "gzip")
+            .header("content-encoding", "gzip")
+            .contentLength(gzippedContent.length)
+            .build();
 
         HttpContent reqHttpContent = HttpContent.builder(request)
                 .last(true)
@@ -229,14 +232,15 @@ public class GZipEncodingTest extends TestCase {
 
         byte[] gzippedContent = baos.toByteArray();
 
-        HttpRequestPacket request = HttpRequestPacket.create();
-        request.setMethod("POST");
-        request.setHeader("Host", "localhost:" + PORT);
-        request.setRequestURI("/path");
-        request.setProtocol("HTTP/1.1");
-        request.setHeader("accept-encoding", "gzip");
-        request.setHeader("content-encoding", "gzip");
-        request.setChunked(true);
+        HttpRequestPacket request = HttpRequestPacket.builder()
+                .method("POST")
+                .header("Host", "localhost:" + PORT)
+                .uri("/path")
+                .protocol("HTTP/1.1")
+                .header("accept-encoding", "gzip")
+                .header("content-encoding", "gzip")
+                .chunked(true)
+                .build();
 
         HttpContent reqHttpContent = HttpContent.builder(request)
                 .last(true)
