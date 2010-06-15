@@ -44,7 +44,6 @@ import java.nio.channels.Channel;
 /**
  * Simple interception hook used to trap events inside Grizzly core.
  *
- * @param E  type of Interceptor handler
  * @author Jeanfrancois Arcand
  */
 public interface Interceptor<E,F extends Channel>{
@@ -62,7 +61,8 @@ public interface Interceptor<E,F extends Channel>{
      
     
     /**
-     * The request line has been parsed
+     * The request header has been parsed.  This includes the request uri
+     * as well as any important headers (such as Host).
      */
     public final static int REQUEST_LINE_PARSED = 0;
     
@@ -91,7 +91,7 @@ public interface Interceptor<E,F extends Channel>{
     
     /**
      * The {@link Channel} associated with this handler.
-     * @param socketChannel 
+     * @param channel 
      */
     public void attachChannel(F channel);
     
