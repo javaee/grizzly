@@ -72,23 +72,27 @@ public class ClientWebSocketMeta extends WebSocketMeta {
      * @param uri {@link WebSocket} {@link URI}
      */
     public ClientWebSocketMeta(URI uri) {
-        this(uri, null, null, null, null, null, null);
+        this(uri, null, null, null, null, null, null, null);
     }
 
     /**
      * Construct a client-side <tt>WebSocketMeta</tt>.
      *
      * @param uri {@link WebSocket} {@link URI}
-     * @param host the {@link WebSocket} "Host" header value
      * @param origin the {@link WebSocket} "Origin" header value
      * @param protocol the {@link WebSocket} "Sec-WebSocket-Protocol" header value
+     * @param host the {@link WebSocket} "Host" header value
      * @param key1 the {@link WebSocket} "Sec-WebSocket-Key1" header value
      * @param key2 the {@link WebSocket} "Sec-WebSocket-Key2" header value
      * @param key3 the {@link WebSocket} key3 value transferred as a payload.
+     * @param isSecure <tt>true</tt>, if the {@link WebSocket} will be used in the secured mode,
+     *                 or <tt>false</tt> otherwise. It's possible to pass <tt>null</tt>, in this
+     *                 case {@link WebSocket} will try to autodetect security basing on passed uri parameter.
      */
-    public ClientWebSocketMeta(URI uri, String host, String origin,
-            String protocol, String key1, String key2, byte[] key3) {
-        super(uri, origin != null ? origin : "http://localhost", protocol);
+    public ClientWebSocketMeta(URI uri, String origin, String protocol,
+            String host, String key1, String key2, byte[] key3, Boolean isSecure) {
+        
+        super(uri, origin != null ? origin : "http://localhost", protocol, isSecure);
 
         if (uri == null) throw new IllegalArgumentException("URI can not be null");
         

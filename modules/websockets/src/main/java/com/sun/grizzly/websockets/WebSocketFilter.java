@@ -82,7 +82,7 @@ public class WebSocketFilter extends BaseFilter {
     private static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
     private static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
     private static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
-    
+
     /**
      * Method handles Grizzly {@link Connection} connect phase. Check if the {@link Connection}
      * is a client-side {@link WebSocket}, if yes - creates websocket handshake packet
@@ -454,12 +454,13 @@ public class WebSocketFilter extends BaseFilter {
 
         final ClientWebSocketMeta clientMeta = new ClientWebSocketMeta(
                 new URI(request.getRequestURI()),
-                request.getHeader("host"),
                 request.getHeader(CLIENT_WS_ORIGIN_HEADER),
                 request.getHeader(SEC_WS_PROTOCOL_HEADER),
+                request.getHeader("host"),
                 request.getHeader(SEC_WS_KEY1_HEADER),
                 request.getHeader(SEC_WS_KEY2_HEADER),
-                key3);
+                key3,
+                request.isSecure());
 
         return clientMeta;
     }
@@ -473,10 +474,12 @@ public class WebSocketFilter extends BaseFilter {
         buffer.get(serverKey);
 
         ServerWebSocketMeta serverMeta = new ServerWebSocketMeta(
-                null, serverKey,
+                null,
                 response.getHeader(SERVER_SEC_WS_ORIGIN_HEADER),
                 response.getHeader(SERVER_SEC_WS_LOCATION_HEADER),
-                response.getHeader(SEC_WS_PROTOCOL_HEADER));
+                response.getHeader(SEC_WS_PROTOCOL_HEADER),
+                serverKey,
+                response.isSecure());
 
         return serverMeta;
     }
@@ -525,8 +528,8 @@ public class WebSocketFilter extends BaseFilter {
         response.setUpgrade("WebSocket");
         response.setHeader("Connection", "Upgrade");
 
-        response.setHeader("WebSocket-Origin", meta.getOrigin());
-        response.setHeader("WebSocket-Location", meta.getLocation());
+        response.setHeader("Sec-WebSocket-Origin", meta.getOrigin());
+        response.setHeader("Sec-WebSocket-Location", meta.getLocation());
         response.setHeader("Sec-WebSocket-Protocol", meta.getProtocol());
 
         final Buffer serverKeyBuffer = MemoryUtils.wrap(mm, meta.getKey());

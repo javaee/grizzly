@@ -58,14 +58,17 @@ public class ServerWebSocketMeta extends WebSocketMeta {
      * Construct a server-side <tt>WebSocketMeta</tt> using {@link URI} and security key.
      *
      * @param uri {@link WebSocket} {@link URI}
-     * @param key the {@link WebSocket} key value transferred as a part of response payload.
      * @param origin the {@link WebSocket} "Sec-WebSocket-Origin" header value
      * @param location the {@link WebSocket} "Sec-WebSocket-Location" header value
      * @param protocol the {@link WebSocket} "Sec-WebSocket-Protocol" header value
+     * @param key the {@link WebSocket} key value transferred as a part of response payload.
+     * @param isSecure <tt>true</tt>, if the {@link WebSocket} will be used in the secured mode,
+     *                 or <tt>false</tt> otherwise. It's possible to pass <tt>null</tt>, in this
+     *                 case {@link WebSocket} will try to autodetect security basing on passed uri parameter.
      */
-    public ServerWebSocketMeta(URI uri, byte[] key, String origin,
-            String location, String protocol) {
-        super(uri, origin, protocol);
+    public ServerWebSocketMeta(URI uri, String origin,
+            String location, String protocol, byte[] key, Boolean isSecure) {
+        super(uri, origin, protocol, isSecure);
         this.key = key;
         this.location = location;
     }

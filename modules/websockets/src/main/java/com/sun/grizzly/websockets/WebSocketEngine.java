@@ -222,8 +222,8 @@ public class WebSocketEngine {
         final byte[] serverKey = generateServerKey(clientMeta);
         app.handshake(clientMeta);
         final ServerWebSocketMeta serverMeta = new ServerWebSocketMeta(
-                clientMeta.getURI(), serverKey, clientMeta.getOrigin(),
-                clientMeta.getHost(), clientMeta.getProtocol());
+                clientMeta.getURI(), clientMeta.getOrigin(), clientMeta.getHost(),
+                clientMeta.getProtocol(), serverKey,  clientMeta.isSecure());
 
 
         WebSocket websocket = app.createWebSocket(connection, serverMeta);

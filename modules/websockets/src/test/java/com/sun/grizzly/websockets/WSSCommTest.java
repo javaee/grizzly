@@ -177,6 +177,12 @@ public class WSSCommTest extends TestCase {
 
         @Override
         public void onConnect(WebSocket socket) throws IOException {
+            if (!socket.getMeta().isSecure()) {
+                final IllegalStateException e = new IllegalStateException("Client websocket is not secured?");
+                cycleCompleteFuture.failure(e);
+                throw e;
+            }
+
             state = "CONNECTED";
             Frame frame = Frame.createTextFrame("Hello world");
             socket.send(frame);
@@ -210,6 +216,12 @@ public class WSSCommTest extends TestCase {
         @Override
         public void onAccept(WebSocket socket) throws IOException {
             super.onAccept(socket);
+            if (!socket.getMeta().isSecure()) {
+                final IllegalStateException e = new IllegalStateException("Server websocket is not secured?");
+                cycleCompleteFuture.failure(e);
+                throw e;
+            }
+
             state = "ACCEPTED";
         }
 

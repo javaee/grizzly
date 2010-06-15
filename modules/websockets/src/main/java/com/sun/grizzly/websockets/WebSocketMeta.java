@@ -49,6 +49,7 @@ import java.net.URI;
  * @author Alexey Stashok
  */
 public abstract class WebSocketMeta {
+    private final boolean isSecure;
     private final URI uri;
     private final String origin;
     private final String protocol;
@@ -60,7 +61,7 @@ public abstract class WebSocketMeta {
      * @param uri {@link WebSocket} {@link URI}
      */
     public WebSocketMeta(URI uri) {
-        this(uri, null, null);
+        this(uri, null, null, null);
     }
 
     /**
@@ -69,15 +70,22 @@ public abstract class WebSocketMeta {
      * @param uri {@link WebSocket} {@link URI}
      * @param origin the {@link WebSocket} Origin header value.
      * @param protocol the {@link WebSocket} Sec-WebSocket-Protocol header value.
+     * @param isSecure <tt>true</tt>, if websocket is secured "wss", or <tt>false</tt> otherwise.
      */
     public WebSocketMeta(URI uri, String origin,
-            String protocol) {
+            String protocol, Boolean isSecure) {
 
+        Boolean isSecureSchema = null;
         if (uri != null) {
             final String wsProtocol = uri.getScheme();
 
-            if (wsProtocol != null && !wsProtocol.equals("ws") && !wsProtocol.equals("wss")) {
-                throw new IllegalStateException("Unexpected WebSockets schema: " + wsProtocol);
+            if (wsProtocol != null) {
+                boolean isWs;
+                if (!(isWs = wsProtocol.equals("ws")) && !wsProtocol.equals("wss")) {
+                    throw new IllegalStateException("Unexpected WebSockets schema: " + wsProtocol);
+                }
+
+                isSecureSchema = !isWs;
             }
         }
 
@@ -85,6 +93,8 @@ public abstract class WebSocketMeta {
 
         this.origin = origin != null ? origin : "http://localhost";
         this.protocol = protocol != null ? protocol : null;
+        this.isSecure = isSecure != null ? isSecure :
+            (isSecureSchema != null ? isSecureSchema : false);
     }
 
     /**
@@ -111,6 +121,17 @@ public abstract class WebSocketMeta {
      */
     public String getProtocol() {
         return protocol;
+    }
+
+    /**
+     * Returns <tt>true</tt>, if this <tt>WebSocket</tt> communication won't be
+     * secured, or <tt>false</tt> otherwise.
+     *
+     * @return <tt>true</tt>, if this <tt>WebSocket</tt> communication won't be
+     * secured, or <tt>false</tt> otherwise.
+     */
+    public boolean isSecure() {
+        return isSecure;
     }
 
     /**
