@@ -128,7 +128,7 @@ class StreamFrame extends Frame {
                         buffer.limit(buffer.position());
                     }
 
-                    if (startPos - buffer.position() > 1) { // If last buffer had some content, not just 0xFF
+                    if (buffer.position() - startPos > 1) { // If last buffer had some content, not just 0xFF
                         BufferUtils.setPositionLimit(buffer,
                                 startPos, buffer.position() - 1);
                         this.buffer = BufferUtils.appendBuffers(mm,

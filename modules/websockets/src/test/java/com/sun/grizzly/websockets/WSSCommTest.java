@@ -121,15 +121,16 @@ public class WSSCommTest extends TestCase {
             WebSocketConnectorHandler connectorHandler =
                     new WebSocketConnectorHandler(transport, clientFilterChain);
 
-            MyClientWSHandler clientWSHandler = new MyClientWSHandler(clientFuture);
+            final String message = "Hello world. Secured.";
+            MyClientWSHandler clientWSHandler = new MyClientWSHandler(message, clientFuture);
             Future<WebSocket> connectFuture = connectorHandler.connect(new URI("wss://localhost:" + PORT + "/echo"), clientWSHandler);
             final WebSocket ws = connectFuture.get(10, TimeUnit.SECONDS);
 
             assertNotNull(ws);
 
             try {
-                assertNotNull(serverFuture.get(10, TimeUnit.SECONDS));
-                assertNotNull(clientFuture.get(10, TimeUnit.SECONDS));
+                assertEquals(message, serverFuture.get(10, TimeUnit.SECONDS));
+                assertEquals("Echo: " + message, clientFuture.get(10, TimeUnit.SECONDS));
             } catch (TimeoutException e) {
                 assertTrue("Timeout. server-state=" + echoApplication.getState() +
                         " client-state=" +  clientWSHandler.getState(), false);
@@ -169,9 +170,12 @@ public class WSSCommTest extends TestCase {
     private static class MyClientWSHandler extends WebSocketClientHandler {
         private volatile String state = "INITIAL";
 
+        private final String message;
+
         final FutureImpl<String> cycleCompleteFuture;
 
-        public MyClientWSHandler(FutureImpl<String> cycleCompleteFuture) {
+        public MyClientWSHandler(String message, FutureImpl<String> cycleCompleteFuture) {
+            this.message = message;
             this.cycleCompleteFuture = cycleCompleteFuture;
         }
 
@@ -184,7 +188,7 @@ public class WSSCommTest extends TestCase {
             }
 
             state = "CONNECTED";
-            Frame frame = Frame.createTextFrame("Hello world");
+            Frame frame = Frame.createTextFrame(message);
             socket.send(frame);
             state = "SENT";
         }

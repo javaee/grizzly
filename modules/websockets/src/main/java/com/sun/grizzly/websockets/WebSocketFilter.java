@@ -530,7 +530,11 @@ public class WebSocketFilter extends BaseFilter {
 
         response.setHeader("Sec-WebSocket-Origin", meta.getOrigin());
         response.setHeader("Sec-WebSocket-Location", meta.getLocation());
-        response.setHeader("Sec-WebSocket-Protocol", meta.getProtocol());
+
+        final String protocol = meta.getProtocol();
+        if (protocol != null) {
+            response.setHeader("Sec-WebSocket-Protocol", protocol);
+        }
 
         final Buffer serverKeyBuffer = MemoryUtils.wrap(mm, meta.getKey());
 

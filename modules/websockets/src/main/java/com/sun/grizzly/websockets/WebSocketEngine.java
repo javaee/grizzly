@@ -41,6 +41,7 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
+import java.net.URI;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Map;
@@ -222,7 +223,8 @@ public class WebSocketEngine {
         final byte[] serverKey = generateServerKey(clientMeta);
         app.handshake(clientMeta);
         final ServerWebSocketMeta serverMeta = new ServerWebSocketMeta(
-                clientMeta.getURI(), clientMeta.getOrigin(), clientMeta.getHost(),
+                clientMeta.getURI(), clientMeta.getOrigin(),
+                composeServerMetaLocation(clientMeta),
                 clientMeta.getProtocol(), serverKey,  clientMeta.isSecure());
 
 
@@ -306,6 +308,21 @@ public class WebSocketEngine {
         } catch (NoSuchAlgorithmException e) {
             throw new HandshakeException(500, "Can not digest using MD5");
         }
+    }
+
+    private static String composeServerMetaLocation(ClientWebSocketMeta clientMeta) {
+        final StringBuilder sb = new StringBuilder(128);
+        final URI uri = clientMeta.getURI();
+        if (uri.getScheme() != null) {
+            sb.append(uri.getScheme()).append("://");
+        } else {
+            sb.append(clientMeta.isSecure() ? "wss://" : "ws://");
+        }
+
+        sb.append(clientMeta.getHost());
+        sb.append(uri.getPath());
+
+        return sb.toString();
     }
 
     /**
