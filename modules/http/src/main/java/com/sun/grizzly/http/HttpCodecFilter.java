@@ -681,8 +681,11 @@ public abstract class HttpCodecFilter extends BaseFilter {
 
         for (int i = 0; i < mimeHeadersNum; i++) {
             if (!mimeHeaders.getAndSetSerialized(i, true)) {
-                buffer = encodeMimeHeader(memoryManager, buffer,
-                        mimeHeaders.getName(i), mimeHeaders.getValue(i), true);
+                final BufferChunk value = mimeHeaders.getValue(i);
+                if (!value.isNull()) {
+                    buffer = encodeMimeHeader(memoryManager, buffer,
+                            mimeHeaders.getName(i), value, true);
+                }
             }
         }
 
