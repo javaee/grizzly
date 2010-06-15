@@ -184,7 +184,7 @@ public class WebServerFilter extends BaseFilter {
      */
     private static HttpPacket create404(HttpRequestPacket request) {
         // Build 404 HttpResponsePacket message headers
-        final HttpResponsePacket responseHeader = HttpResponsePacket.builder().
+        final HttpResponsePacket responseHeader = HttpResponsePacket.builder(request).
                 protocol(request.getProtocol()).status(404).
                 reasonPhrase("Not Found").build();
         
@@ -255,7 +255,7 @@ public class WebServerFilter extends BaseFilter {
             in = new FileInputStream(file);
             this.ctx = ctx;
             // Build HttpResponsePacket message header (send file using chunked HTTP messages).
-            response = HttpResponsePacket.builder().
+            response = HttpResponsePacket.builder(request).
                 protocol(request.getProtocol()).status(200).
                 reasonPhrase("OK").chunked(true).build();
             memoryManager = ctx.getConnection().getTransport().getMemoryManager();
