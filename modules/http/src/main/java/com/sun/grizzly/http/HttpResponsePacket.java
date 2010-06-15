@@ -103,8 +103,8 @@ public abstract class HttpResponsePacket extends HttpHeader {
      *
      * @return {@link Builder}.
      */
-    public static Builder builder() {
-        return new Builder();
+    public static Builder builder(HttpRequestPacket request) {
+        return new Builder(request);
     }
 
     // ----------------------------------------------------------- Constructors
@@ -368,8 +368,9 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * <tt>HttpResponsePacket</tt> message builder.
      */
     public static class Builder extends HttpHeader.Builder<Builder> {
-        protected Builder() {
+        protected Builder(HttpRequestPacket request) {
             packet = HttpResponsePacketImpl.create();
+            ((HttpResponsePacket) packet).setRequest(request);
         }
 
         /**
