@@ -101,16 +101,16 @@ public abstract class WebSocketApplication implements WebSocketHandler {
 
     /**
      * Method is called before the {@link WebSocketEngine} will create a server-side
-     * {@link ServerWebSocket} object, so application may return any customized
-     * subtype of {@link ServerWebSocket}.
+     * {@link WebSocket} object, so application may return any customized
+     * subtype of {@link WebSocket}.
      * 
      * @param connection underlying Grizzly {@link Connection}.
      * @param meta server-side {@link ServerWebSocketMeta}.
      *
-     * @return customized {@link ServerWebSocket}, or <tt>null</tt>, if application wants
+     * @return customized {@link WebSocket}, or <tt>null</tt>, if application wants
      * to delegate {@link WebSocket} creation to {@link WebSocketEngine}.
      */
-    protected ServerWebSocket createWebSocket(Connection connection,
+    protected WebSocket createWebSocket(Connection connection,
             ServerWebSocketMeta meta) {
         return null;
     }

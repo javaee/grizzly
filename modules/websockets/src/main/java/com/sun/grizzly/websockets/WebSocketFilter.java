@@ -379,7 +379,7 @@ public class WebSocketFilter extends BaseFilter {
             }
 
             // do handshake
-            final ServerWebSocket websocket =
+            final WebSocket websocket =
                     WebSocketEngine.getEngine().handleServerHandshake(
                     ctx.getConnection(), clientMeta);
 
@@ -388,7 +388,7 @@ public class WebSocketFilter extends BaseFilter {
                     (ServerWebSocketMeta) websocket.getMeta());
 
             // notify webapplication about new websocket
-            websocket.getApplication().onAccept(websocket);
+            ((WebSocketApplication) websocket.getHandler()).onAccept(websocket);
 
         } catch (HandshakeException e) {
             response = composeHandshakeError(request, e);
@@ -416,7 +416,7 @@ public class WebSocketFilter extends BaseFilter {
 
         try {
             // do handshake
-            ClientWebSocket websocket =
+            WebSocket websocket =
                     WebSocketEngine.getEngine().handleClientHandshake(
                     connection, serverMeta);
 

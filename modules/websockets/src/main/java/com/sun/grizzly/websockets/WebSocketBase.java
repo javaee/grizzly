@@ -48,19 +48,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * {@link WebSocket} base implementation, which partially implements
- * {@link WebSocket} interface.
+ * The {@link WebSocket} base implementation.
  *
  * @see WebSocket
- * @see ClientWebSocket
- * @see ServerWebSocket
  * 
  * @author Alexey Stashok
  */
-public abstract class WebSocketBase implements WebSocket {
+public class WebSocketBase implements WebSocket {
     protected final WebSocketMeta meta;
     protected final Connection connection;
-
+    protected final WebSocketHandler handler;
+    
     /**
      * The {@link Frame}, which is being currently parsed.
      */
@@ -74,9 +72,11 @@ public abstract class WebSocketBase implements WebSocket {
      * @param connection underlying Grizzly {@link Connection}.
      * @param meta {@link WebSocketMeta} info
      */
-    public WebSocketBase(Connection connection, WebSocketMeta meta) {
+    public WebSocketBase(Connection connection, WebSocketMeta meta,
+            WebSocketHandler handler) {
         this.connection = connection;
         this.meta = meta;
+        this.handler = handler;
     }
 
     /**
@@ -93,6 +93,15 @@ public abstract class WebSocketBase implements WebSocket {
     @Override
     public WebSocketMeta getMeta() {
         return meta;
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public WebSocketHandler getHandler() {
+        return handler;
     }
 
     /**

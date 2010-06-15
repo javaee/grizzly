@@ -49,8 +49,6 @@ import java.net.URI;
  * General WebSocket unit interface.
  *
  * @see WebSocketBase
- * @see ClientWebSocket
- * @see ServerWebSocket
  * 
  * @author Alexey Stashok
  */

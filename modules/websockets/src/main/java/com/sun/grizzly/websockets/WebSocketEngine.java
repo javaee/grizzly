@@ -204,12 +204,12 @@ public class WebSocketEngine {
      * @param connection Grizzly {@link Connection}.
      * @param clientMeta client-side meta data {@link ClientWebSocketMeta}.
      *
-     * @return {@link ServerWebSocket}, if validation passed fine, or exception
+     * @return {@link WebSocket}, if validation passed fine, or exception
      * will be thrown otherwise.
      * 
      * @throws HandshakeException
      */
-    ServerWebSocket handleServerHandshake(
+    WebSocket handleServerHandshake(
             final Connection connection, final ClientWebSocketMeta clientMeta)
             throws HandshakeException {
         
@@ -226,9 +226,9 @@ public class WebSocketEngine {
                 clientMeta.getHost(), clientMeta.getProtocol());
 
 
-        ServerWebSocket websocket = app.createWebSocket(connection, serverMeta);
+        WebSocket websocket = app.createWebSocket(connection, serverMeta);
         if (websocket == null) {
-            websocket = new ServerWebSocket(connection, serverMeta, app);
+            websocket = new WebSocketBase(connection, serverMeta, app);
 
         }
 
@@ -243,12 +243,12 @@ public class WebSocketEngine {
      * @param connection Grizzly {@link Connection}.
      * @param serverMeta server-side meta data {@link ServerWebSocketMeta}.
      *
-     * @return {@link ClientWebSocket}, if validation passed fine, or exception
+     * @return {@link WebSocket}, if validation passed fine, or exception
      * will be thrown otherwise.
      *
      * @throws HandshakeException
      */
-    ClientWebSocket handleClientHandshake(Connection connection,
+    WebSocket handleClientHandshake(Connection connection,
             ServerWebSocketMeta serverMeta) throws HandshakeException {
 
         final WebSocketHolder holder = getWebSocketHolder(connection);
@@ -266,9 +266,9 @@ public class WebSocketEngine {
                 throw new HandshakeException("Keys do not match");
             }
 
-            ClientWebSocket websocket = handler.createWebSocket(connection, meta);
+            WebSocket websocket = handler.createWebSocket(connection, meta);
             if (websocket == null) {
-                websocket = new ClientWebSocket(connection, meta, handler);
+                websocket = new WebSocketBase(connection, meta, handler);
             }
             
             handler.handshake(websocket, serverMeta);
