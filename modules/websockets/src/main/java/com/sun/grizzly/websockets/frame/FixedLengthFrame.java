@@ -59,7 +59,7 @@ class FixedLengthFrame extends Frame {
 
     // last parsing result
     private ParseState parseState = ParseState.TYPE;
-    private int parsedLength;
+    private int contentLengthRemaining;
     
     /**
      * Construct a fixed-length {@link Frame}.
@@ -76,7 +76,7 @@ class FixedLengthFrame extends Frame {
      */
     @Override
     public final boolean isClose() {
-        return type == 0xFF && (buffer == null || buffer.remaining() == 0);
+        return type == 0xFF && (buffer == null || !buffer.hasRemaining());
     }
 
     /**
@@ -119,7 +119,7 @@ class FixedLengthFrame extends Frame {
                     int gotByte = (buffer.get() & 0xFF);
                     int sevenBits = (gotByte & 0x7F);
 
-                    parsedLength = (parsedLength << 7) | sevenBits;
+                    contentLengthRemaining = (contentLengthRemaining << 7) | sevenBits;
 
                     if (sevenBits == gotByte) { // last length byte
                         parseState = ParseState.CONTENT;
@@ -135,18 +135,18 @@ class FixedLengthFrame extends Frame {
             case CONTENT: {
 
                 Buffer remainder = null;
-                final int remainingBytes = parsedLength - this.buffer.remaining();
 
-                if (buffer.remaining() > remainingBytes) {
-                    final int remainderLen = buffer.remaining() - remainingBytes;
+                if (buffer.remaining() > contentLengthRemaining) {
+                    final int remainderLen = buffer.remaining() - contentLengthRemaining;
                     remainder = buffer.slice(buffer.limit() - remainderLen, buffer.limit());
                     buffer.limit(buffer.limit() - remainderLen);
                 }
 
+                contentLengthRemaining -= buffer.remaining();
                 this.buffer = BufferUtils.appendBuffers(mm, this.buffer, buffer);
 
                 buffer = remainder;
-                if (this.buffer.remaining() < parsedLength) {
+                if (contentLengthRemaining > 0) {
                     return ParseResult.create(false, null);
                 }
 
