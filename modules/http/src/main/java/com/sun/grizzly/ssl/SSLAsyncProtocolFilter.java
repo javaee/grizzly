@@ -122,6 +122,11 @@ public class SSLAsyncProtocolFilter extends AsyncProtocolFilter {
                 getSSLSupport(workerThread.getSSLEngine());
         processorTask.setSSLSupport(sslSupport);
 
+        // SSLAsyncProcessorTask should be initialized
+        if (!processorTask.isInitialized()) {
+            processorTask.initialize();
+        }
+        
         SSLAsyncOutputBuffer outputBuffer =
                 ((SSLAsyncProcessorTask)processorTask).getSSLAsyncOutputBuffer();
         

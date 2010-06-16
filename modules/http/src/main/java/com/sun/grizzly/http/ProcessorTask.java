@@ -2550,5 +2550,15 @@ public class ProcessorTask extends TaskBase implements Processor,
         setSkipPostExecute = false;
         return ret;
     }
+
+    /**
+     * Returns <tt>true</tt>, if <tt>ProcessorTask</tt> was initialized, or
+     * <tt>false</tt> otherwise.
+     * @return <tt>true</tt>, if <tt>ProcessorTask</tt> was initialized, or
+     * <tt>false</tt> otherwise.
+     */
+    public boolean isInitialized() {
+        return started;
+    }
 }
 
