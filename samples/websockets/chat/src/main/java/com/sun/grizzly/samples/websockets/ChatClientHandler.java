@@ -47,41 +47,82 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- *
- * @author oleksiys
+ * Chat web-socket client handler.
+ * This {@link ChatClientHandler} customizes default {@link WebSocket}
+ * with {@link ChatWebSocket}, which includes some chat specific properties and
+ * logic.
+ * 
+ * @author Alexey Stashok
  */
 public class ChatClientHandler extends WebSocketClientHandler<ChatWebSocket> {
+    // regexp pattern to extract user name and message
     private static final Pattern PATTERN = Pattern.compile("window.parent.app.update\\(\\{ name: \"(.*)\", message: \"(.*)\" \\}\\);");
     
+    // chat user name
     private final String login;
     
+    /**
+     * Construct a client {@link ChatClientHandler}
+     * @param login user name
+     */
     public ChatClientHandler(String login) {
         this.login = login;
     }
 
+    /**
+     * Creates a customized {@link WebSocket} implementation.
+     *
+     * @param connection underlying Grizzly {@link Connection}.
+     * @param meta client-side {@link ClientWebSocketMeta}.
+     * @return customized {@link WebSocket} implementation - {@link ChatWebSocket}
+     */
     @Override
     protected ChatWebSocket createWebSocket(Connection connection,
             ClientWebSocketMeta meta) {
         return new ChatWebSocket(connection, meta, this);
     }
 
+    /**
+     * The method is called, when client-side {@link ChatWebSocket} gets connected.
+     * At this stage we need to send login frame to the server.
+     *
+     * @param websocket connected {@link ChatWebSocket}.
+     * @throws IOException
+     */
     @Override
     public void onConnect(ChatWebSocket websocket) throws IOException {
+        // set the user name
         websocket.setUser(login);
+        // send login message to the server
         websocket.send(Frame.createTextFrame("login:" + login));
     }
 
+    /**
+     * Method is called, when {@link ChatWebSocket} receives a {@link Frame}.
+     * @param websocket {@link ChatWebSocket}
+     * @param frame {@link Frame}
+     *
+     * @throws IOException
+     */
     @Override
     public void onMessage(ChatWebSocket websocket, Frame frame) throws IOException {
+        // get the text message
         final String fullMessage = frame.getAsText();
+
+        // try to extract user name and message text
         final Matcher matcher = PATTERN.matcher(fullMessage);
-        if (matcher.find()) {
+        if (matcher.find()) { // if extracted
+            // print the message in the "user: message" format
             System.out.println(matcher.group(1) + ": " + matcher.group(2));
-        } else {
+        } else { // if not
+            // print the full message as it came
             System.out.println(fullMessage);
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void onClose(ChatWebSocket websocket) throws IOException {
         System.out.println("WebSocket is closed");

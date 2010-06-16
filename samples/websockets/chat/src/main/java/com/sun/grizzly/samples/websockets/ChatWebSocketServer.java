@@ -48,41 +48,55 @@ import com.sun.grizzly.websockets.WebSocketEngine;
 import com.sun.grizzly.websockets.WebSocketFilter;
 
 /**
+ * Standalone Java web-socket chat server implementation.
  *
  * @author Alexey Stashok
  */
 public class ChatWebSocketServer {
+    // the port to listen on
     public static final int PORT = 8080;
     
     public static void main(String[] args) throws Exception {
+        // Server expects to get the path to webapp as command line parameter
         if (args.length < 1) {
             System.out.println("Please provide a path to webapp in the command line");
             System.exit(0);
         }
 
         final String webappDir = args[0];
-        
+
+        // Initiate the server filterchain to work with websockets
         FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
+        // Transport filter
         serverFilterChainBuilder.add(new TransportFilter());
+        // HTTP server side filter
         serverFilterChainBuilder.add(new HttpServerFilter());
+        // WebSocket filter to intercept websocket messages
         serverFilterChainBuilder.add(new WebSocketFilter());
+        // Simple Web server filter to process requests to a static resources
         serverFilterChainBuilder.add(new SimpleWebServerFilter(webappDir));
 
+        // initialize transport
         TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(serverFilterChainBuilder.build());
 
+        // initialize websocket chat application
         final WebSocketApplication chatApplication = new ChatApplication();
 
+        // register the application
         WebSocketEngine.getEngine().registerApplication("/grizzly-websockets-chat/chat", chatApplication);
 
         try {
+            // bind TCP listener
             transport.bind(PORT);
+            // start the transport
             transport.start();
 
 
             System.out.println("Press any key to stop the server...");
             System.in.read();
         } finally {
+            // stop the transport
             transport.stop();
             TransportFactory.getInstance().close();
         }

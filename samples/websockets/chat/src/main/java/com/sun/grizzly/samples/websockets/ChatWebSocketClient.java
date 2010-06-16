@@ -54,28 +54,37 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 /**
- *
+ * Standalone Java web-socket chat client implementation.
+ * 
  * @author Alexey Stashok
  */
 public class ChatWebSocketClient {
     public static void main(String[] args) throws Exception {
+        // Initiate the client filterchain to work with websockets
         final FilterChainBuilder serverFilterChainBuilder = FilterChainBuilder.stateless();
+        // Transport filter
         serverFilterChainBuilder.add(new TransportFilter());
+        // HTTP client filter
         serverFilterChainBuilder.add(new HttpClientFilter());
+        // WebSocket filter
         serverFilterChainBuilder.add(new WebSocketFilter());
 
+        // initialize transport
         final TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
         transport.setProcessor(serverFilterChainBuilder.build());
 
         ChatWebSocket websocket = null;
         
         try {
+            // start transport
             transport.start();
+            // initialize console reader
             BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
             System.out.println("Type 'q' and <enter> any time to exit");
 
             String login = null;
+            // Ask for the user name
             do {
                 System.out.print("Login: ");
                 login = reader.readLine();
@@ -86,11 +95,16 @@ public class ChatWebSocketClient {
                 login = login.trim();
             } while(login.isEmpty());
 
+            // Initialize websocket connect and login to chat
+
+            // 1. Create WebSocketConnectorHandler to execute connect on
             WebSocketConnectorHandler connectorHandler =
                     new WebSocketConnectorHandler(transport);
 
+            // 2. Create WebSocketClientHandler, which will handle websocket lifecycle
             final ChatClientHandler clientHandler = new ChatClientHandler(login);
 
+            // 3. Connect websocket
             Future<WebSocket> connectFuture = connectorHandler.connect(
                     new URI("ws://localhost:" +
                     ChatWebSocketServer.PORT +
@@ -99,6 +113,7 @@ public class ChatWebSocketClient {
 
             websocket = (ChatWebSocket) connectFuture.get(10, TimeUnit.SECONDS);
 
+            // websocket client working cycle... Type the message and send it to the server
             String message = null;
             do {
 //                System.out.print("Message ('q' to quit) >");
@@ -110,16 +125,19 @@ public class ChatWebSocketClient {
 
                 message = message.trim();
 
+                // if message is not empty - send it to the server
                 if (message.length() > 0) {
                     websocket.send(Frame.createTextFrame(message));
                 }
             } while (true);
 
         } finally {
+            // close the websocket
             if (websocket != null) {
                 websocket.close();
             }
-            
+
+            // stop the transport
             transport.stop();
             TransportFactory.getInstance().close();
         }

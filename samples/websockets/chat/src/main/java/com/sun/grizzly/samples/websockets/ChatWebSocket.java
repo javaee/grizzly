@@ -48,13 +48,16 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
+ * Customize {@link WebSocket} implementation, which contains chat application
+ * specific properties and logic.
+ * 
  * @author Alexey Stashok
  * @author Justin Lee
  */
 public class ChatWebSocket extends WebSocketBase {
     private static final Logger logger = Grizzly.logger(ChatWebSocket.class);
     
+    // chat user name
     private volatile String user;
 
     public ChatWebSocket(Connection connection, WebSocketMeta meta,
@@ -62,20 +65,29 @@ public class ChatWebSocket extends WebSocketBase {
         super(connection, meta, handler);
     }
 
+    /**
+     * Get the user name
+     * @return the user name
+     */
     public String getUser() {
         return user;
     }
 
+    /**
+     * Set the user name
+     * @param user the user name
+     */
     public void setUser(String user) {
         this.user = user;
     }
 
-    @Override
-    public void close() throws IOException {
-        super.close();
-    }
-
-    public void chat(String user, String text) {
+    /**
+     * Send the message in JSON encoding acceptable by browser's javascript.
+     *
+     * @param user the user name
+     * @param text the text message
+     */
+    public void sendJson(String user, String text) {
         try {
             final String msg = toJsonp(user, text);
             send(Frame.createTextFrame(msg));
