@@ -68,7 +68,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
         public static int SSL_ENGINE = 16;
         public static int SSL_ARTIFACTS = 28;
         public static int STORE_ALL = 31;
-    };
+    }
 
     private final ReentrantLock threadLock = new ReentrantLock();
 
@@ -105,7 +105,7 @@ public class ThreadAttachment extends SelectionKeyActionAttachment
 
 
     /**
-     * The current {@link Factory} used to execute this instance.
+     * The current {@link Thread} used to execute this instance.
      */
     private Thread activeThread = null;
 
