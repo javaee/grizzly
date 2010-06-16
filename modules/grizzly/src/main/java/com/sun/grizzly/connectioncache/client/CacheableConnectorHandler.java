@@ -57,10 +57,10 @@ import com.sun.grizzly.async.AsyncReadCondition;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
 import com.sun.grizzly.async.ByteBufferCloner;
 import com.sun.grizzly.connectioncache.spi.transport.ContactInfo;
+import com.sun.grizzly.connectioncache.spi.transport.OutboundConnectionCache;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
 
@@ -155,18 +155,36 @@ public class CacheableConnectorHandler
             callbackHandler = new DefaultCallbackHandler(this);
         }
 
-        underlyingConnectorHandler = parentPool.
-                getOutboundConnectionCache().get(
-                new CacheableConnectorInfo(parentPool, connectExecutor,
-                protocol, targetAddress),
-                parentPool.getConnectionFinder());
-        
-        /* check whether NEW connection was created, or taken from cache */
-        if (!connectExecutor.wasCalled()) { // if taken from cache
-            //if connection is taken from cache - explicitly notify callback handler
-            underlyingConnectorHandler.setCallbackHandler(callbackHandler);
-            notifyCallbackHandlerPseudoConnect();
-        }
+        final OutboundConnectionCache<ConnectorHandler> outboundConnectionCache =
+                parentPool.getOutboundConnectionCache();
+
+        do {
+            connectExecutor.wasCalled = false;
+            underlyingConnectorHandler = outboundConnectionCache.get(
+                    new CacheableConnectorInfo(parentPool, connectExecutor,
+                    protocol, targetAddress),
+                    parentPool.getConnectionFinder());
+
+            /* check whether NEW connection was created, or taken from cache */
+            if (!connectExecutor.wasCalled()) { // if taken from cache
+                //if connection is taken from cache - explicitly notify callback handler
+                underlyingConnectorHandler.setCallbackHandler(callbackHandler);
+                if (notifyCallbackHandlerPseudoConnect()) {
+                    return;
+                }
+
+                try {
+                    underlyingConnectorHandler.close();
+                } catch (IOException e) {
+                }
+
+                outboundConnectionCache.release(underlyingConnectorHandler, 0);
+                underlyingConnectorHandler = null;
+            } else {
+                return;
+            }
+            
+        } while (true);
     }
     
     
@@ -204,24 +222,22 @@ public class CacheableConnectorHandler
         return underlyingConnectorHandler;
     }
     
-    private void notifyCallbackHandlerPseudoConnect() throws ClosedChannelException {
+    private boolean notifyCallbackHandlerPseudoConnect() {
         final SelectorHandler underlyingSelectorHandler =
                 underlyingConnectorHandler.getSelectorHandler();
-        SelectionKey key = underlyingSelectorHandler.keyFor(underlyingConnectorHandler.getUnderlyingChannel());
-//        if (key == null) {
-//            // Register channel on selector
-//            key = underlyingConnectorHandler.getUnderlyingChannel().
-//                    register(protocolSelector, SelectionKey.OP_CONNECT);
-//        }
+        final SelectionKey key = underlyingSelectorHandler.keyFor(underlyingConnectorHandler.getUnderlyingChannel());
+        if (key == null || !key.channel().isOpen()) {
+            return false;
+        }
         
-        assert key != null;
-            
         final NIOContext context = (NIOContext)parentPool.getController().pollContext();
         context.setSelectionKey(key);
         context.configureOpType(key);
         context.setSelectorHandler(underlyingConnectorHandler.getSelectorHandler());
         key.attach(new CallbackHandlerSelectionKeyAttachment(callbackHandler));
         callbackHandler.onConnect(new IOEvent.DefaultIOEvent<Context>(context));
+
+        return true;
     }
 
     @Override
