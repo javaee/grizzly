@@ -49,6 +49,7 @@ import com.sun.grizzly.websockets.WebSocketFilter;
 
 /**
  * Standalone Java web-socket chat server implementation.
+ * Server expects to get the path to webapp as command line parameter
  *
  * @author Alexey Stashok
  */
