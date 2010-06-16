@@ -16,5 +16,6 @@
     <modules>
         <module>framework-samples</module>
         <module>http-samples</module>
+        <module>websockets/chat</module>
     </modules>
 </project>
