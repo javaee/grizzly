@@ -406,9 +406,13 @@ public class CacheableConnectorHandler
         
 
         public ConnectorHandler createConnection() throws IOException {
-            ConnectorHandler connectorHandler =
+            final ConnectorHandler connectorHandler =
                     parentPool.getProtocolConnectorHandlerPool().
                     acquireConnectorHandler(protocol);
+
+            if (connectorHandler == null) {
+                throw new IllegalStateException("Can not obtain protocol '" + protocol + "' ConnectorHandler");
+            }
 
             connectExecutor.setConnectorHandler(connectorHandler);
             connectExecutor.invokeProtocolConnect();
