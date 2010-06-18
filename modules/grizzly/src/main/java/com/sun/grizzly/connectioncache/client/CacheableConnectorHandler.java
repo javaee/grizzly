@@ -61,6 +61,7 @@ import com.sun.grizzly.connectioncache.spi.transport.OutboundConnectionCache;
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
 
@@ -186,10 +187,22 @@ public class CacheableConnectorHandler
             
         } while (true);
     }
-    
+
+    @Override
+    public SelectorHandler getSelectorHandler() {
+        final ConnectorHandler localCH = underlyingConnectorHandler;
+        return localCH != null ? localCH.getSelectorHandler() : null;
+    }
+
+    @Override
+    public SelectableChannel getUnderlyingChannel() {
+        final ConnectorHandler localCH = underlyingConnectorHandler;
+        return localCH != null ? localCH.getUnderlyingChannel() : null;
+    }    
     
     public void close() throws IOException {
         parentPool.getOutboundConnectionCache().release(underlyingConnectorHandler, 0);
+        underlyingConnectorHandler = null;
     }
 
     @Override

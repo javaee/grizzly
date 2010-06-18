@@ -44,6 +44,7 @@ import com.sun.grizzly.utils.ControllerUtils;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
@@ -127,7 +128,82 @@ public class ClientCacheTest extends TestCase {
         } finally {
             try{
                 controller.stop();
-            } catch (Throwable t){
+            } catch (Exception t){
+                t.printStackTrace();
+            }
+        }
+    }
+    
+    public void testReconnectOnFailure() throws Exception {
+        final Controller controller = createController();
+        // setting client connection cache using CacheableConnectorHandlerPool
+        controller.setConnectorHandlerPool(new CacheableConnectorHandlerPool(controller,
+                HIGH_WATERMARK, NUMBER_TO_RECLAIM, 1));
+        ControllerUtils.startController(controller);
+
+        try {
+            for (int i = 0; i < CLIENTS_COUNT; i++) {
+                final ConnectorHandler tcpConnector =
+                        controller.acquireConnectorHandler(Controller.Protocol.TCP);
+                final byte[] testData = "Hello world".getBytes();
+                final ByteBuffer writeBB = ByteBuffer.wrap(testData);
+                final byte[] response = new byte[testData.length];
+                final ByteBuffer readBB = ByteBuffer.wrap(response);
+                CountDownLatch[] responseArrivedLatchHolder = new CountDownLatch[1];
+                callbackHandler = createCallbackHandler(controller, tcpConnector,
+                        responseArrivedLatchHolder, writeBB, readBB);
+
+                boolean isClosed = false;
+                try {
+                    tcpConnector.connect(new InetSocketAddress("localhost", PORT), callbackHandler);
+
+                    CountDownLatch responseArrivedLatch = new CountDownLatch(1);
+                    responseArrivedLatchHolder[0] = responseArrivedLatch;
+                    readBB.position(0);
+                    writeBB.position(0);
+                    long nWrite = tcpConnector.write(writeBB, false);
+
+                    long nRead = -1;
+
+                    // All bytes written
+                    if (nWrite == testData.length) {
+                        nRead = tcpConnector.read(readBB, false);
+                    }
+
+                    if (nRead != nWrite) {
+                        try {
+                            responseArrivedLatch.await(5, TimeUnit.SECONDS);
+                        } catch (InterruptedException ex) {
+                            ex.printStackTrace();
+                        }
+                    }
+                    assertEquals(new String(testData), new String(readBB.array()));
+
+                    final SelectorHandler selectorHandler = tcpConnector.getSelectorHandler();
+                    final SelectableChannel underlyingChannel = tcpConnector.getUnderlyingChannel();
+
+                    tcpConnector.close();
+                    controller.releaseConnectorHandler(tcpConnector);
+                    isClosed = true;
+
+                    // do low-level connection close to check reconnectOfFailure
+
+                    selectorHandler.addPendingKeyCancel(
+                            underlyingChannel.keyFor(selectorHandler.getSelector()));
+
+                    Thread.sleep(500);
+
+                } finally {
+                    if (!isClosed) {
+                        tcpConnector.close();
+                        controller.releaseConnectorHandler(tcpConnector);
+                    }
+                }
+            }
+        } finally {
+            try{
+                controller.stop();
+            } catch (Exception t){
                 t.printStackTrace();
             }
         }
