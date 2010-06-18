@@ -46,6 +46,8 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
@@ -69,7 +71,7 @@ public class OSGiServletAdapter extends ServletAdapter implements OSGiGrizzlyAda
     }
 
     private OSGiServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
-                               HashMap<String, String> parameters, ArrayList<String> listeners, Logger logger) {
+                               Map<String, String> parameters, List<String> listeners, Logger logger) {
         super(publicDirectory, servletCtx,new HashMap<String,String>(), parameters, listeners);
         this.logger = logger;
     }
