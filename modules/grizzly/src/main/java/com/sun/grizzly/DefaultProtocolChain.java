@@ -96,7 +96,7 @@ public class DefaultProtocolChain implements ProtocolChain, ReinvokeAware {
      * @throws java.lang.Exception 
      */
     public void execute(Context ctx, int firstFilter) throws Exception {
-        if (protocolFilters.size() != 0){
+        if (!protocolFilters.isEmpty()) {
             boolean reinvokeChain = true;
             while (reinvokeChain){
                 int currentPosition = executeProtocolFilter(ctx,firstFilter);
