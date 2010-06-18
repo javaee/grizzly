@@ -1,17 +1,49 @@
+/*
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
+ *
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ *
+ * The contents of this file are subject to the terms of either the GNU
+ * General Public License Version 2 only ("GPL") or the Common Development
+ * and Distribution License("CDDL") (collectively, the "License").  You
+ * may not use this file except in compliance with the License. You can obtain
+ * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
+ * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
+ * language governing permissions and limitations under the License.
+ *
+ * When distributing the software, include this License Header Notice in each
+ * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
+ * Sun designates this particular file as subject to the "Classpath" exception
+ * as provided by Sun in the GPL Version 2 section of the License file that
+ * accompanied this code.  If applicable, add the following below the License
+ * Header, with the fields enclosed by brackets [] replaced by your own
+ * identifying information: "Portions Copyrighted [year]
+ * [name of copyright owner]"
+ *
+ * Contributor(s):
+ *
+ * If you wish your version of this file to be governed by only the CDDL or
+ * only the GPL Version 2, indicate your decision by adding "[Contributor]
+ * elects to include this software in this distribution under the [CDDL or GPL
+ * Version 2] license."  If you don't indicate a single choice of license, a
+ * recipient has the option to distribute your version of this file under
+ * either the CDDL, the GPL Version 2 or to extend the choice of license to
+ * its licensees as provided above.  However, if you add GPL Version 2 code
+ * and therefore, elected the GPL Version 2 license, then the option applies
+ * only if the new code is made subject to such option by the copyright
+ * holder.
+ */
+
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.http.HttpWorkerThread;
 import com.sun.grizzly.http.ProcessorTask;
-import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.InternalInputBuffer;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.SelectionKeyActionAttachment;
 import com.sun.grizzly.util.SelectionKeyAttachment;
-import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.http.MimeHeaders;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -21,6 +53,13 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class WebSocketEngine {
+    public static final String SEC_WS_PROTOCOL_HEADER = "Sec-WebSocket-Protocol";
+    public static final String SEC_WS_KEY1_HEADER = "Sec-WebSocket-Key1";
+    public static final String SEC_WS_KEY2_HEADER = "Sec-WebSocket-Key2";
+    public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
+    public static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
+    public static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
+
     private static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
     private static final WebSocketEngine engine = new WebSocketEngine();
     private final Map<String, WebSocketApplication> applications = new HashMap<String, WebSocketApplication>();
@@ -65,7 +104,7 @@ public class WebSocketEngine {
 
                 enableRead(task, key);
             } else {
-                ((InternalOutputBuffer)response.getOutputBuffer()).addActiveFilter(new WebSocketOutputFilter());
+                ((InternalOutputBuffer) response.getOutputBuffer()).addActiveFilter(new WebSocketOutputFilter());
             }
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
@@ -103,12 +142,8 @@ public class WebSocketEngine {
     }
 
     private void handshake(Request request, Response response) throws IOException {
-        final MimeHeaders headers = request.getMimeHeaders();
-        final ClientHandShake client = new ClientHandShake(headers, false, request.requestURI().toString());
-        final ServerHandShake server = new ServerHandShake(headers, client);
-
+        final ServerHandShake server = new ServerHandShake(new ClientHandShake(request, false));
         server.prepare(response);
-        response.flush();
     }
 
     public void register(String name, WebSocketApplication app) {

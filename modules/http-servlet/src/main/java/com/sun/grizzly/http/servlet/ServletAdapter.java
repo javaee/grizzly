@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EventListener;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
@@ -117,7 +118,7 @@ public class ServletAdapter extends GrizzlyAdapter {
     protected volatile Servlet servletInstance = null;
     private FilterChainImpl filterChain = new FilterChainImpl();
     
-    private transient ArrayList<String> listeners;
+    private transient List<String> listeners = new ArrayList<String>();
     
     private String servletPath = "";
     
@@ -132,12 +133,12 @@ public class ServletAdapter extends GrizzlyAdapter {
     /**
      * The context parameters.
      */
-    private HashMap<String,String> contextParameters;
+    private Map<String,String> contextParameters = new HashMap<String, String>();
 
     /**
      * The servlet initialization parameters
      */
-    private HashMap<String,String> servletInitParameters;
+    private Map<String,String> servletInitParameters = new HashMap<String, String>();
     
     
     /**
@@ -209,8 +210,8 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @param listeners Listeners.
      */
     protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
-            HashMap<String,String> contextParameters, HashMap<String,String> servletInitParameters,
-            ArrayList<String> listeners){
+            Map<String,String> contextParameters, Map<String,String> servletInitParameters,
+            List<String> listeners){
        this(publicDirectory, servletCtx, contextParameters, servletInitParameters, listeners, true);
     }
 
@@ -222,11 +223,11 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @param contextParameters Context parameters.
      * @param servletInitParameters servlet initialization parameres.
      * @param listeners Listeners.
-     * @param initialze false only when the {@link #newServletAdapter()} is invoked.
+     * @param initialize false only when the {@link #newServletAdapter()} is invoked.
      */
     protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
-            HashMap<String,String> contextParameters, HashMap<String,String> servletInitParameters,
-            ArrayList<String> listeners, boolean initialize){
+            Map<String,String> contextParameters, Map<String,String> servletInitParameters,
+            List<String> listeners, boolean initialize){
         super(publicDirectory);
         this.servletCtx = servletCtx;
         servletConfig = new ServletConfigImpl(servletCtx, servletInitParameters); 
@@ -243,11 +244,10 @@ public class ServletAdapter extends GrizzlyAdapter {
      * @param servletCtx {@link ServletContextImpl} to be used by new instance.
      * @param contextParameters Context parameters.
      * @param servletInitParameters servlet initialization parameres.
-     * @param listeners Listeners.
-     * @param initialze false only when the {@link #newServletAdapter()} is invoked.
+     * @param initialize false only when the {@link #newServletAdapter()} is invoked.
      */
     protected ServletAdapter(String publicDirectory, ServletContextImpl servletCtx,
-            HashMap<String,String> contextParameters, HashMap<String,String> servletInitParameters,
+            Map<String,String> contextParameters, Map<String,String> servletInitParameters,
             boolean initialize){
         super(publicDirectory);
         this.servletCtx = servletCtx;
@@ -262,7 +262,7 @@ public class ServletAdapter extends GrizzlyAdapter {
         servletInstance = servlet;
         servletCtx = servletContext;
     }
-
+    
     /**
      * {@inheritDoc}
      */ 
@@ -505,7 +505,6 @@ public class ServletAdapter extends GrizzlyAdapter {
      * Remove a servlet initialization parameter for this servlet.
      *
      * @param name Name of this initialization parameter to remove
-     * @param value Value of this initialization parameter to remove
      */
     public void removeInitParameter(String name){
         servletInitParameters.remove(name);
@@ -515,7 +514,6 @@ public class ServletAdapter extends GrizzlyAdapter {
      * get a servlet initialization parameter for this servlet.
      *
      * @param name Name of this initialization parameter to retreive
-     * @param value Value of this initialization parameter to retreive
      */
     public String getInitParameter(String name){
         return servletInitParameters.get(name);
@@ -525,7 +523,6 @@ public class ServletAdapter extends GrizzlyAdapter {
      * if the servlet initialization parameter in present for this servlet.
      *
      * @param name Name of this initialization parameter 
-     * @param value Value of this initialization parameter 
      */
     public boolean containsInitParameter(String name){
         return servletInitParameters.containsKey(name);
@@ -813,11 +810,11 @@ public class ServletAdapter extends GrizzlyAdapter {
         return servletCtx;
     }
 
-    protected ArrayList<String> getListeners() {
+    protected List<String> getListeners() {
         return listeners;
     }
 
-    protected HashMap<String, String> getContextParameters() {
+    protected Map<String, String> getContextParameters() {
         return contextParameters;
     }
 

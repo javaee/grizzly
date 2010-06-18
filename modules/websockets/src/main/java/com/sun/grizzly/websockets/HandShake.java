@@ -1,8 +1,7 @@
 /*
- *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -33,16 +32,12 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.MimeHeaders;
-import com.sun.grizzly.util.net.URL;
 
-import java.net.MalformedURLException;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -51,55 +46,35 @@ import java.util.logging.Logger;
 public abstract class HandShake {
     static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
 
-    private final String origin;
-    private final String serverHostName;
-    protected String port = "80";
-    private final boolean secure;
-    private final String resourcePath;
-    private final String location;
-    private final String protocol;
+    private boolean secure;
+    private String origin;
+    private String serverHostName;
+    private String port = "80";
+    private String resourcePath;
+    private String location;
+    private String subProtocol;
 
-    public HandShake(MimeHeaders headers, boolean isSecure, String path) {
+    public HandShake(boolean isSecure, String path) {
         secure = isSecure;
-        origin = readHeader(headers, "origin");
-        final String header = readHeader(headers, "host");
-        final int i = header == null ? -1 : header.indexOf(":");
-        if(i == -1) {
-            serverHostName = header;
-            port = "80";
-        } else {
-            serverHostName = header.substring(0, i);
-            port = header.substring(i + 1);
-        }
         resourcePath = path;
-        protocol = headers.getHeader("WebSocket-Protocol");
-        location = buildLocation(isSecure);
     }
 
-    public HandShake(boolean isSecure, String origin, String serverHostName, String path) {
+    public HandShake(boolean isSecure, String origin, String serverHostName, String portNumber, String resourcePath) {
         this.origin = origin;
         this.serverHostName = serverHostName;
         secure = isSecure;
-        try {
-            URL url = new URL(origin);
-            final int portNumber = url.getPort();
-            if(portNumber != -1) {
-                port = String.valueOf(portNumber);
-            }
-        } catch (MalformedURLException e) {
-            logger.log(Level.SEVERE, e.getMessage(), e);
-        }
-        resourcePath = path;
-        protocol = null;
+        port = portNumber;
+        this.resourcePath = resourcePath;
+        subProtocol = null;
         location = buildLocation(isSecure);
     }
 
-    private String buildLocation(boolean isSecure) {
+    String buildLocation(boolean isSecure) {
         StringBuilder builder = new StringBuilder((isSecure ? "wss" : "ws") + "://" + serverHostName);
-        if(!"80".equals(port)) {
+        if (!"80".equals(port)) {
             builder.append(":" + port);
         }
-        if(resourcePath == null || !resourcePath.startsWith("/") && !"".equals(resourcePath)) {
+        if (resourcePath == null || !resourcePath.startsWith("/") && !"".equals(resourcePath)) {
             builder.append("/");
         }
         builder.append(resourcePath);
@@ -118,6 +93,14 @@ public abstract class HandShake {
         return value == null ? null : value.toString();
     }
 
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
     /**
      * Origin (bytes 4F 72 69 67 69 6E; always the fourth name-value pair)
      * <p/>
@@ -131,33 +114,53 @@ public abstract class HandShake {
         return origin;
     }
 
-    public String getServerHostName() {
-        return serverHostName;
+    public void setOrigin(String origin) {
+        this.origin = origin;
     }
 
     public String getPort() {
         return port;
     }
 
+    public void setPort(String port) {
+        this.port = port;
+    }
+
+    public void setResourcePath(String resourcePath) {
+        this.resourcePath = resourcePath;
+    }
+
+    public String getResourcePath() {
+        return resourcePath;
+    }
+
     public boolean isSecure() {
         return secure;
     }
 
-    public String getLocation() {
-        return location;
+    public void setSecure(boolean secure) {
+        this.secure = secure;
+    }
+
+    public String getServerHostName() {
+        return serverHostName;
+    }
+
+    public void setServerHostName(String serverHostName) {
+        this.serverHostName = serverHostName;
     }
 
     /**
      * WebSocket-Protocol (bytes 57 65 62 53 6F 63 6B 65 74 2D 50 72 6F 74 6F 63 6F 6C; optional,
      * if present, will be the fifth name-value pair)
      * The value gives the name of a subprotocol that the client is intending to select.  It would be interesting if
-     * the server supports multiple protocols or protocol versions.  The value must be interpreted as UTF-8.
+     * the server supports multiple protocols or subProtocol versions.  The value must be interpreted as UTF-8.
      */
-    public String getProtocol() {
-        return protocol;
+    public String getSubProtocol() {
+        return subProtocol;
     }
 
-    public String getResourcePath() {
-        return resourcePath;
+    public void setSubProtocol(String subProtocol) {
+        this.subProtocol = subProtocol;
     }
 }

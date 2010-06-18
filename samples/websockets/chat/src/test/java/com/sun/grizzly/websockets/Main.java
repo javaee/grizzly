@@ -1,9 +1,8 @@
 /*
- * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
- * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
+ * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -11,7 +10,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -20,9 +19,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -33,81 +32,59 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
-package com.sun.grizzly.http.servlet;
 
-import com.sun.grizzly.util.http.Enumerator;
+package com.sun.grizzly.websockets;
 
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
+import com.sun.grizzly.arp.DefaultAsyncHandler;
+import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.http.servlet.ServletContextImpl;
+import com.sun.grizzly.samples.websockets.ChatApplication;
+import com.sun.grizzly.samples.websockets.WebSocketsServlet;
+import com.sun.grizzly.util.Utils;
 
-/**
- * Basic {@link ServletConfig} implementation.
- * 
- * @author Jeanfrancois Arcand
- */
-public class ServletConfigImpl implements ServletConfig{
-        
-    private String name;
-    private final ConcurrentHashMap<String,String> initParameters =
-            new ConcurrentHashMap(16, 0.75f, 64);
-    private ServletContextImpl servletContextImpl;
-    
-    
-    protected ServletConfigImpl(ServletContextImpl servletContextImpl, Map<String,String> initParameters){
-        this.servletContextImpl = servletContextImpl;
-        this.setInitParameters(initParameters);
-    }
-    
-   
-    /**
-     * {@inheritDoc}
-     */     
-    public String getServletName() {
-        return name;
+import java.io.IOException;
+import java.net.URL;
+
+public class Main {
+    public static void main(String[] args) throws IOException, InstantiationException, InterruptedException {
+        final SelectorThread thread = setUpThread();
+        try {
+            while(true) {
+                Thread.sleep(1000);
+            }
+        } finally {
+            thread.stopEndpoint();
+        }
+
     }
 
-   
-    /**
-     * {@inheritDoc}
-     */     
-    public ServletContext getServletContext() {
-        return servletContextImpl;
-    }
+    private static SelectorThread setUpThread() throws IOException, InstantiationException {
+        final SelectorThread st = new SelectorThread();
+        st.setSsBackLog(8192);
+        st.setCoreThreads(2);
+        st.setMaxThreads(2);
+        st.setPort(8080);
+        st.setDisplayConfiguration(Utils.VERBOSE_TESTS);
+        final ServletContextImpl context = new ServletContextImpl() {
+            @Override
+            public String getContextPath() {
+                return "/chat";
+            }
+        };
+        final ServletAdapter adapter = new ServletAdapter(new WebSocketsServlet());
+        adapter.addRootFolder("src/main/webapp");
+        adapter.setHandleStaticResources(true);
+        adapter.setContextPath("/chat");
+        st.setAdapter(adapter);
+        st.setAsyncHandler(new DefaultAsyncHandler());
+        st.setEnableAsyncExecution(true);
+        st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
+        st.setTcpNoDelay(true);
+        st.listen();
 
-    
-    /**
-     * {@inheritDoc}
-     */    
-    public String getInitParameter(String name) {
-        return initParameters.get(name);
-    }
 
-    protected void setInitParameters(Map<String,String> parameters){
-        this.initParameters.clear();
-        this.initParameters.putAll(parameters);
-    }
-    
-    
-    /**
-     * Set the name of this servlet. 
-     *
-     * @param name The new name of this servlet
-     */
-    public void setServletName(String name) {
-        this.name = name;
-    }
-
-   
-    /**
-     * {@inheritDoc}
-     */ 
-    public Enumeration getInitParameterNames() {
-        return (new Enumerator(initParameters.keySet()));
+        return st;
     }
 }

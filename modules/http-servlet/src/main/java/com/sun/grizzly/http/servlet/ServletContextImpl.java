@@ -1,7 +1,7 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 1997-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 1997-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -68,6 +68,7 @@ import java.util.EventListener;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -126,7 +127,7 @@ public class ServletContextImpl implements ServletContext {
     /**
      * Notify the {@link ServletContextListener} that we are starting.
      */
-    protected void initListeners(ArrayList<String> listeners){
+    protected void initListeners(List<String> listeners){
         
         for(String listenerClass: listeners){
         EventListener el = null;
@@ -457,7 +458,7 @@ public class ServletContextImpl implements ServletContext {
     }
     
     
-    protected void setInitParameter(HashMap<String,String> parameters){
+    protected void setInitParameter(Map<String,String> parameters){
         this.parameters.clear();
         this.parameters.putAll(parameters);
     }

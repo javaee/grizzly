@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -252,14 +252,11 @@ public class SelectorThreadConfig{
         }  
         
         if (System.getProperty(DISPLAY_CONFIGURATION)!= null){
-            selectorThread.displayConfiguration = 
-                Boolean.valueOf(System.getProperty(DISPLAY_CONFIGURATION))
-                                                                .booleanValue();
+            selectorThread.displayConfiguration = Boolean.valueOf(System.getProperty(DISPLAY_CONFIGURATION));
         }
 
         if (System.getProperty(REUSE_ADRESS) != null){
-            selectorThread.setReuseAddress(Boolean.valueOf
-                    (System.getProperty(REUSE_ADRESS)).booleanValue());
+            selectorThread.setReuseAddress(Boolean.valueOf(System.getProperty(REUSE_ADRESS)));
         }
         
         if (System.getProperty(ASYNCH_HANDLER_PORT) != null){
@@ -280,29 +277,23 @@ public class SelectorThreadConfig{
         }           
         
         if (System.getProperty(DIRECT_BYTE_BUFFER_READ)!= null){
-            selectorThread.useDirectByteBuffer = 
-                Boolean.valueOf(
-                    System.getProperty(DIRECT_BYTE_BUFFER_READ)).booleanValue();
+            selectorThread.useDirectByteBuffer = Boolean.valueOf(System.getProperty(DIRECT_BYTE_BUFFER_READ));
         }        
        
         if (System.getProperty(MAX_KEEP_ALIVE_REQUEST) != null){
             try{
-                selectorThread.setMaxKeepAliveRequests(
-                        Integer.parseInt(System.getProperty(MAX_KEEP_ALIVE_REQUEST)));
+                selectorThread.setMaxKeepAliveRequests(Integer.parseInt(System.getProperty(MAX_KEEP_ALIVE_REQUEST)));
             } catch (NumberFormatException ex){
                 ;
             }
         }
         
         if (System.getProperty(ALGORITHM_CLASS_NAME)!= null){
-            selectorThread.algorithmClassName = 
-                                      System.getProperty(ALGORITHM_CLASS_NAME);
+            selectorThread.algorithmClassName = System.getProperty(ALGORITHM_CLASS_NAME);
         }   
 
         if (System.getProperty(BYTE_BUFFER_VIEW)!= null){
-            selectorThread.useByteBufferView = 
-                Boolean.valueOf(
-                            System.getProperty(BYTE_BUFFER_VIEW)).booleanValue();
+            selectorThread.useByteBufferView = Boolean.valueOf(System.getProperty(BYTE_BUFFER_VIEW));
         }    
              
         if (System.getProperty(MAX_SELECTOR_READ_THREAD) != null){
@@ -316,8 +307,7 @@ public class SelectorThreadConfig{
         
         if (System.getProperty(MAX_SELECTOR) != null){
             try{
-                SelectorFactory.setMaxSelectors(
-                  Integer.parseInt(System.getProperty(MAX_SELECTOR)));
+                SelectorFactory.setMaxSelectors(Integer.parseInt(System.getProperty(MAX_SELECTOR)));
             } catch (NumberFormatException ex){
                 ;
             } catch (IOException ex) {
@@ -326,20 +316,15 @@ public class SelectorThreadConfig{
         } 
         
         if (System.getProperty(SNOOP_LOGGING)!= null){
-            SelectorThread.setEnableNioLogging(
-                Boolean.valueOf(
-                            System.getProperty(SNOOP_LOGGING)).booleanValue());
+            SelectorThread.setEnableNioLogging(Boolean.valueOf(System.getProperty(SNOOP_LOGGING)));
         }   
         
         if (System.getProperty(BUFFER_RESPONSE)!= null){
-            selectorThread.setBufferResponse( 
-                Boolean.valueOf(
-                            System.getProperty(BUFFER_RESPONSE)).booleanValue());
+            selectorThread.setBufferResponse(Boolean.valueOf(System.getProperty(BUFFER_RESPONSE)));
         }    
         
         if (System.getProperty(OOBInline)!= null){
-            selectorThread.oOBInline = 
-                Boolean.valueOf(System.getProperty(OOBInline)).booleanValue();
+            selectorThread.oOBInline = Boolean.valueOf(System.getProperty(OOBInline));
         }
         
         if (System.getProperty(MAX_BUFFERED_BYTES) != null){
@@ -352,15 +337,12 @@ public class SelectorThreadConfig{
         }
 
         if (System.getProperty(USE_FILE_CACHE)!= null){
-            selectorThread.setFileCacheIsEnabled(
-                Boolean.valueOf(
-                            System.getProperty(USE_FILE_CACHE)).booleanValue());
+            selectorThread.setFileCacheIsEnabled(Boolean.valueOf(System.getProperty(USE_FILE_CACHE)));
             selectorThread.setLargeFileCacheEnabled(selectorThread.isFileCacheEnabled());
         }
 
         if (System.getProperty(IS_ASYNC_HTTP_WRITE) != null) {
-            selectorThread.setAsyncHttpWriteEnabled(
-                    Boolean.getBoolean(IS_ASYNC_HTTP_WRITE));
+            selectorThread.setAsyncHttpWriteEnabled(Boolean.getBoolean(IS_ASYNC_HTTP_WRITE));
         }
 
         if (System.getProperty(ASYNC_HTTP_WRITE_MAX_BUFFER_POOL_SIZE) != null) {
@@ -371,9 +353,9 @@ public class SelectorThreadConfig{
         String auth = System.getProperty(SSL_CONFIGURATION_WANTAUTH);
         if (auth != null) {
             if (selectorThread instanceof SSLSelectorThread){
-                if (auth.trim().equalsIgnoreCase("want")){
+                if ("want".equalsIgnoreCase(auth.trim())){
                     ((SSLSelectorThread)selectorThread).setWantClientAuth(true);
-                } else if (auth.trim().equalsIgnoreCase("need")){
+                } else if ("need".equalsIgnoreCase(auth.trim())){
                     ((SSLSelectorThread)selectorThread).setNeedClientAuth(true);
                 } 
             }
@@ -403,5 +385,4 @@ public class SelectorThreadConfig{
     public static void configure(SelectorThread selectorThread){
         configureProperties(selectorThread);
     }
-
 }
