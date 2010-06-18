@@ -51,10 +51,12 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLEngineResult.HandshakeStatus;
+import javax.net.ssl.SSLException;
 
 /**
  *
@@ -71,6 +73,8 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
     private volatile Ssl ssl;
     private volatile SSLConfigHolder sslConfigHolder;
 
+    private final AtomicBoolean isConfigured = new AtomicBoolean();
+
     private final static int sslReadTimeout = 5000;
 
     public void configure(ProtocolFinder configuration) {
@@ -79,8 +83,17 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
 
         if (isSecured) {
             ssl = protocol.getSsl();
+
+            try {
+                sslConfigHolder = new SSLConfigHolder(ssl);
+            } catch (SSLException e) {
+                throw new IllegalStateException(e);
+            }
+
             if (!SSLConfigHolder.isAllowLazyInit(ssl)) {
-                sslConfigHolder = SSLConfigHolder.configureSSL(ssl);
+                if (!isConfigured.getAndSet(true)) {
+                    sslConfigHolder.configureSSL();
+                }
             }
         }
     }
@@ -90,12 +103,8 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
             throws IOException {
 
         if (isSecured) {
-            if (sslConfigHolder == null) {
-                synchronized(sync) {
-                    if (sslConfigHolder == null) {
-                        sslConfigHolder = SSLConfigHolder.configureSSL(ssl);
-                    }
-                }
+            if (!isConfigured.getAndSet(true)) {
+                sslConfigHolder.configureSSL();
             }
 
             SelectionKey key = context.getSelectionKey();
@@ -106,7 +115,7 @@ public class HttpProtocolFinder extends com.sun.grizzly.http.portunif.HttpProtoc
 
             final boolean isloglevelfine = logger.isLoggable(Level.FINE);
             if (isloglevelfine) {
-                logger.log(Level.FINE, "sslEngine: " + sslEngine);
+                logger.log(Level.FINE, "sslEngine: {0}", sslEngine);
             }
 
             ByteBuffer inputBB = protocolRequest.getSecuredInputByteBuffer();

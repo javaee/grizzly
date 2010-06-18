@@ -42,9 +42,10 @@ import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.Protocol;
 import com.sun.grizzly.config.dom.Ssl;
-import com.sun.grizzly.util.ClassLoaderUtil;
 import com.sun.grizzly.util.net.SSLImplementation;
 import com.sun.grizzly.util.net.ServerSocketFactory;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
@@ -52,6 +53,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.net.ssl.SSLException;
 
 /**
  *
@@ -94,6 +96,20 @@ public class SSLConfigHolder {
     protected boolean wantClientAuth = false;
 
     /**
+     * SSL settings
+     */
+    private final Ssl ssl;
+
+    public SSLConfigHolder(final Ssl ssl) throws SSLException {
+        this.ssl = ssl;
+        sslImplementation = lookupSSLImplementation(ssl);
+
+        if (sslImplementation == null) {
+            throw new SSLException("Can not configure SSLImplementation");
+        }
+    }
+
+    /**
      * Set the SSLContext required to support SSL over NIO.
      */
     public void setSSLConfig(final SSLConfig sslConfig) {
@@ -101,24 +117,10 @@ public class SSLConfigHolder {
     }
 
     /**
-     * Set the SSLContext required to support SSL over NIO.
-     */
-    public void setSSLContext(final SSLContext sslContext) {
-        this.sslContext = sslContext;
-    }
-
-    /**
      * Return the SSLContext required to support SSL over NIO.
      */
     public SSLContext getSSLContext() {
         return sslContext;
-    }
-
-    /**
-     * Set the Coyote SSLImplementation.
-     */
-    public void setSSLImplementation(final SSLImplementation sslImplementation) {
-        this.sslImplementation = sslImplementation;
     }
 
     /**
@@ -138,30 +140,12 @@ public class SSLConfigHolder {
     }
 
     /**
-     * Sets the list of cipher suites to be enabled when {@link SSLEngine} is initialized.
-     *
-     * @param enabledCipherSuites <tt>null</tt> means 'use {@link SSLEngine}'s default.'
-     */
-    public void setEnabledCipherSuites(final String[] enabledCipherSuites) {
-        this.enabledCipherSuites = enabledCipherSuites;
-    }
-
-    /**
      * Returns the list of protocols to be enabled when {@link SSLEngine} is initialized.
      *
      * @return <tt>null</tt> means 'use {@link SSLEngine}'s default.'
      */
     public String[] getEnabledProtocols() {
         return enabledProtocols;
-    }
-
-    /**
-     * Sets the list of protocols to be enabled when {@link SSLEngine} is initialized.
-     *
-     * @param enabledProtocols <tt>null</tt> means 'use {@link SSLEngine}'s default.'
-     */
-    public void setEnabledProtocols(final String[] enabledProtocols) {
-        this.enabledProtocols = enabledProtocols;
     }
 
     /**
@@ -174,13 +158,6 @@ public class SSLConfigHolder {
     }
 
     /**
-     * Configures the engine to use client (or server) mode when handshaking.
-     */
-    public void setClientMode(final boolean clientMode) {
-        this.clientMode = clientMode;
-    }
-
-    /**
      * Returns <tt>true</tt> if the SSLEngine will <em>require</em> client authentication.
      */
     public boolean isNeedClientAuth() {
@@ -188,24 +165,10 @@ public class SSLConfigHolder {
     }
 
     /**
-     * Configures the engine to <em>require</em> client authentication.
-     */
-    public void setNeedClientAuth(final boolean needClientAuth) {
-        this.needClientAuth = needClientAuth;
-    }
-
-    /**
      * Returns <tt>true</tt> if the engine will <em>request</em> client authentication.
      */
     public boolean isWantClientAuth() {
         return wantClientAuth;
-    }
-
-    /**
-     * Configures the engine to <em>request</em> client authentication.
-     */
-    public void setWantClientAuth(final boolean wantClientAuth) {
-        this.wantClientAuth = wantClientAuth;
     }
 
     public SSLEngine createSSLEngine() {
@@ -232,29 +195,13 @@ public class SSLConfigHolder {
     
     /**
      * Configures the SSL properties on the given PECoyoteConnector from the SSL config of the given HTTP listener.
-     *
-     * @param ssl
      */
-    public static SSLConfigHolder configureSSL(final Ssl ssl) {
-        final SSLConfigHolder config = new SSLConfigHolder();
-        if (configureSSL(ssl, config)) {
-            return config;
-        }
-
-        return null;
-    }
-    
-    /**
-     * Configures the SSL properties on the given PECoyoteConnector from the SSL config of the given HTTP listener.
-     *
-     * @param ssl
-     */
-    public static boolean configureSSL(final Ssl ssl, final SSLConfigHolder sslConfigHolder) {
+    public boolean configureSSL() {
         final List<String> tmpSSLArtifactsList = new LinkedList<String>();
         if (ssl != null) {
             // client-auth
             if (Boolean.parseBoolean(ssl.getClientAuthEnabled())) {
-                sslConfigHolder.setNeedClientAuth(true);
+                needClientAuth = true;
             }
             // ssl protocol variants
             if (Boolean.parseBoolean(ssl.getSsl2Enabled())) {
@@ -276,38 +223,15 @@ public class SSLConfigHolder {
             } else {
                 final String[] protocols = new String[tmpSSLArtifactsList.size()];
                 tmpSSLArtifactsList.toArray(protocols);
-                sslConfigHolder.setEnabledProtocols(protocols);
+                enabledProtocols = protocols;
             }
             String auth = ssl.getClientAuth();
             if (auth != null) {
                 if ("want".equalsIgnoreCase(auth.trim())) {
-                    sslConfigHolder.setWantClientAuth(true);
+                    wantClientAuth = true;
                 } else if ("need".equalsIgnoreCase(auth.trim())) {
-                    sslConfigHolder.setNeedClientAuth(true);
+                    needClientAuth = true;
                 }
-            }
-            
-            try {
-                final String sslImplClassName = ssl.getClassname();
-                if (sslImplClassName != null) {
-                    SSLImplementation impl =
-                            (SSLImplementation) ClassLoaderUtil.load(sslImplClassName);
-                    if (impl != null) {
-                        sslConfigHolder.setSSLImplementation(impl);
-                    } else {
-                        logger.log(Level.WARNING,
-                                "Unable to load SSLImplementation: " +
-                                sslImplClassName);
-                        sslConfigHolder.setSSLImplementation(
-                                SSLImplementation.getInstance());
-                    }
-                } else {
-                    sslConfigHolder.setSSLImplementation(
-                            SSLImplementation.getInstance());
-                }
-            } catch (Exception e) {
-                logger.log(Level.WARNING, "SSL support could not be configured!", e);
-                return false;
             }
             
             tmpSSLArtifactsList.clear();
@@ -333,12 +257,12 @@ public class SSLConfigHolder {
             } else {
                 final String[] enabledCiphers = new String[tmpSSLArtifactsList.size()];
                 tmpSSLArtifactsList.toArray(enabledCiphers);
-                sslConfigHolder.setEnabledCipherSuites(enabledCiphers);
+                enabledCipherSuites = enabledCiphers;
             }
         }
 
         try {
-            initializeSSL(ssl, sslConfigHolder);
+            initializeSSL();
             return true;
         } catch (Exception e) {
             logger.log(Level.WARNING, "SSL support could not be configured!", e);
@@ -364,9 +288,8 @@ public class SSLConfigHolder {
      *
      * @throws Exception
      */
-    private static void initializeSSL(final Ssl ssl,
-            final SSLConfigHolder sslConfigHolder) throws Exception {
-        SSLImplementation sslHelper = sslConfigHolder.getSSLImplementation();
+    private void initializeSSL() throws Exception {
+        SSLImplementation sslHelper = getSSLImplementation();
 
         final ServerSocketFactory serverSF = sslHelper.getServerSocketFactory();
 
@@ -395,7 +318,7 @@ public class SSLConfigHolder {
         // cert nick name
         serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
         serverSF.init();
-        sslConfigHolder.setSSLContext(serverSF.getSSLContext());
+        sslContext = serverSF.getSSLContext();
     }
 
 
@@ -410,7 +333,7 @@ public class SSLConfigHolder {
             value);
     }
 
-    private static final String getKeyStorePassword(Ssl ssl) {
+    private static String getKeyStorePassword(Ssl ssl) {
         if (PLAIN_PASSWORD_PROVIDER_NAME.equalsIgnoreCase(ssl.getKeyStorePasswordProvider())) {
             return ssl.getKeyStorePassword();
         } else {
@@ -418,7 +341,7 @@ public class SSLConfigHolder {
         }
     }
 
-    private static final String getTrustStorePassword(Ssl ssl) {
+    private static String getTrustStorePassword(Ssl ssl) {
         if (PLAIN_PASSWORD_PROVIDER_NAME.equalsIgnoreCase(ssl.getTrustStorePasswordProvider())) {
             return ssl.getTrustStorePassword();
         } else {
@@ -439,5 +362,60 @@ public class SSLConfigHolder {
         }
 
         return null;
+    }
+
+    private static SSLImplementation lookupSSLImplementation(Ssl ssl) {
+        try {
+            final String sslImplClassName = ssl.getClassname();
+            if (sslImplClassName != null) {
+                try {
+                    Class clazz;
+                    ClassLoader cl = getContextClassLoader();
+                    if (cl != null) {
+                        try {
+                            clazz = Class.forName(sslImplClassName, false, cl);
+                        } catch (ClassNotFoundException ex) {
+                            clazz = Class.forName(sslImplClassName);
+                        }
+                    } else {
+                        clazz = Class.forName(sslImplClassName);
+                    }
+
+                    SSLImplementation impl = (SSLImplementation) clazz.newInstance();
+
+                    if (impl != null) {
+                        return impl;
+                    } else {
+                        logger.log(Level.WARNING, "Unable to load SSLImplementation: {0}",
+                                sslImplClassName);
+                        return SSLImplementation.getInstance();
+                    }
+                } catch (Exception e) {
+                    logger.log(Level.SEVERE, "Unable to load class " + sslImplClassName, e);
+                    return SSLImplementation.getInstance();
+                }
+            } else {
+                return SSLImplementation.getInstance();
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "SSL support could not be configured!", e);
+        }
+
+        return null;
+    }
+
+    private static ClassLoader getContextClassLoader() {
+        return AccessController.doPrivileged(
+                new PrivilegedAction<ClassLoader>() {
+
+                    public ClassLoader run() {
+                        ClassLoader cl = null;
+                        try {
+                            cl = Thread.currentThread().getContextClassLoader();
+                        } catch (SecurityException ex) {
+                        }
+                        return cl;
+                    }
+                });
     }
 }
