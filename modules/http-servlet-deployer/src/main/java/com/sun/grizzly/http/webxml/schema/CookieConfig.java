@@ -1,7 +1,8 @@
-/**
+/*
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER. *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved. *
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -31,8 +32,8 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
+
 package com.sun.grizzly.http.webxml.schema;
 
 public class CookieConfig {
