@@ -19,6 +19,7 @@
 <!--        <module>http-util</module> -->
         <module>http</module>
         <module>websockets</module>
+        <module>webcontainer</module>
 <!--        <module>http-servlet</module>
         <module>bundles</module>
         <module>config</module> -->
