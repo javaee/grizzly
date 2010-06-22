@@ -150,11 +150,11 @@ public abstract class SelectionKeyAttachment {
         keySelectionListener = null;
     }
 
-    public static interface TimeOutListener {
-        public boolean onTimeOut(SelectionKey key);
+    public interface TimeOutListener {
+        boolean onTimeOut(SelectionKey key);
     }
 
-    public static interface KeySelectionListener {
-        public void onKeySelected(SelectionKey selectionKey);
+    public interface KeySelectionListener {
+        void onKeySelected(SelectionKey selectionKey);
     }
 }
