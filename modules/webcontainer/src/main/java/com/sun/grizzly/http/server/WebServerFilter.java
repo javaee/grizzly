@@ -44,7 +44,7 @@ import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.server.apapter.Adapter;
+import com.sun.grizzly.http.server.adapter.Adapter;
 
 import java.io.IOException;
 

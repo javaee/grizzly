@@ -36,7 +36,7 @@
  *
  */
 
-package com.sun.grizzly.http.server.apapter;
+package com.sun.grizzly.http.server.adapter;
 
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
