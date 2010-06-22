@@ -49,11 +49,16 @@ import java.security.PrivilegedAction;
 
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.net.ssl.SSLException;
+import javax.net.ssl.SSLServerSocketFactory;
 
 /**
  *
@@ -251,13 +256,13 @@ public class SSLConfigHolder {
                     tmpSSLArtifactsList.add(cipher.trim());
                 }
             }
-            if (tmpSSLArtifactsList.isEmpty()) {
+
+            final String[] ciphers = getJSSECiphers(tmpSSLArtifactsList);
+            if (ciphers == null || ciphers.length == 0) {
                 logEmptyWarning(ssl, "WEB0308: All SSL cipher suites disabled for network-listener(s) {0}." +
                         "  Using SSL implementation specific defaults");
             } else {
-                final String[] enabledCiphers = new String[tmpSSLArtifactsList.size()];
-                tmpSSLArtifactsList.toArray(enabledCiphers);
-                enabledCipherSuites = enabledCiphers;
+                enabledCipherSuites = ciphers;
             }
         }
 
@@ -283,8 +288,6 @@ public class SSLConfigHolder {
 
     /**
      * Initializes SSL
-     *
-     * @param ssl
      *
      * @throws Exception
      */
@@ -412,10 +415,157 @@ public class SSLConfigHolder {
                         ClassLoader cl = null;
                         try {
                             cl = Thread.currentThread().getContextClassLoader();
-                        } catch (SecurityException ex) {
+                        } catch (SecurityException ignore) {
                         }
                         return cl;
                     }
                 });
     }
+
+
+    /*
+     * Evalutates the given List of cipher suite names, converts each cipher
+     * suite that is enabled (i.e., not preceded by a '-') to the corresponding
+     * JSSE cipher suite name, and returns a String[] of enabled cipher suites.
+     *
+     * @param sslCiphers List of SSL ciphers to evaluate.
+     *
+     * @return String[] of cipher suite names, or null if none of the cipher
+     *  suites in the given List are enabled or can be mapped to corresponding
+     *  JSSE cipher suite names
+     */
+    private static String[] getJSSECiphers(final List<String> configuredCiphers) {
+        Set<String> enabledCiphers = null;
+        for (String cipher : configuredCiphers) {
+            if (cipher.length() > 0 && cipher.charAt(0) != '-') {
+                if (cipher.charAt(0) == '+') {
+                    cipher = cipher.substring(1);
+                }
+                final String jsseCipher = getJSSECipher(cipher);
+                if (jsseCipher == null) {
+                    logger.log(Level.WARNING,
+                            "Unrecognized cipher [{0}]", cipher);
+                } else {
+                    if (enabledCiphers == null) {
+                        enabledCiphers = new HashSet<String>(configuredCiphers.size());
+                    }
+                    enabledCiphers.add(jsseCipher);
+                }
+            }
+        }
+
+        return ((enabledCiphers == null)
+                ? null
+                : enabledCiphers.toArray(new String[enabledCiphers.size()]));
+    }
+
+
+    /*
+     * Converts the given cipher suite name to the corresponding JSSE cipher.
+     *
+     * @param cipher The cipher suite name to convert
+     *
+     * @return The corresponding JSSE cipher suite name, or null if the given
+     * cipher suite name can not be mapped
+     */
+    private static String getJSSECipher(final String cipher) {
+
+        final CipherInfo ci = CipherInfo.getCipherInfo(cipher);
+        return ((ci != null) ? ci.getCipherName() : null);
+
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    /**
+     * This class represents the information associated with ciphers.
+     * It also maintains a Map from configName to CipherInfo.
+     */
+    private static final class CipherInfo {
+        private static final short SSL2 = 0x1;
+        private static final short SSL3 = 0x2;
+        private static final short TLS = 0x4;
+
+        // The old names mapped to the standard names as existed
+        private static final String[][] OLD_CIPHER_MAPPING = {
+                // IWS 6.x or earlier
+                {"rsa_null_md5", "SSL_RSA_WITH_NULL_MD5"},
+                {"rsa_null_sha", "SSL_RSA_WITH_NULL_SHA"},
+                {"rsa_rc4_40_md5", "SSL_RSA_EXPORT_WITH_RC4_40_MD5"},
+                {"rsa_rc4_128_md5", "SSL_RSA_WITH_RC4_128_MD5"},
+                {"rsa_rc4_128_sha", "SSL_RSA_WITH_RC4_128_SHA"},
+                {"rsa_3des_sha", "SSL_RSA_WITH_3DES_EDE_CBC_SHA"},
+                {"fips_des_sha", "SSL_RSA_WITH_DES_CBC_SHA"},
+                {"rsa_des_sha", "SSL_RSA_WITH_DES_CBC_SHA"},
+
+                // backward compatible with AS 9.0 or earlier
+                {"SSL_RSA_WITH_NULL_MD5", "SSL_RSA_WITH_NULL_MD5"},
+                {"SSL_RSA_WITH_NULL_SHA", "SSL_RSA_WITH_NULL_SHA"}
+        };
+
+        private static final Map<String,CipherInfo> ciphers =
+                new HashMap<String,CipherInfo>();
+
+        @SuppressWarnings({"UnusedDeclaration"})
+        private final String configName;
+        private final String cipherName;
+        private final short protocolVersion;
+
+
+        static {
+            for (int i = 0, len = OLD_CIPHER_MAPPING.length; i < len; i++) {
+                String nonStdName = OLD_CIPHER_MAPPING[i][0];
+                String stdName = OLD_CIPHER_MAPPING[i][1];
+                ciphers.put(nonStdName,
+                        new CipherInfo(nonStdName, stdName, (short) (SSL3 | TLS)));
+            }
+
+            SSLServerSocketFactory factory =
+                    (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
+            String[] supportedCiphers = factory.getDefaultCipherSuites();
+            for (int i = 0, len = supportedCiphers.length; i < len; i++) {
+                String s = supportedCiphers[i];
+                ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
+            }
+        }
+
+        /**
+         * @param configName      name used in domain.xml, sun-acc.xml
+         * @param cipherName      name that may depends on backend
+         * @param protocolVersion
+         */
+        private CipherInfo(final String configName,
+                           final String cipherName,
+                           final short protocolVersion) {
+            this.configName = configName;
+            this.cipherName = cipherName;
+            this.protocolVersion = protocolVersion;
+        }
+
+        public static CipherInfo getCipherInfo(final String configName) {
+            return ciphers.get(configName);
+        }
+
+        public String getCipherName() {
+            return cipherName;
+        }
+
+        @SuppressWarnings({"UnusedDeclaration"})
+        public boolean isSSL2() {
+            return (protocolVersion & SSL2) == SSL2;
+        }
+
+        @SuppressWarnings({"UnusedDeclaration"})
+        public boolean isSSL3() {
+            return (protocolVersion & SSL3) == SSL3;
+        }
+
+        @SuppressWarnings({"UnusedDeclaration"})
+        public boolean isTLS() {
+            return (protocolVersion & TLS) == TLS;
+        }
+
+    } // END CipherInfo
 }
