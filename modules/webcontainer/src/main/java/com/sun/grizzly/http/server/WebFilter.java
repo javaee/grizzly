@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.http.server;
 
+/*
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.logging.Logger;
@@ -65,7 +66,7 @@ import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.RequestGroupInfo;
 import com.sun.grizzly.tcp.http11.GrizzlyAdapter;
 import com.sun.grizzly.util.res.StringManager;
-
+*/
 
 
 /**
