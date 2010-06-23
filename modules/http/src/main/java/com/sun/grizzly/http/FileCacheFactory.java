@@ -162,7 +162,13 @@ public class FileCacheFactory {
         int addressHash = getAddressHash(currentAddress);
         FileCacheFactory fileCacheFactory = cache.get(addressHash + currentPort);
         if (fileCacheFactory == null) {
-            fileCacheFactory = newInstance(currentAddress, currentPort, fcc);
+            // try to look up the factory by the port in the case the
+            // FileCacheFactory was associated with a SelectorThread bound
+            // to 0.0.0.0.
+            fileCacheFactory = cache.get(currentPort);
+            if (fileCacheFactory == null) {
+                fileCacheFactory = newInstance(currentAddress, currentPort, fcc);
+            } 
         }
 
         return fileCacheFactory;

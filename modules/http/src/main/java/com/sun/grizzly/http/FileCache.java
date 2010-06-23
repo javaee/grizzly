@@ -58,7 +58,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 
-import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.http.MimeHeaders;
 import java.util.Queue;
 import java.util.StringTokenizer;
@@ -292,7 +291,7 @@ public class FileCache{
     public synchronized void add(String mappedServlet,
                                  String baseDir,
                                  String requestURI,
-                                 MessageBytes host,
+                                 String host,
                                  MimeHeaders headers,
                                  boolean xPoweredBy){
         
@@ -581,7 +580,7 @@ public class FileCache{
     }
 
     public final class FileCacheEntry implements Runnable{
-        public MessageBytes host;
+        public String host;
         public String requestURI;
         public String lastModified = "";
         public String contentType;

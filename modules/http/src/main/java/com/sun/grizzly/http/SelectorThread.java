@@ -591,7 +591,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
 
 
     public static SelectorThread getSelector(InetAddress address, int port) {
-        return selectorThreads.get(getSelectorThreadLookupKey(address, port));
+
+        SelectorThread thread = selectorThreads.get(getSelectorThreadLookupKey(address, port));
+        if (thread == null) {
+            // try to look up the SelectorThread by the port in the case the
+            // SelectorThread was bound to 0.0.0.0.
+            thread = selectorThreads.get(port);
+        }
+        return thread;
     }
     
     
@@ -862,7 +869,7 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         if (fileCacheFactory != null) return;
         
         fileCacheFactory = createFileCacheFactory();
-        FileCacheFactory.cache.put(port, fileCacheFactory);
+        //FileCacheFactory.cache.put(port, fileCacheFactory);
 
         configureFileCacheFactory();
     }

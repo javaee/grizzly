@@ -98,7 +98,7 @@ public class ContainerStaticHandler extends StaticHandler {
                         fileCache.add(FileCache.DEFAULT_SERVLET_NAME,
                                       docroot,
                                       uri,
-                                      req.serverName(),
+                                      req.serverName().toString(),
                                       req.getResponse().getMimeHeaders(),
                                       false);
                     } else {
@@ -118,7 +118,7 @@ public class ContainerStaticHandler extends StaticHandler {
                 fileCache.add(FileCache.DEFAULT_SERVLET_NAME,
                               docroot,
                               uri,
-                              req.serverName(),
+                              req.serverName().toString(),
                               req.getResponse().getMimeHeaders(),
                               false);
             }
