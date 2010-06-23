@@ -303,7 +303,7 @@
     <properties>
         <grizzly-version>2.0.0-SNAPSHOT</grizzly-version>
         <grizzly-released-version>1.8.5</grizzly-released-version>
-        <junit-version>3.8.1</junit-version>
+        <junit-version>4.7</junit-version>
         <maven-plugin.version>1.0.0</maven-plugin.version>
         <servlet-version>2.5</servlet-version>
         <felix-version>1.4.3</felix-version>
