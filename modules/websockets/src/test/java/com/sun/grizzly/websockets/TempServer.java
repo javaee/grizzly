@@ -100,7 +100,7 @@ public class TempServer {
 
     private static SelectorThread simpleSelectorThread() throws Exception {
         final EchoServlet servlet = new EchoServlet();
-        final SimpleWebSocketApplication app = new SimpleWebSocketApplication(servlet);
+        final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
         WebSocketEngine.getEngine().register("/echo", app);
         return WebSocketsTest.createSelectorThread(8080, new ServletAdapter(servlet));
     }

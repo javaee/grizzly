@@ -41,6 +41,7 @@ import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.http.MimeHeaders;
 import org.junit.Assert;
@@ -52,26 +53,26 @@ import java.io.InputStream;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @Test
 public class WebSocketsTest {
-    private int messageCount = 3;
+    private static final Object SLUG = new Object();
+    private static final int MESSAGE_COUNT = 10;
 
-    @Test(enabled = false)
-    public void simpleConversationWithApplication() throws Exception {
-        while (messageCount++ < 30) {
-            final EchoServlet servlet = new EchoServlet();
-            final SimpleWebSocketApplication app = new SimpleWebSocketApplication(servlet);
-            WebSocketEngine.getEngine().register("/echo", app);
-            run(servlet);
-        }
+    @Test
+    public void simpleConversationWithApplication() throws IOException, InstantiationException {
+        final EchoServlet servlet = new EchoServlet();
+        final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
+        WebSocketEngine.getEngine().register("/echo", app);
+        run(servlet);
     }
 
     private void run(final Servlet servlet) throws IOException, InstantiationException {
-
-        Utils.dumpOut("\n\n***** Starting new conversation with " + messageCount + " elements\n\n");
         final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(servlet));
         WebSocket client = new WebSocketClient("ws://localhost:1725/echo");
         final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
@@ -93,19 +94,19 @@ public class WebSocketsTest {
                 Thread.sleep(1000);
             }
 
-            for (int count = 0; count < messageCount; count++) {
+            for (int count = 0; count < MESSAGE_COUNT; count++) {
                 final String data = "message " + count;
-                sent.put(data, Boolean.TRUE);
+                sent.put(data, "");
                 client.send(data);
             }
 
             int count = 0;
             while (!sent.isEmpty() && count++ < 60) {
-                System.out.printf("WebSocketsTest.run: total = %s, count = %s, sent = %s\n", messageCount, count, sent);
                 Thread.sleep(1000);
             }
+
             Assert.assertEquals(String.format("Should have received all %s messages back.",
-                    messageCount), messageCount, messageCount - sent.size());
+                    MESSAGE_COUNT), 0, sent.size());
         } catch (InterruptedException e) {
             throw new RuntimeException(e.getMessage(), e);
         } finally {
@@ -114,6 +115,49 @@ public class WebSocketsTest {
         }
     }
 
+    public void timeouts() throws IOException, InstantiationException, InterruptedException {
+        SelectorThread thread = null;
+        try {
+            WebSocketEngine.getEngine().register("/echo", new SimpleWebSocketApplication());
+            thread = createSelectorThread(1725, new StaticResourcesAdapter());
+            WebSocket client = new WebSocketClient("ws://localhost:1725/echo");
+            final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
+            final CountDownLatch latch = new CountDownLatch(1);
+            client.add(new WebSocketListener() {
+                public void onMessage(WebSocket socket, DataFrame data) {
+                    Assert.assertNotNull(messages.remove(data.getTextPayload()));
+                }
+
+                public void onConnect(WebSocket socket) {
+                    latch.countDown();
+                }
+
+                public void onClose(WebSocket socket) {
+                    Utils.dumpOut("closed");
+                }
+            });
+
+            latch.await(10, TimeUnit.SECONDS);
+
+            for (int index = 0; index < 5; index++) {
+                send(client, messages, "test " + index);
+                Thread.sleep(3000);
+            }
+
+            Assert.assertTrue("All messages should have been echoed back: " + messages, messages.isEmpty());
+        } finally {
+            if (thread != null) {
+                thread.stopEndpoint();
+            }
+        }
+    }
+
+    private void send(WebSocket client, Map<String, Object> messages, final String message) throws IOException {
+        messages.put(message, SLUG);
+        client.send(message);
+    }
+
+    @Test(enabled = false)    
     public void testServerHandShake() throws Exception {
         Request request = new Request();
         final MimeHeaders headers = request.getMimeHeaders();
@@ -203,20 +247,6 @@ public class WebSocketsTest {
     }
 */
 
-/*
-    public void testTimeOut()
-            throws IOException, InstantiationException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(new HttpServlet() {
-            @Override
-            protected void service(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-                resp.setContentType("text/plain; charset=iso-8859-1");
-                resp.getWriter().write(req.getReader().readLine());
-                resp.getWriter().flush();
-            }
-        }));
-    }
-*/
-
     public static SelectorThread createSelectorThread(final int port, final Adapter adapter)
             throws IOException, InstantiationException {
         SelectorThread st = new SelectorThread();
@@ -231,7 +261,6 @@ public class WebSocketsTest {
         st.setEnableAsyncExecution(true);
         st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
         st.setTcpNoDelay(true);
-        st.setKeepAliveTimeoutInSeconds(12);
         st.listen();
 
         return st;

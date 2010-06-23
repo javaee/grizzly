@@ -37,6 +37,7 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncExecutor;
+import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.HttpWorkerThread;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
@@ -79,8 +80,6 @@ public class WebSocketEngine {
             Request request = asyncExecutor.getProcessorTask().getRequest();
             if ("WebSocket".equals(request.getHeader("Upgrade"))) {
                 socket = getWebSocket(asyncExecutor, request);
-                ((HttpWorkerThread) Thread.currentThread()).getAttachment()
-                        .setTimeout(SelectionKeyAttachment.UNLIMITED_TIMEOUT);
             }
         } catch (IOException e) {
             return false;
@@ -115,6 +114,11 @@ public class WebSocketEngine {
     private void register(final AsyncExecutor asyncExecutor, final BaseServerWebSocket socket,
             final SelectionKey selectionKey) {
         selectionKey.attach(new SelectionKeyActionAttachment() {
+            @Override
+            public boolean timedOut(SelectionKey Key) {
+                return false;
+            }
+
             public void process(SelectionKey key) {
                 if (key.isValid()) {
                     if (key.isReadable()) {

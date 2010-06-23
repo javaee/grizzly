@@ -36,15 +36,15 @@
 
 package com.sun.grizzly.websockets;
 
+import java.io.IOException;
+
 class SimpleWebSocketApplication extends WebSocketApplication {
-    private final EchoServlet servlet;
-
-    public SimpleWebSocketApplication(EchoServlet echoServlet) {
-        servlet = echoServlet;
-    }
-
     public void onMessage(WebSocket socket, DataFrame data) {
-        servlet.echo(socket, data);
+        try {
+            socket.send(data.getTextPayload());
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
     }
 
     public void onConnect(WebSocket socket) {
