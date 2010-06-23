@@ -382,7 +382,7 @@ public class FileCache{
      * Map the file to a {@link ByteBuffer}
      * @return the {@link ByteBuffer}
      */
-    private final ByteBuffer mapFile(File file){
+    private ByteBuffer mapFile(File file){
         FileChannel fileChannel = null;
         FileInputStream stream = null;
         try {
@@ -422,13 +422,13 @@ public class FileCache{
             if (stream != null) {
                 try {
                     stream.close();
-                } catch (IOException ioe) {
+                } catch (IOException ignored) {
                 }
             }
             if (fileChannel != null) {
                 try {
                     fileChannel.close();
-                } catch (IOException ioe) {
+                } catch (IOException ignored) {
                 }
             }
         }
@@ -439,11 +439,10 @@ public class FileCache{
      * Return <tt>true</tt> if the file is cached.
      */
     protected final FileCacheEntry map(Request request){
-        String uri = "";
         FileCacheEntry entry = null;
         
         if ( fileCache.size() != 0 ){
-            uri = request.requestURI().toString();
+            String uri = request.requestURI().toString();
             entry = fileCache.get(uri);
 
             if (entry != null) {
@@ -638,7 +637,7 @@ public class FileCache{
      * @return 1 if file cache has been enabled, 0 otherwise
      */
     public int getFlagEnabled() {
-        return (isEnabled == true?1:0);
+        return (isEnabled ? 1 : 0);
     }
     
     
