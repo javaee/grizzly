@@ -172,7 +172,7 @@ public class InputBuffer {
             if (content.isLast()) {
                 contentRead = true;
             }
-            if (content.getContent().position() > 0) {
+            if (content.getContent().hasRemaining()) {
                 buffers.append(content.getContent());
             }
         }

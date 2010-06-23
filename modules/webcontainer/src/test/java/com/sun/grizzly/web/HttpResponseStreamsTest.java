@@ -12,7 +12,7 @@ import com.sun.grizzly.filterchain.*;
 import com.sun.grizzly.http.*;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.apapter.GrizzlyAdapter;
+import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
 import com.sun.grizzly.http.server.embed.GrizzlyWebServer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;

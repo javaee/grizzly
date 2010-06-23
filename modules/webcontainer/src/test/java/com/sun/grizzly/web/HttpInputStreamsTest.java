@@ -43,7 +43,7 @@ public class HttpInputStreamsTest extends TestCase {
      * JUnit thread.  It's important that all test cases within this class call
      * <code>reportThreadErrors()</code> before returning for accurate results.
      */
-    private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
+//    private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
 
 
     // ----------------------------------------------------- Binary Test Methods
@@ -53,22 +53,17 @@ public class HttpInputStreamsTest extends TestCase {
 
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(GrizzlyRequest request)
-                  throws IOException {
+                    throws IOException {
 
                 // test issues a GET, so the InputStream should be inert
-                try {
-                    InputStream in = request.getInputStream();
-                    assertNotNull(in);
-                    assertEquals(0, in.available());
-                    assertEquals(-1, in.read());
-                    assertEquals(-1, in.read(new byte[10]));
-                    assertEquals(-1, in.read(new byte[10], 0, 10));
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+                InputStream in = request.getInputStream();
+                assertNotNull(in);
+                assertEquals(0, in.available());
+                assertEquals(-1, in.read());
+                assertEquals(-1, in.read(new byte[10]));
+                assertEquals(-1, in.read(new byte[10], 0, 10));
+                in.close();
+                return true;
             }
         };
 
@@ -82,20 +77,15 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
+                    throws IOException {
+                InputStream in = request.getInputStream();
                 try {
-                    InputStream in = request.getInputStream();
-                    try {
-                        in.reset();
-                        fail();
-                    } catch (IOException ioe) {
-                        // expected
-                    }
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+                    in.reset();
+                    fail();
+                } catch (IOException ioe) {
+                    // expected
                 }
+                return true;
             }
         };
 
@@ -110,36 +100,31 @@ public class HttpInputStreamsTest extends TestCase {
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(GrizzlyRequest request)
             throws IOException {
-                try {
-                    StringBuilder sb = new StringBuilder(expected.length());
-                    InputStream in = request.getInputStream();
+                StringBuilder sb = new StringBuilder(expected.length());
+                InputStream in = request.getInputStream();
 
-                    for (int j = 0; j < 5; j++) {
-                        sb.append((char) in.read());
-                    }
-                    assertEquals(expected.substring(0, 5), sb.toString());
-                    in.mark(30);
-
-                    for (int j = 0; j < 5; j++) {
-                        sb.append((char) in.read());
-                    }
-                    in.reset();
-                    assertEquals(expected.substring(0, 10), sb.toString());
-
-                    for (int i = in.read(); i != -1; i = in.read()) {
-                        sb.append((char) i);
-                    }
-
-                    in.close();
-                    assertEquals(0, in.available());
-                    StringBuilder exp = new StringBuilder(expected);
-                    exp.insert(5, expected.substring(5, 10));
-                    assertEquals(exp.toString(), sb.toString());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
                 }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(30);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                assertEquals(expected.substring(0, 10), sb.toString());
+
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
+                }
+
+                in.close();
+                assertEquals(0, in.available());
+                StringBuilder exp = new StringBuilder(expected);
+                exp.insert(5, expected.substring(5, 10));
+                assertEquals(exp.toString(), sb.toString());
+                return true;
             }
         };
 
@@ -153,33 +138,28 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    StringBuilder sb = new StringBuilder(5);
-                    InputStream in = request.getInputStream();
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(5);
+                InputStream in = request.getInputStream();
 
-                    for (int j = 0; j < 5; j++) {
-                        sb.append((char) in.read());
-                    }
-                    assertEquals(expected.substring(0, 5), sb.toString());
-                    in.mark(2);
-
-                    for (int j = 0; j < 5; j++) {
-                        sb.append((char) in.read());
-                    }
-                    try {
-                        in.reset();
-                        fail();
-                    } catch (IOException ioe) {
-                        // expected
-                    }
-                    in.close();
-                    assertEquals(0, in.available());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
                 }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(2);
+
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
+                }
+                try {
+                    in.reset();
+                    fail();
+                } catch (IOException ioe) {
+                    // expected
+                }
+                in.close();
+                assertEquals(0, in.available());
+                return true;
             }
         };
 
@@ -192,48 +172,44 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    StringBuilder sb = new StringBuilder(5);
-                    InputStream in = request.getInputStream();
+            @Override 
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(5);
+                InputStream in = request.getInputStream();
 
-                    for (int j = 0; j < 5; j++) {
-                        sb.append((char) in.read());
-                    }
-                    assertEquals(expected.substring(0, 5), sb.toString());
-                    in.mark(2);
-
-                    for (int j = 0; j < 2; j++) {
-                        sb.append((char) in.read());
-                    }
-                    in.reset();
-                    assertEquals(expected.substring(0, 7), sb.toString());
-
-                    for (int j = 0; j < 2; j++) {
-                        sb.append((char) in.read());
-                    }
-                    in.reset();
-                    StringBuilder sb2 = new StringBuilder(expected);
-                    sb2.insert(5, expected.substring(5, 7));
-                    assertEquals(sb2.toString().substring(0, 9), sb.toString());
-
-                    for (int j = 0; j < 3; j++) {
-                        sb.append((char) in.read());
-                    }
-                    try {
-                        in.reset();
-                        fail();
-                    } catch (IOException ioe) {
-                        // expected
-                    }
-                    in.close();
-                    assertEquals(0, in.available());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+                for (int j = 0; j < 5; j++) {
+                    sb.append((char) in.read());
                 }
+                assertEquals(expected.substring(0, 5), sb.toString());
+                in.mark(2);
+
+                for (int j = 0; j < 2; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                assertEquals(expected.substring(0, 7), sb.toString());
+
+                for (int j = 0; j < 2; j++) {
+                    sb.append((char) in.read());
+                }
+                in.reset();
+                StringBuilder sb2 = new StringBuilder(expected);
+                sb2.insert(5, expected.substring(5, 7));
+                assertEquals(sb2.toString().substring(0, 9), sb.toString());
+
+                for (int j = 0; j < 3; j++) {
+                    sb.append((char) in.read());
+                }
+                try {
+                    in.reset();
+                    fail();
+                } catch (IOException ioe) {
+                    // expected
+                }
+                in.close();
+                assertEquals(0, in.available());
+                return true;
             }
         };
 
@@ -246,30 +222,26 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    StringBuilder sb = new StringBuilder(16);
-                    InputStream in = request.getInputStream();
-                    long skipped = in.skip(0);
-                    assertEquals(0, skipped);
-                    skipped = in.skip(-1000);
-                    assertEquals(0, skipped);
-                    skipped = in.skip(10);
-                    assertEquals(10, skipped);
-                    for (int i = in.read(); i != -1; i = in.read()) {
-                        sb.append((char) i);
-                    }
-                    assertEquals(0, in.available());
-                    assertEquals(-1, in.read());
-                    assertEquals(-1, in.skip(10));
-                    in.close();
-                    assertEquals(expected.substring(10), sb.toString());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(16);
+                InputStream in = request.getInputStream();
+                long skipped = in.skip(0);
+                assertEquals(0, skipped);
+                skipped = in.skip(-1000);
+                assertEquals(0, skipped);
+                skipped = in.skip(10);
+                assertEquals(10, skipped);
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
                 }
+                assertEquals(0, in.available());
+                assertEquals(-1, in.read());
+                assertEquals(-1, in.skip(10));
+                in.close();
+                assertEquals(expected.substring(10), sb.toString());
+                return true;
             }
         };
 
@@ -282,21 +254,17 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    InputStream in = request.getInputStream();
-                    long skipped = in.skip(100);
-                    assertEquals(26, skipped);
-                    assertEquals(0, in.available());
-                    assertEquals(-1, in.read());
-                    assertEquals(-1, in.skip(10));
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                InputStream in = request.getInputStream();
+                long skipped = in.skip(100);
+                assertEquals(26, skipped);
+                assertEquals(0, in.available());
+                assertEquals(-1, in.read());
+                assertEquals(-1, in.skip(10));
+                in.close();
+                return true;
             }
         };
 
@@ -309,21 +277,17 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    InputStream in = request.getInputStream();
-                    byte[] b = new byte[expected.length()];
-                    assertEquals(26, in.read(b));
-                    assertEquals(expected, new String(b));
-                    assertEquals(0, in.available());
-                    assertEquals(-1, in.read(b));
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                InputStream in = request.getInputStream();
+                byte[] b = new byte[expected.length()];
+                assertEquals(26, in.read(b));
+                assertEquals(expected, new String(b));
+                assertEquals(0, in.available());
+                assertEquals(-1, in.read(b));
+                in.close();
+                return true;
             }
         };
 
@@ -335,20 +299,16 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String content = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    InputStream in = request.getInputStream();
-                    byte[] b = new byte[14];
-                    assertEquals(5, in.read(b, 2, 5));
-                    assertTrue(in.available() > 0);
-                    in.close();
-                    assertEquals("abcde", new String(b, 2, 5));
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                InputStream in = request.getInputStream();
+                byte[] b = new byte[14];
+                assertEquals(5, in.read(b, 2, 5));
+                assertTrue(in.available() > 0);
+                in.close();
+                assertEquals("abcde", new String(b, 2, 5));
+                return true;
             }
         };
 
@@ -361,23 +321,19 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    InputStream in = request.getInputStream();
-                    byte[] b = new byte[expected.length() - 2];
-                    assertEquals(24, in.read(b));
-                    assertEquals(expected.substring(0, 24), new String(b));
-                    assertEquals(2, in.read(b));
-                    assertEquals(expected.substring(24), new String(b, 0, 2));
-                    assertEquals(-1, in.read(b));
-                    assertEquals(0, in.available());
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                InputStream in = request.getInputStream();
+                byte[] b = new byte[expected.length() - 2];
+                assertEquals(24, in.read(b));
+                assertEquals(expected.substring(0, 24), new String(b));
+                assertEquals(2, in.read(b));
+                assertEquals(expected.substring(24), new String(b, 0, 2));
+                assertEquals(-1, in.read(b));
+                assertEquals(0, in.available());
+                in.close();
+                return true;
             }
         };
 
@@ -399,22 +355,17 @@ public class HttpInputStreamsTest extends TestCase {
 
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    InputStream in = request.getInputStream();
-                    StringBuilder sb = new StringBuilder();
-                    byte[] buf = new byte[512];
-                    for (int i = in.read(buf); i != -1; i = in.read(buf)) {
-                        sb.append(new String(buf, 0, i));
-                    }
-                    assertEquals(b.toString(), sb.toString());
-                    assertEquals(0, in.available());
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+                    throws IOException {
+                InputStream in = request.getInputStream();
+                StringBuilder sb = new StringBuilder();
+                byte[] buf = new byte[512];
+                for (int i = in.read(buf); i != -1; i = in.read(buf)) {
+                    sb.append(new String(buf, 0, i));
                 }
+                assertEquals(b.toString(), sb.toString());
+                assertEquals(0, in.available());
+                in.close();
+                return true;
             }
         };
 
@@ -437,22 +388,17 @@ public class HttpInputStreamsTest extends TestCase {
 
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    InputStream in = request.getInputStream();
-                    StringBuilder sb = new StringBuilder();
-                    byte[] buf = new byte[512];
-                    for (int i = in.read(buf); i != -1; i = in.read(buf)) {
-                        sb.append(new String(buf, 0, i));
-                    }
-                    assertEquals(b.toString(), sb.toString());
-                    assertEquals(0, in.available());
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+                    throws IOException {
+                InputStream in = request.getInputStream();
+                StringBuilder sb = new StringBuilder();
+                byte[] buf = new byte[512];
+                for (int i = in.read(buf); i != -1; i = in.read(buf)) {
+                    sb.append(new String(buf, 0, i));
                 }
+                assertEquals(b.toString(), sb.toString());
+                assertEquals(0, in.available());
+                in.close();
+                return true;
             }
         };
 
@@ -469,22 +415,17 @@ public class HttpInputStreamsTest extends TestCase {
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
             @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    StringBuilder sb = new StringBuilder(26);
-                    Reader in = request.getReader();
-                    for (int i = in.read(); i != -1; i = in.read()) {
-                        sb.append((char) i);
-                    }
-                    assertEquals(-1, in.read());
-                    in.close();
-                    assertEquals(expected.length(), sb.length());
-                    assertEquals(expected, sb.toString());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(26);
+                Reader in = request.getReader();
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
                 }
+                assertEquals(-1, in.read());
+                in.close();
+                assertEquals(expected.length(), sb.length());
+                assertEquals(expected, sb.toString());
+                return true;
             }
         };
 
@@ -497,20 +438,16 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    char[] b = new char[expected.length()];
-                    assertEquals(26, in.read(b));
-                    assertEquals(expected, new String(b));
-                    assertEquals(-1, in.read(b));
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                char[] b = new char[expected.length()];
+                assertEquals(26, in.read(b));
+                assertEquals(expected, new String(b));
+                assertEquals(-1, in.read(b));
+                in.close();
+                return true;
             }
         };
 
@@ -523,19 +460,15 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String content = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    char[] b = new char[14];
-                    assertEquals(5, in.read(b, 2, 5));
-                    in.close();
-                    assertEquals("abcde", new String(b, 2, 5));
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                char[] b = new char[14];
+                assertEquals(5, in.read(b, 2, 5));
+                in.close();
+                assertEquals("abcde", new String(b, 2, 5));
+                return true;
             }
         };
 
@@ -548,22 +481,18 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    char[] b = new char[expected.length() - 2];
-                    assertEquals(24, in.read(b));
-                    assertEquals(expected.substring(0, 24), new String(b));
-                    assertEquals(2, in.read(b));
-                    assertEquals(expected.substring(24), new String(b, 0, 2));
-                    assertEquals(-1, in.read(b));
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                char[] b = new char[expected.length() - 2];
+                assertEquals(24, in.read(b));
+                assertEquals(expected.substring(0, 24), new String(b));
+                assertEquals(2, in.read(b));
+                assertEquals(expected.substring(24), new String(b, 0, 2));
+                assertEquals(-1, in.read(b));
+                in.close();
+                return true;
             }
         };
 
@@ -584,23 +513,19 @@ public class HttpInputStreamsTest extends TestCase {
         }
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    StringBuilder sb = new StringBuilder();
-                    char[] buf = new char[512];
-                    for (int i = in.read(buf); i != -1; i = in.read(buf)) {
-                        sb.append(new String(buf, 0, i));
-                    }
-                    assertEquals(b.length(), sb.length());
-                    assertEquals(b.toString(), sb.toString());
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                StringBuilder sb = new StringBuilder();
+                char[] buf = new char[512];
+                for (int i = in.read(buf); i != -1; i = in.read(buf)) {
+                    sb.append(new String(buf, 0, i));
                 }
+                assertEquals(b.length(), sb.length());
+                assertEquals(b.toString(), sb.toString());
+                in.close();
+                return true;
             }
         };
 
@@ -622,22 +547,18 @@ public class HttpInputStreamsTest extends TestCase {
 
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    StringBuilder sb = new StringBuilder();
-                    char[] buf = new char[512];
-                    for (int i = in.read(buf); i != -1; i = in.read(buf)) {
-                        sb.append(new String(buf, 0, i));
-                    }
-                    assertEquals(sb.toString(), b.toString());
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                StringBuilder sb = new StringBuilder();
+                char[] buf = new char[512];
+                for (int i = in.read(buf); i != -1; i = in.read(buf)) {
+                    sb.append(new String(buf, 0, i));
                 }
+                assertEquals(sb.toString(), b.toString());
+                in.close();
+                return true;
             }
         };
 
@@ -659,22 +580,18 @@ public class HttpInputStreamsTest extends TestCase {
 
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    StringBuilder sb = new StringBuilder();
-                    char[] buf = new char[1024 * 9];
-                    for (int i = in.read(buf); i != -1; i = in.read(buf)) {
-                        sb.append(new String(buf, 0, i));
-                    }
-                    assertEquals(sb.toString(), b.toString());
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                StringBuilder sb = new StringBuilder();
+                char[] buf = new char[1024 * 9];
+                for (int i = in.read(buf); i != -1; i = in.read(buf)) {
+                    sb.append(new String(buf, 0, i));
                 }
+                assertEquals(sb.toString(), b.toString());
+                in.close();
+                return true;
             }
         };
 
@@ -687,23 +604,19 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    CharBuffer cbuf = CharBuffer.allocate(52);
-                    Reader in = request.getReader();
-                    int read = in.read(cbuf);
-                    assertEquals(expected.length(), read);
-                    assertEquals(-1, in.read());
-                    in.close();
-                    cbuf.flip();
-                    assertEquals(expected.length(), cbuf.remaining());
-                    assertEquals(expected, cbuf.toString());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                CharBuffer cbuf = CharBuffer.allocate(52);
+                Reader in = request.getReader();
+                int read = in.read(cbuf);
+                assertEquals(expected.length(), read);
+                assertEquals(-1, in.read());
+                in.close();
+                cbuf.flip();
+                assertEquals(expected.length(), cbuf.remaining());
+                assertEquals(expected, cbuf.toString());
+                return true;
             }
         };
 
@@ -716,23 +629,19 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    CharBuffer cbuf = CharBuffer.allocate(expected.length() / 2);
-                    StringBuilder sb = new StringBuilder(expected.length());
-                    for (int i = in.read(cbuf); i != -1; i = in.read(cbuf)) {
-                        sb.append(cbuf.flip().toString());
-                    }
-                    assertEquals(-1, in.read());
-                    assertEquals(expected.length(), sb.length());
-                    assertEquals(expected, sb.toString());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                CharBuffer cbuf = CharBuffer.allocate(expected.length() / 2);
+                StringBuilder sb = new StringBuilder(expected.length());
+                for (int i = in.read(cbuf); i != -1; i = in.read(cbuf)) {
+                    sb.append(cbuf.flip().toString());
                 }
+                assertEquals(-1, in.read());
+                assertEquals(expected.length(), sb.length());
+                assertEquals(expected, sb.toString());
+                return true;
             }
         };
 
@@ -753,23 +662,19 @@ public class HttpInputStreamsTest extends TestCase {
         }
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    CharBuffer cbuf = CharBuffer.allocate(1024 / 2);
-                    StringBuilder sb = new StringBuilder(len);
-                    for (int i = in.read(cbuf); i != -1; i = in.read(cbuf)) {
-                        sb.append(cbuf.flip().toString());
-                    }
-                    assertEquals(-1, in.read());
-                    assertEquals(b.length(), sb.length());
-                    assertEquals(b.toString(), sb.toString());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                CharBuffer cbuf = CharBuffer.allocate(1024 / 2);
+                StringBuilder sb = new StringBuilder(len);
+                for (int i = in.read(cbuf); i != -1; i = in.read(cbuf)) {
+                    sb.append(cbuf.flip().toString());
                 }
+                assertEquals(-1, in.read());
+                assertEquals(b.length(), sb.length());
+                assertEquals(b.toString(), sb.toString());
+                return true;
             }
         };
 
@@ -782,25 +687,21 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    StringBuilder sb = new StringBuilder(26);
-                    Reader in = request.getReader();
-                    assertTrue(in.ready());
-                    for (int i = in.read(); i != -1; i = in.read()) {
-                        sb.append((char) i);
-                    }
-                    assertEquals(-1, in.read());
-                    assertFalse(in.ready());
-                    in.close();
-                    assertEquals(expected.length(), sb.length());
-                    assertEquals(expected, sb.toString());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(26);
+                Reader in = request.getReader();
+                assertTrue(in.ready());
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
                 }
+                assertEquals(-1, in.read());
+                assertFalse(in.ready());
+                in.close();
+                assertEquals(expected.length(), sb.length());
+                assertEquals(expected, sb.toString());
+                return true;
             }
         };
 
@@ -813,7 +714,7 @@ public class HttpInputStreamsTest extends TestCase {
            test was changed to use GrizzlyRequest to read, the
            Reader is now wrapped by a BufferedReader which changes
            the dynamics of the test.
-           
+
     public void testCharacterReady002() throws Throwable {
 
         final int len = 1024 * 8;
@@ -862,33 +763,30 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
+
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                StringBuilder sb = new StringBuilder(16);
+                Reader in = request.getReader();
+                long skipped = in.skip(0);
+                assertEquals(0, skipped);
                 try {
-                    StringBuilder sb = new StringBuilder(16);
-                    Reader in = request.getReader();
-                    long skipped = in.skip(0);
-                    assertEquals(0, skipped);
-                    try {
-                        in.skip(-1000);
-                        fail();
-                    } catch (IllegalArgumentException iae) {
-                        // expected
-                    }
-                    skipped = in.skip(10);
-                    assertEquals(10, skipped);
-                    for (int i = in.read(); i != -1; i = in.read()) {
-                        sb.append((char) i);
-                    }
-                    assertEquals(-1, in.read());
-                    assertEquals(0, in.skip(10));
-                    in.close();
-                    assertEquals(expected.substring(10), sb.toString());
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+                    in.skip(-1000);
+                    fail();
+                } catch (IllegalArgumentException iae) {
+                    // expected
                 }
+                skipped = in.skip(10);
+                assertEquals(10, skipped);
+                for (int i = in.read(); i != -1; i = in.read()) {
+                    sb.append((char) i);
+                }
+                assertEquals(-1, in.read());
+                assertEquals(0, in.skip(10));
+                in.close();
+                assertEquals(expected.substring(10), sb.toString());
+                return true;
             }
         };
 
@@ -901,20 +799,16 @@ public class HttpInputStreamsTest extends TestCase {
 
         final String expected = "abcdefghijklmnopqrstuvwxyz";
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    Reader in = request.getReader();
-                    long skipped = in.skip(100);
-                    assertEquals(26, skipped);
-                    assertEquals(-1, in.read());
-                    assertEquals(0, in.skip(10));
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
-                }
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                Reader in = request.getReader();
+                long skipped = in.skip(100);
+                assertEquals(26, skipped);
+                assertEquals(-1, in.read());
+                assertEquals(0, in.skip(10));
+                in.close();
+                return true;
             }
         };
 
@@ -935,29 +829,25 @@ public class HttpInputStreamsTest extends TestCase {
         }
 
         ReadStrategy reader = new ReadStrategy() {
-            @Override public boolean doRead(GrizzlyRequest request)
-            throws IOException {
-                try {
-                    int skipLen = 9000;
-                    Reader in = request.getReader();
-                    long skipped = in.skip(skipLen);
-                    while (skipped != skipLen) {
-                        skipped += in.skip(skipLen - skipped);
-                    }
-                    char[] buf = new char[1024];
-                    StringBuilder sb = new StringBuilder(1024);
-                    for (int i = in.read(buf); i != -1; i = in.read(buf)) {
-                        sb.append(buf, 0, i);
-                    }
-                    assertEquals(b.toString().substring(skipLen), sb.toString());
-                    assertEquals(-1, in.read());
-                    assertEquals(0, in.skip(10));
-                    in.close();
-                    return true;
-                } catch (Throwable t) {
-                    exception.result(t);
-                    return false;
+            @Override
+            public boolean doRead(GrizzlyRequest request)
+                    throws IOException {
+                int skipLen = 9000;
+                Reader in = request.getReader();
+                long skipped = in.skip(skipLen);
+                while (skipped != skipLen) {
+                    skipped += in.skip(skipLen - skipped);
                 }
+                char[] buf = new char[1024];
+                StringBuilder sb = new StringBuilder(1024);
+                for (int i = in.read(buf); i != -1; i = in.read(buf)) {
+                    sb.append(buf, 0, i);
+                }
+                assertEquals(b.toString().substring(skipLen), sb.toString());
+                assertEquals(-1, in.read());
+                assertEquals(0, in.skip(10));
+                in.close();
+                return true;
             }
         };
 
@@ -968,24 +858,23 @@ public class HttpInputStreamsTest extends TestCase {
 
     // --------------------------------------------------------- Private Methods
 
-
-    private void reportThreadErrors() throws Throwable {
-        Throwable t = exception.getResult();
-        if (t != null) {
-            throw t;
-        }
-    }
-
-
     @SuppressWarnings({"unchecked"})
-    private HttpPacket createRequest(String method, String content) {
+    private HttpPacket createRequest(final String method, final String content) {
+        final Buffer contentBuffer = content != null ?
+            MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), content) :
+            null;
+        
         HttpRequestPacket.Builder b = HttpRequestPacket.builder();
         b.method(method).protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost");
+        if (content != null) {
+            b.contentLength(contentBuffer.remaining());
+        }
+
         HttpRequestPacket request = b.build();
 
         if (content != null) {
             HttpContent.Builder cb = request.httpContentBuilder();
-            cb.content(MemoryUtils.wrap(TransportFactory.getInstance().getDefaultMemoryManager(), content));
+            cb.content(contentBuffer);
             return cb.build();
         }
 
@@ -1000,7 +889,7 @@ public class HttpInputStreamsTest extends TestCase {
 
         GrizzlyWebServer server = new GrizzlyWebServer();
         GrizzlyWebServer.ServerConfiguration sconfig = server.getServerConfiguration();
-        sconfig.addGrizzlyAdapter(new SimpleResponseAdapter(strategy), new String[] { "/*" });
+        sconfig.addGrizzlyAdapter(new SimpleResponseAdapter(strategy, testResult), new String[] { "/*" });
         GrizzlyWebServer.ListenerConfiguration lconfig = server.getListenerConfiguration();
         lconfig.setPort(PORT);
 
@@ -1020,7 +909,7 @@ public class HttpInputStreamsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get(10, TimeUnit.SECONDS);
+                testResult.get(1000, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
@@ -1031,7 +920,6 @@ public class HttpInputStreamsTest extends TestCase {
             server.stop();
             ctransport.stop();
             TransportFactory.getInstance().close();
-            reportThreadErrors();
         }
     }
 
@@ -1047,15 +935,16 @@ public class HttpInputStreamsTest extends TestCase {
 
 
     private static final class SimpleResponseAdapter extends GrizzlyAdapter {
-
-        private ReadStrategy strategy;
+        private final FutureImpl<Boolean> testResult;
+        private final ReadStrategy strategy;
 
 
         // -------------------------------------------------------- Constructors
 
 
-        public SimpleResponseAdapter(ReadStrategy strategy) {
+        public SimpleResponseAdapter(ReadStrategy strategy, FutureImpl<Boolean> testResult) {
             this.strategy = strategy;
+            this.testResult = testResult;
         }
 
 
@@ -1064,13 +953,21 @@ public class HttpInputStreamsTest extends TestCase {
 
         @Override
         public void service(GrizzlyRequest req, GrizzlyResponse res) throws Exception {
+            Throwable t = null;
+
             res.setStatus(200, "OK");
             res.setContentLength(0);
-            if (strategy.doRead(req)) {
-                res.addHeader("Status", "OK");
-            } else {
-                res.addHeader("Status", "Failed");
+            try {
+                if (strategy.doRead(req)) {
+                    res.addHeader("Status", "OK");
+                    return;
+                }
+            } catch (Throwable e) {
+                t = e;
             }
+
+            testResult.failure(t != null ? t : new IllegalStateException("Strategy returned false"));
+            res.addHeader("Status", "Failed");
         }
 
     } // END SimpleResponseAdapter
@@ -1080,8 +977,8 @@ public class HttpInputStreamsTest extends TestCase {
     private class ClientFilter extends BaseFilter {
         private final Logger logger = Grizzly.logger(ClientFilter.class);
 
-        private HttpPacket request;
-        private FutureImpl<Boolean> testResult;
+        private final HttpPacket request;
+        private final FutureImpl<Boolean> testResult;
 
         // -------------------------------------------------------- Constructors
 
