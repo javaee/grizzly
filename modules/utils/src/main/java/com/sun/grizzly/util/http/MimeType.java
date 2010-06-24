@@ -245,6 +245,12 @@ public class MimeType{
      * @param contentType the content type associated with the extension
      */
     public static void add(String extension, String contentType) {
+        if (extension == null
+                || extension.length() == 0
+                || contentType == null
+                || contentType.length() == 0) {
+            return;
+        }
         contentTypes.put(extension, contentType);
     }
 }
