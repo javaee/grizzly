@@ -43,7 +43,9 @@ import java.util.Properties;
 
 
 /**
- * Hardcoded mime-type supported by default.
+ * Hardcoded mime-type supported by default.   Additional extenion/mime-type
+ * mappings may be added by calling {@link MimeType#add(String, String)}, however,
+ * keep in mind that these mappings are per-JVM.
  *
  * @author Jeanfrancois Arcand
  */
@@ -198,23 +200,52 @@ public class MimeType{
         contentTypes.put("z", "application/x-compress");
         contentTypes.put("zip", "application/zip");
     }
-    
 
+
+    /**
+     * @param extension the extension
+     *
+     * @return the content type associated with <code>extension</code>.  If
+     *  no association is found, this method will return <code>text/plain</code>
+     */
     public static String get(String extension){
         return contentTypes.getProperty(extension,"text/plain");
     }
 
+
+    /**
+     * @param extension the extension
+     * @param defaultCt the content type to return if there is no known
+     *  association for the specified extension
+     *
+     * @return the content type associated with <code>extension</code>
+     *  or if no associate is found, returns <code>defaultCt</code>
+     */
     public static String get(String extension, String defaultCt){
         return contentTypes.getProperty(extension,defaultCt);
     }
 
+
     /**
-     * Return true if the extension is well-know.
-     * @param extension the extension.
-     * @return true if the included, false if not
+     * @param extension the extension
+     * @return <code>true</code> if the specified extension has been registered
+     *  otherwise, returns <code>false</code>
      */
     public static boolean contains(String extension){
-        return (contentTypes.getProperty(extension) == null? false:true);
+        return (contentTypes.getProperty(extension) != null);
+    }
+
+
+    /**
+     * <p>
+     * Associates the specified extension and content type
+     * </p>
+     *
+     * @param extension the extension
+     * @param contentType the content type associated with the extension
+     */
+    public static void add(String extension, String contentType) {
+        contentTypes.put(extension, contentType);
     }
 }
   
