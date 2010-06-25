@@ -66,7 +66,6 @@ public class ClientHandShake extends HandShake {
         }
         String header = readHeader(headers, WebSocketEngine.CLIENT_WS_ORIGIN_HEADER);
         setOrigin(header != null ? header : "http://localhost");
-        setOrigin(readHeader(headers, WebSocketEngine.CLIENT_WS_ORIGIN_HEADER));
         determineHostAndPort(headers);
         setLocation(buildLocation(secure));
         if(getServerHostName() == null || getOrigin() == null || !upgrade || !connection) {

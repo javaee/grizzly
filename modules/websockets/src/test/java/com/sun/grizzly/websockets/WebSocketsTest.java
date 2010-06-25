@@ -36,25 +36,37 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.ssl.SSLSelectorThread;
 import com.sun.grizzly.tcp.Adapter;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
+import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.servlet.Servlet;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -63,10 +75,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings({"StringContatenationInLoop"})
 @Test
 public class WebSocketsTest {
     private static final Object SLUG = new Object();
     private static final int MESSAGE_COUNT = 10;
+    private static SSLConfig sslConfig;
+    private static final int PORT = 1725;
 
     public void securityKeys() {
         validate("&2^3 4  1l6h85  F  3Z  31");
@@ -89,8 +104,8 @@ public class WebSocketsTest {
     }
 
     private void run(final Servlet servlet) throws IOException, InstantiationException {
-        final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(servlet));
-        WebSocket client = new WebSocketClient("ws://localhost:1725/echo");
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(servlet));
+        WebSocket client = new WebSocketClient("ws://localhost:" + PORT + "/echo");
         final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
         client.add(new WebSocketListener() {
             public void onMessage(WebSocket socket, DataFrame data) {
@@ -135,8 +150,8 @@ public class WebSocketsTest {
         SelectorThread thread = null;
         try {
             WebSocketEngine.getEngine().register("/echo", new SimpleWebSocketApplication());
-            thread = createSelectorThread(1725, new StaticResourcesAdapter());
-            WebSocket client = new WebSocketClient("ws://localhost:1725/echo");
+            thread = createSelectorThread(PORT, new StaticResourcesAdapter());
+            WebSocket client = new WebSocketClient("ws://localhost:" + PORT + "/echo");
             final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
             final CountDownLatch latch = new CountDownLatch(1);
             client.add(new WebSocketListener() {
@@ -168,6 +183,91 @@ public class WebSocketsTest {
         }
     }
 
+    public void ssl() throws Exception {
+        final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
+                "HTTP/1.1 101 Switching Protocols",
+                "Upgrade: WebSocket",
+                "Connection: Upgrade",
+                "WebSocket-Origin: https://localhost:" + PORT,
+                "WebSocket-Location: wss://localhost:" + PORT + "/echo"
+        ));
+        SelectorThread thread = null;
+        SSLSocket socket = null;
+        try {
+            WebSocketEngine.getEngine().register("/echo", new SimpleWebSocketApplication());
+            thread = createSSLSelectorThread(PORT, new StaticResourcesAdapter());
+            SSLSocketFactory sslsocketfactory = getSSLSocketFactory();
+
+            socket = (SSLSocket) sslsocketfactory.createSocket("localhost", PORT);
+            handshake(socket, headers, true);
+        } finally {
+            if (thread != null) {
+                thread.stopEndpoint();
+            }
+            if (socket != null) {
+                socket.close();
+            }
+        }
+    }
+
+    private static void setup() throws URISyntaxException {
+        sslConfig = new SSLConfig();
+        ClassLoader cl = WebSocketsTest.class.getClassLoader();
+        // override system properties
+        URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        String trustStoreFile = new File(cacertsUrl.toURI()).getAbsolutePath();
+        if (cacertsUrl != null) {
+            sslConfig.setTrustStoreFile(trustStoreFile);
+            sslConfig.setTrustStorePass("changeit");
+        }
+
+        // override system properties
+        URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        String keyStoreFile = new File(keystoreUrl.toURI()).getAbsolutePath();
+        if (keystoreUrl != null) {
+            sslConfig.setKeyStoreFile(keyStoreFile);
+            sslConfig.setKeyStorePass("changeit");
+        }
+
+        SSLConfig.DEFAULT_CONFIG = sslConfig;
+
+        System.setProperty("javax.net.ssl.trustStore", trustStoreFile);
+        System.setProperty("javax.net.ssl.trustStorePassword", "changeit");
+        System.setProperty("javax.net.ssl.keyStore", keyStoreFile);
+        System.setProperty("javax.net.ssl.keyStorePassword", "changeit");
+    }
+
+    public SSLSocketFactory getSSLSocketFactory() throws IOException {
+        try {
+            //---------------------------------
+            // Create a trust manager that does not validate certificate chains
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return null;
+                        }
+
+                        public void checkClientTrusted(
+                                X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(
+                                X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+            // Install the all-trusting trust manager
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            //---------------------------------
+            return sc.getSocketFactory();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IOException(e.getMessage());
+        } finally {
+        }
+    }
+
     private void send(WebSocket client, Map<String, Object> messages, final String message) throws IOException {
         messages.put(message, SLUG);
         client.send(message);
@@ -175,55 +275,57 @@ public class WebSocketsTest {
 
     @Test
     public void testVer75ServerHandShake() throws Exception {
-        List<String> responseHeaders = new ArrayList<String>(Arrays.asList(
+        final SelectorThread thread = createSelectorThread(PORT, new StaticResourcesAdapter());
+        WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
+            public void onMessage(WebSocket socket, DataFrame data) {
+                Assert.fail("A GET should never get here.");
+            }
+
+            public void onConnect(WebSocket socket) {
+            }
+
+            public void onClose(WebSocket socket) {
+            }
+        });
+        final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
                 "HTTP/1.1 101 Switching Protocols",
                 "Upgrade: WebSocket",
                 "Connection: Upgrade",
-                "WebSocket-Origin: http://localhost:1725",
-                "WebSocket-Location: ws://localhost:1725/echo"
+                "WebSocket-Origin: http://localhost:" + PORT,
+                "WebSocket-Location: ws://localhost:" + PORT + "/echo"
         ));
-        final SelectorThread thread = createSelectorThread(1725, new StaticResourcesAdapter());
+        Socket socket = new Socket("localhost", PORT);
         try {
-            WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
-                public void onMessage(WebSocket socket, DataFrame data) {
-                    Assert.fail("A GET should never get here.");
-                }
-
-                public void onConnect(WebSocket socket) {
-                }
-
-                public void onClose(WebSocket socket) {
-                }
-            });
-
-            Socket socket = new Socket("localhost", 1725);
-            try {
-                final OutputStream os = socket.getOutputStream();
-                write(os, "GET /echo HTTP/1.1");
-                write(os, "Host: localhost:1725");
-                write(os, "Connection: Upgrade");
-                write(os, "Upgrade: WebSocket");
-                write(os, "Origin: http://localhost:1725");
-                write(os, "");
-                os.flush();
-
-                final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                List<String> receivedHeaders = new ArrayList<String>();
-                String line;
-                while (!"".equals(line = reader.readLine())) {
-                    receivedHeaders.add(line);
-                }
-
-                Assert.assertEquals(receivedHeaders.remove(0), responseHeaders.remove(0));
-                while(!receivedHeaders.isEmpty()) {
-                    final String next = receivedHeaders.remove(0);
-                    Assert.assertTrue(responseHeaders.remove(next), String.format("Looking for '%s'", next));
-                }
-            } finally {
-                socket.close();
-            }
+            handshake(socket, headers, false);
         } finally {
+            socket.close();
             thread.stopEndpoint();
+        }
+    }
+
+    private void handshake(Socket socket, final List<String> headers, boolean secure) throws IOException {
+        final OutputStream os = socket.getOutputStream();
+        write(os, "GET /echo HTTP/1.1");
+        write(os, "Host: localhost:" + PORT);
+        write(os, "Connection: Upgrade");
+        write(os, "Upgrade: WebSocket");
+        final String origin = secure ? "Origin: https://localhost:" : "Origin: http://localhost:";
+        write(os, origin + PORT);
+        write(os, "");
+        os.flush();
+
+        @SuppressWarnings({"IOResourceOpenedButNotSafelyClosed"})
+        final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        List<String> receivedHeaders = new ArrayList<String>();
+        String line;
+        while (!"".equals(line = reader.readLine())) {
+            receivedHeaders.add(line);
+        }
+
+        Assert.assertEquals(receivedHeaders.remove(0), headers.remove(0));
+        while (!receivedHeaders.isEmpty()) {
+            final String next = receivedHeaders.remove(0);
+            Assert.assertTrue(headers.remove(next), String.format("Looking for '%s'", next));
         }
     }
 
@@ -236,7 +338,7 @@ public class WebSocketsTest {
     }
 
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(new EchoServlet() {
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet() {
             {
                 WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
                     public void onMessage(WebSocket socket, DataFrame data) {
@@ -251,7 +353,7 @@ public class WebSocketsTest {
                 });
             }
         }));
-        URL url = new URL("http://localhost:1725/echo");
+        URL url = new URL("http://localhost:" + PORT + "/echo");
         final URLConnection urlConnection = url.openConnection();
         final InputStream content = (InputStream) urlConnection.getContent();
         try {
@@ -267,8 +369,8 @@ public class WebSocketsTest {
 
 /*
     public void testGetOnServlet() throws IOException, InstantiationException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(new EchoServlet()));
-        URL url = new URL("http://localhost:1725/echo");
+        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        URL url = new URL("http://localhost:" + PORT + "/echo");
         final URLConnection urlConnection = url.openConnection();
         final InputStream content = (InputStream) urlConnection.getContent();
         try {
@@ -300,6 +402,31 @@ public class WebSocketsTest {
             throws IOException, InstantiationException {
         SelectorThread st = new SelectorThread();
 
+        configure(port, adapter, st);
+        st.listen();
+
+        return st;
+    }
+
+    public static SSLSelectorThread createSSLSelectorThread(int port, Adapter adapter) throws Exception {
+        setup();
+        SSLSelectorThread st = new SSLSelectorThread();
+        configure(port, adapter, st);
+
+        st.setSSLConfig(sslConfig);
+        try {
+            st.setSSLImplementation(new JSSEImplementation());
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        st.listen();
+
+        return st;
+
+    }
+
+    private static void configure(int port, Adapter adapter, SelectorThread st) {
         st.setSsBackLog(8192);
         st.setCoreThreads(2);
         st.setMaxThreads(2);
@@ -310,9 +437,6 @@ public class WebSocketsTest {
         st.setEnableAsyncExecution(true);
         st.getAsyncHandler().addAsyncFilter(new WebSocketAsyncFilter());
         st.setTcpNoDelay(true);
-        st.listen();
-
-        return st;
     }
 
 }

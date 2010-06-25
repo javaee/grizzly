@@ -37,14 +37,11 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncExecutor;
-import com.sun.grizzly.arp.AsyncProcessorTask;
-import com.sun.grizzly.http.HttpWorkerThread;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.SelectionKeyActionAttachment;
-import com.sun.grizzly.util.SelectionKeyAttachment;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -92,8 +89,8 @@ public class WebSocketEngine {
         BaseServerWebSocket socket = null;
         try {
             final Response response = request.getResponse();
-            handshake(request, response);
             ProcessorTask task = asyncExecutor.getProcessorTask();
+            handshake(request, response, task);
             if (app != null) {
                 socket = (BaseServerWebSocket) app.createSocket(request, response);
                 app.onConnect(socket);
@@ -145,8 +142,10 @@ public class WebSocketEngine {
         task.getSelectorHandler().register(key, SelectionKey.OP_READ);
     }
 
-    private void handshake(Request request, Response response) throws IOException {
-        final ServerHandShake server = new ServerHandShake(new ClientHandShake(request, false));
+    private void handshake(Request request, Response response, ProcessorTask task) throws IOException {
+        final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) ||
+                task.getSSLSupport() != null;
+        final ServerHandShake server = new ServerHandShake(new ClientHandShake(request, secure));
         server.prepare(response);
     }
 

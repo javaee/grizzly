@@ -38,64 +38,11 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.InternalInputBuffer;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.nio.ByteBuffer;
 
 public class TempServer {
     public static void main(String[] args) throws Exception {
-        final SelectorThread thread = simpleSelectorThread();
+        final SelectorThread thread = sslSelectorThread();
         thread.start();
-
-//        ServerSocket socket = new ServerSocket(8080);
-//        while (true) {
-//            read(socket.accept());
-//        }
-    }
-
-    private static void read(Socket s) throws IOException {
-        oldHandshake(s);
-//        read(stream);
-        s.close();
-    }
-
-    private static Request createRequest(Socket s) throws IOException {
-        final Request request = new Request();
-        InternalInputBuffer buffer = new InternalInputBuffer(request);
-        buffer.setInputStream(s.getInputStream());
-        buffer.parseRequestLine();
-        buffer.parseHeaders();
-        return request;
-    }
-
-    private static void oldHandshake(Socket s) throws IOException {
-        final Request request = new Request();
-        request.setResponse(new Response());
-        InternalInputBuffer buffer = new InternalInputBuffer(request);
-        request.setInputBuffer(buffer); 
-        buffer.setInputStream(s.getInputStream());
-        buffer.parseRequestLine();
-        buffer.parseHeaders();
-        ClientHandShake clientHS = new ClientHandShake(request, false);
-        ServerHandShake serverHS = new ServerHandShake(clientHS);
-        final ByteBuffer bb = serverHS.generate();
-        final OutputStream os = s.getOutputStream();
-        os.write(bb.array());
-        os.flush();
-    }
-
-    private static void read(InputStream stream) throws IOException {
-        byte[] data = new byte[4096];
-        int read;
-        while ((read = stream.read(data)) != -1) {
-            System.out.println(new String(data, 0, read));
-        }
     }
 
     private static SelectorThread simpleSelectorThread() throws Exception {
@@ -103,5 +50,12 @@ public class TempServer {
         final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
         WebSocketEngine.getEngine().register("/echo", app);
         return WebSocketsTest.createSelectorThread(8080, new ServletAdapter(servlet));
+    }
+
+    private static SelectorThread sslSelectorThread() throws Exception {
+        final EchoServlet servlet = new EchoServlet();
+        final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
+        WebSocketEngine.getEngine().register("/echo", app);
+        return WebSocketsTest.createSSLSelectorThread(8080, new ServletAdapter(servlet));
     }
 }
