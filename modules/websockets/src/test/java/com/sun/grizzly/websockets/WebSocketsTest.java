@@ -40,20 +40,24 @@ import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.StaticResourcesAdapter;
 import com.sun.grizzly.util.Utils;
-import com.sun.grizzly.util.http.MimeHeaders;
-import org.junit.Assert;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import javax.servlet.Servlet;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.ByteBuffer;
-import java.util.Date;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
@@ -63,6 +67,18 @@ import java.util.concurrent.TimeUnit;
 public class WebSocketsTest {
     private static final Object SLUG = new Object();
     private static final int MESSAGE_COUNT = 10;
+
+    public void securityKeys() {
+        validate("&2^3 4  1l6h85  F  3Z  31");
+        validate("k ]B28GZ8  0  x *95 Y 6  92q0");
+    }
+
+    private void validate(final String key) {
+        SecKey key1 = SecKey.create(key);
+        long number = Long.parseLong(key.replaceAll("\\D", ""));
+        int spaces = key.replaceAll("\\S", "").length();
+        Assert.assertEquals(key1.getSecKeyValue(), number / spaces);
+    }
 
     @Test
     public void simpleConversationWithApplication() throws IOException, InstantiationException {
@@ -105,8 +121,8 @@ public class WebSocketsTest {
                 Thread.sleep(1000);
             }
 
-            Assert.assertEquals(String.format("Should have received all %s messages back.",
-                    MESSAGE_COUNT), 0, sent.size());
+            Assert.assertEquals(0, sent.size(), String.format("Should have received all %s messages back.",
+                    MESSAGE_COUNT));
         } catch (InterruptedException e) {
             throw new RuntimeException(e.getMessage(), e);
         } finally {
@@ -144,7 +160,7 @@ public class WebSocketsTest {
                 Thread.sleep(3000);
             }
 
-            Assert.assertTrue("All messages should have been echoed back: " + messages, messages.isEmpty());
+            Assert.assertTrue(messages.isEmpty(), "All messages should have been echoed back: " + messages);
         } finally {
             if (thread != null) {
                 thread.stopEndpoint();
@@ -157,34 +173,67 @@ public class WebSocketsTest {
         client.send(message);
     }
 
-    @Test(enabled = false)    
-    public void testServerHandShake() throws Exception {
-        Request request = new Request();
-        final MimeHeaders headers = request.getMimeHeaders();
-        headers.addValue("upgrade").setString("WebSocket");
-        headers.addValue("connection").setString("Upgrade");
-        headers.addValue("host").setString("localhost");
-        headers.addValue("origin").setString("http://localhost");
-        request.requestURI().setString("/echo");
-        final ClientHandShake clientHandshake = new ClientHandShake(request, false);
-        ServerHandShake shake = new ServerHandShake(clientHandshake);
-        final ByteBuffer buf = shake.generate();
-        Assert.assertNotNull("handshake complete", buf);
-        System.out.println("WebSocketsTest.testServerHandShake: buf = '" + createString(buf) + "'");
-//        Assert.assertEquals("Response should match spec", SERVER_HANDSHAKE, new String(buf.array()));
+    @Test
+    public void testVer75ServerHandShake() throws Exception {
+        List<String> responseHeaders = new ArrayList<String>(Arrays.asList(
+                "HTTP/1.1 101 Switching Protocols",
+                "Upgrade: WebSocket",
+                "Connection: Upgrade",
+                "WebSocket-Origin: http://localhost:1725",
+                "WebSocket-Location: ws://localhost:1725/echo"
+        ));
+        final SelectorThread thread = createSelectorThread(1725, new StaticResourcesAdapter());
+        try {
+            WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
+                public void onMessage(WebSocket socket, DataFrame data) {
+                    Assert.fail("A GET should never get here.");
+                }
+
+                public void onConnect(WebSocket socket) {
+                }
+
+                public void onClose(WebSocket socket) {
+                }
+            });
+
+            Socket socket = new Socket("localhost", 1725);
+            try {
+                final OutputStream os = socket.getOutputStream();
+                write(os, "GET /echo HTTP/1.1");
+                write(os, "Host: localhost:1725");
+                write(os, "Connection: Upgrade");
+                write(os, "Upgrade: WebSocket");
+                write(os, "Origin: http://localhost:1725");
+                write(os, "");
+                os.flush();
+
+                final BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                List<String> receivedHeaders = new ArrayList<String>();
+                String line;
+                while (!"".equals(line = reader.readLine())) {
+                    receivedHeaders.add(line);
+                }
+
+                Assert.assertEquals(receivedHeaders.remove(0), responseHeaders.remove(0));
+                while(!receivedHeaders.isEmpty()) {
+                    final String next = receivedHeaders.remove(0);
+                    Assert.assertTrue(responseHeaders.remove(next), String.format("Looking for '%s'", next));
+                }
+            } finally {
+                socket.close();
+            }
+        } finally {
+            thread.stopEndpoint();
+        }
+    }
+
+    private void write(OutputStream os, String text) throws IOException {
+        os.write((text + "\r\n").getBytes("UTF-8"));
     }
 
     private String createString(ByteBuffer buf) {
         return new String(buf.array(), buf.position(), buf.limit());
     }
-
-    /*
-        public void testClient() throws IOException, InstantiationException {
-            final SelectorThread thread = createSelectorThread(1725, new ServletAdapter());
-
-            WebSocket client = new WebSocketClient("ws://localhost:1725/echo");
-        }
-    */
 
     public void testGetOnWebSocketApplication() throws IOException, InstantiationException, InterruptedException {
         final SelectorThread thread = createSelectorThread(1725, new ServletAdapter(new EchoServlet() {
