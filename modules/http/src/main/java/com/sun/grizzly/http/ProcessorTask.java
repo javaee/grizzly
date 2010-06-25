@@ -1592,7 +1592,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                         (outputFilters[Constants.IDENTITY_FILTER]);
                 contentDelimitation = true;
             } else {
-                if (useChunking && entityBody && http11 && keepAlive) {
+                if (useChunking && entityBody && http11) {
                     outputBuffer.addActiveFilter
                             (outputFilters[Constants.CHUNKED_FILTER]);
                     contentDelimitation = true;
