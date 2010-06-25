@@ -70,11 +70,11 @@ import java.security.PrivilegedAction;
 
 /**
  * Output buffer.
- * 
+ *
  * @author <a href="mailto:remm@apache.org">Remy Maucherat</a>
  */
-public class InternalOutputBuffer 
-    implements OutputBuffer, ByteChunk.ByteOutputChannel {
+public class InternalOutputBuffer
+        implements OutputBuffer, ByteChunk.ByteOutputChannel {
 
 
     // -------------------------------------------------------------- Constants
@@ -91,24 +91,25 @@ public class InternalOutputBuffer
         this(response, Constants.DEFAULT_HTTP_HEADER_BUFFER_SIZE);
     }
 
-    
+
     // START GlassFish Issue 798
+
     /**
-     * Create a new InternalOutputBuffer and configure the enable/disable the 
+     * Create a new InternalOutputBuffer and configure the enable/disable the
      * socketBuffer mechanism.
      */
-    public InternalOutputBuffer(Response response, int headerBufferSize, 
+    public InternalOutputBuffer(Response response, int headerBufferSize,
             boolean useSocketBuffer) {
-        
-        this(response,headerBufferSize);
+
+        this(response, headerBufferSize);
         this.useSocketBuffer = useSocketBuffer;
-        if ( useSocketBuffer ){
+        if (useSocketBuffer) {
             socketBuffer.allocate(headerBufferSize, headerBufferSize);
         }
     }
     // END GlassFish Issue 798
-    
-    
+
+
     /**
      * Alternate constructor.
      */
@@ -136,12 +137,12 @@ public class InternalOutputBuffer
 
 
     // ----------------------------------------------------- Instance Variables
-    
+
     /**
      * The last {@link OutputFilter} to be added to the activeFilters list.
      */
     private OutputFilter lastOutputFilter = null;
- 
+
 
     /**
      * Associated Coyote response.
@@ -267,8 +268,8 @@ public class InternalOutputBuffer
      */
     public void addFilter(OutputFilter filter) {
 
-        OutputFilter[] newFilterLibrary = 
-            new OutputFilter[filterLibrary.length + 1];
+        OutputFilter[] newFilterLibrary =
+                new OutputFilter[filterLibrary.length + 1];
         System.arraycopy(filterLibrary, 0, newFilterLibrary, 0, filterLibrary.length);
         newFilterLibrary[filterLibrary.length] = filter;
         filterLibrary = newFilterLibrary;
@@ -297,17 +298,16 @@ public class InternalOutputBuffer
         lastActiveFilter = -1;
 
     }
-    
-    
+
+
     /**
-     * Add the last {@link OutputFilter} that will be invoked when processing 
+     * Add the last {@link OutputFilter} that will be invoked when processing
      * the writing of the response bytes.
-     * @param of
      */
-    public void addLastOutputFilter(OutputFilter lastOutputFilter){
+    public void addLastOutputFilter(OutputFilter lastOutputFilter) {
         this.lastOutputFilter = lastOutputFilter;
     }
-    
+
 
     /**
      * Add an output filter to the filter library.
@@ -318,8 +318,9 @@ public class InternalOutputBuffer
             filter.setBuffer(outputStreamOutputBuffer);
         } else {
             for (int i = 0; i <= lastActiveFilter; i++) {
-                if (activeFilters[i] == filter)
+                if (activeFilters[i] == filter) {
                     return;
+                }
             }
             filter.setBuffer(activeFilters[lastActiveFilter]);
         }
@@ -335,11 +336,11 @@ public class InternalOutputBuffer
 
     /**
      * Flush the response.
-     * 
+     *
      * @throws IOException an undelying I/O error occured
      */
     public void flush()
-        throws IOException {
+            throws IOException {
 
         if (!committed) {
 
@@ -357,31 +358,33 @@ public class InternalOutputBuffer
 
     }
 
-    
+
     // START GlassFish Issue 646
+
     /**
      * Flush the buffer.
      */
     private void flush(boolean isFull) throws IOException {
-         // Sending the response header buffer
+        // Sending the response header buffer
         realWriteBytes(buf, 0, pos);
-        
-        if ( isFull ) {
+
+        if (isFull) {
             pos = 0;
         }
     }
     // END GlassFish Issue 646
-    
+
 
     /**
      * Reset current response.
-     * 
+     *
      * @throws IllegalStateException if the response has already been committed
      */
     public void reset() {
 
-        if (committed)
+        if (committed) {
             throw new IllegalStateException(/*FIXME:Put an error message*/);
+        }
 
         // Recycle Request object
         response.recycle();
@@ -390,7 +393,7 @@ public class InternalOutputBuffer
 
 
     /**
-     * Recycle the output buffer. This should be called when closing the 
+     * Recycle the output buffer. This should be called when closing the
      * connection.
      */
     public void recycle() {
@@ -415,7 +418,7 @@ public class InternalOutputBuffer
 
     /**
      * End processing of current HTTP request.
-     * Note: All bytes of the current request should have been already 
+     * Note: All bytes of the current request should have been already
      * consumed. This method only resets all the pointers so that we are ready
      * to parse the next HTTP request.
      */
@@ -441,12 +444,12 @@ public class InternalOutputBuffer
 
     /**
      * End request.
-     * 
+     *
      * @throws IOException an undelying I/O error occured
      */
     public void endRequest()
-        throws IOException {
-        
+            throws IOException {
+
 
         if (!committed) {
 
@@ -457,11 +460,13 @@ public class InternalOutputBuffer
 
         }
 
-        if (finished)
+        if (finished) {
             return;
+        }
 
-        if (lastActiveFilter != -1)
+        if (lastActiveFilter != -1) {
             activeFilters[lastActiveFilter].end();
+        }
 
         if (useSocketBuffer) {
             socketBuffer.flushBuffer();
@@ -479,11 +484,11 @@ public class InternalOutputBuffer
      * Send an acknoledgement.
      */
     public void sendAck()
-        throws IOException {
+            throws IOException {
 
-        if (!committed){
-            realWriteBytes(Constants.ACK_BYTES,0,
-                        Constants.ACK_BYTES.length);
+        if (!committed) {
+            realWriteBytes(Constants.ACK_BYTES, 0,
+                    Constants.ACK_BYTES.length);
         }
     }
 
@@ -498,19 +503,19 @@ public class InternalOutputBuffer
 
         // Write status code
         int status = response.getStatus();
-	switch (status) {
-	case 200:
-            write("200");
-	    break;
-	case 400:
-            write("400");
-	    break;
-	case 404:
-            write("404");
-	    break;
-        default:
-	    write(status);
-	}
+        switch (status) {
+            case 200:
+                write("200");
+                break;
+            case 400:
+                write("400");
+                break;
+            case 404:
+                write("404");
+                break;
+            default:
+                write(status);
+        }
 
         write(" ");
 
@@ -527,30 +532,30 @@ public class InternalOutputBuffer
         }
 
         // End the response status line
-        if ( System.getSecurityManager() != null ){
-           AccessController.doPrivileged(
-                new PrivilegedAction(){
-                    public Object run(){
-                        write(Constants.CRLF_BYTES);
-                        return null;
+        if (System.getSecurityManager() != null) {
+            AccessController.doPrivileged(
+                    new PrivilegedAction() {
+                        public Object run() {
+                            write(Constants.CRLF_BYTES);
+                            return null;
+                        }
                     }
-                }
-           );
+            );
         } else {
             write(Constants.CRLF_BYTES);
         }
 
     }
 
-    private String getMessage(final int message){
-        if (System.getSecurityManager() != null){
-           return (String)AccessController.doPrivileged(
-                new PrivilegedAction(){
-                    public Object run(){
-                        return HttpMessages.getMessage(message); 
+    private String getMessage(final int message) {
+        if (System.getSecurityManager() != null) {
+            return (String) AccessController.doPrivileged(
+                    new PrivilegedAction() {
+                        public Object run() {
+                            return HttpMessages.getMessage(message);
+                        }
                     }
-                }
-           );
+            );
         } else {
             return HttpMessages.getMessage(message);
         }
@@ -558,8 +563,8 @@ public class InternalOutputBuffer
 
     /**
      * Send a header.
-     * 
-     * @param name Header name
+     *
+     * @param name  Header name
      * @param value Header value
      */
     public void sendHeader(MessageBytes name, MessageBytes value) {
@@ -574,8 +579,8 @@ public class InternalOutputBuffer
 
     /**
      * Send a header.
-     * 
-     * @param name Header name
+     *
+     * @param name  Header name
      * @param value Header value
      */
     public void sendHeader(ByteChunk name, ByteChunk value) {
@@ -590,8 +595,8 @@ public class InternalOutputBuffer
 
     /**
      * Send a header.
-     * 
-     * @param name Header name
+     *
+     * @param name  Header name
      * @param value Header value
      */
     public void sendHeader(String name, String value) {
@@ -619,18 +624,18 @@ public class InternalOutputBuffer
 
     /**
      * Write the contents of a byte chunk.
-     * 
+     *
      * @param chunk byte chunk
      * @return number of bytes written
      * @throws IOException an undelying I/O error occured
      */
-    public int doWrite(ByteChunk chunk, Response res) 
-        throws IOException {
-        
-        if (response.isSuspended()){
+    public int doWrite(ByteChunk chunk, Response res)
+            throws IOException {
+
+        if (response.isSuspended()) {
             response.action(ActionCode.RESET_SUSPEND_TIMEOUT, null);
-        }       
-        
+        }
+
         if (!committed) {
 
             // Send the connector a request for commit. The connector should
@@ -639,15 +644,16 @@ public class InternalOutputBuffer
             response.action(ActionCode.ACTION_COMMIT, null);
 
         }
-        
-        if (lastOutputFilter != null && activeFilters[0] != lastOutputFilter){
+
+        if (lastOutputFilter != null && activeFilters[0] != lastOutputFilter) {
             addActiveFilter(lastOutputFilter);
         }
-        
-        if (lastActiveFilter == -1)
+
+        if (lastActiveFilter == -1) {
             return outputStreamOutputBuffer.doWrite(chunk, res);
-        else
+        } else {
             return activeFilters[lastActiveFilter].doWrite(chunk, res);
+        }
 
     }
 
@@ -657,11 +663,11 @@ public class InternalOutputBuffer
 
     /**
      * Commit the response.
-     * 
+     *
      * @throws IOException an undelying I/O error occured
      */
     public void commit()
-        throws IOException {
+            throws IOException {
 
         // The response is now committed
         committed = true;
@@ -687,10 +693,10 @@ public class InternalOutputBuffer
 
 
     /**
-     * This method will write the contents of the specyfied message bytes 
+     * This method will write the contents of the specyfied message bytes
      * buffer to the output stream, without filtering. This method is meant to
      * be used to write the response header.
-     * 
+     *
      * @param mb data to be written
      */
     protected void write(MessageBytes mb) {
@@ -709,26 +715,25 @@ public class InternalOutputBuffer
 
 
     /**
-     * This method will write the contents of the specyfied message bytes 
+     * This method will write the contents of the specyfied message bytes
      * buffer to the output stream, without filtering. This method is meant to
      * be used to write the response header.
-     * 
+     *
      * @param bc data to be written
      */
     protected void write(ByteChunk bc) {
-        try{
-            realWriteBytes(bc.getBytes(),bc.getStart(),bc.getLength());
-        } catch (IOException ex){
-            ;
+        try {
+            realWriteBytes(bc.getBytes(), bc.getStart(), bc.getLength());
+        } catch (IOException ex) {
         }
     }
 
 
     /**
-     * This method will write the contents of the specyfied char 
+     * This method will write the contents of the specyfied char
      * buffer to the output stream, without filtering. This method is meant to
      * be used to write the response header.
-     * 
+     *
      * @param cc data to be written
      */
     protected void write(CharChunk cc) {
@@ -739,54 +744,51 @@ public class InternalOutputBuffer
         for (int i = start; i < end; i++) {
             char c = cbuf[i];
             if (c != 9) {
-                if ((c >= 0) && (c <= 31)) {
+                if (c >= 0 && c <= 31) {
                     c = ' ';
                 }
                 if (c == 127) {
                     c = ' ';
                 }
             }
-            
+
             if (pos >= buf.length) {
                 try {
                     flush(true);
-                } catch(IOException e) {
-                    ;
+                } catch (IOException e) {
                 }
             }
 
             buf[pos++] = (byte) c;
         }
-        
-        try{
+
+        try {
             flush(true);
-        } catch (IOException ex){
-            ;
-        }    
-    }
-
-
-    /**
-     * This method will write the contents of the specyfied byte 
-     * buffer to the output stream, without filtering. This method is meant to
-     * be used to write the response header.
-     * 
-     * @param b data to be written
-     */
-    protected void write(byte[] b) {
-        try{
-            realWriteBytes(b, 0, b.length);
-        } catch (IOException ex){
-            ;
+        } catch (IOException ex) {
         }
     }
 
 
     /**
-     * This method will write the contents of the specyfied String to the 
-     * output stream, without filtering. This method is meant to be used to 
+     * This method will write the contents of the specyfied byte
+     * buffer to the output stream, without filtering. This method is meant to
+     * be used to write the response header.
+     *
+     * @param b data to be written
+     */
+    protected void write(byte[] b) {
+        try {
+            realWriteBytes(b, 0, b.length);
+        } catch (IOException ex) {
+        }
+    }
+
+
+    /**
+     * This method will write the contents of the specyfied String to the
+     * output stream, without filtering. This method is meant to be used to
      * write the response header.
-     * 
+     *
      * @param s data to be written
      */
     protected void write(String s) {
@@ -795,27 +797,28 @@ public class InternalOutputBuffer
 
 
     /**
-     * This method will write the contents of the specyfied String to the 
-     * output stream, without filtering. This method is meant to be used to 
+     * This method will write the contents of the specyfied String to the
+     * output stream, without filtering. This method is meant to be used to
      * write the response header.
-     * 
-     * @param s data to be written
+     *
+     * @param s             data to be written
      * @param replacingCRLF replacing char with lower byte that is \n or \r
      */
     private void write(String s, boolean replacingCRLF) {
 
-        if (s == null)
+        if (s == null) {
             return;
+        }
 
         // From the Tomcat 3.3 HTTP/1.0 connector
         int len = s.length();
         for (int i = 0; i < len; i++) {
-            char c = s.charAt (i);
+            char c = s.charAt(i);
             // Note:  This is clearly incorrect for many strings,
             // but is the only consistent approach within the current
             // servlet framework.  It must suffice until servlet output
             // streams properly encode their output.
-            if ((c <= 31) && (c != 9)) {
+            if (c <= 31 && c != 9) {
                 c = ' ';
             } else if (c == 127) {
                 c = ' ';
@@ -829,27 +832,25 @@ public class InternalOutputBuffer
             if (pos >= buf.length) {
                 try {
                     flush(true);
-                } catch(IOException e) {
-                    ;
+                } catch (IOException e) {
                 }
             }
-            
+
             buf[pos++] = b;
         }
-        
-        try{
+
+        try {
             flush(true);
-        } catch (IOException ex){
-            ;
-        }    
+        } catch (IOException ex) {
+        }
     }
 
 
     /**
-     * This method will print the specified integer to the output stream, 
-     * without filtering. This method is meant to be used to write the 
+     * This method will print the specified integer to the output stream,
+     * without filtering. This method is meant to be used to write the
      * response header.
-     * 
+     *
      * @param i data to be written
      */
     protected void write(int i) {
@@ -863,7 +864,7 @@ public class InternalOutputBuffer
      * Callback to write data from the buffer.
      */
     public void realWriteBytes(byte cbuf[], int off, int len)
-        throws IOException {
+            throws IOException {
         if (len > 0) {
             if (useSocketBuffer) {
                 socketBuffer.append(cbuf, off, len);
@@ -872,7 +873,7 @@ public class InternalOutputBuffer
             }
         }
     }
-    
+
 
     // ----------------------------------- OutputStreamOutputBuffer Inner Class
 
@@ -881,18 +882,18 @@ public class InternalOutputBuffer
      * This class is an output buffer which will write data to an output
      * stream.
      */
-    protected class OutputStreamOutputBuffer 
-        implements OutputBuffer {
+    protected class OutputStreamOutputBuffer
+            implements OutputBuffer {
 
 
         /**
          * Write chunk.
          */
-        public int doWrite(ByteChunk chunk, Response res) 
-            throws IOException {
+        public int doWrite(ByteChunk chunk, Response res)
+                throws IOException {
 
-            realWriteBytes(chunk.getBuffer(), chunk.getStart(), 
-                                   chunk.getLength());
+            realWriteBytes(chunk.getBuffer(), chunk.getStart(),
+                    chunk.getLength());
             return chunk.getLength();
         }
 
