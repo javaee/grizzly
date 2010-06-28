@@ -36,54 +36,41 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.InternalInputBuffer;
-import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
-import com.sun.grizzly.util.buf.ByteChunk;
+/**
+ * {@link Exception}, which describes the error, occurred during the {@link WebSocket}
+ * handshake phase.
+ * 
+ * @author Alexey Stashok
+ */
+public class HandshakeException extends Exception {
+    private final int code;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
-import java.nio.channels.SocketChannel;
-
-public class BaseServerWebSocket extends BaseWebSocket {
-    private SocketChannel channel;
-    private final Request request;
-    private final Response response;
-    private final InternalInputBuffer inputBuffer;
-    private final InternalOutputBuffer outputBuffer;
-
-    public BaseServerWebSocket(WebSocketListener listener, final Request request, final Response response) {
-        this.request = request;
-        this.response = response;
-
-        inputBuffer = (InternalInputBuffer) request.getInputBuffer();
-        outputBuffer = (InternalOutputBuffer) response.getOutputBuffer();
-
-        add(listener);
+    /**
+     * Construct a <tt>HandshakeException</tt>.
+     *
+     * @param message error description
+     */
+    public HandshakeException(String message) {
+        this(404, message);
     }
 
-    public void connect() throws IOException {
-        throw new IOException("This operation is invalid on the server.");
+    /**
+     * Construct a <tt>HandshakeException</tt>.
+     *
+     * @param code error code
+     * @param message error description
+     */
+    public HandshakeException(int code, String message) {
+        super(message);
+        this.code = code;
     }
 
-    @Override
-    protected void unframe() throws IOException {
-        final ByteChunk chunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-        while (inputBuffer.doRead(chunk, request) > 0) {
-            unframe(chunk.toByteBuffer());
-        }
+    /**
+     * Get the error code.
+     *
+     * @return the error code.
+     */
+    public int getCode() {
+        return code;
     }
-
-    @Override
-    protected void write(byte[] bytes) throws IOException {
-        ByteChunk chunk = new ByteChunk(bytes.length);
-        chunk.setBytes(bytes, 0, bytes.length);
-        outputBuffer.doWrite(chunk, response);
-        outputBuffer.flush();
-    }
-
 }

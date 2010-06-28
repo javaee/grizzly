@@ -64,4 +64,6 @@ public interface WebSocket {
     void close() throws IOException;
 
     boolean isConnected();
+
+    void connect() throws IOException;
 }

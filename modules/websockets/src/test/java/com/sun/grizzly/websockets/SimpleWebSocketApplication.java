@@ -40,16 +40,11 @@ import java.io.IOException;
 
 class SimpleWebSocketApplication extends WebSocketApplication {
     public void onMessage(WebSocket socket, DataFrame data) {
+        super.onMessage(socket, data);
         try {
             socket.send(data.getTextPayload());
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-    }
-
-    public void onConnect(WebSocket socket) {
-    }
-
-    public void onClose(WebSocket socket) {
     }
 }

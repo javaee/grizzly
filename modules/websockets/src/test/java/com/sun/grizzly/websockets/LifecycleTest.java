@@ -36,54 +36,53 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.InternalInputBuffer;
-import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
-import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.http.SelectorThread;
+import com.sun.grizzly.http.servlet.ServletAdapter;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.nio.channels.Channel;
-import java.nio.channels.SocketChannel;
+import java.util.Date;
+import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-public class BaseServerWebSocket extends BaseWebSocket {
-    private SocketChannel channel;
-    private final Request request;
-    private final Response response;
-    private final InternalInputBuffer inputBuffer;
-    private final InternalOutputBuffer outputBuffer;
+@Test
+public class LifecycleTest {
+    public void detectClosed() throws IOException, InstantiationException, InterruptedException {
+        final EchoServlet servlet = new EchoServlet();
+        final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
+        WebSocketEngine.getEngine().register("/echo", app);
 
-    public BaseServerWebSocket(WebSocketListener listener, final Request request, final Response response) {
-        this.request = request;
-        this.response = response;
+        final SelectorThread thread =
+                WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new ServletAdapter(servlet));
 
-        inputBuffer = (InternalInputBuffer) request.getInputBuffer();
-        outputBuffer = (InternalOutputBuffer) response.getOutputBuffer();
+        Thread.sleep(5000);
+        try {
+            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be no clients connected");
+            final CountDownLatch connect = new CountDownLatch(1);
+            final CountDownLatch close = new CountDownLatch(1);
+            WebSocket client = new WebSocketClient("ws://localhost:" + WebSocketsTest.PORT + "/echo", new WebSocketListener() {
+                public void onClose(WebSocket socket) {
+                    close.countDown();
+                }
 
-        add(listener);
-    }
+                public void onConnect(WebSocket socket) {
+                    connect.countDown();
+                }
 
-    public void connect() throws IOException {
-        throw new IOException("This operation is invalid on the server.");
-    }
+                public void onMessage(WebSocket socket, DataFrame data) {
+                }
+            });
+            client.connect();
 
-    @Override
-    protected void unframe() throws IOException {
-        final ByteChunk chunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-        while (inputBuffer.doRead(chunk, request) > 0) {
-            unframe(chunk.toByteBuffer());
+            connect.await(1000, TimeUnit.SECONDS);
+            Assert.assertEquals(app.getWebSockets().size(), 1, "There should be 1 client connected");
+            client.close();
+            close.await(10, TimeUnit.SECONDS);
+        } finally {
+            thread.stopEndpoint();
         }
-    }
 
-    @Override
-    protected void write(byte[] bytes) throws IOException {
-        ByteChunk chunk = new ByteChunk(bytes.length);
-        chunk.setBytes(bytes, 0, bytes.length);
-        outputBuffer.doWrite(chunk, response);
-        outputBuffer.flush();
     }
-
 }

@@ -99,6 +99,7 @@ public class AsyncProcessorTask extends TaskBase implements AsyncTask {
                         return;
                 }
             } catch (Throwable t) {
+                t.printStackTrace();
                 SelectorThread.logger().log(Level.SEVERE, t.getMessage(), t);
                 if (stage <= AsyncTask.INTERRUPTED) {
                     // We must close the connection.

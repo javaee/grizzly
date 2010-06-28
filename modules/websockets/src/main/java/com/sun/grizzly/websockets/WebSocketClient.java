@@ -37,6 +37,7 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.http11.Constants;
+import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.net.URL;
 
 import java.io.IOException;
@@ -45,6 +46,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.logging.Level;
 
@@ -58,8 +60,9 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
             + "Origin: http://localhost" + Constants.CRLF
             + Constants.CRLF;
     private URL url;
+    private ClientHandShake clientHS;
 
-    public WebSocketClient(String address) throws IOException {
+    public WebSocketClient(String address, WebSocketListener... listeners) throws IOException {
         url = new URL(address);
         setSelector(SelectorProvider.provider().openSelector());
         new Thread(new Runnable() {
@@ -67,6 +70,12 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
                 select();
             }
         }).start();
+        for (WebSocketListener listener : listeners) {
+            add(listener);
+        }
+    }
+
+    public void connect() throws IOException {
         open(url);
     }
 
@@ -83,6 +92,7 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
     @Override
     public void close() throws IOException {
         super.close();
+        channel.keyFor(getSelector()).cancel();
         channel.close();
     }
 
@@ -125,11 +135,16 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
         channel.finishConnect();
         final boolean isSecure = "wss".equals(url.getProtocol());
 
-        ClientHandShake clientHS = new ClientHandShake(isSecure, url.getPath(), url.getHost(), 
+        final StringBuilder origin = new StringBuilder();
+        origin.append(isSecure ? "https://" : "http://");
+        origin.append(url.getHost());
+        if(!isSecure && url.getPort() != 80 || isSecure && url.getPort() != 443) {
+            origin.append(":")
+                    .append(url.getPort());
+        }
+        clientHS = new ClientHandShake(isSecure, origin.toString(), url.getHost(),
                 String.valueOf(url.getPort()), url.getPath());
-//        clientHS.toString()
-        final byte[] bytes = CLIENT_HANDSHAKE.getBytes();
-        write(bytes);
+        write(clientHS.getBytes());
         state = State.WAITING_ON_HANDSHAKE;
         super.doConnect();
     }
@@ -140,8 +155,16 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
             case WAITING_ON_HANDSHAKE:
                 final ByteBuffer buffer = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
                 final int read = channel.read(buffer);
+                buffer.flip();
+                byte[] serverKey = findServerKey(buffer);
+                try {
+                    clientHS.validateServerResponse(serverKey);
+                } catch (HandshakeException e) {
+                    throw new IOException(e.getMessage(), e);
+                }
                 state = State.READY;
                 setConnected(true);
+                onConnect();
                 break;
             case READY:
                 super.doRead();
@@ -149,6 +172,29 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
             default:
                 break;
         }
+    }
+
+    private byte[] findServerKey(ByteBuffer buffer) throws IOException {
+        while (buffer.hasRemaining() && readLine(buffer).length > 0) {
+            ;
+        }
+        return buffer.hasRemaining() ? readLine(buffer) : new byte[0];
+    }
+
+    private byte[] readLine(ByteBuffer buffer) throws IOException {
+        ByteChunk line = new ByteChunk(0);
+        byte last = 0x00;
+        boolean done = false;
+        while (!done && buffer.hasRemaining()) {
+            final byte next = buffer.get();
+            if (next != '\r' && next != '\n') {
+                line.append(next);
+            } else {
+                done = last == '\r' || last == '\n';
+            }
+            last = next;
+        }
+        return Arrays.copyOf(line.getBuffer(), line.getEnd());
     }
 
     protected void unframe() throws IOException {

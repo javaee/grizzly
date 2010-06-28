@@ -41,11 +41,14 @@ import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.util.buf.ByteChunk;
+import com.sun.grizzly.util.http.MimeHeaders;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ServerHandShake extends HandShake {
     private final static byte[] normalResponse = Charset.forName(
@@ -59,13 +62,17 @@ public class ServerHandShake extends HandShake {
             forName("ASCII").encode("\r\nWebSocket-Protocol: ").array();
     private byte[] serverSecKey;
 
-    public ServerHandShake(ClientHandShake client) {
-        super(client.isSecure(), client.getOrigin(), client.getServerHostName(), client.getPort(),
-                client.getResourcePath());
-        setSubProtocol(client.getSubProtocol());
-        if (client.getKey3() != null) {
-            serverSecKey = SecKey.generateServerKey(client.getKey1(), client.getKey2(), client.getKey3());
-        }
+    public ServerHandShake(final boolean secure, final String origin, final String serverHostName, final String port,
+            final String resourcePath, final String subProtocol) {
+        super(secure, origin, serverHostName, port, resourcePath);
+        setSubProtocol(subProtocol);
+    }
+
+    public ServerHandShake(final boolean secure, final String origin, final String serverHostName, final String port,
+            final String resourcePath, final String subProtocol, final SecKey key1, final SecKey key2,
+            final byte[] key3) {
+        this(secure, origin, serverHostName, port, resourcePath, subProtocol);
+        serverSecKey = SecKey.generateServerKey(key1, key2, key3);
     }
 
     public ByteBuffer generate() {
@@ -85,6 +92,10 @@ public class ServerHandShake extends HandShake {
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
+    }
+
+    public byte[] getKey() {
+        return serverSecKey;
     }
 
     private void write75Response(ByteArrayOutputStream bb) throws IOException {
@@ -113,7 +124,7 @@ public class ServerHandShake extends HandShake {
         bb.write(Constants.CRLF_BYTES);
     }
 
-    public void prepare(Response response) throws IOException {
+    public void respond(Response response) throws IOException {
         response.setStatus(101);
         response.setMessage("Web Socket Protocol Handshake");
         response.setHeader("Upgrade", "WebSocket");
@@ -133,7 +144,6 @@ public class ServerHandShake extends HandShake {
         }
 
         if (serverSecKey != null) {
-
             final OutputBuffer buffer = response.getOutputBuffer();
             ByteChunk chunk = new ByteChunk(serverSecKey.length + Constants.CRLF_BYTES.length);
             chunk.append(serverSecKey, 0, serverSecKey.length);
@@ -141,7 +151,5 @@ public class ServerHandShake extends HandShake {
             buffer.doWrite(chunk, response);
         }
         response.flush();
-        
-//        response.suspend();
     }
 }

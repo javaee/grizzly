@@ -81,7 +81,7 @@ public class WebSocketsTest {
     private static final Object SLUG = new Object();
     private static final int MESSAGE_COUNT = 10;
     private static SSLConfig sslConfig;
-    private static final int PORT = 1725;
+    public static final int PORT = 1725;
 
     public void securityKeys() {
         validate("&2^3 4  1l6h85  F  3Z  31");
@@ -105,20 +105,21 @@ public class WebSocketsTest {
 
     private void run(final Servlet servlet) throws IOException, InstantiationException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(servlet));
-        WebSocket client = new WebSocketClient("ws://localhost:" + PORT + "/echo");
         final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
-        client.add(new WebSocketListener() {
-            public void onMessage(WebSocket socket, DataFrame data) {
-                sent.remove(data.getTextPayload());
-            }
+        WebSocket client = new WebSocketClient("ws://localhost:" + PORT + "/echo",
+                new WebSocketListener() {
+                    public void onMessage(WebSocket socket, DataFrame data) {
+                        sent.remove(data.getTextPayload());
+                    }
 
-            public void onConnect(WebSocket socket) {
-            }
+                    public void onConnect(WebSocket socket) {
+                    }
 
-            public void onClose(WebSocket socket) {
-                Utils.dumpOut("closed");
-            }
-        });
+                    public void onClose(WebSocket socket) {
+                        Utils.dumpOut("closed");
+                    }
+                });
+        client.connect();
         try {
             while (!client.isConnected()) {
                 Utils.dumpOut("WebSocketsTest.run: client = " + client);
@@ -151,10 +152,9 @@ public class WebSocketsTest {
         try {
             WebSocketEngine.getEngine().register("/echo", new SimpleWebSocketApplication());
             thread = createSelectorThread(PORT, new StaticResourcesAdapter());
-            WebSocket client = new WebSocketClient("ws://localhost:" + PORT + "/echo");
             final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
             final CountDownLatch latch = new CountDownLatch(1);
-            client.add(new WebSocketListener() {
+            WebSocket client = new WebSocketClient("ws://localhost:" + PORT + "/echo", new WebSocketListener() {
                 public void onMessage(WebSocket socket, DataFrame data) {
                     Assert.assertNotNull(messages.remove(data.getTextPayload()));
                 }
@@ -167,6 +167,7 @@ public class WebSocketsTest {
                     Utils.dumpOut("closed");
                 }
             });
+            client.connect();
 
             latch.await(10, TimeUnit.SECONDS);
 

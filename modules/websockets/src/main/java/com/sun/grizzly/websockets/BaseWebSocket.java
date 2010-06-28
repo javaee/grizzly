@@ -122,11 +122,10 @@ public abstract class BaseWebSocket implements WebSocket {
 
 
     protected void doConnect() throws IOException {
-        connected = true;
-        onConnect();
     }
 
     public void onConnect() {
+        connected = true;
         for (WebSocketListener listener : listeners) {
             listener.onConnect(this);
         }

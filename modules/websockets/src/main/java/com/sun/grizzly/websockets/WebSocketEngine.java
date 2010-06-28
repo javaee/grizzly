@@ -75,7 +75,7 @@ public class WebSocketEngine {
         WebSocket socket = null;
         try {
             Request request = asyncExecutor.getProcessorTask().getRequest();
-            if ("WebSocket".equals(request.getHeader("Upgrade"))) {
+            if ("WebSocket".equalsIgnoreCase(request.getHeader("Upgrade"))) {
                 socket = getWebSocket(asyncExecutor, request);
             }
         } catch (IOException e) {
@@ -145,8 +145,22 @@ public class WebSocketEngine {
     private void handshake(Request request, Response response, ProcessorTask task) throws IOException {
         final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) ||
                 task.getSSLSupport() != null;
-        final ServerHandShake server = new ServerHandShake(new ClientHandShake(request, secure));
-        server.prepare(response);
+
+        final ClientHandShake clientHS = new ClientHandShake(request, secure);
+
+        final ServerHandShake server;
+        if (clientHS.getKey3() == null) {
+            server = new ServerHandShake(clientHS.isSecure(), clientHS.getOrigin(),
+                    clientHS.getServerHostName(), clientHS.getPort(), clientHS.getResourcePath(),
+                    clientHS.getSubProtocol());
+        } else {
+            server = new ServerHandShake(clientHS.isSecure(), clientHS.getOrigin(),
+                    clientHS.getServerHostName(), clientHS.getPort(),
+                    clientHS.getResourcePath(), clientHS.getSubProtocol(),
+                    clientHS.getKey1(), clientHS.getKey2(), clientHS.getKey3());
+        }
+
+        server.respond(response);
     }
 
     public void register(String name, WebSocketApplication app) {

@@ -40,16 +40,19 @@ import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 
 import java.io.IOException;
-import java.util.Map;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public abstract class WebSocketApplication implements WebSocketListener {
-    private final Map<WebSocket, Boolean> sockets =
-            new ConcurrentHashMap<WebSocket, Boolean>();
+public class WebSocketApplication implements WebSocketListener {
+    private final Set<WebSocket> sockets = new HashSet<WebSocket>();
 
-    private final Map<WebSocketListener, Boolean> listeners =
-            new ConcurrentHashMap<WebSocketListener, Boolean>();
+    private final Set<WebSocketListener> listeners = new HashSet<WebSocketListener>();
+
+    private final ReentrantReadWriteLock socketsLock = new ReentrantReadWriteLock();
+
+    private final ReentrantReadWriteLock listenersLock = new ReentrantReadWriteLock();
 
     /**
      * Returns a set of {@link WebSocket}s, registered with the application.
@@ -58,26 +61,65 @@ public abstract class WebSocketApplication implements WebSocketListener {
      * @return a set of {@link WebSocket}s, registered with the application.
      */
     protected Set<WebSocket> getWebSockets() {
-        return sockets.keySet();
+        socketsLock.readLock().lock();
+        try {
+            return Collections.unmodifiableSet(sockets);
+        } finally {
+            socketsLock.readLock().unlock();
+        }
     }
 
     public boolean add(WebSocket socket) {
-        return sockets.put(socket, Boolean.TRUE);
+        socketsLock.writeLock().lock();
+        try {
+            return sockets.add(socket);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e.getMessage(), e);
+        } finally {
+            socketsLock.writeLock().unlock();
+        }
     }
-    
+
     public boolean remove(WebSocket socket) {
-        return sockets.remove(socket);
+        socketsLock.writeLock().lock();
+        try {
+            return sockets.remove(socket);
+        } finally {
+            socketsLock.writeLock().unlock();
+        }
     }
-    
+
     public boolean add(WebSocketListener listener) {
-        return listeners.put(listener, Boolean.TRUE);
+        listenersLock.writeLock().lock();
+        try {
+            return listeners.add(listener);
+        } finally {
+            listenersLock.writeLock().unlock();
+        }
     }
-    
+
     public boolean remove(WebSocketListener listener) {
-        return listeners.remove(listener);
+        listenersLock.writeLock().lock();
+        try {
+            return listeners.remove(listener);
+        } finally {
+            listenersLock.writeLock().unlock();
+        }
     }
 
     public WebSocket createSocket(Request request, Response response) throws IOException {
         return new BaseServerWebSocket(this, request, response);
+    }
+
+    public void onClose(WebSocket socket) {
+        remove(socket);
+    }
+
+    public void onConnect(WebSocket socket) {
+        add(socket);
+    }
+
+    public void onMessage(WebSocket socket, DataFrame data) {
     }
 }
