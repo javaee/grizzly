@@ -50,30 +50,68 @@ import javax.net.ssl.SSLEngine;
  * @author Alexey Stashok
  */
 public class HttpRedirectFilter implements ProtocolFilter,
-        ConfigAwareElement<com.sun.grizzly.config.dom.ProtocolFilter> {
+        ConfigAwareElement<com.sun.grizzly.config.dom.HttpRedirect> {
 
-    private int redirectPort;
+    private Integer redirectPort;
+
+    // default to true to retain compatibility with legacy redirect declarations.
+    private boolean secure = true;
+
+
+    // --------------------------------------------- Methods from ProtocolFilter
+
 
     public boolean execute(Context ctx) throws IOException {
         final WorkerThread thread = (WorkerThread) Thread.currentThread();
         final SSLEngine sslEngine = thread.getSSLEngine();
 
         if (sslEngine != null) {
-            HttpRedirector.redirectSSL(ctx, sslEngine, thread.getByteBuffer(),
-                    thread.getOutputBB(), false);
+            HttpRedirector.redirectSSL(ctx,
+                                       sslEngine,
+                                       thread.getByteBuffer(),
+                                       thread.getOutputBB(),
+                                       redirectPort,
+                                       secure);
         } else {
-            HttpRedirector.redirect(ctx, thread.getByteBuffer(), true);
-            
+            HttpRedirector.redirect(ctx,
+                                    thread.getByteBuffer(),
+                                    redirectPort,
+                                    secure);
+
         }
 
         return true;
     }
+
 
     public boolean postExecute(Context ctx) throws IOException {
         ctx.setKeyRegistrationState(Context.KeyRegistrationState.CANCEL);
         return true;
     }
 
+
+    // ----------------------------------------- Methods from ConfigAwareElement
+
+
+    /**
+     * Configuration for &lt;http-redirect&gt;.
+     *
+     * @param configuration filter configuration
+     */
+    public void configure(com.sun.grizzly.config.dom.HttpRedirect configuration) {
+        int port = Integer.parseInt(configuration.getPort());
+        redirectPort = ((port != -1) ? port : null);
+        secure = Boolean.parseBoolean(configuration.getSecure());
+    }
+
+
+    /**
+     * Retained for backwards compatibility with legacy redirect declarations.
+     * @param configuration filter configuration
+     */
+    @SuppressWarnings({"UnusedDeclaration"})
     public void configure(com.sun.grizzly.config.dom.ProtocolFilter configuration) {
     }
+
+
 }

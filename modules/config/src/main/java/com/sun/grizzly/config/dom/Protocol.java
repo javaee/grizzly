@@ -58,6 +58,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Element
     Http getHttp();
 
+    @SuppressWarnings({"UnusedDeclaration"})
     void setHttp(Http value);
 
     /**
@@ -66,6 +67,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(required = true, key = true)
     String getName();
 
+    @SuppressWarnings({"UnusedDeclaration"})
     void setName(String value);
 
     /**
@@ -75,7 +77,17 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Element
     PortUnification getPortUnification();
 
+    @SuppressWarnings({"UnusedDeclaration"})
     void setPortUnification(PortUnification value);
+
+    /**
+     * Defines <code>http-redirect</code> logic.  
+     */
+    @Element
+    HttpRedirect getHttpRedirect();
+
+    @SuppressWarnings({"UnusedDeclaration"})
+    void setHttpRedirect(HttpRedirect value);
 
     /**
      * Protocol chain instance handler logic.
@@ -83,6 +95,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Element
     ProtocolChainInstanceHandler getProtocolChainInstanceHandler();
 
+    @SuppressWarnings({"UnusedDeclaration"})
     void setProtocolChainInstanceHandler(ProtocolChainInstanceHandler value);
 
     /**
@@ -92,6 +105,7 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Attribute(defaultValue = "false", dataType = Boolean.class)
     String getSecurityEnabled();
 
+    @SuppressWarnings({"UnusedDeclaration"})
     void setSecurityEnabled(String value);
 
     /**
@@ -100,11 +114,13 @@ public interface Protocol extends ConfigBeanProxy, Injectable, PropertyBag {
     @Element
     Ssl getSsl();
 
+    @SuppressWarnings({"UnusedDeclaration"})
     void setSsl(Ssl value);
 
     @DuckTyped
     List<NetworkListener> findNetworkListeners();
 
+    @SuppressWarnings({"UnusedDeclaration"})
     class Duck {
         static public List<NetworkListener> findNetworkListeners(Protocol protocol) {
             final List<NetworkListener> listeners = protocol.getParent().getParent(NetworkConfig.class)

@@ -157,12 +157,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         } catch (Exception t) {
             logger.log(Level.SEVERE, "Unable to stop properly", t);
             // Force the Selector(s) to be closed in case an unexpected
-            // exception occured during shutdown.
+            // exception occurred during shutdown.
             try {
                 if (selectorHandler != null && selectorHandler.getSelector() != null) {
                     selectorHandler.getSelector().close();
                 }
-            } catch (IOException ex) {
+            } catch (IOException ignored) {
             }
         }
     }
@@ -339,6 +339,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                 }
             }
             configurePortUnification();
+        } else if (protocol.getHttpRedirect() != null) {
+            HttpRedirectFilter filter = new HttpRedirectFilter();
+            filter.configure(protocol.getHttpRedirect());
+            ProtocolChain protocolChain = createProtocolChain(null);
+            protocolChain.addFilter(filter);
+            return createProtocolChainInstanceHandler(protocolChain);
         } else {
             com.sun.grizzly.config.dom.ProtocolChainInstanceHandler pcihConfig = protocol
                     .getProtocolChainInstanceHandler();
@@ -346,21 +352,9 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                 logger.log(Level.WARNING, "Empty protocol declaration");
                 return null;
             }
-            ProtocolChain protocolChain = null;
+
             com.sun.grizzly.config.dom.ProtocolChain protocolChainConfig = pcihConfig.getProtocolChain();
-            final String protocolChainClassname = protocolChainConfig.getClassname();
-            if (protocolChainClassname != null) {
-                try {
-                    protocolChain = (ProtocolChain) newInstance(protocolChainClassname);
-                    configureElement(protocolChain, protocolChainConfig);
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Can not initialize protocol chain: " +
-                            protocolChainClassname + ". Default one will be used", e);
-                }
-            }
-            if (protocolChain == null) {
-                protocolChain = new DefaultProtocolChain();
-            }
+            ProtocolChain protocolChain = createProtocolChain(protocolChainConfig);
             for (com.sun.grizzly.config.dom.ProtocolFilter protocolFilterConfig : protocolChainConfig
                     .getProtocolFilter()) {
                 String filterClassname = protocolFilterConfig.getClassname();
@@ -376,22 +370,13 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                 }
             }
             // Ignore ProtocolChainInstanceHandler class name configuration
-            final ProtocolChain finalProtocolChain = protocolChain;
-            return new DefaultProtocolChainInstanceHandler() {
-                @Override
-                public boolean offer(ProtocolChain protocolChain) {
-                    return true;
-                }
-
-                @Override
-                public ProtocolChain poll() {
-                    return finalProtocolChain;
-                }
-
-            };
+            return createProtocolChainInstanceHandler(protocolChain);
         }
         return null;
     }
+
+
+
 
     protected void configurePortUnification() {
         configurePortUnification(finders, handlers, preprocessors);
@@ -446,6 +431,52 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         }
         getAsyncHandler().addAsyncFilter(filter);
     }
+
+
+    /**
+     * @param protocolChainConfig <code>ProtocolChain</code> configuration data
+     * @return a new {@link ProtocolChain} based on the provided
+     *  <code>protocolChainConfig</code> data
+     */
+    private ProtocolChain createProtocolChain(com.sun.grizzly.config.dom.ProtocolChain protocolChainConfig) {
+        if (protocolChainConfig == null) {
+            return new DefaultProtocolChain();
+        }
+        ProtocolChain protocolChain = null;
+        final String protocolChainClassname = protocolChainConfig.getClassname();
+        if (protocolChainClassname != null) {
+            try {
+                protocolChain = (ProtocolChain) newInstance(protocolChainClassname);
+                configureElement(protocolChain, protocolChainConfig);
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Can not initialize protocol chain: " +
+                        protocolChainClassname + ". Default one will be used", e);
+            }
+        }
+        if (protocolChain == null) {
+            protocolChain = new DefaultProtocolChain();
+        }
+        return protocolChain;
+    }
+
+
+    private ProtocolChainInstanceHandler createProtocolChainInstanceHandler(final ProtocolChain protocolChain) {
+
+        return new DefaultProtocolChainInstanceHandler() {
+            @Override
+            public boolean offer(ProtocolChain protocolChain) {
+                return true;
+            }
+
+            @Override
+            public ProtocolChain poll() {
+                return protocolChain;
+            }
+
+        };
+
+    }
+    
 
     /**
      * Configure the Grizzly FileCache mechanism
@@ -585,9 +616,13 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
         return Utils.loadClass(classname);
     }
 
+    @SuppressWarnings({"unchecked"})
     private static void configureElement(Object instance,
             ConfigBeanProxy configuration) {
         if (instance instanceof ConfigAwareElement) {
+            if (configuration instanceof com.sun.grizzly.config.dom.ProtocolFilter) {
+                return;
+            }
             ((ConfigAwareElement) instance).configure(configuration);
         }
     }
