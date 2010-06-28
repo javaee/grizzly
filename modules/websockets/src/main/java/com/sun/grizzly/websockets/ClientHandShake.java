@@ -128,8 +128,10 @@ public class ClientHandShake extends HandShake {
     }
 
     public void validateServerResponse(final byte[] key) throws HandshakeException {
-        if (!Arrays.equals(SecKey.generateServerKey(key1, key2, key3), key)) {
-            throw new HandshakeException("Keys do not match");
+        final byte[] clientKey = SecKey.generateServerKey(key1, key2, key3);
+        if (!Arrays.equals(clientKey, key)) {
+            throw new HandshakeException(String.format("Security keys do not match: client '%s' vs. server '%s'",
+                    Arrays.toString(clientKey), Arrays.toString(key)));
         }
     }
 
@@ -140,8 +142,9 @@ public class ClientHandShake extends HandShake {
         chunk.write(String.format("Connection: Upgrade\r\n").getBytes());
         chunk.write(String.format("Upgrade: WebSocket\r\n").getBytes());
         chunk.write(String.format("%s: %s\r\n", WebSocketEngine.CLIENT_WS_ORIGIN_HEADER, getOrigin()).getBytes());
-        if(getSubProtocol() != null) {
-            chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER, getSubProtocol()).getBytes());
+        if (getSubProtocol() != null) {
+            chunk.write(
+                    String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_PROTOCOL_HEADER, getSubProtocol()).getBytes());
         }
         chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY1_HEADER, getKey1().getSecKey()).getBytes());
         chunk.write(String.format("%s: %s\r\n", WebSocketEngine.SEC_WS_KEY2_HEADER, getKey2().getSecKey()).getBytes());

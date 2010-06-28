@@ -57,7 +57,6 @@ public class LifecycleTest {
         final SelectorThread thread =
                 WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new ServletAdapter(servlet));
 
-        Thread.sleep(5000);
         try {
             Assert.assertEquals(app.getWebSockets().size(), 0, "There should be no clients connected");
             final CountDownLatch connect = new CountDownLatch(1);
@@ -80,6 +79,7 @@ public class LifecycleTest {
             Assert.assertEquals(app.getWebSockets().size(), 1, "There should be 1 client connected");
             client.close();
             close.await(10, TimeUnit.SECONDS);
+//            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
         } finally {
             thread.stopEndpoint();
         }

@@ -45,14 +45,14 @@ public class DataFrame {
     private static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
     private String payload;
     private byte[] bytes;
-    private FrameType type;
+    private FrameType type = FrameType.values()[0];
 
     public DataFrame(ByteBuffer buffer) throws IOException {
-        byte leading = buffer.get();
-        for (FrameType frameType : FrameType.values()) {
-            if (frameType.accept(leading)) {
-                type = frameType;
+        while(bytes == null && type != null) {
+            if (type.accept(buffer)) {
                 bytes = type.unframe(buffer);
+            } else {
+                type = type.next();
             }
         }
     }

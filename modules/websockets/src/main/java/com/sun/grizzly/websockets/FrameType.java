@@ -38,15 +38,18 @@ package com.sun.grizzly.websockets;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
-import java.util.logging.Level;
 
 public enum FrameType {
     TEXT {
         @Override
-        public boolean accept(byte delim) {
-            return delim == (byte) 0x00;
+        public boolean accept(ByteBuffer buffer) {
+            int curPosition = buffer.position();
+            boolean acceptable = buffer.get() == (byte) 0x00;
+            if (!acceptable) {
+                buffer.position(curPosition);
+            }
+            return acceptable;
         }
 
         @Override
@@ -76,21 +79,33 @@ public enum FrameType {
 
     CLOSING {
         @Override
-        public boolean accept(byte delim) {
-            return false;
+        public boolean accept(ByteBuffer buffer) {
+            int curPosition = buffer.position();
+            boolean acceptable = buffer.get() == (byte) 0xFF && buffer.get() == (byte) 0x00;
+            if (!acceptable) {
+                buffer.position(curPosition);
+            }
+            return acceptable;
         }
+
         @Override
         public byte[] unframe(ByteBuffer buffer) throws IOException {
             return new byte[0];
         }
+
         @Override
         public byte[] frame(byte[] data) {
-            return new byte[0];
+            return new byte[]{(byte) 0xFF, 0x00};
         }};
 
-    public abstract boolean accept(byte delim);
+    public abstract boolean accept(ByteBuffer buffer);
 
     public abstract byte[] unframe(ByteBuffer buffer) throws IOException;
 
     public abstract byte[] frame(byte[] data);
+
+    public FrameType next() {
+        final FrameType[] types = FrameType.values();
+        return ordinal() < types.length ? types[ordinal() + 1] : null;
+    }
 }
