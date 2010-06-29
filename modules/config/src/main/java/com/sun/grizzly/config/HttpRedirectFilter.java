@@ -71,12 +71,12 @@ public class HttpRedirectFilter implements ProtocolFilter,
                                        thread.getByteBuffer(),
                                        thread.getOutputBB(),
                                        redirectPort,
-                                       secure);
+                                       ((redirectPort != null) && secure));
         } else {
             HttpRedirector.redirect(ctx,
                                     thread.getByteBuffer(),
                                     redirectPort,
-                                    secure);
+                                    ((redirectPort != null) || secure));
 
         }
 

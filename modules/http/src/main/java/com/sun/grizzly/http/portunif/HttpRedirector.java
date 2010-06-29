@@ -287,12 +287,12 @@ public class HttpRedirector {
         boolean portSpecified =  (redirectPort != null);
         String host = parseHost(byteBuffer, !portSpecified);
 
-        if (host == null){
+        if (host == null) {
             Socket s = ((SocketChannel) context.getSelectionKey().channel()).socket();
             InetAddress address = s.getLocalAddress();
             // potential perf issue here....
             host = address.getHostName();
-            host += ((portSpecified) ? redirectPort : s.getLocalPort());
+            host += ':' + Integer.toString(((portSpecified) ? redirectPort : s.getLocalPort()));
         } else {
             if (portSpecified) {
                 host = host + ':' + Integer.toString(redirectPort);
