@@ -39,7 +39,8 @@
 package com.sun.grizzly.config;
 
 /**
- * Marker for {@link Adapter} that support the {@link FileCache}
+ * Marker for {@link com.sun.grizzly.tcp.Adapter} that support the
+ * {@link com.sun.grizzly.http.FileCache}
  * 
  * @author jeanfrancois Arcand
  */
