@@ -148,17 +148,17 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
         Buffer remainder = null;
         if (contentAvailable > thisPacketRemaining) {
             // If input Buffer has part of the next message - slice it
-            remainder = input.slice(
-                    (int) (chunkContentStart + thisPacketRemaining),
-                    input.limit());
+            remainder = input.split(
+                    (int) (chunkContentStart + thisPacketRemaining));
             input.position(chunkContentStart);
-            input.limit((int) (chunkContentStart + thisPacketRemaining));
+//            input.limit((int) (chunkContentStart + thisPacketRemaining));
         } else if (chunkContentStart > 0) {
             input.position(chunkContentStart);
         }
 
+        input.shrink();
         // recalc the HTTP chunk remaining content
-        contentParsingState.chunkRemainder -= (input.limit() - chunkContentStart);
+        contentParsingState.chunkRemainder -= input.remaining();
 
         if (isLastChunk) {
             // Build last chunk content message

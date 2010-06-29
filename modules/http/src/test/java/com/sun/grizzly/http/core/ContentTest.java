@@ -61,6 +61,8 @@ import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.utils.ChunkingFilter;
 import java.io.IOException;
 import java.net.SocketAddress;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import junit.framework.TestCase;
@@ -143,6 +145,16 @@ public class ContentTest extends TestCase {
             FilterChain clientFilterChain = clientFilterChainBuilder.build();
             connection.setProcessor(clientFilterChain);
 
+            final HttpHeader patternHeader = patternContentMessages[0].getHttpHeader();
+
+            byte[] patternContent = new byte[0];
+            for(int i = 0; i<patternContentMessages.length; i++) {
+                int oldLen = patternContent.length;
+                final ByteBuffer bb = patternContentMessages[i].getContent().toByteBuffer().duplicate();
+                patternContent = Arrays.copyOf(patternContent, oldLen + bb.remaining());
+                bb.get(patternContent, oldLen, bb.remaining());
+            }
+
             for (HttpContent content : patternContentMessages) {
                 Future<WriteResult<HttpContent, SocketAddress>> writeFuture = connection.write(content);
                 writeFuture.get(10, TimeUnit.SECONDS);
@@ -151,16 +163,12 @@ public class ContentTest extends TestCase {
             HttpContent result = (HttpContent) parseResult.get(10, TimeUnit.SECONDS);
             HttpHeader resultHeader = result.getHttpHeader();
 
-            HttpContent mergedPatternContent = patternContentMessages[0];
-            for(int i=1; i<patternContentMessages.length; i++) {
-                mergedPatternContent = mergedPatternContent.append(patternContentMessages[i]);
-            }
-            
-            HttpHeader patternHeader = mergedPatternContent.getHttpHeader();
-            
             assertEquals(patternHeader.getContentLength(), resultHeader.getContentLength());
             assertEquals(patternHeader.isChunked(), resultHeader.isChunked());
-            assertEquals(mergedPatternContent.getContent(), result.getContent());
+
+            byte[] resultContent = new byte[result.getContent().remaining()];
+            result.getContent().get(resultContent);
+            assertTrue(Arrays.equals(patternContent, resultContent));
             
         } finally {
             if (connection != null) {

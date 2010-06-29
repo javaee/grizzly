@@ -131,7 +131,7 @@ public class GZipContentEncoding implements ContentEncoding {
             input.tryDispose();
             remainder = null;
         } else {
-            input.disposeUnused();
+            input.shrink();
         }
 
         try {
