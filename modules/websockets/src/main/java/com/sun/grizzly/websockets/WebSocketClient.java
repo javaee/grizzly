@@ -160,7 +160,7 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
                 try {
                     clientHS.validateServerResponse(serverKey);
                 } catch (HandshakeException e) {
-                    throw new IOException(e.getMessage(), e);
+                    throw new IOException(e.getMessage());
                 }
                 state = State.READY;
                 setConnected(true);
@@ -194,7 +194,11 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
             }
             last = next;
         }
-        return Arrays.copyOf(line.getBuffer(), line.getEnd());
+
+        final byte[] result = new byte[line.getEnd()];
+        System.arraycopy(line.getBuffer(), 0, result, 0, result.length);
+        
+        return result;
     }
 
     protected void unframe() throws IOException {
