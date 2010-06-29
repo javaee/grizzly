@@ -38,14 +38,12 @@
  * permission notice:
  */
 
-package com.sun.grizzly.http.server.embed;
+package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.http.server.Constants;
-import com.sun.grizzly.http.server.WebServerFilter;
 import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
 import com.sun.grizzly.http.server.adapter.GrizzlyAdapterChain;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
@@ -61,9 +59,14 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
+import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import com.sun.grizzly.utils.ChunkingFilter;
 import com.sun.grizzly.utils.IdleTimeoutFilter;
 import com.sun.grizzly.util.http.mapper.Mapper;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 
 
 /**
@@ -317,13 +320,13 @@ public class GrizzlyWebServer {
     /**
      * The TCPNIOTransport implementation used by this server instance.
      */
-    private TCPNIOTransport transport;
+    private final TCPNIOTransport transport;
 
 
     /**
      * Configuration details for this server instance.
      */
-    private final ServerConfiguration configuration = new ServerConfiguration();
+    private final ServerConfiguration serverConfig = new ServerConfiguration();
 
 
     /**
@@ -337,6 +340,16 @@ public class GrizzlyWebServer {
      */
     private boolean started;
 
+    /**
+     * GrizzlyAdapter, which processes HTTP requests
+     */
+    private volatile GrizzlyAdapter adapter;
+
+    private volatile ScheduledExecutorService scheduledExecutorService;
+
+    public GrizzlyWebServer() {
+        transport = TransportFactory.getInstance().createTCPTransport();
+    }
 
     // ---------------------------------------------------------- Public Methods
 
@@ -349,27 +362,21 @@ public class GrizzlyWebServer {
     }
 
     /**
-     * @param transport {@link GrizzlyWebServer} underlying {@link TCPNIOTransport}
-     */
-    public void setTransport(TCPNIOTransport transport) {
-        this.transport = transport;
-    }
-
-
-    /**
      * @return the {@link ServerConfiguration} used to configure this
      *  {@link GrizzlyWebServer} instance
      */
-    public ServerConfiguration getServerConfiguration() {
-        return configuration;
+    public final ServerConfiguration getServerConfiguration() {
+        return serverConfig;
     }
 
 
-    public ListenerConfiguration getListenerConfiguration() {
+    public final ListenerConfiguration getListenerConfiguration() {
         return listenerConfig;
     }
 
-
+    ScheduledExecutorService getScheduledExecutorService() {
+        return scheduledExecutorService;
+    }
 
     /**
      * Start the GrizzlyWebServer and start listening for http requests. Calling 
@@ -377,32 +384,24 @@ public class GrizzlyWebServer {
      *
      * @throws java.io.IOException
      */
-    public void start() throws IOException{
+    public synchronized void start() throws IOException{
 
         if (started) {
             return;
         }
         started = true;
 
-        TCPNIOTransport trans = getTransport();
-        ServerConfiguration serverConfig = getServerConfiguration();
-        // TODO: Should we assume a full configured transport if explicitly set?
-        if (trans == null) {
-            ListenerConfiguration listenerConf = getListenerConfiguration();
-            trans = buildListener(listenerConf, serverConfig);
-            setTransport(trans);
-            trans.bind(listenerConf.getHost(), listenerConf.getPort());
-        }
-        trans.start();
-        
-        GrizzlyAdapter adapter = serverConfig.getAdapter();
-        if (adapter != null) {
-            adapter.start();
-        }
+        configureScheduledThreadPool();
 
+        configure();
+
+        transport.bind(listenerConfig.getHost(), listenerConfig.getPort());
+        transport.start();
     }
 
-
+    public GrizzlyAdapter getAdapter() {
+        return adapter;
+    }
 
     /**
      * Enable JMX Management by configuring the {@link Management}
@@ -438,18 +437,21 @@ public class GrizzlyWebServer {
     /**
      * Stop the GrizzlyWebServer.
      */ 
-    public void stop() {
+    public synchronized void stop() {
 
         if (!started) {
             return;
         }
         started = false;
+        
         try {
-            GrizzlyAdapter adapter = getServerConfiguration().getAdapter();
             if (adapter != null) {
                 adapter.destroy();
+                adapter = null;
             }
-            getTransport().stop();
+
+            stopScheduledThreadPool();
+            transport.stop();
             TransportFactory.getInstance().close();
         } catch (Exception e) {
             Logger.getLogger(GrizzlyWebServer.class.getName()).log(
@@ -494,19 +496,20 @@ public class GrizzlyWebServer {
     // --------------------------------------------------------- Private Methods
 
 
-    private TCPNIOTransport buildListener(ListenerConfiguration config,
-                                          ServerConfiguration serverConfig) {
+    private void configure() {
+        adapter = serverConfig.buildAdapter();
+        if (adapter != null) {
+            adapter.start();
+        }
 
-        TCPNIOTransport trans = TransportFactory.getInstance().createTCPTransport();
-        FilterChain chain = config.getFilterChain();
+        FilterChain chain = listenerConfig.getFilterChain();
         if (chain == null) {
             FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
-            builder.add(new ChunkingFilter(1024));
-            builder.add(new IdleTimeoutFilter(config.getKeepAliveTimeoutInSeconds(),
+            builder.add(new IdleTimeoutFilter(listenerConfig.getKeepAliveTimeoutInSeconds(),
                                              TimeUnit.SECONDS));
-            if (config.isSecure()) {
-                SSLEngineConfigurator sslConfig = config.getSslEngineConfig();
+            if (listenerConfig.isSecure()) {
+                SSLEngineConfigurator sslConfig = listenerConfig.getSslEngineConfig();
                 if (sslConfig == null) {
                     sslConfig =
                           new SSLEngineConfigurator(
@@ -514,22 +517,47 @@ public class GrizzlyWebServer {
                                 false,
                                 false,
                                 false);
-                    config.setSSLEngineConfig(sslConfig);
+                    listenerConfig.setSSLEngineConfig(sslConfig);
                 }
                 builder.add(new SSLFilter(sslConfig, null));
             }
-            int maxHeaderSize = ((config.getMaxHttpHeaderSize() == -1)
+            int maxHeaderSize = ((listenerConfig.getMaxHttpHeaderSize() == -1)
                                  ? HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
-                                 : config.getMaxHttpHeaderSize());
+                                 : listenerConfig.getMaxHttpHeaderSize());
             builder.add(new HttpServerFilter(maxHeaderSize));
-            builder.add(new WebServerFilter(serverConfig));
+            builder.add(new WebServerFilter(this));
             chain = builder.build();
-            config.setFilterChain(chain);
-            trans.setProcessor(chain);
+            listenerConfig.setFilterChain(chain);
+            transport.setProcessor(chain);
         }
+    }
 
-        return trans;
-        
+    private void configureScheduledThreadPool() {
+        final String hostPort = listenerConfig.getHost() + ":" + listenerConfig.getPort();
+        final AtomicInteger threadCounter = new AtomicInteger();
+
+        scheduledExecutorService = Executors.newScheduledThreadPool(1,
+                new ThreadFactory() {
+
+            @Override
+            public Thread newThread(Runnable r) {
+                final Thread newThread = new DefaultWorkerThread(
+                        transport.getAttributeBuilder(),
+                        "GrizzlyWebServer-(" + hostPort + ")-" + threadCounter.getAndIncrement(),
+                        r);
+                newThread.setDaemon(true);
+                return newThread;
+            }
+        });
+    }
+
+    private void stopScheduledThreadPool() {
+        final ScheduledExecutorService localThreadPool = scheduledExecutorService;
+        scheduledExecutorService = null;
+
+        if (localThreadPool != null) {
+            localThreadPool.shutdownNow();
+        }
     }
 
 
@@ -543,6 +571,15 @@ public class GrizzlyWebServer {
 
         /**
          * <p>
+         * The network host to which the <code>GrizzlyWebServer<code> will
+         * bind to in order to service <code>HTTP</code> requests.  The host
+         * name is {@value #DEFAULT_NETWORK_HOST}
+         */
+        public static final String DEFAULT_NETWORK_HOST = "0.0.0.0";
+
+
+        /**
+         * <p>
          * The network port to which the <code>GrizzlyWebServer<code> will
          * bind to in order to service <code>HTTP</code> requests.  The network port
          * number is {@value #DEFAULT_NETWORK_PORT}.
@@ -551,13 +588,10 @@ public class GrizzlyWebServer {
         public static final int DEFAULT_NETWORK_PORT = 8080;
 
 
-        /**
-         * <p>
-         * The network host to which the <code>GrizzlyWebServer<code> will
-         * bind to in order to service <code>HTTP</code> requests.  The host
-         * name is {@value #DEFAULT_NETWORK_HOST}
+        /*
+         * The network interface address/host name to bind to.
          */
-        public static final String DEFAULT_NETWORK_HOST = "0.0.0.0";
+        private String host = DEFAULT_NETWORK_HOST;
 
 
         /*
@@ -577,12 +611,6 @@ public class GrizzlyWebServer {
          * The configuration for this server instance's SSL support.
          */
         private SSLEngineConfigurator sslEngineConfig;
-
-
-        /*
-         * The network interface address/host name to bind to.
-         */
-        private String host = DEFAULT_NETWORK_HOST;
 
 
         /*
@@ -704,8 +732,8 @@ public class GrizzlyWebServer {
         // Non-exposed
 
         private Map<GrizzlyAdapter, String[]> adapters = new LinkedHashMap<GrizzlyAdapter, String[]>();
-        private GrizzlyAdapterChain adapterChain;
 
+        private static final String[] ROOT_MAPPING = {"/"};
 
         // ------------------------------------------------------------ Constructors
 
@@ -744,18 +772,12 @@ public class GrizzlyWebServer {
          * @param mapping        An array contains the context path mapping information.
          */
         public void addGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter,
-                                      String[] mapping) {
-
-            adapters.put(grizzlyAdapter, mapping);
-            if (adapters.size() > 1) {
-                adapterChain = new GrizzlyAdapterChain();
-                adapterChain.setHandleStaticResources(false);
-                for (Map.Entry<GrizzlyAdapter,String[]> e : adapters.entrySet()) {
-                    adapterChain.addGrizzlyAdapter(e.getKey(), e.getValue());
-                }
-                adapters.put(grizzlyAdapter, mapping);
+                                      String... mapping) {
+            if (mapping == null) {
+                mapping = ROOT_MAPPING;
             }
 
+            adapters.put(grizzlyAdapter, mapping);
         }
 
         /**
@@ -764,12 +786,7 @@ public class GrizzlyWebServer {
          * return <tt>true</tt>, if the operation was successful.
          */
         public boolean removeGrizzlyAdapter(GrizzlyAdapter grizzlyAdapter) {
-
-            if (adapters.size() > 1) {
-                adapterChain.removeAdapter(grizzlyAdapter);
-            }
             return (adapters.remove(grizzlyAdapter) != null);
-
         }
 
 
@@ -777,20 +794,30 @@ public class GrizzlyWebServer {
          * TODO Docs
          * @return
          */
-        public GrizzlyAdapter getAdapter() {
+        protected GrizzlyAdapter buildAdapter() {
 
-            if (adapters.size() == 1) {
+            if (adapters.isEmpty()) {
+                final GrizzlyAdapter ga = new GrizzlyAdapter(webResourcesPath);
+                ga.setHandleStaticResources(true);
+                return ga;
+            }
+
+            final int adaptersNum = adapters.size();
+
+            if (adaptersNum == 1) {
                 GrizzlyAdapter adapter = adapters.keySet().iterator().next();
                 adapter.setRootFolder(webResourcesPath);
                 return adapter;
             }
-            if (adapterChain == null) {
-                adapterChain = new GrizzlyAdapterChain();
-                adapterChain.setHandleStaticResources(true);
-                adapterChain.setRootFolder(webResourcesPath);
-            }
-            return adapterChain;
 
+            GrizzlyAdapterChain adapterChain = new GrizzlyAdapterChain();
+            adapterChain.setRootFolder(webResourcesPath);
+
+            for (Map.Entry<GrizzlyAdapter, String[]> adapterRecord : adapters.entrySet()) {
+                adapterChain.addGrizzlyAdapter(adapterRecord.getKey(), adapterRecord.getValue());
+            }
+            
+            return adapterChain;
         }
 
     } // END ServerConfiguration

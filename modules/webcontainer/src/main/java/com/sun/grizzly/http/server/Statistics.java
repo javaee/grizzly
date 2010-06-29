@@ -21,7 +21,7 @@
  * Copyright 2007 Sun Microsystems, Inc. All rights reserved.
  */
 
-package com.sun.grizzly.http.server.embed;
+package com.sun.grizzly.http.server;
 
 //import com.sun.grizzly.http.KeepAliveStats;
 //import com.sun.grizzly.http.ThreadPoolStatistic;

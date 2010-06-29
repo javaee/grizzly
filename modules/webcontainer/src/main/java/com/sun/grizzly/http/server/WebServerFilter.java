@@ -42,13 +42,13 @@ import com.sun.grizzly.filterchain.BaseFilter;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
 import com.sun.grizzly.http.HttpContent;
+import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.server.adapter.Adapter;
+import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
 
 import java.io.IOException;
-
-import static com.sun.grizzly.http.server.embed.GrizzlyWebServer.ServerConfiguration;
+import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * TODO:
@@ -58,7 +58,8 @@ import static com.sun.grizzly.http.server.embed.GrizzlyWebServer.ServerConfigura
  */
 public class WebServerFilter extends BaseFilter {
 
-    private final ServerConfiguration config;
+    private final ScheduledExecutorService scheduledExecutorService;
+    private final GrizzlyAdapter adapter;
 
 
     private KeepAliveStats keepAliveStats = null;
@@ -71,44 +72,63 @@ public class WebServerFilter extends BaseFilter {
     // ------------------------------------------------------------ Constructors
 
 
-    public WebServerFilter(ServerConfiguration config) {
-
-        this.config = config;
-
+    public WebServerFilter(GrizzlyWebServer webServer) {
+        adapter = webServer.getAdapter();
+        scheduledExecutorService = webServer.getScheduledExecutorService();
     }
 
 
     // ----------------------------------------------------- Methods from Filter
 
 
-    @Override public NextAction handleRead(FilterChainContext ctx)
+    @Override
+    public NextAction handleRead(FilterChainContext ctx)
           throws IOException {
 
-        // Otherwise cast message to a HttpContent
-        final HttpContent httpContent = (HttpContent) ctx.getMessage();
+        final Object message = ctx.getMessage();
 
-        HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
-        HttpResponsePacket response = request.getResponse();
-        // TODO we should cache these
-        GrizzlyRequest req = GrizzlyRequest.create();
-        req.initialize(request, ctx);
-        GrizzlyResponse res = GrizzlyResponse.create();
-        res.initialize(req, response, ctx);
-        Adapter adapter = config.getAdapter();
+        if (message instanceof HttpPacket) {
+            // Otherwise cast message to a HttpContent
+            final HttpContent httpContent = (HttpContent) message;
 
-        try {
-            adapter.service(req, res);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            res.finishResponse();
-            req.recycle();
-            res.recycle();
+            HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
+            HttpResponsePacket response = request.getResponse();
+            // TODO we should cache these
+            final GrizzlyRequest grizzlyRequest = GrizzlyRequest.create();
+            grizzlyRequest.initialize(request, ctx);
+            final GrizzlyResponse grizzlyResponse = GrizzlyResponse.create();
+            final SuspendStatus suspendStatus = new SuspendStatus();
+
+            grizzlyResponse.initialize(grizzlyRequest, response, ctx,
+                    scheduledExecutorService, suspendStatus);
+
+            try {
+                ctx.setMessage(grizzlyResponse);
+                adapter.service(grizzlyRequest, grizzlyResponse);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            } finally {
+                if (!suspendStatus.get()) {
+                    afterService(grizzlyRequest, grizzlyResponse);
+                } else {
+                    return ctx.getSuspendAction();
+                }
+            }
+        } else {
+            final GrizzlyResponse grizzlyResponse = (GrizzlyResponse) message;
+            final GrizzlyRequest grizzlyRequest = grizzlyResponse.getRequest();
+            afterService(grizzlyRequest, grizzlyResponse);
         }
 
 
         return ctx.getStopAction();
+    }
 
+    private void afterService(GrizzlyRequest grizzlyRequest,
+            final GrizzlyResponse grizzlyResponse) throws IOException {
+        grizzlyResponse.finish();
+        grizzlyRequest.recycle();
+        grizzlyResponse.recycle();
     }
 
 }

@@ -54,6 +54,8 @@
 
 package com.sun.grizzly.http.server;
 
+import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpResponsePacket;
@@ -69,8 +71,6 @@ import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.http.util.ServerCookie;
 import com.sun.grizzly.http.util.StringManager;
 import com.sun.grizzly.http.util.UEncoder;
-import com.sun.grizzly.tcp.CompletionHandler;
-import com.sun.grizzly.tcp.ResponseFilter;
 import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.tcp.http11.GrizzlySession;
 import com.sun.grizzly.util.LoggerUtils;
@@ -90,6 +90,10 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Vector;
+import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 /**
@@ -100,7 +104,7 @@ import java.util.logging.Level;
  * @version $Revision: 1.2 $ $Date: 2006/11/02 20:01:44 $
  */
 
-public class GrizzlyResponse<A> {
+public class GrizzlyResponse {
 
     private static final ThreadCache.CachedTypeIndex<GrizzlyResponse> CACHE_IDX =
             ThreadCache.obtainIndex(GrizzlyResponse.class, 2);
@@ -119,7 +123,7 @@ public class GrizzlyResponse<A> {
     // ----------------------------------------------------------- Constructors
 
     protected GrizzlyResponse() {
-        this(false,false);
+        this(false, false);
     }
 
 
@@ -169,39 +173,15 @@ public class GrizzlyResponse<A> {
     protected GrizzlyRequest request = null;
 
 
-    protected FilterChainContext ctx;
-
-
-    public void initialize(GrizzlyRequest request,
-                           HttpResponsePacket response,
-                           FilterChainContext ctx) {
-        this.request = request;
-        this.response = response;
-        outputBuffer = new OutputBuffer();
-        outputBuffer.initialize(response, ctx);
-        this.ctx = ctx;
-    }
-
-    /**
-     * Return the Request with which this Response is associated.
-     */
-    public GrizzlyRequest getRequest() {
-        return (this.request);
-    }
-
-
     /**
      * Coyote response.
      */
     protected HttpResponsePacket response;
 
-
     /**
-     * Get the Coyote response.
+     * Grizzly {@link FilterChain} context, related to this HTTP request/response
      */
-    public HttpResponsePacket getResponse() {
-        return (response);
-    }
+    protected FilterChainContext ctx;
 
 
     /**
@@ -289,7 +269,43 @@ public class GrizzlyResponse<A> {
     protected MessageBytes redirectURLCC = new MessageBytes();
 
 
+    protected ScheduledExecutorService scheduledExecutorService;
+    protected boolean isSuspended;
+    private final SuspendedRunnable suspendedRunnable = new SuspendedRunnable();
+    private final Object suspendSync = new Object();
+
+    private SuspendStatus suspendStatus;
+    
     // --------------------------------------------------------- Public Methods
+
+    public void initialize(GrizzlyRequest request,
+                           HttpResponsePacket response,
+                           FilterChainContext ctx,
+                           ScheduledExecutorService scheduledExecutorService,
+                           SuspendStatus suspendStatus) {
+        this.request = request;
+        this.response = response;
+        outputBuffer = new OutputBuffer();
+        outputBuffer.initialize(response, ctx);
+        this.ctx = ctx;
+        this.scheduledExecutorService = scheduledExecutorService;
+        this.suspendStatus = suspendStatus;
+    }
+
+    /**
+     * Return the Request with which this Response is associated.
+     */
+    public GrizzlyRequest getRequest() {
+        return (this.request);
+    }
+
+
+    /**
+     * Get the Coyote response.
+     */
+    public HttpResponsePacket getResponse() {
+        return (response);
+    }
 
 
     /**
@@ -297,7 +313,9 @@ public class GrizzlyResponse<A> {
      * preparation for reuse of this object.
      */
     public void recycle() {
-
+        suspendStatus = null;
+        scheduledExecutorService = null;
+        suspendedRunnable.reset();
         outputBuffer.recycle();
         usingOutputStream = false;
         usingWriter = false;
@@ -311,7 +329,7 @@ public class GrizzlyResponse<A> {
         response.recycle();
         response = null;
         ctx = null;
-
+        isSuspended = false;
         cookies.clear();
 
         /*
@@ -518,17 +536,6 @@ public class GrizzlyResponse<A> {
 
 
     /**
-     * Set the suspended flag.
-     *
-     * @param suspended The new suspended flag value
-     */
-    public void setSuspended(boolean suspended) {
-        // TODO re-enable
-        //outputBuffer.setSuspended(suspended);
-    }
-
-
-    /**
      * Suspended flag accessor.
      */
     public boolean isBufferSuspended() {
@@ -598,7 +605,7 @@ public class GrizzlyResponse<A> {
      *
      * @exception java.io.IOException if an input/output error occurs
      */
-    public void finishResponse()
+    public void finish()
         throws IOException {
         // Writing leftover bytes
         try {
@@ -1147,6 +1154,7 @@ public class GrizzlyResponse<A> {
         //from the appendCookieValue invokation
         if (System.getSecurityManager() != null) {
             AccessController.doPrivileged(new PrivilegedAction() {
+                @Override
                 public Object run(){
                     ServerCookie.appendCookieValue
                         (sb, cookie.getVersion(), cookie.getName(),
@@ -1317,7 +1325,7 @@ public class GrizzlyResponse<A> {
         resetBuffer();
 
         // Cause the response to be finished (from the application perspective)
-        setSuspended(true);
+//        setSuspended(true);
 
     }
 
@@ -1387,7 +1395,7 @@ public class GrizzlyResponse<A> {
         }
 
         // Cause the response to be finished (from the application perspective)
-        setSuspended(true);
+//        setSuspended(true);
 
     }
 
@@ -1542,6 +1550,7 @@ public class GrizzlyResponse<A> {
                         try{
                             encodedURI = (String)AccessController.doPrivileged(
                                 new PrivilegedExceptionAction(){
+                                @Override
                                     public Object run() throws IOException{
                                         return urlEncoder.encodeURL(frelativePath);
                                     }
@@ -1710,31 +1719,6 @@ public class GrizzlyResponse<A> {
         return true;
     }
 
-
-    /**
-     * Complete the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
-     * {@link com.sun.grizzly.tcp.CompletionHandler} has been defined, its {@link com.sun.grizzly.tcp.CompletionHandler#resumed(A)}
-     * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finishResponse()}.
-     * Those operations commit the response.
-     */
-    public void resume(){
-        checkResponse();
-        // TODO re-enable
-        //response.resume();
-    }
-
-    /**
-     * Cancel the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
-     * {@link com.sun.grizzly.tcp.CompletionHandler} has been defined, its {@link com.sun.grizzly.tcp.CompletionHandler#cancelled(A)}
-     * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finishResponse()}.
-     * Those operations commit the response.
-     */
-    public void cancel(){
-        checkResponse();
-        // TODO re-enable
-        //response.cancel();
-    }
-
     /**
      * Return <tt>true<//tt> if that {@link com.sun.grizzly.http.server.GrizzlyResponse#suspend()} has been
      * invoked and set to <tt>true</tt>
@@ -1743,9 +1727,10 @@ public class GrizzlyResponse<A> {
      */
     public boolean isSuspended(){
         checkResponse();
-        // TODO re-enable
-        //return response.isSuspended();
-        return false;
+        
+        synchronized(suspendSync) {
+            return isSuspended;
+        }
     }
 
     /**
@@ -1754,7 +1739,7 @@ public class GrizzlyResponse<A> {
      * the current instance, and also to avoid commiting response.
      */
     public void suspend(){
-        suspend(Long.MAX_VALUE);
+        suspend(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -1770,8 +1755,8 @@ public class GrizzlyResponse<A> {
      * times out will throw an {@link IllegalStateException}.
      *
      */
-    public void suspend(long timeout){
-        suspend(timeout,null,null);
+    public void suspend(long timeout, TimeUnit timeunit){
+        suspend(timeout, timeunit, null);
     }
 
     /**
@@ -1793,33 +1778,135 @@ public class GrizzlyResponse<A> {
      * or {@link com.sun.grizzly.http.server.GrizzlyResponse#cancel()}), the {@link com.sun.grizzly.http.server.GrizzlyResponse} will be automatically
      * resumed and commited. Usage of any methods of a {@link com.sun.grizzly.tcp.Response} that
      * times out will throw an {@link IllegalStateException}.
-     * @param attachment Any Object that will be passed back to the {@link com.sun.grizzly.tcp.CompletionHandler}
-     * @param competionHandler a {@link com.sun.grizzly.tcp.CompletionHandler}
+     * @param competionHandler a {@link com.sun.grizzly.CompletionHandler}
      */
-    public void suspend(long timeout,A attachment, CompletionHandler<? super A> competionHandler){
-        // TODO deal with this code path
-    //    checkResponse();
-    //    response.suspend(timeout, attachment, competionHandler,
-    //            new GrizzlySuspendedResponse(timeout, attachment, competionHandler, this));
+    public void suspend(long timeout, TimeUnit timeunit, CompletionHandler competionHandler){
+        checkResponse();
+
+        synchronized(suspendSync) {
+            if (isSuspended) {
+                throw new IllegalStateException("Already Suspended");
+            }
+
+            suspendedRunnable.completionHandler = competionHandler;
+
+            final ScheduledFuture scheduledFuture = scheduledExecutorService.schedule(
+                    suspendedRunnable, timeout, timeunit);
+            suspendedRunnable.scheduledFuture = scheduledFuture;
+
+            ctx.getConnection().addCloseListener(suspendedRunnable);
+            
+            suspendStatus.set();
+            
+            isSuspended = true;
+        }
     }
 
+    /**
+     * Complete the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
+     * {@link com.sun.grizzly.tcp.CompletionHandler} has been defined, its {@link com.sun.grizzly.tcp.CompletionHandler#resumed(A)}
+     * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
+     * Those operations commit the response.
+     */
+    public void resume(){
+        checkResponse();
+        synchronized(suspendSync) {
+            if (!isSuspended || suspendedRunnable.isResuming) {
+                throw new IllegalStateException("Not Suspended");
+            }
 
+            ctx.getConnection().removeCloseListener(suspendedRunnable);
+
+            final Future future = suspendedRunnable.scheduledFuture;
+            final CompletionHandler completionHandler = suspendedRunnable.completionHandler;
+            suspendedRunnable.isResuming = true;
+
+            if (future != null) {
+                future.cancel(false);
+            }
+
+            if (completionHandler != null) {
+                completionHandler.completed(this);
+            }
+
+            suspendedRunnable.reset();
+
+            isSuspended = false;
+
+            ctx.resume();
+        }
+    }
+
+    /**
+     * Cancel the {@link com.sun.grizzly.http.server.GrizzlyResponse} and finish/commit it. If a
+     * {@link com.sun.grizzly.tcp.CompletionHandler} has been defined, its {@link com.sun.grizzly.tcp.CompletionHandler#cancelled(A)}
+     * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
+     * Those operations commit the response.
+     */
+    public void cancel() {
+        checkResponse();
+
+        synchronized (suspendSync) {
+            if (!isSuspended || suspendedRunnable.isResuming) {
+                throw new IllegalStateException("Not Suspended");
+            }
+
+            ctx.getConnection().removeCloseListener(suspendedRunnable);
+
+            final Future future = suspendedRunnable.scheduledFuture;
+            final CompletionHandler completionHandler = suspendedRunnable.completionHandler;
+            suspendedRunnable.isResuming = true;
+
+            if (future != null) {
+                future.cancel(false);
+            }
+            
+            if (completionHandler != null) {
+                completionHandler.cancelled();
+            }
+
+            isSuspended = false;
+
+            suspendedRunnable.reset();
+
+            ctx.resume();
+        }
+    }
+    
     /**
      * Make sure the {@link com.sun.grizzly.tcp.Response} object has been set.
      */
-    void checkResponse(){
+    final void checkResponse(){
         if (response == null){
             throw new IllegalStateException("Internal " +
                     "com.sun.grizzly.tcp.Response has not been set");
         }
     }
 
-    /**
-     * Add a {@link com.sun.grizzly.tcp.ResponseFilter}, which will be called every bytes are
-     * ready to be written.
-     */
-    public void addResponseFilter(final ResponseFilter responseFilter){
-        // TODO re-enable
-        //response.addResponseFilter(responseFilter);
+    private final class SuspendedRunnable implements Runnable,
+            Connection.CloseListener {
+
+        public CompletionHandler completionHandler;
+        public ScheduledFuture scheduledFuture;
+        public boolean isResuming;
+
+        @Override
+        public void run() {
+            synchronized (suspendSync) {
+                scheduledFuture = null;
+                cancel();
+            }
+        }
+
+        private void reset() {
+            completionHandler = null;
+            scheduledFuture = null;
+            isResuming = false;
+        }
+
+        @Override
+        public void onClosed(Connection connection) throws IOException {
+            cancel();
+        }
     }
 }

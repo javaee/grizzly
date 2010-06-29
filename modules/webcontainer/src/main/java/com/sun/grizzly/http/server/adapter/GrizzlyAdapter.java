@@ -39,11 +39,9 @@
 package com.sun.grizzly.http.server.adapter;
 
 
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
 
 
-import java.util.logging.Level;
+import com.sun.grizzly.http.server.GrizzlyWebServer;
 
 /**
  * Base class to use when GrizzlyRequest/Response/InputStream/OutputStream
@@ -58,7 +56,7 @@ import java.util.logging.Level;
  *
  * @author Jeanfrancois Arcand
  */
-abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
+public class GrizzlyAdapter extends StaticResourcesAdapter {
 
     protected static final int ADAPTER_NOTES = 31;
     protected static final boolean ALLOW_BACKSLASH = false;
@@ -67,8 +65,7 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
 
 
     public GrizzlyAdapter() {
-        super();
-        commitErrorResponse = false;
+        this(".");
     }
 
 
@@ -192,36 +189,25 @@ abstract public class GrizzlyAdapter extends StaticResourcesAdapter {
      * @param res the {@link com.sun.grizzly.tcp.Response}
      * @throws Exception
      */
-    @Override
-    final public void afterService(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
-        //GrizzlyRequest request = (GrizzlyRequest) req.getNote(ADAPTER_NOTES);
-        //GrizzlyResponse response = (GrizzlyResponse) res.getNote(ADAPTER_NOTES);
-        try{
-            if (request != null && response != null) {
-                afterService(request,response);
-            }
-        } catch (Exception ex){
-            logger.log(Level.SEVERE,"afterService", ex);
-            throw ex;
-        }
-        try {
-            if (response != null){
-                response.finishResponse();
-            }
-            super.afterService(request, response);
-        } catch (Throwable t) {
-            logger.log(Level.SEVERE,"afterService exception",t);
-        } finally {
-            // Recycle the wrapper request and response
-            if (request != null){
-                request.recycle();
-            }
-
-            if (response != null){
-                response.recycle();
-            }
-        }
-    }
+//    @Override
+//    final public void afterService(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
+//        try {
+//            if (response != null){
+//                response.finish();
+//            }
+//        } catch (Throwable t) {
+//            logger.log(Level.SEVERE,"afterService exception",t);
+//        } finally {
+//            // Recycle the wrapper request and response
+//            if (request != null){
+//                request.recycle();
+//            }
+//
+//            if (response != null){
+//                response.recycle();
+//            }
+//        }
+//    }
 
 
     /**

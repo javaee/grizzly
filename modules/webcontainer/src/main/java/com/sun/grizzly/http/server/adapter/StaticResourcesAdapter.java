@@ -289,9 +289,9 @@ public class StaticResourcesAdapter implements Adapter {
         //    return;
         //}
 
-        if (res.getStatus() == 404 && !commitErrorResponse){
-            return;
-        }
+//        if (res.getStatus() == 404 && !commitErrorResponse){
+//            return;
+//        }
 
         //try{
         //    req.action( ActionCode.ACTION_POST_REQUEST , null);
@@ -299,9 +299,9 @@ public class StaticResourcesAdapter implements Adapter {
         //    logger.log(Level.WARNING,"afterService unexpected exception: ",t);
         //}
 
-        res.finishResponse();
-        req.recycle();
-        res.recycle();
+//        res.finish();
+//        req.recycle();
+//        res.recycle();
     }
 
 
