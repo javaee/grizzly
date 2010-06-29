@@ -97,6 +97,18 @@ public class WebSocketEngine {
 
                 final SelectionKey key = task.getSelectionKey();
                 register(asyncExecutor, socket, key);
+                socket.add(new WebSocketListener() {
+                    public void onClose(WebSocket socket) throws IOException {
+                        key.cancel();
+                        key.channel().close();
+                    }
+
+                    public void onConnect(WebSocket socket) {
+                    }
+
+                    public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
+                    }
+                });
 
                 enableRead(task, key);
             } else {
@@ -127,7 +139,6 @@ public class WebSocketEngine {
                             task.terminateProcess();
                             logger.log(Level.INFO, e.getMessage(), e);
                         }
-                        enableRead(task, key);
                     }
                 }
             }

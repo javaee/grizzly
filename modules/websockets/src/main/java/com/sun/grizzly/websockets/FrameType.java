@@ -90,7 +90,7 @@ public enum FrameType {
 
         @Override
         public byte[] unframe(ByteBuffer buffer) throws IOException {
-            return new byte[0];
+            return new byte[]{(byte) 0xFF, 0x00};
         }
 
         @Override

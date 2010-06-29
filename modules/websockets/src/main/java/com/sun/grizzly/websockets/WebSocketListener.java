@@ -36,10 +36,12 @@
 
 package com.sun.grizzly.websockets;
 
+import java.io.IOException;
+
 public interface WebSocketListener {
-    void onClose(WebSocket socket);
+    void onClose(WebSocket socket) throws IOException;
 
-    void onConnect(WebSocket socket);
+    void onConnect(WebSocket socket) throws IOException;
 
-    void onMessage(WebSocket socket, DataFrame data);
+    void onMessage(WebSocket socket, DataFrame frame) throws IOException;
 }

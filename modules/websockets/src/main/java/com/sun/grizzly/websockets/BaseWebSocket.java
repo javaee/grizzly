@@ -94,7 +94,7 @@ public abstract class BaseWebSocket implements WebSocket {
         listeners.clear();
     }
 
-    public void onClose() {
+    public void onClose() throws IOException {
         for (WebSocketListener listener : listeners) {
             listener.onClose(this);
         }
@@ -108,7 +108,7 @@ public abstract class BaseWebSocket implements WebSocket {
         send(new DataFrame(data));
     }
 
-    private void send(final DataFrame frame) {
+    protected void send(final DataFrame frame) {
         try {
             write(frame.frame());
         } catch (IOException e) {
@@ -124,7 +124,7 @@ public abstract class BaseWebSocket implements WebSocket {
     protected void doConnect() throws IOException {
     }
 
-    public void onConnect() {
+    public void onConnect() throws IOException {
         connected = true;
         for (WebSocketListener listener : listeners) {
             listener.onConnect(this);
@@ -135,7 +135,7 @@ public abstract class BaseWebSocket implements WebSocket {
         unframe();
     }
 
-    public void onMessage() {
+    public void onMessage() throws IOException {
         DataFrame frame;
         while ((frame = incoming()) != null) {
             for (WebSocketListener listener : listeners) {
@@ -149,7 +149,11 @@ public abstract class BaseWebSocket implements WebSocket {
             final DataFrame dataFrame = new DataFrame(bytes);
             if (dataFrame.getType() != null) {
                 incoming.offer(dataFrame);
-                onMessage();
+                if(dataFrame.getType() == FrameType.CLOSING) {
+                    onClose();
+                } else {
+                    onMessage();
+                }
             }
         }
     }

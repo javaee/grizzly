@@ -42,8 +42,6 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -51,7 +49,14 @@ import java.util.concurrent.TimeUnit;
 public class LifecycleTest {
     public void detectClosed() throws IOException, InstantiationException, InterruptedException {
         final EchoServlet servlet = new EchoServlet();
-        final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
+        final CountDownLatch close = new CountDownLatch(1);
+        final SimpleWebSocketApplication app = new SimpleWebSocketApplication() {
+            @Override
+            public void onClose(WebSocket socket) throws IOException {
+                super.onClose(socket);
+                close.countDown();
+            }
+        };
         WebSocketEngine.getEngine().register("/echo", app);
 
         final SelectorThread thread =
@@ -60,10 +65,8 @@ public class LifecycleTest {
         try {
             Assert.assertEquals(app.getWebSockets().size(), 0, "There should be no clients connected");
             final CountDownLatch connect = new CountDownLatch(1);
-            final CountDownLatch close = new CountDownLatch(1);
             WebSocket client = new WebSocketClient("ws://localhost:" + WebSocketsTest.PORT + "/echo", new WebSocketListener() {
                 public void onClose(WebSocket socket) {
-                    close.countDown();
                 }
 
                 public void onConnect(WebSocket socket) {
@@ -75,11 +78,12 @@ public class LifecycleTest {
             });
             client.connect();
 
-            connect.await(1000, TimeUnit.SECONDS);
+            connect.await(30, TimeUnit.SECONDS);
             Assert.assertEquals(app.getWebSockets().size(), 1, "There should be 1 client connected");
             client.close();
-            close.await(10, TimeUnit.SECONDS);
-//            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
+            close.await(30, TimeUnit.SECONDS);
+
+            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
         } finally {
             thread.stopEndpoint();
         }

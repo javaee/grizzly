@@ -39,7 +39,7 @@ package com.sun.grizzly.websockets;
 import java.io.IOException;
 
 class SimpleWebSocketApplication extends WebSocketApplication {
-    public void onMessage(WebSocket socket, DataFrame data) {
+    public void onMessage(WebSocket socket, DataFrame data) throws IOException {
         super.onMessage(socket, data);
         try {
             socket.send(data.getTextPayload());

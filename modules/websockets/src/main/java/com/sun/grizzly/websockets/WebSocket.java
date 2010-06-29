@@ -37,18 +37,17 @@
 package com.sun.grizzly.websockets;
 
 import java.io.IOException;
-import java.nio.charset.Charset;
 
 public interface WebSocket {
     String ENCODING = "UTF-8";
 
     String WEBSOCKET = "websocket";
 
-    void onConnect();
+    void onConnect() throws IOException;
 
-    void onMessage();
+    void onMessage() throws IOException;
 
-    void onClose();
+    void onClose() throws IOException;
 
     boolean add(WebSocketListener listener);
 

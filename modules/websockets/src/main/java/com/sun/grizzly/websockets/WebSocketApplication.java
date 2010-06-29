@@ -112,14 +112,15 @@ public class WebSocketApplication implements WebSocketListener {
         return new BaseServerWebSocket(this, request, response);
     }
 
-    public void onClose(WebSocket socket) {
+    public void onClose(WebSocket socket) throws IOException {
         remove(socket);
+        socket.close();
     }
 
     public void onConnect(WebSocket socket) {
         add(socket);
     }
 
-    public void onMessage(WebSocket socket, DataFrame data) {
+    public void onMessage(WebSocket socket, DataFrame data) throws IOException {
     }
 }

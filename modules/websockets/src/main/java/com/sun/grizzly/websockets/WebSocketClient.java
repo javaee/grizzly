@@ -91,6 +91,7 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
 
     @Override
     public void close() throws IOException {
+        write(FrameType.CLOSING.frame(null));
         super.close();
         channel.keyFor(getSelector()).cancel();
         channel.close();
@@ -112,6 +113,7 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
                 }
             } catch (IOException e) {
                 logger.log(Level.WARNING, e.getMessage(), e);
+                state = State.CLOSED;
             }
             getSelector().wakeup();
         }
@@ -122,11 +124,15 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
             if (key.isConnectable()) {
                 disableOp(SelectionKey.OP_CONNECT);
                 doConnect();
+                enableOp(SelectionKey.OP_READ);
+                key.selector().wakeup();
             } else if (key.isReadable()) {
                 doRead();
+                if(isConnected()) {
+                    enableOp(SelectionKey.OP_READ);
+                    key.selector().wakeup();
+                }
             }
-            enableOp(SelectionKey.OP_READ);
-            key.selector().wakeup();
         }
     }
 
