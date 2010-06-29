@@ -359,30 +359,141 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         return buffer;
     }
 
-    public void shrink() {
-        checkDispose();
-        flip();
+    @Override
+    public Buffer split(int splitPosition) {
+        final int oldPosition = position;
+        final int oldLimit = limit;
 
-        if (limit < capacity) {
-            final long bufferLocation = locateBufferLimit(limit);
+        final long splitLocation = locateBufferPosition(splitPosition);
+        final int splitBufferIdx = getBufferIndex(splitLocation);
+        final int splitBufferPos = getBufferPosition(splitLocation);
 
-            if (bufferLocation == -1) {
-                throw new IllegalStateException("Bad state");
-            }
+        final ByteBuffersBuffer slice2Buffer = ByteBuffersBuffer.create(memoryManager);
+        final ByteBuffer splitBuffer = buffers[splitBufferIdx];
 
-            final int bufferIndex = getBufferIndex(bufferLocation);
+        int newSize = splitBufferIdx + 1;
 
-            final int bytesRemoved = removeRightBuffers(bufferIndex + 1);
+        if (splitBufferPos == 0) {
+            slice2Buffer.append(splitBuffer);
+            buffers[splitBufferIdx] = null;
+            newSize = splitBufferIdx;
+        } else if (splitBufferPos < splitBuffer.limit()) {
 
-            final ByteBuffer currentBuffer = buffers[bufferIndex];
-            final int bufferPosition = getBufferPosition(bufferLocation);
+            BufferUtils.setPositionLimit(splitBuffer, 0, splitBufferPos);
+            ByteBuffer slice1 = splitBuffer.slice();
+            BufferUtils.setPositionLimit(splitBuffer, splitBufferPos, splitBuffer.capacity());
+            ByteBuffer slice2 = splitBuffer.slice();
 
-            final int lastBufferRemoved = currentBuffer.limit() - bufferPosition;
-            currentBuffer.limit(bufferPosition);
-
-            capacity = capacity - bytesRemoved - lastBufferRemoved;
-            resetLastLocation();
+            buffers[splitBufferIdx] = slice1;
+            slice2Buffer.append(slice2);
         }
+
+        for (int i = splitBufferIdx + 1; i < buffersSize; i++) {
+            slice2Buffer.append(buffers[i]);
+            buffers[i] = null;
+        }
+
+        buffersSize = newSize;
+
+        capacity = calcCapacity();
+
+        if (oldPosition < splitPosition) {
+            position = oldPosition;
+        } else {
+            position = capacity;
+            slice2Buffer.position(oldPosition - splitPosition);
+        }
+
+        if (oldLimit < splitPosition) {
+            limit = oldLimit;
+            slice2Buffer.limit(0);
+        } else {
+            slice2Buffer.limit(oldLimit - splitPosition);
+            limit = capacity;
+        }
+
+        resetLastLocation();
+
+        return slice2Buffer;
+    }
+
+    @Override
+    public boolean shrink() {
+        checkDispose();
+
+        if (position == limit) {
+            return tryDispose();
+        }
+
+        final long posLocation = locateBufferPosition(position);
+        final long limitLocation = locateBufferLimit(limit);
+
+        final int posBufferIndex = getBufferIndex(posLocation);
+        final int limitBufferIndex = getBufferIndex(limitLocation);
+
+        final int posBufferPos = getBufferPosition(posLocation);
+        final int limitBufferLimit = getBufferPosition(limitLocation);
+
+        final int leftTrim = posBufferIndex;
+        final int rightTrim = buffersSize - limitBufferIndex - 1;
+
+        if (leftTrim > 0) {
+            for (int i = 0; i < leftTrim; i++) {
+                final ByteBuffer buffer = buffers[i];
+                final int bufferSize = buffer.remaining();
+                setPosLim(position - bufferSize, limit - bufferSize);
+                capacity -= bufferSize;
+
+                if (allowInternalBuffersDispose) {
+                    MemoryUtils.releaseByteBuffer(memoryManager, buffer);
+                }
+            }
+        }
+
+        if (rightTrim > 0) {
+            for (int i = 0; i < rightTrim; i++) {
+                final int idx = buffersSize - i - 1;
+                final ByteBuffer buffer = buffers[idx];
+                buffers[idx] = null;
+                final int bufferSize = buffer.remaining();
+                capacity -= bufferSize;
+
+                if (allowInternalBuffersDispose) {
+                    MemoryUtils.releaseByteBuffer(memoryManager, buffer);
+                }
+            }
+        }
+
+        buffersSize -= (leftTrim + rightTrim);
+
+        if (leftTrim > 0) {
+            System.arraycopy(buffers, leftTrim, buffers, 0, buffersSize);
+            Arrays.fill(buffers, buffersSize, buffersSize + leftTrim, null);
+        }
+
+        if (posBufferPos > 0) {
+            final ByteBuffer firstBuffer = buffers[0];
+            final int diff = posBufferPos - firstBuffer.position();
+            if (diff > 0) {
+                firstBuffer.position(posBufferPos);
+                position = 0;
+                limit -= diff;
+                capacity -= diff;
+            }
+        }
+
+        if (limitBufferLimit > 0) {
+            final ByteBuffer lastBuffer = buffers[buffersSize - 1];
+            final int diff = lastBuffer.limit() - limitBufferLimit;
+            if (diff > 0) {
+                lastBuffer.limit(limitBufferLimit);
+                capacity -= diff;
+            }
+        }
+
+        resetLastLocation();
+
+        return false;
     }
 
     @Override
@@ -420,61 +531,61 @@ public final class ByteBuffersBuffer implements CompositeBuffer {
         return removedBytes;
     }
 
-    @Override
-    public boolean disposeUnused() {
-        checkDispose();
-
-        if (position == limit) {
-            removeAndDisposeBuffers(false);
-            return true;
-        }
-        
-        final long posLocation = locateBufferPosition(position);
-        final long limitLocation = locateBufferLimit(limit);
-
-        final int posBufferIndex = getBufferIndex(posLocation);
-        final int limitBufferIndex = getBufferIndex(limitLocation);
-
-        final int leftTrim = posBufferIndex;
-        final int rightTrim = buffersSize - limitBufferIndex - 1;
-
-        if (leftTrim == 0 && rightTrim == 0) {
-            return false;
-        }
-
-        for(int i=0; i<leftTrim; i++) {
-            final ByteBuffer buffer = buffers[i];
-            final int bufferSize = buffer.remaining();
-            setPosLim(position - bufferSize, limit - bufferSize);
-            capacity -= bufferSize;
-            
-            if (allowInternalBuffersDispose) {
-                MemoryUtils.releaseByteBuffer(memoryManager, buffer);
-            }
-        }
-
-        for(int i=0; i<rightTrim; i++) {
-            final int idx = buffersSize - i - 1;
-            final ByteBuffer buffer = buffers[idx];
-            buffers[idx] = null;
-            final int bufferSize = buffer.remaining();
-            capacity -= bufferSize;
-
-            if (allowInternalBuffersDispose) {
-                MemoryUtils.releaseByteBuffer(memoryManager, buffer);
-            }
-        }
-
-        buffersSize -= (leftTrim + rightTrim);
-        resetLastLocation();
-        
-        if (leftTrim > 0) {
-            System.arraycopy(buffers, leftTrim, buffers, 0, buffersSize);
-            Arrays.fill(buffers, buffersSize, buffersSize + leftTrim, null);
-        }
-
-        return false;
-    }
+//    @Override
+//    public boolean shrink() {
+//        checkDispose();
+//
+//        if (position == limit) {
+//            removeAndDisposeBuffers(false);
+//            return true;
+//        }
+//
+//        final long posLocation = locateBufferPosition(position);
+//        final long limitLocation = locateBufferLimit(limit);
+//
+//        final int posBufferIndex = getBufferIndex(posLocation);
+//        final int limitBufferIndex = getBufferIndex(limitLocation);
+//
+//        final int leftTrim = posBufferIndex;
+//        final int rightTrim = buffersSize - limitBufferIndex - 1;
+//
+//        if (leftTrim == 0 && rightTrim == 0) {
+//            return false;
+//        }
+//
+//        for(int i=0; i<leftTrim; i++) {
+//            final ByteBuffer buffer = buffers[i];
+//            final int bufferSize = buffer.remaining();
+//            setPosLim(position - bufferSize, limit - bufferSize);
+//            capacity -= bufferSize;
+//
+//            if (allowInternalBuffersDispose) {
+//                MemoryUtils.releaseByteBuffer(memoryManager, buffer);
+//            }
+//        }
+//
+//        for(int i=0; i<rightTrim; i++) {
+//            final int idx = buffersSize - i - 1;
+//            final ByteBuffer buffer = buffers[idx];
+//            buffers[idx] = null;
+//            final int bufferSize = buffer.remaining();
+//            capacity -= bufferSize;
+//
+//            if (allowInternalBuffersDispose) {
+//                MemoryUtils.releaseByteBuffer(memoryManager, buffer);
+//            }
+//        }
+//
+//        buffersSize -= (leftTrim + rightTrim);
+//        resetLastLocation();
+//
+//        if (leftTrim > 0) {
+//            System.arraycopy(buffers, leftTrim, buffers, 0, buffersSize);
+//            Arrays.fill(buffers, buffersSize, buffersSize + leftTrim, null);
+//        }
+//
+//        return false;
+//    }
 
     @Override
     public Buffer slice() {

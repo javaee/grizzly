@@ -393,7 +393,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         final Buffer remainder = (Buffer) tResult.getExternalRemainder();
                         final boolean hasRemaining = transformer.hasInputRemaining(connection, remainder);
                         if (hasRemaining) {
-                            buffer.disposeUnused();
+                            buffer.shrink();
                             queueRecord.setRemainderBuffer(buffer);
                             queueRecord.setMessage(remainder);
                         } else if (buffer != null) {
@@ -406,7 +406,7 @@ public abstract class AbstractNIOAsyncQueueReader
                         final boolean hasRemaining = transformer.hasInputRemaining(connection, remainder);
 
                         if (hasRemaining) {
-                            remainderBuffer.disposeUnused();
+                            remainderBuffer.shrink();
                             queueRecord.setRemainderBuffer(remainderBuffer);
                         } else if (buffer != null) {
                             buffer.dispose();

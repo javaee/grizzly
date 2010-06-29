@@ -62,6 +62,8 @@ import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.utils.LinkedTransferQueue;
+import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -98,6 +100,9 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     protected volatile boolean isBlocking;
 
     protected volatile boolean isStandalone;
+
+    private final Queue<CloseListener> closeListeners =
+            new LinkedTransferQueue<CloseListener>();
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;
@@ -311,6 +316,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     public GrizzlyFuture close() throws IOException {
         if (!isClosed.getAndSet(true)) {
             preClose();
+            notifyCloseListeners();
             return transport.getSelectorHandler().executeInSelectorThread(
                     selectorRunner, new Runnable() {
 
@@ -326,6 +332,52 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         }
 
         return ReadyFutureImpl.create(this);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addCloseListener(CloseListener closeListener) {
+        // check if connection is still open
+        if (!isClosed.get()) {
+            // add close listener
+            closeListeners.add(closeListener);
+            // check the connection state again
+            if (isClosed.get() && closeListeners.remove(closeListener)) {
+                // if connection was closed during the method call - notify the listener
+                try {
+                    closeListener.onClosed(this);
+                } catch (IOException ignored) {
+                }
+            }
+        } else { // if connection is closed - notify the listener
+            try {
+                closeListener.onClosed(this);
+            } catch (IOException ignored) {
+            }
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean removeCloseListener(CloseListener closeListener) {
+        return closeListeners.remove(closeListener);
+    }
+
+    /**
+     * Notify all close listeners
+     */
+    private final void notifyCloseListeners() {
+        CloseListener closeListener;
+        while((closeListener = closeListeners.poll()) != null) {
+            try {
+                closeListener.onClosed(this);
+            } catch (IOException ignored) {
+            }
+        }
     }
 
     protected abstract void preClose();

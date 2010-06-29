@@ -225,4 +225,26 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
     public long getWriteTimeout(TimeUnit timeUnit);
 
     public void setWriteTimeout(long timeout, TimeUnit timeUnit);
+
+    /**
+     * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
+     * will be closed.
+     * 
+     * @param closeListener {@link CloseListener}.
+     */
+    public void addCloseListener(CloseListener closeListener);
+
+    /**
+     * Remove the {@link CloseListener}.
+     *
+     * @param closeListener {@link CloseListener}.
+     */
+    public boolean removeCloseListener(CloseListener closeListener);
+    
+    /**
+     * The listener, which is used to be notified, when <tt>Connection</tt> gets closed.
+     */
+    public static interface CloseListener {
+        public void onClosed(Connection connection) throws IOException;
+    }
 }

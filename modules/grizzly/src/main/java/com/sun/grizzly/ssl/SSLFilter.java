@@ -85,6 +85,8 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
     private final SSLEngineConfigurator serverSSLEngineConfigurator;
     private final SSLEngineConfigurator clientSSLEngineConfigurator;
 
+    private final ConnectionCloseListener closeListener = new ConnectionCloseListener();
+    
     public SSLFilter() {
         this(null, null);
     }
@@ -215,24 +217,13 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
         if (completionHandler != null) {
             handshakeCompletionHandlerAttr.set(connection, completionHandler);
+            connection.addCloseListener(closeListener);
         }
 
         final FilterChainContext ctx = createContext(connection, IOEvent.WRITE,
                 null, completionHandler);
 
         doHandshakeStep(sslEngine, ctx);
-    }
-
-    @Override
-    public NextAction handleClose(FilterChainContext ctx) throws IOException {
-        final Connection connection = ctx.getConnection();
-        final CompletionHandler<SSLEngine> completionHandler =
-                handshakeCompletionHandlerAttr.remove(connection);
-        if (completionHandler != null) {
-            completionHandler.failed(new java.io.EOFException());
-        }
-        
-        return ctx.getInvokeAction();
     }
 
     protected Buffer doHandshakeStep(final SSLEngine sslEngine,
@@ -384,6 +375,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         final CompletionHandler<SSLEngine> completionHandler =
                 handshakeCompletionHandlerAttr.get(connection);
         if (completionHandler != null) {
+            connection.removeCloseListener(closeListener);
             completionHandler.completed(sslEngine);
         }
     }
@@ -554,7 +546,21 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 connection.close();
             } catch (IOException e) {
             }
+        }        
+    }
+
+    /**
+     * Close listener, which is used to notify handshake completion handler about
+     * failure, if <tt>Connection</tt> will be unexpectedly closed.
+     */
+    private final class ConnectionCloseListener implements Connection.CloseListener {
+        @Override
+        public void onClosed(Connection connection) throws IOException {
+            final CompletionHandler<SSLEngine> completionHandler =
+                    handshakeCompletionHandlerAttr.remove(connection);
+            if (completionHandler != null) {
+                completionHandler.failed(new java.io.EOFException());
+            }
         }
-        
     }
 }

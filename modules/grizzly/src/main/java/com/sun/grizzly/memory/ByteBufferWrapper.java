@@ -94,7 +94,7 @@ public class ByteBufferWrapper implements Buffer {
     }
 
     @Override
-    public boolean disposeUnused() {
+    public boolean shrink() {
         checkDispose();
         return false;
     }
@@ -212,6 +212,35 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public boolean isReadOnly() {
         return visible.isReadOnly();
+    }
+
+    @Override
+    public Buffer split(int splitPosition) {
+        final int oldPosition = position();
+        final int oldLimit = limit();
+
+        BufferUtils.setPositionLimit(visible, 0, splitPosition);
+        ByteBuffer slice1 = visible.slice();
+        BufferUtils.setPositionLimit(visible, splitPosition, visible.capacity());
+        ByteBuffer slice2 = visible.slice();
+
+        if (oldPosition < splitPosition) {
+            slice1.position(oldPosition);
+        } else {
+            slice1.position(slice1.capacity());
+            slice2.position(oldPosition - splitPosition);
+        }
+
+        if (oldLimit < splitPosition) {
+            slice1.limit(oldLimit);
+            slice2.limit(0);
+        } else {
+            slice2.limit(oldLimit - splitPosition);
+        }
+
+        this.visible = slice1;
+
+        return memoryManager.wrap(slice2);
     }
 
     @Override

@@ -307,13 +307,13 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
                 compositeBuffer.toByteBufferArray(0, 12280);
                 compositeBuffer.limit(1228);
 
-                compositeBuffer.disposeUnused();
+                compositeBuffer.shrink();
 
                 assertEquals(initialSize - (1228 * 11 - 12280),
                         mm.getReadyThreadBufferSize());
 
                 compositeBuffer.position(compositeBuffer.limit());
-                compositeBuffer.disposeUnused();
+                compositeBuffer.shrink();
 
                 assertEquals(initialSize,
                         mm.getReadyThreadBufferSize());

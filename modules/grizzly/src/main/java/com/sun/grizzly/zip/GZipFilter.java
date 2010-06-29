@@ -116,7 +116,7 @@ public class GZipFilter extends BaseFilter {
         if (remainder == null) {
             input.tryDispose();
         } else {
-            input.disposeUnused();
+            input.shrink();
         }
 
         try {

@@ -42,6 +42,7 @@ import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.memory.CompositeBuffer;
+import java.util.Arrays;
 
 /**
  * {@link CompositeBuffer} test set.
@@ -433,6 +434,14 @@ public class CompositeBufferTest extends GrizzlyTestCase {
         }
     }
 
+    public void testSplit() {
+        MemoryManager manager = new DefaultMemoryManager();
+
+        for (CompositeBufferType type : CompositeBufferType.values()) {
+            doTestSplit(type, 100);
+        }
+    }
+
     private void doTestBuffers(CompositeBufferType type) {
         MemoryManager manager = new DefaultMemoryManager();
 
@@ -494,6 +503,51 @@ public class CompositeBufferTest extends GrizzlyTestCase {
         for (int i = 0; i < testData.length; i++) {
             assertEquals(testData[i], get.getIndexed(compositeBuffer, i * eSizeInBytes));
         }
+    }
+
+    private <E> void doTestSplit(CompositeBufferType type, int size) {
+
+        MemoryManager manager = new DefaultMemoryManager();
+
+        for (int i = 1; i <= size; i++) {
+            final int num = size / i;
+            final int remainder = size - (num * i);
+
+            int j = 1;
+
+            try {
+                for (; j <= size; j++) {
+
+                    Buffer[] buffers = new Buffer[num];
+                    for (int k = 0; k < buffers.length; k++) {
+                        buffers[k] = manager.allocate(i);
+                    }
+
+                    if (remainder > 0) {
+                        buffers = Arrays.copyOf(buffers, num + 1);
+                        buffers[num] = manager.allocate(remainder);
+                    }
+
+                    CompositeBuffer compositeBuffer = createCompositeBuffer(type, buffers);
+
+                    for (int k = 0; k < compositeBuffer.remaining(); k++) {
+                        compositeBuffer.put(k, (byte) (k % 127));
+                    }
+
+
+                    Buffer slice1 = compositeBuffer;
+                    Buffer slice2 = slice1.split(j);
+
+                    assertEquals("Slice1 unexpected length", j, slice1.remaining());
+                    assertEquals("Slice2  unexpected length", size - j, slice2.remaining());
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException("Exception happened. type=" + type + " size=" + i + " splitPos=" + j, e);
+            }
+        }
+
+
+
     }
 
     private static class Put<E> {

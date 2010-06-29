@@ -132,7 +132,7 @@ public abstract class BufferedInput implements Input {
     @Override
     public byte read() throws IOException {
         final byte result = compositeBuffer.get();
-        compositeBuffer.disposeUnused();
+        compositeBuffer.shrink();
         return result;
     }
 
@@ -143,7 +143,7 @@ public abstract class BufferedInput implements Input {
         }
 
         compositeBuffer.position(compositeBuffer.position() + length);
-        compositeBuffer.disposeUnused();
+        compositeBuffer.shrink();
     }
 
     @Override

@@ -103,6 +103,7 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 AttributeStorage storage,
                 Buffer input) throws TransformationException {
             return super.transformImpl(storage, input);
+//            return TransformationResult.createCompletedResult(input, null);
         }
     }
 
@@ -124,7 +125,7 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
                 AttributeStorage storage, Buffer input)
                 throws TransformationException {
 
-            if (input.remaining() == 0) {
+            if (!input.hasRemaining()) {
                 return TransformationResult.<Buffer, Buffer>createIncompletedResult(input);
             }
 
@@ -137,7 +138,7 @@ public class ChunkingFilter extends AbstractCodecFilter<Buffer, Buffer> {
             
             final Buffer output = obtainMemoryManager(storage).allocate(chunkSize);
             output.put(input).flip();
-            
+
             BufferUtils.setPositionLimit(input, oldInputPos + chunkSize, oldInputLimit);
 
             return TransformationResult.<Buffer, Buffer>createCompletedResult(

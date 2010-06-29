@@ -343,7 +343,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                     boolean isStoreRemainder = true;
                     
                     if (remainder == inputMessage && remainder instanceof Buffer) {
-                        isStoreRemainder = !((Buffer) remainder).disposeUnused();
+                        isStoreRemainder = !((Buffer) remainder).shrink();
                     }
 
                     if (isStoreRemainder) {
