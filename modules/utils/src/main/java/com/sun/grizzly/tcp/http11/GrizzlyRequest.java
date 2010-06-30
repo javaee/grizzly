@@ -1831,17 +1831,19 @@ public class GrizzlyRequest {
     public Principal getUserPrincipal() {
 
         if (userPrincipal == null) {
-            X509Certificate certs[] = (X509Certificate[])
-                    getAttribute(Globals.CERTIFICATES_ATTR);
-            if ((certs == null) || (certs.length < 1)) {
-                certs = (X509Certificate[])
+            if (getRequest().scheme().equals("https")) {
+                X509Certificate certs[] = (X509Certificate[])
+                        getAttribute(Globals.CERTIFICATES_ATTR);
+                if ((certs == null) || (certs.length < 1)) {
+                    certs = (X509Certificate[])
                             getAttribute(Globals.SSL_CERTIFICATE_ATTR);
-            }
-            if ((certs == null) || (certs.length < 1)) {
-                return null;
-            }
+                }
+                if ((certs == null) || (certs.length < 1)) {
+                    throw new IllegalStateException(sm.getString("grizzlyRequest.no.certificates"));
+                }
 
-            userPrincipal = certs[0].getSubjectX500Principal();
+                userPrincipal = certs[0].getSubjectX500Principal();
+            }
         }
         return (userPrincipal);
 
