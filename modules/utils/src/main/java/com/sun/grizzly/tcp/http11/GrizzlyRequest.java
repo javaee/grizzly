@@ -57,6 +57,8 @@ package com.sun.grizzly.tcp.http11;
 
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.util.LoggerUtils;
+import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.B2CConverter;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
@@ -71,6 +73,9 @@ import com.sun.grizzly.util.http.ServerCookie;
 import com.sun.grizzly.util.http.StringParser;
 import com.sun.grizzly.util.res.StringManager;
 
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
 import javax.security.auth.Subject;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -97,6 +102,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Wrapper object for the Coyote request.
@@ -106,7 +113,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @version $Revision: 1.2 $ $Date: 2007/03/14 02:15:42 $
  */
 
-public class GrizzlyRequest{
+public class GrizzlyRequest {
     private static final Random random = new Random();
 
     // ----------------------------------------------------------- Constructors
@@ -1820,7 +1827,29 @@ public class GrizzlyRequest{
      * Return the principal that has been authenticated for this Request.
      */
     public Principal getUserPrincipal() {
+
+        if (userPrincipal == null) {
+            final Thread t = Thread.currentThread();
+            if (t instanceof WorkerThread) {
+                final SSLEngine engine = ((WorkerThread) t).getSSLEngine();
+                if (engine != null) {
+                    final SSLSession session = engine.getSession();
+                    try {
+                        userPrincipal = session.getPeerPrincipal();
+                    } catch (SSLPeerUnverifiedException sue) {
+                        final Logger logger = LoggerUtils.getLogger();
+                        if (logger.isLoggable(Level.WARNING)) {
+                            logger.log(Level.WARNING, sue.toString());
+                        }
+                        if (logger.isLoggable(Level.FINE)) {
+                            logger.log(Level.FINE, "", sue);
+                        }
+                    }
+                }
+            }
+        }
         return (userPrincipal);
+
     }
 
     protected String unescape(String s) {
