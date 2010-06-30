@@ -36,7 +36,6 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.net.URL;
 
@@ -46,19 +45,11 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.logging.Level;
 
 public class WebSocketClient extends BaseWebSocket implements WebSocket {
     private SocketChannel channel;
-
-    private static final String CLIENT_HANDSHAKE = "GET /echo HTTP/1.1" + Constants.CRLF
-            + "Upgrade: WebSocket" + Constants.CRLF
-            + "Connection: Upgrade" + Constants.CRLF
-            + "Host: localhost" + Constants.CRLF
-            + "Origin: http://localhost" + Constants.CRLF
-            + Constants.CRLF;
     private URL url;
     private ClientHandShake clientHS;
 
@@ -76,10 +67,6 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
     }
 
     public void connect() throws IOException {
-        open(url);
-    }
-
-    private void open(URL url) throws IOException {
         final SocketChannel socketChannel = SocketChannel.open();
         channel = socketChannel;
         socketChannel.configureBlocking(false);
@@ -246,5 +233,9 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
         if (newOp != ops) {
             key.interestOps(newOp);
         }
+    }
+
+    SocketChannel getChannel() {
+        return channel;
     }
 }

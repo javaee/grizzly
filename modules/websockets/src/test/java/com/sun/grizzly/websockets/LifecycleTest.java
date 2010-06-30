@@ -42,6 +42,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.IOException;
+import java.nio.channels.SocketChannel;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -88,5 +89,61 @@ public class LifecycleTest {
             thread.stopEndpoint();
         }
 
+    }
+
+    public void dirtyClose() throws IOException, InstantiationException, InterruptedException {
+        final EchoServlet servlet = new EchoServlet();
+        final CountDownLatch close = new CountDownLatch(1);
+        final SimpleWebSocketApplication app = new SimpleWebSocketApplication() {
+            @Override
+            public void onClose(WebSocket socket) throws IOException {
+                super.onClose(socket);
+                close.countDown();
+            }
+        };
+        WebSocketEngine.getEngine().register("/echo", app);
+
+        final SelectorThread thread =
+                WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new ServletAdapter(servlet));
+
+        try {
+            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be no clients connected");
+            final CountDownLatch connect = new CountDownLatch(1);
+            BadWebSocketClient client = new BadWebSocketClient(connect);
+            client.connect();
+
+            connect.await(30, TimeUnit.SECONDS);
+            Assert.assertEquals(app.getWebSockets().size(), 1, "There should be 1 client connected");
+
+            client.killConnection();
+
+            close.await(3000, TimeUnit.SECONDS);
+
+            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
+        } finally {
+            thread.stopEndpoint();
+        }
+
+    }
+
+    private static class BadWebSocketClient extends WebSocketClient {
+        public BadWebSocketClient(final CountDownLatch connect) throws IOException {
+            super("ws://localhost:" + WebSocketsTest.PORT + "/echo", new WebSocketListener() {
+                public void onClose(WebSocket socket) {
+                }
+
+                public void onConnect(WebSocket socket) {
+                    connect.countDown();
+                }
+
+                public void onMessage(WebSocket socket, DataFrame data) {
+                }
+            });
+        }
+
+        void killConnection() throws IOException {
+            getKey().cancel();
+            getChannel().close();
+        }
     }
 }

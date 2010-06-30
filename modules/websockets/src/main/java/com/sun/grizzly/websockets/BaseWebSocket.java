@@ -87,11 +87,13 @@ public abstract class BaseWebSocket implements WebSocket {
     }
 
     public void close() throws IOException {
-        onClose();
-        connected = false;
-        state = State.CLOSED;
-        incoming.clear();
-        listeners.clear();
+        if (state != State.CLOSED) {
+            state = State.CLOSED;
+            onClose();
+            connected = false;
+            incoming.clear();
+            listeners.clear();
+        }
     }
 
     public void onClose() throws IOException {
@@ -149,7 +151,7 @@ public abstract class BaseWebSocket implements WebSocket {
             final DataFrame dataFrame = new DataFrame(bytes);
             if (dataFrame.getType() != null) {
                 incoming.offer(dataFrame);
-                if(dataFrame.getType() == FrameType.CLOSING) {
+                if (dataFrame.getType() == FrameType.CLOSING) {
                     onClose();
                 } else {
                     onMessage();

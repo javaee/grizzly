@@ -36,11 +36,13 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
+import com.sun.grizzly.util.ConnectionCloseHandler;
 import com.sun.grizzly.util.SelectionKeyActionAttachment;
 
 import java.io.IOException;
@@ -95,22 +97,7 @@ public class WebSocketEngine {
                 socket = (BaseServerWebSocket) app.createSocket(request, response);
                 app.onConnect(socket);
 
-                final SelectionKey key = task.getSelectionKey();
-                register(asyncExecutor, socket, key);
-                socket.add(new WebSocketListener() {
-                    public void onClose(WebSocket socket) throws IOException {
-                        key.cancel();
-                        key.channel().close();
-                    }
-
-                    public void onConnect(WebSocket socket) {
-                    }
-
-                    public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
-                    }
-                });
-
-                enableRead(task, key);
+                register(asyncExecutor, socket, task);
             } else {
                 ((InternalOutputBuffer) response.getOutputBuffer()).addActiveFilter(new WebSocketOutputFilter());
             }
@@ -121,32 +108,28 @@ public class WebSocketEngine {
     }
 
     private void register(final AsyncExecutor asyncExecutor, final BaseServerWebSocket socket,
-            final SelectionKey selectionKey) {
-        selectionKey.attach(new SelectionKeyActionAttachment() {
-            @Override
-            public boolean timedOut(SelectionKey Key) {
-                return false;
+            final ProcessorTask task) {
+        final SelectionKey key = task.getSelectionKey();
+        key.attach(new WebSocketSelectionKeyActionAttachment(asyncExecutor, socket));
+        socket.add(new KeyWebSocketListener(key));
+        final BaseSelectionKeyHandler handler =
+                (BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler();
+        handler.setConnectionCloseHandler(new ConnectionCloseHandler() {
+            public void locallyClosed(SelectionKey key) {
+                key.cancel();
             }
 
-            public void process(SelectionKey key) {
-                if (key.isValid()) {
-                    if (key.isReadable()) {
-                        final ProcessorTask task = asyncExecutor.getProcessorTask();
-                        try {
-                            socket.doRead();
-                        } catch (IOException e) {
-                            task.setAptCancelKey(true);
-                            task.terminateProcess();
-                            logger.log(Level.INFO, e.getMessage(), e);
-                        }
-                    }
+            public void remotlyClosed(SelectionKey key) {
+                try {
+                    socket.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e.getMessage(), e);
                 }
             }
-
-            @Override
-            public void postProcess(SelectionKey selectionKey1) {
-            }
         });
+
+        enableRead(task, key);
+
     }
 
     final void enableRead(ProcessorTask task, SelectionKey key) {
@@ -176,5 +159,58 @@ public class WebSocketEngine {
 
     public void register(String name, WebSocketApplication app) {
         applications.put(name, app);
+    }
+
+    private static class WebSocketSelectionKeyActionAttachment extends SelectionKeyActionAttachment {
+        private final AsyncExecutor asyncExecutor;
+        private final BaseServerWebSocket socket;
+
+        public WebSocketSelectionKeyActionAttachment(AsyncExecutor asyncExecutor, BaseServerWebSocket socket) {
+            this.asyncExecutor = asyncExecutor;
+            this.socket = socket;
+        }
+
+        @Override
+        public boolean timedOut(SelectionKey Key) {
+            return false;
+        }
+
+        public void process(SelectionKey key) {
+            if (key.isValid()) {
+                if (key.isReadable()) {
+                    final ProcessorTask task = asyncExecutor.getProcessorTask();
+                    try {
+                        socket.doRead();
+                    } catch (IOException e) {
+                        task.setAptCancelKey(true);
+                        task.terminateProcess();
+                        logger.log(Level.INFO, e.getMessage(), e);
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void postProcess(SelectionKey selectionKey1) {
+        }
+    }
+
+    private static class KeyWebSocketListener implements WebSocketListener {
+        private final SelectionKey key;
+
+        public KeyWebSocketListener(SelectionKey key) {
+            this.key = key;
+        }
+
+        public void onClose(WebSocket socket) throws IOException {
+            key.cancel();
+            key.channel().close();
+        }
+
+        public void onConnect(WebSocket socket) {
+        }
+
+        public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
+        }
     }
 }
