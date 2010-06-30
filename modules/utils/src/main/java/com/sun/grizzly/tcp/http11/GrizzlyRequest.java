@@ -77,6 +77,7 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.security.auth.Subject;
+import javax.security.auth.x500.X500Principal;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -88,6 +89,7 @@ import java.security.AccessController;
 import java.security.Principal;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
+import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Enumeration;
@@ -1829,24 +1831,17 @@ public class GrizzlyRequest {
     public Principal getUserPrincipal() {
 
         if (userPrincipal == null) {
-            final Thread t = Thread.currentThread();
-            if (t instanceof WorkerThread) {
-                final SSLEngine engine = ((WorkerThread) t).getSSLEngine();
-                if (engine != null) {
-                    final SSLSession session = engine.getSession();
-                    try {
-                        userPrincipal = session.getPeerPrincipal();
-                    } catch (SSLPeerUnverifiedException sue) {
-                        final Logger logger = LoggerUtils.getLogger();
-                        if (logger.isLoggable(Level.WARNING)) {
-                            logger.log(Level.WARNING, sue.toString());
-                        }
-                        if (logger.isLoggable(Level.FINE)) {
-                            logger.log(Level.FINE, "", sue);
-                        }
-                    }
-                }
+            X509Certificate certs[] = (X509Certificate[])
+                    getAttribute(Globals.CERTIFICATES_ATTR);
+            if ((certs == null) || (certs.length < 1)) {
+                certs = (X509Certificate[])
+                            getAttribute(Globals.SSL_CERTIFICATE_ATTR);
             }
+            if ((certs == null) || (certs.length < 1)) {
+                return null;
+            }
+
+            userPrincipal = certs[0].getSubjectX500Principal();
         }
         return (userPrincipal);
 
