@@ -398,6 +398,8 @@ public interface Transport extends ExceptionHandler {
      */
     public boolean isStopped();
 
+    public boolean isPaused();
+
     public Reader getReader(Connection connection);
 
     public Writer getWriter(Connection connection);

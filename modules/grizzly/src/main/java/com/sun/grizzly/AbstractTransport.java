@@ -207,6 +207,15 @@ public abstract class AbstractTransport implements Transport {
         return currentState == State.STOP || currentState == State.STOPPING;
     }
 
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isPaused() {
+        return (state.getState() == State.PAUSE);
+    }
+
     /**
      * {@inheritDoc}
      */

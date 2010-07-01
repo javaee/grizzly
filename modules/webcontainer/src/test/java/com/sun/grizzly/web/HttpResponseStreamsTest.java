@@ -8,10 +8,18 @@ import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.TransportFactory;
-import com.sun.grizzly.filterchain.*;
-import com.sun.grizzly.http.*;
+import com.sun.grizzly.filterchain.BaseFilter;
+import com.sun.grizzly.filterchain.FilterChainBuilder;
+import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.filterchain.NextAction;
+import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.http.HttpClientFilter;
+import com.sun.grizzly.http.HttpCodecFilter;
+import com.sun.grizzly.http.HttpContent;
+import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
+import com.sun.grizzly.http.server.ServerConfiguration;
 import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
 import com.sun.grizzly.impl.FutureImpl;
@@ -526,11 +534,9 @@ public class HttpResponseStreamsTest extends TestCase {
                         String expectedResult)
     throws Exception {
 
-        GrizzlyWebServer server = new GrizzlyWebServer();
-        GrizzlyWebServer.ServerConfiguration sconfig = server.getServerConfiguration();
+        GrizzlyWebServer server = GrizzlyWebServer.createSimpleServer("/tmp", PORT);
+        ServerConfiguration sconfig = server.getServerConfiguration();
         sconfig.addGrizzlyAdapter(new TestAdapter(strategy), new String[] { "/*" });
-        GrizzlyWebServer.ListenerConfiguration lconfig = server.getListenerConfiguration();
-        lconfig.setPort(PORT);
 
         final FutureImpl<String> parseResult = SafeFutureImpl.create();
         TCPNIOTransport ctransport = TransportFactory.getInstance().createTCPTransport();

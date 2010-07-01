@@ -72,9 +72,10 @@ public class WebServerFilter extends BaseFilter {
     // ------------------------------------------------------------ Constructors
 
 
-    public WebServerFilter(GrizzlyWebServer webServer) {
-        adapter = webServer.getAdapter();
-        scheduledExecutorService = webServer.getScheduledExecutorService();
+    public WebServerFilter(GrizzlyAdapter adapter,
+                           ScheduledExecutorService scheduledExecutorService) {
+        this.adapter = adapter;
+        this.scheduledExecutorService = scheduledExecutorService;
     }
 
 
@@ -93,7 +94,6 @@ public class WebServerFilter extends BaseFilter {
 
             HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
             HttpResponsePacket response = request.getResponse();
-            // TODO we should cache these
             final GrizzlyRequest grizzlyRequest = GrizzlyRequest.create();
             grizzlyRequest.initialize(request, ctx);
             final GrizzlyResponse grizzlyResponse = GrizzlyResponse.create();

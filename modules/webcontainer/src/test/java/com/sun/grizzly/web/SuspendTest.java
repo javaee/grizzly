@@ -15,6 +15,7 @@ import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
@@ -90,12 +91,16 @@ public class SuspendTest {
 
     private void configureWebServer() throws Exception {
         gws = new GrizzlyWebServer();
+        final GrizzlyListener listener =
+                new GrizzlyListener("grizzly",
+                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+                                    PORT);
         if (isSslEnabled) {
-            gws.getListenerConfiguration().setSecure(true);
-            gws.getListenerConfiguration().setSSLEngineConfig(createSSLConfig(true));
+            listener.setSecure(true);
+            listener.setSSLEngineConfig(createSSLConfig(true));
         }
+        gws.addListener(listener);
 
-        gws.getListenerConfiguration().setPort(PORT);
     }
 
     private static SSLEngineConfigurator createSSLConfig(boolean isServer) throws Exception {
@@ -514,7 +519,7 @@ public class SuspendTest {
         builder.add(new HttpClientFilter());
         builder.add(new ClientFilter(testString, checkResponse, resultFuture));
 
-        SocketConnectorHandler connectorHandler = new TCPNIOConnectorHandler(gws.getTransport());
+        SocketConnectorHandler connectorHandler = new TCPNIOConnectorHandler(gws.getListener("grizzly").getTransport());
         connectorHandler.setProcessor(builder.build());
 
         Future<Connection> connectFuture = connectorHandler.connect("localhost", PORT);
