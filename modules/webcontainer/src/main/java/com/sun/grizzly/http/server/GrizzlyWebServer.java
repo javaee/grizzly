@@ -129,12 +129,12 @@ public class GrizzlyWebServer {
      * @param listener the {@link GrizzlyListener} to associate with this
      *  server instance.
      */
-    public void addListener(GrizzlyListener listener) {
+    public void addListener(final GrizzlyListener listener) {
 
         if (!started) {
             listeners.put(listener.getName(), listener);
         } else {
-            ScheduledExecutorService service =
+            final ScheduledExecutorService service =
                     configureScheduledThreadPool(listener);
             configureListener(listener, service);
             if (!listener.isStarted()) {
@@ -159,7 +159,7 @@ public class GrizzlyWebServer {
      * @return the {@link GrizzlyListener}, if any, associated with the
      *  specified <code>name</code>.
      */
-    public GrizzlyListener getListener(String name) {
+    public GrizzlyListener getListener(final String name) {
 
         return listeners.get(name);
         
@@ -179,11 +179,11 @@ public class GrizzlyWebServer {
      *
      * @param name the name of the {@link GrizzlyListener} to remove.
      */
-    public GrizzlyListener removeListener(String name) {
+    public GrizzlyListener removeListener(final String name) {
 
-        GrizzlyListener listener = listeners.remove(name);
+        final GrizzlyListener listener = listeners.remove(name);
         if (listener != null) {
-            ScheduledExecutorService service = services.remove(name);
+            final ScheduledExecutorService service = services.remove(name);
             if (listener.isStarted()) {
                 try {
                     stopScheduledThreadPool(service);
@@ -225,8 +225,8 @@ public class GrizzlyWebServer {
 
 
 
-        for (GrizzlyListener listener : listeners.values()) {
-            ScheduledExecutorService service =
+        for (final GrizzlyListener listener : listeners.values()) {
+            final ScheduledExecutorService service =
                     configureScheduledThreadPool(listener);
             configureListener(listener, service);
             try {
@@ -305,8 +305,8 @@ public class GrizzlyWebServer {
                 adapter = null;
             }
 
-            String[] names = listeners.keySet().toArray(new String[listeners.size()]);
-            for (String name : names) {
+            final String[] names = listeners.keySet().toArray(new String[listeners.size()]);
+            for (final String name : names) {
                 removeListener(name);
             }
 
@@ -314,8 +314,8 @@ public class GrizzlyWebServer {
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, null, e);
         } finally {
-            for (GrizzlyListener listener : listeners.values()) {
-                Processor p = listener.getTransport().getProcessor();
+            for (final GrizzlyListener listener : listeners.values()) {
+                final Processor p = listener.getTransport().getProcessor();
                 if (p instanceof FilterChain) {
                     ((FilterChain) p).clear();
                 }
@@ -333,12 +333,12 @@ public class GrizzlyWebServer {
      * on {@link GrizzlyListener#DEFAULT_NETWORK_HOST}:{@link GrizzlyListener#DEFAULT_NETWORK_PORT},
      * using the specified <code>path</code> as the server's document root.
      */
-    public static GrizzlyWebServer createSimpleServer(String path) {
+    public static GrizzlyWebServer createSimpleServer(final String path) {
 
-        GrizzlyWebServer server = new GrizzlyWebServer();
-        ServerConfiguration config = server.getServerConfiguration();
+        final GrizzlyWebServer server = new GrizzlyWebServer();
+        final ServerConfiguration config = server.getServerConfiguration();
         config.setWebResourcesPath(path);
-        GrizzlyListener listener = new GrizzlyListener("grizzly");
+        final GrizzlyListener listener = new GrizzlyListener("grizzly");
         server.addListener(listener);
         return server;
 
@@ -353,14 +353,15 @@ public class GrizzlyWebServer {
      * on {@link GrizzlyListener#DEFAULT_NETWORK_HOST}:<code>port</code>,
      * using the specified <code>path</code> as the server's document root.
      */
-    public static GrizzlyWebServer createSimpleServer(String path, int port) {
+    public static GrizzlyWebServer createSimpleServer(final String path, int port) {
 
-        GrizzlyWebServer server = new GrizzlyWebServer();
-        ServerConfiguration config = server.getServerConfiguration();
+        final GrizzlyWebServer server = new GrizzlyWebServer();
+        final ServerConfiguration config = server.getServerConfiguration();
         config.setWebResourcesPath(path);
-        GrizzlyListener listener = new GrizzlyListener("grizzly",
-                                                       GrizzlyListener.DEFAULT_NETWORK_HOST,
-                                                       port);
+        final GrizzlyListener listener =
+                new GrizzlyListener("grizzly",
+                                    GrizzlyListener.DEFAULT_NETWORK_HOST,
+                                    port);
         server.addListener(listener);
         return server;
         
@@ -371,12 +372,12 @@ public class GrizzlyWebServer {
     // --------------------------------------------------------- Private Methods
 
 
-    private void configureListener(GrizzlyListener listener,
-                                   ScheduledExecutorService service) {
+    private void configureListener(final GrizzlyListener listener,
+                                   final ScheduledExecutorService service) {
 
         FilterChain chain = listener.getFilterChain();
         if (chain == null) {
-            FilterChainBuilder builder = FilterChainBuilder.stateless();
+            final FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
             builder.add(new IdleTimeoutFilter(listener.getKeepAliveTimeoutInSeconds(),
                                              TimeUnit.SECONDS));
@@ -393,9 +394,9 @@ public class GrizzlyWebServer {
                 }
                 builder.add(new SSLFilter(sslConfig, null));
             }
-            int maxHeaderSize = ((listener.getMaxHttpHeaderSize() == -1)
-                                 ? HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
-                                 : listener.getMaxHttpHeaderSize());
+            final int maxHeaderSize = ((listener.getMaxHttpHeaderSize() == -1)
+                                        ? HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
+                                        : listener.getMaxHttpHeaderSize());
             builder.add(new HttpServerFilter(maxHeaderSize));
             builder.add(new WebServerFilter(getAdapter(), service));
             chain = builder.build();
@@ -445,7 +446,7 @@ public class GrizzlyWebServer {
      */
     public static void main(String[] args) {
 
-        GrizzlyWebServer server = GrizzlyWebServer.createSimpleServer("/tmp");
+        final GrizzlyWebServer server = GrizzlyWebServer.createSimpleServer("/tmp");
         try {
             server.start();
             System.out.println("Press any key to stop the server...");

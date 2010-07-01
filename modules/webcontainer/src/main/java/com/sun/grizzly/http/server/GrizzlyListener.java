@@ -139,7 +139,7 @@ public class GrizzlyListener {
      *
      * @param name the logical name of the listener.
      */
-    public GrizzlyListener(String name) {
+    public GrizzlyListener(final String name) {
 
         validateArg("name", name);
         this.name = name;
@@ -157,7 +157,7 @@ public class GrizzlyListener {
      * @param name the logical name of the listener.
      * @param host the network host to which this listener will bind.
      */
-    public GrizzlyListener(String name, String host) {
+    public GrizzlyListener(final String name, final String host) {
 
         validateArg("name", name);
         validateArg("host", host);
@@ -177,7 +177,9 @@ public class GrizzlyListener {
      * @param host the network host to which this listener will bind.
      * @param port the network port to which this listener will bind..
      */
-    public GrizzlyListener(String name, String host, int port) {
+    public GrizzlyListener(final String name,
+                           final String host,
+                           final int port) {
 
         validateArg("name", name);
         validateArg("host", name);
@@ -243,7 +245,7 @@ public class GrizzlyListener {
      * @param keepAliveTimeoutInSeconds the number in seconds a connection may
      *  be idle before being timed out.  Values less than zero are ignored.
      */
-    public void setKeepAliveTimeoutInSeconds(int keepAliveTimeoutInSeconds) {
+    public void setKeepAliveTimeoutInSeconds(final int keepAliveTimeoutInSeconds) {
 
         if (!transport.isStopped()) {
             return;
@@ -280,15 +282,17 @@ public class GrizzlyListener {
      *
      * @param transport a custom {@link TCPNIOTransport} implementation.
      */
-    public void setTransport(TCPNIOTransport transport) {
+    public void setTransport(final TCPNIOTransport transport) {
+
+        if (transport == null) {
+            return;
+        }
 
         if (!transport.isStopped()) {
             return;
         }
 
-        if (transport != null) {
-            this.transport = transport;
-        }
+        this.transport = transport;
 
     }
 
@@ -316,7 +320,7 @@ public class GrizzlyListener {
      *
      * @param secure if <code>true</code> this listener will be secure.
      */
-    public void setSecure(boolean secure) {
+    public void setSecure(final boolean secure) {
 
         if (!transport.isStopped()) {
             return;
@@ -350,7 +354,7 @@ public class GrizzlyListener {
      *
      * @param sslEngineConfig custom SSL configuration.
      */
-    public void setSSLEngineConfig(SSLEngineConfigurator sslEngineConfig) {
+    public void setSSLEngineConfig(final SSLEngineConfigurator sslEngineConfig) {
 
         if (!transport.isStopped()) {
             return;
@@ -382,7 +386,7 @@ public class GrizzlyListener {
      *
      * @param maxHttpHeaderSize the maximum header size for an HTTP request.
      */
-    public void setMaxHttpHeaderSize(int maxHttpHeaderSize) {
+    public void setMaxHttpHeaderSize(final int maxHttpHeaderSize) {
 
         if (!transport.isStopped()) {
             return;
@@ -416,7 +420,7 @@ public class GrizzlyListener {
      *
      * @param filterChain the {@link FilterChain}.
      */
-    public void setFilterChain(FilterChain filterChain) {
+    public void setFilterChain(final FilterChain filterChain) {
 
         if (!transport.isStopped()) {
             return;
@@ -566,7 +570,7 @@ public class GrizzlyListener {
     // --------------------------------------------------------- Private Methods
 
 
-    private static void validateArg(String name, String value) {
+    private static void validateArg(final String name, final String value) {
 
         if (value == null || value.length() == 0) {
             throw new IllegalArgumentException("Argument "
