@@ -48,7 +48,9 @@ import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -163,6 +165,17 @@ public class GrizzlyWebServer {
 
         return listeners.get(name);
         
+    }
+
+
+    /**
+     * @return a <code>read only</code> {@link Iterator} over the listeners
+     *  associated with this <code>GrizzlyWebServer</code> instance.
+     */
+    public Iterator<GrizzlyListener> getListeners() {
+
+        return Collections.unmodifiableMap(listeners).values().iterator();
+
     }
 
 
@@ -380,7 +393,7 @@ public class GrizzlyWebServer {
             final FilterChainBuilder builder = FilterChainBuilder.stateless();
             builder.add(new TransportFilter());
             builder.add(new IdleTimeoutFilter(listener.getKeepAliveTimeoutInSeconds(),
-                                             TimeUnit.SECONDS));
+                                              TimeUnit.SECONDS));
             if (listener.isSecure()) {
                 SSLEngineConfigurator sslConfig = listener.getSslEngineConfig();
                 if (sslConfig == null) {
