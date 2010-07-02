@@ -98,8 +98,8 @@ public class LoggingFormatter extends Formatter {
 	 */
 	public String format(LogRecord record) {
 		
-		// Create a StringBuffer to contain the formatted record
-		StringBuffer sb = new StringBuffer();
+		// Create a StringBuilder to contain the formatted record
+		StringBuilder sb = new StringBuilder();
 		
 		sb.append("[").append(Thread.currentThread().getName()).append("] ");
 		
