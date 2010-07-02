@@ -63,7 +63,7 @@ public interface StreamReader extends Stream {
 
     /**
      * Method returns {@link Future}, using which it's possible check if
-     * <tt>StreamReader</tt> has required amound of bytes available
+     * <tt>StreamReader</tt> has required amount of bytes available
      * for reading reading.
      *
      * @param size number of bytes, which should become available on
@@ -75,7 +75,7 @@ public interface StreamReader extends Stream {
 
     /**
      * Method returns {@link Future}, using which it's possible check if
-     * <tt>StreamReader</tt> has required amound of bytes available
+     * <tt>StreamReader</tt> has required amount of bytes available
      * for reading reading.
      * {@link CompletionHandler} is also passed to get notified, once required
      * number of bytes will become available for reading.
