@@ -193,6 +193,7 @@ public class Response<A> {
     public final static boolean discardDisconnectEvent =
             Boolean.getBoolean("com.sun.grizzly.discardDisconnect");
 
+    private boolean allowCustomReasonPhrase = true;
     
     
     // ------------------------------------------------------------- Properties
@@ -350,6 +351,13 @@ public class Response<A> {
         return errorURI;
     }
 
+    public boolean isAllowCustomReasonPhrase() {
+        return allowCustomReasonPhrase;
+    }
+
+    public void setAllowCustomReasonPhrase(boolean allowCustomReasonPhrase) {
+        this.allowCustomReasonPhrase = allowCustomReasonPhrase;
+    }
 
     // -------------------- Methods --------------------
     

@@ -79,7 +79,6 @@ public class InternalOutputBuffer
 
     // -------------------------------------------------------------- Constants
 
-    private static final boolean USE_CUSTOM_STATUS_MSG_IN_HEADER = false;
 
     // ----------------------------------------------------------- Constructors
 
@@ -522,7 +521,7 @@ public class InternalOutputBuffer
         // Write message
         String message = null;
         // Servlet 3.0, section 5:3, the message from sendError is for content body
-        if (USE_CUSTOM_STATUS_MSG_IN_HEADER) {
+        if (response.isAllowCustomReasonPhrase()) {
             message = response.getMessage();
         }
         if (message == null) {
