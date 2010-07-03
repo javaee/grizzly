@@ -35,9 +35,9 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.http.server.adapter;
 
+import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.util.BufferChunk;
@@ -50,6 +50,7 @@ import com.sun.grizzly.util.http.mapper.MappingData;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * The GrizzlyAdapterChain class allows the invocation of multiple {@link GrizzlyAdapter}s
@@ -61,19 +62,19 @@ import java.util.logging.Level;
  * Below is a simple example using two {@link Servlet}
  * <pre><code>
  *
-        GrizzlyWebServer ws = new GrizzlyWebServer(path);
-        ServletAdapter sa = new ServletAdapter();
-        sa.setRootFolder(".");
-        sa.setServletInstance(new ServletTest("Adapter-1"));
-        ws.addGrizzlyAdapter(sa, new String[]{"/Adapter-1"});
+GrizzlyWebServer ws = new GrizzlyWebServer(path);
+ServletAdapter sa = new ServletAdapter();
+sa.setRootFolder(".");
+sa.setServletInstance(new ServletTest("Adapter-1"));
+ws.addGrizzlyAdapter(sa, new String[]{"/Adapter-1"});
 
-        ServletAdapter sa2 = new ServletAdapter();
-        sa2.setRootFolder("/tmp");
-        sa2.setServletInstance(new ServletTest("Adapter-2"));
-        ws.addGrizzlyAdapter(sa2, new String[]{"/Adapter-2"});
+ServletAdapter sa2 = new ServletAdapter();
+sa2.setRootFolder("/tmp");
+sa2.setServletInstance(new ServletTest("Adapter-2"));
+ws.addGrizzlyAdapter(sa2, new String[]{"/Adapter-2"});
 
-        System.out.println("Grizzly WebServer listening on port 8080");
-        ws.start();
+System.out.println("Grizzly WebServer listening on port 8080");
+ws.start();
  *
  * </code></pre>
  *
@@ -83,34 +84,28 @@ import java.util.logging.Level;
  * @author Jeanfrancois Arcand
  */
 public class GrizzlyAdapterChain extends GrizzlyAdapter {
+    private static final Logger logger = Grizzly.logger(GrizzlyAdapterChain.class);
 
     private UDecoder urlDecoder = new UDecoder();
     protected final static int MAPPING_DATA = 12;
     protected final static int MAPPED_ADAPTER = 13;
-
     /**
      * The list of {@link GrizzlyAdapter} instance.
      */
     private ConcurrentHashMap<GrizzlyAdapter, String[]> adapters =
             new ConcurrentHashMap<GrizzlyAdapter, String[]>();
-
     /**
      * Internal {@link com.sun.grizzly.util.http.mapper.Mapper} used to Map request to their associated {@link GrizzlyAdapter}
      */
     private Mapper mapper = new Mapper();
-
-
     /**
      * The default host.
      */
-    private final static String LOCAL_HOST="localhost";
-
+    private final static String LOCAL_HOST = "localhost";
     /**
      * Use the deprecated mechanism.
      */
     private boolean oldMappingAlgorithm = false;
-
-
     /**
      * Flag indicating this GrizzlyAdapter has been started.  Any subsequent
      * GrizzlyAdapter instances added to this chain after is has been started
@@ -118,18 +113,16 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      */
     private boolean started;
 
-
-    public GrizzlyAdapterChain(){
+    public GrizzlyAdapterChain() {
         mapper.setDefaultHostName(LOCAL_HOST);
         setHandleStaticResources(false);
         // We will decode it
         setDecodeUrl(false);
     }
 
-
     @Override
-    public void start(){
-        for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
+    public void start() {
+        for (Entry<GrizzlyAdapter, String[]> entry : adapters.entrySet()) {
             entry.getKey().start();
         }
         started = true;
@@ -146,12 +139,12 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         if (isHandleStaticResources()) {
             super.service(request, response);
         }
-        if (oldMappingAlgorithm){
+        if (oldMappingAlgorithm) {
             int i = 0;
             int size = adapters.size();
-            for (Entry<GrizzlyAdapter,String[]> entry: adapters.entrySet()){
+            for (Entry<GrizzlyAdapter, String[]> entry : adapters.entrySet()) {
                 entry.getKey().service(request, response);
-                if (response.getStatus() == 404 && i != size -1){
+                if (response.getStatus() == 404 && i != size - 1) {
                     // Reset the
                     response.setStatus(200, "OK");
                 } else {
@@ -161,14 +154,14 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         } else {
             //Request req = request.getRequest();
             MappingData mappingData = null;
-            try{
+            try {
                 RequestURIRef uriRef = request.getRequest().getRequestURIRef();
                 BufferChunk decodedURI = uriRef.getDecodedRequestURIBC();
                 //MessageBytes decodedURI = req.decodedURI();
                 //decodedURI.duplicate(req.requestURI());
                 // TODO: cleanup notes (int version/string version)
-                mappingData = (MappingData)request.getNote("MAPPING_DATA");
-                if (mappingData == null){
+                mappingData = (MappingData) request.getNote("MAPPING_DATA");
+                if (mappingData == null) {
                     mappingData = new MappingData();
                     request.setNote("MAPPING_DATA", mappingData);
                 } else {
@@ -177,14 +170,14 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
 
                 // Map the request without any trailing.
                 //ByteChunk uriBB = decodedURI.getByteChunk();
-                int semicolon = decodedURI.indexOf(';',0);
-                if (semicolon > 0){
+                int semicolon = decodedURI.indexOf(';', 0);
+                if (semicolon > 0) {
                     decodedURI.setBuffer(decodedURI.getBuffer(), decodedURI.getStart(), semicolon);
                 }
 
                 //HttpRequestURIDecoder.decode(decodedURI,urlDecoder,null,null);
-                if (mappingData==null) {
-                    mappingData = (MappingData)request.getNote("MAPPING_DATA");
+                if (mappingData == null) {
+                    mappingData = (MappingData) request.getNote("MAPPING_DATA");
                 }
 
                 // TODO Mapper needs to be changes to not rely on MessageBytes/
@@ -199,26 +192,26 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
 
                 GrizzlyAdapter adapter = null;
                 if (mappingData.context != null && mappingData.context instanceof GrizzlyAdapter) {
-                    if (mappingData.wrapper != null){
-                        adapter = (GrizzlyAdapter)mappingData.wrapper;
+                    if (mappingData.wrapper != null) {
+                        adapter = (GrizzlyAdapter) mappingData.wrapper;
                     } else {
-                        adapter = (GrizzlyAdapter)mappingData.context;
+                        adapter = (GrizzlyAdapter) mappingData.context;
                     }
                     // We already decoded the URL.
                     adapter.setDecodeUrl(false);
                     adapter.service(request, response);
                 } else {
                     response.getResponse().setStatus(404);
-                    customizedErrorPage(request,response);
+                    customizedErrorPage(request, response);
                 }
-            } catch (Throwable t){
-               try{
+            } catch (Throwable t) {
+                try {
                     response.setStatus(404);
                     if (logger.isLoggable(Level.FINE)) {
                         logger.log(Level.FINE, "Invalid URL: " + request.getRequestURI(), t);
                     }
-                    customizedErrorPage(request,response);
-                } catch (Exception ex2){
+                    customizedErrorPage(request, response);
+                } catch (Exception ex2) {
                     if (logger.isLoggable(Level.WARNING)) {
                         logger.log(Level.WARNING, "Unable to error page", ex2);
                     }
@@ -227,16 +220,15 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
         }
     }
 
-
     /**
      * Add a {@link GrizzlyAdapter} to the chain.
      * @param {@link GrizzlyAdapter} to the chain.
      * @deprecated - uses {@link com.sun.grizzly.http.server.apapter.GrizzlyAdapterChain#addGrizzlyAdapter(GrizzlyAdapter , String[])}
      */
-    public void addGrizzlyAdapter(GrizzlyAdapter adapter){
+    public void addGrizzlyAdapter(GrizzlyAdapter adapter) {
         oldMappingAlgorithm = true;
         adapter.start();
-        adapters.put(adapter,new String[]{""});
+        adapters.put(adapter, new String[]{""});
     }
 
     /**
@@ -245,37 +237,37 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      * @param adapter {@link GrizzlyAdapter} instance
      * @param mappings an array of mapping.
      */
-    public void addGrizzlyAdapter(GrizzlyAdapter adapter, String[] mappings){
-        if (oldMappingAlgorithm){
-            throw new IllegalStateException("Cannot mix addGrizzlyAdapter(GrizzlyAdapter) " +
-                    "and addGrizzlyAdapter(GrizzlyAdapter,String[]");
+    public void addGrizzlyAdapter(GrizzlyAdapter adapter, String[] mappings) {
+        if (oldMappingAlgorithm) {
+            throw new IllegalStateException("Cannot mix addGrizzlyAdapter(GrizzlyAdapter) "
+                    + "and addGrizzlyAdapter(GrizzlyAdapter,String[]");
         }
 
-        if (mappings.length == 0){
+        if (mappings.length == 0) {
             addGrizzlyAdapter(adapter);
         } else {
             adapter.start();
-            adapters.put(adapter,mappings);
-            for(String mapping: mappings){
+            adapters.put(adapter, mappings);
+            for (String mapping : mappings) {
                 String ctx = getContextPath(mapping);
                 mapper.addContext(LOCAL_HOST, ctx, adapter,
-                        new String[] {"index.html", "index.htm"}, null);
-                mapper.addWrapper(LOCAL_HOST, ctx,mapping.substring(ctx.length()), adapter);
+                        new String[]{"index.html", "index.htm"}, null);
+                mapper.addWrapper(LOCAL_HOST, ctx, mapping.substring(ctx.length()), adapter);
             }
         }
     }
 
-    private String getContextPath(String mapping){
-       String ctx = "";
-        int slash = mapping.indexOf("/",1);
+    private String getContextPath(String mapping) {
+        String ctx = "";
+        int slash = mapping.indexOf("/", 1);
         if (slash != -1) {
-            ctx = mapping.substring(0,slash);
+            ctx = mapping.substring(0, slash);
         } else {
             ctx = mapping;
         }
 
-        if (ctx.startsWith("/*")){
-            ctx= "";
+        if (ctx.startsWith("/*")) {
+            ctx = "";
         }
 
         // Special case for the root context
@@ -286,8 +278,8 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     }
 
     @Override
-    public void destroy(){
-        for (Entry<GrizzlyAdapter,String[]> adapter: adapters.entrySet()){
+    public void destroy() {
+        for (Entry<GrizzlyAdapter, String[]> adapter : adapters.entrySet()) {
             adapter.getKey().destroy();
         }
     }
@@ -296,18 +288,19 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
      * Remove a {@link GrizzlyAdapter}
      * @return <tt>true</tt> if removed
      */
-    public boolean removeAdapter(GrizzlyAdapter adapter){
-        if (adapter == null) throw new IllegalStateException();
+    public boolean removeAdapter(GrizzlyAdapter adapter) {
+        if (adapter == null) {
+            throw new IllegalStateException();
+        }
         String[] mappings = adapters.remove(adapter);
-        if (mappings != null){
-            for (String mapping : mappings){
+        if (mappings != null) {
+            for (String mapping : mappings) {
                 String ctx = getContextPath(mapping);
-                mapper.removeContext(LOCAL_HOST,ctx);
+                mapper.removeContext(LOCAL_HOST, ctx);
             }
             adapter.destroy();
         }
 
         return (mappings != null);
     }
-
 }

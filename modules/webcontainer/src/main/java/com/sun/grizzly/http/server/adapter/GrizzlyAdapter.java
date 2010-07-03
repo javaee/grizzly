@@ -38,11 +38,6 @@
 
 package com.sun.grizzly.http.server.adapter;
 
-
-
-
-import com.sun.grizzly.http.server.GrizzlyWebServer;
-
 /**
  * Base class to use when GrizzlyRequest/Response/InputStream/OutputStream
  * are needed to implement a customized HTTP container/extendion to the
@@ -208,23 +203,6 @@ public class GrizzlyAdapter extends StaticResourcesAdapter {
 //            }
 //        }
 //    }
-
-
-    /**
-     * Called when the {@link com.sun.grizzly.http.server.apapter.GrizzlyAdapter}'s container is started by invoking
-     * {@link GrizzlyWebServer#start} or when {@linl SelectorThread.start}. By default,
-     * it does nothing.
-     */
-    public void start() {}
-
-
-    /**
-     * Invoked when the {@link GrizzlyWebServer} or {@link SelectorThread}
-     * is stopped or removed. By default, this method does nothing. Just override
-     * the method if you need to clean some resource.
-     */
-    public void destroy(){}
-
 
     /**
      * Return true if this class should handle static resources.

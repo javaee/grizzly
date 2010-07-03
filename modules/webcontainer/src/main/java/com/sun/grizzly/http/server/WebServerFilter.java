@@ -72,10 +72,9 @@ public class WebServerFilter extends BaseFilter {
     // ------------------------------------------------------------ Constructors
 
 
-    public WebServerFilter(GrizzlyAdapter adapter,
-                           ScheduledExecutorService scheduledExecutorService) {
-        this.adapter = adapter;
-        this.scheduledExecutorService = scheduledExecutorService;
+    public WebServerFilter(GrizzlyWebServer webServer) {
+        adapter = webServer.getAdapter();
+        scheduledExecutorService = webServer.getScheduledExecutorService();
     }
 
 

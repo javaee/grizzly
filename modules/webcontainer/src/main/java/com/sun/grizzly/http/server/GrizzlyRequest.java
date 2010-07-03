@@ -194,6 +194,7 @@ public class GrizzlyRequest{
      */
     static{
         sessionExpirer.scheduleAtFixedRate(new Runnable(){
+            @Override
             public void run(){
                 long currentTime = System.currentTimeMillis();
                 Iterator<Map.Entry<String,GrizzlySession>> iterator = sessions.entrySet().iterator();
@@ -1762,6 +1763,10 @@ public class GrizzlyRequest{
      */
     public Principal getUserPrincipal() {
         return (userPrincipal);
+    }
+
+    public FilterChainContext getContext() {
+        return ctx;
     }
 
     protected String unescape(String s) {

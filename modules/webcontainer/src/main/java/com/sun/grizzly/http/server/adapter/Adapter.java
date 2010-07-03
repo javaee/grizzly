@@ -101,4 +101,19 @@ public interface Adapter {
      */
     void afterService(GrizzlyRequest req, GrizzlyResponse res)
     throws Exception;
+
+    /**
+     * Called when the {@link com.sun.grizzly.http.server.apapter.GrizzlyAdapter}'s container is started by invoking
+     * {@link GrizzlyWebServer#start} or when {@linl SelectorThread.start}. By default,
+     * it does nothing.
+     */
+    public void start();
+
+
+    /**
+     * Invoked when the {@link GrizzlyWebServer} or {@link SelectorThread}
+     * is stopped or removed. By default, this method does nothing. Just override
+     * the method if you need to clean some resource.
+     */
+    public void destroy();
 }

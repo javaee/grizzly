@@ -35,15 +35,17 @@
  * holder.
  *
  */
-
-
 package com.sun.grizzly.http.server.adapter;
 
+import com.sun.grizzly.Grizzly;
+import com.sun.grizzly.filterchain.Filter;
+import com.sun.grizzly.filterchain.FilterChain;
+import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.http.server.FileCacheFilter;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
+import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.http.server.io.OutputBuffer;
-import com.sun.grizzly.tcp.FileOutputBuffer;
-import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.http.HtmlHelper;
 import com.sun.grizzly.util.http.MimeType;
 
@@ -51,8 +53,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -69,53 +69,45 @@ import java.util.logging.Logger;
  * @author Jeanfrancois Arcand
  */
 public class StaticResourcesAdapter implements Adapter {
-
-    private final static String USE_SEND_FILE =
-        "com.sun.grizzly.http.useSendFile";
-
-
-    protected String rootFolder = ".";
+    private static Logger logger = Grizzly.logger(StaticResourcesAdapter.class);
+    
+    protected volatile File rootFolder;
 
     protected String resourcesContextPath = "";
-
-    protected File webDir = null;
-
-    protected ConcurrentHashMap<String,File> cache
-        = new ConcurrentHashMap<String,File>();
-
-    protected Logger logger = LoggerUtils.getLogger();
-
-    private boolean useSendFile = true;
 
     /**
      * Commit the 404 response automatically.
      */
     protected boolean commitErrorResponse = true;
 
-    private ReentrantLock initializedLock = new ReentrantLock();
-
+    private volatile int fileCacheFilterIdx = -1;
 
     public StaticResourcesAdapter() {
         this(".");
     }
 
-
     public StaticResourcesAdapter(String rootFolder) {
-        this.rootFolder = rootFolder;
-
-        // Ugly workaround
-        // See Issue 327
-        if (System.getProperty("os.name").equalsIgnoreCase("linux")
-                && !System.getProperty("java.version").startsWith("1.7")) {
-            useSendFile = false;
-        }
-
-        if (System.getProperty(USE_SEND_FILE)!= null){
-            useSendFile = Boolean.valueOf(System.getProperty(USE_SEND_FILE));
-            logger.info("Send-file enabled:" + useSendFile);
-        }
+        setRootFolder(rootFolder);
     }
 
+    public StaticResourcesAdapter(File rootFolder) {
+        setRootFolder(rootFolder);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void start() {
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void destroy(){
+    }
 
     /**
      * Based on the {@link com.sun.grizzly.tcp.Request} URI, try to map the file from the
@@ -124,24 +116,24 @@ public class StaticResourcesAdapter implements Adapter {
      * @param res the {@link com.sun.grizzly.tcp.Response}
      * @throws Exception
      */
+    @Override
     public void service(GrizzlyRequest req, final GrizzlyResponse res) throws Exception {
         String uri = req.getRequestURI();
         if (uri.indexOf("..") >= 0 || !uri.startsWith(resourcesContextPath)) {
             res.setStatus(404);
-            if (commitErrorResponse){
-                customizedErrorPage(req,res);
+            if (commitErrorResponse) {
+                customizedErrorPage(req, res);
             }
             return;
         }
 
         // We map only file that take the form of name.extension
-        if (uri.indexOf(".") != -1){
+        if (uri.indexOf(".") != -1) {
             uri = uri.substring(resourcesContextPath.length());
         }
 
         service(uri, req, res);
     }
-
 
     /**
      * Lookup a resource based on the request URI, and send it using send file.
@@ -151,19 +143,14 @@ public class StaticResourcesAdapter implements Adapter {
      * @param res the {@link com.sun.grizzly.tcp.Response}
      * @throws Exception
      */
-    protected void service(String uri,
-                           GrizzlyRequest req,
-                           final GrizzlyResponse res) throws Exception {
+    protected void service(final String uri,
+            final GrizzlyRequest req,
+            final GrizzlyResponse res) throws Exception {
+        
         FileInputStream fis = null;
-        try{
-            initWebDir();
-
+        try {
             // local file
-            File resource = cache.get(uri);
-            if (resource == null){
-                resource = new File(webDir, uri);
-                cache.put(uri,resource);
-            }
+            File resource = new File(rootFolder, uri);
 
             if (resource.isDirectory()) {
                 //req.action( ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE , null);
@@ -180,24 +167,24 @@ public class StaticResourcesAdapter implements Adapter {
             }
 
             if (!resource.exists()) {
-                if (logger.isLoggable(Level.FINE)){
-                    logger.log(Level.FINE,"File not found  " + resource);
+                if (logger.isLoggable(Level.FINE)) {
+                    logger.log(Level.FINE, "File not found  " + resource);
                 }
                 //res.setStatus(404);
                 //res.setReasonPhrase("Not Found");
                 res.setStatus(404, "NotFound");
-                if (commitErrorResponse){
-                    customizedErrorPage(req,res);
+                if (commitErrorResponse) {
+                    customizedErrorPage(req, res);
                 }
                 return;
             }
             res.setStatus(200, "OK");
 
-            int dot=uri.lastIndexOf(".");
-            if( dot > 0 ) {
-                String ext=uri.substring(dot+1);
-                String ct= MimeType.get(ext);
-                if( ct!=null) {
+            int dot = uri.lastIndexOf(".");
+            if (dot > 0) {
+                String ext = uri.substring(dot + 1);
+                String ct = MimeType.get(ext);
+                if (ct != null) {
                     res.setContentType(ct);
                 }
             } else {
@@ -207,6 +194,7 @@ public class StaticResourcesAdapter implements Adapter {
             long length = resource.length();
             res.setContentLengthLong(length);
 
+            addToFileCache(req, resource);
             // Send the header, and flush the bytes as we will now move to use
             // send file.
             res.flush();
@@ -215,33 +203,21 @@ public class StaticResourcesAdapter implements Adapter {
             fis = new FileInputStream(resource);
             OutputBuffer outputBuffer = res.getOutputBuffer();
 
-            if (useSendFile &&
-                    (outputBuffer instanceof FileOutputBuffer) &&
-                    ((FileOutputBuffer) outputBuffer).isSupportFileSend()) {
-                res.flush();
-
-                long nWrite = 0;
-                while (nWrite < length) {
-                    nWrite += ((FileOutputBuffer) outputBuffer).
-                            sendFile(fis.getChannel(), nWrite, length - nWrite);
-                }
-            } else {
-                byte b[] = new byte[8192];
-                int rd;
-                while ((rd = fis.read(b)) > 0) {
-                    //chunk.setBytes(b, 0, rd);
-                    outputBuffer.write(b, 0, rd);
-                }
+            byte b[] = new byte[8192];
+            int rd;
+            while ((rd = fis.read(b)) > 0) {
+                //chunk.setBytes(b, 0, rd);
+                outputBuffer.write(b, 0, rd);
             }
         } finally {
-            if (fis != null){
-                try{
+            if (fis != null) {
+                try {
                     fis.close();
-                } catch (IOException ignore){}
+                } catch (IOException ignore) {
+                }
             }
         }
     }
-
 
     /**
      * Customize the error pahe
@@ -250,7 +226,7 @@ public class StaticResourcesAdapter implements Adapter {
      * @throws Exception
      */
     protected void customizedErrorPage(GrizzlyRequest req, GrizzlyResponse res)
-    throws Exception {
+            throws Exception {
 
         /**
          * With Grizzly, we just return a 404 with a simple error message.
@@ -259,7 +235,7 @@ public class StaticResourcesAdapter implements Adapter {
         //res.setStatus(404);
         //res.setReasonPhrase("Not Found");
         // TODO re-implement
-        ByteBuffer bb = HtmlHelper.getErrorPage("Not Found","HTTP/1.1 404 Not Found\r\n", "Grizzly");
+        ByteBuffer bb = HtmlHelper.getErrorPage("Not Found", "HTTP/1.1 404 Not Found\r\n", "Grizzly");
         res.setContentLength(bb.limit());
         res.setContentType("text/html");
         //res.flush();  // TODO do we need a flushHeaders?
@@ -271,7 +247,6 @@ public class StaticResourcesAdapter implements Adapter {
         out.close();
         //req.setNote(14, "SkipAfterService");
     }
-
 
     /**
      * Finish the {@link com.sun.grizzly.tcp.Response} and recycle the {@link com.sun.grizzly.tcp.Request} and the
@@ -288,83 +263,41 @@ public class StaticResourcesAdapter implements Adapter {
         //    req.setNote(14, null);
         //    return;
         //}
-
 //        if (res.getStatus() == 404 && !commitErrorResponse){
 //            return;
 //        }
-
         //try{
         //    req.action( ActionCode.ACTION_POST_REQUEST , null);
         //}catch (Throwable t) {
         //    logger.log(Level.WARNING,"afterService unexpected exception: ",t);
         //}
-
 //        res.finish();
 //        req.recycle();
 //        res.recycle();
     }
 
-
     /**
      * Return the directory from where files will be serviced.
      * @return the directory from where file will be serviced.
      */
-    public String getRootFolder() {
+    public File getRootFolder() {
         return rootFolder;
     }
-
 
     /**
      * Set the directory from where files will be serviced.
      * @param rootFolder the directory from where files will be serviced.
      */
     public void setRootFolder(String rootFolder) {
+        setRootFolder(new File(rootFolder));
+    }
+
+    /**
+     * Set the directory from where files will be serviced.
+     * @param rootFolder the directory from where files will be serviced.
+     */
+    public void setRootFolder(File rootFolder) {
         this.rootFolder = rootFolder;
-    }
-
-
-    /**
-     * Initialize.
-     */
-    protected void initWebDir(){
-        if (webDir == null){
-            try{
-                initializedLock.lock();
-                webDir = new File(rootFolder);
-                try {
-                    rootFolder = webDir.getCanonicalPath();
-                } catch (IOException e) {
-                    logger.log(Level.WARNING,"service()",e);
-                }
-            } finally {
-                initializedLock.unlock();
-            }
-        }
-    }
-
-
-    public void setLogger(Logger logger) {
-        this.logger = logger;
-    }
-
-
-    /**
-     * True if {@link java.io.File#transfertTo} to send a static resources.
-     * @return True if {@link java.io.File#transfertTo} to send a static resources.
-     */
-    public boolean isUseSendFile() {
-        return useSendFile;
-    }
-
-
-    /**
-     * True if {@link java.io.File#transfertTo} to send a static resources, false if
-     * the File needs to be loaded in memory and flushed using {@link java.nio.ByteBuffer}
-     * @param useSendFile True if {@link java.io.File#transfertTo} to send a static resources, false if
-     * the File needs to be loaded in memory and flushed using {@link java.nio.ByteBuffer}
-     */
-    public void setUseSendFile(boolean useSendFile) {
-        this.useSendFile = useSendFile;
     }
 
     /**
@@ -387,5 +320,42 @@ public class StaticResourcesAdapter implements Adapter {
      */
     public void setResourcesContextPath(String resourcesContextPath) {
         this.resourcesContextPath = resourcesContextPath;
+    }
+
+    protected final boolean addToFileCache(GrizzlyRequest req, File resource) {
+        final FilterChainContext fcContext = req.getContext();
+        final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
+        if (fileCacheFilter != null) {
+            final FileCache fileCache = fileCacheFilter.getFileCache();
+            fileCache.add(req.getRequest(), resource);
+            return true;
+        }
+
+        return false;
+    }
+
+    private FileCacheFilter lookupFileCache(final FilterChainContext fcContext) {
+        final FilterChain fc = fcContext.getFilterChain();
+        final int lastFileCacheIdx = fileCacheFilterIdx;
+
+        if (lastFileCacheIdx != -1) {
+            final Filter filter = fc.get(lastFileCacheIdx);
+            if (filter instanceof FileCacheFilter) {
+                return (FileCacheFilter) filter;
+            }
+        }
+
+        final int size = fc.size();
+        for (int i = 0; i < size; i++) {
+            final Filter filter = fc.get(i);
+
+            if (filter instanceof FileCacheFilter) {
+                fileCacheFilterIdx = i;
+                return (FileCacheFilter) filter;
+            }
+        }
+
+        fileCacheFilterIdx = -1;
+        return null;
     }
 }

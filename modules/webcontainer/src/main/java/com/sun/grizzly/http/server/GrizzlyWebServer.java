@@ -46,11 +46,10 @@ import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
+import com.sun.grizzly.http.server.adapter.GrizzlyAdapterChain;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -62,6 +61,9 @@ import com.sun.grizzly.ssl.SSLEngineConfigurator;
 import com.sun.grizzly.ssl.SSLFilter;
 import com.sun.grizzly.threadpool.DefaultWorkerThread;
 import com.sun.grizzly.utils.IdleTimeoutFilter;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
@@ -98,12 +100,7 @@ public class GrizzlyWebServer {
     private final Map<String,GrizzlyListener> listeners =
             new HashMap<String,GrizzlyListener>(2);
 
-    /**
-     * Mapping of {@link ScheduledExecutorService} instance associated
-     * by a {@link GrizzlyListener} name.
-     */
-    private final Map<String,ScheduledExecutorService> services =
-            new HashMap<String,ScheduledExecutorService>(2);
+    private volatile ScheduledExecutorService scheduledExecutorService;
 
 
     // ---------------------------------------------------------- Public Methods
@@ -136,9 +133,7 @@ public class GrizzlyWebServer {
         if (!started) {
             listeners.put(listener.getName(), listener);
         } else {
-            final ScheduledExecutorService service =
-                    configureScheduledThreadPool(listener);
-            configureListener(listener, service);
+            configureListener(listener);
             if (!listener.isStarted()) {
                 try {
                     listener.start();
@@ -164,7 +159,7 @@ public class GrizzlyWebServer {
     public GrizzlyListener getListener(final String name) {
 
         return listeners.get(name);
-        
+
     }
 
 
@@ -173,9 +168,7 @@ public class GrizzlyWebServer {
      *  associated with this <code>GrizzlyWebServer</code> instance.
      */
     public Iterator<GrizzlyListener> getListeners() {
-
         return Collections.unmodifiableMap(listeners).values().iterator();
-
     }
 
 
@@ -196,10 +189,8 @@ public class GrizzlyWebServer {
 
         final GrizzlyListener listener = listeners.remove(name);
         if (listener != null) {
-            final ScheduledExecutorService service = services.remove(name);
             if (listener.isStarted()) {
                 try {
-                    stopScheduledThreadPool(service);
                     listener.stop();
                 } catch (IOException ioe) {
                     if (LOGGER.isLoggable(Level.SEVERE)) {
@@ -212,7 +203,12 @@ public class GrizzlyWebServer {
             }
         }
         return listener;
-        
+
+    }
+
+
+    ScheduledExecutorService getScheduledExecutorService() {
+        return scheduledExecutorService;
     }
 
 
@@ -231,17 +227,15 @@ public class GrizzlyWebServer {
         }
         started = true;
 
+        configureScheduledThreadPool();
+
         adapter = serverConfig.buildAdapter();
         if (adapter != null) {
             adapter.start();
         }
 
-
-
         for (final GrizzlyListener listener : listeners.values()) {
-            final ScheduledExecutorService service =
-                    configureScheduledThreadPool(listener);
-            configureListener(listener, service);
+            configureListener(listener);
             try {
                 listener.start();
             } catch (IOException ioe) {
@@ -284,8 +278,8 @@ public class GrizzlyWebServer {
 //            WebFilter.logger().log(Level.SEVERE, "Enabling JMX failed", ex);
 //        }
 //    }
-    
-    
+
+
     /**
      * Return a {@link Statistics} instance that can be used to gather
      * statistics. By default, the {@link Statistics} object <strong>is not</strong>
@@ -299,19 +293,19 @@ public class GrizzlyWebServer {
 //
 //        return statistics;
 //    }
-    
+
     /**
      * <p>
      * Stops the <code>GrizzlyWebServer</code> instance.
      * </p>
-     */ 
+     */
     public synchronized void stop() {
 
         if (!started) {
             return;
         }
         started = false;
-        
+
         try {
             if (adapter != null) {
                 adapter.destroy();
@@ -323,16 +317,18 @@ public class GrizzlyWebServer {
                 removeListener(name);
             }
 
+            stopScheduledThreadPool();
+            
             TransportFactory.getInstance().close();
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, null, e);
         } finally {
             for (final GrizzlyListener listener : listeners.values()) {
                 final Processor p = listener.getTransport().getProcessor();
-                if (p instanceof FilterChain) {
-                    ((FilterChain) p).clear();
-                }
+            if (p instanceof FilterChain) {
+                ((FilterChain) p).clear();
             }
+        }
             listeners.clear();
         }
 
@@ -377,17 +373,10 @@ public class GrizzlyWebServer {
                                     port);
         server.addListener(listener);
         return server;
-        
-    }
 
+    }    
 
-
-    // --------------------------------------------------------- Private Methods
-
-
-    private void configureListener(final GrizzlyListener listener,
-                                   final ScheduledExecutorService service) {
-
+    private void configureListener(final GrizzlyListener listener) {
         FilterChain chain = listener.getFilterChain();
         if (chain == null) {
             final FilterChainBuilder builder = FilterChainBuilder.stateless();
@@ -411,43 +400,38 @@ public class GrizzlyWebServer {
                                         ? HttpServerFilter.DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE
                                         : listener.getMaxHttpHeaderSize());
             builder.add(new HttpServerFilter(maxHeaderSize));
-            builder.add(new WebServerFilter(getAdapter(), service));
+            builder.add(new FileCacheFilter(this));
+            builder.add(new WebServerFilter(this));
             chain = builder.build();
             listener.setFilterChain(chain);
         }
     }
 
-    private ScheduledExecutorService configureScheduledThreadPool(final GrizzlyListener listener) {
-
-        final String hostPort = listener.getHost() + ':' + listener.getPort();
+    private void configureScheduledThreadPool() {
         final AtomicInteger threadCounter = new AtomicInteger();
 
-        ScheduledExecutorService service = Executors.newScheduledThreadPool(1,
+        scheduledExecutorService = Executors.newScheduledThreadPool(1,
                 new ThreadFactory() {
 
             @Override
             public Thread newThread(Runnable r) {
                 final Thread newThread = new DefaultWorkerThread(
-                        listener.getTransport().getAttributeBuilder(),
-                        "GrizzlyWebServer-(" + hostPort + ")-" + threadCounter.getAndIncrement(),
+                        TransportFactory.getInstance().getDefaultAttributeBuilder(),
+                        "GrizzlyWebServer-" + threadCounter.getAndIncrement(),
                         r);
                 newThread.setDaemon(true);
                 return newThread;
             }
         });
-
-        services.put(listener.getName(), service);
-
-        return service;
-
     }
 
-    private void stopScheduledThreadPool(final ScheduledExecutorService service) {
+    private void stopScheduledThreadPool() {
+        final ScheduledExecutorService localThreadPool = scheduledExecutorService;
+        scheduledExecutorService = null;
 
-        if (service != null) {
-            service.shutdownNow();
+        if (localThreadPool != null) {
+            localThreadPool.shutdownNow();
         }
-
     }
 
 
