@@ -36,6 +36,7 @@
                     <instructions>
                         <Import-Package>com.sun.grizzly.http.res;resolution:=optional,*</Import-Package>
                         <Export-Package>
+                            com.sun.grizzly.localization.*,
                             com.sun.grizzly.util.*,
                             com.sun.grizzly.tcp.*
                         </Export-Package>
@@ -60,5 +61,10 @@
             <artifactId>grizzly-lzma</artifactId>
             <version>${project.version}</version>
         </dependency>
-    </dependencies>
+<!--        <dependency>
+            <groupId>com.sun.grizzly</groupId>
+            <artifactId>grizzly-lzf</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+-->    </dependencies>
 </project>
