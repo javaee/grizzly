@@ -772,7 +772,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     public void logVersion(){
         if (logger.isLoggable(Level.INFO)){
-            logger.info("Starting Grizzly Framework " + Grizzly.getRawVersion() + " - " + (new Date()));
+            logger.info(LogMessages.INFO_GRIZZLY_START(Grizzly.getRawVersion(), new Date()));
         }
     }
 
@@ -1362,29 +1362,21 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     private void displayConfiguration(){
        if (displayConfiguration){
             logger.log(Level.INFO,
-                    "\n Grizzly running on " + System.getProperty("os.name") + "-"
-                    + System.getProperty("os.version") + " under JDK version: "
-                    + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
-                    + "\n\t Thread Pool: "
-                    + threadPool
-                    + "\n\t Read Selector: "
-                    + readThreadsCount
-                    + "\n\t auto-configure: "
-                    + autoConfigure
-                    + "\n\t Using Leader/follower strategy: "
-                    + useLeaderFollowerStrategy
-                    + "\n\t Number of SelectorHandler: "
-                    + selectorHandlers.size()
-                    + "\n\t SelectionKeyHandler: "
-                    + selectionKeyHandler
-                    + "\n\t Context Caching: "
-                    + isAllowContextCaching()
-                    + "\n\t Maximum Accept Retry: "
-                    + maxAcceptRetries
-                    + "\n\t Handler Read/Write I/O Concurrently "
-                    + handleReadWriteConcurrently
-                    + "\n\t ProtocolChainHandler: "
-                    + getProtocolChainInstanceHandler());
+                    LogMessages.INFO_GRIZZLY_CONFIGURATION(
+                    System.getProperty("os.name"),
+                    System.getProperty("os.version"),
+                    System.getProperty("java.version"),
+                    System.getProperty("java.vendor"),
+                    threadPool,
+                    readThreadsCount,
+                    autoConfigure,
+                    useLeaderFollowerStrategy,
+                    selectorHandlers.size(),
+                    selectionKeyHandler,
+                    isAllowContextCaching(),
+                    maxAcceptRetries,
+                    handleReadWriteConcurrently,
+                    getProtocolChainInstanceHandler()));
         }
     }
 
