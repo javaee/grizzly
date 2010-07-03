@@ -302,21 +302,21 @@ public class TCPConnectorHandler extends
             }
         } catch (SocketException ex){
             Controller.logger().log(Level.WARNING,
-                    "setSoLinger exception ",ex);
+                    LogMessages.WARNING_GRIZZLY_CONNECTOR_HANDLER_LINGER_EXCEPTION(), ex);
         }
         
         try{
             socket.setTcpNoDelay(tcpNoDelay);
         } catch (SocketException ex){
             Controller.logger().log(Level.WARNING,
-                    "setTcpNoDelay exception ",ex);
+                    LogMessages.WARNING_GRIZZLY_CONNECTOR_HANDLER_TCPNODELAY_EXCEPTION(), ex);
         }
         
         try{
             socket.setReuseAddress(reuseAddress);
         } catch (SocketException ex){
             Controller.logger().log(Level.WARNING,
-                    "setReuseAddress exception ",ex);
+                    LogMessages.WARNING_GRIZZLY_CONNECTOR_HANDLER_REUSEADDRESS_EXCEPTION(), ex);
         }
     }
     

@@ -748,7 +748,7 @@ public class TCPSelectorHandler implements SelectorHandler, LinuxSpinningWorkaro
                 } catch (InterruptedException ex1) {
                     throw new IOException(ex1.getMessage());
                 }
-                logger.log(Level.WARNING, "Exception accepting channel", ex);
+                logger.log(Level.WARNING, LogMessages.WARNING_GRIZZLY_TCPSELECTOR_HANDLER_ACCEPTCHANNEL_EXCEPTION(), ex);
             }
         } while (!isAccepted && retryNum++ < maxAcceptRetries);
 
