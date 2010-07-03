@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.config;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
 import com.sun.grizzly.config.dom.Protocol;
@@ -270,7 +271,11 @@ public class SSLConfigHolder {
             initializeSSL();
             return true;
         } catch (Exception e) {
-            logger.log(Level.WARNING, "SSL support could not be configured!", e);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
+                           e);
+            }
         }
         return false;
     }
@@ -360,8 +365,11 @@ public class SSLConfigHolder {
                 return provider.getPassword();
             }
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Secure password provider could not " +
-                    "be initialized: " + storePasswordProvider, e);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SECURE_PASSWORD_INITIALIZATION_ERROR(storePasswordProvider),
+                           e);
+            }
         }
 
         return null;
@@ -389,19 +397,28 @@ public class SSLConfigHolder {
                     if (impl != null) {
                         return impl;
                     } else {
-                        logger.log(Level.WARNING, "Unable to load SSLImplementation: {0}",
-                                sslImplClassName);
+                        if (logger.isLoggable(Level.WARNING)) {
+                            logger.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_SSL_IMPLEMENTATION_LOAD_ERROR(sslImplClassName));
+                        }
                         return SSLImplementation.getInstance();
                     }
                 } catch (Exception e) {
-                    logger.log(Level.SEVERE, "Unable to load class " + sslImplClassName, e);
+                    if (logger.isLoggable(Level.SEVERE)) {
+                        logger.log(Level.SEVERE,
+                                   LogMessages.SEVERE_GRIZZLY_CONFIG_SSL_CLASS_LOAD_FAILED_ERROR(sslImplClassName),
+                                   e);
+                    }
                     return SSLImplementation.getInstance();
                 }
             } else {
                 return SSLImplementation.getInstance();
             }
         } catch (Exception e) {
-            logger.log(Level.WARNING, "SSL support could not be configured!", e);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
+                           e);
+            }
         }
 
         return null;
@@ -443,8 +460,9 @@ public class SSLConfigHolder {
                 }
                 final String jsseCipher = getJSSECipher(cipher);
                 if (jsseCipher == null) {
-                    logger.log(Level.WARNING,
-                            "Unrecognized cipher [{0}]", cipher);
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.warning(LogMessages.WARNING_GRIZZLY_CONFIG_SSL_UNKNOWN_CIPHER_ERROR(cipher));
+                    }
                 } else {
                     if (enabledCiphers == null) {
                         enabledCiphers = new HashSet<String>(configuredCiphers.size());
