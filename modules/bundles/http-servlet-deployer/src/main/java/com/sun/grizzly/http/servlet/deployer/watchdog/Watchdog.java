@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.grizzly.http.servlet.deployer.GrizzlyWebServerDeployer;
@@ -52,7 +53,7 @@ import com.sun.grizzly.http.servlet.deployer.conf.DeployableConfiguration;
  * @author Sebastien Dionne
  *
  */
-public class Watchdog implements Callable<Boolean>  {
+public class Watchdog implements Runnable  {
 	
 	private static Logger logger = Logger.getLogger(Watchdog.class.getName());
 	
@@ -116,14 +117,17 @@ public class Watchdog implements Callable<Boolean>  {
 		
 	}
 
-	public Boolean call() throws Exception {
+	public void run() {
 		if(deployer==null || deployer.getWatchDogFolder()==null){
-			return false;
+			return ;
 		}
 		
-		lookForNewFiles(deployer.getWatchDogFolder());
+		try {
+			lookForNewFiles(deployer.getWatchDogFolder());
+		} catch (Exception e) {
+			logger.log(Level.WARNING, "Watchdog problem", e);
+		}
 		
-		return true;
 	}
 
 

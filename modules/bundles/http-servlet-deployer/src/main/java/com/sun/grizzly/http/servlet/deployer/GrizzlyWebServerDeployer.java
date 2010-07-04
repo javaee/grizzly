@@ -146,7 +146,7 @@ public class GrizzlyWebServerDeployer {
             if(watchInterval>0){
             	
             	// schedule next scans
-            	executor.schedule(new Watchdog(this), watchInterval, TimeUnit.SECONDS);
+            	executor.scheduleAtFixedRate(new Watchdog(this), 0, watchInterval, TimeUnit.SECONDS);
             }
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error while launching deployer.", e);
@@ -685,7 +685,6 @@ public class GrizzlyWebServerDeployer {
             } else {
                 // provided parameter but location is not existent
                 throw new IllegalArgumentException("Webdefault location is not existent.");
-
             }
         }
         return result;
