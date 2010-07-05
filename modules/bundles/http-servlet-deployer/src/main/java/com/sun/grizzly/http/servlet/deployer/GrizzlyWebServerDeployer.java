@@ -68,6 +68,8 @@ import com.sun.grizzly.http.servlet.deployer.comparator.WarFileComparator;
 import com.sun.grizzly.http.servlet.deployer.conf.ConfigurationParser;
 import com.sun.grizzly.http.servlet.deployer.conf.DeployableConfiguration;
 import com.sun.grizzly.http.servlet.deployer.conf.DeployerServerConfiguration;
+import com.sun.grizzly.http.servlet.deployer.filter.DeployableFilter;
+import com.sun.grizzly.http.servlet.deployer.filter.ExtensionFileNameFilter;
 import com.sun.grizzly.http.servlet.deployer.watchdog.Watchdog;
 import com.sun.grizzly.http.servlet.deployer.watchdog.WatchedFile;
 import com.sun.grizzly.http.webxml.WebappLoader;
@@ -287,10 +289,6 @@ public class GrizzlyWebServerDeployer {
         String ctx = conf.forcedContext;
         if (ctx == null) {
             ctx = getContext(conf.location);
-            int i = ctx.lastIndexOf('.');
-            if (i > 0) {
-                ctx = ctx.substring(0, i);
-            }
         }
         WarDeploymentConfiguration config = new WarDeploymentConfiguration(ctx, serverLibLoader, defaultWebApp, conf);
         if (logger.isLoggable(Level.FINER)) {
@@ -353,6 +351,14 @@ public class GrizzlyWebServerDeployer {
     private void deployExpandedWar(String location, URLClassLoader serverLibLoader, WebApp defaultWebApp) throws Exception {
         final Map.Entry<String, URLClassLoader> loaderEntry = explodeAndCreateWebAppClassLoader(location, serverLibLoader);
         webxmlPath = loaderEntry.getKey();
+        
+        if(webxmlPath!=null){
+        	webxmlPath = fixPath(webxmlPath);
+        	if(webxmlPath.endsWith("/")){
+        		webxmlPath = webxmlPath.substring(0,webxmlPath.length()-1);
+        	}
+        }
+        
         deploy(webxmlPath, getContext(webxmlPath), webxmlPath + WEB_XML_PATH, loaderEntry.getValue(), defaultWebApp);
     }
 
@@ -428,6 +434,12 @@ public class GrizzlyWebServerDeployer {
                 result = ROOT + result;
             }
         }
+        
+        // cleanup.  Don't want a /hello.war as context
+        int i = result.lastIndexOf('.');
+        if (i > 0) {
+        	result = result.substring(0, i);
+        }
         return result;
     }
 
@@ -475,6 +487,10 @@ public class GrizzlyWebServerDeployer {
         String root = rootFolder;
         if (rootFolder != null) {
             root = fixPath(rootFolder);
+        }
+        
+        if (path != null) {
+        	path = fixPath(path);
         }
 
         if (logger.isLoggable(Level.INFO)) {
@@ -698,43 +714,6 @@ public class GrizzlyWebServerDeployer {
         return mergeTo.mergeWith(webApp);
     }
 
-    public static class DeployableFilter implements FilenameFilter {
-        public boolean accept(File dir, String name) {
-            boolean result;
-            if (name.endsWith(".war")) {
-                result = true;
-            } else {
-
-                // check if it's a expanded folder
-                // and it doesn't need to contains a web.xml
-                // a php application could be deployed
-                File file = new File(dir + File.separator + name);
-
-                result = (file.exists() && file.isDirectory());
-            }
-            return result;
-        }
-    }
-
-    private static class ExtensionFileNameFilter implements FilenameFilter {
-        private List<String> extensions;
-
-        public ExtensionFileNameFilter(List<String> extensions) {
-            this.extensions = Collections.unmodifiableList(extensions);
-        }
-
-        public boolean accept(File dir, String name) {
-            boolean result = false;
-            for (String extension : extensions) {
-                if (name.endsWith(extension)) {
-                    result = true;
-                    break;
-                }
-            }
-            return result;
-        }
-    }
-    
     public Map<String, WatchedFile> getWatchedFileMap(){
     	return watchedFileMap;
     }

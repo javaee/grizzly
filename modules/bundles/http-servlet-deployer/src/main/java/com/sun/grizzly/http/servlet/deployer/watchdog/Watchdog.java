@@ -38,15 +38,15 @@ package com.sun.grizzly.http.servlet.deployer.watchdog;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import com.sun.grizzly.http.servlet.deployer.GrizzlyWebServerDeployer;
-import com.sun.grizzly.http.servlet.deployer.GrizzlyWebServerDeployer.DeployableFilter;
 import com.sun.grizzly.http.servlet.deployer.conf.DeployableConfiguration;
+import com.sun.grizzly.http.servlet.deployer.filter.ExtensionFileNameFilter;
 
 /**
  * 
@@ -81,7 +81,7 @@ public class Watchdog implements Runnable  {
 			throw new FileNotFoundException();
 		}
 		
-		File files[] = file.listFiles(new DeployableFilter());
+		File files[] = file.listFiles(new ExtensionFileNameFilter(Arrays.asList(".war")));
 		
 		for (File f : files) {
 			String context = GrizzlyWebServerDeployer.getContext(f.getPath());

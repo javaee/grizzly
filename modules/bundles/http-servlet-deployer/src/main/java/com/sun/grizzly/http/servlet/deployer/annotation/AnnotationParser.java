@@ -40,6 +40,7 @@ import java.io.FileFilter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.JarURLConnection;
+import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -773,9 +774,19 @@ public class AnnotationParser {
 				
 			} else if("jar".equals(url.getProtocol())){
 				
-				JarURLConnection conn = (JarURLConnection) url.openConnection();
+				String spec = url.getFile();
+
+				int separator = spec.indexOf("!/");
+				/*
+				 * REMIND: we don't handle nested JAR URLs
+				 */
+				if (separator == -1) {
+				    throw new MalformedURLException("no !/ found in url spec:" + spec);
+				}
 				
-				JarFile jar = conn.getJarFile();
+				String filename = spec.substring("file:/".length(),separator);
+				
+				JarFile jar = new JarFile(filename, false);
 				
 				Enumeration<JarEntry> en = jar.entries();
 				
@@ -789,6 +800,8 @@ public class AnnotationParser {
 						list.add(classname);
 					}
 				}
+				
+				jar.close();
 				
 			}
 			
