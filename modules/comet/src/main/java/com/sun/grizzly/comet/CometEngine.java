@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.comet;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.arp.AsyncTask;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.arp.AsyncProcessorTask;
@@ -75,7 +76,7 @@ import java.util.Queue;
  * </code></pre>
  * You can also select the stage where the suspension of the response happens when
  * registering the {@link CometContext}'s topic (see {@link #register}), which can be
- * before, during or after invoking a {@link Servlet}
+ * before, during or after invoking a <code>Servlet</code>
  *
  * @author Jeanfrancois Arcand
  * @author Gustav Trede
@@ -196,7 +197,11 @@ public class CometEngine {
             try {
                 SelectorFactory.changeSelectorsBy(delta);
             } catch (IOException ex) {
-                logger.log(Level.WARNING, "comet failed to resize Selector cache", ex);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_COMET_SELECTOR_CACHE_RESIZE_ERROR(),
+                               ex);
+                }
             }
         }
     }
@@ -285,8 +290,11 @@ public class CometEngine {
                     try{
                         notificationHandler = notificationClass.newInstance();
                     } catch (Throwable t) {
-                        logger.log(Level.SEVERE,"Invalid NotificationHandler class : "
-                                + notificationClass.getName() + " Using default.",t);
+                        if (logger.isLoggable(Level.SEVERE)) {
+                            logger.log(Level.SEVERE,
+                                       LogMessages.SEVERE_GRIZZLY_COMET_ENGINE_INVALID_NOTIFICATION_HANDLER_ERROR(notificationClass.getName()),
+                                       t);
+                        }
                         notificationHandler = new DefaultNotificationHandler();
                     }
                     cometContext.setNotificationHandler(notificationHandler);
@@ -445,10 +453,16 @@ public class CometEngine {
                     logger.log(Level.FINEST,"Resuming Response failed at aptflush",ex);
                 }
             } catch (Throwable ex) {
-                logger.log(Level.SEVERE,"Resuming  failed at aptflush",ex);
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE,
+                               LogMessages.SEVERE_GRIZZLY_COMET_ENGINE_FLUSH_ERROR(),
+                               ex);
+                }
             }
-        }else{
-            logger.warning("APTflush called at wrong stage");
+        } else {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(LogMessages.WARNING_GRIZZLY_COMET_ENGINE_FLUSH_INVALID_STAGE_ERROR());
+            }
         }
     }
 
@@ -486,7 +500,11 @@ public class CometEngine {
                 apt.doTask();
             }                   
         } catch (IOException ex){
-            logger.log(Level.SEVERE,"executeServlet",ex);
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE,
+                           LogMessages.SEVERE_GRIZZLY_COMET_IO_ERROR("CometEngine.executeServlet()"),
+                           ex);
+            }
         }
     }
 

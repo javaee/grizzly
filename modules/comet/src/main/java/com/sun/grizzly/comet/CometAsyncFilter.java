@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.comet;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.http.SelectorThread;
@@ -85,7 +86,11 @@ public class CometAsyncFilter implements AsyncFilter {
                 return true;
             } 
         } catch (IOException ex){
-            logger.log(Level.SEVERE,"CometAsyncFilter",ex);
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE,
+                           LogMessages.SEVERE_GRIZZLY_COMET_IO_ERROR("CometAsyncFilter.doFilter()"),
+                           ex);
+            }
         }
         return false;
     }
