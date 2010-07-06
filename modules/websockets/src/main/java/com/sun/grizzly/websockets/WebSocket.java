@@ -39,13 +39,10 @@ package com.sun.grizzly.websockets;
 import java.io.IOException;
 
 public interface WebSocket {
-    String ENCODING = "UTF-8";
-
-    String WEBSOCKET = "websocket";
 
     void onConnect() throws IOException;
 
-    void onMessage() throws IOException;
+    void onMessage(DataFrame frame) throws IOException;
 
     void onClose() throws IOException;
 
@@ -59,10 +56,10 @@ public interface WebSocket {
      * @throws IOException
      */
     void send(String data) throws IOException;
-    
+
+    void send(DataFrame data) throws IOException;
+
     void close() throws IOException;
 
     boolean isConnected();
-
-    void connect() throws IOException;
 }

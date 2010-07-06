@@ -46,16 +46,15 @@ public enum FrameType {
         public boolean accept(ByteBuffer buffer) {
             int curPosition = buffer.position();
             boolean acceptable = buffer.get() == (byte) 0x00;
-            if (!acceptable) {
-                buffer.position(curPosition);
-            }
+            buffer.position(curPosition);
+
             return acceptable;
         }
 
         @Override
         public byte[] unframe(ByteBuffer buffer) {
             ByteArrayOutputStream raw = new ByteArrayOutputStream();
-            byte b = 0;
+            byte b = buffer.get();
             while (buffer.hasRemaining() && (b = buffer.get()) != (byte) 0xFF) {
                 raw.write(b);
             }
@@ -82,9 +81,8 @@ public enum FrameType {
         public boolean accept(ByteBuffer buffer) {
             int curPosition = buffer.position();
             boolean acceptable = buffer.get() == (byte) 0xFF && buffer.get() == (byte) 0x00;
-            if (!acceptable) {
-                buffer.position(curPosition);
-            }
+            buffer.position(curPosition);
+
             return acceptable;
         }
 

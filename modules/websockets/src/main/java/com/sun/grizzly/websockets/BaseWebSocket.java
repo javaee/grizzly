@@ -37,49 +37,36 @@
 package com.sun.grizzly.websockets;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.Selector;
 import java.util.LinkedHashSet;
-import java.util.Queue;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
-public abstract class BaseWebSocket implements WebSocket {
-    protected enum State {
-        STARTING,
-        CONNECTING,
-        WAITING_ON_HANDSHAKE,
-        READY,
-        CLOSED
+public class BaseWebSocket implements WebSocket {
+    private NetworkHandler networkHandler;
+    protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
+    private final Set<WebSocketListener> listeners = new LinkedHashSet<WebSocketListener>();
+    private final AtomicBoolean connected = new AtomicBoolean(false);
+
+    public BaseWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
+        networkHandler = handler;
+        handler.setWebSocket(this);
+        for (WebSocketListener listener : listeners) {
+            add(listener);
+        }
     }
 
-    protected static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
-    protected State state = State.STARTING;
-    private final Set<WebSocketListener> listeners = new LinkedHashSet<WebSocketListener>();
-    private final Queue<DataFrame> incoming = new ConcurrentLinkedQueue<DataFrame>();
-    private Selector selector;
-    private boolean connected = false;
+    public NetworkHandler getNetworkHandler() {
+        return networkHandler;
+    }
 
     public Set<WebSocketListener> getListeners() {
         return listeners;
     }
 
-    public Selector getSelector() {
-        return selector;
-    }
-
-    public void setSelector(Selector sel) {
-        selector = sel;
-    }
-
     public boolean isConnected() {
-        return connected;
-    }
-
-    public void setConnected(boolean conn) {
-        connected = conn;
+        return connected.get();
     }
 
     public final boolean add(WebSocketListener listener) {
@@ -87,11 +74,8 @@ public abstract class BaseWebSocket implements WebSocket {
     }
 
     public void close() throws IOException {
-        if (state != State.CLOSED) {
-            state = State.CLOSED;
+        if (connected.compareAndSet(true, false)) {
             onClose();
-            connected = false;
-            incoming.clear();
             listeners.clear();
         }
     }
@@ -106,61 +90,24 @@ public abstract class BaseWebSocket implements WebSocket {
         return listeners.remove(listener);
     }
 
-    public void send(String data) {
+    public void send(String data) throws IOException {
         send(new DataFrame(data));
     }
 
-    protected void send(final DataFrame frame) {
-        try {
-            write(frame.frame());
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-    }
-
-    protected DataFrame incoming() {
-        return incoming.poll();
-    }
-
-
-    protected void doConnect() throws IOException {
+    public void send(final DataFrame frame) throws IOException {
+        networkHandler.send(frame);
     }
 
     public void onConnect() throws IOException {
-        connected = true;
         for (WebSocketListener listener : listeners) {
             listener.onConnect(this);
         }
+        connected.compareAndSet(false, true);
     }
 
-    protected void doRead() throws IOException {
-        unframe();
-    }
-
-    public void onMessage() throws IOException {
-        DataFrame frame;
-        while ((frame = incoming()) != null) {
-            for (WebSocketListener listener : listeners) {
-                listener.onMessage(this, frame);
-            }
+    public void onMessage(DataFrame frame) throws IOException {
+        for (WebSocketListener listener : listeners) {
+            listener.onMessage(this, frame);
         }
     }
-
-    protected void unframe(ByteBuffer bytes) throws IOException {
-        while (bytes.hasRemaining()) {
-            final DataFrame dataFrame = new DataFrame(bytes);
-            if (dataFrame.getType() != null) {
-                incoming.offer(dataFrame);
-                if (dataFrame.getType() == FrameType.CLOSING) {
-                    onClose();
-                } else {
-                    onMessage();
-                }
-            }
-        }
-    }
-
-    protected abstract void unframe() throws IOException;
-
-    protected abstract void write(byte[] bytes) throws IOException;
 }

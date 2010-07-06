@@ -37,7 +37,6 @@
  */
 package com.sun.grizzly.samples.websockets;
 
-import com.sun.grizzly.websockets.WebSocket;
 import com.sun.grizzly.websockets.WebSocketEngine;
 
 import javax.servlet.ServletConfig;
@@ -46,7 +45,7 @@ import javax.servlet.http.HttpServlet;
 import java.util.logging.Logger;
 
 public class WebSocketsServlet extends HttpServlet {
-    static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
+    static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final ChatApplication app = new ChatApplication();
 
     @Override

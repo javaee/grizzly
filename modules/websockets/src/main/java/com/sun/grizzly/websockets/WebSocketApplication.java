@@ -36,9 +36,6 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
@@ -52,7 +49,7 @@ public class WebSocketApplication implements WebSocketListener {
 
     private final ReentrantReadWriteLock socketsLock = new ReentrantReadWriteLock();
 
-    private final ReentrantReadWriteLock listenersLock = new ReentrantReadWriteLock();
+//    private final ReentrantReadWriteLock listenersLock = new ReentrantReadWriteLock();
 
     /**
      * Returns a set of {@link WebSocket}s, registered with the application.
@@ -69,7 +66,7 @@ public class WebSocketApplication implements WebSocketListener {
         }
     }
 
-    public boolean add(WebSocket socket) {
+    protected boolean add(WebSocket socket) {
         socketsLock.writeLock().lock();
         try {
             return sockets.add(socket);
@@ -90,26 +87,8 @@ public class WebSocketApplication implements WebSocketListener {
         }
     }
 
-    public boolean add(WebSocketListener listener) {
-        listenersLock.writeLock().lock();
-        try {
-            return listeners.add(listener);
-        } finally {
-            listenersLock.writeLock().unlock();
-        }
-    }
-
-    public boolean remove(WebSocketListener listener) {
-        listenersLock.writeLock().lock();
-        try {
-            return listeners.remove(listener);
-        } finally {
-            listenersLock.writeLock().unlock();
-        }
-    }
-
-    public WebSocket createSocket(Request request, Response response) throws IOException {
-        return new BaseServerWebSocket(this, request, response);
+    public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
+        return new BaseServerWebSocket(handler, listeners);
     }
 
     public void onClose(WebSocket socket) throws IOException {

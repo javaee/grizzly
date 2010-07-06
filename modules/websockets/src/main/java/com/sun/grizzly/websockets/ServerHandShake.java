@@ -60,19 +60,13 @@ public class ServerHandShake extends HandShake {
 
     private final static byte[] protocolResponse = Charset.
             forName("ASCII").encode("\r\nWebSocket-Protocol: ").array();
-    private byte[] serverSecKey;
-
-    public ServerHandShake(final boolean secure, final String origin, final String serverHostName, final String port,
-            final String resourcePath, final String subProtocol) {
-        super(secure, origin, serverHostName, port, resourcePath);
-        setSubProtocol(subProtocol);
-    }
+    private final byte[] serverSecKey;
 
     public ServerHandShake(final boolean secure, final String origin, final String serverHostName, final String port,
             final String resourcePath, final String subProtocol, final SecKey key1, final SecKey key2,
-            final byte[] key3) {
-        this(secure, origin, serverHostName, port, resourcePath, subProtocol);
-        serverSecKey = SecKey.generateServerKey(key1, key2, key3);
+            final byte[] key3) throws HandshakeException {
+        super(secure, origin, serverHostName, port, resourcePath);
+        serverSecKey = key3 == null ? null : SecKey.generateServerKey(key1, key2, key3);
     }
 
     public ByteBuffer generate() {

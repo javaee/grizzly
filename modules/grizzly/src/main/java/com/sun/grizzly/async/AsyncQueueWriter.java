@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -38,6 +38,8 @@
 
 package com.sun.grizzly.async;
 
+import com.sun.grizzly.SelectorHandler;
+
 import java.io.IOException;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
@@ -46,7 +48,7 @@ import java.nio.channels.SelectionKey;
 import java.util.concurrent.Future;
 
 /**
- * Common inteface to be implemented by protocol dependant asynchronous queue 
+ * Common interface to be implemented by protocol dependant asynchronous queue
  * writers implementations
  * 
  * @author Alexey Stashok
@@ -70,9 +72,9 @@ public interface AsyncQueueWriter {
      *            {@link SelectableChannel} {@link ByteBuffer} 
      *            should be written to
      * @param buffer {@link ByteBuffer}
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public Future<AsyncQueueWriteUnit> write(SelectionKey key,
+    Future<AsyncQueueWriteUnit> write(SelectionKey key,
             ByteBuffer buffer) throws IOException;
     
     /**
@@ -96,9 +98,9 @@ public interface AsyncQueueWriter {
      * @param callbackHandler {@link AsyncWriteCallbackHandler}, 
      *                        which will get notified, when 
      *                        {@link ByteBuffer} will be completely written
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public Future<AsyncQueueWriteUnit> write(SelectionKey key,
+    Future<AsyncQueueWriteUnit> write(SelectionKey key,
             ByteBuffer buffer,
             AsyncWriteCallbackHandler callbackHandler) throws IOException;
 
@@ -131,9 +133,9 @@ public interface AsyncQueueWriter {
      * @param writePreProcessor <code>AsyncQueueDataProcessor</code>, which
      *                        will perform data processing, before it will be 
      *                        written on {@link SelectableChannel}
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public Future<AsyncQueueWriteUnit> write(SelectionKey key,
+    Future<AsyncQueueWriteUnit> write(SelectionKey key,
             ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler,
             AsyncQueueDataProcessor writePreProcessor) throws IOException;
 
@@ -166,13 +168,9 @@ public interface AsyncQueueWriter {
      * @param writePreProcessor <code>AsyncQueueDataProcessor</code>, which
      *                        will perform data processing, before it will be 
      *                        written on {@link SelectableChannel}
-     * @param isCloneByteBuffer if true - {@link AsyncQueueWriter} will 
-     *                          clone given 
-     *                          {@link ByteBuffer} before puting it to the 
-     *                          {@link AsyncQueue}
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public Future<AsyncQueueWriteUnit> write(SelectionKey key,
+    Future<AsyncQueueWriteUnit> write(SelectionKey key,
             ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler,
             AsyncQueueDataProcessor writePreProcessor, ByteBufferCloner cloner)
             throws IOException;
@@ -196,9 +194,9 @@ public interface AsyncQueueWriter {
      *            send{@link ByteBuffer} to
      * @param dstAddress destination address {@link ByteBuffer} will be sent to
      * @param buffer {@link ByteBuffer}
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public Future<AsyncQueueWriteUnit> write(SelectionKey key,
+    Future<AsyncQueueWriteUnit> write(SelectionKey key,
             SocketAddress dstAddress, ByteBuffer buffer) throws IOException;
     
     /**
@@ -223,9 +221,9 @@ public interface AsyncQueueWriter {
      * @param callbackHandler {@link AsyncWriteCallbackHandler}, 
      *                        which will get notified, when 
      *                        {@link ByteBuffer} will be completely written
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public Future<AsyncQueueWriteUnit> write(SelectionKey key,
+    Future<AsyncQueueWriteUnit> write(SelectionKey key,
             SocketAddress dstAddress, ByteBuffer buffer,
             AsyncWriteCallbackHandler callbackHandler) throws IOException;
 
@@ -259,9 +257,9 @@ public interface AsyncQueueWriter {
      * @param writePreProcessor <code>AsyncQueueDataProcessor</code>, which
      *                        will perform data processing, before it will be 
      *                        written on {@link SelectableChannel}
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public Future<AsyncQueueWriteUnit> write(SelectionKey key,
+    Future<AsyncQueueWriteUnit> write(SelectionKey key,
             SocketAddress dstAddress,
             ByteBuffer buffer, AsyncWriteCallbackHandler callbackHandler,
             AsyncQueueDataProcessor writePreProcessor) throws IOException;
@@ -296,13 +294,9 @@ public interface AsyncQueueWriter {
      * @param writePreProcessor <code>AsyncQueueDataProcessor</code>, which
      *                        will perform data processing, before it will be 
      *                        written on {@link SelectableChannel}
-     * @param isCloneByteBuffer if true - {@link AsyncQueueWriter} will 
-     *                          clone given 
-     *                          {@link ByteBuffer} before puting it to the 
-     *                          {@link AsyncQueue}
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public Future<AsyncQueueWriteUnit> write(SelectionKey key,
+    Future<AsyncQueueWriteUnit> write(SelectionKey key,
             SocketAddress dstAddress, ByteBuffer buffer,
             AsyncWriteCallbackHandler callbackHandler,
             AsyncQueueDataProcessor writePreProcessor,
@@ -317,7 +311,7 @@ public interface AsyncQueueWriter {
      * @param key {@link SelectionKey} associated with {@link SelectableChannel}
      * @return true, if there is ready data. False otherwise.
      */
-    public boolean isReady(SelectionKey key);
+    boolean isReady(SelectionKey key);
     
     /**
      * Gets ready asynchronous queue elements to be written to the
@@ -329,7 +323,7 @@ public interface AsyncQueueWriter {
      * {@link SelectableChannel}, associated with the
      * given {@link SelectionKey}/
      */
-    public AsyncQueue.AsyncQueueEntry getAsyncQueue(SelectionKey key);
+    AsyncQueue.AsyncQueueEntry getAsyncQueue(SelectionKey key);
 
     /**
      * Callback method, which should be called by {@link SelectorHandler} to
@@ -337,9 +331,9 @@ public interface AsyncQueueWriter {
      * {@link SelectionKey} is ready to transmit data.
      * 
      * @param key {@link SelectionKey} associated with {@link SelectableChannel}
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public void onWrite(SelectionKey key) throws IOException;
+    void onWrite(SelectionKey key) throws IOException;
     
     /**
      * Callback method, which should be called by {@link SelectorHandler} to
@@ -348,12 +342,12 @@ public interface AsyncQueueWriter {
      * {@link AsyncQueue}
      * 
      * @param {@link SelectableChannel}
-     * @throws java.io.IOException
+     * @throws IOException
      */
-    public void onClose(SelectableChannel channel);
+    void onClose(SelectableChannel channel);
     
     /**
      * Close {@link AsyncQueueWriter} and release its resources
      */
-    public void close();
+    void close();
 }

@@ -35,6 +35,7 @@ var app = {
         $('message-form').style.display = '';
 
         websocket = new WebSocket(app.url);
+        websocket.name = name;
         websocket.onopen = function() {
             // Web Socket is connected. You can send data by send() method
             websocket.send('login:' + name);
@@ -68,7 +69,7 @@ var app = {
     update: function(data) {
         if (data) {
             var p = document.createElement('p');
-            p.innerHTML = data.name + ': ' + data.message;
+            p.innerHTML = data.message;
 
             $('display').appendChild(p);
 

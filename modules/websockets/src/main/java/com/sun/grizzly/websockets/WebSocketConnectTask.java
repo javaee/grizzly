@@ -36,44 +36,45 @@
 
 package com.sun.grizzly.websockets;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.util.logging.Logger;
+import com.sun.grizzly.util.net.URL;
 
-public class EchoServlet extends HttpServlet {
-    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
-    public static final String RESPONSE_TEXT = "Nothing to see";
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.FutureTask;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-    public EchoServlet() {
-        WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
-            public void onMessage(WebSocket socket, DataFrame data) {
-                echo(socket, data);
-            }
+public class WebSocketConnectTask extends FutureTask<WebSocket> {
+    private static final int DEFAULT_TIMEOUT = 30;
 
-            public void onConnect(WebSocket socket) {
-            }
+    public WebSocketConnectTask(final WebSocketClientApplication app, final String address,
+            final WebSocketListener[] listeners) {
+        super(new Callable<WebSocket>() {
+            public WebSocket call() throws Exception {
+                final URL url = new URL(address);
+                final ClientNetworkHandler handler = new ClientNetworkHandler(url, app);
 
-            public void onClose(WebSocket socket) {
+                final List<WebSocketListener> listenerList = new ArrayList<WebSocketListener>(Arrays.asList(listeners));
+                listenerList.add(app);
+                final BaseWebSocket socket = (BaseWebSocket) app
+                        .createSocket(handler, listenerList.toArray(new WebSocketListener[listenerList.size()]));
+                while (!socket.isConnected()) {
+                    Thread.sleep(50);
+                }
+                return socket;
             }
         });
     }
 
-    public void echo(WebSocket socket, DataFrame data) {
-        try {
-            socket.send(data);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e.getMessage(), e);
-        }
-    }
-
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        resp.setContentType("text/plain; charset=iso-8859-1");
-        resp.getWriter().write(RESPONSE_TEXT);
-        resp.getWriter().flush();
+    public WebSocket get() throws InterruptedException, ExecutionException {
+        try {
+            return get(DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            throw new InterruptedException(e.getMessage());
+        }
     }
 }

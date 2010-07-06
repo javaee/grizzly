@@ -1,18 +1,16 @@
 package com.sun.grizzly.samples.websockets;
 
-import com.sun.grizzly.tcp.Request;
-import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.websockets.BaseServerWebSocket;
+import com.sun.grizzly.websockets.NetworkHandler;
+import com.sun.grizzly.websockets.WebSocketListener;
 
 import java.io.IOException;
 
 public class ChatWebSocket extends BaseServerWebSocket {
     private String user;
-    private final ChatApplication app;
 
-    public ChatWebSocket(final ChatApplication listener, Request request, Response response) {
-        super(listener, request, response);
-        app = listener;
+    public ChatWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
+        super(handler, listeners);
     }
 
     public String getUser() {
@@ -24,15 +22,8 @@ public class ChatWebSocket extends BaseServerWebSocket {
     }
 
     @Override
-    public void send(String data) {
+    public void send(String data) throws IOException {
         super.send( toJsonp(getUser(), data) );
-    }
-
-    @Override
-    public void close() throws IOException {
-        WebSocketsServlet.logger.info("closing : " + getUser());
-        app.remove(this);
-        super.close();
     }
 
     private String toJsonp(String name, String message) {

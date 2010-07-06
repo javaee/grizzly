@@ -42,7 +42,7 @@ import java.nio.ByteBuffer;
 import java.util.logging.Logger;
 
 public class DataFrame {
-    private static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
+    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private String payload;
     private byte[] bytes;
     private FrameType type = FrameType.values()[0];
@@ -57,6 +57,10 @@ public class DataFrame {
         }
     }
 
+    public DataFrame(FrameType frameType) {
+        type = frameType;
+    }
+    
     public DataFrame(String data) {
         type = FrameType.TEXT;
         payload = data;
@@ -71,6 +75,10 @@ public class DataFrame {
         return type;
     }
 
+    public void setType(FrameType type) {
+        this.type = type;
+    }
+
     public String getTextPayload() {
         if (payload == null && bytes != null) {
             try {
@@ -80,6 +88,15 @@ public class DataFrame {
             }
         }
         return payload;
+    }
+
+    public void setTextPayload(String payload) {
+        type = FrameType.TEXT;
+        this.payload = payload;
+    }
+
+    public void setBytes(byte[] bytes) {
+        this.bytes = bytes;
     }
 
     public byte[] getBinaryPayload() {

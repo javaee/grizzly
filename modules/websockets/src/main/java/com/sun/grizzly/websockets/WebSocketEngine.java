@@ -36,14 +36,11 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
-import com.sun.grizzly.util.ConnectionCloseHandler;
-import com.sun.grizzly.util.SelectionKeyActionAttachment;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -59,11 +56,16 @@ public class WebSocketEngine {
     public static final String CLIENT_WS_ORIGIN_HEADER = "Origin";
     public static final String SERVER_SEC_WS_ORIGIN_HEADER = "Sec-WebSocket-Origin";
     public static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
+    public static final String WEBSOCKET = "websocket";
 
-    private static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
+    static final Logger logger = Logger.getLogger(WEBSOCKET);
     private static final WebSocketEngine engine = new WebSocketEngine();
     private final Map<String, WebSocketApplication> applications = new HashMap<String, WebSocketApplication>();
     static final int INITIAL_BUFFER_SIZE = 8192;
+
+    private WebSocketEngine() {
+        SecKey.init();
+    }
 
     public static WebSocketEngine getEngine() {
         return engine;
@@ -92,107 +94,33 @@ public class WebSocketEngine {
         try {
             final Response response = request.getResponse();
             ProcessorTask task = asyncExecutor.getProcessorTask();
-            handshake(request, response, task);
-            if (app != null) {
-                socket = (BaseServerWebSocket) app.createSocket(request, response);
-                app.onConnect(socket);
+            final SelectionKey key = task.getSelectionKey();
+            final ServerNetworkHandler handler = new ServerNetworkHandler(asyncExecutor, request, response);
+            socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
+            key.attach(handler);
+            handler.handshake(request, response, task);
 
-                register(asyncExecutor, socket, task);
+            if (app != null) {
+                enableRead(task, key);
             } else {
                 ((InternalOutputBuffer) response.getOutputBuffer()).addActiveFilter(new WebSocketOutputFilter());
             }
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);
+            socket = null;
+        } catch (HandshakeException e) {
+            logger.log(Level.SEVERE, e.getMessage(), e);
+            socket = null;
         }
         return socket;
-    }
-
-    private void register(final AsyncExecutor asyncExecutor, final BaseServerWebSocket socket,
-            final ProcessorTask task) {
-        final SelectionKey key = task.getSelectionKey();
-        key.attach(new WebSocketSelectionKeyActionAttachment(asyncExecutor, socket));
-        socket.add(new KeyWebSocketListener(key));
-        final BaseSelectionKeyHandler handler =
-                (BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler();
-        handler.setConnectionCloseHandler(new ConnectionCloseHandler() {
-            public void locallyClosed(SelectionKey key) {
-                key.cancel();
-            }
-
-            public void remotlyClosed(SelectionKey key) {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e.getMessage(), e);
-                }
-            }
-        });
-
-        enableRead(task, key);
-
     }
 
     final void enableRead(ProcessorTask task, SelectionKey key) {
         task.getSelectorHandler().register(key, SelectionKey.OP_READ);
     }
 
-    private void handshake(Request request, Response response, ProcessorTask task) throws IOException {
-        final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) ||
-                task.getSSLSupport() != null;
-
-        final ClientHandShake clientHS = new ClientHandShake(request, secure);
-
-        final ServerHandShake server;
-        if (clientHS.getKey3() == null) {
-            server = new ServerHandShake(clientHS.isSecure(), clientHS.getOrigin(),
-                    clientHS.getServerHostName(), clientHS.getPort(), clientHS.getResourcePath(),
-                    clientHS.getSubProtocol());
-        } else {
-            server = new ServerHandShake(clientHS.isSecure(), clientHS.getOrigin(),
-                    clientHS.getServerHostName(), clientHS.getPort(),
-                    clientHS.getResourcePath(), clientHS.getSubProtocol(),
-                    clientHS.getKey1(), clientHS.getKey2(), clientHS.getKey3());
-        }
-
-        server.respond(response);
-    }
-
     public void register(String name, WebSocketApplication app) {
         applications.put(name, app);
-    }
-
-    private static class WebSocketSelectionKeyActionAttachment extends SelectionKeyActionAttachment {
-        private final AsyncExecutor asyncExecutor;
-        private final BaseServerWebSocket socket;
-
-        public WebSocketSelectionKeyActionAttachment(AsyncExecutor asyncExecutor, BaseServerWebSocket socket) {
-            this.asyncExecutor = asyncExecutor;
-            this.socket = socket;
-        }
-
-        @Override
-        public boolean timedOut(SelectionKey Key) {
-            return false;
-        }
-
-        public void process(SelectionKey key) {
-            if (key.isValid()) {
-                if (key.isReadable()) {
-                    final ProcessorTask task = asyncExecutor.getProcessorTask();
-                    try {
-                        socket.doRead();
-                    } catch (IOException e) {
-                        task.setAptCancelKey(true);
-                        task.terminateProcess();
-                        logger.log(Level.INFO, e.getMessage(), e);
-                    }
-                }
-            }
-        }
-
-        @Override
-        public void postProcess(SelectionKey selectionKey1) {
-        }
     }
 
     private static class KeyWebSocketListener implements WebSocketListener {

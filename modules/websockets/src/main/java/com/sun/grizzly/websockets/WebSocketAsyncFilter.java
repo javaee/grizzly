@@ -42,7 +42,7 @@ import com.sun.grizzly.arp.AsyncFilter;
 import java.util.logging.Logger;
 
 public class WebSocketAsyncFilter implements AsyncFilter {
-    private static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
+    private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
 
     public boolean doFilter(AsyncExecutor asyncExecutor) {
         final boolean handled = WebSocketEngine.getEngine().handle(asyncExecutor);

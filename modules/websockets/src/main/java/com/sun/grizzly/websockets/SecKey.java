@@ -41,7 +41,11 @@ package com.sun.grizzly.websockets;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Queue;
 import java.util.Random;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Class represents {@link WebSocket}'s security key, used during the handshake phase.
@@ -54,17 +58,6 @@ public class SecKey {
 
     private static final char[] CHARS = new char[84];
 
-    static {
-        int idx = 0;
-        for (int i = 0x21; i <= 0x2F; i++) {
-            CHARS[idx++] = (char) i;
-        }
-
-        for (int i = 0x3A; i <= 0x7E; i++) {
-            CHARS[idx++] = (char) i;
-        }
-    }
-
     private static final long MAX_SEC_KEY_VALUE = 4294967295L;
 
     /**
@@ -76,6 +69,18 @@ public class SecKey {
      * Original security key value (already divided by number of spaces).
      */
     private final long secKeyValue;
+    private static final BlockingQueue<MessageDigest> mds = new ArrayBlockingQueue<MessageDigest>(5);
+
+    static {
+        int idx = 0;
+        for (int i = 0x21; i <= 0x2F; i++) {
+            CHARS[idx++] = (char) i;
+        }
+
+        for (int i = 0x3A; i <= 0x7E; i++) {
+            CHARS[idx++] = (char) i;
+        }
+    }
 
     private SecKey(String secKey, long secKeyValue) {
         this.secKey = secKey;
@@ -169,29 +174,28 @@ public class SecKey {
      * @return server key.
      * @throws NoSuchAlgorithmException
      */
-    public static byte[] generateServerKey(SecKey clientKey1, SecKey clientKey2,
-            byte[] clientKey3) {
+    public static byte[] generateServerKey(SecKey clientKey1, SecKey clientKey2, byte[] clientKey3)
+            throws HandshakeException {
 
         final ByteBuffer b = ByteBuffer.allocate(8);
         b.putInt((int) clientKey1.getSecKeyValue());
         b.putInt((int) clientKey2.getSecKeyValue());
         b.flip();
 
-        MessageDigest md;
+        MessageDigest md5 = null;
         try {
-            md = MessageDigest.getInstance("MD5");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e.getMessage(), e);
+            md5 = mds.poll(30, TimeUnit.SECONDS);
+            md5.update(b);
+            return md5.digest(clientKey3);
+        } catch (InterruptedException e) {
+            throw new HandshakeException(e.getMessage());
+        } finally {
+            if(md5 != null) {
+                md5.reset();
+                mds.offer(md5);
+            }
         }
 
-        md.update(b);
-
-        final byte[] serverKey = md.digest(clientKey3);
-        md.reset();
-
-        assert serverKey.length == 16;
-
-        return serverKey;
     }
 
     /**
@@ -247,5 +251,15 @@ public class SecKey {
         }
 
         return new SecKey(key, productValue / spacesNum);
+    }
+
+    public static void init() {
+        try {
+            for(int index = 0; index < 5; index++) {
+                mds.offer(MessageDigest.getInstance("MD5"));
+            }
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e.getMessage());
+        }
     }
 }

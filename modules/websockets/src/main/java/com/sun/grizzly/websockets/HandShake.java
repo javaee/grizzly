@@ -44,7 +44,7 @@ import java.util.logging.Logger;
  * @author Justin Lee
  */
 public abstract class HandShake {
-    static final Logger logger = Logger.getLogger(WebSocket.WEBSOCKET);
+    static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
 
     private boolean secure;
     private String origin;

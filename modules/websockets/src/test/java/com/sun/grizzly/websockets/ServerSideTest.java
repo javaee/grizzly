@@ -165,7 +165,7 @@ public class ServerSideTest {
 
         List<Thread> clients = new ArrayList<Thread>();
         try {
-            for (int x = 0; x < 5; x++) {
+            for (int x = 0; x < 1; x++) {
                 clients.add(syncClient("client " + x));
             }
             while (!clients.isEmpty()) {
@@ -331,8 +331,9 @@ public class ServerSideTest {
         int count = limit;
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         final byte[] b = new byte[limit];
+        final InputStream is = socket.getInputStream();
         while (count == limit) {
-            count = socket.getInputStream().read(b);
+            count = is.read(b);
             if (count > 0) {
                 baos.write(b, 0, count);
             }

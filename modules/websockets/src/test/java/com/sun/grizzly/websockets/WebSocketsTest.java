@@ -82,6 +82,11 @@ public class WebSocketsTest {
     private static final int MESSAGE_COUNT = 10;
     private static SSLConfig sslConfig;
     public static final int PORT = 1725;
+    private final WebSocketClientApplication wsClient;
+
+    public WebSocketsTest() throws IOException {
+        wsClient = new WebSocketClientApplication();
+    }
 
     public void securityKeys() {
         validate("&2^3 4  1l6h85  F  3Z  31");
@@ -96,19 +101,22 @@ public class WebSocketsTest {
     }
 
     @Test
-    public void simpleConversationWithApplication() throws IOException, InstantiationException {
+    public void simpleConversationWithApplication() throws Exception {
         final EchoServlet servlet = new EchoServlet();
         final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
         WebSocketEngine.getEngine().register("/echo", app);
         run(servlet);
     }
 
-    private void run(final Servlet servlet) throws IOException, InstantiationException {
+    private void run(final Servlet servlet) throws Exception {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(servlet));
         final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
         final CountDownLatch connected = new CountDownLatch(1);
         final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
-        WebSocket client = new WebSocketClient("ws://localhost:" + PORT + "/echo",
+
+        WebSocket client = null;
+        try {
+            client = wsClient.connect("ws://localhost:" + PORT + "/echo",
                 new WebSocketListener() {
                     public void onMessage(WebSocket socket, DataFrame data) {
                         sent.remove(data.getTextPayload());
@@ -122,10 +130,7 @@ public class WebSocketsTest {
                     public void onClose(WebSocket socket) {
                         Utils.dumpOut("closed");
                     }
-                });
-        client.connect();
-        try {
-            Assert.assertTrue(connected.await(10, TimeUnit.SECONDS), "Shouldn't take 10s to connect");
+                }).get();
 
             for (int count = 0; count < MESSAGE_COUNT; count++) {
                 send(client, sent, "message " + count);
@@ -138,36 +143,33 @@ public class WebSocketsTest {
         } catch (InterruptedException e) {
             throw new RuntimeException(e.getMessage(), e);
         } finally {
-            client.close();
+            if(client != null) {
+                client.close();
+            }
             thread.stopEndpoint();
         }
     }
 
-    public void timeouts() throws IOException, InstantiationException, InterruptedException {
+    public void timeouts() throws Exception {
         SelectorThread thread = null;
         try {
             WebSocketEngine.getEngine().register("/echo", new SimpleWebSocketApplication());
             thread = createSelectorThread(PORT, new StaticResourcesAdapter());
             final Map<String, Object> messages = new ConcurrentHashMap<String, Object>();
-            final CountDownLatch connected = new CountDownLatch(1);
             final CountDownLatch received = new CountDownLatch(MESSAGE_COUNT);
-            WebSocket client = new WebSocketClient("ws://localhost:" + PORT + "/echo", new WebSocketListener() {
+            WebSocket client = wsClient.connect("ws://localhost:" + PORT + "/echo", new WebSocketListener() {
                 public void onMessage(WebSocket socket, DataFrame data) {
                     messages.remove(data.getTextPayload());
                     received.countDown();
                 }
 
                 public void onConnect(WebSocket socket) {
-                    connected.countDown();
                 }
 
                 public void onClose(WebSocket socket) {
                     Utils.dumpOut("closed");
                 }
-            });
-            client.connect();
-
-            Assert.assertTrue(connected.await(10, TimeUnit.SECONDS), "Shouldn't take 10s to connect");
+            }).get();
 
             for (int index = 0; index < MESSAGE_COUNT; index++) {
                 send(client, messages, "test " + index);

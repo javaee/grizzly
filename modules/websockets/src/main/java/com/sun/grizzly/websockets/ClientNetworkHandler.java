@@ -44,86 +44,55 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.spi.SelectorProvider;
-import java.util.Iterator;
-import java.util.logging.Level;
 
-public class WebSocketClient extends BaseWebSocket implements WebSocket {
-    private SocketChannel channel;
-    private URL url;
+public class ClientNetworkHandler implements NetworkHandler {
+    private final SocketChannel channel;
+    private final URL url;
+    private final WebSocketClientApplication app;
+    private WebSocket webSocket;
     private ClientHandShake clientHS;
 
-    public WebSocketClient(String address, WebSocketListener... listeners) throws IOException {
-        url = new URL(address);
-        setSelector(SelectorProvider.provider().openSelector());
-        new Thread(new Runnable() {
-            public void run() {
-                select();
-            }
-        }).start();
-        for (WebSocketListener listener : listeners) {
-            add(listener);
-        }
+    public ClientNetworkHandler(URL url, WebSocketClientApplication application) throws IOException {
+        this.url = url;
+        app = application;
+        channel = SocketChannel.open();
+        channel.configureBlocking(false);
+        channel.connect(new InetSocketAddress(url.getHost(), url.getPort()));
+        channel.socket().setSoTimeout(30000);
+        app.register(this);
+
+        app.getSelector().wakeup();
     }
 
-    public void connect() throws IOException {
-        final SocketChannel socketChannel = SocketChannel.open();
-        channel = socketChannel;
-        socketChannel.configureBlocking(false);
-        socketChannel.connect(new InetSocketAddress(url.getHost(), url.getPort()));
-        socketChannel.socket().setSoTimeout(30000);
-        state = State.CONNECTING;
-        getSelector().wakeup();
+    SocketChannel getChannel() {
+        return channel;
     }
 
-    @Override
-    public void close() throws IOException {
-        write(FrameType.CLOSING.frame(null));
-        super.close();
-        channel.keyFor(getSelector()).cancel();
-        channel.close();
+    public void send(DataFrame frame) throws IOException {
+        write(frame.frame());
     }
 
-    private void select() {
-        while (state != State.CLOSED) {
-            try {
-                if (state == State.CONNECTING) {
-                    channel.register(getSelector(), SelectionKey.OP_CONNECT);
-                }
-                getSelector().select();
-
-                Iterator<SelectionKey> selectedKeys = getSelector().selectedKeys().iterator();
-                while (selectedKeys.hasNext()) {
-                    SelectionKey key = selectedKeys.next();
-                    selectedKeys.remove();
-                    process(key);
-                }
-            } catch (IOException e) {
-                logger.log(Level.WARNING, e.getMessage(), e);
-                state = State.CLOSED;
-            }
-            getSelector().wakeup();
-        }
+    public SelectionKey getKey() {
+        return channel.keyFor(app.getSelector());
     }
 
-    protected void process(SelectionKey key) throws IOException {
+    public void process(SelectionKey key) throws IOException {
         if (key.isValid()) {
             if (key.isConnectable()) {
                 disableOp(SelectionKey.OP_CONNECT);
                 doConnect();
                 enableOp(SelectionKey.OP_READ);
-                key.selector().wakeup();
             } else if (key.isReadable()) {
-                doRead();
-                if(isConnected()) {
+                unframe();
+                if (webSocket.isConnected()) {
                     enableOp(SelectionKey.OP_READ);
-                    key.selector().wakeup();
                 }
             }
+            key.selector().wakeup();
         }
+
     }
 
-    @Override
     protected void doConnect() throws IOException {
         channel.finishConnect();
         final boolean isSecure = "wss".equals(url.getProtocol());
@@ -131,40 +100,42 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
         final StringBuilder origin = new StringBuilder();
         origin.append(isSecure ? "https://" : "http://");
         origin.append(url.getHost());
-        if(!isSecure && url.getPort() != 80 || isSecure && url.getPort() != 443) {
+        if (!isSecure && url.getPort() != 80 || isSecure && url.getPort() != 443) {
             origin.append(":")
                     .append(url.getPort());
         }
         clientHS = new ClientHandShake(isSecure, origin.toString(), url.getHost(),
                 String.valueOf(url.getPort()), url.getPath());
         write(clientHS.getBytes());
-        state = State.WAITING_ON_HANDSHAKE;
-        super.doConnect();
     }
 
-    @Override
-    protected void doRead() throws IOException {
-        switch (state) {
-            case WAITING_ON_HANDSHAKE:
-                final ByteBuffer buffer = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
-                final int read = channel.read(buffer);
-                buffer.flip();
-                byte[] serverKey = findServerKey(buffer);
-                try {
-                    clientHS.validateServerResponse(serverKey);
-                } catch (HandshakeException e) {
-                    throw new IOException(e.getMessage());
+    protected void write(byte[] bytes) throws IOException {
+        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
+        buffer.put(bytes);
+        buffer.flip();
+        channel.write(buffer);
+    }
+
+    private void unframe() throws IOException {
+        int count;
+        do {
+            ByteBuffer bytes = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
+            count = channel.read(bytes);
+            bytes.flip();
+            if (count > 0) {
+                if (webSocket.isConnected()) {
+                    unframe(bytes);
+                } else {
+                    byte[] serverKey = findServerKey(bytes);
+                    try {
+                        clientHS.validateServerResponse(serverKey);
+                    } catch (HandshakeException e) {
+                        throw new IOException(e.getMessage());
+                    }
+                    webSocket.onConnect();
                 }
-                state = State.READY;
-                setConnected(true);
-                onConnect();
-                break;
-            case READY:
-                super.doRead();
-                break;
-            default:
-                break;
-        }
+            }
+        } while (count > 0);
     }
 
     private byte[] findServerKey(ByteBuffer buffer) throws IOException {
@@ -190,33 +161,24 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
 
         final byte[] result = new byte[line.getEnd()];
         System.arraycopy(line.getBuffer(), 0, result, 0, result.length);
-        
+
         return result;
     }
 
-    protected void unframe() throws IOException {
-        int count;
-        do {
-            ByteBuffer bytes = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
-            count = channel.read(bytes);
-            bytes.flip();
-            unframe(bytes);
-        } while (count > 0);
+    protected void unframe(ByteBuffer bytes) throws IOException {
+        while (bytes.hasRemaining()) {
+            final DataFrame dataFrame = new DataFrame(bytes);
+            if (dataFrame.getType() != null) {
+                if (dataFrame.getType() == FrameType.CLOSING) {
+                    webSocket.close();
+                } else {
+                    webSocket.onMessage(dataFrame);
+                }
+            }
+        }
     }
 
-    @Override
-    protected void write(byte[] bytes) throws IOException {
-        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        buffer.put(bytes);
-        buffer.flip();
-        final int i = channel.write(buffer);
-    }
-
-    protected SelectionKey getKey() {
-        return channel.keyFor(getSelector());
-    }
-
-    void enableOp(final int op) {
+    private void enableOp(final int op) {
         final SelectionKey key = getKey();
         final int ops = key.interestOps();
         final int newOp = ops | op;
@@ -226,7 +188,7 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
         key.selector().wakeup();
     }
 
-    void disableOp(final int op) {
+    private void disableOp(final int op) {
         final SelectionKey key = getKey();
         final int ops = key.interestOps();
         final int newOp = ops & ~op;
@@ -235,7 +197,13 @@ public class WebSocketClient extends BaseWebSocket implements WebSocket {
         }
     }
 
-    SocketChannel getChannel() {
-        return channel;
+    public void shutdown() throws IOException {
+        getKey().cancel();
+        channel.close();
+        app.remove(webSocket);
+    }
+
+    public void setWebSocket(BaseWebSocket webSocket) {
+        this.webSocket = webSocket;
     }
 }
