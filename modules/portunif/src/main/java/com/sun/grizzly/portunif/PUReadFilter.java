@@ -40,6 +40,7 @@ package com.sun.grizzly.portunif;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.util.ConcurrentWeakHashMap;
@@ -263,7 +264,9 @@ public class PUReadFilter extends ReadFilter {
             }
 
             if (logger.isLoggable(level)) {
-                logger.log(level, "PortUnification exception", ex);
+                logger.log(level,
+                           LogMessages.WARNING_GRIZZLY_PU_GENERAL_EXCEPTION(),
+                           ex);
             }
             cancelKey(context);
             return false;

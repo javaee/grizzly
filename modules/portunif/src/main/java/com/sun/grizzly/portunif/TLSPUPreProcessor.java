@@ -40,6 +40,7 @@ package com.sun.grizzly.portunif;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.filter.SSLReadFilter;
 import com.sun.grizzly.util.SSLUtils;
@@ -120,10 +121,10 @@ public class TLSPUPreProcessor implements PUPreProcessor {
     public boolean process(Context context, 
             PUProtocolRequest protocolRequest) throws IOException {
         
-        if (sslContext == null){
+        if (sslContext == null) {
             if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING, "Grizzly Port unification warning. " +
-                        "TLSPreProcessor will be skept. SSLContext in NULL!");
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_PU_TLS_PROCESSOR_SKIPPED());
             }
             
             return false;
