@@ -54,6 +54,7 @@
 
 package com.sun.grizzly.http.servlet;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlySession;
@@ -529,7 +530,11 @@ public class HttpServletRequestImpl implements HttpServletRequest {
                     listener.attributeAdded(event);
                 }
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,"",t);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_ATTRIBUTE_LISTENER_ADD_ERROR("ServletRequestAttributeListener", listener.getClass().getName()),
+                               t);
+                }
             }
         }
     }
@@ -565,7 +570,9 @@ public class HttpServletRequestImpl implements HttpServletRequest {
                 }
                 listener.attributeRemoved(event);
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,"",t);
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_ATTRIBUTE_LISTENER_REMOVE_ERROR("ServletRequestAttributeListener", listener.getClass().getName()),
+                           t);
             }
         }
     }

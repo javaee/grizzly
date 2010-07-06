@@ -54,6 +54,7 @@
 
 package com.sun.grizzly.http.servlet;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.http.Enumerator;
 import com.sun.grizzly.util.http.MimeType;
@@ -136,8 +137,12 @@ public class ServletContextImpl implements ServletContext {
                         .loadClass(listenerClass).newInstance();
                 eventListeners.add(el);
             } catch (Throwable e) {
-                logger.warning("Unable to load listener: " + el);
-            } 
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTEXT_LISTENER_LOAD_ERROR(listenerClass),
+                               e);
+                }
+            }
         }
         
         ServletContextEvent event = null;
@@ -152,7 +157,11 @@ public class ServletContextImpl implements ServletContext {
             try {
                 listener.contextInitialized(event);
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,"",t);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_INITIALIZED_ERROR("contextInitialized", "ServletContextListener", listener.getClass().getName()),
+                               t);
+                }
             }
         }
     }
@@ -174,7 +183,11 @@ public class ServletContextImpl implements ServletContext {
             try {
                 listener.contextDestroyed(event);
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,"",t);
+                 if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_DESTROYED_ERROR("contextDestroyed", "ServletContextListener", listener.getClass().getName()),
+                               t);
+                }
             }
         }
     }
@@ -531,7 +544,11 @@ public class ServletContextImpl implements ServletContext {
                     listener.attributeAdded(event);
                 }
             } catch (Throwable t) {
-                logger.log(Level.WARNING,"",t);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_ATTRIBUTE_LISTENER_ADD_ERROR("ServletContextAttributeListener", listener.getClass().getName()),
+                               t);
+                }
             }
         }
     }
@@ -560,7 +577,11 @@ public class ServletContextImpl implements ServletContext {
                 }
                 listener.attributeRemoved(event);
             } catch (Throwable t) {
-                logger.log(Level.WARNING,"",t);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_ATTRIBUTE_LISTENER_REMOVE_ERROR("ServletContextAttributeListener", listener.getClass().getName()),
+                               t);
+                }
             }
         }
     }

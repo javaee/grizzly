@@ -53,11 +53,13 @@
  */
 package com.sun.grizzly.http.servlet;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.util.LoggerUtils;
 import java.io.IOException;
 
 import java.util.EventListener;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.Servlet;
@@ -77,6 +79,8 @@ import javax.servlet.ServletResponse;
  * @author Craig R. McClanahan
  */
 public final class FilterChainImpl implements FilterChain {
+
+    private static final Logger LOGGER = LoggerUtils.getLogger();
 
     public static final int INCREMENT = 8;
 
@@ -133,7 +137,11 @@ public final class FilterChainImpl implements FilterChain {
                         ((ServletRequestListener) l).requestInitialized(event);
                     }
                 } catch (Throwable t) {
-                    LoggerUtils.getLogger().log(Level.WARNING, "", t);
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                   LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_INITIALIZED_ERROR("requestInitialized", "ServletRequestListener", l.getClass().getName()),
+                                   t);
+                    }
                 }
             }
             setPos(request,  0);
@@ -145,7 +153,11 @@ public final class FilterChainImpl implements FilterChain {
                         ((ServletRequestListener) l).requestDestroyed(event);
                     }
                 } catch (Throwable t) {
-                    LoggerUtils.getLogger().log(Level.WARNING, "", t);
+                     if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                   LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_DESTROYED_ERROR("requestDestroyed", "ServletRequestListener", l.getClass().getName()),
+                                   t);
+                    }
                 }
             }
         }

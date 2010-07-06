@@ -37,11 +37,13 @@
  */
 package com.sun.grizzly.http.servlet;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.tcp.http11.GrizzlySession;
 import com.sun.grizzly.util.LoggerUtils;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpSession;
 import javax.servlet.http.HttpSessionAttributeListener;
@@ -58,8 +60,9 @@ import javax.servlet.http.HttpSessionListener;
  */
 public class HttpSessionImpl implements HttpSession {
 
+    private static final Logger LOGGER = LoggerUtils.getLogger();
     /**
-     * The real session objecty
+     * The real session object
      */
     private GrizzlySession session;
     /**
@@ -196,7 +199,10 @@ public class HttpSessionImpl implements HttpSession {
             try {
                 ((HttpSessionBindingListener) unbound).valueUnbound(new HttpSessionBindingEvent(this, key));
             } catch (Throwable t) {
-                LoggerUtils.getLogger().log(Level.WARNING, "", t);
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_SESSION_LISTENER_UNBOUND_ERROR(unbound.getClass().getName()));
+                }
             }
         }
         // Construct an event with the new value
@@ -209,7 +215,10 @@ public class HttpSessionImpl implements HttpSession {
                 try {
                     ((HttpSessionBindingListener) value).valueBound(event);
                 } catch (Throwable t) {
-                    LoggerUtils.getLogger().log(Level.WARNING, "", t);
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_SESSION_LISTENER_BOUND_ERROR(value.getClass().getName()));
+                    }
                 }
             }
         }
@@ -238,7 +247,11 @@ public class HttpSessionImpl implements HttpSession {
                     listener.attributeAdded(event);
                 }
             } catch (Throwable t) {
-                LoggerUtils.getLogger().log(Level.WARNING, "", t);
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_ATTRIBUTE_LISTENER_ADD_ERROR("HttpSessionAttributeListener", listener.getClass().getName()),
+                               t);
+                }
             }
         }
     }
@@ -282,7 +295,11 @@ public class HttpSessionImpl implements HttpSession {
                 }
                 listener.attributeRemoved(event);
             } catch (Throwable t) {
-                 LoggerUtils.getLogger().log(Level.WARNING, "", t);
+                if (LOGGER.isLoggable(Level.WARNING)) {
+                    LOGGER.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_ATTRIBUTE_LISTENER_REMOVE_ERROR("HttpSessionAttributeListener", listener.getClass().getName()),
+                               t);
+                }
             }
         }
     }
@@ -319,7 +336,11 @@ public class HttpSessionImpl implements HttpSession {
                 try {
                     listener.sessionDestroyed(event);
                 } catch (Throwable t) {
-                    LoggerUtils.getLogger().log(Level.WARNING, "", t);
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                   LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_DESTROYED_ERROR("sessionDestroyed", "HttpSessionListener", listener.getClass().getName()),
+                                   t);
+                    }
                 }
             }
         }
@@ -358,7 +379,11 @@ public class HttpSessionImpl implements HttpSession {
                 try {
                     listener.sessionCreated(event);
                 } catch (Throwable t) {
-                    LoggerUtils.getLogger().log(Level.WARNING, "", t);
+                    if (LOGGER.isLoggable(Level.WARNING)) {
+                        LOGGER.log(Level.WARNING,
+                                   LogMessages.WARNING_GRIZZLY_HTTP_SERVLET_CONTAINER_OBJECT_INITIALIZED_ERROR("sessionCreated", "HttpSessionListener", listener.getClass().getName()),
+                                   t);
+                    }
                 }
             }
         }
