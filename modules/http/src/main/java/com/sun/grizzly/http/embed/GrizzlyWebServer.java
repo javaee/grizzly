@@ -23,6 +23,7 @@
 
 package com.sun.grizzly.http.embed;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.arp.AsyncHandler;
@@ -38,6 +39,7 @@ import com.sun.grizzly.tcp.http11.GrizzlyListener;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.util.ClassLoaderUtil;
+import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.net.jsse.JSSEImplementation;
 
 import javax.management.ObjectInstance;
@@ -709,8 +711,12 @@ public class GrizzlyWebServer {
                     response.setStatus(404);
                     response.flushBuffer();
                 } catch (IOException ex) {
-                    Logger.getLogger(GrizzlyWebServer.class.getName()).log(
-                            Level.SEVERE, null, ex);
+                    final Logger logger = LoggerUtils.getLogger();
+                    if (logger.isLoggable(Level.SEVERE)) {
+                        logger.log(Level.SEVERE,
+                                   LogMessages.SEVERE_GRIZZLY_HTTP_GWS_IO_ERROR(),
+                                   ex);
+                    }
                 }
             }
         });

@@ -54,6 +54,7 @@
 package com.sun.grizzly.http;
 
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.ActionHook;
@@ -520,15 +521,21 @@ public class ProcessorTask extends TaskBase implements Processor,
         if (System.getProperty(USE_KEEP_ALIVE) != null) {
             useKeepAliveAlgorithm = Boolean.valueOf(System.getProperty(USE_KEEP_ALIVE));
 
-            if (!useKeepAliveAlgorithm)
-                logger.info("Keep Alive algorith will no be used");
+            if (!useKeepAliveAlgorithm) {
+                if (logger.isLoggable(Level.INFO)) {
+                    logger.info(LogMessages.INFO_GRIZZLY_HTTP_PROCESSOR_TASK_NO_KEEPALIVE_ALGORITHM());
+                }
+            }
         }
 
         if (System.getProperty(BLOCKING_KEEP_ALIVE) != null) {
             handleKeepAliveBlockingThread = Boolean.valueOf(System.getProperty(BLOCKING_KEEP_ALIVE));
 
-            if (!handleKeepAliveBlockingThread)
-                logger.info("Keep Alive blocking thread algorithm will no be used");
+            if (!handleKeepAliveBlockingThread) {
+                if (logger.isLoggable(Level.INFO)) {
+                    logger.info(LogMessages.INFO_GRIZZLY_HTTP_PROCESSOR_TASK_NO_BLOCKING_KEEPALIVE_ALGORITHM());
+                }
+            }
         }
     }
 
@@ -756,8 +763,11 @@ public class ProcessorTask extends TaskBase implements Processor,
         } catch (IOException e) {
             error = true;
         } catch (Throwable t) {
-            logger.log(Level.SEVERE,
-                    sm.getString("processorTask.errorFinishingRequest"), t);
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE,
+                           LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_REQUEST_FINISH_ERROR(),
+                           t);
+            }
             // 500 - Internal Server Error
             response.setStatus(500);
             error = true;
@@ -767,8 +777,11 @@ public class ProcessorTask extends TaskBase implements Processor,
         } catch (IOException e) {
             error = true;
         } catch (Throwable t) {
-            logger.log(Level.SEVERE,
-                    sm.getString("processorTask.errorFinishingResponse"), t);
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE,
+                           LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_RESPONSE_FINISH_ERROR(),
+                           t);
+            }
             error = true;
         }
 
@@ -813,8 +826,11 @@ public class ProcessorTask extends TaskBase implements Processor,
             } catch (InterruptedIOException e) {
                 error = true;
             } catch (Throwable t) {
-                logger.log(Level.SEVERE,
-                        sm.getString("processorTask.serviceError"), t);
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE,
+                               LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_SERVICE_ERROR(),
+                               t);
+                }
                 // 500 - Internal Server Error
                 response.setStatus(500);
                 error = true;
@@ -834,7 +850,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             } catch (BufferOverflowException boe) {
                 if (logger.isLoggable(Level.SEVERE)) {
                     logger.log(Level.SEVERE,
-                               sm.getString("processorTask.requesturitoolarge"),
+                               LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_REQUEST_URI_TOO_LARGE_ERROR(),
                                boe);
                 }
                 error = true;
@@ -854,7 +870,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             } catch (BufferOverflowException boe) {
                 if (logger.isLoggable(Level.SEVERE)) {
                     logger.log(Level.SEVERE,
-                               sm.getString("processorTask.requestheadertoolarge"),
+                               LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_REQUEST_HEADER_TOO_LARGE_ERROR(),
                                boe);
                 }
                 error = true;
@@ -869,14 +885,11 @@ public class ProcessorTask extends TaskBase implements Processor,
 
             request.setStartTime(System.currentTimeMillis());
 
-            if ( SelectorThread.isEnableNioLogging() ){
-                logger.log(Level.INFO,
-                        "SocketChannel request line " + key.channel() + " is: "
-                        + request);
-
-                logger.log(Level.INFO, "SocketChannel headers"
-                        + key.channel() + " are: \n"
-                        + request.getMimeHeaders());
+            if ( SelectorThread.isEnableNioLogging() ) {
+                if (logger.isLoggable(Level.INFO)) {
+                    logger.info(LogMessages.INFO_GRIZZLY_HTTP_PROCESSOR_TASK_SOCKET_CHANNEL_REQUEST_LINE(key.channel(), request));
+                    logger.info(LogMessages.INFO_GRIZZLY_HTTP_PROCESSOR_TASK_SOCKET_CHANNEL_REQUEST_HEADERS(key.channel(), request.getMimeHeaders()));
+                }
             }
         } catch (IOException e) {
             if (logger.isLoggable(Level.FINEST)){
@@ -887,8 +900,11 @@ public class ProcessorTask extends TaskBase implements Processor,
             keepAlive = false;
             return true;
         } catch (Throwable t) {
-            logger.log(Level.SEVERE,
-                    sm.getString("processorTask.nonBlockingError"), t);
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE,
+                           LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_NON_BLOCKING_ERROR(),
+                           t);
+            }
             // 400 - Bad Request
             response.setStatus(400);
             error = true;
@@ -899,9 +915,10 @@ public class ProcessorTask extends TaskBase implements Processor,
         try {
             prepareRequest();
         } catch (Throwable t) {
-            if (logger.isLoggable(Level.SEVERE)){
+             if (logger.isLoggable(Level.SEVERE)){
                 logger.log(Level.SEVERE,
-                        sm.getString("processorTask.createRequestError"), t);
+                           LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_CREATE_REQUEST_ERROR(),
+                           t);
             }
             // 500 - Internal Server Error
             response.setStatus(400);
@@ -959,7 +976,9 @@ public class ProcessorTask extends TaskBase implements Processor,
             }
         } catch (InterruptedException ex) {
             if (logger.isLoggable(Level.WARNING)){
-                logger.log(Level.WARNING,sm.getString("terminateProcess"),ex);
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_PROCESSOR_TASK_TERMINATE_PROCESSES_INTERRUPT(),
+                           ex);
             }
         } finally {
             asyncSemaphore.release();
@@ -1096,8 +1115,11 @@ public class ProcessorTask extends TaskBase implements Processor,
                             (SSLSupport.SESSION_ID_KEY, sslO);
                 }
             } catch (Exception e) {
-                logger.log(Level.WARNING,
-                        sm.getString("processorTask.errorSSL") ,e);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_PROCESSOR_TASK_SSL_ERROR(),
+                               e);
+                }
             }
 
         } else if (actionCode == ActionCode.ACTION_REQ_HOST_ADDR_ATTRIBUTE) {
@@ -1177,8 +1199,11 @@ public class ProcessorTask extends TaskBase implements Processor,
                             (SSLSupport.CERTIFICATE_KEY, sslO);
                     }
                 } catch (Exception e) {
-                    logger.log(Level.WARNING,
-                        sm.getString("processorTask.exceptionSSLcert"),e);
+                    if (logger.isLoggable(Level.WARNING)) {
+                        logger.log(Level.WARNING,
+                                   LogMessages.WARNING_GRIZZLY_HTTP_PROCESSOR_TASK_SSL_CERT_ERROR(),
+                                   e);
+                    }
                 }
             }
         } else if ( actionCode == ActionCode.ACTION_POST_REQUEST ) {
@@ -1781,12 +1806,15 @@ public class ProcessorTask extends TaskBase implements Processor,
             } else if (obj instanceof OutputFilter) {
                 outputBuffer.addFilter((OutputFilter) obj);
             } else {
-                logger.log(Level.WARNING,
-                        sm.getString("processorTask.unknownFilter"),className);
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.severe(LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_UNKNOWN_FILTER(className));
+                }
             }
         } catch (Exception e) {
-            logger.log(Level.SEVERE,sm.getString("processorTask.errorFilter"),
-                        new Object[]{className, e});
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE,
+                           LogMessages.SEVERE_GRIZZLY_HTTP_PROCESSOR_TASK_FILTER_INIT_ERROR(className));
+            }
         }
     }
 
@@ -1866,10 +1894,12 @@ public class ProcessorTask extends TaskBase implements Processor,
                                    + requestCount++ );
             selectorThread.getManagement().
                     registerComponent(requestInfo, oname,null);
-        } catch( Exception ex ) {
-            logger.log(Level.WARNING,
-                       sm.getString("processorTask.errorRegisteringRequest"),
-                       ex);
+        } catch(Exception ex) {
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_PROCESSOR_TASK_REQUEST_REGISTRATION_ERROR(),
+                           ex);
+            }
         }
 
     }
@@ -1898,9 +1928,11 @@ public class ProcessorTask extends TaskBase implements Processor,
             try {
                 selectorThread.getManagement().unregisterComponent(oname);
             } catch (Exception ex) {
-                logger.log(Level.WARNING,
-                           sm.getString("processorTask.errorUnregisteringRequest"),
-                           ex);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_PROCESSOR_TASK_REQUEST_DE_REGISTRATION_ERROR(),
+                               ex);
+                }
             }
         }
 

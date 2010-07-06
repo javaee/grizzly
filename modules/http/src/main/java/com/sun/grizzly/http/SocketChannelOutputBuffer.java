@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.async.AsyncQueueWriter;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;
@@ -314,6 +315,8 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
             int length = dd.limit();
             byte[] dump = new byte[length];
             dd.get(dump,0,length);
+            // not applying logging rules here as this is enabled with a special
+            // flag
             logger.info(new String(dump));         
         }
 
@@ -332,8 +335,9 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
                 bb.clear();
             }
         } else {
-           logger.warning(
-                    "HTTP async write is enabled, but AsyncWriter is null.");
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SCOB_FLUSH_CHANNEL_ERROR());
+            }
         }
     }
 
@@ -576,7 +580,11 @@ public class SocketChannelOutputBuffer extends InternalOutputBuffer
         try{
             flush();
         } catch (IOException ex){
-            logger.log(Level.WARNING,"",ex);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_SCOB_FLUSH_UPSTREAM_ERROR(),
+                           ex);
+            }
         }
         discardBytes = true;
     }

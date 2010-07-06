@@ -40,6 +40,7 @@ package com.sun.grizzly.http;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.filter.ReadFilter;
 import com.sun.grizzly.http.algorithms.NoParsingAlgorithm;
@@ -155,11 +156,13 @@ public class DefaultProtocolFilter implements ProtocolFilter {
                 streamAlgorithm = (StreamAlgorithm)algorithmClass
                         .newInstance();
             } catch (InstantiationException ex){
-                logger.log(Level.WARNING,
-                        "Unable to instantiate Algorithm: "+ algorithmClass.getName());
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_DPF_STREAM_ALGORITHM_INIT_ERROR(algorithmClass.getName()));
+                }
             } catch (IllegalAccessException ex){
-                logger.log(Level.WARNING,
-                        "Unable to instantiate Algorithm: " + algorithmClass.getName());
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_DPF_STREAM_ALGORITHM_INIT_ERROR(algorithmClass.getName()));
+                }
             } finally {
                 if ( streamAlgorithm == null){
                     streamAlgorithm = new NoParsingAlgorithm();
@@ -216,7 +219,11 @@ public class DefaultProtocolFilter implements ProtocolFilter {
             try{
                 keepAlive = processorTask.process(inputStream,null);
             } catch (Throwable ex){
-                logger.log(Level.SEVERE,"ProcessorTask exception", ex);
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.log(Level.SEVERE,
+                               LogMessages.SEVERE_GRIZZLY_HTTP_DPF_PROCESSOR_TASK_ERROR(),
+                               ex);
+                }
                 keepAlive = false;
             }
         } else {

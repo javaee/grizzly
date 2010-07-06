@@ -38,13 +38,14 @@
 
 package com.sun.grizzly.http;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.util.ThreadAttachment;
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Add keep alive counting mechanism to the {@link ThreadAttachement}.
+ * Add keep alive counting mechanism to the {@link ThreadAttachment}.
  * 
  * @author Jeanfrancois Arcand
  */
@@ -62,7 +63,8 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
     
     /**
      * Set the {@link KeepAliveStats} instance used to collect request statistic.
-     * @param k the {@link KeepAliveStats} instance used to collect request statistic.
+     * @param keepAliveStats the {@link KeepAliveStats} instance used to collect
+     *  request statistic.
      */
     public void setKeepAliveStats(KeepAliveStats keepAliveStats){
         this.keepAliveStats = keepAliveStats;
@@ -123,7 +125,8 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
         Thread t = activeThread();
         if (t != null) {
             if (logger.isLoggable(Level.WARNING)) {
-                logger.log(Level.WARNING, "Interrupting idle Thread: " + t.getName());
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_IDLE_THREAD_INTERRUPT(t.getName()));
             }
             t.interrupt();
         }

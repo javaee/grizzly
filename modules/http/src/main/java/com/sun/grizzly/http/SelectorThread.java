@@ -40,6 +40,7 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SelectorHandler;
@@ -905,8 +906,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             statsThreadPool.setStatistic(threadPoolStat);
             threadPoolStat.setThreadPool(threadPool);
         } else {
-            logger.log(Level.WARNING, "Statistics could be enabled. " +
-                    "You need to use StatsThreadPool in order to enable statistics");
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_STATISTICS());
+            }
         }
     }
     
@@ -1111,7 +1113,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             displayConfiguration();
             startListener();  
         } catch (Exception ex){
-            logger.log(Level.SEVERE, sm.getString("selectorThread.errorOnRequest"), ex);
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE,
+                           LogMessages.SEVERE_GRIZZLY_HTTP_SELECTOR_THREAD_HTTP_PROCESSING_ERROR(),
+                           ex);
+            }
         }
     }
 
@@ -1159,7 +1165,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
         try{
             controller.stop();
         } catch (IOException ex){
-            logger.log(Level.WARNING, sm.getString("stopException"),ex);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_STOP(),
+                           ex);
+            }
         }
         synchronized(lock){
             // Wait for the main thread to stop.
@@ -1209,14 +1219,14 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
             @Override
             public void onException(Throwable e) {
                 if (latch.getCount() > 0) {
-                    logger().log(Level.SEVERE, "Exception during " +
+                     logger().log(Level.SEVERE, "Exception during " +
                             "starting the controller", e);
                     if (e instanceof IOException) {
                         ioE[0] = (IOException) e;
                     }
                     latch.countDown();
                 } else {
-                    logger().log(Level.SEVERE, "Exception during " +
+                     logger().log(Level.SEVERE, "Exception during " +
                             "controller processing", e);
                 }
             }
@@ -1264,9 +1274,13 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                 controller.start();
                 stopThreadPool();
                 unregisterComponents();                
-            } catch (Throwable t){
-                logger.log(Level.SEVERE, sm.getString("selectorThread.stopException"),t);
-            } 
+            } catch (Throwable t) {
+                 if (logger.isLoggable(Level.SEVERE)) {
+                     logger.log(Level.SEVERE,
+                                LogMessages.SEVERE_GRIZZLY_HTTP_SELECTOR_THREAD_CONTROLLER_START_ERROR(),
+                                t);
+                 }
+            }
         }
     }
    
@@ -1462,23 +1476,32 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                 socket.setSoLinger( true, linger);
             }
         } catch (SocketException ex){
-            logger.log(Level.WARNING,
-                        "setSoLinger exception ",ex);
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLonger"),
+                           ex);
+            }
         }
         
         try{
             if( tcpNoDelay )
                 socket.setTcpNoDelay(tcpNoDelay);
         } catch (SocketException ex){
-            logger.log(Level.WARNING,
-                        "setTcpNoDelay exception ",ex);
+             if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLonger"),
+                           ex);
+            }
         }
         
         try{
             socket.setReuseAddress(reuseAddress);
         } catch (SocketException ex){
-            logger.log(Level.WARNING,
-                        "setReuseAddress exception ",ex);
+             if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLonger"),
+                           ex);
+            }
         }    
         
         try{
@@ -1486,8 +1509,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                 socket.setOOBInline(oOBInline);
             }
         } catch (SocketException ex){
-            logger.log(Level.WARNING,
-                        "setOOBInline exception ",ex);
+             if (logger.isLoggable(Level.WARNING)) {
+                logger.log(Level.WARNING,
+                           LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_SOCKET_OPTION_ERROR("setSoLonger"),
+                           ex);
+            }
         }   
     }
     
@@ -1558,10 +1584,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                                                 fileCacheMbeanName,
                                                 null);                
             } catch (Exception ex) {
-                logger.log(Level.WARNING,
-                            sm.getString("selectorThread.mbeanRegistrationException"),
-                            port);
-                logger.log(Level.WARNING, "", ex);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_MBEAN_REGISTRATION_ERROR(port),
+                               ex);
+                }
             }
         }
     }
@@ -1590,10 +1617,11 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                     jmxManagement.unregisterComponent(fileCacheMbeanName);
                 }                    
             } catch (Exception ex) {
-                logger.log(Level.WARNING,
-                           sm.getString("selectorThread.mbeanDeregistrationException"),
-                           port);
-                logger.log(Level.WARNING, "", ex);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_MBEAN_DEREGISTRATION_ERROR(port),
+                               ex);
+                }
             }
             
             Iterator<ProcessorTask> iterator = activeProcessorTasks.iterator();
@@ -2001,7 +2029,29 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     private void displayConfiguration(){
        if (displayConfiguration){
-            logger.log(Level.INFO,
+           // There seems to be a bug in the code generation that we'll need
+           // to look into.  Only 13 arguments are present in the generated
+           // method.
+//           logger.log(Level.INFO,
+//                      LogMessages.INFO_GRIZZLY_CONFIGURATION(
+//                              System.getProperty("os.name"),
+//                              System.getProperty("os.version"),
+//                              System.getProperty("java.version"),
+//                              System.getProperty("java.vendor"),
+//                              getPort(),
+//                              threadPool,
+//                              readThreadsCount,
+//                              requestBufferSize,
+//                              requestBufferSize,
+//                              sendBufferSize,
+//                              keepAliveStats.getMaxKeepAliveRequests(),
+//                              keepAliveStats.getKeepAliveTimeoutInSeconds(),
+//                              isFileCacheEnabled,
+//                              new File(rootFolder).getAbsolutePath(),
+//                              ((adapter == null) ? null : adapter.getClass().getName()),
+//                              asyncExecution
+//                      ));
+             logger.log(Level.INFO,
                     "\n Grizzly running on " + System.getProperty("os.name") + "-" 
                     + System.getProperty("os.version") + " under JDK version: "
                     + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
@@ -2190,13 +2240,18 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                 public void run() {
                 }
             }) instanceof HttpWorkerThread)){
-                logger.severe("Invalid ThreadFactory. Your ThreadFactory must" +
-                        " return instance of " + HttpWorkerThread.class.getName());
+                if (logger.isLoggable(Level.SEVERE)) {
+                    logger.severe(LogMessages.SEVERE_GRIZZLY_HTTP_SELECTOR_THREAD_INVALID_THREAD_FACTORY_ERROR(HttpWorkerThread.class.getName()));
+                }
                 throw new RuntimeException("Invalid ThreadFactory. Threads must be instance of "
                         + HttpWorkerThread.class.getName());
             }    
         } else {
-            logger.warning("Cannot guess which ThreadFactory the ExecutorService is using. " +
+            // Parameter not being generated
+//            if (logger.isLoggable(Level.WARNING)) {
+//                logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_UNKNOWN_THREAD_FACTORY_ERROR());
+//            }
+             logger.warning("Cannot guess which ThreadFactory the ExecutorService is using. " +
                     "Some ClassCastException might be throw if the ThreadFactory isn't creating " +
                     " instance of " + HttpWorkerThread.class.getName());
         }
