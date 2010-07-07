@@ -187,7 +187,7 @@ public class WebSocketsTest {
 
     public void ssl() throws Exception {
         final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
-                "HTTP/1.1 101 Switching Protocols",
+                "HTTP/1.1 101 Web Socket Protocol Handshake",
                 "Upgrade: WebSocket",
                 "Connection: Upgrade",
                 "WebSocket-Origin: https://localhost:" + PORT,
@@ -290,7 +290,7 @@ public class WebSocketsTest {
             }
         });
         final ArrayList<String> headers = new ArrayList<String>(Arrays.asList(
-                "HTTP/1.1 101 Switching Protocols",
+                "HTTP/1.1 101 Web Socket Protocol Handshake",
                 "Upgrade: WebSocket",
                 "Connection: Upgrade",
                 "WebSocket-Origin: http://localhost:" + PORT,
