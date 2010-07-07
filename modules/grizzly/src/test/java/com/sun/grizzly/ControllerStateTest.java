@@ -145,6 +145,76 @@ public class ControllerStateTest extends TestCase {
         }
     }
     
+    public void testControllerStopStartStop() throws Exception {
+        final Exception[] exceptionHolder = new Exception[1];
+        final Controller controller = new Controller();
+        controller.setProtocolChainInstanceHandler(new DefaultProtocolChainInstanceHandler() {
+
+            @Override
+            public ProtocolChain poll() {
+                ProtocolChain protocolChain = protocolChains.poll();
+                if (protocolChain == null) {
+                    protocolChain = new DefaultProtocolChain();
+                    protocolChain.addFilter(new ReadFilter());
+                    protocolChain.addFilter(new LogFilter());
+                }
+                return protocolChain;
+            }
+            });
+
+        final Runnable stopThreadRunnable = new Runnable() {
+            public void run() {
+                try {
+                    controller.stop();
+                } catch (Exception ex) {
+                    exceptionHolder[0] = ex;
+                }
+            }
+        };
+
+        Thread stopThread = new Thread(stopThreadRunnable);
+
+        stopThread.start();
+        
+        try {
+            stopThread.join(5000);
+            if (stopThread.isAlive()){
+                exceptionHolder[0] = new IllegalStateException("The stop thread is still alive #1");
+            }
+
+        } catch(InterruptedException ex) {
+            exceptionHolder[0] = ex;
+        }
+
+        if (exceptionHolder[0] == null) {
+
+            ControllerUtils.startController(controller);
+
+            stopThread = new Thread(stopThreadRunnable);
+
+            stopThread.start();
+
+            try {
+                stopThread.join(5000);
+                if (stopThread.isAlive()) {
+                    exceptionHolder[0] = new IllegalStateException("The stop thread is still alive #2");
+                }
+            } catch (InterruptedException ex) {
+                exceptionHolder[0] = ex;
+            } finally {
+                try {
+                    controller.stop();
+                } catch (IOException e) {
+                    exceptionHolder[0] = e;
+                }
+            }
+        }
+        
+        if (exceptionHolder[0] != null) {
+            throw exceptionHolder[0];
+        }
+    }
+    
     public void testConcurrentControllerStart() {
         final int[] resultControllerStarted = new int[1];
         final Controller controller = createController(PORT);

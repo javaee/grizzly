@@ -802,8 +802,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
         ensureAppropriatePoolSize( threadPool );
         try {
-            if (stateHolder.getState(false) == null ||
-                    stateHolder.getState(false) == State.STOPPED) {
+            final State state = stateHolder.getState(false);
+            if (state == null || state == State.STOPPED) {
                 // if selectorHandlers were not set by user explicitly,
                 // add TCPSelectorHandler by default
                 if (selectorHandlers.isEmpty()) {
@@ -891,7 +891,9 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         final CountDownLatch latch = new CountDownLatch(1);
         stateHolder.getStateLocker().writeLock().lock();
         try {
-            if (stateHolder.getState(false) == State.STOPPED) {
+            final State state = stateHolder.getState(false);
+
+            if (state == null || state == State.STOPPED) {
                 logger.log(Level.FINE, "Controller is already in stopped state");
                 return;
             }
