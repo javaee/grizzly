@@ -157,9 +157,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                 
                 onWriteCompleted(connection, queueRecord);
 
-                // if there is next record ready
-                if (nextRecord == null) {
-                    // if there is something in queue - try to make it current
+                if (nextRecord == null) { // if nothing in queue
+                    // try one more time
                     nextRecord = queue.peek();
                     if (isLogFine) {
                         logger.log(Level.FINEST, "AsyncQueueWriter.write peek connection=" + connection + " nextRecord=" + nextRecord);
@@ -169,10 +168,11 @@ public abstract class AbstractNIOAsyncQueueWriter
                         if (isLogFine) {
                             logger.log(Level.FINEST, "AsyncQueueWriter.write peek, onReadyToWrite. connection=" + connection);
                         }
-                        queue.remove(nextRecord);
-                        onReadyToWrite(connection);
+                        if (queue.remove(nextRecord)) {
+                            onReadyToWrite(connection);
+                        }
                     }
-                } else {
+                } else { // if there is something in queue
                     if (isLogFine) {
                         logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection=" + connection);
                     }
@@ -218,8 +218,10 @@ public abstract class AbstractNIOAsyncQueueWriter
                         if (isLogFine) {
                             logger.log(Level.FINEST, "AsyncQueueWriter.write set record as current. connection=" + connection + " record=" + queueRecord);
                         }
-                        queue.remove(queueRecord);
-                        onReadyToWrite(connection);
+                        
+                        if (queue.remove(queueRecord)) {
+                            onReadyToWrite(connection);
+                        }
                     }
 
                     // Check whether connection is still open
@@ -314,7 +316,10 @@ public abstract class AbstractNIOAsyncQueueWriter
                             if (isLogFine) {
                                 logger.log(Level.FINEST, "AsyncQueueWriter.processAsync set as current connection=" + connection + " peekRecord=" + queueRecord);
                             }
-                            queue.remove(queueRecord);
+                            
+                            if (!queue.remove(queueRecord)) { // if the record was picked up by another thread
+                                break;
+                            }
                         } else { // If there are no elements - return
                             break;
                         }

@@ -139,13 +139,13 @@ public abstract class AbstractNIOAsyncQueueReader
                     onReadCompleted(connection, queueRecord);
 
                     if (nextRecord == null) { // if nothing in queue
-                        currentElement.set(null);
                         // try one more time
                         nextRecord = queue.peek();
                         if (nextRecord != null &&
                                 currentElement.compareAndSet(null, nextRecord)) {
-                            queue.remove(nextRecord);
-                            onReadyToRead(connection);
+                            if (queue.remove(nextRecord)) {
+                                onReadyToRead(connection);
+                            }
                         }
                     } else { // if there is something in queue
                         onReadyToRead(connection);
@@ -184,8 +184,9 @@ public abstract class AbstractNIOAsyncQueueReader
 
                 if (currentElement.compareAndSet(null, queueRecord)) { // if queue became empty
                     // set this element as current and remove it from a queue
-                    queue.remove(queueRecord);
-                    onReadyToRead(connection);
+                    if (queue.remove(queueRecord)) {
+                        onReadyToRead(connection);
+                    }
                 }
 
                 // Check whether connection is still open
@@ -260,8 +261,9 @@ public abstract class AbstractNIOAsyncQueueReader
                         queueRecord = queue.peek();
                         if (queueRecord != null &&
                                 currentElement.compareAndSet(null, queueRecord)) {
-
-                            queue.remove(queueRecord);
+                            if (!queue.remove(queueRecord)) { // if the record was picked up by another thread
+                                break;
+                            }
                         } else { // If there are no elements - return
                             break;
                         }
