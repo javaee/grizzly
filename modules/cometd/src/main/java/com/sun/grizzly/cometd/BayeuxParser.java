@@ -217,6 +217,9 @@ public class BayeuxParser{
                         for (String channel: dataHandler.getChannels()){
                             CometContext cc = getCometContext(channel);
                             if (!cc.isActive(dataHandler)){
+                                // not applying standard logging rules for
+                                // this message as it's not displayed unless
+                                // a system property is explicitly set.
                                 if (logger.isLoggable(level)){
                                     log("Suspending client: "+connectReq.getClientId()+" channel: "+channel);
                                 }
@@ -392,6 +395,9 @@ public class BayeuxParser{
             } 
         } else {
             CometContext cc = getCometContext(channel);
+            // not applying standard logging rules for
+            // this message as it's not displayed unless
+            // a system property is explicitly set.
             if (logger.isLoggable(level)){
                 log("Notifying " + channel + " to "
                         + cc.getCometHandlers().size()
@@ -529,6 +535,9 @@ public class BayeuxParser{
        
     
     private void log(String log){
+        // not applying standard logging rules for
+        // this message as it's not displayed unless
+        // a system property is explicitly set.
         logger.log(level,log);
     }
 

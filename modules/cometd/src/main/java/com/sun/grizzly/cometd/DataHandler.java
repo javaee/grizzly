@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly.cometd;
 
+import com.sun.grizzly.LogMessages;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.comet.CometEvent;
 import com.sun.grizzly.comet.CometHandler;
@@ -141,7 +142,11 @@ public class DataHandler implements CometHandler<Object[]>{
                 }
             }
         }  catch (Throwable t){
-           logger.log(Level.SEVERE,"DataHandler.onEvent",t);
+            if (logger.isLoggable(Level.SEVERE)) {
+                logger.log(Level.SEVERE,
+                           LogMessages.SEVERE_GRIZZLY_COMETD_ONEVENT_ERROR(),
+                           t);
+            }
         } 
     }
 
