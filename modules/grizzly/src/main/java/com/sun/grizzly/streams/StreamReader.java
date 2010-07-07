@@ -250,7 +250,7 @@ public interface StreamReader extends Stream {
     /**
      * Read and decode data from the <tt>StreamReader</tt>
      * 
-     * @param <E> decoded data tyoe
+     * @param <E> decoded data type
      * @param decoder {@link Transformer}
      * @return {@link Future}, which will hold the decoding state.
      */
@@ -259,7 +259,7 @@ public interface StreamReader extends Stream {
     /**
      * Read and decode data from the <tt>StreamReader</tt>
      *
-     * @param <E> decoded data tyoe
+     * @param <E> decoded data type
      * @param decoder {@link Transformer}
      * @param completionHandler {@link CompletionHandler}, which will be
      *                          notified, when decoder will become ready.
