@@ -2029,56 +2029,26 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
      */
     private void displayConfiguration(){
        if (displayConfiguration){
-           // There seems to be a bug in the code generation that we'll need
-           // to look into.  Only 13 arguments are present in the generated
-           // method.
-//           logger.log(Level.INFO,
-//                      LogMessages.INFO_GRIZZLY_CONFIGURATION(
-//                              System.getProperty("os.name"),
-//                              System.getProperty("os.version"),
-//                              System.getProperty("java.version"),
-//                              System.getProperty("java.vendor"),
-//                              getPort(),
-//                              threadPool,
-//                              readThreadsCount,
-//                              requestBufferSize,
-//                              requestBufferSize,
-//                              sendBufferSize,
-//                              keepAliveStats.getMaxKeepAliveRequests(),
-//                              keepAliveStats.getKeepAliveTimeoutInSeconds(),
-//                              isFileCacheEnabled,
-//                              new File(rootFolder).getAbsolutePath(),
-//                              ((adapter == null) ? null : adapter.getClass().getName()),
-//                              asyncExecution
-//                      ));
-             logger.log(Level.INFO,
-                    "\n Grizzly running on " + System.getProperty("os.name") + "-" 
-                    + System.getProperty("os.version") + " under JDK version: "
-                    + System.getProperty("java.version") + "-" + System.getProperty("java.vendor")
-                    + "\n\t port: " + getPort()
-                    + "\n\t Thread Pool: "
-                    + threadPool
-                    + "\n\t Read Selector: "
-                    + readThreadsCount
-                    + "\n\t ByteBuffer size: " 
-                    + requestBufferSize                   
-                    + "\n\t maxHttpHeaderSize: "
-                    + requestBufferSize
-                    + "\n\t sendBufferSize: "
-                    + sendBufferSize
-                    + "\n\t maxKeepAliveRequests: "
-                    + keepAliveStats.getMaxKeepAliveRequests()
-                    + "\n\t keepAliveTimeoutInSeconds: "
-                    + keepAliveStats.getKeepAliveTimeoutInSeconds()
-                    + "\n\t Static File Cache enabled: "                        
-                    + isFileCacheEnabled    
-                    + "\n\t Static resources directory: "                        
-                    + new File(rootFolder).getAbsolutePath()                        
-                    + "\n\t Adapter : "                        
-                    + (adapter == null ? null : adapter.getClass().getName() )      
-                    + "\n\t Asynchronous Request Processing enabled: " 
-                    + asyncExecution); 
-        }
+           logger.log(Level.INFO,
+                      LogMessages.INFO_GRIZZLY_HTTP_SELECTOR_THREAD_CONFIG(
+                           System.getProperty("os.name"),
+                           System.getProperty("os.version"),
+                           System.getProperty("java.version"),
+                           System.getProperty("java.vendor"),
+                           Integer.toString(getPort()),
+                           threadPool,
+                           Integer.toString(readThreadsCount),
+                           Integer.toString(requestBufferSize),
+                           Integer.toString(requestBufferSize),
+                           Integer.toString(sendBufferSize),
+                           keepAliveStats.getMaxKeepAliveRequests(),
+                           keepAliveStats.getKeepAliveTimeoutInSeconds(),
+                           Boolean.toString(isFileCacheEnabled),
+                           new File(rootFolder).getAbsolutePath(),
+                           ((adapter == null) ? null : adapter.getClass().getName()),
+                           Boolean.toString(asyncExecution)
+                   ));
+       }
     }
 
     
@@ -2247,13 +2217,9 @@ public class SelectorThread implements Runnable, MBeanRegistration, GrizzlyListe
                         + HttpWorkerThread.class.getName());
             }    
         } else {
-            // Parameter not being generated
-//            if (logger.isLoggable(Level.WARNING)) {
-//                logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_UNKNOWN_THREAD_FACTORY_ERROR());
-//            }
-             logger.warning("Cannot guess which ThreadFactory the ExecutorService is using. " +
-                    "Some ClassCastException might be throw if the ThreadFactory isn't creating " +
-                    " instance of " + HttpWorkerThread.class.getName());
+            if (logger.isLoggable(Level.WARNING)) {
+                logger.warning(LogMessages.WARNING_GRIZZLY_HTTP_SELECTOR_THREAD_UNKNOWN_THREAD_FACTORY_ERROR(HttpWorkerThread.class.getName()));
+            }
         }
         this.threadPool = threadPool;
     }
