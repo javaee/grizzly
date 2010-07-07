@@ -36,6 +36,8 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.LogMessages;
+
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -116,7 +118,11 @@ public class WebSocketClientApplication extends WebSocketApplication {
                     }
                 }
             } catch (IOException e) {
-                logger.log(Level.WARNING, e.getMessage(), e);
+                if (logger.isLoggable(Level.WARNING)) {
+                    logger.log(Level.WARNING,
+                               LogMessages.WARNING_GRIZZLY_WS_SELECT_ERROR(e.getMessage()),
+                               e);
+                }
             }
             selector.wakeup();
         }
