@@ -40,7 +40,7 @@ package com.sun.grizzly.http;
 import com.sun.grizzly.Controller;
 import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.DefaultProtocolChainInstanceHandler;
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.ProtocolChain;
 import com.sun.grizzly.ProtocolFilter;
 import com.sun.grizzly.SelectorHandler;

@@ -91,9 +91,6 @@ public class Cloner {
             pattern.copyTo(copy);
             return copy;
         } catch (Exception e) {
-            if (LoggerUtils.getLogger().isLoggable(Level.WARNING)) {
-                LoggerUtils.getLogger().log(Level.WARNING, "Error copying objects!", e);
-            }
             throw new RuntimeException("Error copying objects! " + e.getClass().getName() + ": " + e.getMessage());
         }
     }

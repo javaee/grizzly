@@ -156,7 +156,7 @@ class JSSESupport implements SSLSupport {
 		if(logger.isLoggable(Level.FINEST))
 		    logger.log(Level.FINE,"Cert #" + i + " = " + x509Certs[i]);
 	    } catch(Exception ex) {
-		logger.log(Level.INFO,"Error translating " + jsseCerts[i], ex);
+		logger.log(Level.SEVERE,"Error translating " + jsseCerts[i], ex);
 		return null;
 	    }
 	}

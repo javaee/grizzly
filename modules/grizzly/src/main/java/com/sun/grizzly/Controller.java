@@ -37,6 +37,7 @@
  */
 package com.sun.grizzly;
 
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.ConcurrentLinkedQueuePool;

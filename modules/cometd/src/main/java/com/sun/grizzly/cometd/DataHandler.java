@@ -37,7 +37,7 @@
  */
 package com.sun.grizzly.cometd;
 
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.comet.CometEvent;
 import com.sun.grizzly.comet.CometHandler;

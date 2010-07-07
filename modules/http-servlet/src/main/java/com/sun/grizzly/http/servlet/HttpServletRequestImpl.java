@@ -54,7 +54,7 @@
 
 package com.sun.grizzly.http.servlet;
 
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlySession;

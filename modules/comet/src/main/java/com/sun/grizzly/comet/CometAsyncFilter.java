@@ -38,7 +38,7 @@
 
 package com.sun.grizzly.comet;
 
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncFilter;
 import com.sun.grizzly.http.SelectorThread;

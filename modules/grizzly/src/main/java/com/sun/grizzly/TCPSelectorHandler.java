@@ -38,6 +38,7 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.async.AsyncQueueReader;
 import com.sun.grizzly.async.AsyncQueueWriter;
 import com.sun.grizzly.async.TCPAsyncQueueWriter;

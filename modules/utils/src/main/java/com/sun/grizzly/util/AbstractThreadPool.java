@@ -51,6 +51,7 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Abstract {@link ExtendedThreadPool} implementation.
@@ -59,6 +60,8 @@ import java.util.logging.Level;
  */
 public abstract class AbstractThreadPool extends AbstractExecutorService
         implements ExtendedThreadPool, Thread.UncaughtExceptionHandler  {
+
+    private static final Logger LOGGER = LoggerUtils.getLogger();
 
     // Min number of worker threads in a pool
     public static int DEFAULT_MIN_THREAD_COUNT = 5;
@@ -473,8 +476,9 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
      * {@inheritDoc}
      */
     public void uncaughtException(Thread thread, Throwable throwable) {
+
         LoggerUtils.getLogger().log(Level.WARNING,
-                "Uncaught thread exception. Thread: " + thread, throwable);
+                 "Uncaught thread exception. Thread: " + thread, throwable);
     }
 
     protected ThreadFactory getDefaultThreadFactory(){

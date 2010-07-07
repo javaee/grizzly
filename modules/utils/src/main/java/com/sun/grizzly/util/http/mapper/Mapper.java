@@ -481,7 +481,7 @@ public class Mapper {
             Context[] contexts = host.contextList.contexts;
             int pos2 = find(contexts, contextPath);
             if( pos2<0 ) {
-                logger.severe("No context found: " + contextPath );
+                 logger.severe("No context found: " + contextPath );
                 return;
             }
             Context context = contexts[pos2];

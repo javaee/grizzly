@@ -327,17 +327,17 @@ public abstract class JSSESocketFactory
 
             ks.load(istream, pass.toCharArray());
         } catch (FileNotFoundException fnfe) {
-            logger.log(Level.SEVERE,
+             logger.log(Level.SEVERE,
                     sm.getString("jsse.keystore_load_failed", type, path,
                     fnfe.getMessage()), fnfe);
             throw fnfe;
         } catch (IOException ioe) {
-            logger.log(Level.SEVERE,
+             logger.log(Level.SEVERE,
                     sm.getString("jsse.keystore_load_failed", type, path,
                     ioe.getMessage()), ioe);
             throw ioe;
         } catch(Exception ex) {
-            String msg = sm.getString("jsse.keystore_load_failed", type, path,
+             String msg = sm.getString("jsse.keystore_load_failed", type, path,
                     ex.getMessage());
             logger.log(Level.SEVERE, msg, ex);
             throw new IOException(msg);

@@ -38,6 +38,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.Controller.Protocol;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.InputReader;
 import java.io.IOException;
 import java.net.Socket;

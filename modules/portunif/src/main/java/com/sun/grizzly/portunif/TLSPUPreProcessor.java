@@ -40,7 +40,7 @@ package com.sun.grizzly.portunif;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.Controller;
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.SSLConfig;
 import com.sun.grizzly.filter.SSLReadFilter;
 import com.sun.grizzly.util.SSLUtils;

@@ -54,7 +54,7 @@
 package com.sun.grizzly.http;
 
 
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.arp.AsyncHandler;
 import com.sun.grizzly.tcp.ActionCode;
 import com.sun.grizzly.tcp.ActionHook;

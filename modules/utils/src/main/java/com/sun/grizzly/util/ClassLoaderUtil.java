@@ -189,7 +189,7 @@ public class ClassLoaderUtil {
             className = Class.forName(clazzName, true, classLoader);
             return className.newInstance();
         } catch (Throwable t) {
-            LoggerUtils.getLogger().log(Level.SEVERE,"Unable to load class "
+             LoggerUtils.getLogger().log(Level.SEVERE,"Unable to load class "
                     + clazzName,t);
         }
 

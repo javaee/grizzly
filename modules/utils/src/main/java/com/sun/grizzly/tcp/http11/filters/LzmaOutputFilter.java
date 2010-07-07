@@ -51,6 +51,7 @@ import com.sun.grizzly.util.buf.ByteChunk;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -220,7 +221,11 @@ public class LzmaOutputFilter implements OutputFilter {
                 sb.append(' ');
             }
 
-            logger.info("LzmaOutputFilter write: " + sb.toString());
+            // Ignoring this for standard logging practices as it's only
+            // displayed if the isLog flag is explicitly set.`
+            if (logger.isLoggable(Level.INFO)) {
+                logger.info("LzmaOutputFilter write: " + sb.toString());
+            }
         }
     }
 

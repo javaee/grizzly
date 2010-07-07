@@ -132,7 +132,7 @@ class JSSE14Support extends JSSESupport {
             try {
                 int x = in.read(b);
             } catch(SSLException sslex) {
-                logger.log(Level.INFO,"SSL Error getting client Certs",sslex);
+                //logger.log(Level.SEVERE,"SSL Error getting client Certs",sslex);
                 throw sslex;
             } catch (IOException e) {
                 // ignore - presumably the timeout
@@ -178,7 +178,7 @@ class JSSE14Support extends JSSESupport {
 		    x509Certs[i] = (X509Certificate)
 			cf.generateCertificate(stream);
 		} catch(Exception ex) { 
-		    logger.log(Level.INFO,"Error translating cert " + certs[i], ex);
+		    logger.log(Level.SEVERE,"Error translating cert " + certs[i], ex);
 		    return null;
 		}
 	    }

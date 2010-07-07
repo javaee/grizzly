@@ -36,7 +36,7 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;

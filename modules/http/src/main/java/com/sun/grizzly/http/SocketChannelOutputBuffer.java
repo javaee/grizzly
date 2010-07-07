@@ -38,7 +38,7 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.async.AsyncQueueWriteUnit;
 import com.sun.grizzly.async.AsyncQueueWriter;
 import com.sun.grizzly.async.AsyncWriteCallbackHandler;

@@ -38,7 +38,7 @@
 
 package com.sun.grizzly.http;
 
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.ThreadAttachment;
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;

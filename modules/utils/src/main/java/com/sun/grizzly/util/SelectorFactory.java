@@ -78,7 +78,7 @@ public class SelectorFactory{
     public static void setMaxSelectors(int size) throws IOException {
         synchronized(selectors) {
             if (size < 0){
-                LoggerUtils.getLogger().log(Level.WARNING,"tried to remove too many selectors "+size+">="+maxSelectors,new Exception());
+                LoggerUtils.getLogger().log(Level.WARNING," tried to remove too many selectors "+size+">="+maxSelectors,new Exception());
                 return;
             }
             int toAdd = initialized?size-maxSelectors:size;
@@ -124,7 +124,7 @@ public class SelectorFactory{
             try{
                 setMaxSelectors(maxSelectors);
             } catch (IOException ex) {
-                LoggerUtils.getLogger().log(Level.WARNING,"static init of SelectorFactory failed",ex);
+                 LoggerUtils.getLogger().log(Level.WARNING,"static init of SelectorFactory failed",ex);
             }
         }
         Selector selector = null;
@@ -135,7 +135,7 @@ public class SelectorFactory{
             Logger.getLogger(SelectorFactory.class.getName()).log(Level.SEVERE, null, ex);
         }*/
         if (selector == null){
-            LoggerUtils.getLogger().warning("No Selector available. Increase default: "+maxSelectors);
+             LoggerUtils.getLogger().warning("No Selector available. Increase default: "+maxSelectors);
         }
         return selector;
     }
@@ -160,7 +160,7 @@ public class SelectorFactory{
         } catch(IOException e) {
             Logger logger = LoggerUtils.getLogger();
             logger.log(Level.WARNING,
-                    "Unexpected problem when releasing temporary Selector", e);
+                     "Unexpected problem when releasing temporary Selector", e);
             try {
                 s.close();
             } catch(IOException ee) {
@@ -171,7 +171,7 @@ public class SelectorFactory{
                 reimburseSelector();
             } catch(IOException ee) {
                 logger.log(Level.WARNING,
-                        "Problematic Selector could not be reimbursed!", ee);
+                         "Problematic Selector could not be reimbursed!", ee);
             }
         }
     }

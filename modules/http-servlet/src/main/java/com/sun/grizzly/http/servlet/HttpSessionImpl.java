@@ -37,7 +37,7 @@
  */
 package com.sun.grizzly.http.servlet;
 
-import com.sun.grizzly.LogMessages;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.tcp.http11.GrizzlySession;
 import com.sun.grizzly.util.LoggerUtils;
 import java.util.Enumeration;

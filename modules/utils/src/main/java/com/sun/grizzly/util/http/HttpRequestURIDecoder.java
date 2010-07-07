@@ -119,7 +119,7 @@ public class HttpRequestURIDecoder {
                 }
             } catch (IOException e) {
                 // Ignore
-                log.severe("Invalid URI encoding; using HTTP default");
+                 log.severe("Invalid URI encoding; using HTTP default");
             }
             if (b2cConverter != null) {
                 try {
@@ -128,7 +128,7 @@ public class HttpRequestURIDecoder {
                             cc.getLength());
                     return;
                 } catch (IOException e) {
-                    log.severe("Invalid URI character encoding; trying ascii");
+                     log.severe("Invalid URI character encoding; trying ascii");
                     cc.recycle();
                 }
             }
