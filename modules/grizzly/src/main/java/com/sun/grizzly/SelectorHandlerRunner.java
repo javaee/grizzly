@@ -138,8 +138,11 @@ public class SelectorHandlerRunner implements Runnable {
             }
         } finally {
             if (!isPostponedInThread) {
-                selectorHandler.shutdown();
-                controller.notifyStopped();
+                try {
+                    selectorHandler.shutdown();
+                } finally {
+                    controller.notifyStopped();
+                }
             }
         }
     }

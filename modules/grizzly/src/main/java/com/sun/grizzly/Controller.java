@@ -786,7 +786,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         logVersion();
 
         stateHolder.getStateLocker().writeLock().lock();
-        boolean isUnlocked = false;
         if (kernelExecutor.isShutdown()) {
             // Re-create 
             kernelExecutor = createKernelExecutor();
@@ -841,9 +840,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 }
             }
         } finally {
-            if (!isUnlocked) {
-                stateHolder.getStateLocker().writeLock().unlock();
-            }
+            stateHolder.getStateLocker().writeLock().unlock();
         }
 
         if (displayConfiguration){
