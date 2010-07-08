@@ -157,10 +157,22 @@ public class GZipDecoder extends AbstractTransformer<Buffer, Buffer> {
         Buffer resultBuffer = null;
 
         for (ByteBuffer byteBuffer : byteBuffers) {
-            final byte[] array = byteBuffer.array();
-            final int offset = byteBuffer.arrayOffset() + byteBuffer.position();
+            final int len = byteBuffer.remaining();
 
-            inflater.setInput(array, offset, byteBuffer.remaining());
+            final byte[] array;
+            final int offset;
+            if (byteBuffer.hasArray()) {
+                array = byteBuffer.array();
+                offset = byteBuffer.arrayOffset() + byteBuffer.position();
+            } else {
+                // @TODO allocate byte array via MemoryUtils
+                array = new byte[len];
+                offset = 0;
+                byteBuffer.get(array);
+                byteBuffer.position(byteBuffer.position() - len);
+            }
+
+            inflater.setInput(array, offset, len);
 
             int lastInflated = 0;
             do {

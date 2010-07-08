@@ -70,7 +70,12 @@ public class BufferUtils {
     public static final ByteBuffer EMPTY_BYTE_BUFFER = ByteBuffer.allocate(0);
     public static final ByteBuffer[] EMPTY_BYTE_BUFFER_ARRAY = new ByteBuffer[0];
     
-    public static final Buffer EMPTY_BUFFER = TransportFactory.getInstance().getDefaultMemoryManager().allocate(0);
+    public static final Buffer EMPTY_BUFFER;
+
+    static {
+        EMPTY_BUFFER = TransportFactory.getInstance().getDefaultMemoryManager().allocate(0).asReadOnlyBuffer();
+        EMPTY_BUFFER.allowBufferDispose(false);
+    }
 
     /**
      * Slice {@link ByteBuffer} of required size from big chunk.

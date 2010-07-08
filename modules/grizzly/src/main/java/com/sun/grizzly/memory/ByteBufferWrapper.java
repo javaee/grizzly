@@ -55,7 +55,7 @@ import com.sun.grizzly.Buffer;
  * @author Alexey Stashok
  */
 public class ByteBufferWrapper implements Buffer {
-    public static boolean DEBUG_MODE = false;
+    public static volatile boolean DEBUG_MODE = false;
 
     protected final ByteBufferManager memoryManager;
     
@@ -123,13 +123,17 @@ public class ByteBufferWrapper implements Buffer {
     @Override
     public void dispose() {
         checkDispose();
-        memoryManager.release(this);
+        if (DEBUG_MODE) { // if debug is on - clear the buffer content
+            visible.clear();
+            while(visible.hasRemaining()) {
+                visible.put((byte) 0xFF);
+            }
 
-        visible = null;
-
-        if (DEBUG_MODE) {
             disposeStackTrace = new Exception("ByteBufferWrapper was disposed from: ");
         }
+
+        memoryManager.release(this);
+        visible = null;
     }
 
     @Override

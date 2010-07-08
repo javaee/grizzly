@@ -221,8 +221,18 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
         for (ByteBuffer byteBuffer : buffers) {
             final int len = byteBuffer.remaining();
             if (len > 0) {
-                final byte[] buf = byteBuffer.array();
-                final int off = byteBuffer.arrayOffset() + byteBuffer.position();
+                final byte[] buf;
+                final int off;
+                if (byteBuffer.hasArray()) {
+                    buf = byteBuffer.array();
+                    off = byteBuffer.arrayOffset() + byteBuffer.position();
+                } else {
+                    // @TODO allocate byte array via MemoryUtils
+                    buf = new byte[len];
+                    off = 0;
+                    byteBuffer.get(buf);
+                    byteBuffer.position(byteBuffer.position() - len);
+                }
 
                 for (int i = 0; i < len; i += stride) {
                     deflater.setInput(buf, off + i, Math.min(stride, len - i));
@@ -239,6 +249,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
             }
         }
 
+        buffer.position(buffer.limit());
         return resultBuffer;
     }
 
@@ -246,7 +257,7 @@ public class GZipEncoder extends AbstractTransformer<Buffer, Buffer> {
      * Writes next block of compressed data to the output stream.
      * @throws IOException if an I/O error has occurred
      */
-    protected Buffer deflate(Deflater deflater, MemoryManager memoryManager) {
+     protected Buffer deflate(Deflater deflater, MemoryManager memoryManager) {
         final Buffer buffer = memoryManager.allocate(bufferSize);
         final ByteBuffer byteBuffer = buffer.toByteBuffer();
         final byte[] array = byteBuffer.array();
