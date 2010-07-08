@@ -36,6 +36,8 @@
 
 package com.sun.grizzly.websockets;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 public class BaseServerWebSocket extends BaseWebSocket {
@@ -43,7 +45,11 @@ public class BaseServerWebSocket extends BaseWebSocket {
         super(handler, listeners);
     }
 
-    public void connect() throws IOException {
-        throw new IOException("This operation is invalid on the server.");
+    public HttpServletRequest getRequest() throws IOException {
+        return ((ServerNetworkHandler) getNetworkHandler()).getRequest();
+    }
+
+    public HttpServletResponse getResponse() throws IOException {
+        return ((ServerNetworkHandler) getNetworkHandler()).getResponse();
     }
 }

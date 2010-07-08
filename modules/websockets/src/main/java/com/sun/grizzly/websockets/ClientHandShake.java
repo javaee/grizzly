@@ -38,6 +38,7 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.tcp.Request;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 
@@ -91,7 +92,7 @@ public class ClientHandShake extends HandShake {
     }
 
     public byte[] getKey3() {
-        return key3;
+        return Utils.copy(key3);
     }
 
     private void parse76Headers(Request request, MimeHeaders headers) throws IOException {

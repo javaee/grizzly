@@ -40,6 +40,7 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.tcp.OutputBuffer;
 import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.Constants;
+import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.http.MimeHeaders;
 
@@ -89,7 +90,7 @@ public class ServerHandShake extends HandShake {
     }
 
     public byte[] getKey() {
-        return serverSecKey;
+        return Utils.copy(serverSecKey);
     }
 
     private void write75Response(ByteArrayOutputStream bb) throws IOException {

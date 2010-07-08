@@ -39,14 +39,21 @@ package com.sun.grizzly.websockets;
 import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.http.servlet.HttpServletRequestImpl;
+import com.sun.grizzly.http.servlet.HttpServletResponseImpl;
+import com.sun.grizzly.http.servlet.ServletContextImpl;
 import com.sun.grizzly.tcp.InputBuffer;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
+import com.sun.grizzly.tcp.http11.GrizzlyRequest;
+import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.ConnectionCloseHandler;
 import com.sun.grizzly.util.SelectionKeyActionAttachment;
 import com.sun.grizzly.util.buf.ByteChunk;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -75,10 +82,8 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
         socket = webSocket;
     }
 
-    protected void handshake(Request request, Response response, ProcessorTask task)
-            throws IOException, HandshakeException {
-        final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) ||
-                task.getSSLSupport() != null;
+    protected void handshake(ProcessorTask task) throws IOException, HandshakeException {
+        final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) || task.getSSLSupport() != null;
 
         final ClientHandShake clientHS = new ClientHandShake(request, secure);
 
@@ -160,5 +165,24 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
 
     public void send(DataFrame frame) throws IOException {
         write(frame.frame());
+    }
+
+    public HttpServletRequest getRequest() throws IOException {
+        GrizzlyRequest r = new GrizzlyRequest();
+        r.setRequest(request);
+        return new WSServletRequestImpl(r);
+    }
+
+    public HttpServletResponse getResponse() throws IOException {
+        GrizzlyResponse r = new GrizzlyResponse();
+        r.setResponse(response);
+        return new HttpServletResponseImpl(r);
+    }
+
+    private static class WSServletRequestImpl extends HttpServletRequestImpl {
+        public WSServletRequestImpl(GrizzlyRequest r) throws IOException {
+            super(r);
+            setContextImpl(new ServletContextImpl());
+        }
     }
 }

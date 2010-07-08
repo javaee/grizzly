@@ -36,6 +36,8 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.util.Utils;
+
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -96,11 +98,11 @@ public class DataFrame {
     }
 
     public void setBytes(byte[] bytes) {
-        this.bytes = bytes;
+        this.bytes = Utils.copy(bytes);
     }
 
     public byte[] getBinaryPayload() {
-        return bytes;
+        return Utils.copy(bytes);
     }
 
     public byte[] frame() {

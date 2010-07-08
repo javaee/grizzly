@@ -40,7 +40,6 @@ import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
-import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -58,7 +57,7 @@ public class WebSocketEngine {
     public static final String SERVER_SEC_WS_LOCATION_HEADER = "Sec-WebSocket-Location";
     public static final String WEBSOCKET = "websocket";
 
-    static final Logger logger = Logger.getLogger(WEBSOCKET);
+    static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private static final WebSocketEngine engine = new WebSocketEngine();
     private final Map<String, WebSocketApplication> applications = new HashMap<String, WebSocketApplication>();
     static final int INITIAL_BUFFER_SIZE = 8192;
@@ -92,18 +91,16 @@ public class WebSocketEngine {
         final WebSocketApplication app = WebSocketEngine.getEngine().getApplication(request.requestURI().toString());
         BaseServerWebSocket socket = null;
         try {
-            final Response response = request.getResponse();
-            ProcessorTask task = asyncExecutor.getProcessorTask();
-            final SelectionKey key = task.getSelectionKey();
-            final ServerNetworkHandler handler = new ServerNetworkHandler(asyncExecutor, request, response);
-            socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
-            key.attach(handler);
-            handler.handshake(request, response, task);
-
             if (app != null) {
+                final Response response = request.getResponse();
+                ProcessorTask task = asyncExecutor.getProcessorTask();
+                final SelectionKey key = task.getSelectionKey();
+                final ServerNetworkHandler handler = new ServerNetworkHandler(asyncExecutor, request, response);
+                socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
+                key.attach(handler);
+                handler.handshake(task);
+
                 enableRead(task, key);
-            } else {
-                ((InternalOutputBuffer) response.getOutputBuffer()).addActiveFilter(new WebSocketOutputFilter());
             }
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);

@@ -141,6 +141,7 @@ public class WebSocketsTest {
             Assert.assertEquals(0, sent.size(), String.format("Should have received all %s messages back.",
                     MESSAGE_COUNT));
         } catch (InterruptedException e) {
+            e.printStackTrace();
             throw new RuntimeException(e.getMessage(), e);
         } finally {
             if(client != null) {

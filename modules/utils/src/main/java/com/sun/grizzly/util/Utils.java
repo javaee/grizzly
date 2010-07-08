@@ -53,27 +53,26 @@ import java.util.regex.Matcher;
 
 /**
  * Class contains set of useful operations commonly used in the framework
- * 
+ *
  * @author Alexey Stashok
  * @author Jean-Francois Arcand
  */
 public class Utils {
-    private static ConcurrentHashMap<String, Charset> charsetAliasMap =
-            new ConcurrentHashMap<String, Charset>();
+    private static final ConcurrentHashMap<String, Charset> ALIAS_MAP = new ConcurrentHashMap<String, Charset>();
     public static boolean VERBOSE_TESTS = false;
 
     /**
      * Lookup a {@link Charset} by name.
      * Fixes Charset concurrency issue (http://paul.vox.com/library/post/the-mysteries-of-java-character-set-performance.html)
-     * 
+     *
      * @param charsetName
      * @return {@link Charset}
      */
     public static Charset lookupCharset(String charsetName) {
-        Charset charset = charsetAliasMap.get(charsetName);
+        Charset charset = ALIAS_MAP.get(charsetName);
         if (charset == null) {
             charset = Charset.forName(charsetName);
-            charsetAliasMap.putIfAbsent(charsetName, charset);
+            ALIAS_MAP.putIfAbsent(charsetName, charset);
         }
 
         return charset;
@@ -83,7 +82,7 @@ public class Utils {
      * Character translation tables.
      */
     private static final byte[] toLower = new byte[256];
-    
+
     /**
      * Initialize character translation and type tables.
      */
@@ -115,18 +114,18 @@ public class Utils {
             throw new IOException("Can not open Selector" + (msg == null ? "" : msg));
         }
     }
-    
+
     /**
-     * Method reads data from {@link SelectableChannel} to 
+     * Method reads data from {@link SelectableChannel} to
      * {@link ByteBuffer}. If data is not immediately available - channel
      *  will be reregistered on temporary {@link Selector} and wait maximum
      * readTimeout milliseconds for data.
-     * 
+     *
      * @param channel {@link SelectableChannel} to read data from
      * @param byteBuffer {@link ByteBuffer} to store read data to
-     * @param readTimeout maximum time in millis operation will wait for 
+     * @param readTimeout maximum time in millis operation will wait for
      * incoming data
-     * 
+     *
      * @return number of bytes were read
      * @throws <code>IOException</code> if any error was occured during read
      */
@@ -147,9 +146,9 @@ public class Utils {
                     byteRead += count;
                 } else if (count == -1 && byteRead == 0) {
                     byteRead = -1;
-                } 
+                }
             }
-            
+
             if (byteRead >= 0 && byteBuffer.position() == preReadInputBBPos) {
                 readSelector = SelectorFactory.getSelector();
 
@@ -158,12 +157,12 @@ public class Utils {
 
                 }
                 count = 1;
-                
+
                 tmpKey = channel.register(readSelector, SelectionKey.OP_READ);
                 tmpKey.interestOps(tmpKey.interestOps() | SelectionKey.OP_READ);
                 int code = readSelector.select(readTimeout);
                 tmpKey.interestOps(
-                    tmpKey.interestOps() & (~SelectionKey.OP_READ));
+                    tmpKey.interestOps() & ~SelectionKey.OP_READ);
 
                 if ( code == 0 ){
                     return r;
@@ -175,10 +174,10 @@ public class Utils {
                         byteRead += count;
                     } else if (count == -1 && byteRead == 0) {
                         byteRead = -1;
-                    } 
+                    }
                 }
             } else if (byteRead == 0 && byteBuffer.position() != preReadInputBBPos) {
-                byteRead += (byteBuffer.position() - preReadInputBBPos);
+                byteRead += byteBuffer.position() - preReadInputBBPos;
             }
         } finally {
             if (tmpKey != null)
@@ -195,37 +194,37 @@ public class Utils {
         }
         r.bytesRead = byteRead;
         return r;
-    } 
-    
-    
-    /** 
+    }
+
+
+    /**
      * Return the bytes contained between the startByte and the endByte. The ByteBuffer
-     * will be left in the state it was before invoking that method, meaning 
+     * will be left in the state it was before invoking that method, meaning
      * its position and limit will be the same.
-     * 
-     * @param byteBuffer The bytes. 
+     *
+     * @param byteBuffer The bytes.
      * @param startByte the first byte to look for
      * @param endByte the second byte to look for
      * @return The byte[] contained between startByte and endByte
      */
-    public static byte[] extractBytes(ByteBuffer byteBuffer, 
-            byte startByte, byte endByte) throws IOException{   
-        
+    public static byte[] extractBytes(ByteBuffer byteBuffer,
+            byte startByte, byte endByte) {
+
         int curPosition = byteBuffer.position();
         int curLimit = byteBuffer.limit();
-      
+
         if (byteBuffer.position() == 0){
             throw new IllegalStateException("Invalid state");
         }
-       
+
         byteBuffer.position(0);
         byteBuffer.limit(curPosition);
         int state =0;
         int start =0;
-        int end = 0;  
-        try {                         
-            byte c;            
-            
+        int end;
+        try {
+            byte c;
+
             // Rule b - try to determine the context-root
             while(byteBuffer.hasRemaining()) {
                 c = byteBuffer.get();
@@ -236,7 +235,7 @@ public class Utils {
                             start = byteBuffer.position();
                         }
                         break;
-                    case 1: 
+                    case 1:
                         if (c == endByte){
                             end = byteBuffer.position();
                             byte[] bytes = new byte[end - start];
@@ -248,17 +247,17 @@ public class Utils {
                         break;
                     default:
                         throw new IllegalArgumentException("Unexpected state");
-                }      
+                }
             }
             throw new IllegalStateException("Unexpected state");
-        } finally {     
+        } finally {
             byteBuffer.limit(curLimit);
-            byteBuffer.position(curPosition);                               
-        }       
-    } 
-    
-    
-       
+            byteBuffer.position(curPosition);
+        }
+    }
+
+
+
     /**
      * Specialized utility method: find a sequence of lower case bytes inside
      * a ByteBuffer.
@@ -266,14 +265,14 @@ public class Utils {
     public static int findBytes(ByteBuffer byteBuffer, byte[] b) {
         int curPosition = byteBuffer.position();
         int curLimit = byteBuffer.limit();
-      
+
         if (byteBuffer.position() == 0){
             throw new IllegalStateException("Invalid state");
         }
-       
+
         byteBuffer.position(0);
         byteBuffer.limit(curPosition);
-        try {                         
+        try {
             byte first = b[0];
             int start = 0;
             int end = curPosition;
@@ -281,7 +280,7 @@ public class Utils {
             // Look for first char 
             int srcEnd = b.length;
 
-            for (int i = start; i <= (end - srcEnd); i++) {
+            for (int i = start; i <= end - srcEnd; i++) {
                 if ((toLower[byteBuffer.get(i) & 0xff] & 0xff) != first) continue;
                 // found first char, now look for a match
                 int myPos = i+1;
@@ -294,7 +293,7 @@ public class Utils {
             return -1;
         } finally {
             byteBuffer.limit(curLimit);
-            byteBuffer.position(curPosition);                
+            byteBuffer.position(curPosition);
         }
     }
 
@@ -339,6 +338,15 @@ public class Utils {
         }
     }
 
+    public static byte[] copy(final byte[] src) {
+        byte[] copy = null;
+        if (src != null) {
+            copy = new byte[src.length];
+            System.arraycopy(src, 0, copy, 0, src.length);
+        }
+        return copy;
+    }
+
     private static class MyCharSequence implements CharSequence {
         private final int curPosition;
         private final ByteBuffer bb;
@@ -360,8 +368,8 @@ public class Utils {
             throw new UnsupportedOperationException();
         }
     }
-    
-    
+
+
     public static class Result{
         public int bytesRead = 0;
         public boolean isClosed = false;

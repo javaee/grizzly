@@ -60,16 +60,16 @@ public class WebSocketClientApplication extends WebSocketApplication {
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
     private AtomicBoolean running = new AtomicBoolean(true);
     private Queue<ClientNetworkHandler> handlers = new ConcurrentLinkedQueue<ClientNetworkHandler>();
+    private final Thread selectorThread;
 
     public WebSocketClientApplication() throws IOException {
         selector = SelectorProvider.provider().openSelector();
-        final Thread thread = new Thread(new Runnable() {
+        selectorThread = new Thread(new Runnable() {
             public void run() {
                 select();
             }
         });
-        thread.setDaemon(true);
-        thread.start();
+        selectorThread.setDaemon(true);
     }
 
     @Override
@@ -78,6 +78,11 @@ public class WebSocketClientApplication extends WebSocketApplication {
     }
 
     public Future<WebSocket> connect(final String address, final WebSocketListener... listeners) throws IOException {
+        synchronized (selectorThread) {
+            if(!selectorThread.isAlive()) {
+                selectorThread.start();
+            }
+        }
         final FutureTask<WebSocket> command = new WebSocketConnectTask(this, address, listeners);
         executorService.execute(command);
         return command;

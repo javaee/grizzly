@@ -41,7 +41,6 @@ package com.sun.grizzly.websockets;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Queue;
 import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -116,9 +115,6 @@ public class SecKey {
         return secKeyValue;
     }
 
-    /**
-     * {@inheritDoc}
-     */
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder(secKey.length() + 16);
@@ -190,10 +186,7 @@ public class SecKey {
         } catch (InterruptedException e) {
             throw new HandshakeException(e.getMessage());
         } finally {
-            if(md5 != null) {
-                md5.reset();
-                mds.offer(md5);
-            }
+            offer(md5);
         }
 
     }
@@ -209,11 +202,8 @@ public class SecKey {
             throw new InvalidSecurityKeyException("Key too long");
         }
 
-        // chars counter
         int charsNum = 0;
-        // spaces counter
         int spacesNum = 0;
-        // product numeric value
         long productValue = 0;
 
         for (int i = 0; i < key.length(); i++) {
@@ -226,12 +216,12 @@ public class SecKey {
             } else if (c == ' ') { // count spaces
                 spacesNum++;
                 if (spacesNum > 12) {
-//                    throw new InvalidSecurityKeyException("Too many spaces: " + spacesNum);
+                    throw new InvalidSecurityKeyException("Too many spaces: " + spacesNum);
                 }
             } else if (c >= 0x21 && c <= 0x2F || c >= 0x3A && c <= 0x7E) {  // count chars
                 charsNum++;
                 if (charsNum > 12) {
-//                    throw new InvalidSecurityKeyException("Too many characters: " + charsNum);
+                    throw new InvalidSecurityKeyException("Too many characters: " + charsNum);
                 }
             } else {
                 throw new InvalidSecurityKeyException("unexpected character: '" + c + "'");
@@ -255,11 +245,18 @@ public class SecKey {
 
     public static void init() {
         try {
-            for(int index = 0; index < 5; index++) {
-                mds.offer(MessageDigest.getInstance("MD5"));
+            while (offer(MessageDigest.getInstance("MD5")) || mds.size() < 5) {
             }
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e.getMessage());
         }
+    }
+
+    private static boolean offer(MessageDigest md5) {
+        if (md5 != null) {
+            md5.reset();
+            return mds.offer(md5);
+        }
+        return false;
     }
 }
