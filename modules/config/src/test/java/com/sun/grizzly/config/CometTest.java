@@ -131,7 +131,9 @@ public class CometTest extends BaseGrizzlyConfigTest {
                 throw new IllegalStateException("Incorrect return code: " + statusCode);
             }
         } finally {
-            bw.close();
+            if (bw != null) {
+                bw.close();
+            }
         }
     }
 
@@ -166,7 +168,9 @@ public class CometTest extends BaseGrizzlyConfigTest {
                 ex.printStackTrace();
                 throw new IllegalStateException("Test UNPREDICTED-FAILURE");
             } finally {
-                br.close();
+                if (br != null) {
+                    br.close();
+                }
             }
             return listenMessage;
         }
