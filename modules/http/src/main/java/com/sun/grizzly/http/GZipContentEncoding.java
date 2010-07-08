@@ -52,6 +52,9 @@ import com.sun.grizzly.zip.GZipEncoder;
  * @author Alexey Stashok
  */
 public class GZipContentEncoding implements ContentEncoding {
+    public static final int DEFAULT_IN_BUFFER_SIZE = 512;
+    public static final int DEFAULT_OUT_BUFFER_SIZE = 512;
+
     private static final String[] ALIASES = {"gzip", "deflate"};
 
     private final String name = "gzip";
@@ -65,7 +68,7 @@ public class GZipContentEncoding implements ContentEncoding {
      * Construct <tt>GZipContentEncoding</tt> using default buffer sizes.
      */
     public GZipContentEncoding() {
-        this(512, 512);
+        this(DEFAULT_IN_BUFFER_SIZE, DEFAULT_OUT_BUFFER_SIZE);
     }
 
     /**
@@ -165,22 +168,25 @@ public class GZipContentEncoding implements ContentEncoding {
         final HttpHeader httpHeader = httpContent.getHttpHeader();
         
         final Buffer input = httpContent.getContent();
+
+        if (httpContent.isLast() && !input.hasRemaining()) {
+            return httpContent;
+        }
+
         final TransformationResult<Buffer, Buffer> result =
                 encoder.transform(httpHeader, input);
 
-        input.dispose();
+        input.tryDispose();
 
         try {
             switch (result.getStatus()) {
                 case COMPLETED:
                 case INCOMPLETED: {
                     Buffer encodedBuffer = result.getMessage();
-                    if (httpHeader.getContentLength() < 0) {
-                        final Buffer finishBuffer = encoder.finish(httpHeader);
-                        encodedBuffer = BufferUtils.appendBuffers(
-                                connection.getTransport().getMemoryManager(),
-                                encodedBuffer, finishBuffer);
-                    }
+                    final Buffer finishBuffer = encoder.finish(httpHeader);
+                    encodedBuffer = BufferUtils.appendBuffers(
+                            connection.getTransport().getMemoryManager(),
+                            encodedBuffer, finishBuffer);
 
                     if (encodedBuffer != null) {
                         httpContent.setContent(encodedBuffer);

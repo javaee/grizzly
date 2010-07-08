@@ -122,6 +122,27 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.httpRequestInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpServerFilter.httpRequest");
+        contentEncodings = new ContentEncoding[]{
+                    new GZipContentEncoding(GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
+                    GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
+                    new EncodingFilter() {
+                        @Override
+                        public boolean applyEncoding(HttpHeader httpPacket) {
+                            if (!httpPacket.isRequest()) {
+                                final HttpResponsePacket response = (HttpResponsePacket) httpPacket;
+                                final HttpRequestPacket request;
+                                final BufferChunk acceptEncoding;
+                                if (response.isChunked() && (request = response.getRequest()) != null &&
+                                        (acceptEncoding = request.getHeaders().getValue("Accept-Encoding")) != null &&
+                                        acceptEncoding.indexOf("gzip", 0) >= 0) {
+                                    return true;
+                                }
+                            }
+
+                            return false;
+                        }
+                    })
+                };
     }
     
     // ----------------------------------------------------------- Configuration

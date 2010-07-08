@@ -95,6 +95,8 @@ public class HttpClientFilter extends HttpCodecFilter {
         this.httpResponseInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpServerFilter.httpRequest");
+        
+        contentEncodings = new ContentEncoding[] {new GZipContentEncoding()};
     }
 
     /**

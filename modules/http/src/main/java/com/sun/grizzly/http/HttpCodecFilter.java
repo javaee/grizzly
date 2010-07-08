@@ -86,7 +86,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
     
     private final Object transferEncodingSync = new Object();
     
-    private volatile ContentEncoding[] contentEncodings;
+    protected volatile ContentEncoding[] contentEncodings;
 
     private final Object contentEncodingSync = new Object();
 
@@ -176,7 +176,6 @@ public abstract class HttpCodecFilter extends BaseFilter {
         this.maxHeadersSize = maxHeadersSize;
         transferEncodings = new TransferEncoding[] {
             new FixedLengthTransferEncoding(), new ChunkedTransferEncoding(maxHeadersSize)};
-        contentEncodings = new ContentEncoding[] {new GZipContentEncoding()};
     }
 
     /**
@@ -435,6 +434,11 @@ public abstract class HttpCodecFilter extends BaseFilter {
 
                     // Instruct filterchain to continue the processing.
                     return ctx.getInvokeAction(remainderBuffer);
+                } else if (remainderBuffer != null && remainderBuffer.hasRemaining()) {
+                    // Instruct filterchain to continue the processing.
+                    ctx.setMessage(
+                            HttpContent.builder(httpHeader).last(isLast).build());
+                    return ctx.getInvokeAction(remainderBuffer);
                 }
             }
 
@@ -509,7 +513,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
             final Connection connection = ctx.getConnection();
 
             // transform HttpPacket into Buffer
-            final Buffer output = encodeHttpPacket(connection, input);
+        final Buffer output = encodeHttpPacket(connection, input);
 
             if (output != null) {
                 ctx.setMessage(output);
@@ -1152,7 +1156,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
     final HttpContent decodeContent(final Connection connection,
             HttpContent httpContent) {
 
-        if (httpContent.getContent().remaining() == 0) {
+        if (!httpContent.getContent().hasRemaining()) {
             httpContent.recycle();
             return null;
         }
