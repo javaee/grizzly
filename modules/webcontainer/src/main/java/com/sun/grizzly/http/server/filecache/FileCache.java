@@ -403,6 +403,8 @@ public class FileCache {
             HttpRequestPacket request) throws IOException {
 
         final HttpResponsePacket response = request.getResponse();
+        response.setStatus(200);
+        response.setReasonPhrase("OK");
 
         boolean flushBody = checkIfHeaders(entry, request);
         response.setContentType(entry.contentType);

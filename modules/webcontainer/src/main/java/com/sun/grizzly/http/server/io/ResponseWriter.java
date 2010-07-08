@@ -85,6 +85,5 @@ public class ResponseWriter extends Writer {
 
     @Override public void close() throws IOException {
         outputBuffer.close();
-    }
-    
+    }    
 }

@@ -56,20 +56,29 @@ import com.sun.grizzly.http.server.GrizzlyWebServer;
 import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
+import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.nio.transport.TCPNIOConnectorHandler;
+import com.sun.grizzly.ssl.SSLContextConfigurator;
+import com.sun.grizzly.ssl.SSLEngineConfigurator;
+import com.sun.grizzly.ssl.SSLFilter;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.nio.CharBuffer;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameters;
 import static org.junit.Assert.*;
 
 
@@ -78,15 +87,29 @@ import static org.junit.Assert.*;
  * 
  * @author Alexey Stashok
  */
-
+@RunWith(Parameterized.class)
 public class FileCacheTest {
     public static final int PORT = 18891;
 
     private ScheduledThreadPoolExecutor scheduledThreadPool;
     private GrizzlyWebServer gws;
+    private final boolean isSslEnabled;
+
+    public FileCacheTest(boolean isSslEnabled) {
+        this.isSslEnabled = isSslEnabled;
+    }
+
+    @Parameters
+    public static Collection<Object[]> getSslParameter() {
+        return Arrays.asList(new Object[][]{
+                    {Boolean.FALSE},
+                    {Boolean.TRUE}
+                });
+    }
 
     @Before
     public void before() throws Exception {
+        ByteBufferWrapper.DEBUG_MODE = true;
         scheduledThreadPool = new ScheduledThreadPoolExecutor(1);
         configureWebServer();
     }
@@ -161,14 +184,82 @@ public class FileCacheTest {
         assertEquals("Cached data mismatch", pattern, response2.getContent().toStringContent());
     }
 
+    @Test
+    public void testGZip() throws Exception {
+        final String fileName = "./pom.xml";
+        startWebServer(new GrizzlyAdapter() {
+
+            @Override
+            public void service(final GrizzlyRequest req, final GrizzlyResponse res) {
+                try {
+                    String error = null;
+                    try {
+                        addToFileCache(req, new File(fileName));
+                    } catch (Exception exception) {
+                        error = exception.getMessage();
+                    }
+
+                    final PrintWriter writer = res.getWriter();
+                    writer.write(error == null ?
+                        "Hello not cached data" :
+                        "Error happened: " + error);
+                    writer.close();
+
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/somedata")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("Accept-Encoding", "gzip")
+                .build();
+
+        final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/somedata")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("Accept-Encoding", "gzip")
+                .build();
+
+        final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
+        final HttpContent response1 = responseFuture1.get(1000, TimeUnit.SECONDS);
+
+        assertEquals("gzip", response1.getHttpHeader().getHeader("Content-Encoding"));
+        assertEquals("Not cached data mismatch", "Hello not cached data", response1.getContent().toStringContent());
+
+
+        final File file = new File(fileName);
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+
+        final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
+        final HttpContent response2 = responseFuture2.get(1000, TimeUnit.SECONDS);
+        assertEquals("gzip", response2.getHttpHeader().getHeader("Content-Encoding"));
+        assertEquals("Cached data mismatch", pattern, response2.getContent().toStringContent());
+    }
+
     private void configureWebServer() throws Exception {
         gws = new GrizzlyWebServer();
         final GrizzlyListener listener =
                 new GrizzlyListener("grizzly",
                                     GrizzlyListener.DEFAULT_NETWORK_HOST,
                                     PORT);
-        gws.addListener(listener);
+        if (isSslEnabled) {
+            listener.setSecure(true);
+            listener.setSSLEngineConfig(createSSLConfig(true));
+        }
 
+        gws.addListener(listener);
     }
 
     private void startWebServer(GrizzlyAdapter adapter) throws Exception {
@@ -181,6 +272,12 @@ public class FileCacheTest {
         
         final FilterChainBuilder builder = FilterChainBuilder.stateless();
         builder.add(new TransportFilter());
+
+        if (isSslEnabled) {
+            final SSLFilter sslFilter = new SSLFilter(createSSLConfig(true),
+                    createSSLConfig(false));
+            builder.add(sslFilter);
+        }
 
         builder.add(new HttpClientFilter());
         builder.add(new HttpMessageFilter(future));
@@ -197,6 +294,28 @@ public class FileCacheTest {
         return future;
     }
 
+    private static SSLEngineConfigurator createSSLConfig(boolean isServer) throws Exception {
+        final SSLContextConfigurator sslContextConfigurator =
+                new SSLContextConfigurator();
+        final ClassLoader cl = SuspendTest.class.getClassLoader();
+        // override system properties
+        final URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
+        if (cacertsUrl != null) {
+            sslContextConfigurator.setTrustStoreFile(cacertsUrl.getFile());
+            sslContextConfigurator.setTrustStorePass("changeit");
+        }
+
+        // override system properties
+        final URL keystoreUrl = cl.getResource("ssltest-keystore.jks");
+        if (keystoreUrl != null) {
+            sslContextConfigurator.setKeyStoreFile(keystoreUrl.getFile());
+            sslContextConfigurator.setKeyStorePass("changeit");
+        }
+
+        return new SSLEngineConfigurator(sslContextConfigurator.createSSLContext(),
+                !isServer, false, false);
+    }
+
     private static class HttpMessageFilter extends BaseFilter {
         private final FutureImpl<HttpContent> future;
 
@@ -207,12 +326,16 @@ public class FileCacheTest {
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
             final HttpContent content = (HttpContent) ctx.getMessage();
+            try {
+                if (!content.isLast()) {
+                    return ctx.getStopAction(content);
+                }
 
-            if (!content.isLast()) {
-                return ctx.getStopAction(content);
+                future.result(content);
+            } catch (Exception e) {
+                future.failure(e);
+                e.printStackTrace();
             }
-
-            future.result(content);
 
             return ctx.getStopAction();
         }
