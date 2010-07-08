@@ -441,6 +441,7 @@
         </dependency>
     </dependencies>
     <properties>
+	     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding> 
         <felix-version>1.4.3</felix-version>
         <grizzly-next-version>2.0.0</grizzly-next-version>
         <grizzly-released-version>1.9.18</grizzly-released-version>

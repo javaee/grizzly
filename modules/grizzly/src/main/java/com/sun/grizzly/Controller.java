@@ -1,8 +1,7 @@
 /*
- *
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  *
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -33,11 +32,9 @@
  * and therefore, elected the GPL Version 2 license, then the option applies
  * only if the new code is made subject to such option by the copyright
  * holder.
- *
  */
 package com.sun.grizzly;
 
-import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.AttributeHolder;
 import com.sun.grizzly.util.Cloner;
 import com.sun.grizzly.util.ConcurrentLinkedQueuePool;
@@ -47,6 +44,7 @@ import com.sun.grizzly.util.DefaultThreadPool;
 import com.sun.grizzly.util.ExtendedThreadPool;
 import com.sun.grizzly.util.Grizzly;
 import com.sun.grizzly.util.GrizzlyExecutorService;
+import com.sun.grizzly.util.LogMessages;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.State;
 import com.sun.grizzly.util.StateHolder;
@@ -55,6 +53,7 @@ import com.sun.grizzly.util.ThreadPoolConfig;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.WorkerThreadFactory;
 import com.sun.grizzly.util.WorkerThreadImpl;
+
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -259,7 +258,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Enable workaround Linux spinning Selector
      */
     static final boolean isLinux =
-            System.getProperty("os.name").equalsIgnoreCase("linux") &&
+            "linux".equalsIgnoreCase(System.getProperty("os.name")) &&
                 !System.getProperty("java.version").startsWith("1.7");
     
     /**
@@ -293,7 +292,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Controller constructor
      */
     public Controller() {
-        (new ControllerConfig()).configure(this);
+        new ControllerConfig().configure(this);
 
         contexts = new ConcurrentLinkedQueuePool<NIOContext>() {
 
@@ -359,7 +358,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     /**
-     * Auto-configure the number of {@link ReaderThread} based on the core
+     * Auto-configure the number of reader threads based on the core
      * processor.
      */
     private void autoConfigureCore(){
@@ -460,7 +459,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Configure the {@link Context}
      * @param key {@link SelectionKey}
      * @param opType the current SelectionKey op.
-     * @param context
+     * @param ctx
      * @param selectorHandler
      */
     public void configureContext(SelectionKey key, OpType opType,
@@ -567,8 +566,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      */
     public void addSelectorHandler(SelectorHandler selectorHandler) {
         selectorHandlers.add(selectorHandler);
-        if (stateHolder.getState(false) != null &&
-                !State.STOPPED.equals(stateHolder.getState())) {
+        if (stateHolder.getState(false) != null && State.STOPPED != stateHolder.getState()) {
             addSelectorHandlerOnReadControllers(selectorHandler);
             if (readySelectorHandlerCounter != null) {
                 readySelectorHandlerCounter.incrementAndGet();
@@ -778,7 +776,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     }
 
     /**
-     * Start the Controller. If the thread pool and/or H andler has not been
+     * Start the Controller. If the thread pool and/or Handler has not been
      * defined, the default will be used.
      */
     public void start() throws IOException {
@@ -827,15 +825,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
                 stoppedSelectorHandlerCounter = new AtomicInteger(selectorHandlerCount);
 
                 Iterator<SelectorHandler> it = selectorHandlers.iterator();
-                for (; it.hasNext() && selectorHandlerCount-- > 0;) {
+                while (it.hasNext() && selectorHandlerCount-- > 0) {
                     SelectorHandler selectorHandler = it.next();
-                    if (selectorHandler instanceof TCPSelectorHandler){
-                        ((TCPSelectorHandler)selectorHandler)
+                    if (selectorHandler instanceof TCPSelectorHandler) {
+                        ((TCPSelectorHandler) selectorHandler)
                                 .setExecutePendingIOUsingSelectorThread(executePendingIOUsingSelectorThread);
-//                         ((TCPSelectorHandler)selectorHandler)
-//                                .setPendingIOlimitPerThread(pendingIOlimitPerThread);
-                         ((TCPSelectorHandler)selectorHandler)
-                                .setMaxAcceptRetries(maxAcceptRetries);
+                        ((TCPSelectorHandler) selectorHandler).setMaxAcceptRetries(maxAcceptRetries);
                     }
                     startSelectorHandlerRunner(selectorHandler);
                 }
@@ -848,7 +843,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             displayConfiguration();
         }
 
-        waitUntilSeletorHandlersStop();
+        waitUntilSelectorHandlersStop();
 
         if (readThreadsCount > 0) {
             multiReadThreadSelectorHandler.shutdown();
@@ -940,9 +935,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Resume this {@link Controller} and associated {@link SelectorHandler}s
      */
     public void resume() throws IOException {
-        if (!State.PAUSED.equals(stateHolder.getState(false))) {
-            throw new IllegalStateException("Controller is not in PAUSED state, but: " +
-                    stateHolder.getState(false));
+        if (State.PAUSED != stateHolder.getState(false)) {
+            throw new IllegalStateException("Controller is not in PAUSED state, but: " + stateHolder.getState(false));
         }
 
         stateHolder.setState(State.STARTED);
@@ -959,7 +953,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
     /**
      * Initialize the number of ReadThreadController.
      */
-    private void initReadThreads() throws IOException {
+    private void initReadThreads() {
         // Attributes need to be shared among Controller and its ReadControllers
         if (attributes == null) {
             attributes = new HashMap<String, Object>(2);
@@ -977,8 +971,8 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             addSelectorHandlerOnReadControllers(selectorHandler);
         }
 
-        for (int i = 0; i < readThreadControllers.length; i++) {
-            kernelExecutor.execute(readThreadControllers[i]);
+        for (ReadController readThreadController : readThreadControllers) {
+            kernelExecutor.execute(readThreadController);
         }
     }
 
@@ -1094,7 +1088,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Method waits until all initialized {@link SelectorHandler}s will
      * not get stopped
      */
-    protected void waitUntilSeletorHandlersStop() {
+    protected void waitUntilSelectorHandlersStop() {
         synchronized (stoppedSelectorHandlerCounter) {
             while (stoppedSelectorHandlerCounter.get() > 0 ||
                     !State.STOPPED.equals(stateHolder.getState())) {
@@ -1228,7 +1222,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
             final String threadGroupName, final String threadNamePattern) {
         
         return Executors.newCachedThreadPool(new WorkerThreadFactory(threadGroupName) {
-            private AtomicInteger counter = new AtomicInteger();
+            private final AtomicInteger counter = new AtomicInteger();
 
             @Override
             public Thread newThread(Runnable r) {
@@ -1281,7 +1275,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
     /**
      * Return <tt>true</tt> if the Controller is auto configuring the
-     * number of {@link ReaderController} and its associated thread pool size.
+     * number of {@link ReadController} and its associated thread pool size.
      * @return the autoConfigure
      */
     public boolean isAutoConfigure() {
@@ -1290,7 +1284,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
     /**
      * Set to true <tt>true</tt> if the Controller is auto configuring the
-     * number of {@link ReaderController} and its associated thread pool size.
+     * number of {@link ReadController} and its associated thread pool size.
      * @param autoConfigure the autoConfigure to set
      */
     public void setAutoConfigure(boolean autoConfigure) {
@@ -1299,7 +1293,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
     private void recalcRequiredThreadsCount() {
         final int selectorHandlersCount = selectorHandlers.size();
-        final int clonesNumber = (selectorHandlersCount > 0) ? selectorHandlersCount : 1;
+        final int clonesNumber = selectorHandlersCount > 0 ? selectorHandlersCount : 1;
         requiredThreadsCount = clonesNumber * (readThreadsCount + 1) * 2;
     }
 
@@ -1353,7 +1347,6 @@ public class Controller implements Runnable, Lifecycle, Copyable,
 
     /**
      * Display the internal configuration of this instance.
-     * @param aBoolean
      */
     public void setDisplayConfiguration(boolean displayConfiguration) {
         this.displayConfiguration = displayConfiguration;

@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -101,8 +101,9 @@ public class CometEvent<E> implements Serializable{
      * The CometContext from where this instance was fired.
      */
     private transient CometContext cometContext;
-            
-    
+    private static final long serialVersionUID = 920798330036889926L;
+
+
     /**
      * Create a new <code>CometEvent</code>
      */
@@ -116,7 +117,7 @@ public class CometEvent<E> implements Serializable{
 
     public CometEvent(int type, CometContext context) {
         this.type = type;
-        this.cometContext = context;
+        cometContext = context;
     }
 
     public CometEvent(int type, CometContext cometContext, E attachment) {
@@ -136,7 +137,7 @@ public class CometEvent<E> implements Serializable{
     
     /**
      * Set the <code>type</code> of this object.
-     * @param int the <code>type</code> of this object
+     * @param type the <code>type</code> of this object
      */    
     protected void setType(int type){
         this.type = type;

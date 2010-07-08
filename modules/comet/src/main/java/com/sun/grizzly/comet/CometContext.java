@@ -2,7 +2,7 @@
  * 
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
- * Copyright 2007-2008 Sun Microsystems, Inc. All rights reserved.
+ * Copyright 2007-2010 Sun Microsystems, Inc. All rights reserved.
  * 
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
@@ -49,7 +49,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
- * The main object used by {@link CometHandler} and {@link Servlet} to push information
+ * The main object used by {@link CometHandler} and Servlet to push information
  * amongs suspended request/response. The {@link CometContext} is always available for {@link CometHandler}
  * and can be used to {@link #notify}, or share information with other 
  * {@link CometHandler}. This is the equivalent of server push as the CometContext
@@ -66,7 +66,7 @@ import java.util.logging.Logger;
  * CometContext cc = ce.registerContext("MyTopic");
  * cc.setBlockingNotification(false); // Use multiple thread to execute the server push
  * 
- * and then inside a {@link Servlet.service} method, you just need to call:
+ * and then inside a Servlet.service() method, you just need to call:
  * 
  * cc.addCometListener(myNewCometListener());
  * cc.notify("I'm pushing data to all registered CometHandler");
@@ -85,7 +85,7 @@ import java.util.logging.Logger;
  * clients. You can also use a {@link NotificationHandler} to throttle push like
  * invoking only a subset of the CometHandler, etc.
  * 
- * Idle suspended connection can be timed out by configuring the {@link #setExpirationDelay(int)}.
+ * Idle suspended connection can be timed out by configuring the {@link #setExpirationDelay(long)}.
  * The value needs to be in milliseconds. If there is no I/O operations and no
  * invokation of {@link #notify} during the expiration delay, Grizzly
  * will resume all suspended connection. An application will have a chance to 
@@ -96,10 +96,10 @@ import java.util.logging.Logger;
  * 
  * </p>
  * <p>
- * Attributes can be added/removed the same way {@link HttpServletSession} 
+ * Attributes can be added/removed the same way HttpServletSession
  * is doing. It is not recommended to use attributes if this 
- * {@link CometContext} is not shared amongs multiple
- * context path (uses {@link HttpServletSession} instead).
+ * {@link CometContext} is not shared amongst multiple
+ * context path (uses HttpServletSession instead).
  * </p> 
  * @author Jeanfrancois Arcand
  * @author Gustav Trede
@@ -258,21 +258,21 @@ public class CometContext<E> {
     
   
     /**
-     * Add a {@link CometHandler}. The underlying {@link HttpServletResponse} will 
+     * Add a {@link CometHandler}. The underlying HttpServletResponse will
      * not get commited until {@link CometContext#resumeCometHandler(CometHandler)}
-     * is invoked, unless the {@link CometContext#setExoirationDelay(int)} expires.
+     * is invoked, unless the {@link CometContext#setExpirationDelay(long)} expires.
      * If set to alreadySuspended is set to true, no  I/O operations are allowed 
-     * inside the {@link CometHandler} as the underlying {@link HttpServletResponse}
+     * inside the {@link CometHandler} as the underlying HttpServletResponse
      * has not been suspended. Adding such {@link CometHandler} is usefull only when
-     * no I/O operations on the {@link HttpServletResponse} are required. Examples
+     * no I/O operations on the HttpServletResponse are required. Examples
      * include calling a remote EJB when a push operations happens, storing
      * data inside a database, etc. 
      * 
      * @param handler a new {@link CometHandler} 
      * @param alreadySuspended Add the Comethandler but don't suspend
-     *        the {@link HttpServletResponse}. If set to true, no 
+     *        the HttpServletResponse. If set to true, no
      *        I/O operations are allowed inside the {@link CometHandler} as the
-     *        underlying {@link HttpServletResponse} has not been suspended, unless
+     *        underlying HttpServletResponse has not been suspended, unless
      *        the {@link CometHandler} is shared amongs more than one {@link CometContext}
      *       
      * @return The {@link CometHandler#hashCode} value.
@@ -296,9 +296,9 @@ public class CometContext<E> {
     
     /**
      * Add a {@link CometHandler} which will starts the process of suspending
-     * the underlying response. The underlying {@link HttpServletResponse} will 
-     * not get commited until {@link CometContext#resumeCometHandler(CometHandler)}
-     * is invoked, unless the {@link CometContext#setExoirationDelay(int)} expires.
+     * the underlying response. The underlying HttpServletResponse will
+     * not get committed until {@link CometContext#resumeCometHandler(CometHandler)}
+     * is invoked, unless the {@link CometContext#setExpirationDelay(long)} expires.
      * @param handler a new {@link CometHandler}
      */
     public int addCometHandler(CometHandler handler){
@@ -350,7 +350,7 @@ public class CometContext<E> {
      * Invoke a {@link CometHandler} using the {@link CometEvent}
      * @param event - {@link CometEvent}
      * @param cometHandler - {@link CometHandler}
-     * @throws java.io.IOException
+     * @throws IOException
      */
     protected void invokeCometHandler(CometEvent event, CometHandler cometHandler) throws IOException{
         if (cometHandler == null){
@@ -358,7 +358,7 @@ public class CometContext<E> {
         }
         event.setCometContext(this);
         if (cometHandler instanceof DefaultConcurrentCometHandler){
-            ((DefaultConcurrentCometHandler)cometHandler).EnQueueEvent(event);
+            ((DefaultConcurrentCometHandler)cometHandler).enqueueEvent(event);
         }else{
             synchronized(cometHandler){
                 cometHandler.onEvent(event);
@@ -371,7 +371,7 @@ public class CometContext<E> {
      * Remove a {@link CometHandler}. If the continuation (connection)
      * associated with this {@link CometHandler} no longer have 
      * {@link CometHandler} associated to it, it will be resumed by Grizzly 
-     * by calling {@link CometContext#resumeCometHandler()}
+     * by calling {@link CometContext#resumeCometHandler(CometHandler)}
      * @return <tt>true</tt> if the operation succeeded.
      */
     public boolean removeCometHandler(CometHandler handler){
@@ -416,15 +416,12 @@ public class CometContext<E> {
                 break;
             }
         }
-        if (handler_ != null){
-            return handlers.remove(handler_) != null;
-        }
-        return false;
+        return handler_ != null && handlers.remove(handler_) != null;
     }
 
     /**
      * Resume the Comet request and remove it from the active {@link CometHandler} list. Once resumed,
-     * a CometHandler must never manipulate the {@link HttpServletRequest} or {@link HttpServletResponse} as
+     * a CometHandler must never manipulate the HttpServletRequest or HttpServletResponse as
      * those object will be recycled and may be re-used to serve another request. 
      * 
      * If you cache them for later reuse by another thread there is a
@@ -457,8 +454,8 @@ public class CometContext<E> {
 
     /**
      * Notify all {@link CometHandler}. All
-     * {@link CometHandler.onEvent()} will be invoked with a {@link CometEvent}
-     * of type NOTIFY. 
+     * {@link CometHandler#onEvent} will be invoked with a {@link CometEvent}
+     * of type NOTIFY.
      * @param attachment An object shared amongst {@link CometHandler}. 
      */
     public void notify(final Object attachment) throws IOException{
@@ -467,7 +464,7 @@ public class CometContext<E> {
     
     
     /**
-     * Notify a single {@link CometHandler}. The {@link CometEvent.getType()} 
+     * Notify a single {@link CometHandler}. The {@link CometEvent#getType()}
      * will determine which {@link CometHandler}  method will be invoked:
      * <pre><code>
      * CometEvent.INTERRUPT -> {@link CometHandler#onInterrupt}
@@ -477,13 +474,13 @@ public class CometContext<E> {
      * CometEvent.READ -> {@link CometHandler#onEvent}
      * </code></pre>
      * @param attachment An object shared amongst {@link CometHandler}. 
-     * @param type The type of notification. 
+     * @param eventType The type of notification.
      * @param cometHandlerID Notify a single CometHandler.
      * @deprecated - use notify(attachment,eventType,CometHandler;
      */
     public void notify(final Object attachment,final int eventType,final int cometHandlerID)
         throws IOException{   
-        notify(attachment,eventType,getCometHandler(cometHandlerID));
+        notify(attachment,eventType, getCometHandler(cometHandlerID));
     }
     
     /**
@@ -497,7 +494,7 @@ public class CometContext<E> {
     }  
     
     /**
-     * Notify a single {@link CometHandler}. The {@link CometEvent.getType()} 
+     * Notify a single {@link CometHandler}. The {@link CometEvent#getType()}
      * will determine which {@link CometHandler}  method will be invoked:
      * <pre><code>
      * CometEvent.INTERRUPT -> {@link CometHandler#onInterrupt}
@@ -507,7 +504,7 @@ public class CometContext<E> {
      * CometEvent.READ -> {@link CometHandler#onEvent}
      * </code></pre>
      * @param attachment An object shared amongst {@link CometHandler}. 
-     * @param type The type of notification. 
+     * @param eventType The type of notification.
      * @param {@link CometHandler} to notify.
       */
     public void notify(final Object attachment,final int eventType,final CometHandler cometHandler)
@@ -526,7 +523,7 @@ public class CometContext<E> {
 
       
     /**
-     * Notify all {@link CometHandler}. The {@link CometEvent.getType()} 
+     * Notify all {@link CometHandler}. The {@link CometEvent#getType()}
      * will determine which {@link CometHandler}
      * method will be invoked:
      * <pre><code>
@@ -537,7 +534,7 @@ public class CometContext<E> {
      * CometEvent.READ -> {@link CometHandler#onEvent}
      * </code></pre>
      * @param attachment An object shared amongst {@link CometHandler}. 
-     * @param type The type of notification. 
+     * @param eventType The type of notification.
      */   
     public void notify(Object attachment,int eventType)throws IOException {
         CometEvent event = new CometEvent(eventType,this,attachment);
@@ -553,10 +550,6 @@ public class CometContext<E> {
 
     /**
      * Initialize the newly added {@link CometHandler}.
-     *
-     * @param attachment An object shared amongst {@link CometHandler}.
-     * @param type The type of notification.
-     * @param key The SelectionKey representing the CometHandler.
      */
      protected void initialize(CometHandler handler) throws IOException {
         handler.onInitialize(eventInitialize); 
@@ -590,7 +583,7 @@ public class CometContext<E> {
     
     /**
      * Register for asynchronous read event (CometEvent#READ}. As soon as Grizzly detects
-     * there is some bytes available for read, your {@link Comethandler#onEvent(CometEvent)} will be invoked.
+     * there is some bytes available for read, your {@link CometHandler#onEvent(CometEvent)} will be invoked.
      * {@link CometEvent#attachment()} will return an instance of {@link CometReader}
      * that can be used to asynchronously read the available bytes.
      * 
@@ -610,7 +603,7 @@ public class CometContext<E> {
     /**
      * Register for asynchronous write event (CometEvent#WRITE} .As soon as Grizzly detects
      * there is some OS buffer available for write operations, your 
-     * {@link Comethandler#onEvent(CometEvent)} will be invoked.
+     * {@link CometHandler#onEvent(CometEvent)} will be invoked.
      * {@link CometEvent#attachment()} will return an instance of {@link CometWriter}
      * that can be used to asynchronously write the available bytes.
      * @param handler The CometHandler that will be invoked.
