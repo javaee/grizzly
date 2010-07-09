@@ -109,6 +109,8 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     protected final List<PUPreProcessor> preprocessors = new ArrayList<PUPreProcessor>();
     private UDecoder udecoder;
 
+    private volatile ProtocolChainInstanceHandler rootProtocolChainHandler;
+    
     /**
      * Constructor
      */
@@ -173,7 +175,11 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
 
     @Override
     protected void configureProtocolChain() {
-        final DefaultProtocolChainInstanceHandler instanceHandler = new DefaultProtocolChainInstanceHandler() {
+        final ProtocolChainInstanceHandler pcih = rootProtocolChainHandler;
+
+        final ProtocolChainInstanceHandler instanceHandler = pcih != null ? pcih
+                : new DefaultProtocolChainInstanceHandler() {
+
             private final Queue<ProtocolChain> chains =
                     DataStructures.getCLQinstance(ProtocolChain.class);
 
@@ -199,6 +205,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                 return chains.offer(instance);
             }
         };
+        
         controller.setProtocolChainInstanceHandler(instanceHandler);
     }
 
@@ -232,11 +239,12 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     }
 
     public void configure(NetworkListener networkListener, Habitat habitat) {
+        final Protocol httpProtocol = networkListener.findHttpProtocol();
+        
         final Transport transport = networkListener.findTransport();
         final ThreadPool pool = networkListener.findThreadPool();
+
         setPort(Integer.parseInt(networkListener.getPort()));
-        udecoder = new UDecoder(
-                GrizzlyConfig.toBoolean(networkListener.findHttpProtocol().getHttp().getEncodedSlashEnabled()));
         try {
             setAddress(InetAddress.getByName(networkListener.getAddress()));
         } catch (UnknownHostException e) {
@@ -246,11 +254,23 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
                             networkListener.getAddress()
                     });
         }
+
         configureTransport(transport);
+
+        if (httpProtocol != null) {
+            udecoder = new UDecoder(
+                    GrizzlyConfig.toBoolean(httpProtocol.getHttp().getEncodedSlashEnabled()));
+        }
+
         final Protocol protocol = networkListener.findProtocol();
         final boolean mayEnableAsync = !"admin-listener".equalsIgnoreCase(networkListener.getName());
-        configureProtocol(networkListener, protocol, habitat, mayEnableAsync);
-        configureThreadPool(networkListener, pool, networkListener.findHttpProtocol().getHttp());
+
+        rootProtocolChainHandler = configureProtocol(networkListener, protocol, habitat, mayEnableAsync);
+        
+        configureThreadPool(networkListener, pool,
+                (httpProtocol != null ?
+                    httpProtocol.getHttp().getRequestTimeoutSeconds() :
+                    "-1"));
     }
 
     protected void configureTransport(Transport transport) {
@@ -574,7 +594,7 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     /**
      * Configures an HTTP grizzlyListener with the given request-processing config.
      */
-    private void configureThreadPool(NetworkListener networkListener, ThreadPool threadPool, Http http) {
+    private void configureThreadPool(NetworkListener networkListener, ThreadPool threadPool, final String transactionTimeoutSec) {
         if (threadPool == null) {
             return;
         }
@@ -583,17 +603,17 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
             final int minThreads = Integer.parseInt(threadPool.getMinThreadPoolSize());
             final int maxThreads = Integer.parseInt(threadPool.getMaxThreadPoolSize());
             final int keepAlive = Integer.parseInt(threadPool.getIdleThreadTimeoutSeconds());
+            final int ttSec = Integer.parseInt(transactionTimeoutSec);
 
             final String name = Utils.composeThreadPoolName(networkListener);
             setThreadPool(newThreadPool(name, minThreads, maxThreads, maxQueueSize,
                     keepAlive < 0 ? Long.MAX_VALUE : keepAlive * 1000, TimeUnit.MILLISECONDS));
             setCoreThreads(minThreads);
             setMaxThreads(maxThreads);
-            final int timeout = Integer.parseInt(http.getRequestTimeoutSeconds());
 
-            if (!com.sun.grizzly.util.Utils.isDebugVM() && timeout > 0) {
+            if (!com.sun.grizzly.util.Utils.isDebugVM() && ttSec > 0) {
                 // Idle Threads cannot be alive more than 15 minutes by default
-                setTransactionTimeout(timeout * 1000);
+                setTransactionTimeout(ttSec * 1000);
             } else {
                 // Disable the mechanism
                 setTransactionTimeout(-1);
@@ -624,9 +644,6 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
     private static void configureElement(Object instance,
             ConfigBeanProxy configuration) {
         if (instance instanceof ConfigAwareElement) {
-            if (configuration instanceof com.sun.grizzly.config.dom.ProtocolFilter) {
-                return;
-            }
             ((ConfigAwareElement) instance).configure(configuration);
         }
     }

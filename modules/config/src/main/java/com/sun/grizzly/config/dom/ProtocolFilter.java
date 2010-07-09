@@ -41,6 +41,7 @@ import org.jvnet.hk2.component.Injectable;
 import org.jvnet.hk2.config.Attribute;
 import org.jvnet.hk2.config.ConfigBeanProxy;
 import org.jvnet.hk2.config.Configured;
+import org.jvnet.hk2.config.DuckTyped;
 import org.jvnet.hk2.config.types.PropertyBag;
 
 /**
@@ -63,4 +64,13 @@ public interface ProtocolFilter extends ConfigBeanProxy, Injectable, PropertyBag
     String getClassname();
 
     void setClassname(String value);
+
+    @DuckTyped
+    Protocol findProtocol();
+
+    class Duck {
+        public static Protocol findProtocol(ProtocolFilter filter) {
+            return (Protocol) filter.getParent().getParent().getParent();
+        }
+    }
 }

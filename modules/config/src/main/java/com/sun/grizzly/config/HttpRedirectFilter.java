@@ -40,17 +40,19 @@ package com.sun.grizzly.config;
 
 import com.sun.grizzly.Context;
 import com.sun.grizzly.ProtocolFilter;
+import com.sun.grizzly.config.dom.HttpRedirect;
 import com.sun.grizzly.http.portunif.HttpRedirector;
 import com.sun.grizzly.util.WorkerThread;
 import java.io.IOException;
 import javax.net.ssl.SSLEngine;
+import org.jvnet.hk2.config.ConfigBeanProxy;
 
 /**
  *
  * @author Alexey Stashok
  */
 public class HttpRedirectFilter implements ProtocolFilter,
-        ConfigAwareElement<com.sun.grizzly.config.dom.HttpRedirect> {
+        ConfigAwareElement {
 
     private Integer redirectPort;
 
@@ -91,27 +93,19 @@ public class HttpRedirectFilter implements ProtocolFilter,
 
 
     // ----------------------------------------- Methods from ConfigAwareElement
-
-
     /**
      * Configuration for &lt;http-redirect&gt;.
      *
      * @param configuration filter configuration
      */
-    public void configure(com.sun.grizzly.config.dom.HttpRedirect configuration) {
-        int port = Integer.parseInt(configuration.getPort());
-        redirectPort = ((port != -1) ? port : null);
-        secure = Boolean.parseBoolean(configuration.getSecure());
+    public void configure(ConfigBeanProxy configuration) {
+        if (configuration instanceof HttpRedirect) {
+            final HttpRedirect httpRedirectConfig = (HttpRedirect) configuration;
+            int port = Integer.parseInt(httpRedirectConfig.getPort());
+            redirectPort = ((port != -1) ? port : null);
+            secure = Boolean.parseBoolean(httpRedirectConfig.getSecure());
+        } else {
+            // Retained for backwards compatibility with legacy redirect declarations.
+        }
     }
-
-
-    /**
-     * Retained for backwards compatibility with legacy redirect declarations.
-     * @param configuration filter configuration
-     */
-    @SuppressWarnings({"UnusedDeclaration"})
-    public void configure(com.sun.grizzly.config.dom.ProtocolFilter configuration) {
-    }
-
-
 }
