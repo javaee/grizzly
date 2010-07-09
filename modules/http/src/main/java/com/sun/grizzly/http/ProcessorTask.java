@@ -129,6 +129,13 @@ public class ProcessorTask extends TaskBase implements Processor,
         StringManager.getManager(Constants.Package);
 
 
+    /*
+     * Tracks how many internal filters are in the filter library so they
+     * are skipped when looking for pluggable filters.
+     */
+    private int pluggableFilterIndex = Integer.MAX_VALUE;
+
+
     /**
      * Associated adapter.
      */
@@ -1702,6 +1709,8 @@ public class ProcessorTask extends TaskBase implements Processor,
         for(FilterFactory compressionFilterFactory : compressionFilterFactories) {
             outputBuffer.addFilter(compressionFilterFactory.createOutputFilter());
         }
+
+        pluggableFilterIndex = inputBuffer.getFilters().length;
     }
 
 
@@ -1721,7 +1730,7 @@ public class ProcessorTask extends TaskBase implements Processor,
                         (inputFilters[Constants.CHUNKED_FILTER]);
                 contentDelimitation = true;
             } else {
-                for (int i = 2; i < inputFilters.length; i++) {
+                for (int i = pluggableFilterIndex; i < inputFilters.length; i++) {
                     if (inputFilters[i].getEncodingName()
                             .toString().equals(encodingName)) {
                         inputBuffer.addActiveFilter(inputFilters[i]);
