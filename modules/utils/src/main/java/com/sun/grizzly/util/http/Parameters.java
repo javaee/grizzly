@@ -59,7 +59,6 @@ import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.buf.CharChunk;
 import com.sun.grizzly.util.buf.MessageBytes;
 import com.sun.grizzly.util.buf.UDecoder;
-import com.sun.grizzly.util.collections.MultiMap;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -72,7 +71,7 @@ import java.util.logging.Logger;
 /**
  * @author Costin Manolache
  */
-public final class Parameters extends MultiMap {
+public final class Parameters {
 
     /**
      * Default Logger.
@@ -98,8 +97,6 @@ public final class Parameters extends MultiMap {
     UDecoder urlDec;
     MessageBytes decodedQuery = MessageBytes.newInstance();
 
-    public static final int INITIAL_SIZE = 4;
-
     // Garbage-less parameter merging.
     // In a sub-request with parameters, the new parameters
     // will be stored in child. When a getParameter happens,
@@ -117,7 +114,6 @@ public final class Parameters extends MultiMap {
      *
      */
     public Parameters() {
-        super(INITIAL_SIZE);
     }
 
     public void setQuery(MessageBytes queryMB) {
@@ -143,7 +139,6 @@ public final class Parameters extends MultiMap {
     }
 
     public void recycle() {
-        super.recycle();
         paramHashStringArray.clear();
         didQueryParameters = false;
         currentChild = null;
