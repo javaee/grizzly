@@ -49,6 +49,7 @@ import com.sun.grizzly.http.HttpClientFilter;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
@@ -123,6 +124,7 @@ public class FileCacheTest {
         scheduledThreadPool.shutdown();
     }
 
+//    @Ignore
     @Test
     public void testSimpleFile() throws Exception {
         final String fileName = "./pom.xml";
@@ -184,6 +186,7 @@ public class FileCacheTest {
         assertEquals("Cached data mismatch", pattern, response2.getContent().toStringContent());
     }
 
+//    @Ignore
     @Test
     public void testGZip() throws Exception {
         final String fileName = "./pom.xml";
@@ -228,7 +231,7 @@ public class FileCacheTest {
                 .build();
 
         final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
-        final HttpContent response1 = responseFuture1.get(1000, TimeUnit.SECONDS);
+        final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
 
         assertEquals("gzip", response1.getHttpHeader().getHeader("Content-Encoding"));
         assertEquals("Not cached data mismatch", "Hello not cached data", response1.getContent().toStringContent());
@@ -243,11 +246,51 @@ public class FileCacheTest {
         final String pattern = new String(data);
 
         final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
-        final HttpContent response2 = responseFuture2.get(1000, TimeUnit.SECONDS);
+        final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
         assertEquals("gzip", response2.getHttpHeader().getHeader("Content-Encoding"));
         assertEquals("Cached data mismatch", pattern, response2.getContent().toStringContent());
     }
 
+    @Test
+    public void testIfModified() throws Exception {
+        final String fileName = "./pom.xml";
+        startWebServer(new GrizzlyAdapter());
+
+        final HttpRequestPacket request1 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/pom.xml")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .build();
+
+        final File file = new File(fileName);
+        InputStream fis = new FileInputStream(file);
+        byte[] data = new byte[(int) file.length()];
+        fis.read(data);
+        fis.close();
+
+        final String pattern = new String(data);
+
+        final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
+        final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
+        assertEquals("Cached data mismatch", pattern, response1.getContent().toStringContent());
+
+        final HttpRequestPacket request2 = HttpRequestPacket.builder()
+                .method("GET")
+                .uri("/pom.xml")
+                .protocol("HTTP/1.1")
+                .header("Host", "localhost")
+                .header("If-Match", "W/\"" + file.length() + "-" + file.lastModified() + "\"")
+                .header("If-Modified-Since", "" + file.lastModified())
+                .build();
+
+        final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
+        final HttpContent response2 = responseFuture2.get(1000, TimeUnit.SECONDS);
+
+        assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
+        assertTrue("empty body is expected", !response2.getContent().hasRemaining());
+    }
+    
     private void configureWebServer() throws Exception {
         gws = new GrizzlyWebServer();
         final GrizzlyListener listener =

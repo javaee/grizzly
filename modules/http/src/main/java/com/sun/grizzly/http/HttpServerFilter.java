@@ -412,6 +412,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                 || (statusCode == 304)) {
             // No entity body
             entityBody = false;
+            response.setExpectContent(false);
             state.contentDelimitation = true;
         }
 

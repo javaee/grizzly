@@ -224,8 +224,9 @@ public class FileCache {
 
         final String requestURI = request.getRequestURI();
         final String host = request.getHeader("Host");
-        final MimeHeaders headers = request.getHeaders();
-        
+        final HttpResponsePacket response = request.getResponse();
+        final MimeHeaders headers = response.getHeaders();
+
         final FileCacheKey key = new FileCacheKey(host, requestURI);
         if (requestURI == null || fileCache.putIfAbsent(key, NULL_CACHE_ENTRY) != null) {
             //@TODO return key and entry to the thread cache object pool
@@ -239,7 +240,7 @@ public class FileCache {
             return;
         }
 
-        ByteBuffer bb = mapFile(cacheFile);
+        final ByteBuffer bb = mapFile(cacheFile);
 
         // Always put the answer into the map. If it's null, then
         // we know that it doesn't fit into the cache, so there's no
@@ -248,6 +249,7 @@ public class FileCache {
             return;
         }
 
+        final long cacheFileSize = cacheFile.length();
         final FileCacheEntry entry = new FileCacheEntry();
 
         entry.key = key;
@@ -259,10 +261,11 @@ public class FileCache {
                 ? String.valueOf(cacheFile.lastModified()) : lastModified);
         entry.contentType = headers.getHeader("Content-type");
         entry.xPoweredBy = headers.getHeader("X-Powered-By");
-        entry.isInHeap = (cacheFile.length() < minEntrySize);
+        entry.isInHeap = (cacheFileSize < minEntrySize);
         entry.date = headers.getHeader("Date");
         entry.Etag = headers.getHeader("Etag");
-        entry.contentLength = parseLong(headers.getHeader("Content-Length"), -1);
+        entry.contentLength = response.getContentLength();
+        entry.fileSize = cacheFileSize;
         entry.host = host;
 
         incOpenCacheEntries();
@@ -408,9 +411,9 @@ public class FileCache {
 
         boolean flushBody = checkIfHeaders(entry, request);
         response.setContentType(entry.contentType);
-        response.setContentLength(entry.contentLength);
 
         if (flushBody) {
+            response.setContentLength(entry.contentLength);
             final ByteBuffer sliced = entry.bb.slice();
             final Buffer buffer = MemoryUtils.wrap(memoryManager, sliced);
 
@@ -421,42 +424,12 @@ public class FileCache {
                     .build();
 
             return content;
+        } else {
+            response.setChunked(false);
         }
 
         return response;
     }
-
-    /**
-     * @return the port
-     */
-//    public int getPort() {
-//        return port;
-//    }
-
-    /**
-     * @param port the port to set
-     */
-//    public void setPort(int port) {
-//        this.port = port;
-//    }
-
-    /**
-     * @return the network address associated with this cache instance.
-     */
-//    public InetAddress getAddress() {
-//        return address;
-//    }
-    /**
-     * <p>
-     * Associates the specified network address with this cache instance.
-     * </p>
-     *
-     * @param address the network address
-     */
-//    public void setAddress(InetAddress address) {
-//        this.address = address;
-//    }
-
 
     // ---------------------------------------------------- Monitoring --------//
     /**
@@ -764,6 +737,24 @@ public class FileCache {
     }
 
     /**
+     * Check if the conditions specified in the optional If headers are
+     * satisfied.
+     *
+     * @return boolean true if the resource meets all the specified conditions,
+     * and false if any of the conditions is not satisfied, in which case
+     * request processing is stopped
+     */
+    protected boolean checkIfHeaders(final FileCacheEntry entry,
+            final HttpRequestPacket request) throws IOException {
+
+        return checkIfMatch(entry, request)
+                && checkIfModifiedSince(entry, request)
+                && checkIfNoneMatch(entry, request)
+                && checkIfUnmodifiedSince(entry, request);
+
+    }
+
+    /**
      * Check if the if-modified-since condition is satisfied.
      *
      * @return boolean true if the resource meets the specified condition,
@@ -889,33 +880,18 @@ public class FileCache {
     private String getETag(FileCacheEntry entry) {
         String result = entry.Etag;
         if (result == null) {
-            long contentLength = entry.contentLength;
+            final StringBuilder sb = new StringBuilder();
+            
+            long contentLength = entry.fileSize;
             long lastModified = Long.parseLong(entry.lastModified);
             if ((contentLength >= 0) || (lastModified >= 0)) {
-                result = "W/\"" + contentLength + "-"
-                        + lastModified + "\"";
+                sb.append("W/\"").append(contentLength).append('-').
+                        append(lastModified).append('"');
+                result = sb.toString();
                 entry.Etag = result;
             }
         }
         return result;
-    }
-
-    /**
-     * Check if the conditions specified in the optional If headers are
-     * satisfied.
-     *
-     * @return boolean true if the resource meets all the specified conditions,
-     * and false if any of the conditions is not satisfied, in which case
-     * request processing is stopped
-     */
-    protected boolean checkIfHeaders(final FileCacheEntry entry,
-            final HttpRequestPacket request) throws IOException {
-
-        return checkIfMatch(entry, request)
-                && checkIfModifiedSince(entry, request)
-                && checkIfNoneMatch(entry, request)
-                && checkIfUnmodifiedSince(entry, request);
-
     }
 
     /**
@@ -959,17 +935,6 @@ public class FileCache {
 
     }
 
-    private long parseLong(final String value, final int defaultValue) {
-        if (value != null) {
-            try {
-                return Long.parseLong(value);
-            } catch (NumberFormatException ignore) {
-            }
-        }
-
-        return defaultValue;
-    }
-
     public final class FileCacheEntry implements Runnable {
         public FileCacheKey key;
 
@@ -984,6 +949,7 @@ public class FileCache {
         public String Etag;
         public Future future;
         public long contentLength = -1;
+        public long fileSize = -1;
         public String keepAlive;
 
         @Override

@@ -138,6 +138,15 @@ public class HttpClientFilter extends HttpCodecFilter {
 
     @Override
     boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx) {
+        final HttpResponsePacketImpl response = (HttpResponsePacketImpl) httpHeader;
+        final int statusCode = response.getStatus();
+
+        if ((statusCode == 204) || (statusCode == 205)
+                || (statusCode == 304)) {
+            // No entity body
+            response.setExpectContent(false);
+        }
+        
         return false;
     }
 
