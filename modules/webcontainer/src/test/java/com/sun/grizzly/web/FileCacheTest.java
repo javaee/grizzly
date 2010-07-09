@@ -285,7 +285,7 @@ public class FileCacheTest {
                 .build();
 
         final Future<HttpContent> responseFuture2 = send("localhost", PORT, request2);
-        final HttpContent response2 = responseFuture2.get(1000, TimeUnit.SECONDS);
+        final HttpContent response2 = responseFuture2.get(10, TimeUnit.SECONDS);
 
         assertEquals("304 is expected", 304, ((HttpResponsePacket) response2.getHttpHeader()).getStatus());
         assertTrue("empty body is expected", !response2.getContent().hasRemaining());
