@@ -281,11 +281,12 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * True if calling selector thread should execute the pendingIO event.
      */
     private boolean executePendingIOUsingSelectorThread = false;
-//
-//   /**
-//     * Max number of pendingIO tasks that will be executed per worker thread.
-//     */
-//    private int pendingIOlimitPerThread = 100;
+
+    /**
+     * Kernel ExecutorService factory
+     */
+    private KernelExecutorFactory kernelExecutorFactory =
+            new KernelExecutorFactory.DefaultFactory();
 
     // -------------------------------------------------------------------- //
     /**
@@ -1210,28 +1211,7 @@ public class Controller implements Runnable, Lifecycle, Copyable,
      * Create the {@link ExecutorService} used to execute kernel like operations.
      */
     protected ExecutorService createKernelExecutor() {
-        return createKernelExecutor("grizzly-kernel", "Grizzly-kernel-thread");
-    }
-
-    /**
-     * Create the {@link ExecutorService} used to execute kernel operations.
-     * Passed paratemeters let us cusomize thread pool group name and
-     * name pattern for an individual threads.
-     */
-    protected final ExecutorService createKernelExecutor(
-            final String threadGroupName, final String threadNamePattern) {
-        
-        return Executors.newCachedThreadPool(new WorkerThreadFactory(threadGroupName) {
-            private final AtomicInteger counter = new AtomicInteger();
-
-            @Override
-            public Thread newThread(Runnable r) {
-                final Thread newThread = super.newThread(r);
-                newThread.setName(threadNamePattern + "(" +
-                        counter.incrementAndGet() + ")");
-                return newThread;
-            }
-        });
+        return kernelExecutorFactory.create();
     }
 
     /**
@@ -1320,22 +1300,23 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         this.executePendingIOUsingSelectorThread = executePendingIOUsingSelectorThread;
     }
 
-//    /**
-//     * Max number of pendingIO tasks that will be executed per worker thread.
-//     * @return
-//     */
-//    public int getPendingIOlimitPerThread() {
-//        return pendingIOlimitPerThread;
-//    }
-//
-//    /**
-//     * Max number of pendingIO tasks that will be executed per worker thread.
-//     * @param pendingIOlimitPerThread
-//     */
-//    public void setPendingIOlimitPerThread(int pendingIOlimitPerThread) {
-//        this.pendingIOlimitPerThread = pendingIOlimitPerThread;
-//    }
+    /**
+     * Get the factory, responsible for creating kernel {@link ExecutorService}s.
+     *
+     * @return the factory, responsible for creating kernel {@link ExecutorService}s.
+     */
+    public KernelExecutorFactory getKernelExecutorFactory() {
+        return kernelExecutorFactory;
+    }
 
+    /**
+     * Set the factory, responsible for creating kernel {@link ExecutorService}s.
+     *
+     * @param kernelExecutorFactory the factory, responsible for creating kernel {@link ExecutorService}s.
+     */
+    public void setKernelExecutorFactory(KernelExecutorFactory kernelExecutorFactory) {
+        this.kernelExecutorFactory = kernelExecutorFactory;
+    }
 
     /**
      * Max number of accept() failures before abording.
@@ -1373,4 +1354,37 @@ public class Controller implements Runnable, Lifecycle, Copyable,
         }
     }
 
+    public static interface KernelExecutorFactory {
+
+        ExecutorService create();
+
+        public static class DefaultFactory implements KernelExecutorFactory {
+
+            public ExecutorService create() {
+                return create("grizzly-kernel", "Grizzly-kernel-thread");
+            }
+
+            /**
+             * Create the {@link ExecutorService} used to execute kernel operations.
+             * Passed paratemeters let us cusomize thread pool group name and
+             * name pattern for an individual threads.
+             */
+            protected final ExecutorService create(
+                    final String threadGroupName, final String threadNamePattern) {
+
+                return Executors.newCachedThreadPool(new WorkerThreadFactory(threadGroupName) {
+
+                    private AtomicInteger counter = new AtomicInteger();
+
+                    @Override
+                    public Thread newThread(Runnable r) {
+                        final Thread newThread = super.newThread(r);
+                        newThread.setName(threadNamePattern + "("
+                                + counter.incrementAndGet() + ")");
+                        return newThread;
+                    }
+                });
+            }
+        }
+    }
 }

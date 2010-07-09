@@ -132,13 +132,17 @@ public class GrizzlyEmbeddedHttp extends SelectorThread {
      */
     @Override
     protected void initController() {
-        controller = new Controller() {
-            @Override
-            protected ExecutorService createKernelExecutor() {
-                return createKernelExecutor("grizzly-kernel",
-                        "Grizzly-kernel-thread-" + port);
-            }
-        };
+        if (controller == null) {
+            controller = new Controller();
+        }
+
+        controller.setKernelExecutorFactory(
+                new Controller.KernelExecutorFactory.DefaultFactory() {
+                    @Override
+                    public ExecutorService create() {
+                        return create("grizzly-kernel", "Grizzly-kernel-thread-" + port);
+                    }
+                });
 
         super.initController();
         controller.setReadThreadsCount(readThreadsCount);

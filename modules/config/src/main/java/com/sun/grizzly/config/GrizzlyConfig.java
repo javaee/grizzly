@@ -37,8 +37,10 @@
 package com.sun.grizzly.config;
 
 import com.sun.grizzly.Controller;
+import com.sun.grizzly.ControllerStateListenerAdapter;
 import com.sun.grizzly.config.dom.NetworkConfig;
 import com.sun.grizzly.config.dom.NetworkListener;
+import com.sun.grizzly.util.FutureImpl;
 import com.sun.grizzly.util.LoggerUtils;
 import com.sun.grizzly.util.WorkerThreadImpl;
 import org.jvnet.hk2.component.Habitat;
@@ -46,6 +48,8 @@ import org.jvnet.hk2.component.Habitat;
 import java.io.IOException;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -80,19 +84,41 @@ public class GrizzlyConfig {
     public void setupNetwork() {
         validateConfig(config);
         synchronized (listeners) {
-            for (final NetworkListener listener : config.getNetworkListeners().getNetworkListener()) {
-                final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(new Controller());
+            final List<NetworkListener> networkListeners = config.getNetworkListeners().getNetworkListener();
+
+            final FutureImpl future = new FutureImpl();
+            final AtomicInteger counter = new AtomicInteger(networkListeners.size());
+
+            for (final NetworkListener listener : networkListeners) {
+                final Controller controller = new Controller();
+                controller.addStateListener(new ControllerStateListenerAdapter() {
+                    @Override
+                    public void onReady() {
+                        if (counter.decrementAndGet() == 0) {
+                            future.setResult(Boolean.TRUE);
+                        }
+                    }
+                    
+                    @Override
+                    public void onException(Throwable e) {
+                        future.setException(new IllegalStateException(
+                                "Failed to start listener on port=" + listener.getPort(), e));
+                    }
+                });
+                
+                final GrizzlyServiceListener grizzlyListener = new GrizzlyServiceListener(controller);
                 grizzlyListener.configure(listener, habitat);
                 listeners.add(grizzlyListener);
                 final Thread thread = new WorkerThreadImpl(new ListenerRunnable(grizzlyListener));
                 thread.setDaemon(true);
                 thread.start();
             }
+
             try {
-                Thread.sleep(1000); // wait for the system to finish setting up the listener
-            } catch (InterruptedException e) {
+                future.get(10, TimeUnit.SECONDS); // wait for the system to finish setting up the listener
+            } catch (Exception e) {
                 logger.warning(e.getMessage());
-                throw new RuntimeException(e.getMessage());
+                throw new RuntimeException(e);
             }
         }
     }
@@ -116,7 +142,12 @@ public class GrizzlyConfig {
     }
 
     public void shutdown() {
-        for (GrizzlyServiceListener listener : listeners) {
+        final List<GrizzlyServiceListener> copy;
+        synchronized(listeners) {
+            copy = new ArrayList<GrizzlyServiceListener>(listeners);
+        }
+
+        for (GrizzlyServiceListener listener : copy) {
             listener.stop();
         }
     }

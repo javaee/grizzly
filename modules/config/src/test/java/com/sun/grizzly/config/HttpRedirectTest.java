@@ -52,6 +52,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
@@ -141,11 +142,23 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
             InputStream in = s.getInputStream();
             BufferedReader br = new BufferedReader(new InputStreamReader(in));
             boolean found = false;
+
             for (String line = br.readLine(); line != null; line = br.readLine()) {
                 if (line.length() > 0 && line.toLowerCase().charAt(0) == 'l') {
+                    final String lineLC = line.toLowerCase();
+                    
+                    if (lineLC.equals(expectedLocation)) {
+                        found = true;
+                        break;
+                    }
+
+                    if (tryAlias(expectedLocation, lineLC)) {
+                        found = true;
+                        break;
+                    }
+
+                    // will fail here
                     Assert.assertEquals(line.toLowerCase(), expectedLocation);
-                    found = true;
-                    break;
                 }
             }
             if (!found) {
@@ -202,5 +215,28 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
         }
     }
 
+    /**
+     * Check the localhost aliases, cause server might return not localhost, but 127.0.0.1
+     */
+    private boolean tryAlias(String expectedLocation, String line) throws IOException {
+        final InetAddress[] ias = InetAddress.getAllByName("localhost");
+        if (ias != null) {
+            for (InetAddress ia : ias) {
+                String byHost = ia.getHostName();
+                String byAddr = ia.getHostAddress();
 
+                String alias1 = expectedLocation.replace("localhost", byHost).toLowerCase();
+                if (alias1.equals(line)) {
+                    return true;
+                }
+
+                String alias2 = expectedLocation.replace("localhost", byAddr).toLowerCase();
+                if (alias2.equals(line)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 }
