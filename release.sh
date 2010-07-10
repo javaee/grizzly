@@ -3,11 +3,12 @@
 DRYRUN=false
 growl=$(which growlnotify)
 
-growl() {
+notify() {
     if [ -e "$growl" -a -x "$growl" ]
     then
        ${growl} -s -m "${1}"
     fi
+    echo "\n\n${1}\n"
 }
 
 
@@ -68,11 +69,9 @@ eval ${CMD}
 
 if [ $? -ne 0 ]
 then
-    echo "Release of Grizzly ${RELEASE_VER} failed."
-    growl "Release of Grizzly ${RELEASE_VER} failed!!"
+    notify "Release of Grizzly ${RELEASE_VER} failed!!"
     exit 1
 else
-    echo "Release of Grizzly ${RELEASE_VER} complete."
-    growl "Release of Grizzly ${RELEASE_VER} complete!"
+    notify "Release of Grizzly ${RELEASE_VER} complete!"
 fi
 
