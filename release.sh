@@ -1,6 +1,15 @@
 #! /bin/sh
 
 DRYRUN=false
+growl=$(which growlnotify)
+
+growl() {
+    if [ -e "$growl" -a -x "$growl" ]
+    then
+       ${growl} -s -m "${1}"
+    fi
+}
+
 
 parse() {
 	while [ "$1" ]
@@ -52,7 +61,18 @@ then
 	SVN_URL="-DconnectionUrl=scm:svn:https://grizzly.dev.java.net/svn/grizzly/tags/${BRANCH}"
 fi
 
-CMD="mvn -e -P release-profile -Dmaven.skip.test=true -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${SVN_PWD} -Dusername=${SVN_USER} ${PREPARE} ${SVN_URL} release:perform"
+CMD="mvn -Darguments=-Dmaven.test.skip=true -e -P release-profile -DdryRun=$DRYRUN -DautoVersionSubmodules=true -DdevelopmentVersion=${DEV_VER} -DreleaseVersion=${RELEASE_VER} -Dtag=${BRANCH} -Dpassword=${SVN_PWD} -Dusername=${SVN_USER} ${PREPARE} ${SVN_URL} release:perform"
 
 echo ${CMD}
 eval ${CMD}
+
+if [ $? -ne 0 ]
+then
+    echo "Release of Grizzly ${RELEASE_VER} failed."
+    growl "Release of Grizzly ${RELEASE_VER} failed!!"
+    exit 1
+else
+    echo "Release of Grizzly ${RELEASE_VER} complete."
+    growl "Release of Grizzly ${RELEASE_VER} complete!"
+fi
+
