@@ -39,6 +39,10 @@
 package com.sun.grizzly.filterchain;
 
 import java.util.List;
+
+import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.Connection;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.Codec;
 import com.sun.grizzly.ProcessorResult;
@@ -88,7 +92,8 @@ import java.io.IOException;
  */
 public interface FilterChain extends Processor, List<Filter> {
     /**
-     * Method processes occured {@link IOEvent} on this {@link FilterChain}.
+     * Method processes occurred {@link com.sun.grizzly.IOEvent} on this
+     * {@link FilterChain}.
      *
      * @param context processing context
      * @return {@link ProcessorResult}
