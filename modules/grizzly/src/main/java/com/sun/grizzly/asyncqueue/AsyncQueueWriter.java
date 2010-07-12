@@ -49,7 +49,7 @@ import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.Writer;
 
 /**
- * The {@link AsyncQueueProcessor}, which implements asynchronous write queue.
+ * The {@link AsyncQueue}, which implements asynchronous write queue.
  *
  * @author Alexey Stashok
  */
@@ -61,7 +61,7 @@ public interface AsyncQueueWriter<L>
      * @param connection the {@link Connection} to write to
      * @param dstAddress the destination address the <tt>message</tt> will be
      *        sent to
-     * @param buffer the message, from which the data will be written
+     * @param message the message from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
      * @param interceptor {@link Interceptor}, which will be able to intercept
