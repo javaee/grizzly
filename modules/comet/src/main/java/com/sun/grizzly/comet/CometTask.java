@@ -186,14 +186,13 @@ public class CometTask extends SelectedKeyAttachmentLogic implements Runnable{
      * @param mainKey
      */
     private void checkIfClientClosedConnection(SelectionKey mainKey) {
-        boolean connectionclosed = true;
+        boolean isClosed = true;
         try {
-            connectionclosed = ((SocketChannel)mainKey.channel()).
+            isClosed = ((SocketChannel)mainKey.channel()).
                 read(ByteBuffer.allocate(1)) == -1;
-        } catch (IOException ex) {
-            
+        } catch (IOException ignored) {
         } finally{
-            if (connectionclosed){
+            if (isClosed){
                CometEngine.getEngine().interrupt(this, true);
             }
         }
