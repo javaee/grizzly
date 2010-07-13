@@ -42,11 +42,12 @@ import java.io.IOException;
 import java.util.concurrent.Future;
 
 /**
- * Implementatios of this interface are able to read data from
+ * Implementations of this interface are able to read data from
  * {@link Connection} to a {@link Buffer}.
  *
  * There are two basic Reader implementations in Grizzly:
- * {@link AsyncQueueReader}, {@link TemporarySelectorReader}.
+ * {@link com.sun.grizzly.asyncqueue.AsyncQueueReader},
+ * {@link com.sun.grizzly.nio.tmpselectors.TemporarySelectorReader}.
  *
  * @author Alexey Stashok
  */
@@ -95,14 +96,9 @@ public interface Reader<L> {
      * Method reads data to the <tt>buffer</tt>.
      *
      * @param connection the {@link Connection} to read from
-     * @param buffer the buffer, where data will be read
+     * @param message the Message to which data will be read
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when read will be completed
-     * @param interceptor {@link Interceptor}, which will be able to intercept
-     *        control each time new portion of a data was read to a
-     *        <tt>buffer</tt>.
-     *        The <tt>interceptor</tt> can decide, whether asynchronous read is
-     *        completed or not, or provide other processing instructions.
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
@@ -116,7 +112,7 @@ public interface Reader<L> {
      * Method reads data to the <tt>buffer</tt>.
      *
      * @param connection the {@link Connection} to read from
-     * @param buffer the buffer, where data will be read
+     * @param message the Message to which data will be read
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when read will be completed
      * @param interceptor {@link Interceptor}, which will be able to intercept
