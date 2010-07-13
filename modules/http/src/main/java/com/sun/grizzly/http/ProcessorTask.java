@@ -802,7 +802,7 @@ public class ProcessorTask extends TaskBase implements Processor,
             request.updateCounters();
         }
 
-        if (keepAlive) {
+        if (keepAlive && !error) {
             // If keep connection alive - prepare for the next request
             inputBuffer.nextRequest();
             outputBuffer.nextRequest();
