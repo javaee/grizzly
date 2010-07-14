@@ -143,7 +143,7 @@ public final class CharChunk implements Cloneable, Serializable {
      * Resets the message bytes to an uninitialized state.
      */
     public void recycle() {
-        //	buff=null;
+        //     buff=null;
         isSet=false; // XXX
         start=0;
         end=0;
@@ -202,7 +202,7 @@ public final class CharChunk implements Cloneable, Serializable {
     }
 
     /** When the buffer is full, write the data to the output channel.
-     * 	Also used when large amount of data is appended.
+     *         Also used when large amount of data is appended.
      *
      *  If not set, the buffer will grow to the limit.
      */
@@ -291,7 +291,7 @@ public final class CharChunk implements Cloneable, Serializable {
             out.realWriteChars( src, off, len );
             return;
         }
-	
+
         // if we have limit and we're below
         if( len <= limit - end ) {
             // makeSpace will grow the buffer to the limit,
@@ -328,7 +328,7 @@ public final class CharChunk implements Cloneable, Serializable {
             System.arraycopy(src, off+avail, buff, end, len - avail);
             end+= len - avail;
             
-        } else {	// len > buf.length + avail
+        } else {        // len > buf.length + avail
             // long write - flush the buffer and write the rest
             // directly from source
             flushBuffer();
@@ -469,7 +469,7 @@ public final class CharChunk implements Cloneable, Serializable {
     }
 
     /** Make space for len chars. If len is small, allocate
-     *	a reserve space too. Never grow bigger than limit.
+     *        a reserve space too. Never grow bigger than limit.
      */
     void makeSpace(int count) {
         char[] tmp = null;
@@ -527,7 +527,7 @@ public final class CharChunk implements Cloneable, Serializable {
     }
 
     public int getInt() {
-	return Ascii.parseInt(buff, start, end-start);
+        return Ascii.parseInt(buff, start, end-start);
     }
     
     // -------------------- equals --------------------
