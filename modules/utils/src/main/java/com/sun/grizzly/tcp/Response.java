@@ -306,7 +306,7 @@ public class Response<A> {
 
 
     public void setCommitted(boolean v) {
-        this.commited = v;
+        commited = v;
     }
 
 
@@ -332,7 +332,7 @@ public class Response<A> {
 
 
     public boolean isExceptionPresent() {
-        return ( errorException != null );
+        return errorException != null;
     }
 
 
@@ -450,11 +450,11 @@ public class Response<A> {
     private boolean checkSpecialHeader( String name, String value) {
         // XXX Eliminate redundant fields !!!
         // ( both header and in special fields )
-        if( name.equalsIgnoreCase( "Content-Type" ) ) {
+        if("Content-Type".equalsIgnoreCase(name)) {
             setContentType( value );
             return true;
         }
-        if( name.equalsIgnoreCase( "Content-Length" ) ) {
+        if("Content-Length".equalsIgnoreCase(name)) {
             try {
                 int cL=Integer.parseInt( value );
                 setContentLength( cL );
@@ -465,7 +465,7 @@ public class Response<A> {
                 return false;
             }
         }
-        if( name.equalsIgnoreCase( "Content-Language" ) ) {
+        if("Content-Language".equalsIgnoreCase(name)) {
             // XXX XXX Need to construct Locale or something else
         }
         return false;
@@ -510,10 +510,10 @@ public class Response<A> {
 
         // Set the contentLanguage for header output
         contentLanguage = locale.getLanguage();
-        if ((contentLanguage != null) && (contentLanguage.length() > 0)) {
+        if (contentLanguage != null && contentLanguage.length() > 0) {
             String country = locale.getCountry();
             StringBuilder value = new StringBuilder(contentLanguage);
-            if ((country != null) && (country.length() > 0)) {
+            if (country != null && country.length() > 0) {
                 value.append('-');
                 value.append(country);
             }
@@ -568,7 +568,7 @@ public class Response<A> {
         int semicolonIndex = -1;
 
         if (type == null) {
-            this.contentType = null;
+            contentType = null;
             return;
         }
 
@@ -603,16 +603,16 @@ public class Response<A> {
         }
 
         if (!hasCharset) {
-            this.contentType = type;
+            contentType = type;
             return;
         }
 
-        this.contentType = type.substring(0, semicolonIndex);
+        contentType = type.substring(0, semicolonIndex);
         String tail = type.substring(index+8);
         int nextParam = tail.indexOf(';');
-        String charsetValue = null;
+        String charsetValue;
         if (nextParam != -1) {
-            this.contentType += tail.substring(nextParam);
+            contentType += tail.substring(nextParam);
             charsetValue = tail.substring(0, nextParam);
         } else {
             charsetValue = tail;
@@ -622,9 +622,9 @@ public class Response<A> {
         if (charsetValue != null && charsetValue.length() > 0) {
             charsetSet=true;
             // START SJSAS 6316254
-            this.quotedCharsetValue = charsetValue;
+            quotedCharsetValue = charsetValue;
             // END SJSAS 6316254
-            this.characterEncoding = charsetValue.replace('"', ' ').trim();
+            characterEncoding = charsetValue.replace('"', ' ').trim();
         }
     }
 
@@ -740,7 +740,7 @@ public class Response<A> {
      * you must make sure {@link Response#sendHeaders} followed by a {@link Response#flush()}
      * if  you just want to manipulate the response body, but not the header. 
      * If you don't want to let Grizzly write the headers for you,
-     * Invoke {@link Response.setCommitted(true)} before starting writing bytes 
+     * Invoke {@link Response#setCommitted(boolean)} with true before starting writing bytes
      * to the {@link SocketChannel} 
      */
     public SocketChannel getChannel(){
@@ -749,8 +749,8 @@ public class Response<A> {
 
     /**
      * Complete the {@link Response} and finish/commit it. If a 
-     * {@link CompletionHandler} has been defined, its {@link CompletionHandler#resumed(A)}
-     * will first be invoked, then the {@link Response#setCommitted(Boolean)} followed
+     * {@link CompletionHandler} has been defined, its {@link CompletionHandler#resumed}
+     * will first be invoked, then the {@link Response#setCommitted(boolean)} followed
      * by {@link Response#finish()}. Those operations commit the response.
      */
     public void resume(){
@@ -784,8 +784,8 @@ public class Response<A> {
     
     /**
      * Cancel the {@link Response} and finish/commit it. If a 
-     * {@link CompletionHandler} has been defined, its {@link CompletionHandler#cancelled(A)}
-     * will first be invoked, then the {@link Response#setCommitted(Boolean)} followed
+     * {@link CompletionHandler} has been defined, its {@link CompletionHandler#cancelled}
+     * will first be invoked, then the {@link Response#setCommitted(boolean)} followed
      * by {@link Response#finish()}. Those operations commit the response.
      */   
     public void cancel(){
@@ -853,7 +853,7 @@ public class Response<A> {
      * @param timeout The maximum amount of time, in milliseconds, 
      * a {@link Response} can be suspended. When the timeout expires (because 
      * nothing has been written or because the {@link Response#resume()} 
-     * or {@link Response#cancel()}), the {@link Respons} will be automatically
+     * or {@link Response#cancel()}), the {@link Response} will be automatically
      * resumed and commited. Usage of any methods of a {@link Response} that
      * times out will throw an {@link IllegalStateException}.
      * @param attachment Any Object that will be passed back to the {@link CompletionHandler}        
@@ -880,12 +880,12 @@ public class Response<A> {
      * @param timeout The maximum amount of time, in milliseconds, 
      * a {@link Response} can be suspended. When the timeout expires (because 
      * nothing has been written or because the {@link Response#resume()} 
-     * or {@link Response#cancel()}), the {@link Respons} will be automatically
+     * or {@link Response#cancel()}), the {@link Response} will be automatically
      * resumed and commited. Usage of any methods of a {@link Response} that
      * times out will throw an {@link IllegalStateException}.
      * @param attachment Any Object that will be passed back to the {@link CompletionHandler}        
      * @param competionHandler a {@link CompletionHandler}
-     * @param ra {@link ResourceAttachment} used to times out idle connection.
+     * @param ra {@link ResponseAttachment} used to times out idle connection.
      */     
     public void suspend(long timeout,A attachment,
             CompletionHandler<? super A> competionHandler, ResponseAttachment<A> ra){
@@ -919,8 +919,8 @@ public class Response<A> {
     
     
     /**
-     * Return the {@link ResponseAttachement} associated with this instance, or
-     * null if the {@link Response.isSuspended()} return false.
+     * Return the {@link ResponseAttachment} associated with this instance, or
+     * null if the {@link Response#isSuspended()} return false.
      * @return
      */
     public ResponseAttachment getResponseAttachment(){
@@ -1008,9 +1008,6 @@ public class Response<A> {
             }
         }
 
-        /**
-         * {@inheritDoc}
-         */
         public boolean onTimeOut(SelectionKey key) {
 //            key.attach(null);
             SuspendResponseUtils.detach(key);
@@ -1023,9 +1020,6 @@ public class Response<A> {
             timeout(true);
         }
 
-        /**
-         * {@inheritDoc}
-         */
         public void onKeySelected(SelectionKey selectionKey) {
             if (!selectionKey.isValid() || discardDisconnectEvent){
                 selectionKey.cancel();
