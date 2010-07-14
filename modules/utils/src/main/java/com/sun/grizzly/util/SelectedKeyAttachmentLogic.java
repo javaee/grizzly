@@ -41,7 +41,6 @@ package com.sun.grizzly.util;
  * allows for custom selector.select logic, if controller detects
  * SelectedKeyAttachmentLogic attachment
  * on a valid key it does not perform anything.
- * @deprecated {@link SelectionKeyAttachment} declares {@link SelectionKeyAttachment#handleSelectedKey(java.nio.channels.SelectionKey)}
  * 
  * @author gustav trede
  */
