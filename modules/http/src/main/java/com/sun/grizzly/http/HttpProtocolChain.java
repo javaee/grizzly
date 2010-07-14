@@ -68,7 +68,7 @@ public class HttpProtocolChain extends DefaultProtocolChain {
                 ((WorkerThread) Thread.currentThread()).setByteBuffer(byteBuffer);
             }
 
-            if (protocolFilters.size() != 0) {
+            if (!protocolFilters.isEmpty()) {
                 int currentPosition = super.executeProtocolFilter(ctx);
                 super.postExecuteProtocolFilter(currentPosition, ctx);
             }
