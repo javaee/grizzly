@@ -46,7 +46,10 @@ public class ClientWebSocket extends BaseWebSocket {
     @Override
     public void close() throws IOException {
         if(isConnected()) {
-            send(new DataFrame(FrameType.CLOSING));
+            try {
+                send(new DataFrame(FrameType.CLOSING));
+            } catch (IOException ignored) { // failed to send close frame
+            }
         }
         super.close();
     }

@@ -120,9 +120,7 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     protected void write(byte[] bytes) throws IOException {
-        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length);
-        buffer.put(bytes);
-        buffer.flip();
+        final ByteBuffer buffer = ByteBuffer.wrap(bytes);
         channel.write(buffer);
     }
 
