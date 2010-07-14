@@ -96,15 +96,15 @@ public class LifecycleTest {
         final SelectorThread thread =
                 WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new ServletAdapter(servlet));
 
+        WebSocketClientApplication wsClient = new WebSocketClientApplication() {
+            @Override
+            public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners)
+                    throws IOException {
+                return new BadWebSocketClient(handler, listeners);
+            }
+        };
         try {
             Assert.assertEquals(app.getWebSockets().size(), 0, "There should be no clients connected");
-            WebSocketClientApplication wsClient = new WebSocketClientApplication() {
-                @Override
-                public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners)
-                        throws IOException {
-                    return new BadWebSocketClient(handler, listeners);
-                }
-            };
 
             BadWebSocketClient client = (BadWebSocketClient) wsClient.connect(ADDRESS).get();
 
@@ -117,6 +117,7 @@ public class LifecycleTest {
             Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
         } finally {
             thread.stopEndpoint();
+            wsClient.stop();
         }
 
     }

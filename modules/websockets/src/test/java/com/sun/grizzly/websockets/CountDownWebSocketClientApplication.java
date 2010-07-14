@@ -37,14 +37,13 @@
 package com.sun.grizzly.websockets;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
-public interface NetworkHandler {
-    void send(DataFrame frame) throws IOException;
+public class CountDownWebSocketClientApplication extends WebSocketClientApplication {
+    public CountDownWebSocketClientApplication() throws IOException {
+    }
 
-    void setWebSocket(BaseWebSocket webSocket);
-
-    byte get() throws IOException;
-
-    boolean peek(byte... b) throws IOException;
+    @Override
+    public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
+        return new CountDownWebSocket(this, handler, listeners);
+    }
 }

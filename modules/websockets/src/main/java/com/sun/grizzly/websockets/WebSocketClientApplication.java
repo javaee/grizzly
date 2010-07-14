@@ -58,8 +58,8 @@ public class WebSocketClientApplication extends WebSocketApplication {
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Selector selector;
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
-    private AtomicBoolean running = new AtomicBoolean(true);
-    private Queue<ClientNetworkHandler> handlers = new ConcurrentLinkedQueue<ClientNetworkHandler>();
+    private final AtomicBoolean running = new AtomicBoolean(true);
+    private final Queue<ClientNetworkHandler> handlers = new ConcurrentLinkedQueue<ClientNetworkHandler>();
     private final Thread selectorThread;
 
     public WebSocketClientApplication() throws IOException {
@@ -133,6 +133,9 @@ public class WebSocketClientApplication extends WebSocketApplication {
         }
     }
 
+    public void execute(Runnable runnable) {
+        executorService.execute(runnable);
+    }
 
     public Selector getSelector() {
         return selector;

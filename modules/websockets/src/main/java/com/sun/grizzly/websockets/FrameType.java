@@ -38,29 +38,21 @@ package com.sun.grizzly.websockets;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 
 public enum FrameType {
     TEXT {
         @Override
-        public boolean accept(ByteBuffer buffer) {
-            int curPosition = buffer.position();
-            boolean acceptable = buffer.get() == (byte) 0x00;
-            buffer.position(curPosition);
-
-            return acceptable;
+        public boolean accept(NetworkHandler handler) throws IOException {
+            return handler.peek((byte) 0x00);
         }
 
         @Override
-        public byte[] unframe(ByteBuffer buffer) {
+        public byte[] unframe(NetworkHandler handler) throws IOException {
             ByteArrayOutputStream raw = new ByteArrayOutputStream();
-            byte b = buffer.get();
-            while (buffer.hasRemaining() && (b = buffer.get()) != (byte) 0xFF) {
+            byte b;
+            handler.get();
+            while ((b = handler.get()) != (byte) 0xFF) {
                 raw.write(b);
-            }
-
-            if (b != (byte) 0xFF) {
-                throw new RuntimeException("Malformed frame.  Missing frame end delimiter: " + b);
             }
 
             return raw.toByteArray();
@@ -73,34 +65,39 @@ public enum FrameType {
             out.write((byte) 0xFF);
             return out.toByteArray();
         }
-
-    },
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) throws IOException {
+            socket.onMessage(frame);
+        }},
 
     CLOSING {
         @Override
-        public boolean accept(ByteBuffer buffer) {
-            int curPosition = buffer.position();
-            boolean acceptable = buffer.get() == (byte) 0xFF && buffer.get() == (byte) 0x00;
-            buffer.position(curPosition);
-
-            return acceptable;
+        public boolean accept(NetworkHandler handler) throws IOException {
+            return handler.peek((byte) 0xFF, (byte) 0x00);
         }
 
         @Override
-        public byte[] unframe(ByteBuffer buffer) throws IOException {
+        public byte[] unframe(NetworkHandler handler) {
             return new byte[]{(byte) 0xFF, 0x00};
         }
 
         @Override
         public byte[] frame(byte[] data) {
             return new byte[]{(byte) 0xFF, 0x00};
+        }
+
+        @Override
+        public void respond(WebSocket socket, DataFrame frame) throws IOException {
+            socket.close();
         }};
 
-    public abstract boolean accept(ByteBuffer buffer);
+    public abstract boolean accept(NetworkHandler handler) throws IOException;
 
-    public abstract byte[] unframe(ByteBuffer buffer) throws IOException;
+    public abstract byte[] unframe(NetworkHandler handler) throws IOException;
 
     public abstract byte[] frame(byte[] data);
+
+    public abstract void respond(WebSocket socket, DataFrame frame) throws IOException;
 
     public FrameType next() {
         final FrameType[] types = FrameType.values();

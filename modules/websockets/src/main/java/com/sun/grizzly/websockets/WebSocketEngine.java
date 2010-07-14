@@ -96,9 +96,9 @@ public class WebSocketEngine {
                 ProcessorTask task = asyncExecutor.getProcessorTask();
                 final SelectionKey key = task.getSelectionKey();
                 final ServerNetworkHandler handler = new ServerNetworkHandler(asyncExecutor, request, response);
-                socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
                 key.attach(handler);
-                handler.handshake(task);
+                socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
+                handler.handshake(task.getSSLSupport() != null);
 
                 enableRead(task, key);
             }

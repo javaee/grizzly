@@ -60,96 +60,64 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
+@SuppressWarnings({"StringContatenationInLoop"})
 @Test
 public class ServerSideTest {
     private static final int PORT = 1726;
 
-    private static final String CLIENT_HANDSHAKE = "GET /echo HTTP/1.1" + Constants.CRLF
-            + "Upgrade: WebSocket" + Constants.CRLF
-            + "Connection: Upgrade" + Constants.CRLF
-            + "Host: localhost" + Constants.CRLF
-            + "Origin: http://localhost" + Constants.CRLF
-            + Constants.CRLF;
-    private static final int ITERATIONS = 10000;
-    private static final boolean DEBUG_MODE = Utils.isDebugVM();
-    // when debugging, sleep() will wait while this is true.  use your debugger to set this to false when
-    // you're ready to move on
-    private boolean wait = true;
+    public static final int ITERATIONS = 1000;
 
-    public void synchronous() throws IOException, InstantiationException, InterruptedException {
+    public void synchronous() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-
-        Socket socket = new Socket("localhost", PORT);
+        WebSocketClientApplication app = new TrackingWebSocketClientApplication();
+        final TrackingWebSocket socket =
+                (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
         try {
-            final OutputStream outputStream = handshake(socket);
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
-                validate(socket, outputStream, "test message");
-                validate(socket, outputStream, "let's try again");
-                validate(socket, outputStream, "3rd time's the charm!");
-                validate(socket, outputStream, "ok.  just one more.");
-                validate(socket, outputStream, "now, we're done");
+                socket.send("test message: " + count);
+                socket.send("let's try again: " + count);
+                socket.send("3rd time's the charm!: " + count);
+                socket.send("ok.  just one more: " + count);
+                socket.send("now, we're done: " + count);
             }
+
+            Assert.assertTrue(socket.waitOnMessages(), "All messages should come back");
             final Date end = new Date();
             Utils.dumpOut("ServerSideTest.synchronous: message/ms = " + time(start, end));
 
         } finally {
             socket.close();
             thread.stopEndpoint();
+            app.stop();
         }
-    }
-
-    @Test(enabled = false)
-    public void timeouts() throws IOException, InstantiationException, InterruptedException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-
-        Socket socket = new Socket("localhost", PORT);
-        try {
-            final OutputStream outputStream = handshake(socket);
-            int count = 0;
-
-            while (count++ < ITERATIONS) {
-                validate(socket, outputStream, "test message");
-                sleep(5000);
-                validate(socket, outputStream, "let's try again");
-            }
-        } finally {
-            socket.close();
-            thread.stopEndpoint();
-        }
-    }
-
-    private void sleep(final int delay) throws InterruptedException {
-        wait = true;
-        while(DEBUG_MODE && wait) {
-            Thread.sleep(10000);
-        }
-        Thread.sleep(delay);
     }
 
     @SuppressWarnings({"StringContatenationInLoop"})
-    public void asynchronous() throws IOException, InstantiationException, InterruptedException {
+    public void asynchronous() throws IOException, InstantiationException, InterruptedException, ExecutionException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        WebSocketClientApplication app = new CountDownWebSocketClientApplication();
 
-        final Socket socket = new Socket("localhost", PORT);
+        final CountDownWebSocket socket =
+                (CountDownWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
         try {
-            final OutputStream outputStream = handshake(socket);
             int count = 0;
             final Date start = new Date();
             final ArrayList<String> sent = new ArrayList<String>();
             while (count++ < ITERATIONS) {
-                queue(outputStream, "test message " + count, sent);
-                queue(outputStream, "let's try again " + count, sent);
-                queue(outputStream, "3rd time's the charm! " + count, sent);
-                compare(socket, sent);
-                compare(socket, sent);
-                queue(outputStream, "ok.  just one more. " + count, sent);
-                queue(outputStream, "now, we're done " + count, sent);
-                compare(socket, sent);
-                compare(socket, sent);
-                compare(socket, sent);
+                socket.send("test message " + count);
+                socket.send("let's try again: " + count);
+                socket.send("3rd time's the charm!: " + count);
+                Assert.assertTrue(socket.countDown(), "Everything should come back");
+//                System.out.println("sending more");
+                socket.send("ok.  just one more: " + count);
+                socket.send("now, we're done: " + count);
+                Assert.assertTrue(socket.countDown(), "Everything should come back");
             }
             final Date end = new Date();
             Utils.dumpOut("ServerSideTest.asynchronous: message/ms = " + time(start, end));
@@ -157,16 +125,18 @@ public class ServerSideTest {
         } finally {
             socket.close();
             thread.stopEndpoint();
+            app.stop();
         }
     }
 
-    public void synchronousMultiClient() throws IOException, InstantiationException {
+    public void multipleClients() throws IOException, InstantiationException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        TrackingWebSocketClientApplication app = new TrackingWebSocketClientApplication();
 
         List<Thread> clients = new ArrayList<Thread>();
         try {
             for (int x = 0; x < 1; x++) {
-                clients.add(syncClient("client " + x));
+                clients.add(syncClient(app));
             }
             while (!clients.isEmpty()) {
                 final Iterator<Thread> it = clients.iterator();
@@ -178,10 +148,12 @@ public class ServerSideTest {
             }
         } finally {
             thread.stopEndpoint();
+            app.stop();
         }
     }
 
-    @Test(enabled = false)  // i think this use case is probably inherently busted.  investigate later.
+    @Test(enabled = false)
+    // i think this use case is probably inherently busted.  investigate later.
     public void applessServlet() throws IOException, InstantiationException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new HttpServlet() {
             @Override
@@ -215,15 +187,28 @@ public class ServerSideTest {
         }
     }
 
-    @Test(enabled = false)
-    public void bigPayload() throws IOException, InstantiationException {
+    @Test
+    //(enabled = false)
+    public void bigPayload() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
+        final int count = 5;
+        final CountDownLatch received = new CountDownLatch(count);
+        WebSocketClientApplication app = new WebSocketClientApplication() {
+            @Override
+            public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
+                return new ClientWebSocket(handler, listeners) {
+                    @Override
+                    public void onMessage(DataFrame frame) throws IOException {
+                        received.countDown();
+                    }
+                };
+            }
+        };
+        final WebSocket socket = app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
 
-        Socket socket = new Socket("localhost", PORT);
         try {
-            final OutputStream outputStream = handshake(socket);
             StringBuilder sb = new StringBuilder();
-            for (int x = 0; x < 10; x++) {
+            while (sb.length() < 10000) {
                 sb.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis lectus odio, et" +
                         " dictum purus. Suspendisse id ante ac tortor facilisis porta. Nullam aliquet dapibus dui, ut" +
                         " scelerisque diam luctus sit amet. Donec faucibus aliquet massa, eget iaculis velit ullamcorper" +
@@ -236,10 +221,14 @@ public class ServerSideTest {
                         " ligula vitae porta. Aenean ultrices, ligula quis dapibus sodales, nulla risus sagittis sapien," +
                         " id posuere turpis lectus ac sapien. Pellentesque sed ante nisi. Quisque eget posuere sapien.");
             }
-            validate(socket, outputStream, sb.toString());
+            for(int x = 0; x < count; x++) {
+                socket.send(sb.toString());
+            }
+            Assert.assertTrue(received.await(60, TimeUnit.SECONDS), "Message should come back");
         } finally {
             socket.close();
             thread.stopEndpoint();
+            app.stop();
         }
 
     }
@@ -250,27 +239,31 @@ public class ServerSideTest {
         os.write(Constants.CRLF_BYTES);
     }
 
-    private Thread syncClient(final String name) {
+    private Thread syncClient(final TrackingWebSocketClientApplication app) {
         final Thread thread = new Thread(new Runnable() {
             public void run() {
-                Socket socket;
                 try {
-                    socket = new Socket("localhost", PORT);
+                    final TrackingWebSocket socket =
+                            (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
                     try {
-                        final OutputStream outputStream = handshake(socket);
-                        validate(socket, outputStream, name + ": test message");
-                        validate(socket, outputStream, name + ": let's try again");
-                        validate(socket, outputStream, name + ": 3rd time's the charm!");
-                        validate(socket, outputStream, name + ": ok.  just one more.");
-                        validate(socket, outputStream, name + ": now, we're done");
+                        socket.send("test message");
+                        socket.send("let's try again");
+                        socket.send("3rd time's the charm!");
+                        socket.send("ok.  just one more");
+                        socket.send("now, we're done");
+                        socket.waitOnMessages();
                     } finally {
                         socket.close();
                     }
                 } catch (IOException e) {
-                    throw new RuntimeException(e.getMessage(), e);
+                    Assert.fail(e.getMessage());
+                } catch (InterruptedException e) {
+                    Assert.fail(e.getMessage());
+                } catch (ExecutionException e) {
+                    Assert.fail(e.getMessage());
                 }
             }
-        }, "syncClient " + name);
+        });
         thread.start();
 
         return thread;
@@ -280,52 +273,7 @@ public class ServerSideTest {
         return 5 * ITERATIONS / (end.getTime() - start.getTime());
     }
 
-    private OutputStream handshake(Socket socket) throws IOException {
-        final OutputStream outputStream = socket.getOutputStream();
-        outputStream.write(CLIENT_HANDSHAKE.getBytes());
-        outputStream.flush();
-        read(socket);
-        return outputStream;
-    }
-
-    private void queue(OutputStream outputStream, String text, final List<String> sent) throws IOException {
-        sent.add(text);
-        write(outputStream, text);
-    }
-
-    private void validate(Socket socket, OutputStream outputStream, final String text) throws IOException {
-        write(outputStream, text);
-        compare(socket, text);
-    }
-
-    private void compare(Socket socket, String text) throws IOException {
-        final ByteBuffer buffer = read(socket);
-        if (buffer.limit() > 0) {
-            DataFrame frame = new DataFrame(buffer);
-            if (text != null) {
-                Assert.assertEquals(frame.getTextPayload(), text);
-            }
-        } else {
-            if (!DEBUG_MODE) {
-                Assert.fail("Failed to read anything from the server.");
-            }
-        }
-    }
-
-    private void compare(Socket socket, ArrayList<String> sent) throws IOException {
-        if (!sent.isEmpty()) {
-            final ByteBuffer buffer = read(socket);
-            while (buffer.hasRemaining()) {
-                Assert.assertEquals(new DataFrame(buffer).getTextPayload(), sent.remove(0));
-            }
-        }
-    }
-
-    private void write(OutputStream outputStream, String text) throws IOException {
-        outputStream.write(new DataFrame(text).frame());
-        outputStream.flush();
-    }
-
+    @Deprecated
     private ByteBuffer read(Socket socket) throws IOException {
         final int limit = 512;
         int count = limit;
@@ -366,4 +314,5 @@ public class ServerSideTest {
 
         return st;
     }
+
 }

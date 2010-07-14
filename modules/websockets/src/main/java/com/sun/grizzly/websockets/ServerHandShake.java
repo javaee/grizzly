@@ -42,81 +42,23 @@ import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.util.Utils;
 import com.sun.grizzly.util.buf.ByteChunk;
-import com.sun.grizzly.util.http.MimeHeaders;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.Map;
 
 public class ServerHandShake extends HandShake {
-    private final static byte[] normalResponse = Charset.forName(
-            "ASCII").encode("HTTP/1.1 101 Web Socket Protocol Handshake\r\n" +
-            "Upgrade: WebSocket\r\nConnection: Upgrade\r\n").array();
 
-    private final static byte[] locationResponse = Charset.
-            forName("ASCII").encode("\r\nWebSocket-Location: ").array();
-
-    private final static byte[] protocolResponse = Charset.
-            forName("ASCII").encode("\r\nWebSocket-Protocol: ").array();
     private final byte[] serverSecKey;
 
     public ServerHandShake(final boolean secure, final String origin, final String serverHostName, final String port,
             final String resourcePath, final String subProtocol, final SecKey key1, final SecKey key2,
             final byte[] key3) throws HandshakeException {
         super(secure, origin, serverHostName, port, resourcePath);
+        setSubProtocol(subProtocol);
         serverSecKey = key3 == null ? null : SecKey.generateServerKey(key1, key2, key3);
-    }
-
-    public ByteBuffer generate() {
-        try {
-            final ByteArrayOutputStream bb = new ByteArrayOutputStream();
-            bb.write(normalResponse);
-            if (serverSecKey != null) {
-                write76Response(bb);
-            } else {
-                write75Response(bb);
-            }
-            bb.write(Constants.CRLF_BYTES);
-            ByteBuffer buffer = ByteBuffer.allocate(bb.size());
-            buffer.put(bb.toByteArray());
-            buffer.flip();
-            return buffer;
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
     }
 
     public byte[] getKey() {
         return Utils.copy(serverSecKey);
-    }
-
-    private void write75Response(ByteArrayOutputStream bb) throws IOException {
-        write(bb, "WebSocket-Origin", getOrigin());
-        write(bb, "WebSocket-Location", getLocation());
-        String protocol = getSubProtocol();
-        if (protocol != null) {
-            write(bb, "WebSocket-Protocol", protocol);
-        }
-    }
-
-    private void write76Response(ByteArrayOutputStream bb) throws IOException {
-        write(bb, WebSocketEngine.SERVER_SEC_WS_ORIGIN_HEADER, getOrigin());
-        write(bb, WebSocketEngine.SERVER_SEC_WS_LOCATION_HEADER, getLocation());
-        String protocol = getSubProtocol();
-        if (protocol != null) {
-            write(bb, WebSocketEngine.SEC_WS_PROTOCOL_HEADER, protocol);
-        }
-        bb.write(Constants.CRLF_BYTES);
-        bb.write(serverSecKey);
-        bb.write(Constants.CRLF_BYTES);
-    }
-
-    private void write(ByteArrayOutputStream bb, String header, String value) throws IOException {
-        bb.write((header + ": " + value).getBytes("ASCII"));
-        bb.write(Constants.CRLF_BYTES);
     }
 
     public void respond(Response response) throws IOException {
@@ -138,6 +80,7 @@ public class ServerHandShake extends HandShake {
             }
         }
 
+        response.sendHeaders();
         if (serverSecKey != null) {
             final OutputBuffer buffer = response.getOutputBuffer();
             ByteChunk chunk = new ByteChunk(serverSecKey.length + Constants.CRLF_BYTES.length);

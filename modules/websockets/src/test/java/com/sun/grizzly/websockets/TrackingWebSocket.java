@@ -37,14 +37,52 @@
 package com.sun.grizzly.websockets;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
-public interface NetworkHandler {
-    void send(DataFrame frame) throws IOException;
+public class TrackingWebSocket extends ClientWebSocket {
+    private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
+    private final CountDownLatch conn = new CountDownLatch(1);
+    private final CountDownLatch received = new CountDownLatch(5 * ServerSideTest.ITERATIONS);
+    private String name;
 
-    void setWebSocket(BaseWebSocket webSocket);
+    public TrackingWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
+        super(handler, listeners);
+    }
 
-    byte get() throws IOException;
+    @Override
+    public void send(String data) throws IOException {
+        sent.put(data, Boolean.FALSE);
+        super.send(data);
+    }
 
-    boolean peek(byte... b) throws IOException;
+    @Override
+    public void onMessage(DataFrame frame) throws IOException {
+        super.onMessage(frame);
+//            System.out.println(
+//                    "ServerSideTest$TrackingWebSocket.onMessage: frame.getTextPayload() = " + frame.getTextPayload());
+        sent.remove(frame.getTextPayload());
+        received.countDown();
+    }
+
+    @Override
+    public void onConnect() throws IOException {
+        super.onConnect();
+        conn.countDown();
+    }
+
+    public boolean waitOnMessages() throws InterruptedException {
+        return received.await(2, TimeUnit.MINUTES);
+//            return received.await(5, TimeUnit.SECONDS);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(int name) {
+        this.name = String.valueOf(name);
+    }
 }

@@ -40,23 +40,27 @@ import com.sun.grizzly.util.Utils;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.nio.ByteBuffer;
 import java.util.logging.Logger;
 
 public class DataFrame {
     private static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private String payload;
     private byte[] bytes;
-    private FrameType type = FrameType.values()[0];
+    private FrameType type;
 
-    public DataFrame(ByteBuffer buffer) throws IOException {
-        while(bytes == null && type != null) {
-            if (type.accept(buffer)) {
-                bytes = type.unframe(buffer);
+    public static DataFrame start(NetworkHandler handler) throws IOException {
+        DataFrame frame = null;
+        FrameType frameType = FrameType.values()[0];
+        while(frame == null && frameType != null) {
+            if(frameType.accept(handler)) {
+                frame = new DataFrame(frameType);
+                frame.setBytes(frameType.unframe(handler));
             } else {
-                type = type.next();
+                frameType = frameType.next();
             }
         }
+
+        return frame;
     }
 
     public DataFrame(FrameType frameType) {
@@ -111,6 +115,10 @@ public class DataFrame {
 
     public byte[] frame(FrameType type) {
         return type.frame(bytes);
+    }
+
+    public void respond(WebSocket socket) throws IOException {
+        getType().respond(socket, this);
     }
 
     @Override

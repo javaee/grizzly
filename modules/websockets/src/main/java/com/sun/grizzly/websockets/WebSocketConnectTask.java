@@ -62,7 +62,7 @@ public class WebSocketConnectTask extends FutureTask<WebSocket> {
                 final BaseWebSocket socket = (BaseWebSocket) app
                         .createSocket(handler, listenerList.toArray(new WebSocketListener[listenerList.size()]));
                 while (!socket.isConnected()) {
-                    Thread.sleep(50);
+                    Thread.sleep(100);
                 }
                 return socket;
             }

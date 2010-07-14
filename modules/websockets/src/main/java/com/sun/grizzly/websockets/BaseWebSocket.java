@@ -44,17 +44,17 @@ import java.util.logging.Logger;
 
 @SuppressWarnings({"StringContatenationInLoop"})
 public class BaseWebSocket implements WebSocket {
-    private NetworkHandler networkHandler;
+    private final NetworkHandler networkHandler;
     protected static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Set<WebSocketListener> listeners = new LinkedHashSet<WebSocketListener>();
     private final AtomicBoolean connected = new AtomicBoolean(false);
 
     public BaseWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
         networkHandler = handler;
-        handler.setWebSocket(this);
         for (WebSocketListener listener : listeners) {
             add(listener);
         }
+        handler.setWebSocket(this);
     }
 
     public NetworkHandler getNetworkHandler() {

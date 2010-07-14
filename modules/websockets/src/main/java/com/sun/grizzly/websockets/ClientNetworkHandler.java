@@ -46,11 +46,16 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 
 public class ClientNetworkHandler implements NetworkHandler {
-    private final SocketChannel channel;
-    private final URL url;
-    private final WebSocketClientApplication app;
+    private SocketChannel channel;
+    private URL url;
+    private WebSocketClientApplication app;
     private WebSocket webSocket;
     private ClientHandShake clientHS;
+    private final ByteChunk chunk = new ByteChunk();
+
+    ClientNetworkHandler(SocketChannel channel) {
+        this.channel = channel;
+    }
 
     public ClientNetworkHandler(URL url, WebSocketClientApplication application) throws IOException {
         this.url = url;
@@ -59,13 +64,14 @@ public class ClientNetworkHandler implements NetworkHandler {
         channel.configureBlocking(false);
         channel.connect(new InetSocketAddress(url.getHost(), url.getPort()));
         channel.socket().setSoTimeout(30000);
-        app.register(this);
-
-        app.getSelector().wakeup();
     }
 
     SocketChannel getChannel() {
         return channel;
+    }
+
+    public void setChannel(SocketChannel channel) {
+        this.channel = channel;
     }
 
     public void send(DataFrame frame) throws IOException {
@@ -104,8 +110,12 @@ public class ClientNetworkHandler implements NetworkHandler {
             origin.append(":")
                     .append(url.getPort());
         }
+        String path = url.getPath();
+        if ("".equals(path)) {
+            path = "/";
+        }
         clientHS = new ClientHandShake(isSecure, origin.toString(), url.getHost(),
-                String.valueOf(url.getPort()), url.getPath());
+                String.valueOf(url.getPort()), path);
         write(clientHS.getBytes());
     }
 
@@ -117,40 +127,36 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     private void unframe() throws IOException {
-        int count;
-        do {
-            ByteBuffer bytes = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
-            count = channel.read(bytes);
-            bytes.flip();
-            if (count > 0) {
-                if (webSocket.isConnected()) {
-                    unframe(bytes);
-                } else {
-                    byte[] serverKey = findServerKey(bytes);
-                    try {
-                        clientHS.validateServerResponse(serverKey);
-                    } catch (HandshakeException e) {
-                        throw new IOException(e.getMessage());
-                    }
-                    webSocket.onConnect();
-                }
-            }
-        } while (count > 0);
-    }
-
-    private byte[] findServerKey(ByteBuffer buffer) throws IOException {
-        while (buffer.hasRemaining() && readLine(buffer).length > 0) {
-            ;
+        if (chunk.getLimit() == -1) {
+            read();
         }
-        return buffer.hasRemaining() ? readLine(buffer) : new byte[0];
+        if (chunk.getLength() != 0) {
+            if (webSocket.isConnected()) {
+                readFrame();
+            } else {
+                byte[] serverKey = findServerKey();
+                try {
+                    clientHS.validateServerResponse(serverKey);
+                } catch (HandshakeException e) {
+                    throw new IOException(e.getMessage());
+                }
+                webSocket.onConnect();
+            }
+        }
     }
 
-    private byte[] readLine(ByteBuffer buffer) throws IOException {
+    private byte[] findServerKey() throws IOException {
+        while (chunk.getLength() != 0 && readLine().length > 0) {
+        }
+        return readLine();
+    }
+
+    private byte[] readLine() throws IOException {
         ByteChunk line = new ByteChunk(0);
         byte last = 0x00;
         boolean done = false;
-        while (!done && buffer.hasRemaining()) {
-            final byte next = buffer.get();
+        while (!done && chunk.getLength() != 0) {
+            final byte next = (byte) chunk.substract();
             if (next != '\r' && next != '\n') {
                 line.append(next);
             } else {
@@ -163,19 +169,6 @@ public class ClientNetworkHandler implements NetworkHandler {
         System.arraycopy(line.getBuffer(), 0, result, 0, result.length);
 
         return result;
-    }
-
-    protected void unframe(ByteBuffer bytes) throws IOException {
-        while (bytes.hasRemaining()) {
-            final DataFrame dataFrame = new DataFrame(bytes);
-            if (dataFrame.getType() != null) {
-                if (dataFrame.getType() == FrameType.CLOSING) {
-                    webSocket.close();
-                } else {
-                    webSocket.onMessage(dataFrame);
-                }
-            }
-        }
     }
 
     private void enableOp(final int op) {
@@ -205,5 +198,52 @@ public class ClientNetworkHandler implements NetworkHandler {
 
     public void setWebSocket(BaseWebSocket webSocket) {
         this.webSocket = webSocket;
+        if (app != null) {
+            app.register(this);
+
+            app.getSelector().wakeup();
+        }
+    }
+
+    protected void readFrame() throws IOException {
+        fill();
+        while (chunk.getLength() != 0) {
+            final DataFrame dataFrame = DataFrame.start(this);
+            if (dataFrame != null) {
+                dataFrame.respond(webSocket);
+            }
+        }
+    }
+
+    private void read() throws IOException {
+        ByteBuffer bytes = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
+        int count;
+        while ((count = channel.read(bytes)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+            chunk.append(bytes.array(), 0, count);
+        }
+
+        if (count > 0) {
+            chunk.append(bytes.array(), 0, count);
+        }
+    }
+
+    public byte get() throws IOException {
+        synchronized (chunk) {
+            fill();
+            return (byte) chunk.substract();
+        }
+    }
+
+    private void fill() throws IOException {
+        if (chunk.getLength() == 0) {
+            read();
+        }
+    }
+
+    public boolean peek(byte... bytes) throws IOException {
+        synchronized (chunk) {
+            fill();
+            return chunk.startsWith(bytes);
+        }
     }
 }

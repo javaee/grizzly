@@ -183,6 +183,7 @@ public class WebSocketsTest {
             if (thread != null) {
                 thread.stopEndpoint();
             }
+            wsClient.stop();
         }
     }
 

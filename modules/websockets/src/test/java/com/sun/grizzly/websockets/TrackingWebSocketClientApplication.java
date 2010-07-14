@@ -37,14 +37,25 @@
 package com.sun.grizzly.websockets;
 
 import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.util.concurrent.atomic.AtomicInteger;
 
-public interface NetworkHandler {
-    void send(DataFrame frame) throws IOException;
+public class TrackingWebSocketClientApplication extends WebSocketClientApplication {
+    private final AtomicInteger nameCount = new AtomicInteger(0);
 
-    void setWebSocket(BaseWebSocket webSocket);
+    public TrackingWebSocketClientApplication() throws IOException {
+    }
 
-    byte get() throws IOException;
+    @Override
+    protected boolean add(WebSocket socket) {
+        final boolean added = super.add(socket);
+        if (added) {
+            ((TrackingWebSocket) socket).setName(nameCount.incrementAndGet());
+        }
+        return added;
+    }
 
-    boolean peek(byte... b) throws IOException;
+    @Override
+    public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) {
+        return new TrackingWebSocket(handler, listeners);
+    }
 }

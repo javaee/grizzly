@@ -55,25 +55,29 @@ import com.sun.grizzly.util.buf.ByteChunk;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 
 public class ServerNetworkHandler extends SelectionKeyActionAttachment implements ConnectionCloseHandler,
         NetworkHandler {
-    private final AsyncExecutor asyncExecutor;
+    private AsyncExecutor asyncExecutor;
     private final Request request;
     private final Response response;
     private final InputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
     private WebSocket socket;
+    private final ByteChunk chunk = new ByteChunk();
 
-    public ServerNetworkHandler(AsyncExecutor executor, Request req, Response resp) {
-        asyncExecutor = executor;
+    public ServerNetworkHandler(Request req, Response resp) {
         request = req;
         response = resp;
         inputBuffer = req.getInputBuffer();
         outputBuffer = (InternalOutputBuffer) resp.getOutputBuffer();
+    }
+
+    public ServerNetworkHandler(AsyncExecutor executor, Request req, Response resp) {
+        this(req, resp);
+        asyncExecutor = executor;
         ((BaseSelectionKeyHandler) asyncExecutor.getProcessorTask().getSelectorHandler().getSelectionKeyHandler())
                 .setConnectionCloseHandler(this);
     }
@@ -82,8 +86,8 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
         socket = webSocket;
     }
 
-    protected void handshake(ProcessorTask task) throws IOException, HandshakeException {
-        final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) || task.getSSLSupport() != null;
+    protected void handshake(final boolean sslSupport) throws IOException, HandshakeException {
+        final boolean secure = "https".equalsIgnoreCase(request.scheme().toString()) || sslSupport;
 
         final ClientHandShake clientHS = new ClientHandShake(request, secure);
 
@@ -122,7 +126,7 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
     public void process(SelectionKey key) {
         if (key.isReadable()) {
             try {
-                unframe();
+                readFrame();
             } catch (IOException e) {
                 final ProcessorTask task = asyncExecutor.getProcessorTask();
                 task.setAptCancelKey(true);
@@ -132,30 +136,54 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
         }
     }
 
-    private void unframe() throws IOException {
-        final ByteChunk chunk = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-        while (inputBuffer.doRead(chunk, request) > 0) {
-            unframe(chunk.toByteBuffer());
+    protected void readFrame() throws IOException {
+        if(chunk.getLimit() == -1) {
+            read();
         }
-    }
-
-    private void unframe(ByteBuffer bytes) throws IOException {
-        while (bytes.hasRemaining()) {
-            final DataFrame dataFrame = new DataFrame(bytes);
-            if (dataFrame.getType() != null) {
-                if (dataFrame.getType() == FrameType.CLOSING) {
-                    socket.onClose();
-                } else {
-                    socket.onMessage(dataFrame);
-                }
+        while (chunk.getLength() != 0) {
+            final DataFrame dataFrame = DataFrame.start(this);
+            if (dataFrame != null) {
+                dataFrame.getType().respond(socket, dataFrame);
             }
         }
     }
 
+    private void read() throws IOException {
+        ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+        int count;
+        while ((count = inputBuffer.doRead(bytes, request)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+            chunk.append(bytes);
+        }
+
+        if (count > 0) {
+            chunk.append(bytes);
+        }
+    }
+
+    public byte get() throws IOException {
+        synchronized (chunk) {
+            fill();
+            return (byte) chunk.substract();
+        }
+    }
+
+    public boolean peek(byte... bytes) throws IOException {
+        synchronized (chunk) {
+            fill();
+            return chunk.startsWith(bytes);
+        }
+    }
+
+    private void fill() throws IOException {
+        if(chunk.getLength() == 0) {
+            read();
+        }
+    }
+
     private void write(byte[] bytes) throws IOException {
-        ByteChunk chunk = new ByteChunk(bytes.length);
-        chunk.setBytes(bytes, 0, bytes.length);
-        outputBuffer.doWrite(chunk, response);
+        ByteChunk buffer = new ByteChunk(bytes.length);
+        buffer.setBytes(bytes, 0, bytes.length);
+        outputBuffer.doWrite(buffer, response);
         outputBuffer.flush();
     }
 
