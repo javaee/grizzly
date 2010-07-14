@@ -92,10 +92,10 @@ public class B2CConverterBlocking {
     /** Create a converter, with bytes going to a byte buffer
      */
     public B2CConverterBlocking(String encoding)
-	throws IOException
+        throws IOException
     {
-	this.encoding=encoding;
-	reset();
+        this.encoding=encoding;
+        reset();
     }
 
 
@@ -103,7 +103,7 @@ public class B2CConverterBlocking {
      *  The encoding remain in effect, the internal buffers remain allocated.
      */
     public  void recycle() {
-	conv.recycle();
+        conv.recycle();
     }
 
     static final int BUFFER_SIZE=8192;
@@ -113,40 +113,40 @@ public class B2CConverterBlocking {
      * @deprecated
      */
     public  void convert( ByteChunk bb, CharChunk cb )
-	throws IOException
+        throws IOException
     {
-	// Set the ByteChunk as input to the Intermediate reader
+        // Set the ByteChunk as input to the Intermediate reader
         convert(bb, cb, cb.getBuffer().length - cb.getEnd());
     }
 
     public void convert( ByteChunk bb, CharChunk cb, int limit)
         throws IOException
     {
-	iis.setByteChunk( bb );
-	try {
-	    // read from the reader
+        iis.setByteChunk( bb );
+        try {
+            // read from the reader
             int bbLengthBeforeRead = 0;
-	    while( limit > 0 ) { // conv.ready() ) {
+            while( limit > 0 ) { // conv.ready() ) {
                 int size = limit < BUFFER_SIZE ? limit : BUFFER_SIZE;
                 bbLengthBeforeRead = bb.getLength();
-		int cnt=conv.read( result, 0, size );
-		if( cnt <= 0 ) {
-		    // End of stream ! - we may be in a bad state
-		    if( debug>0)
-			log( "EOF" );
-		    return;
-		}
-		if( debug > 1 )
-		    log("Converted: " + new String( result, 0, cnt ));
-		cb.append( result, 0, cnt );
+                int cnt=conv.read( result, 0, size );
+                if( cnt <= 0 ) {
+                    // End of stream ! - we may be in a bad state
+                    if( debug>0)
+                        log( "EOF" );
+                    return;
+                }
+                if( debug > 1 )
+                    log("Converted: " + new String( result, 0, cnt ));
+                cb.append( result, 0, cnt );
                 limit = limit - (bbLengthBeforeRead - bb.getLength());
-	    }
-	} catch( IOException ex) {
-	    if( debug>0)
-		log( "Reseting the converter " + ex.toString() );
-	    reset();
-	    throw ex;
-	}
+            }
+        } catch( IOException ex) {
+            if( debug>0)
+                log( "Reseting the converter " + ex.toString() );
+            reset();
+            throw ex;
+        }
     }
 
     // START CR 6309511
@@ -177,17 +177,17 @@ public class B2CConverterBlocking {
     // END CR 6309511
 
     public void reset()
-	throws IOException
+        throws IOException
     {
-	// destroy the reader/iis
-	iis=new IntermediateInputStream();
-	conv=new ReadConvertor( iis, encoding );
+        // destroy the reader/iis
+        iis=new IntermediateInputStream();
+        conv=new ReadConvertor( iis, encoding );
     }
 
     private final int debug=0;
     void log( String s ) {
         if (logger.isLoggable(Level.FINEST))
-	    logger.log(Level.FINEST,"B2CConverter: " + s );
+            logger.log(Level.FINEST,"B2CConverter: " + s );
     }
 
     // -------------------- Not used - the speed improvemnt is quite small
@@ -202,45 +202,45 @@ public class B2CConverterBlocking {
 
 
     private  static String decodeString(ByteChunk mb, String enc)
-	throws IOException
+        throws IOException
     {
-	byte buff=mb.getBuffer();
-	int start=mb.getStart();
-	int end=mb.getEnd();
-	if( useNewString ) {
-	    if( enc==null) enc="UTF8";
-	    return new String( buff, start, end-start, enc );
-	}
-	B2CConverter b2c=null;
-	if( useSpecialDecoders &&
-	    (enc==null || "UTF8".equalsIgnoreCase(enc))) {
-	    if( utfD==null ) utfD=new UTF8Decoder();
-	    b2c=utfD;
-	}
-	if(decoders == null ) decoders=new Hashtable();
-	if( enc==null ) enc="UTF8";
-	b2c=(B2CConverter)decoders.get( enc );
-	if( b2c==null ) {
-	    if( useSpecialDecoders ) {
-		if( "UTF8".equalsIgnoreCase( enc ) ) {
-		    b2c=new UTF8Decoder();
-		}
-	    }
-	    if( b2c==null )
-		b2c=new B2CConverter( enc );
-	    decoders.put( enc, b2c );
-	}
-	if( conversionBuf==null ) conversionBuf=new CharChunk(1024);
+        byte buff=mb.getBuffer();
+        int start=mb.getStart();
+        int end=mb.getEnd();
+        if( useNewString ) {
+            if( enc==null) enc="UTF8";
+            return new String( buff, start, end-start, enc );
+        }
+        B2CConverter b2c=null;
+        if( useSpecialDecoders &&
+            (enc==null || "UTF8".equalsIgnoreCase(enc))) {
+            if( utfD==null ) utfD=new UTF8Decoder();
+            b2c=utfD;
+        }
+        if(decoders == null ) decoders=new Hashtable();
+        if( enc==null ) enc="UTF8";
+        b2c=(B2CConverter)decoders.get( enc );
+        if( b2c==null ) {
+            if( useSpecialDecoders ) {
+                if( "UTF8".equalsIgnoreCase( enc ) ) {
+                    b2c=new UTF8Decoder();
+                }
+            }
+            if( b2c==null )
+                b2c=new B2CConverter( enc );
+            decoders.put( enc, b2c );
+        }
+        if( conversionBuf==null ) conversionBuf=new CharChunk(1024);
 
-	try {
-	    conversionBuf.recycle();
-	    b2c.convert( this, conversionBuf );
-	    //System.out.println("XXX 1 " + conversionBuf );
-	    return conversionBuf.toString();
-	} catch( IOException ex ) {
-	    ex.printStackTrace();
-	    return null;
-	}
+        try {
+            conversionBuf.recycle();
+            b2c.convert( this, conversionBuf );
+            //System.out.println("XXX 1 " + conversionBuf );
+            return conversionBuf.toString();
+        } catch( IOException ex ) {
+            ex.printStackTrace();
+            return null;
+        }
     }
 
     */
@@ -258,23 +258,23 @@ final class  ReadConvertor extends InputStreamReader {
     /** Create a converter.
      */
     public ReadConvertor( IntermediateInputStream in, String enc )
-	throws UnsupportedEncodingException
+        throws UnsupportedEncodingException
     {
-	super( in, enc );
+        super( in, enc );
     }
 
     /** Overriden - will do nothing but reset internal state.
      */
     public  final void close() throws IOException {
-	// NOTHING
-	// Calling super.close() would reset out and cb.
+        // NOTHING
+        // Calling super.close() would reset out and cb.
     }
 
     public  final int read(char cbuf[], int off, int len)
-	throws IOException
+        throws IOException
     {
-	// will do the conversion and call write on the output stream
-	return super.read( cbuf, off, len );
+        // will do the conversion and call write on the output stream
+        return super.read( cbuf, off, len );
     }
 
     /** Reset the buffer
@@ -306,8 +306,8 @@ final class IntermediateInputStream extends InputStream {
     }
 
     public  final void close() throws IOException {
-	// shouldn't be called - we filter it out in writer
-	throw new IOException("close() called - shouldn't happen ");
+        // shouldn't be called - we filter it out in writer
+        throw new IOException("close() called - shouldn't happen ");
     }
 
     public  final  int read(byte cbuf[], int off, int len) throws IOException {
