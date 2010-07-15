@@ -139,17 +139,19 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
 
             buffer = doHandshakeStep(sslEngine, ctx);
 
+            final boolean hasRemaining = buffer.hasRemaining();
+            
             final boolean isHandshaking = SSLUtils.isHandshaking(sslEngine);
             if (!isHandshaking) {
                 notifyHandshakeCompleted(connection, sslEngine);
 
-                if (buffer.hasRemaining()) {
+                if (hasRemaining) {
                     ctx.setMessage(buffer);
                     return super.handleRead(ctx);
                 }
             }
 
-            return ctx.getStopAction(buffer.hasRemaining() ? buffer : null);
+            return ctx.getStopAction(hasRemaining ? buffer : null);
         }
     }
 
@@ -158,7 +160,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         final Connection connection = ctx.getConnection();
         SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
         if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
-            return super.handleWrite(ctx);
+            return accurateWrite(ctx, true);
         } else {
             synchronized(connection) {
                 sslEngine = SSLUtils.getSSLEngine(connection);
@@ -168,19 +170,37 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
                             null, clientSSLEngineConfigurator);
                 }
 
-                final CompletionHandler completionHandler =
-                        handshakeCompletionHandlerAttr.get(connection);
-                if (completionHandler instanceof PendingWriteCompletionHandler) {
-                    if (!((PendingWriteCompletionHandler) completionHandler).add(ctx)) {
-                        return super.handleWrite(ctx);
-                    }
-                } else {
-                    throw new IllegalStateException("Handshake is not completed!");
-                }
-
-                return ctx.getSuspendAction();
+                return accurateWrite(ctx, false);
             }
         }
+    }
+
+    private NextAction accurateWrite(final FilterChainContext ctx,
+            final boolean isHandshakeComplete) throws IOException {
+        
+        final Connection connection = ctx.getConnection();
+
+        final CompletionHandler completionHandler =
+                handshakeCompletionHandlerAttr.get(connection);
+        final boolean isPendingHandler = completionHandler instanceof PendingWriteCompletionHandler;
+        
+        if (isHandshakeComplete && !isPendingHandler) {
+            return super.handleWrite(ctx);
+        } else if (isPendingHandler) {
+            if (!((PendingWriteCompletionHandler) completionHandler).add(ctx)) {
+                return super.handleWrite(ctx);
+            }
+        } else {
+            // Check one more time whether handshake is completed
+            final SSLEngine sslEngine = SSLUtils.getSSLEngine(connection);
+            if (sslEngine != null && !SSLUtils.isHandshaking(sslEngine)) {
+                return super.handleWrite(ctx);
+            }
+
+            throw new IllegalStateException("Handshake is not completed!");
+        }
+
+        return ctx.getSuspendAction();
     }
 
     public void handshake(final Connection connection,
@@ -377,6 +397,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         if (completionHandler != null) {
             connection.removeCloseListener(closeListener);
             completionHandler.completed(sslEngine);
+            handshakeCompletionHandlerAttr.remove(connection);
         }
     }
 
@@ -516,6 +537,7 @@ public final class SSLFilter extends AbstractCodecFilter<Buffer, Buffer> {
         public void completed(SSLEngine result) {
             try {
                 synchronized (connection) {
+                    isComplete = true;
                     for (FilterChainContext ctx : pendingWriteContexts) {
                         ctx.resume();
                     }

@@ -142,8 +142,8 @@ public class SSLTest extends GrizzlyTestCase {
         doTestPendingSSLClientWrites(1, 20);
     }
 
-    public void test20On5PendingSSLClientWrites() throws Exception {
-        doTestPendingSSLClientWrites(5, 20);
+    public void test200On5PendingSSLClientWrites() throws Exception {
+        doTestPendingSSLClientWrites(5, 200);
     }
 
     protected void doTestPingPongFilterChain(boolean isBlocking,
@@ -364,8 +364,8 @@ public class SSLTest extends GrizzlyTestCase {
             transport.bind(PORT);
             transport.start();
 
-            final String messagePattern = "Hello world! Packet#";
             for (int i = 0; i < connectionsNum; i++) {
+            final String messagePattern = "Hello world! Connection#" + i + " Packet#";
                 Future<Connection> future = transport.connect("localhost", PORT);
                 connection = future.get(10, TimeUnit.SECONDS);
                 assertTrue(connection != null);
@@ -555,19 +555,23 @@ public class SSLTest extends GrizzlyTestCase {
 
         @Override
         public NextAction handleRead(FilterChainContext ctx) throws IOException {
-            final Buffer buffer = (Buffer) ctx.getMessage();
+            try {
+                final Buffer buffer = (Buffer) ctx.getMessage();
 
-            final String rcvdStr = buffer.toStringContent();
-            final String expectedChunk = patternString.substring(bytesReceived, bytesReceived + buffer.remaining());
+                final String rcvdStr = buffer.toStringContent();
+                final String expectedChunk = patternString.substring(bytesReceived, bytesReceived + buffer.remaining());
 
-            if (!expectedChunk.equals(rcvdStr)) {
-                clientFuture.failure(new AssertionError("Content doesn't match. Expected: " + expectedChunk + " Got: " + rcvdStr));
-            }
+                if (!expectedChunk.equals(rcvdStr)) {
+                    clientFuture.failure(new AssertionError("Content doesn't match. Expected: " + expectedChunk + " Got: " + rcvdStr));
+                }
 
-            bytesReceived += buffer.remaining();
+                bytesReceived += buffer.remaining();
 
-            if (bytesReceived == patternString.length()) {
-                clientFuture.result(bytesReceived);
+                if (bytesReceived == patternString.length()) {
+                    clientFuture.result(bytesReceived);
+                }
+            } catch (Exception e) {
+                clientFuture.failure(e);
             }
             return super.handleRead(ctx);
         }

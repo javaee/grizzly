@@ -163,7 +163,7 @@ public final class SSLDecoderTransformer extends AbstractTransformer<Buffer, Buf
                     transformationResult =
                             TransformationResult.<Buffer, Buffer>createErrorResult(
                             BUFFER_OVERFLOW_ERROR,
-                            "Buffer overflow during wrap operation");
+                            "Buffer overflow during unwrap operation");
                 }
             }
         } catch (SSLException e) {
