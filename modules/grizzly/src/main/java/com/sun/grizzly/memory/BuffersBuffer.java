@@ -1223,7 +1223,9 @@ public final class BuffersBuffer implements CompositeBuffer {
         if (buffersSize == 0) {
             return BufferUtils.EMPTY_BYTE_BUFFER;
         } else if (buffersSize == 1) {
-            return buffers[0].toByteBuffer(position, limit);
+            final Buffer buffer = buffers[0];
+            final int bufferPos = buffer.position();
+            return buffer.toByteBuffer(bufferPos + position, bufferPos + limit);
         }
 
         final long bufferLocation1 = locateBufferPosition(position);
