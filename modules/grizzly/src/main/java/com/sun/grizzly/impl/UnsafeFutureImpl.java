@@ -52,7 +52,7 @@ import java.util.concurrent.TimeoutException;
  * 
  * @author Alexey Stashok
  */
-public class UnsafeFutureImpl<R> extends FutureImpl<R> {
+public class UnsafeFutureImpl<R> implements FutureImpl<R> {
 
     private static final ThreadCache.CachedTypeIndex<UnsafeFutureImpl> CACHE_IDX =
             ThreadCache.obtainIndex(UnsafeFutureImpl.class, 4);
@@ -68,6 +68,15 @@ public class UnsafeFutureImpl<R> extends FutureImpl<R> {
 
         return new UnsafeFutureImpl<R>();
     }
+
+    protected boolean isDone;
+
+    protected boolean isCancelled;
+    protected Throwable failure;
+
+    protected R result;
+
+    protected int recycleMark;
 
     private UnsafeFutureImpl() {
     }
@@ -175,6 +184,14 @@ public class UnsafeFutureImpl<R> extends FutureImpl<R> {
         } else {
             recycleMark = 1 + (recycleResult ? 1 : 0);
         }
+    }
+
+    protected void reset() {
+        result = null;
+        failure = null;
+        isCancelled = false;
+        isDone = false;
+        recycleMark = 0;
     }
 
     @Override

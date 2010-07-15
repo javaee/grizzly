@@ -42,22 +42,13 @@ import com.sun.grizzly.GrizzlyFuture;
 import java.util.concurrent.Future;
 
 /**
- * Abstract {@link Future} implementation.
+ * {@link Future} interface, which has full control over the state.
  *
  * @see Future
  * 
  * @author Alexey Stashok
  */
-public abstract class FutureImpl<R> implements GrizzlyFuture<R> {
-    protected boolean isDone;
-    
-    protected boolean isCancelled;
-    protected Throwable failure;
-    
-    protected R result;
-
-    protected int recycleMark;
-
+public interface FutureImpl<R> extends GrizzlyFuture<R> {
     /**
      * Get current result value without any blocking.
      * 
@@ -78,12 +69,4 @@ public abstract class FutureImpl<R> implements GrizzlyFuture<R> {
      * @param failure
      */
     public abstract void failure(Throwable failure);
-
-    protected void reset() {
-        result = null;
-        failure = null;
-        isCancelled = false;
-        isDone = false;
-        recycleMark = 0;
-    }
 }
