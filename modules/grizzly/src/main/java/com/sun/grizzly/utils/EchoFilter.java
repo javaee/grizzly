@@ -46,7 +46,6 @@ import java.util.logging.Filter;
 import java.util.logging.Logger;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
-import java.nio.ByteBuffer;
 import java.util.logging.Level;
 
 /**
