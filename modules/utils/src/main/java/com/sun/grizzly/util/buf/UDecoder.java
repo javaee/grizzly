@@ -53,11 +53,8 @@
  */
 package com.sun.grizzly.util.buf;
 
-import com.sun.grizzly.util.LoggerUtils;
 import java.io.CharConversionException;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /** 
  *  All URL decoding happens here. This way we can reuse, review, optimize
@@ -69,10 +66,6 @@ import java.util.logging.Logger;
  */
 public final class UDecoder {
 
-    /**
-     * Default Logger.
-     */
-    private final static Logger logger = LoggerUtils.getLogger();
     private static final String ALLOW_ENCODED_SLASH_NAME = "com.sun.grizzly.util.buf.UDecoder.ALLOW_ENCODED_SLASH";
     public static final boolean ALLOW_ENCODED_SLASH =
             Boolean.valueOf(System.getProperty(ALLOW_ENCODED_SLASH_NAME, "false"));
@@ -339,12 +332,6 @@ public final class UDecoder {
         digit *= 16;
         digit += b2 >= 'A' ? (b2 & 0xDF) - 'A' + 10 : b2 - '0';
         return digit;
-    }
-
-    private static void log(String s) {
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.log(Level.FINEST, "URLDecoder: " + s);
-        }
     }
 
     public boolean isAllowEncodedSlash() {
