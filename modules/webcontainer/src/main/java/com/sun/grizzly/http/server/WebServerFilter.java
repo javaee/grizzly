@@ -113,12 +113,11 @@ public class WebServerFilter extends BaseFilter {
                     return ctx.getSuspendAction();
                 }
             }
-        } else {
+        } else { // this code will be run, when we resume after suspend
             final GrizzlyResponse grizzlyResponse = (GrizzlyResponse) message;
             final GrizzlyRequest grizzlyRequest = grizzlyResponse.getRequest();
             afterService(grizzlyRequest, grizzlyResponse);
         }
-
 
         return ctx.getStopAction();
     }
@@ -126,8 +125,16 @@ public class WebServerFilter extends BaseFilter {
     private void afterService(GrizzlyRequest grizzlyRequest,
             final GrizzlyResponse grizzlyResponse) throws IOException {
         grizzlyResponse.finish();
-        grizzlyRequest.recycle();
-        grizzlyResponse.recycle();
+
+        final HttpRequestPacket request = grizzlyRequest.getRequest();
+        final boolean isExpectContent = request.isExpectContent();
+
+        if (isExpectContent) {
+            request.setSkipRemainder(true);
+        }
+
+        grizzlyRequest.recycle(!isExpectContent);
+        grizzlyResponse.recycle(!isExpectContent);
     }
 
 }

@@ -71,7 +71,6 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.junit.After;
 import org.junit.Before;
@@ -92,7 +91,6 @@ import static org.junit.Assert.*;
 public class FileCacheTest {
     public static final int PORT = 18891;
 
-    private ScheduledThreadPoolExecutor scheduledThreadPool;
     private GrizzlyWebServer gws;
     private final boolean isSslEnabled;
 
@@ -103,15 +101,14 @@ public class FileCacheTest {
     @Parameters
     public static Collection<Object[]> getSslParameter() {
         return Arrays.asList(new Object[][]{
-                    {Boolean.FALSE},
-                    {Boolean.TRUE}
+                    {Boolean.FALSE}
+                    ,{Boolean.TRUE}
                 });
     }
 
     @Before
     public void before() throws Exception {
         ByteBufferWrapper.DEBUG_MODE = true;
-        scheduledThreadPool = new ScheduledThreadPoolExecutor(1);
         configureWebServer();
     }
 
@@ -120,8 +117,6 @@ public class FileCacheTest {
         if (gws != null) {
             gws.stop();
         }
-
-        scheduledThreadPool.shutdown();
     }
 
 //    @Ignore

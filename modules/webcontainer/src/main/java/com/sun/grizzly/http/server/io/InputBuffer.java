@@ -80,7 +80,7 @@ public class InputBuffer {
     /**
      * Flag indicating whether or not all message chunks have been processed.
      */
-    private boolean contentRead;
+//    private boolean contentRead;
 
     /**
      * Flag indicating whether or not this <code>InputBuffer</code> has been
@@ -169,9 +169,9 @@ public class InputBuffer {
         Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
             HttpContent content = (HttpContent) ctx.getMessage();
-            if (content.isLast()) {
-                contentRead = true;
-            }
+//            if (content.isLast()) {
+//                contentRead = true;
+//            }
             if (content.getContent().hasRemaining()) {
                 buffers.append(content.getContent());
             }
@@ -197,7 +197,7 @@ public class InputBuffer {
         ctx = null;
 
         processingChars = false;
-        contentRead = false;
+//        contentRead = false;
         closed = false;
 
         markPos = -1;
@@ -388,7 +388,7 @@ public class InputBuffer {
             throw new IllegalStateException();
         }
         return ((remainder != null && remainder.remaining() > 0)
-                   || (!contentRead && (charBuf.remaining() != 0)));
+                   || (request.isExpectContent() && (charBuf.remaining() != 0)));
 
     }
 
@@ -531,20 +531,20 @@ public class InputBuffer {
      */
     private int fill(int requestedLen) throws IOException {
 
-        if (!contentRead) {
+        if (request.isExpectContent()) {
             try {
                 connection.configureBlocking(true);
                 int read = 0;
-                while (read < requestedLen) {
+                while (read < requestedLen && request.isExpectContent()) {
                     ReadResult rr = ctx.read();
                     HttpContent c = (HttpContent) rr.getMessage();
                     Buffer b = c.getContent();
                     read += b.remaining();
                     buffers.append(c.getContent().toByteBuffer());
-                    if (c.isLast()) {
-                        contentRead = true;
-                        break;
-                    }
+//                    if (c.isLast()) {
+//                        contentRead = true;
+//                        break;
+//                    }
                 }
                 return read;
             } finally {
@@ -581,7 +581,7 @@ public class InputBuffer {
             charBuf.flip();
             return read;
         }
-        if (!contentRead) {
+        if (request.isExpectContent()) {
             try {
                 connection.configureBlocking(true);
                 int read = 0;
@@ -591,7 +591,7 @@ public class InputBuffer {
                     charBuf.clear();
                 }
 
-                while (read < requestedLen) {
+                while (read < requestedLen && request.isExpectContent()) {
                     ReadResult rr = ctx.read();
                     HttpContent c = (HttpContent) rr.getMessage();
                     ByteBuffer bytes = c.getContent().toByteBuffer();
@@ -603,7 +603,7 @@ public class InputBuffer {
                         if (result == CoderResult.OVERFLOW) {
                             remainder = bytes;
                         }
-                        contentRead = true;
+//                        contentRead = true;
                         break;
                     }
                     if (result == CoderResult.OVERFLOW) {

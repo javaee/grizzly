@@ -313,6 +313,10 @@ public class GrizzlyResponse {
      * preparation for reuse of this object.
      */
     public void recycle() {
+        recycle(true);
+    }
+
+    protected final void recycle(boolean isRecycleUnderlyingResponse) {
         suspendStatus = null;
         scheduledExecutorService = null;
         suspendedRunnable.reset();
@@ -326,7 +330,10 @@ public class GrizzlyResponse {
         isCharacterEncodingSet = false;
         detailErrorMsg = null;
         request = null;
-        response.recycle();
+        if (isRecycleUnderlyingResponse) {
+            response.recycle();
+        }
+        
         response = null;
         ctx = null;
         isSuspended = false;

@@ -534,7 +534,10 @@ public class GrizzlyRequest{
      * preparation for reuse of this object.
      */
     public void recycle() {
+        recycle(true);
+    }
 
+    protected final void recycle(boolean isRecycleUnderlyingRequest) {
         dispatcherType = null;
         requestDispatcherPath = null;
 
@@ -557,7 +560,10 @@ public class GrizzlyRequest{
         localAddr = null;
         localName = null;
 
-        request.recycle();
+        if (isRecycleUnderlyingRequest) {
+            request.recycle();
+        }
+        
         request = null;
         ctx = null;
 
@@ -581,7 +587,6 @@ public class GrizzlyRequest{
 //                reader = null;
 //            }
 //        }
-
     }
 
 

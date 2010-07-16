@@ -39,8 +39,6 @@
 package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
-import com.sun.grizzly.http.util.ByteChunk;
-import com.sun.grizzly.http.util.HexUtils;
 
 /**
  *
@@ -57,8 +55,6 @@ public class URLDecoder {
     public static void decode(final BufferChunk bufferChunk,
             final boolean allowEncodedSlash) {
 
-        boolean onContentChanged = false;
-        
         final Buffer buffer = bufferChunk.getBuffer();
         int start = bufferChunk.getStart();
         int end = bufferChunk.getEnd();
@@ -93,11 +89,6 @@ public class URLDecoder {
         }
 
         bufferChunk.setEnd(idx);
-
-        if (onContentChanged) {
-            bufferChunk.onContentChanged();
-        }
-        return;
     }
 
     private static int x2c(byte b1, byte b2) {

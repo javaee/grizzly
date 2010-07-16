@@ -75,9 +75,8 @@ public abstract class HttpResponsePacket extends HttpHeader {
     /**
      * Status code.
      */
-    protected int parsedStatusInt = NON_PARSED_STATUS;
-    protected BufferChunk statusBC = BufferChunk.newInstance();
-
+    protected int parsedStatusInt = NON_PARSED_STATUS;    
+    protected final BufferChunk statusBC = new StatusBufferChunk();
 
     /**
      * Status message.
@@ -129,8 +128,9 @@ public abstract class HttpResponsePacket extends HttpHeader {
      * @param status the status code for this response.
      */
     public void setStatus(int status) {
-        parsedStatusInt = status;
+        // the order is important here as statusBC.setXXX will reset the parsedIntStatus
         statusBC.setString(Integer.toString(status));
+        parsedStatusInt = status;
     }
 
 
@@ -182,6 +182,7 @@ public abstract class HttpResponsePacket extends HttpHeader {
     @Override
     protected void reset() {
         statusBC.recycle();
+        parsedStatusInt = NON_PARSED_STATUS;
         reasonPhraseBC.recycle();
         locale = null;
         contentLanguage = null;
@@ -350,6 +351,15 @@ public abstract class HttpResponsePacket extends HttpHeader {
 
     // ---------------------------------------------------------- Nested Classes
 
+    /**
+     * {@link BufferChunk} implementation which resets parsedStatusInt on change.
+     */
+    private class StatusBufferChunk extends BufferChunk {
+        @Override
+        protected void onContentChanged() {
+            parsedStatusInt = NON_PARSED_STATUS;
+        }
+    }
 
     /**
      * <tt>HttpResponsePacket</tt> message builder.

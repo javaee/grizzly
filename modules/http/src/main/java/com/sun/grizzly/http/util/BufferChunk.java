@@ -77,6 +77,8 @@ public class BufferChunk {
         } else if (value.hasString()) {
             stringValue = value.stringValue;
         }
+
+        onContentChanged();
     }
 
     public Buffer getBuffer() {
@@ -88,10 +90,13 @@ public class BufferChunk {
     }
     
     public void setBuffer(Buffer buffer, int start, int end) {
-        recycle();
         this.buffer = buffer;
         this.start = start;
         this.end = end;
+        
+        resetString();
+        resetStringCache();
+        onContentChanged();
     }
 
     public int getStart() {
@@ -100,6 +105,7 @@ public class BufferChunk {
 
     public void setStart(int start) {
         this.start = start;
+        resetStringCache();
         onContentChanged();
     }
     
@@ -109,11 +115,14 @@ public class BufferChunk {
 
     public void setEnd(int end) {
         this.end = end;
+        resetStringCache();
         onContentChanged();
     }
 
     public void setString(String string) {
         stringValue = string;
+        resetBuffer();
+        onContentChanged();
     }
 
     public int size() {
@@ -143,8 +152,6 @@ public class BufferChunk {
     }
 
     protected void onContentChanged() {
-        cachedString = null;
-        cachedStringCharset = null;
     }
 
     /**
@@ -170,14 +177,14 @@ public class BufferChunk {
      */
     public int findBytesAscii(byte[] b) {
 
-        byte first = b[0];
-        int start = getStart();
-        int end = getEnd();
+        final byte first = b[0];
+        final int from = getStart();
+        final int to = getEnd();
 
         // Look for first char
         int srcEnd = b.length;
 
-        for (int i = start; i <= end - srcEnd; i++) {
+        for (int i = from; i <= to - srcEnd; i++) {
             if (Ascii.toLower(buffer.get(i)) != first) continue;
             // found first char, now look for a match
             int myPos = i + 1;
@@ -186,7 +193,7 @@ public class BufferChunk {
                     break;
                 }
                 if (srcPos == srcEnd) {
-                    return i - start; // found it
+                    return i - from; // found it
                 }
             }
         }
@@ -360,6 +367,21 @@ public class BufferChunk {
         return !hasBuffer() && !hasString();
     }
 
+    protected final void resetBuffer() {
+        start = -1;
+        end = -1;
+        buffer = null;
+    }
+
+    protected final void resetString() {
+        stringValue = null;
+    }
+    
+    protected final void resetStringCache() {
+        cachedString = null;
+        cachedStringCharset = null;
+    }
+    
     protected void reset() {
         start = -1;
         end = -1;

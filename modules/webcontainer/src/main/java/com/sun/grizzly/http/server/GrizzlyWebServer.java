@@ -46,10 +46,8 @@ import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
 import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
-import com.sun.grizzly.http.server.adapter.GrizzlyAdapterChain;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -245,6 +243,8 @@ public class GrizzlyWebServer {
                             new Object[]{listener.toString(), ioe.toString()});
                     LOGGER.log(Level.SEVERE, ioe.toString(), ioe);
                 }
+
+                throw ioe;
             }
         }
 

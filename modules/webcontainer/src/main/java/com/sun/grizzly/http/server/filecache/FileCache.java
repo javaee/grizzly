@@ -776,6 +776,7 @@ public class FileCache {
                     // The entity has not been modified since the date
                     // specified by the client. This is not an error case.
                     response.setStatus(SC_NOT_MODIFIED);
+                    response.setReasonPhrase("Not Modified");
                     response.setHeader("ETag", getETag(entry));
                     return false;
                 }
@@ -829,6 +830,7 @@ public class FileCache {
                 final BufferChunk methodBC = request.getMethodBC();
                 if (methodBC.equals("GET") || methodBC.equals("HEAD")) {
                     response.setStatus(SC_NOT_MODIFIED);
+                    response.setReasonPhrase("Not Modified");
                     response.setHeader("ETag", eTag);
                     return false;
                 } else {

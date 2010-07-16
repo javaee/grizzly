@@ -41,10 +41,7 @@ import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.Constants;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.HttpTrailer;
 import com.sun.grizzly.http.util.Utils;
-import com.sun.grizzly.memory.ByteBufferManager;
-import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
 import com.sun.grizzly.tcp.FileOutputBuffer;
@@ -347,6 +344,7 @@ public class OutputBuffer implements FileOutputBuffer, WritableByteChannel {
     // --------------------------------------------------- Common Output Methods
 
 
+    @Override
     public void close() throws IOException {
 
         if (closed) {
