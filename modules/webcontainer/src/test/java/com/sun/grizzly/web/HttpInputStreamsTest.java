@@ -943,7 +943,7 @@ public class HttpInputStreamsTest extends TestCase {
             Connection connection = null;
             try {
                 connection = connectFuture.get(10, TimeUnit.SECONDS);
-                testResult.get(1000, TimeUnit.SECONDS);
+                testResult.get(10, TimeUnit.SECONDS);
             } finally {
                 // Close the client connection
                 if (connection != null) {
