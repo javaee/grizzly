@@ -48,6 +48,7 @@ public enum FrameType {
 
         @Override
         public byte[] unframe(NetworkHandler handler) throws IOException {
+//            System.out.println("FrameType.unframe");
             ByteArrayOutputStream raw = new ByteArrayOutputStream();
             byte b;
             handler.get();
@@ -77,8 +78,8 @@ public enum FrameType {
         }
 
         @Override
-        public byte[] unframe(NetworkHandler handler) {
-            return new byte[]{(byte) 0xFF, 0x00};
+        public byte[] unframe(NetworkHandler handler) throws IOException {
+            return new byte[]{handler.get(), handler.get()};
         }
 
         @Override
@@ -98,9 +99,4 @@ public enum FrameType {
     public abstract byte[] frame(byte[] data);
 
     public abstract void respond(WebSocket socket, DataFrame frame) throws IOException;
-
-    public FrameType next() {
-        final FrameType[] types = FrameType.values();
-        return ordinal() < types.length ? types[ordinal() + 1] : null;
-    }
 }

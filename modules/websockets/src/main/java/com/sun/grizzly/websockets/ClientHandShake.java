@@ -92,7 +92,7 @@ public class ClientHandShake extends HandShake {
     }
 
     public byte[] getKey3() {
-        return Utils.copy(key3);
+        return key3;
     }
 
     private void parse76Headers(Request request, MimeHeaders headers) throws IOException {

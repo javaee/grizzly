@@ -96,11 +96,12 @@ public class WebSocketEngine {
                 ProcessorTask task = asyncExecutor.getProcessorTask();
                 final SelectionKey key = task.getSelectionKey();
                 final ServerNetworkHandler handler = new ServerNetworkHandler(asyncExecutor, request, response);
-                key.attach(handler);
                 socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
                 handler.handshake(task.getSSLSupport() != null);
 
+                System.out.println("WebSocketEngine.getWebSocket: socket = " + socket);
                 enableRead(task, key);
+                key.attach(handler.getAttachment());
             }
         } catch (IOException e) {
             logger.log(Level.SEVERE, e.getMessage(), e);

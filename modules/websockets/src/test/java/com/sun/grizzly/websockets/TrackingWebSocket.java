@@ -61,8 +61,6 @@ public class TrackingWebSocket extends ClientWebSocket {
     @Override
     public void onMessage(DataFrame frame) throws IOException {
         super.onMessage(frame);
-//            System.out.println(
-//                    "ServerSideTest$TrackingWebSocket.onMessage: frame.getTextPayload() = " + frame.getTextPayload());
         sent.remove(frame.getTextPayload());
         received.countDown();
     }
@@ -74,8 +72,7 @@ public class TrackingWebSocket extends ClientWebSocket {
     }
 
     public boolean waitOnMessages() throws InterruptedException {
-        return received.await(2, TimeUnit.MINUTES);
-//            return received.await(5, TimeUnit.SECONDS);
+        return received.await(30, TimeUnit.SECONDS);
     }
 
     public String getName() {

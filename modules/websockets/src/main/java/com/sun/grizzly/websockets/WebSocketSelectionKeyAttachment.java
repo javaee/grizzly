@@ -36,56 +36,37 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.http.ProcessorTask;
+import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
+import com.sun.grizzly.util.SelectionKeyActionAttachment;
+
 import java.io.IOException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.nio.channels.SelectionKey;
+import java.util.logging.Level;
 
-public class CountDownWebSocket extends ClientWebSocket {
-    private final AtomicInteger countDown = new AtomicInteger(0);
-    private final CountDownWebSocketClientApplication app;
+public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic {
+    private final ServerNetworkHandler handler;
 
-    public CountDownWebSocket(CountDownWebSocketClientApplication application, NetworkHandler handler,
-            WebSocketListener... listeners) {
-        super(handler, listeners);
-        app = application;
+    public WebSocketSelectionKeyAttachment(ServerNetworkHandler snh) {
+        handler = snh;
     }
 
     @Override
-    public void send(String data) throws IOException {
-        countDown.incrementAndGet();
-        super.send(data);
+    public boolean timedOut(SelectionKey Key) {
+        return false;
     }
 
     @Override
-    public void onMessage(DataFrame frame) throws IOException {
-        countDown.decrementAndGet();
-    }
-
-    public boolean countDown() {
-        final FutureTask<Boolean> command = new FutureTask<Boolean>(new Callable<Boolean>() {
-            public Boolean call() throws Exception {
-                while (countDown.get() > 0) {
-                    Thread.sleep(100);
-                }
-
-
-                return countDown.get() == 0;
+    public void handleSelectedKey(SelectionKey key) {
+        if (key.isReadable()) {
+            try {
+                handler.readFrame();
+            } catch (IOException e) {
+                final ProcessorTask task = handler.getAsyncExecutor().getProcessorTask();
+                task.setAptCancelKey(true);
+                task.terminateProcess();
+                WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);
             }
-        });
-
-        app.execute(command);
-        try {
-            return command.get(30, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            return false;
-        } catch (ExecutionException e) {
-            return false;
-        } catch (TimeoutException e) {
-            return false;
         }
     }
 }

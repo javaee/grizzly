@@ -38,7 +38,6 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.arp.AsyncExecutor;
-import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.servlet.HttpServletRequestImpl;
 import com.sun.grizzly.http.servlet.HttpServletResponseImpl;
 import com.sun.grizzly.http.servlet.ServletContextImpl;
@@ -48,17 +47,14 @@ import com.sun.grizzly.tcp.Response;
 import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
-import com.sun.grizzly.util.ConnectionCloseHandler;
-import com.sun.grizzly.util.SelectionKeyActionAttachment;
+import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 import com.sun.grizzly.util.buf.ByteChunk;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.nio.channels.SelectionKey;
-import java.util.logging.Level;
 
-public class ServerNetworkHandler extends SelectionKeyActionAttachment implements ConnectionCloseHandler,
+public class ServerNetworkHandler implements
         NetworkHandler {
     private AsyncExecutor asyncExecutor;
     private final Request request;
@@ -67,6 +63,7 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
     private final InternalOutputBuffer outputBuffer;
     private WebSocket socket;
     private final ByteChunk chunk = new ByteChunk();
+    private final SelectedKeyAttachmentLogic attachment = new WebSocketSelectionKeyAttachment(this);
 
     public ServerNetworkHandler(Request req, Response resp) {
         request = req;
@@ -79,7 +76,11 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
         this(req, resp);
         asyncExecutor = executor;
         ((BaseSelectionKeyHandler) asyncExecutor.getProcessorTask().getSelectorHandler().getSelectionKeyHandler())
-                .setConnectionCloseHandler(this);
+                .setConnectionCloseHandler(new WebSocketCloseHandler(this));
+    }
+
+    public WebSocket getWebSocket() {
+        return socket;
     }
 
     public void setWebSocket(BaseWebSocket webSocket) {
@@ -98,52 +99,20 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
                 clientHS.getKey1(), clientHS.getKey2(), clientHS.getKey3());
 
         server.respond(response);
+        System.out.println("ServerNetworkHandler.handshake responded");
         socket.onConnect();
-    }
-
-    public void locallyClosed(SelectionKey key) {
-        try {
-            key.cancel();
-            socket.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-    }
-
-    public void remotlyClosed(SelectionKey key) {
-        try {
-            socket.close();
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-    }
-
-    @Override
-    public boolean timedOut(SelectionKey Key) {
-        return false;
-    }
-
-    public void process(SelectionKey key) {
-        if (key.isReadable()) {
-            try {
-                readFrame();
-            } catch (IOException e) {
-                final ProcessorTask task = asyncExecutor.getProcessorTask();
-                task.setAptCancelKey(true);
-                task.terminateProcess();
-                WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);
-            }
-        }
     }
 
     protected void readFrame() throws IOException {
         if(chunk.getLimit() == -1) {
             read();
         }
-        while (chunk.getLength() != 0) {
-            final DataFrame dataFrame = DataFrame.start(this);
+        while (socket.isConnected() && chunk.getLength() != 0) {
+            final DataFrame dataFrame = DataFrame.read(this);
             if (dataFrame != null) {
                 dataFrame.getType().respond(socket, dataFrame);
+            } else {
+                socket.close();
             }
         }
     }
@@ -187,10 +156,6 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
         outputBuffer.flush();
     }
 
-    @Override
-    public void postProcess(SelectionKey key) {
-    }
-
     public void send(DataFrame frame) throws IOException {
         write(frame.frame());
     }
@@ -207,10 +172,19 @@ public class ServerNetworkHandler extends SelectionKeyActionAttachment implement
         return new HttpServletResponseImpl(r);
     }
 
+    public SelectedKeyAttachmentLogic getAttachment() {
+        return attachment;
+    }
+
+    public AsyncExecutor getAsyncExecutor() {
+        return asyncExecutor;
+    }
+
     private static class WSServletRequestImpl extends HttpServletRequestImpl {
         public WSServletRequestImpl(GrizzlyRequest r) throws IOException {
             super(r);
             setContextImpl(new ServletContextImpl());
         }
     }
+
 }

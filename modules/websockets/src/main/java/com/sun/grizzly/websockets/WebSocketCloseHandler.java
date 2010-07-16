@@ -36,56 +36,32 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.util.ConnectionCloseHandler;
+
 import java.io.IOException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.nio.channels.SelectionKey;
 
-public class CountDownWebSocket extends ClientWebSocket {
-    private final AtomicInteger countDown = new AtomicInteger(0);
-    private final CountDownWebSocketClientApplication app;
+public class WebSocketCloseHandler implements ConnectionCloseHandler {
+    private final ServerNetworkHandler handler;
 
-    public CountDownWebSocket(CountDownWebSocketClientApplication application, NetworkHandler handler,
-            WebSocketListener... listeners) {
-        super(handler, listeners);
-        app = application;
+    public WebSocketCloseHandler(ServerNetworkHandler snh) {
+        handler = snh;
     }
 
-    @Override
-    public void send(String data) throws IOException {
-        countDown.incrementAndGet();
-        super.send(data);
-    }
-
-    @Override
-    public void onMessage(DataFrame frame) throws IOException {
-        countDown.decrementAndGet();
-    }
-
-    public boolean countDown() {
-        final FutureTask<Boolean> command = new FutureTask<Boolean>(new Callable<Boolean>() {
-            public Boolean call() throws Exception {
-                while (countDown.get() > 0) {
-                    Thread.sleep(100);
-                }
-
-
-                return countDown.get() == 0;
-            }
-        });
-
-        app.execute(command);
+    public void locallyClosed(SelectionKey key) {
         try {
-            return command.get(30, TimeUnit.MINUTES);
-        } catch (InterruptedException e) {
-            return false;
-        } catch (ExecutionException e) {
-            return false;
-        } catch (TimeoutException e) {
-            return false;
+            key.cancel();
+            handler.getWebSocket().close();
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+    }
+
+    public void remotlyClosed(SelectionKey key) {
+        try {
+            handler.getWebSocket().close();
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
         }
     }
 }

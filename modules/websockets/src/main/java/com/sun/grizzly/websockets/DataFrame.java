@@ -36,10 +36,10 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.util.Utils;
-
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.logging.Logger;
 
 public class DataFrame {
@@ -48,15 +48,14 @@ public class DataFrame {
     private byte[] bytes;
     private FrameType type;
 
-    public static DataFrame start(NetworkHandler handler) throws IOException {
+    public static DataFrame read(NetworkHandler handler) throws IOException {
         DataFrame frame = null;
-        FrameType frameType = FrameType.values()[0];
-        while(frame == null && frameType != null) {
+        Iterator<FrameType> set = EnumSet.allOf(FrameType.class).iterator();
+        while(frame == null && set.hasNext()) {
+            FrameType frameType = set.next();
             if(frameType.accept(handler)) {
                 frame = new DataFrame(frameType);
                 frame.setBytes(frameType.unframe(handler));
-            } else {
-                frameType = frameType.next();
             }
         }
 
@@ -102,11 +101,11 @@ public class DataFrame {
     }
 
     public void setBytes(byte[] bytes) {
-        this.bytes = Utils.copy(bytes);
+        this.bytes = bytes;
     }
 
     public byte[] getBinaryPayload() {
-        return Utils.copy(bytes);
+        return bytes;
     }
 
     public byte[] frame() {

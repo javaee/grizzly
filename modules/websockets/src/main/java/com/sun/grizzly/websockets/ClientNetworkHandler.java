@@ -206,9 +206,11 @@ public class ClientNetworkHandler implements NetworkHandler {
     protected void readFrame() throws IOException {
         fill();
         while (chunk.getLength() != 0) {
-            final DataFrame dataFrame = DataFrame.start(this);
+            final DataFrame dataFrame = DataFrame.read(this);
             if (dataFrame != null) {
                 dataFrame.respond(webSocket);
+            } else {
+                webSocket.close();
             }
         }
     }

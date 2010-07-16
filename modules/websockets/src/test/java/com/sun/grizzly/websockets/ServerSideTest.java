@@ -69,14 +69,14 @@ import java.util.concurrent.TimeUnit;
 public class ServerSideTest {
     private static final int PORT = 1726;
 
-    public static final int ITERATIONS = 1000;
+    public static final int ITERATIONS = 100;
 
     public void synchronous() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         WebSocketClientApplication app = new TrackingWebSocketClientApplication();
-        final TrackingWebSocket socket =
-                (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
+        TrackingWebSocket socket = null;
         try {
+            socket = (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
@@ -88,11 +88,12 @@ public class ServerSideTest {
             }
 
             Assert.assertTrue(socket.waitOnMessages(), "All messages should come back");
-            final Date end = new Date();
-            Utils.dumpOut("ServerSideTest.synchronous: message/ms = " + time(start, end));
+            time("ServerSideTest.synchronous", start, new Date());
 
         } finally {
-            socket.close();
+            if(socket != null) {
+                socket.close();
+            }
             thread.stopEndpoint();
             app.stop();
         }
@@ -103,27 +104,25 @@ public class ServerSideTest {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         WebSocketClientApplication app = new CountDownWebSocketClientApplication();
 
-        final CountDownWebSocket socket =
-                (CountDownWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
+        CountDownWebSocket socket = null;
         try {
+            socket = (CountDownWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
             int count = 0;
             final Date start = new Date();
-            final ArrayList<String> sent = new ArrayList<String>();
             while (count++ < ITERATIONS) {
                 socket.send("test message " + count);
                 socket.send("let's try again: " + count);
                 socket.send("3rd time's the charm!: " + count);
                 Assert.assertTrue(socket.countDown(), "Everything should come back");
-//                System.out.println("sending more");
                 socket.send("ok.  just one more: " + count);
                 socket.send("now, we're done: " + count);
                 Assert.assertTrue(socket.countDown(), "Everything should come back");
             }
-            final Date end = new Date();
-            Utils.dumpOut("ServerSideTest.asynchronous: message/ms = " + time(start, end));
-            Assert.assertTrue(sent.isEmpty(), "Should have gotten everything back by now");
+            time("ServerSideTest.asynchronous", start, new Date());
         } finally {
-            socket.close();
+            if(socket != null) {
+                socket.close();
+            }
             thread.stopEndpoint();
             app.stop();
         }
@@ -204,9 +203,10 @@ public class ServerSideTest {
                 };
             }
         };
-        final WebSocket socket = app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
 
+        WebSocket socket = null;
         try {
+            socket = app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
             StringBuilder sb = new StringBuilder();
             while (sb.length() < 10000) {
                 sb.append("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus quis lectus odio, et" +
@@ -221,12 +221,15 @@ public class ServerSideTest {
                         " ligula vitae porta. Aenean ultrices, ligula quis dapibus sodales, nulla risus sagittis sapien," +
                         " id posuere turpis lectus ac sapien. Pellentesque sed ante nisi. Quisque eget posuere sapien.");
             }
+            final String data = sb.toString();
             for(int x = 0; x < count; x++) {
-                socket.send(sb.toString());
+                socket.send(data);
             }
-            Assert.assertTrue(received.await(60, TimeUnit.SECONDS), "Message should come back");
+            Assert.assertTrue(received.await(5, TimeUnit.MINUTES), "Message should come back");
         } finally {
-            socket.close();
+            if(socket != null) {
+                socket.close();
+            }
             thread.stopEndpoint();
             app.stop();
         }
@@ -269,8 +272,11 @@ public class ServerSideTest {
         return thread;
     }
 
-    private long time(Date start, Date end) {
-        return 5 * ITERATIONS / (end.getTime() - start.getTime());
+    private void time(String method, Date start, Date end) {
+        final int total = 5 * ITERATIONS;
+        final long time = end.getTime() - start.getTime();
+        Utils.dumpOut(String.format("%s: sent %s messages in %s ms for %s msg/ms and %s ms/msg\n", method, total, time,
+                1.0 * total / time, 1.0 * time/total));
     }
 
     @Deprecated

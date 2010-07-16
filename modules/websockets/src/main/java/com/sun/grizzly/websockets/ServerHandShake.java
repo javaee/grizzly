@@ -58,7 +58,7 @@ public class ServerHandShake extends HandShake {
     }
 
     public byte[] getKey() {
-        return Utils.copy(serverSecKey);
+        return serverSecKey;
     }
 
     public void respond(Response response) throws IOException {
