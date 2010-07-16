@@ -60,7 +60,7 @@ import com.sun.grizzly.Reader;
 import com.sun.grizzly.TransformationResult;
 import com.sun.grizzly.Transport;
 import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.memory.ByteBuffersBuffer;
+import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import com.sun.grizzly.nio.NIOConnection;
 import com.sun.grizzly.utils.conditions.Condition;
@@ -194,10 +194,10 @@ public abstract class TemporarySelectorReader
                         buffer = remainderBuffer;
                     } else {
                         final CompositeBuffer compositeBuffer =
-                                ByteBuffersBuffer.create(
+                                BuffersBuffer.create(
                                 ((Transport) transport).getMemoryManager(),
-                                remainderBuffer.toByteBuffer(),
-                                buffer.toByteBuffer());
+                                remainderBuffer,
+                                buffer);
                         compositeBuffer.allowBufferDispose(true);
 
                         buffer = compositeBuffer;

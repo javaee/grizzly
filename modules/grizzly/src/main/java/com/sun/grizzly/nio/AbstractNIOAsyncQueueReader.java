@@ -60,7 +60,7 @@ import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
-import com.sun.grizzly.memory.ByteBuffersBuffer;
+import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.CompositeBuffer;
 import java.util.Queue;
 
@@ -376,10 +376,10 @@ public abstract class AbstractNIOAsyncQueueReader
                         buffer = remainderBuffer;
                     } else {
                         final CompositeBuffer compositeBuffer =
-                                ByteBuffersBuffer.create(
+                                BuffersBuffer.create(
                                 transport.getMemoryManager(),
-                                remainderBuffer.toByteBuffer(),
-                                buffer.toByteBuffer());
+                                remainderBuffer,
+                                buffer);
                         compositeBuffer.allowBufferDispose(true);
                         buffer = compositeBuffer;
                     }
@@ -395,8 +395,9 @@ public abstract class AbstractNIOAsyncQueueReader
                         final Buffer remainder = (Buffer) tResult.getExternalRemainder();
                         final boolean hasRemaining = transformer.hasInputRemaining(connection, remainder);
                         if (hasRemaining) {
-                            buffer.shrink();
-                            queueRecord.setRemainderBuffer(buffer);
+                            if (!buffer.shrink()) {
+                                queueRecord.setRemainderBuffer(buffer);
+                            }
                             queueRecord.setMessage(remainder);
                         } else if (buffer != null) {
                             buffer.dispose();
@@ -408,8 +409,9 @@ public abstract class AbstractNIOAsyncQueueReader
                         final boolean hasRemaining = transformer.hasInputRemaining(connection, remainder);
 
                         if (hasRemaining) {
-                            remainderBuffer.shrink();
-                            queueRecord.setRemainderBuffer(remainderBuffer);
+                            if (!remainderBuffer.shrink()) {
+                                queueRecord.setRemainderBuffer(remainderBuffer);
+                            }
                         } else if (buffer != null) {
                             buffer.dispose();
                         }
