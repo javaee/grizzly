@@ -97,6 +97,11 @@ public final class FilterChainContext extends Context {
     private static final NextAction SUSPEND_ACTION = new SuspendAction();
 
     /**
+     * Cached {@link NextAction} instance for "Rerun filter action" implementation
+     */
+    private static final NextAction RERUN_FILTER_ACTION = new RerunFilterAction();
+
+    /**
      * Context task state
      */
     private volatile State state;
@@ -300,10 +305,10 @@ public final class FilterChainContext extends Context {
 
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase and start post executing filters.
+     * to stop executing phase.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase and start post executing filters.
+     * to stop executing phase.
      */
     public NextAction getStopAction() {
         return STOP_ACTION;
@@ -312,12 +317,12 @@ public final class FilterChainContext extends Context {
 
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * stop executing phase and start post executing filters.
+     * stop executing phase.
      * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
      * during the next {@link FilterChain} invokation.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase and start post executing filters.
+     * to stop executing phase.
      * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
      * during the next {@link FilterChain} invokation.
      */
@@ -330,12 +335,12 @@ public final class FilterChainContext extends Context {
 
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * stop executing phase and start post executing filters.
+     * stop executing phase.
      * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
      * during the next {@link FilterChain} invokation.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase and start post executing filters.
+     * to stop executing phase.
      * Passed {@link com.sun.grizzly.Appendable} data will be saved and reused
      * during the next {@link FilterChain} invokation.
      */
@@ -347,12 +352,12 @@ public final class FilterChainContext extends Context {
 
     /**
      * Get {@link NextAction} implementation, which instructs {@link FilterChain}
-     * stop executing phase and start post executing filters.
+     * stop executing phase.
      * Passed {@link Buffer} data will be saved and reused during the next
      * {@link FilterChain} invokation.
      *
      * @return {@link NextAction} implementation, which instructs {@link FilterChain}
-     * to stop executing phase and start post executing filters.
+     * to stop executing phase.
      * Passed {@link Buffer} data will be saved and reused during the next
      * {@link FilterChain} invokation.
      */
@@ -366,13 +371,24 @@ public final class FilterChainContext extends Context {
     
     /**
      * Get {@link NextAction}, which instructs {@link FilterChain} to suspend filter
-     * chain execution, both execute and post-execute phases.
+     * chain execution.
      *
      * @return {@link NextAction}, which instructs {@link FilterChain} to suspend
-     * filter chain execution, both execute and post-execute phases.
+     * filter chain execution.
      */
     public NextAction getSuspendAction() {
         return SUSPEND_ACTION;
+    }
+
+    /**
+     * Get {@link NextAction}, which instructs {@link FilterChain} to rerun the
+     * filter.
+     *
+     * @return {@link NextAction}, which instructs {@link FilterChain} to rerun the
+     * filter.
+     */
+    public NextAction getRerunFilterAction() {
+        return RERUN_FILTER_ACTION;
     }
 
     protected boolean isUserWrite() {

@@ -401,23 +401,26 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
      * 
      * @throws IOException
      */
-    protected NextAction executeFilter(FilterExecutor executor,
-            Filter currentFilter, FilterChainContext ctx) throws IOException {
-        
+    protected NextAction executeFilter(final FilterExecutor executor,
+            final Filter currentFilter, final FilterChainContext ctx)
+            throws IOException {
+
+        NextAction nextNextAction;
+        do {
             if (logger.isLoggable(Level.FINEST)) {
                 logger.fine("Execute filter. filter=" + currentFilter +
                         " context=" + ctx);
             }
             // execute the task
-            final NextAction nextNextAction =
-                    executor.execute(currentFilter, ctx);
+            nextNextAction = executor.execute(currentFilter, ctx);
 
             if (logger.isLoggable(Level.FINEST)) {
                 logger.fine("after execute filter. filter=" + currentFilter +
                         " context=" + ctx + " nextAction=" + nextNextAction);
             }
+        } while (nextNextAction.type() == RerunFilterAction.TYPE);
 
-            return nextNextAction;
+        return nextNextAction;
     }
 
     /**
