@@ -81,13 +81,6 @@ public class HttpInputStreamsTest extends TestCase {
 
     private static final int PORT = 8003;
 
-    /**
-     * Use a Future to capture exceptions that happen in threads outside of the
-     * JUnit thread.  It's important that all test cases within this class call
-     * <code>reportThreadErrors()</code> before returning for accurate results.
-     */
-//    private final FutureImpl<Throwable> exception = SafeFutureImpl.create();
-
 
     // ----------------------------------------------------- Binary Test Methods
 
