@@ -56,19 +56,6 @@ import java.util.Enumeration;
  */
 public abstract class HttpRequestPacket extends HttpHeader {
 
-//    private static final ThreadCache.CachedTypeIndex<HttpRequestPacket> CACHE_IDX =
-//            ThreadCache.obtainIndex(HttpRequestPacket.class, 2);
-//
-//    public static HttpRequestPacket create() {
-//        final HttpRequestPacket httpRequest =
-//                ThreadCache.takeFromCache(CACHE_IDX);
-//        if (httpRequest != null) {
-//            return httpRequest;
-//        }
-//
-//        return new HttpRequestPacket();
-//    }
-
     // ----------------------------------------------------- Instance Variables
 
     private Connection connection;

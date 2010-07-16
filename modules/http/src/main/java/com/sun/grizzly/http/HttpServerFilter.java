@@ -194,6 +194,16 @@ public class HttpServerFilter extends HttpCodecFilter {
         return handleRead(ctx, httpRequest);
     }
 
+    @Override
+    boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx) {
+        HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
+
+        // If it's upgraded HTTP - don't check semantics
+        if (!request.getUpgradeBC().isNull()) return false;
+
+        prepareRequest(request);
+        return request.getProcessingState().error;
+    }
 
     @Override
     final boolean onHttpPacketParsed(HttpHeader httpHeader, FilterChainContext ctx) {
@@ -204,17 +214,6 @@ public class HttpServerFilter extends HttpCodecFilter {
             httpRequestInProcessAttr.remove(ctx.getConnection());
         }
         return error;
-    }
-
-    @Override
-    boolean onHttpHeaderParsed(HttpHeader httpHeader, FilterChainContext ctx) {
-        HttpRequestPacketImpl request = (HttpRequestPacketImpl) httpHeader;
-
-        // If it's upgraded HTTP - don't check semantics
-        if (!request.getUpgradeBC().isNull()) return false;
-        
-        prepareRequest(request);
-        return request.getProcessingState().error;
     }
 
     @Override

@@ -72,6 +72,10 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
     protected String contentType;
     protected Cookies cookies = new Cookies(headers);
 
+    protected boolean isExpectContent;
+
+    protected boolean isSkipRemainder;
+    
     protected boolean secure;
 
     protected BufferChunk upgrade = BufferChunk.newInstance();
@@ -163,6 +167,54 @@ public abstract class HttpHeader implements HttpPacket, MimeHeadersPacket, Attri
      */
     public void setChunked(boolean isChunked) {
         this.isChunked = isChunked;
+    }
+
+    /**
+     * Returns <tt>true</tt>, if HTTP message, represented by this header still
+     * expects additional content basing either on content-length or chunking
+     * information. <tt>false</tt> is returned if content no additional content
+     * data is expected.
+     * Note: this method could be used only when we <b>parse</b> the HTTP message
+     * 
+     * @return <tt>true</tt>, if HTTP message, represented by this header still
+     * expects additional content basing either on content-length or chunking
+     * information. <tt>false</tt> is returned if content no additional content
+     * data is expected.
+     */
+    public boolean isExpectContent() {
+        return isExpectContent;
+    }
+
+    protected void setExpectContent(boolean isExpectContent) {
+        this.isExpectContent = isExpectContent;
+    }
+
+    /**
+     * Returns <tt>true</tt>, if either application or HTTP core part is not
+     * interested in parsing the rest of this HTTP message content and waits
+     * for the next HTTP message to come on this {@link Connection}. Otherwise
+     * returns <tt>false</tt>.
+     * 
+     * @return <tt>true</tt>, if either application or HTTP core part is not
+     * interested in parsing the rest of this HTTP message content and waits
+     * for the next HTTP message to come on this {@link Connection}. Otherwise
+     * returns <tt>false</tt>.
+     */
+    public boolean isSkipRemainder() {
+        return isSkipRemainder;
+    }
+
+    /**
+     * Set flag, which is set to <tt>true</tt>, means that we're not
+     * interested in parsing the rest of this HTTP message content and wait
+     * for the next HTTP message to come on this {@link Connection}.
+     *
+     * @param isSkipRemainder <tt>true</tt> means that we're not
+     * interested in parsing the rest of this HTTP message content and wait
+     * for the next HTTP message to come on this {@link Connection}.
+     */
+    public void setSkipRemainder(boolean isSkipRemainder) {
+        this.isSkipRemainder = isSkipRemainder;
     }
 
     public String getUpgrade() {

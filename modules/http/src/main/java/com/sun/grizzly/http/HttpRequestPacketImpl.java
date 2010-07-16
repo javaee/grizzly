@@ -44,7 +44,7 @@ import com.sun.grizzly.http.HttpCodecFilter.ContentParsingState;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsing {
     private static final ThreadCache.CachedTypeIndex<HttpRequestPacketImpl> CACHE_IDX =
@@ -61,7 +61,6 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
     }
 
     private boolean isHeaderParsed;
-    private boolean isExpectContent;
     
     private final HttpCodecFilter.ParsingState headerParsingState;
     private final HttpCodecFilter.ContentParsingState contentParsingState;
@@ -106,16 +105,6 @@ class HttpRequestPacketImpl extends HttpRequestPacket implements HttpPacketParsi
         }
         
         this.isHeaderParsed = isHeaderParsed;
-    }
-
-    @Override
-    public boolean isExpectContent() {
-        return isExpectContent;
-    }
-
-    @Override
-    public void setExpectContent(boolean isExpectContent) {
-        this.isExpectContent = isExpectContent;
     }
 
     /**

@@ -156,9 +156,12 @@ public final class ChunkedTransferEncoding implements TransferEncoding {
             input.position(chunkContentStart);
         }
 
-        input.shrink();
-        // recalc the HTTP chunk remaining content
-        contentParsingState.chunkRemainder -= input.remaining();
+        if (!input.shrink()) { // if input wasn't disposed by shrink
+            // recalc the HTTP chunk remaining content
+            contentParsingState.chunkRemainder -= input.remaining();
+        } else { // if disposed
+            input = BufferUtils.EMPTY_BUFFER;
+        }
 
         if (isLastChunk) {
             // Build last chunk content message

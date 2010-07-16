@@ -49,10 +49,6 @@ public interface HttpPacketParsing {
 
     public void setHeaderParsed(boolean isHeaderParsed);
 
-    public boolean isExpectContent();
-
-    public void setExpectContent(boolean isExpectContent);
-
     public HttpCodecFilter.ParsingState getHeaderParsingState();
 
     public HttpCodecFilter.ContentParsingState getContentParsingState();

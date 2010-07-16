@@ -426,6 +426,18 @@ public abstract class HttpCodecFilter extends BaseFilter {
                 if (httpContent.isLast()) {
                     isLast = true;
                     onHttpPacketParsed(httpHeader, ctx);
+                    // we don't expect any content anymore
+                    httpHeader.setExpectContent(false);
+                }
+
+                // if consumer set "skip-content" flag - we don't interested in decoding the content - just skip it
+                if (httpHeader.isSkipRemainder()) {
+                    if (remainderBuffer != null) { // if there is a remainder - rerun this filter
+                        ctx.setMessage(remainderBuffer);
+                        return ctx.getRerunFilterAction();
+                    } else { // if no remainder - just stop
+                        return ctx.getStopAction();
+                    }
                 }
 
                 final HttpContent decodedContent = decodeContent(connection, httpContent);
@@ -457,7 +469,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
             // Transfer-encoding is unknown and there is no content-length header
             
             // Build HttpContent message on top of existing content chunk and parsed Http message header
-            final HttpContent.Builder builder = ((HttpHeader) httpPacket).httpContentBuilder();
+            final HttpContent.Builder builder = httpHeader.httpContentBuilder();
             final HttpContent message = builder.content(input).build();
 
             final HttpContent decodedContent = decodeContent(connection, message);
@@ -471,7 +483,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
             if (!wasHeaderParsed) { // If HTTP header was just parsed
 
                 // check if we expect any content
-                final boolean isLast = !httpPacket.isExpectContent();
+                final boolean isLast = !httpHeader.isExpectContent();
                 if (isLast) { // if not - call onHttpPacketParsed
                     onHttpPacketParsed(httpHeader, ctx);
                 }
