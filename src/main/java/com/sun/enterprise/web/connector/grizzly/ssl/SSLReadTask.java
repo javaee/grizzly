@@ -410,8 +410,14 @@ public class SSLReadTask extends DefaultReadTask {
         ((SSLProcessorTask)processorTask).setSSLSupport(sslSupport);
         ((SSLProcessorTask)processorTask).setSslReadTask(this);
 
-        ((SSLProcessorTask)processorTask).getSecureOutputBuffer().setSSLEngine(sslEngine);
-        ((SSLProcessorTask)processorTask).getSecureOutputBuffer().setOutputBB(outputBB);
+        SecureOuputBuffer secureOutputBuffer = ((SSLProcessorTask) processorTask).getSecureOutputBuffer();
+        if (secureOutputBuffer == null) {
+            processorTask.initialize();
+            secureOutputBuffer = ((SSLProcessorTask) processorTask).getSecureOutputBuffer();
+        }
+
+        secureOutputBuffer.setSSLEngine(sslEngine);
+        secureOutputBuffer.setOutputBB(outputBB);
     }
     
     
@@ -423,8 +429,10 @@ public class SSLReadTask extends DefaultReadTask {
         if ( processorTask != null ){
             ((SSLProcessorTask)processorTask).setSSLSupport(null);
             ((SSLProcessorTask)processorTask).setSslReadTask(null);
-            ((SSLProcessorTask) processorTask).getSecureOutputBuffer().setSSLEngine(null);
-            ((SSLProcessorTask) processorTask).getSecureOutputBuffer().setOutputBB(null);
+
+            final SecureOuputBuffer secureOutputBuffer = ((SSLProcessorTask) processorTask).getSecureOutputBuffer();
+            secureOutputBuffer.setSSLEngine(null);
+            secureOutputBuffer.setOutputBB(null);
         }
         super.detachProcessor();
     }   

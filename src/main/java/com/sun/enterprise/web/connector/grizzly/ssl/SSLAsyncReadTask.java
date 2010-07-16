@@ -235,9 +235,13 @@ public class SSLAsyncReadTask extends SSLReadTask {
             processorTask.addTaskListener(this);
             addTaskListener((TaskListener)processorTask);
         }
-        processorTask.initialize();
         SSLAsyncOutputBuffer outputBuffer = 
                 ((SSLAsyncProcessorTask)processorTask).getSSLAsyncOutputBuffer();
+
+        if (outputBuffer == null) {
+            processorTask.initialize();
+            outputBuffer = ((SSLAsyncProcessorTask)processorTask).getSSLAsyncOutputBuffer();
+        }
 
         outputBuffer.setSSLEngine(sslEngine);
         outputBuffer.setOutputBB(outputBB);

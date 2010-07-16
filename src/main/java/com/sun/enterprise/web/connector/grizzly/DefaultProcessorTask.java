@@ -820,7 +820,7 @@ public class DefaultProcessorTask extends TaskBase implements Processor,
         if (!recycle){
             started = false;
             inputBuffer = null;
-            outputBuffer = null;
+           outputBuffer = null;
             response = null;
             if (isMonitoringEnabled()) {
                 request.getRequestProcessor().setWorkerThreadID(0);

@@ -42,6 +42,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * This class implement IO stream operations on top of a <code>ByteBuffer</code>.
@@ -51,6 +53,7 @@ import java.nio.channels.SocketChannel;
  * @author Jeanfrancois Arcand
  */
 public class ByteBufferInputStream extends InputStream {
+    private static final Logger logger = Logger.getLogger(ByteBufferInputStream.class.getName());
     
     private static int defaultReadTimeout = 15000;
     
@@ -272,6 +275,8 @@ public class ByteBufferInputStream extends InputStream {
         Selector readSelector = null;
         SelectionKey tmpKey = null;
 
+        Exception exception = null;
+        
         try{
             while (count > 0){
                 count = socketChannel.read(byteBuffer);
@@ -309,6 +314,14 @@ public class ByteBufferInputStream extends InputStream {
                     }
                 }
             }
+        } catch (Exception e) {
+            exception = e;
+            
+            if (e instanceof IOException) {
+                throw (IOException) e;
+            } else {
+                throw new IOException(e.getClass().getName() + ": " + e.getMessage());
+            }
         } finally {
             if (tmpKey != null)
                 tmpKey.cancel();
@@ -316,6 +329,18 @@ public class ByteBufferInputStream extends InputStream {
             if ( readSelector != null){
                 // Bug 6403933
                 SelectorFactory.selectNowAndReturnSelector(readSelector);
+            }
+
+            if (logger.isLoggable(Level.FINE)) {
+                logger.log(Level.FINE, "InputStream.read [channel=" + socketChannel + ", bytesRead=" + byteRead + ", exception=" + exception + "]");
+
+                if (byteRead > 0) {
+                    if (logger.isLoggable(Level.FINEST)) {
+                        logger.log(Level.FINEST, "InputStream.read-content [channel=" + socketChannel +
+                                " content=" + new String(byteBuffer.array(), byteBuffer.arrayOffset() +
+                                byteBuffer.position() - byteRead, byteRead) + "]");
+                    }
+                }
             }
         }
         return byteRead;
