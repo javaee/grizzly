@@ -280,7 +280,7 @@ public class SSLConfigHolder {
         return false;
     }
 
-    private static void logEmptyWarning(Ssl ssl, final String msg) {
+    protected void logEmptyWarning(Ssl ssl, final String msg) {
         final StringBuilder name = new StringBuilder();
         for (NetworkListener listener : ((Protocol) ssl.getParent()).findNetworkListeners()) {
             if(name.length() != 0) {
