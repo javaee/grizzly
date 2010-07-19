@@ -69,7 +69,7 @@ import java.util.concurrent.TimeUnit;
 public class ServerSideTest {
     private static final int PORT = 1726;
 
-    public static final int ITERATIONS = 100;
+    public static final int ITERATIONS = 1000;
 
     public void synchronous() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
@@ -87,7 +87,7 @@ public class ServerSideTest {
                 socket.send("now, we're done: " + count);
             }
 
-            Assert.assertTrue(socket.waitOnMessages(), "All messages should come back");
+            Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
             time("ServerSideTest.synchronous", start, new Date());
 
         } finally {

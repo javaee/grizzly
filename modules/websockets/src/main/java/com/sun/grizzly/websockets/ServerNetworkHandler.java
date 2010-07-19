@@ -63,7 +63,7 @@ public class ServerNetworkHandler implements
     private final InternalOutputBuffer outputBuffer;
     private WebSocket socket;
     private final ByteChunk chunk = new ByteChunk();
-    private final SelectedKeyAttachmentLogic attachment = new WebSocketSelectionKeyAttachment(this);
+    private SelectedKeyAttachmentLogic attachment;
 
     public ServerNetworkHandler(Request req, Response resp) {
         request = req;
@@ -75,6 +75,7 @@ public class ServerNetworkHandler implements
     public ServerNetworkHandler(AsyncExecutor executor, Request req, Response resp) {
         this(req, resp);
         asyncExecutor = executor;
+        attachment = new WebSocketSelectionKeyAttachment(this, executor);
         ((BaseSelectionKeyHandler) asyncExecutor.getProcessorTask().getSelectorHandler().getSelectionKeyHandler())
                 .setConnectionCloseHandler(new WebSocketCloseHandler(this));
     }
@@ -105,7 +106,7 @@ public class ServerNetworkHandler implements
 
     protected void readFrame() throws IOException {
         if(chunk.getLimit() == -1) {
-            read();
+        read();
         }
         while (socket.isConnected() && chunk.getLength() != 0) {
             final DataFrame dataFrame = DataFrame.read(this);
@@ -118,22 +119,22 @@ public class ServerNetworkHandler implements
     }
 
     private void read() throws IOException {
-        ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-        int count;
-        while ((count = inputBuffer.doRead(bytes, request)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
-            chunk.append(bytes);
-        }
+            ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+            int count;
+            while ((count = inputBuffer.doRead(bytes, request)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+                chunk.append(bytes);
+            }
 
-        if (count > 0) {
-            chunk.append(bytes);
+            if (count > 0) {
+                chunk.append(bytes);
+            }
         }
-    }
 
     public byte get() throws IOException {
         synchronized (chunk) {
             fill();
             return (byte) chunk.substract();
-        }
+    }
     }
 
     public boolean peek(byte... bytes) throws IOException {

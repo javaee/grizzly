@@ -36,9 +36,9 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
-import com.sun.grizzly.util.SelectionKeyActionAttachment;
 
 import java.io.IOException;
 import java.nio.channels.SelectionKey;
@@ -46,9 +46,11 @@ import java.util.logging.Level;
 
 public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic {
     private final ServerNetworkHandler handler;
+    private final AsyncExecutor executor;
 
-    public WebSocketSelectionKeyAttachment(ServerNetworkHandler snh) {
+    public WebSocketSelectionKeyAttachment(ServerNetworkHandler snh, AsyncExecutor executor) {
         handler = snh;
+        this.executor = executor;
     }
 
     @Override
@@ -59,14 +61,16 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
     @Override
     public void handleSelectedKey(SelectionKey key) {
         if (key.isReadable()) {
+            key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
             try {
                 handler.readFrame();
             } catch (IOException e) {
-                final ProcessorTask task = handler.getAsyncExecutor().getProcessorTask();
+                final ProcessorTask task = executor.getProcessorTask();
                 task.setAptCancelKey(true);
                 task.terminateProcess();
                 WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);
             }
         }
+        key.interestOps(key.interestOps() & SelectionKey.OP_READ);
     }
 }

@@ -62,6 +62,7 @@ public class TrackingWebSocket extends ClientWebSocket {
     public void onMessage(DataFrame frame) throws IOException {
         super.onMessage(frame);
         sent.remove(frame.getTextPayload());
+        System.out.println("TrackingWebSocket.onMessage: frame.getTextPayload() = " + frame.getTextPayload());
         received.countDown();
     }
 
@@ -81,5 +82,9 @@ public class TrackingWebSocket extends ClientWebSocket {
 
     public void setName(int name) {
         this.name = String.valueOf(name);
+    }
+
+    public CountDownLatch getReceived() {
+        return received;
     }
 }
