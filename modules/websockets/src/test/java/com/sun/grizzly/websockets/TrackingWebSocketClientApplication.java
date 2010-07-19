@@ -39,7 +39,7 @@ package com.sun.grizzly.websockets;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class TrackingWebSocketClientApplication extends WebSocketClientApplication {
+public class TrackingWebSocketClientApplication extends ClientWebSocketApplication {
     private final AtomicInteger nameCount = new AtomicInteger(0);
 
     public TrackingWebSocketClientApplication() throws IOException {

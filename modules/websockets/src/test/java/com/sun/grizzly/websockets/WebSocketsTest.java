@@ -82,10 +82,10 @@ public class WebSocketsTest {
     private static final int MESSAGE_COUNT = 10;
     private static SSLConfig sslConfig;
     public static final int PORT = 1725;
-    private final WebSocketClientApplication wsClient;
+    private final ClientWebSocketApplication wsClient;
 
     public WebSocketsTest() throws IOException {
-        wsClient = new WebSocketClientApplication();
+        wsClient = new ClientWebSocketApplication();
     }
 
     public void securityKeys() {

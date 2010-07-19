@@ -37,7 +37,8 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.BaseSelectionKeyHandler;
-import com.sun.grizzly.arp.AsyncExecutor;
+import com.sun.grizzly.arp.AsyncProcessorTask;
+import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.http.servlet.HttpServletRequestImpl;
 import com.sun.grizzly.http.servlet.HttpServletResponseImpl;
 import com.sun.grizzly.http.servlet.ServletContextImpl;
@@ -48,22 +49,23 @@ import com.sun.grizzly.tcp.http11.GrizzlyRequest;
 import com.sun.grizzly.tcp.http11.GrizzlyResponse;
 import com.sun.grizzly.tcp.http11.InternalOutputBuffer;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
+import com.sun.grizzly.util.WorkerThread;
 import com.sun.grizzly.util.buf.ByteChunk;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
-public class ServerNetworkHandler implements
-        NetworkHandler {
-    private AsyncExecutor asyncExecutor;
+public class ServerNetworkHandler implements NetworkHandler {
     private final Request request;
     private final Response response;
     private final InputBuffer inputBuffer;
     private final InternalOutputBuffer outputBuffer;
-    private WebSocket socket;
     private final ByteChunk chunk = new ByteChunk();
+    private WebSocket socket;
     private SelectedKeyAttachmentLogic attachment;
+    private AsyncProcessorTask asyncProcessorTask;
 
     public ServerNetworkHandler(Request req, Response resp) {
         request = req;
@@ -72,11 +74,11 @@ public class ServerNetworkHandler implements
         outputBuffer = (InternalOutputBuffer) resp.getOutputBuffer();
     }
 
-    public ServerNetworkHandler(AsyncExecutor executor, Request req, Response resp) {
+    public ServerNetworkHandler(final ProcessorTask task, final AsyncProcessorTask async, Request req, Response resp) {
         this(req, resp);
-        asyncExecutor = executor;
-        attachment = new WebSocketSelectionKeyAttachment(this, executor);
-        ((BaseSelectionKeyHandler) asyncExecutor.getProcessorTask().getSelectorHandler().getSelectionKeyHandler())
+        asyncProcessorTask = async;
+        attachment = new WebSocketSelectionKeyAttachment(this, task, async);
+        ((BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler())
                 .setConnectionCloseHandler(new WebSocketCloseHandler(this));
     }
 
@@ -100,13 +102,12 @@ public class ServerNetworkHandler implements
                 clientHS.getKey1(), clientHS.getKey2(), clientHS.getKey3());
 
         server.respond(response);
-        System.out.println("ServerNetworkHandler.handshake responded");
         socket.onConnect();
     }
 
     protected void readFrame() throws IOException {
-        if(chunk.getLimit() == -1) {
-        read();
+        if (chunk.getLimit() == -1) {
+            read();
         }
         while (socket.isConnected() && chunk.getLength() != 0) {
             final DataFrame dataFrame = DataFrame.read(this);
@@ -119,22 +120,22 @@ public class ServerNetworkHandler implements
     }
 
     private void read() throws IOException {
-            ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
-            int count;
-            while ((count = inputBuffer.doRead(bytes, request)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
-                chunk.append(bytes);
-            }
-
-            if (count > 0) {
-                chunk.append(bytes);
-            }
+        ByteChunk bytes = new ByteChunk(WebSocketEngine.INITIAL_BUFFER_SIZE);
+        int count;
+        while ((count = inputBuffer.doRead(bytes, request)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+            chunk.append(bytes);
         }
+
+        if (count > 0) {
+            chunk.append(bytes);
+        }
+    }
 
     public byte get() throws IOException {
         synchronized (chunk) {
             fill();
             return (byte) chunk.substract();
-    }
+        }
     }
 
     public boolean peek(byte... bytes) throws IOException {
@@ -145,7 +146,7 @@ public class ServerNetworkHandler implements
     }
 
     private void fill() throws IOException {
-        if(chunk.getLength() == 0) {
+        if (chunk.getLength() == 0) {
             read();
         }
     }
@@ -175,10 +176,6 @@ public class ServerNetworkHandler implements
 
     public SelectedKeyAttachmentLogic getAttachment() {
         return attachment;
-    }
-
-    public AsyncExecutor getAsyncExecutor() {
-        return asyncExecutor;
     }
 
     private static class WSServletRequestImpl extends HttpServletRequestImpl {

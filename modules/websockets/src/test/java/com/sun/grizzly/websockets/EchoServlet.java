@@ -50,7 +50,6 @@ public class EchoServlet extends HttpServlet {
     public EchoServlet() {
         WebSocketEngine.getEngine().register("/echo", new WebSocketApplication() {
             public void onMessage(WebSocket socket, DataFrame data) {
-                System.out.println("EchoServlet.onMessage: data.getTextPayload() = " + data.getTextPayload());
                 echo(socket, data);
             }
 

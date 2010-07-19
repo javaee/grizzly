@@ -79,7 +79,7 @@ public class CountDownWebSocket extends ClientWebSocket {
 
         app.execute(command);
         try {
-            return command.get(30, TimeUnit.MINUTES);
+            return command.get(30, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             return false;
         } catch (ExecutionException e) {

@@ -37,6 +37,7 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.arp.AsyncExecutor;
+import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.tcp.Request;
 import com.sun.grizzly.tcp.Response;
@@ -94,12 +95,12 @@ public class WebSocketEngine {
             if (app != null) {
                 final Response response = request.getResponse();
                 ProcessorTask task = asyncExecutor.getProcessorTask();
+                AsyncProcessorTask asyncTask = (AsyncProcessorTask) asyncExecutor.getAsyncTask();
                 final SelectionKey key = task.getSelectionKey();
-                final ServerNetworkHandler handler = new ServerNetworkHandler(asyncExecutor, request, response);
+                final ServerNetworkHandler handler = new ServerNetworkHandler(task, asyncTask, request, response);
                 socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
                 handler.handshake(task.getSSLSupport() != null);
 
-                System.out.println("WebSocketEngine.getWebSocket: socket = " + socket);
                 enableRead(task, key);
                 key.attach(handler.getAttachment());
             }

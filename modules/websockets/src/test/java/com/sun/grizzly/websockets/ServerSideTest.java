@@ -73,13 +73,16 @@ public class ServerSideTest {
 
     public void synchronous() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        WebSocketClientApplication app = new TrackingWebSocketClientApplication();
+        ClientWebSocketApplication app = new TrackingWebSocketClientApplication();
         TrackingWebSocket socket = null;
         try {
             socket = (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
+                if(count % 100 == 0) {
+                    System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
+                }
                 socket.send("test message: " + count);
                 socket.send("let's try again: " + count);
                 socket.send("3rd time's the charm!: " + count);
@@ -102,7 +105,7 @@ public class ServerSideTest {
     @SuppressWarnings({"StringContatenationInLoop"})
     public void asynchronous() throws IOException, InstantiationException, InterruptedException, ExecutionException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        WebSocketClientApplication app = new CountDownWebSocketClientApplication();
+        ClientWebSocketApplication app = new CountDownWebSocketClientApplication();
 
         CountDownWebSocket socket = null;
         try {
@@ -110,6 +113,9 @@ public class ServerSideTest {
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
+                if(count % 100 == 0) {
+                    System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
+                }
                 socket.send("test message " + count);
                 socket.send("let's try again: " + count);
                 socket.send("3rd time's the charm!: " + count);
@@ -192,7 +198,7 @@ public class ServerSideTest {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
-        WebSocketClientApplication app = new WebSocketClientApplication() {
+        ClientWebSocketApplication app = new ClientWebSocketApplication() {
             @Override
             public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
                 return new ClientWebSocket(handler, listeners) {

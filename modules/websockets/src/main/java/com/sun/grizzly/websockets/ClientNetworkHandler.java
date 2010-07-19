@@ -48,7 +48,7 @@ import java.nio.channels.SocketChannel;
 public class ClientNetworkHandler implements NetworkHandler {
     private SocketChannel channel;
     private URL url;
-    private WebSocketClientApplication app;
+    private ClientWebSocketApplication app;
     private WebSocket webSocket;
     private ClientHandShake clientHS;
     private final ByteChunk chunk = new ByteChunk();
@@ -57,7 +57,7 @@ public class ClientNetworkHandler implements NetworkHandler {
         this.channel = channel;
     }
 
-    public ClientNetworkHandler(URL url, WebSocketClientApplication application) throws IOException {
+    public ClientNetworkHandler(URL url, ClientWebSocketApplication application) throws IOException {
         this.url = url;
         app = application;
         channel = SocketChannel.open();
@@ -125,10 +125,7 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     private void unframe() throws IOException {
-        if (chunk.getLimit() == -1) {
-            read();
-        }
-        if (chunk.getLength() != 0) {
+        while (read() != -1) {
             if (webSocket.isConnected()) {
                 readFrame();
             } else {
@@ -204,8 +201,7 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     protected void readFrame() throws IOException {
-        fill();
-        while (chunk.getLength() != 0) {
+        while (read() > 0) {
             final DataFrame dataFrame = DataFrame.read(this);
             if (dataFrame != null) {
                 dataFrame.respond(webSocket);
@@ -215,16 +211,27 @@ public class ClientNetworkHandler implements NetworkHandler {
         }
     }
 
-    private void read() throws IOException {
-        ByteBuffer bytes = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
-        int count;
-        while ((count = channel.read(bytes)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
-            chunk.append(bytes.array(), 0, count);
+    /**
+     * If necessary read more bytes from the channel.
+     *
+     * @return any number > -1 means bytes were read
+     *
+     * @throws IOException
+     */
+    private int read() throws IOException {
+        int count = chunk.getLength();
+        if (count < 1) {
+            ByteBuffer bytes = ByteBuffer.allocate(WebSocketEngine.INITIAL_BUFFER_SIZE);
+            while ((count = channel.read(bytes)) == WebSocketEngine.INITIAL_BUFFER_SIZE) {
+                chunk.append(bytes.array(), 0, count);
+            }
+
+            if (count > 0) {
+                chunk.append(bytes.array(), 0, count);
+            }
         }
 
-        if (count > 0) {
-            chunk.append(bytes.array(), 0, count);
-        }
+        return count;
     }
 
     public byte get() throws IOException {

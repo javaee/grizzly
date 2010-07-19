@@ -50,7 +50,7 @@ import java.util.concurrent.TimeoutException;
 public class WebSocketConnectTask extends FutureTask<WebSocket> {
     private static final int DEFAULT_TIMEOUT = 30;
 
-    public WebSocketConnectTask(final WebSocketClientApplication app, final String address,
+    public WebSocketConnectTask(final ClientWebSocketApplication app, final String address,
             final WebSocketListener[] listeners) {
         super(new Callable<WebSocket>() {
             public WebSocket call() throws Exception {
@@ -72,7 +72,7 @@ public class WebSocketConnectTask extends FutureTask<WebSocket> {
     @Override
     public WebSocket get() throws InterruptedException, ExecutionException {
         try {
-            return get(DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+            return get(DEFAULT_TIMEOUT, TimeUnit.MINUTES);
         } catch (TimeoutException e) {
             throw new InterruptedException(e.getMessage());
         }

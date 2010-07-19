@@ -38,7 +38,7 @@ package com.sun.grizzly.websockets;
 
 import java.io.IOException;
 
-public class CountDownWebSocketClientApplication extends WebSocketClientApplication {
+public class CountDownWebSocketClientApplication extends ClientWebSocketApplication {
     public CountDownWebSocketClientApplication() throws IOException {
     }
 

@@ -54,7 +54,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class WebSocketClientApplication extends WebSocketApplication {
+public class ClientWebSocketApplication extends WebSocketApplication {
     static final Logger logger = Logger.getLogger(WebSocketEngine.WEBSOCKET);
     private final Selector selector;
     private final ExecutorService executorService = Executors.newFixedThreadPool(1);
@@ -62,7 +62,7 @@ public class WebSocketClientApplication extends WebSocketApplication {
     private final Queue<ClientNetworkHandler> handlers = new ConcurrentLinkedQueue<ClientNetworkHandler>();
     private final Thread selectorThread;
 
-    public WebSocketClientApplication() throws IOException {
+    public ClientWebSocketApplication() throws IOException {
         selector = SelectorProvider.provider().openSelector();
         selectorThread = new Thread(new Runnable() {
             public void run() {

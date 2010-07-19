@@ -95,7 +95,6 @@ public class BaseWebSocket implements WebSocket {
     }
 
     public void send(final DataFrame frame) throws IOException {
-        System.out.println("BaseWebSocket.send: frame.getTextPayload() = " + frame.getTextPayload());
         networkHandler.send(frame);
     }
 

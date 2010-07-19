@@ -36,7 +36,7 @@
 
 package com.sun.grizzly.websockets;
 
-import com.sun.grizzly.arp.AsyncExecutor;
+import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
 import com.sun.grizzly.util.SelectedKeyAttachmentLogic;
 
@@ -44,13 +44,15 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.util.logging.Level;
 
-public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic {
+public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic implements Runnable {
     private final ServerNetworkHandler handler;
-    private final AsyncExecutor executor;
+    private final ProcessorTask processorTask;
+    private final AsyncProcessorTask asyncProcessorTask;
 
-    public WebSocketSelectionKeyAttachment(ServerNetworkHandler snh, AsyncExecutor executor) {
+    public WebSocketSelectionKeyAttachment(ServerNetworkHandler snh, ProcessorTask task, AsyncProcessorTask asyncTask) {
         handler = snh;
-        this.executor = executor;
+        processorTask = task;
+        asyncProcessorTask = asyncTask;
     }
 
     @Override
@@ -62,15 +64,25 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
     public void handleSelectedKey(SelectionKey key) {
         if (key.isReadable()) {
             key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
-            try {
-                handler.readFrame();
-            } catch (IOException e) {
-                final ProcessorTask task = executor.getProcessorTask();
-                task.setAptCancelKey(true);
-                task.terminateProcess();
-                WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);
-            }
+            asyncProcessorTask.getThreadPool().execute(this);
         }
-        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
+    }
+
+    public void run() {
+        try {
+            handler.readFrame();
+            enableRead(processorTask, getSelectionKey());
+        } catch (IOException e) {
+            processorTask.setAptCancelKey(true);
+            processorTask.terminateProcess();
+            WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);
+        }
+    }
+    final void enableRead(ProcessorTask task, SelectionKey key) {
+        task.getSelectorHandler().register(key, SelectionKey.OP_READ);
+    }
+
+      public SelectionKey getSelectionKey() {
+        return asyncProcessorTask.getAsyncExecutor().getProcessorTask().getSelectionKey();
     }
 }
