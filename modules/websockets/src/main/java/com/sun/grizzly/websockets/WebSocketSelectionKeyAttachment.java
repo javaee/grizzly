@@ -71,6 +71,6 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
                 WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);
             }
         }
-        key.interestOps(key.interestOps() & SelectionKey.OP_READ);
+        key.interestOps(key.interestOps() | SelectionKey.OP_READ);
     }
 }
