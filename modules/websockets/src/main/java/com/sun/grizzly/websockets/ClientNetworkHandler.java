@@ -38,6 +38,7 @@ package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.util.buf.ByteChunk;
 import com.sun.grizzly.util.net.URL;
+import java.io.EOFException;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -98,7 +99,6 @@ public class ClientNetworkHandler implements NetworkHandler {
                     enableOp(SelectionKey.OP_READ);
                 }
             }
-            key.selector().wakeup();
         }
 
     }
@@ -131,7 +131,8 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     private void unframe() throws IOException {
-        while (read() != -1) {
+        int lastRead;
+        while ((lastRead = read()) > 0) {
             if (webSocket.isConnected()) {
                 readFrame();
             } else {
@@ -144,10 +145,14 @@ public class ClientNetworkHandler implements NetworkHandler {
                 webSocket.onConnect();
             }
         }
+
+        if (lastRead == -1) {
+            throw new EOFException();
+        }
     }
 
     private byte[] findServerKey() throws IOException {
-        while (chunk.getLength() != 0 && readLine().length > 0) {
+        while (chunk.getLength() > 0 && readLine().length > 0) {
         }
         return readLine();
     }
@@ -179,7 +184,6 @@ public class ClientNetworkHandler implements NetworkHandler {
         if (newOp != ops) {
             key.interestOps(newOp);
         }
-        key.selector().wakeup();
     }
 
     private void disableOp(final int op) {
@@ -201,8 +205,6 @@ public class ClientNetworkHandler implements NetworkHandler {
         this.webSocket = webSocket;
         if (app != null) {
             app.register(this);
-
-            app.getSelector().wakeup();
         }
     }
 
@@ -237,7 +239,13 @@ public class ClientNetworkHandler implements NetworkHandler {
             }
         }
 
-        return count;
+        final int length = chunk.getLength();
+
+        if (length <= 0) {
+            return count;
+        }
+
+        return length;
     }
 
     public byte get() throws IOException {

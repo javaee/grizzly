@@ -112,7 +112,9 @@ public class ClientWebSocketApplication extends WebSocketApplication {
                     final SelectionKey key = socketChannel.register(getSelector(), SelectionKey.OP_CONNECT);
                     key.attach(handler);
                 }
-                selector.select(selectTimeout);
+
+                final int count = selector.select(selectTimeout);
+                if (count == 0) continue;
 
                 Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
                 while (selectedKeys.hasNext()) {
@@ -132,7 +134,6 @@ public class ClientWebSocketApplication extends WebSocketApplication {
                                e);
                 }
             }
-            selector.wakeup();
         }
     }
 
