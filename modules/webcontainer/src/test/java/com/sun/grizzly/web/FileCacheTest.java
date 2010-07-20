@@ -54,7 +54,7 @@ import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
+import com.sun.grizzly.http.server.GrizzlyAdapter;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBufferWrapper;
@@ -131,7 +131,7 @@ public class FileCacheTest {
                 try {
                     String error = null;
                     try {
-                        addToFileCache(req, new File(fileName));
+                        staticResourcesHandler.addToFileCache(req, new File(fileName));
                     } catch (Exception exception) {
                         error = exception.getMessage();
                     }
@@ -192,7 +192,7 @@ public class FileCacheTest {
                 try {
                     String error = null;
                     try {
-                        addToFileCache(req, new File(fileName));
+                        staticResourcesHandler.addToFileCache(req, new File(fileName));
                     } catch (Exception exception) {
                         error = exception.getMessage();
                     }
@@ -249,7 +249,12 @@ public class FileCacheTest {
     @Test
     public void testIfModified() throws Exception {
         final String fileName = "./pom.xml";
-        startWebServer(new GrizzlyAdapter());
+        startWebServer(new GrizzlyAdapter() {
+            @Override
+            public void service(GrizzlyRequest request, GrizzlyResponse response)
+                    throws Exception {
+            }
+        });
 
         final HttpRequestPacket request1 = HttpRequestPacket.builder()
                 .method("GET")

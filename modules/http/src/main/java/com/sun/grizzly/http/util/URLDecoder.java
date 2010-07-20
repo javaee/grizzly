@@ -39,21 +39,23 @@
 package com.sun.grizzly.http.util;
 
 import com.sun.grizzly.Buffer;
+import java.io.CharConversionException;
 
 /**
  *
- * @author oleksiys
+ * @author Alexey Stashok
  */
 public class URLDecoder {
-    public static void decode(BufferChunk bufferChunk) {
+    public static void decode(final BufferChunk bufferChunk)
+            throws CharConversionException {
         decode(bufferChunk, true);
     }
     
     /**
-     * URLDecode the {@link ByteChunk}
+     * URLDecode the {@link BufferChunk}
      */
     public static void decode(final BufferChunk bufferChunk,
-            final boolean allowEncodedSlash) {
+            final boolean allowEncodedSlash) throws CharConversionException {
 
         final Buffer buffer = bufferChunk.getBuffer();
         int start = bufferChunk.getStart();
@@ -82,13 +84,79 @@ public class URLDecoder {
                 j += 2;
                 int res = x2c(b1, b2);
                 if (!allowEncodedSlash && (res == '/')) {
-                    throw new IllegalStateException("noSlash");
+                    throw new CharConversionException("Encoded slashes are not allowed");
                 }
                 buffer.put(idx, (byte) res);
             }
         }
 
         bufferChunk.setEnd(idx);
+    }
+
+    // XXX Old code, needs to be replaced !!!!
+    // 
+    public static String decode(final String str) throws CharConversionException {
+        return decode(str, true);
+    }
+
+    public static String decode(final String str, final boolean allowEncodedSlash)
+            throws CharConversionException {
+        
+        if (str == null) {
+            return null;
+        }
+
+        int strPos;
+
+        if ((strPos = str.indexOf('%')) < 0) {
+            return str;
+        }
+
+        int strLen = str.length();
+        StringBuilder dec = new StringBuilder(strLen);    // decoded string output
+
+        while (strPos < strLen) {
+            int laPos;        // lookahead position
+
+            // look ahead to next URLencoded metacharacter, if any
+            for (laPos = strPos; laPos < strLen; laPos++) {
+                char laChar = str.charAt(laPos);
+                if (laChar == '%') {
+                    break;
+                }
+            }
+
+            // if there were non-metacharacters, copy them all as a block
+            if (laPos > strPos) {
+                dec.append(str.substring(strPos, laPos));
+                strPos = laPos;
+            }
+
+            // shortcut out of here if we're at the end of the string
+            if (strPos >= strLen) {
+                break;
+            }
+
+            // process next metacharacter
+            char metaChar = str.charAt(strPos);
+            if (metaChar == '+') {
+                dec.append(' ');
+                strPos++;
+                continue;
+            } else if (metaChar == '%') {
+                // We throw the original exception - the super will deal with
+                // it
+                //                try {
+                final char res = (char) Integer.parseInt(str.substring(strPos + 1, strPos + 3), 16);
+                if (!allowEncodedSlash && (res == '/')) {
+                    throw new CharConversionException("Encoded slashes are not allowed");
+                }
+                dec.append(res);
+                strPos += 3;
+            }
+        }
+
+        return dec.toString();
     }
 
     private static int x2c(byte b1, byte b2) {

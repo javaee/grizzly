@@ -38,7 +38,7 @@
 
 package com.sun.grizzly.http.util;
 
-import java.io.UnsupportedEncodingException;
+import java.io.CharConversionException;
 import java.nio.charset.Charset;
 
 /**
@@ -50,17 +50,29 @@ public class RequestURIRef {
     
     private final BufferChunk requestURIBC = BufferChunk.newInstance();
     private boolean isDecoded;
+    private boolean wasSlashAllowed = true;
     
-    public BufferChunk getRequestURIBC() {
+    public final BufferChunk getRequestURIBC() {
         return requestURIBC;
     }
 
-    public BufferChunk getDecodedRequestURIBC() {
+    public final BufferChunk getDecodedRequestURIBC() throws CharConversionException {
+        return getDecodedRequestURIBC(wasSlashAllowed);
+    }
+
+    public BufferChunk getDecodedRequestURIBC(boolean isSlashAllowed)
+            throws CharConversionException {
+        
         if (isDecoded) {
+            if (isSlashAllowed != wasSlashAllowed)
+                throw new IllegalStateException(
+                        "URI was already decoded with isSlashAllowed=" + wasSlashAllowed);
+            
             return requestURIBC;
         }
 
-        URLDecoder.decode(requestURIBC);
+        URLDecoder.decode(requestURIBC, isSlashAllowed);
+        wasSlashAllowed = isSlashAllowed;
         isDecoded = true;
         return requestURIBC;
     }
@@ -77,31 +89,37 @@ public class RequestURIRef {
         requestURIBC.setString(uri);
     }
 
-    public String getDecodedURI() {
-        return getDecodedURI(null);
+    public final String getDecodedURI() throws CharConversionException {
+        return getDecodedURI(wasSlashAllowed);
     }
 
-    public String getDecodedURI(Charset charset) {
+    public final String getDecodedURI(final boolean isSlashAllowed) throws CharConversionException {
+        return getDecodedURI(true, null);
+    }
+
+    public String getDecodedURI(final boolean isSlashAllowed, Charset charset)
+            throws CharConversionException {
+        
         if (isDecoded) {
+            if (isSlashAllowed != wasSlashAllowed)
+                throw new IllegalStateException(
+                        "URI was already decoded with isSlashAllowed=" + wasSlashAllowed);
+
             return requestURIBC.toString(charset);
         }
 
         if (!requestURIBC.hasString()) {
-            URLDecoder.decode(requestURIBC);
+            URLDecoder.decode(requestURIBC, isSlashAllowed);
         } else {
             if (charset == null) {
                 charset = UTF8_CHARSET;
             }
             
-            try {
-                String decoded = java.net.URLDecoder.decode(
-                        requestURIBC.toString(), charset.name());
-                requestURIBC.setString(decoded);
-            } catch (UnsupportedEncodingException e) {
-                throw new IllegalStateException("Unexpected encoding exception");
-            }
+            requestURIBC.setString(
+                    URLDecoder.decode(requestURIBC.toString(charset), isSlashAllowed));
         }
-        
+
+        wasSlashAllowed = isSlashAllowed;
         isDecoded = true;
         return requestURIBC.toString(charset);
     }
@@ -122,5 +140,6 @@ public class RequestURIRef {
     public void recycle() {
         requestURIBC.recycle();
         isDecoded = false;
+        wasSlashAllowed = true;
     }
 }

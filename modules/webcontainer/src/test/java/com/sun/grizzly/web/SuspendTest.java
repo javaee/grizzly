@@ -51,7 +51,7 @@ import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
-import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
+import com.sun.grizzly.http.server.GrizzlyAdapter;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
@@ -602,9 +602,7 @@ public class SuspendTest {
         @Override
         public void service(GrizzlyRequest req, GrizzlyResponse res) {
             try {
-                if (res.isSuspended()) {
-                    super.service(req, res);
-                } else {
+                if (!res.isSuspended()) {
                     dologic(req, res);
                 }
             } catch (junit.framework.AssertionFailedError ae) {
@@ -645,7 +643,7 @@ public class SuspendTest {
 
         @Override
         public NextAction handleConnect(FilterChainContext ctx) throws IOException {
-            final HttpRequestPacket request = HttpRequestPacket.builder().method("GET").uri("/").protocol("HTTP/1.1").header("Host", "localhost:" + PORT).build();
+            final HttpRequestPacket request = HttpRequestPacket.builder().method("GET").uri("/non-static").protocol("HTTP/1.1").header("Host", "localhost:" + PORT).build();
 
             ctx.write(request);
             return ctx.getStopAction();

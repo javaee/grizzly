@@ -45,7 +45,6 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
-import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -103,7 +102,7 @@ public class WebServerFilter extends BaseFilter {
 
             try {
                 ctx.setMessage(grizzlyResponse);
-                adapter.service(grizzlyRequest, grizzlyResponse);
+                adapter.doService(grizzlyRequest, grizzlyResponse);
             } catch (Exception e) {
                 throw new RuntimeException(e);
             } finally {

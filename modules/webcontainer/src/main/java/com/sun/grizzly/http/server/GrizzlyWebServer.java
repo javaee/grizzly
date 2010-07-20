@@ -45,7 +45,6 @@ import com.sun.grizzly.Processor;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.http.HttpServerFilter;
-import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
 import com.sun.grizzly.ssl.SSLContextConfigurator;
 import java.io.IOException;
 import java.util.Map;
@@ -346,7 +345,7 @@ public class GrizzlyWebServer {
 
         final GrizzlyWebServer server = new GrizzlyWebServer();
         final ServerConfiguration config = server.getServerConfiguration();
-        config.setWebResourcesPath(path);
+        config.setDocRoot(path);
         final GrizzlyListener listener = new GrizzlyListener("grizzly");
         server.addListener(listener);
         return server;
@@ -366,7 +365,7 @@ public class GrizzlyWebServer {
 
         final GrizzlyWebServer server = new GrizzlyWebServer();
         final ServerConfiguration config = server.getServerConfiguration();
-        config.setWebResourcesPath(path);
+        config.setDocRoot(path);
         final GrizzlyListener listener =
                 new GrizzlyListener("grizzly",
                                     GrizzlyListener.DEFAULT_NETWORK_HOST,

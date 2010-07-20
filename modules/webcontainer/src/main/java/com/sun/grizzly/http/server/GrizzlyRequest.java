@@ -76,6 +76,7 @@ import com.sun.grizzly.util.http.Globals;
 import com.sun.grizzly.util.http.ParameterMap;
 import com.sun.grizzly.util.http.StringParser;
 import com.sun.grizzly.util.res.StringManager;
+import java.io.CharConversionException;
 
 import javax.security.auth.Subject;
 import java.io.BufferedReader;
@@ -170,12 +171,13 @@ public class GrizzlyRequest{
     /**
      * Scheduled Thread that clean the cache every XX seconds.
      */
-    private static ScheduledThreadPoolExecutor sessionExpirer
-        = new ScheduledThreadPoolExecutor(1, new ThreadFactory(){
-            public Thread newThread(Runnable r) {
-                return new SchedulerThread(r,"Grizzly");
-            }
-        });
+    private static ScheduledThreadPoolExecutor sessionExpirer =
+            new ScheduledThreadPoolExecutor(1, new ThreadFactory() {
+        @Override
+        public Thread newThread(Runnable r) {
+            return new SchedulerThread(r, "Grizzly");
+        }
+    });
 
 
     /**
@@ -212,7 +214,7 @@ public class GrizzlyRequest{
                 }
             }
 
-        },5,5, TimeUnit.SECONDS);
+        }, 5, 5, TimeUnit.SECONDS);
     }
 
 
@@ -1323,11 +1325,12 @@ public class GrizzlyRequest{
         if (System.getSecurityManager() != null) {
             try {
                 dummy = (String) AccessController.doPrivileged(
-                    new PrivilegedExceptionAction() {
-                        public Object run() throws UnsupportedEncodingException {
-                            return new String(finalBuffer, finalEnc);
-                        }
-                    });
+                        new PrivilegedExceptionAction() {
+                            @Override
+                            public Object run() throws UnsupportedEncodingException {
+                                return new String(finalBuffer, finalEnc);
+                            }
+                        });
             } catch (PrivilegedActionException pae) {
                 throw (UnsupportedEncodingException) pae.getCause();
             }
@@ -1493,9 +1496,9 @@ public class GrizzlyRequest{
      *
      * @param method The request method
      */
-    public void setMethod(String method) {
+//    public void setMethod(String method) {
         // Not used
-    }
+//    }
 
 
     /**
@@ -1504,9 +1507,9 @@ public class GrizzlyRequest{
      *
      * @param query The query string
      */
-    public void setQueryString(String query) {
+//    public void setQueryString(String query) {
         // Not used
-    }
+//    }
 
 
     /**
@@ -1515,9 +1518,9 @@ public class GrizzlyRequest{
      *
      * @param uri The request URI
      */
-    public void setRequestURI(String uri) {
+//    public void setRequestURI(String uri) {
         // Not used
-    }
+//    }
 
 
     /**
@@ -1525,9 +1528,9 @@ public class GrizzlyRequest{
      *
      * @param uri The decoded request URI
      */
-    public void setDecodedRequestURI(String uri) {
+//    public void setDecodedRequestURI(String uri) {
         // Not used
-    }
+//    }
 
 
     /**
@@ -1535,8 +1538,8 @@ public class GrizzlyRequest{
      *
      * @return the URL decoded request URI
      */
-    public String getDecodedRequestURI() {
-        return (request.getRequestURI());
+    public String getDecodedRequestURI() throws CharConversionException {
+        return request.getRequestURIRef().getDecodedURI();
     }
 
 

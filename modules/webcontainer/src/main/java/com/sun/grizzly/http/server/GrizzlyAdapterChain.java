@@ -35,11 +35,9 @@
  * holder.
  *
  */
-package com.sun.grizzly.http.server.adapter;
+package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.RequestURIRef;
 import com.sun.grizzly.http.util.UDecoder;
@@ -115,7 +113,6 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
 
     public GrizzlyAdapterChain() {
         mapper.setDefaultHostName(LOCAL_HOST);
-        setHandleStaticResources(false);
         // We will decode it
         setDecodeUrl(false);
     }
@@ -136,20 +133,19 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
     @Override
     public void service(GrizzlyRequest request, GrizzlyResponse response) throws Exception {
         // For backward compatibility.
-        if (isHandleStaticResources()) {
-            super.service(request, response);
-        }
         if (oldMappingAlgorithm) {
             int i = 0;
             int size = adapters.size();
             for (Entry<GrizzlyAdapter, String[]> entry : adapters.entrySet()) {
-                entry.getKey().service(request, response);
+                entry.getKey().doService(request, response);
                 if (response.getStatus() == 404 && i != size - 1) {
                     // Reset the
                     response.setStatus(200, "OK");
                 } else {
                     return;
                 }
+                
+                i++;
             }
         } else {
             //Request req = request.getRequest();
@@ -199,7 +195,7 @@ public class GrizzlyAdapterChain extends GrizzlyAdapter {
                     }
                     // We already decoded the URL.
                     adapter.setDecodeUrl(false);
-                    adapter.service(request, response);
+                    adapter.doService(request, response);
                 } else {
                     response.getResponse().setStatus(404);
                     customizedErrorPage(request, response);

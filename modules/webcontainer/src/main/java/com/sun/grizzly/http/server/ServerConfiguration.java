@@ -36,8 +36,6 @@
 
 package com.sun.grizzly.http.server;
 
-import com.sun.grizzly.http.server.adapter.GrizzlyAdapter;
-import com.sun.grizzly.http.server.adapter.GrizzlyAdapterChain;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -57,13 +55,13 @@ public class ServerConfiguration {
      * was launched.
      * </p>
      */
-    public static final String DEFAULT_WEB_RESOURCES_PATH = ".";
+    public static final String DEFAULT_DOC_ROOT = ".";
 
 
     /*
      * The directory from which static resources will be served from.
      */
-    private String webResourcesPath = DEFAULT_WEB_RESOURCES_PATH;
+    private String docRoot = DEFAULT_DOC_ROOT;
 
 
     /*
@@ -87,12 +85,12 @@ public class ServerConfiguration {
     // ---------------------------------------------------------- Public Methods
 
 
-    public String getWebResourcesPath() {
-        return webResourcesPath;
+    public String getDocRoot() {
+        return docRoot;
     }
 
-    public void setWebResourcesPath(String webResourcesPath) {
-        this.webResourcesPath = webResourcesPath;
+    public void setDocRoot(String docRoot) {
+        this.docRoot = docRoot;
     }
 
 //        public FileCache getFileCache() {
@@ -140,8 +138,11 @@ public class ServerConfiguration {
     protected GrizzlyAdapter buildAdapter() {
 
         if (adapters.isEmpty()) {
-            final GrizzlyAdapter ga = new GrizzlyAdapter(webResourcesPath);
-            ga.setHandleStaticResources(true);
+            final GrizzlyAdapter ga = new GrizzlyAdapter(docRoot) {
+                @Override
+                public void service(GrizzlyRequest request, GrizzlyResponse response) {
+                }
+            };
             return ga;
         }
 
@@ -149,12 +150,12 @@ public class ServerConfiguration {
 
         if (adaptersNum == 1) {
             GrizzlyAdapter adapter = adapters.keySet().iterator().next();
-            adapter.setRootFolder(webResourcesPath);
+            adapter.setDocRoot(docRoot);
             return adapter;
         }
 
         GrizzlyAdapterChain adapterChain = new GrizzlyAdapterChain();
-        adapterChain.setRootFolder(webResourcesPath);
+        adapterChain.setDocRoot(docRoot);
 
         for (Map.Entry<GrizzlyAdapter, String[]> adapterRecord : adapters.entrySet()) {
             adapterChain.addGrizzlyAdapter(adapterRecord.getKey(), adapterRecord.getValue());

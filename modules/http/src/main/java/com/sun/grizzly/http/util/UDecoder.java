@@ -53,11 +53,8 @@
  */
 package com.sun.grizzly.http.util;
 
-import com.sun.grizzly.Grizzly;
 import java.io.CharConversionException;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *  All URL decoding happens here. This way we can reuse, review, optimize
@@ -69,21 +66,16 @@ import java.util.logging.Logger;
  */
 public final class UDecoder {
 
-    /**
-     * Default Logger.
-     */
-    private final static Logger logger = Grizzly.logger(UDecoder.class);
-    
+    private static final String ALLOW_ENCODED_SLASH_NAME = "com.sun.grizzly.util.buf.UDecoder.ALLOW_ENCODED_SLASH";
     public static final boolean ALLOW_ENCODED_SLASH =
-            Boolean.valueOf(System.getProperty("com.sun.grizzly.util.buf.UDecoder.ALLOW_ENCODED_SLASH", "false")).booleanValue();
-
+            Boolean.valueOf(System.getProperty(ALLOW_ENCODED_SLASH_NAME, "false"));
     private boolean allowEncodedSlash;
 
-    public UDecoder(){
+    public UDecoder() {
         this(ALLOW_ENCODED_SLASH);
     }
 
-    public UDecoder(boolean allowEncodedSlash){
+    public UDecoder(boolean allowEncodedSlash) {
         this.allowEncodedSlash = allowEncodedSlash;
     }
 
@@ -95,12 +87,11 @@ public final class UDecoder {
         convert(mb, true);
     }
 
-
     /**
      * URLDecode the {@link ByteChunk}
      */
     public void convert(ByteChunk mb, boolean query) throws IOException {
-        convert(mb,query,allowEncodedSlash);
+        convert(mb, query, allowEncodedSlash);
     }
 
     /**
@@ -149,8 +140,9 @@ public final class UDecoder {
 
                 j += 2;
                 int res = x2c(b1, b2);
-                if (noSlash && (res == '/')) {
-                    throw new CharConversionException("noSlash");
+                if (noSlash && res == '/') {
+                    throw new CharConversionException("Encoded slashes are not allowed by default.  To enable encoded"
+                            + "slashes, set the property " + ALLOW_ENCODED_SLASH_NAME + " to true.");
                 }
                 buff[idx] = (byte) res;
             }
@@ -175,7 +167,7 @@ public final class UDecoder {
      */
     public void convert(CharChunk mb, boolean query)
             throws IOException {
-        //	log( "Converting a char chunk ");
+        //        log( "Converting a char chunk ");
         int start = mb.getOffset();
         char buff[] = mb.getBuffer();
         int cend = mb.getEnd();
@@ -198,7 +190,7 @@ public final class UDecoder {
 
         for (int j = idx; j < cend; j++, idx++) {
             if (buff[j] == '+' && query) {
-                buff[idx] = (' ');
+                buff[idx] = ' ';
             } else if (buff[j] != '%') {
                 buff[idx] = buff[j];
             } else {
@@ -232,8 +224,8 @@ public final class UDecoder {
     /**
      * URLDecode, will modify the source
      */
-    public void convert(MessageBytes mb, boolean query) throws IOException{
-        convert(mb,query,allowEncodedSlash);
+    public void convert(MessageBytes mb, boolean query) throws IOException {
+        convert(mb, query, allowEncodedSlash);
     }
 
     /** URLDecode, will modify the source
@@ -255,7 +247,7 @@ public final class UDecoder {
                 break;
             case MessageBytes.T_BYTES:
                 ByteChunk bytesC = mb.getByteChunk();
-                convert(bytesC, query,allowEncodingSlash);
+                convert(bytesC, query, allowEncodingSlash);
                 break;
         }
     }
@@ -286,7 +278,7 @@ public final class UDecoder {
             // look ahead to next URLencoded metacharacter, if any
             for (laPos = strPos; laPos < strLen; laPos++) {
                 char laChar = str.charAt(laPos);
-                if ((laChar == '+' && query) || (laChar == '%')) {
+                if (laChar == '+' && query || laChar == '%') {
                     break;
                 }
             }
@@ -321,30 +313,23 @@ public final class UDecoder {
     }
 
     private static boolean isHexDigit(int c) {
-        return ((c >= '0' && c <= '9') ||
-                (c >= 'a' && c <= 'f') ||
-                (c >= 'A' && c <= 'F'));
+        return c >= '0' && c <= '9'
+                || c >= 'a' && c <= 'f'
+                || c >= 'A' && c <= 'F';
     }
 
     private static int x2c(byte b1, byte b2) {
-        int digit = (b1 >= 'A') ? ((b1 & 0xDF) - 'A') + 10 : (b1 - '0');
+        int digit = b1 >= 'A' ? (b1 & 0xDF) - 'A' + 10 : b1 - '0';
         digit *= 16;
-        digit += (b2 >= 'A') ? ((b2 & 0xDF) - 'A') + 10 : (b2 - '0');
+        digit += b2 >= 'A' ? (b2 & 0xDF) - 'A' + 10 : b2 - '0';
         return digit;
     }
 
     private static int x2c(char b1, char b2) {
-        int digit = (b1 >= 'A') ? ((b1 & 0xDF) - 'A') + 10 : (b1 - '0');
+        int digit = b1 >= 'A' ? (b1 & 0xDF) - 'A' + 10 : b1 - '0';
         digit *= 16;
-        digit += (b2 >= 'A') ? ((b2 & 0xDF) - 'A') + 10 : (b2 - '0');
+        digit += b2 >= 'A' ? (b2 & 0xDF) - 'A' + 10 : b2 - '0';
         return digit;
-    }
-    private final static int debug = 0;
-
-    private static void log(String s) {
-        if (logger.isLoggable(Level.FINEST)) {
-            logger.log(Level.FINEST, "URLDecoder: " + s);
-        }
     }
 
     public boolean isAllowEncodedSlash() {

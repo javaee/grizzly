@@ -35,96 +35,64 @@
  * holder.
  *
  */
-package com.sun.grizzly.http.server.adapter;
+package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.filterchain.Filter;
 import com.sun.grizzly.filterchain.FilterChain;
 import com.sun.grizzly.filterchain.FilterChainContext;
-import com.sun.grizzly.http.server.FileCacheFilter;
-import com.sun.grizzly.http.server.GrizzlyRequest;
-import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.filecache.FileCache;
 import com.sun.grizzly.http.server.io.OutputBuffer;
-import com.sun.grizzly.util.http.HtmlHelper;
 import com.sun.grizzly.util.http.MimeType;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Simple {@link com.sun.grizzly.tcp.Adapter} that map the {@link com.sun.grizzly.tcp.Request} URI to a local file. The
- * file is send synchronously using the NIO send file mechanism
- * (@link File#transfertTo}.
+ * Static resources handler, which handles static resources requests made to a
+ * {@link GrizzlyAdapter}.
  *
- * This class doesn't not decode the {@link com.sun.grizzly.tcp.Request} uri and just do
- * basic security check. If you need more protection, use the {@link GrizzlyAdapter}
- * class instead or extend the {@link StaticResourcesAdapter#service()}
- * and use {@link HttpRequestURIDecoder} to protect against security attack.
+ * This class doesn't not decode the {@link GrizzlyRequest} uri and just do
+ * basic security check. If you need more protection, use the {@link GrizzlyAdapter}.
  *
  * @author Jeanfrancois Arcand
+ * @author Alexey Stashok
  */
-public class StaticResourcesAdapter implements Adapter {
-    private static Logger logger = Grizzly.logger(StaticResourcesAdapter.class);
+public class StaticResourcesHandler {
+    private static Logger logger = Grizzly.logger(StaticResourcesHandler.class);
     
-    protected volatile File rootFolder;
+    protected volatile File docRoot;
 
     protected String resourcesContextPath = "";
 
-    /**
-     * Commit the 404 response automatically.
-     */
-    protected boolean commitErrorResponse = true;
-
     private volatile int fileCacheFilterIdx = -1;
 
-    public StaticResourcesAdapter() {
+    public StaticResourcesHandler() {
         this(".");
     }
 
-    public StaticResourcesAdapter(String rootFolder) {
-        setRootFolder(rootFolder);
+    public StaticResourcesHandler(String rootFolder) {
+        setDocRoot(rootFolder);
     }
 
-    public StaticResourcesAdapter(File rootFolder) {
-        setRootFolder(rootFolder);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void start() {
-    }
-
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void destroy(){
+    public StaticResourcesHandler(File rootFolder) {
+        setDocRoot(rootFolder);
     }
 
     /**
-     * Based on the {@link com.sun.grizzly.tcp.Request} URI, try to map the file from the
-     * {@link StaticResourcesAdapter#rootFolder}, and send it synchronously using send file.
-     * @param req the {@link com.sun.grizzly.tcp.Request}
-     * @param res the {@link com.sun.grizzly.tcp.Response}
+     * Based on the {@link GrizzlyRequest} URI, try to map the file from the
+     * {@link StaticResourcesHandler#docRootFolder}, and send it synchronously using send file.
+     * @param req the {@link GrizzlyRequest}
+     * @param res the {@link GrizzlyResponse}
      * @throws Exception
      */
-    @Override
-    public void service(GrizzlyRequest req, final GrizzlyResponse res) throws Exception {
+    public boolean handle(GrizzlyRequest req, final GrizzlyResponse res) throws Exception {
         String uri = req.getRequestURI();
         if (uri.indexOf("..") >= 0 || !uri.startsWith(resourcesContextPath)) {
-            res.setStatus(404);
-            if (commitErrorResponse) {
-                customizedErrorPage(req, res);
-            }
-            return;
+            return false;
         }
 
         // We map only file that take the form of name.extension
@@ -132,25 +100,25 @@ public class StaticResourcesAdapter implements Adapter {
             uri = uri.substring(resourcesContextPath.length());
         }
 
-        service(uri, req, res);
+        return handle(uri, req, res);
     }
 
     /**
      * Lookup a resource based on the request URI, and send it using send file.
      *
      * @param uri The request URI
-     * @param req the {@link com.sun.grizzly.tcp.Request}
-     * @param res the {@link com.sun.grizzly.tcp.Response}
+     * @param req the {@link GrizzlyRequest}
+     * @param res the {@link GrizzlyResponse}
      * @throws Exception
      */
-    protected void service(final String uri,
+    protected boolean handle(final String uri,
             final GrizzlyRequest req,
             final GrizzlyResponse res) throws Exception {
         
         FileInputStream fis = null;
         try {
             // local file
-            File resource = new File(rootFolder, uri);
+            File resource = new File(docRoot, uri);
 
             if (resource.isDirectory()) {
                 //req.action( ActionCode.ACTION_REQ_LOCAL_ADDR_ATTRIBUTE , null);
@@ -163,7 +131,7 @@ public class StaticResourcesAdapter implements Adapter {
                 res.setHeader("Connection", "close");
                 res.setHeader("Cache-control", "private");
                 //res.flush();
-                return;
+                return true;
             }
 
             if (!resource.exists()) {
@@ -172,11 +140,11 @@ public class StaticResourcesAdapter implements Adapter {
                 }
                 //res.setStatus(404);
                 //res.setReasonPhrase("Not Found");
-                res.setStatus(404, "NotFound");
-                if (commitErrorResponse) {
-                    customizedErrorPage(req, res);
-                }
-                return;
+//                res.setStatus(404, "NotFound");
+//                if (commitErrorResponse) {
+//                    customizedErrorPage(req, res);
+//                }
+                return false;
             }
             res.setStatus(200, "OK");
 
@@ -209,6 +177,8 @@ public class StaticResourcesAdapter implements Adapter {
                 //chunk.setBytes(b, 0, rd);
                 outputBuffer.write(b, 0, rd);
             }
+
+            return true;
         } finally {
             if (fis != null) {
                 try {
@@ -220,84 +190,31 @@ public class StaticResourcesAdapter implements Adapter {
     }
 
     /**
-     * Customize the error pahe
-     * @param req The {@link com.sun.grizzly.tcp.Request} object
-     * @param res The {@link com.sun.grizzly.tcp.Response} object
-     * @throws Exception
-     */
-    protected void customizedErrorPage(GrizzlyRequest req, GrizzlyResponse res)
-            throws Exception {
-
-        /**
-         * With Grizzly, we just return a 404 with a simple error message.
-         */
-        res.setStatus(404, "Not Found");
-        //res.setStatus(404);
-        //res.setReasonPhrase("Not Found");
-        // TODO re-implement
-        ByteBuffer bb = HtmlHelper.getErrorPage("Not Found", "HTTP/1.1 404 Not Found\r\n", "Grizzly");
-        res.setContentLength(bb.limit());
-        res.setContentType("text/html");
-        //res.flush();  // TODO do we need a flushHeaders?
-        //Connection connection = res.getConnection();
-        ////StreamWriter writer = connection.getStreamWriter();
-        OutputBuffer out = res.getOutputBuffer();
-        out.processingChars();
-        out.write(bb.array(), bb.position(), bb.remaining());
-        out.close();
-        //req.setNote(14, "SkipAfterService");
-    }
-
-    /**
-     * Finish the {@link com.sun.grizzly.tcp.Response} and recycle the {@link com.sun.grizzly.tcp.Request} and the
-     * {@link com.sun.grizzly.tcp.Response}. If the {@link StaticResourcesAdapter#commitErrorResponse}
-     * is set to false, this method does nothing.
-     *
-     * @param req {@link com.sun.grizzly.tcp.Request}
-     * @param res {@link com.sun.grizzly.tcp.Response}
-     * @throws Exception
-     */
-    @Override
-    public void afterService(GrizzlyRequest req, GrizzlyResponse res) throws Exception {
-        //if (req.getNote(14) != null){
-        //    req.setNote(14, null);
-        //    return;
-        //}
-//        if (res.getStatus() == 404 && !commitErrorResponse){
-//            return;
-//        }
-        //try{
-        //    req.action( ActionCode.ACTION_POST_REQUEST , null);
-        //}catch (Throwable t) {
-        //    logger.log(Level.WARNING,"afterService unexpected exception: ",t);
-        //}
-//        res.finish();
-//        req.recycle();
-//        res.recycle();
-    }
-
-    /**
      * Return the directory from where files will be serviced.
      * @return the directory from where file will be serviced.
      */
-    public File getRootFolder() {
-        return rootFolder;
+    public File getDocRoot() {
+        return docRoot;
     }
 
     /**
      * Set the directory from where files will be serviced.
-     * @param rootFolder the directory from where files will be serviced.
+     * @param docRoot the directory from where files will be serviced.
      */
-    public void setRootFolder(String rootFolder) {
-        setRootFolder(new File(rootFolder));
+    public void setDocRoot(String docRoot) {
+        if (docRoot != null) {
+            setDocRoot(new File(docRoot));
+        } else {
+            setDocRoot((File) null);
+        }
     }
 
     /**
      * Set the directory from where files will be serviced.
-     * @param rootFolder the directory from where files will be serviced.
+     * @param docRoot the directory from where files will be serviced.
      */
-    public void setRootFolder(File rootFolder) {
-        this.rootFolder = rootFolder;
+    public void setDocRoot(File docRoot) {
+        this.docRoot = docRoot;
     }
 
     /**
@@ -322,7 +239,7 @@ public class StaticResourcesAdapter implements Adapter {
         this.resourcesContextPath = resourcesContextPath;
     }
 
-    protected final boolean addToFileCache(GrizzlyRequest req, File resource) {
+    public final boolean addToFileCache(GrizzlyRequest req, File resource) {
         final FilterChainContext fcContext = req.getContext();
         final FileCacheFilter fileCacheFilter = lookupFileCache(fcContext);
         if (fileCacheFilter != null) {
