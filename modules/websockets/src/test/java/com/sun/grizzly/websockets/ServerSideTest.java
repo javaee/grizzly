@@ -231,7 +231,7 @@ public class ServerSideTest {
             for(int x = 0; x < count; x++) {
                 socket.send(data);
             }
-            Assert.assertTrue(received.await(5, TimeUnit.MINUTES), "Message should come back");
+            Assert.assertTrue(received.await(300, TimeUnit.SECONDS), "Message should come back");
         } finally {
             if(socket != null) {
                 socket.close();
