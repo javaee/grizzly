@@ -41,8 +41,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class TrackingWebSocketClientApplication extends ClientWebSocketApplication {
     private final AtomicInteger nameCount = new AtomicInteger(0);
+    private final int count;
 
-    public TrackingWebSocketClientApplication() throws IOException {
+    public TrackingWebSocketClientApplication(final int count) throws IOException {
+        this.count = count;
     }
 
     @Override
@@ -56,6 +58,6 @@ public class TrackingWebSocketClientApplication extends ClientWebSocketApplicati
 
     @Override
     public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) {
-        return new TrackingWebSocket(handler, listeners);
+        return new TrackingWebSocket(handler, count, listeners);
     }
 }

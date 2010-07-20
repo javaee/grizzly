@@ -85,7 +85,6 @@ public class ServerHandShake extends HandShake {
             final OutputBuffer buffer = response.getOutputBuffer();
             ByteChunk chunk = new ByteChunk(serverSecKey.length + Constants.CRLF_BYTES.length);
             chunk.append(serverSecKey, 0, serverSecKey.length);
-            chunk.append(Constants.CRLF_BYTES, 0, Constants.CRLF_BYTES.length);
             buffer.doWrite(chunk, response);
         }
         response.flush();

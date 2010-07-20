@@ -45,11 +45,12 @@ import java.util.concurrent.TimeUnit;
 public class TrackingWebSocket extends ClientWebSocket {
     private final Map<String, Object> sent = new ConcurrentHashMap<String, Object>();
     private final CountDownLatch conn = new CountDownLatch(1);
-    private final CountDownLatch received = new CountDownLatch(5 * ServerSideTest.ITERATIONS);
+    private final CountDownLatch received;
     private String name;
 
-    public TrackingWebSocket(NetworkHandler handler, WebSocketListener... listeners) {
+    public TrackingWebSocket(NetworkHandler handler, final int count, WebSocketListener... listeners) {
         super(handler, listeners);
+        received = new CountDownLatch(count);
     }
 
     @Override
@@ -62,7 +63,7 @@ public class TrackingWebSocket extends ClientWebSocket {
     public void onMessage(DataFrame frame) throws IOException {
         super.onMessage(frame);
         sent.remove(frame.getTextPayload());
-        System.out.println("TrackingWebSocket.onMessage: frame.getTextPayload() = " + frame.getTextPayload());
+//        System.out.println("TrackingWebSocket.onMessage: frame.getTextPayload() = " + frame.getTextPayload());
         received.countDown();
     }
 

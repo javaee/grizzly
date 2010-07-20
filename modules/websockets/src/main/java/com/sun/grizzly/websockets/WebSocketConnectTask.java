@@ -55,12 +55,11 @@ public class WebSocketConnectTask extends FutureTask<WebSocket> {
         super(new Callable<WebSocket>() {
             public WebSocket call() throws Exception {
                 final URL url = new URL(address);
-                final ClientNetworkHandler handler = new ClientNetworkHandler(url, app);
 
                 final List<WebSocketListener> listenerList = new ArrayList<WebSocketListener>(Arrays.asList(listeners));
                 listenerList.add(app);
                 final BaseWebSocket socket = (BaseWebSocket) app
-                        .createSocket(handler, listenerList.toArray(new WebSocketListener[listenerList.size()]));
+                        .createSocket(new ClientNetworkHandler(url, app), listenerList.toArray(new WebSocketListener[listenerList.size()]));
                 while (!socket.isConnected()) {
                     Thread.sleep(100);
                 }

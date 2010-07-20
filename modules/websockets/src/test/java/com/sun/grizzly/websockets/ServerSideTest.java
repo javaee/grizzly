@@ -40,25 +40,13 @@ import com.sun.grizzly.arp.DefaultAsyncHandler;
 import com.sun.grizzly.http.SelectorThread;
 import com.sun.grizzly.http.servlet.ServletAdapter;
 import com.sun.grizzly.tcp.Adapter;
-import com.sun.grizzly.tcp.http11.Constants;
 import com.sun.grizzly.util.Utils;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -73,14 +61,14 @@ public class ServerSideTest {
 
     public void synchronous() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        ClientWebSocketApplication app = new TrackingWebSocketClientApplication();
+        ClientWebSocketApplication app = new TrackingWebSocketClientApplication(5 * ITERATIONS);
         TrackingWebSocket socket = null;
         try {
             socket = (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
-                if(count % 100 == 0) {
+                if (count % 100 == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
                 socket.send("test message: " + count);
@@ -94,7 +82,7 @@ public class ServerSideTest {
             time("ServerSideTest.synchronous", start, new Date());
 
         } finally {
-            if(socket != null) {
+            if (socket != null) {
                 socket.close();
             }
             thread.stopEndpoint();
@@ -113,7 +101,7 @@ public class ServerSideTest {
             int count = 0;
             final Date start = new Date();
             while (count++ < ITERATIONS) {
-                if(count % 100 == 0) {
+                if (count % 100 == 0) {
                     System.out.printf("Running iteration %s of %s\n", count, ITERATIONS);
                 }
                 socket.send("test message " + count);
@@ -126,7 +114,7 @@ public class ServerSideTest {
             }
             time("ServerSideTest.asynchronous", start, new Date());
         } finally {
-            if(socket != null) {
+            if (socket != null) {
                 socket.close();
             }
             thread.stopEndpoint();
@@ -134,22 +122,33 @@ public class ServerSideTest {
         }
     }
 
-    public void multipleClients() throws IOException, InstantiationException {
+	 @Test(enabled=false)
+    public void multipleClients() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        TrackingWebSocketClientApplication app = new TrackingWebSocketClientApplication();
+        TrackingWebSocketClientApplication app = new TrackingWebSocketClientApplication(5);
 
-        List<Thread> clients = new ArrayList<Thread>();
+        List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
-            for (int x = 0; x < 1; x++) {
-                clients.add(syncClient(app));
+            for (int x = 0; x < 5; x++) {
+                final TrackingWebSocket webSocket =
+                        (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
+                clients.add(webSocket);
+                webSocket.setName(x);
+                System.out.println("Created client " + x);
             }
-            while (!clients.isEmpty()) {
-                final Iterator<Thread> it = clients.iterator();
-                while (it.hasNext()) {
-                    if (!it.next().isAlive()) {
-                        it.remove();
-                    }
-                }
+            for (TrackingWebSocket socket : clients) {
+                System.out.println("sending with client " + socket.getName());
+
+                socket.send(socket.getName() + ": test message");
+                socket.send(socket.getName() + ": let's try again");
+                socket.send(socket.getName() + ": 3rd time's the charm!");
+                socket.send(socket.getName() + ": ok.  just one more");
+                socket.send(socket.getName() + ": now, we're done");
+            }
+            for (TrackingWebSocket socket : clients) {
+                System.out.printf("waiting for client %s: %s", socket.getName(), new Date());
+                socket.waitOnMessages();
+                System.out.println("done waiting " + new Date());
             }
         } finally {
             thread.stopEndpoint();
@@ -157,53 +156,17 @@ public class ServerSideTest {
         }
     }
 
-    @Test(enabled = false)
-    // i think this use case is probably inherently busted.  investigate later.
-    public void applessServlet() throws IOException, InstantiationException {
-        final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new HttpServlet() {
-            @Override
-            protected void doGet(HttpServletRequest req, HttpServletResponse resp)
-                    throws IOException {
-                final ServletOutputStream outputStream = resp.getOutputStream();
-                outputStream.write(req.getRequestURI().getBytes());
-                outputStream.flush();
-            }
-        }));
-
-        Socket socket = new Socket("localhost", PORT);
-        try {
-            write(socket, "GET /echo/me/right/back HTTP/1.1");
-            write(socket, "Upgrade: WebSocket");
-            write(socket, "Connection: Upgrade");
-            write(socket, "Host: localhost");
-            write(socket, "Origin: http://localhost:1726");
-            write(socket, "");
-            final ByteBuffer buffer = read(socket);
-
-            byte[] b = new byte[buffer.limit()];
-            System.arraycopy(buffer.array(), 0, b, 0, buffer.limit());
-            System.out.println("ServerSideTest.applessServlet: b = " + Arrays.toString(b));
-            System.out.println("ServerSideTest.applessServlet: b = " + new String(b));
-            Assert.assertTrue(b[0] == (byte) 0x00);
-            Assert.assertTrue(b[b.length - 1] == (byte) 0xFF);
-        } finally {
-            thread.stopEndpoint();
-            socket.close();
-        }
-    }
-
     @Test
-    //(enabled = false)
     public void bigPayload() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
         final int count = 5;
         final CountDownLatch received = new CountDownLatch(count);
         ClientWebSocketApplication app = new ClientWebSocketApplication() {
             @Override
-            public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) throws IOException {
+            public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners) {
                 return new ClientWebSocket(handler, listeners) {
                     @Override
-                    public void onMessage(DataFrame frame) throws IOException {
+                    public void onMessage(DataFrame frame) {
                         received.countDown();
                     }
                 };
@@ -228,12 +191,12 @@ public class ServerSideTest {
                         " id posuere turpis lectus ac sapien. Pellentesque sed ante nisi. Quisque eget posuere sapien.");
             }
             final String data = sb.toString();
-            for(int x = 0; x < count; x++) {
+            for (int x = 0; x < count; x++) {
                 socket.send(data);
             }
             Assert.assertTrue(received.await(300, TimeUnit.SECONDS), "Message should come back");
         } finally {
-            if(socket != null) {
+            if (socket != null) {
                 socket.close();
             }
             thread.stopEndpoint();
@@ -242,71 +205,12 @@ public class ServerSideTest {
 
     }
 
-    private void write(Socket socket, final String text) throws IOException {
-        final OutputStream os = socket.getOutputStream();
-        os.write(text.getBytes());
-        os.write(Constants.CRLF_BYTES);
-    }
-
-    private Thread syncClient(final TrackingWebSocketClientApplication app) {
-        final Thread thread = new Thread(new Runnable() {
-            public void run() {
-                try {
-                    final TrackingWebSocket socket =
-                            (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
-                    try {
-                        socket.send("test message");
-                        socket.send("let's try again");
-                        socket.send("3rd time's the charm!");
-                        socket.send("ok.  just one more");
-                        socket.send("now, we're done");
-                        socket.waitOnMessages();
-                    } finally {
-                        socket.close();
-                    }
-                } catch (IOException e) {
-                    Assert.fail(e.getMessage());
-                } catch (InterruptedException e) {
-                    Assert.fail(e.getMessage());
-                } catch (ExecutionException e) {
-                    Assert.fail(e.getMessage());
-                }
-            }
-        });
-        thread.start();
-
-        return thread;
-    }
-
     private void time(String method, Date start, Date end) {
         final int total = 5 * ITERATIONS;
         final long time = end.getTime() - start.getTime();
         Utils.dumpOut(String.format("%s: sent %s messages in %s ms for %s msg/ms and %s ms/msg\n", method, total, time,
-                1.0 * total / time, 1.0 * time/total));
+                1.0 * total / time, 1.0 * time / total));
     }
-
-    @Deprecated
-    private ByteBuffer read(Socket socket) throws IOException {
-        final int limit = 512;
-        int count = limit;
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        final byte[] b = new byte[limit];
-        final InputStream is = socket.getInputStream();
-        while (count == limit) {
-            count = is.read(b);
-            if (count > 0) {
-                baos.write(b, 0, count);
-            }
-        }
-        final ByteBuffer buffer = ByteBuffer.allocate(baos.size());
-        if (baos.size() > 0) {
-            buffer.put(baos.toByteArray(), 0, baos.size());
-        }
-        buffer.flip();
-
-        return buffer;
-    }
-
 
     private SelectorThread createSelectorThread(final int port, final Adapter adapter)
             throws IOException, InstantiationException {
