@@ -62,6 +62,8 @@ public class ClientWebSocketApplication extends WebSocketApplication {
     private final Queue<ClientNetworkHandler> handlers = new ConcurrentLinkedQueue<ClientNetworkHandler>();
     private final Thread selectorThread;
 
+    protected volatile long selectTimeout = 1000;
+
     public ClientWebSocketApplication() throws IOException {
         selector = SelectorProvider.provider().openSelector();
         selectorThread = new Thread(new Runnable() {
@@ -98,6 +100,7 @@ public class ClientWebSocketApplication extends WebSocketApplication {
 
     public void register(ClientNetworkHandler handler) {
         handlers.add(handler);
+        selector.wakeup();
     }
     
     private void select() {
@@ -109,7 +112,7 @@ public class ClientWebSocketApplication extends WebSocketApplication {
                     final SelectionKey key = socketChannel.register(getSelector(), SelectionKey.OP_CONNECT);
                     key.attach(handler);
                 }
-                selector.select();
+                selector.select(selectTimeout);
 
                 Iterator<SelectionKey> selectedKeys = selector.selectedKeys().iterator();
                 while (selectedKeys.hasNext()) {
@@ -141,4 +144,11 @@ public class ClientWebSocketApplication extends WebSocketApplication {
         return selector;
     }
 
+    protected long getSelectTimeout() {
+        return selectTimeout;
+    }
+
+    protected void setSelectTimeout(long selectTimeout) {
+        this.selectTimeout = selectTimeout;
+    }
 }
