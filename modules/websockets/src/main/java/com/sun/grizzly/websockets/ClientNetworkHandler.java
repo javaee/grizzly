@@ -54,6 +54,8 @@ public class ClientNetworkHandler implements NetworkHandler {
     private ClientHandShake clientHS;
     private final ByteChunk chunk = new ByteChunk();
 
+    private boolean isHeaderParsed = false;
+
     ClientNetworkHandler(SocketChannel channel) {
         this.channel = channel;
     }
@@ -137,6 +139,9 @@ public class ClientNetworkHandler implements NetworkHandler {
                 readFrame();
             } else {
                 byte[] serverKey = findServerKey();
+
+                if (serverKey == null) return;  // not enough data
+
                 try {
                     clientHS.validateServerResponse(serverKey);
                 } catch (HandshakeException e) {
@@ -152,27 +157,50 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     private byte[] findServerKey() throws IOException {
-        while (chunk.getLength() > 0 && readLine().length > 0) {
+        if (!isHeaderParsed) {
+            while (true) {
+                byte[] line = readLine();
+                if (line == null) return null;
+
+                if (line.length == 0) break;
+            }
         }
-        return readLine();
+
+        isHeaderParsed = true;
+        return readN(16);
     }
 
     private byte[] readLine() throws IOException {
-        ByteChunk line = new ByteChunk(0);
-        byte last = 0x00;
-        boolean done = false;
-        while (!done && chunk.getLength() != 0) {
-            final byte next = (byte) chunk.substract();
-            if (next != '\r' && next != '\n') {
-                line.append(next);
-            } else {
-                done = last == '\r' || last == '\n';
+        if (chunk.getLength() <= 0) return null;
+        
+        int idx = chunk.indexOf('\n', 0);
+        if (idx != -1) {
+            int eolBytes = 1;
+            final int offset = chunk.getOffset();
+            idx += offset;
+
+            if (idx > offset && chunk.getBuffer()[idx - 1] == '\r') {
+                idx--;
+                eolBytes = 2;
             }
-            last = next;
+
+            final int size = idx - offset;
+
+            final byte[] result = new byte[size];
+            chunk.substract(result, 0, size);
+
+            chunk.setOffset(chunk.getOffset() + eolBytes); // Skip \r\n or \n
+            return result;
         }
 
-        final byte[] result = new byte[line.getEnd()];
-        System.arraycopy(line.getBuffer(), 0, result, 0, result.length);
+        return null;
+    }
+
+    private byte[] readN(int n) throws IOException {
+        if (chunk.getLength() < n) return null;
+
+        final byte[] result = new byte[n];
+        chunk.substract(result, 0, n);
 
         return result;
     }
