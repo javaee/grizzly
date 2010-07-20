@@ -86,16 +86,16 @@ public class ReusableSelectorHandlerTest extends TestCase {
             ControllerUtils.startController( controller );
 
             boolean result = false;
-            Controller.logger().log( Level.INFO, "Try to get a connector handler with the local address which already has been bound." );
+            Controller.logger().log( Level.FINE, "Try to get a connector handler with the local address which already has been bound." );
             try {
                 tryToConnect( controller, Controller.Protocol.TCP, null, localInetSocketAddress );
             } catch( IOException ie ) {
                 if( ie instanceof BindException ) {
                     result = true;
-                    Controller.logger().log( Level.INFO, "Got the expected BindException." );
+                    Controller.logger().log( Level.FINE, "Got the expected BindException." );
                     assertTrue( "Got the expected BindException.", true );
                 } else {
-                    Controller.logger().log( Level.INFO, "Got the unexpected error.", ie );
+                    Controller.logger().log( Level.FINE, "Got the unexpected error.", ie );
                     assertTrue( "Got the unexpected error.", false );
                 }
             }

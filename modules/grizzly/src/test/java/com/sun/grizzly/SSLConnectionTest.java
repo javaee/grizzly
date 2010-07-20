@@ -60,7 +60,7 @@ import junit.framework.TestCase;
  * @author Alexey Stashok
  */
 public class SSLConnectionTest extends TestCase {
-    private static Logger logger = Logger.getLogger("grizzly.test");
+    private static final Logger logger = Logger.getLogger("grizzly.test");
     
     public static final int PORT = 17509;
     public static final int PACKETS_COUNT = 10;
@@ -71,13 +71,10 @@ public class SSLConnectionTest extends TestCase {
      * when a non blocking operation is ready to be processed.
      */
     private SSLCallbackHandler callbackHandler;
-    
-    private SSLConfig sslConfig;
-    
-    
+
     @Override
     public void setUp() throws URISyntaxException {
-        sslConfig = new SSLConfig();
+        SSLConfig sslConfig = new SSLConfig();
         ClassLoader cl = getClass().getClassLoader();
         // override system properties
         URL cacertsUrl = cl.getResource("ssltest-cacerts.jks");
@@ -102,94 +99,100 @@ public class SSLConnectionTest extends TestCase {
     }
     
     public void testSimplePacket() throws IOException {
-        
-        final Controller controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
-        ControllerUtils.startController(controller);
-        final SSLConnectorHandler sslConnector = (SSLConnectorHandler) controller.
-                acquireConnectorHandler(Controller.Protocol.TLS);
-        
+
+        SSLConnectorHandler sslConnector = null;
+        Controller controller = null;
         try {
+            controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
+            ControllerUtils.startController(controller);
+
+            sslConnector = (SSLConnectorHandler) controller.
+                    acquireConnectorHandler(Controller.Protocol.TLS);
             final byte[] testData = "Hello".getBytes();
             final byte[] response = new byte[sslConnector.getApplicationBufferSize()];
-            
+
             final ByteBuffer writeBB = ByteBuffer.wrap(testData);
             final ByteBuffer readBB = ByteBuffer.wrap(response);
             final CountDownLatch handshakeDoneLatch = new CountDownLatch(1);
             final CountDownLatch responseArrivedLatch = new CountDownLatch(1);
-            
-            callbackHandler = createCallbackHandler(controller, sslConnector, responseArrivedLatch, handshakeDoneLatch, writeBB, readBB);
-            
+
+            callbackHandler =
+                    createCallbackHandler(sslConnector, responseArrivedLatch, handshakeDoneLatch, writeBB, readBB);
+
             try {
                 sslConnector.connect(new InetSocketAddress("localhost", PORT), callbackHandler);
             } catch (Throwable t) {
                 t.printStackTrace();
             }
-            
+
             waitOnLatch(handshakeDoneLatch, 10, TimeUnit.SECONDS);
-            assertTrue("Handshake is not completed! testString: " + 
-                    new String(testData) + " latchCounter: " + 
-                    handshakeDoneLatch.getCount() + 
+            assertTrue("Handshake is not completed! testString: " +
+                    new String(testData) + " latchCounter: " +
+                    handshakeDoneLatch.getCount() +
                     " isConnected: " + sslConnector.isConnected(),
                     sslConnector.isHandshakeDone());
-            
-            long nWrite = sslConnector.write(writeBB, false);
-            
-            long nRead = sslConnector.read(readBB, false);
-            
+
+            sslConnector.write(writeBB, false);
+
+            sslConnector.read(readBB, false);
+
             if (readBB.position() < testData.length) {
                 waitOnLatch(responseArrivedLatch, 5, TimeUnit.SECONDS);
             }
-            
+
             readBB.flip();
             assertEquals(new String(testData), new String(toArray(readBB)));
         } finally {
-            try {
+            if(sslConnector != null) {
                 sslConnector.close();
+            }
+            if(controller != null) {
                 controller.releaseConnectorHandler(sslConnector);
                 controller.stop();
-            } catch (Throwable t) {
-                t.printStackTrace();
             }
         }
     }
     
     public void testSeveralPackets() throws IOException {
-        final Controller controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
-        ControllerUtils.startController(controller);
+        Controller controller = null;
         try {
-            
-            for(int i=0; i<CLIENTS_COUNT; i++) {
+            controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
+            ControllerUtils.startController(controller);
+
+            for (int i = 0; i < CLIENTS_COUNT; i++) {
                 //Utils.dumpOut("Client#" + i);
                 final SSLConnectorHandler sslConnector =
                         (SSLConnectorHandler) controller.acquireConnectorHandler(Controller.Protocol.TLS);
                 sslConnector.setController(controller);
                 final byte[] testData = new String("Hello. Client#" + i + " Packet#000").getBytes();
                 final byte[] response = new byte[sslConnector.getApplicationBufferSize()];
-                
+
                 final ByteBuffer writeBB = ByteBuffer.wrap(testData);
                 final ByteBuffer readBB = ByteBuffer.wrap(response);
-                
+
                 CountDownLatch handshakeDoneLatch = new CountDownLatch(1);
-                final AtomicReference<CountDownLatch> responseArrivedLatchHolder = new AtomicReference<CountDownLatch>();
-                final AtomicReference<CountDownLatch> handshakeDoneLatchHolder = new AtomicReference<CountDownLatch>(handshakeDoneLatch);
-                callbackHandler = createCallbackHandler(controller, sslConnector,
+                final AtomicReference<CountDownLatch> responseArrivedLatchHolder =
+                        new AtomicReference<CountDownLatch>();
+                final AtomicReference<CountDownLatch> handshakeDoneLatchHolder =
+                        new AtomicReference<CountDownLatch>(handshakeDoneLatch);
+                callbackHandler = createCallbackHandler(sslConnector,
                         responseArrivedLatchHolder, handshakeDoneLatchHolder,
                         writeBB, readBB);
-                
+
                 try {
                     sslConnector.connect(new InetSocketAddress("localhost", PORT),
                             callbackHandler);
-                    
+
                     waitOnLatch(handshakeDoneLatch, 10, TimeUnit.SECONDS);
-                    assertTrue("Handshake is not completed! testString: " + 
-                            new String(testData) + " latchCounter: " + 
+                    assertTrue("Handshake is not completed! testString: " +
+                            new String(testData) + " latchCounter: " +
                             handshakeDoneLatchHolder.get().getCount() +
                             " isConnected: " + sslConnector.isConnected(),
                             sslConnector.isHandshakeDone());
 
-                    for(int j=0; j<PACKETS_COUNT; j++) {
+                    for (int j = 0; j < PACKETS_COUNT; j++) {
                         //Utils.dumpOut("Packet#" + j);
-                        synchronized(sslConnector) {
+                        synchronized (sslConnector) {
                             CountDownLatch responseArrivedLatch = new CountDownLatch(1);
                             responseArrivedLatchHolder.set(responseArrivedLatch);
                             readBB.clear();
@@ -197,15 +200,15 @@ public class SSLConnectionTest extends TestCase {
                             byte[] packetNum = Integer.toString(j).getBytes();
                             writeBB.put(packetNum);
                             writeBB.position(0);
-                            long nWrite = sslConnector.write(writeBB, false);
-                            long nRead = sslConnector.read(readBB, false);
+                            sslConnector.write(writeBB, false);
+                            sslConnector.read(readBB, false);
                         }
 
                         if (readBB.position() < testData.length) {
                             waitOnLatch(responseArrivedLatchHolder.get(), 15, TimeUnit.SECONDS);
                         }
-                        
-                        synchronized(sslConnector) {
+
+                        synchronized (sslConnector) {
                             readBB.flip();
                             String val1 = new String(testData);
                             String val2 = new String(toArray(readBB));
@@ -220,47 +223,46 @@ public class SSLConnectionTest extends TestCase {
                 }
             }
         } finally {
-            try{
+            if (controller != null) {
                 controller.stop();
-            } catch (Throwable t){
-                t.printStackTrace();
             }
         }
     }
     
     public void testStandaloneBlockingClient() throws IOException {
-        final Controller controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
-        ControllerUtils.startController(controller);
+        Controller controller = null;
         try {
-            
-            for(int i=0; i<CLIENTS_COUNT; i++) {
+            controller = createSSLController(SSLConfig.DEFAULT_CONFIG.createSSLContext());
+            ControllerUtils.startController(controller);
+
+            for (int i = 0; i < CLIENTS_COUNT; i++) {
                 //Utils.dumpOut("Client#" + i);
                 final SSLConnectorHandler sslConnector = new SSLConnectorHandler();
                 final byte[] testData = new String("Hello. Client#" + i + " Packet#000").getBytes();
                 final byte[] response = new byte[sslConnector.getApplicationBufferSize()];
-                
+
                 final ByteBuffer writeBB = ByteBuffer.wrap(testData);
                 final ByteBuffer readBB = ByteBuffer.wrap(response);
-                
+
                 try {
                     sslConnector.connect(new InetSocketAddress("localhost", PORT));
-                    logger.log(Level.INFO, "SSLConnector.isConnected(): " + sslConnector.isConnected());
+                    logger.log(Level.FINE, "SSLConnector.isConnected(): " + sslConnector.isConnected());
                     assertTrue(sslConnector.isConnected());
                     boolean isHandshakeDone = sslConnector.handshake(readBB, true);
-                    logger.log(Level.INFO, "Is handshake done: " + isHandshakeDone);
+                    logger.log(Level.FINE, "Is handshake done: " + isHandshakeDone);
                     assertTrue(isHandshakeDone);
-                    for(int j=0; j<PACKETS_COUNT; j++) {
+                    for (int j = 0; j < PACKETS_COUNT; j++) {
                         writeBB.position(writeBB.limit() - 3);
                         byte[] packetNum = Integer.toString(j).getBytes();
                         writeBB.put(packetNum);
                         writeBB.position(0);
                         sslConnector.write(writeBB, true);
                         long nRead = 1;
-                        while(nRead > 0 && readBB.position() < testData.length) {
+                        while (nRead > 0 && readBB.position() < testData.length) {
                             nRead = sslConnector.read(readBB, true);
                         }
                         readBB.flip();
-                        
+
                         String val1 = new String(testData);
                         String val2 = new String(toArray(readBB));
                         //Utils.dumpOut("Assert. client#" + i + " packet#" + j + " Pattern: " + val1 + " Came: " + val2 + " nRead: " + nRead + " Buffer: " + readBB);
@@ -272,10 +274,8 @@ public class SSLConnectionTest extends TestCase {
                 }
             }
         } finally {
-            try{
+            if (controller != null) {
                 controller.stop();
-            } catch (Throwable t){
-                t.printStackTrace();
             }
         }
     }
@@ -311,20 +311,19 @@ public class SSLConnectionTest extends TestCase {
         return controller;
     }
     
-    private SSLCallbackHandler createCallbackHandler(final Controller controller,
+    private SSLCallbackHandler createCallbackHandler(
             final SSLConnectorHandler sslConnector,
             final CountDownLatch responseArrivedLatch,
             final CountDownLatch handshakeDoneLatch,
             final ByteBuffer writeBB, final ByteBuffer readBB) {
         
-        return createCallbackHandler(controller, sslConnector,
+        return createCallbackHandler(sslConnector,
                 new AtomicReference<CountDownLatch>(responseArrivedLatch),
                 new AtomicReference<CountDownLatch>(handshakeDoneLatch),
                 writeBB, readBB);
     }
     
-    private SSLCallbackHandler createCallbackHandler(final Controller controller,
-            final SSLConnectorHandler sslConnector,
+    private SSLCallbackHandler createCallbackHandler(final SSLConnectorHandler sslConnector,
             final AtomicReference<CountDownLatch> responseArrivedLatchHolder,
             final AtomicReference<CountDownLatch> handshakeDoneLatchHolder,
             final ByteBuffer writeBB, final ByteBuffer readBB) {
@@ -374,7 +373,6 @@ public class SSLConnectionTest extends TestCase {
             
             public void onWrite(IOEvent<Context> ioEvent) {
                 synchronized (sslConnector) {
-                    SelectionKey key = ioEvent.attachment().getSelectionKey();
                     try {
                         while (writeBB.hasRemaining()) {
                             long nWrite = sslConnector.write(writeBB, false);
