@@ -44,6 +44,8 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Context;
 import com.sun.grizzly.GrizzlyFuture;
 import java.io.IOException;
+
+import com.sun.grizzly.Processor;
 import com.sun.grizzly.ProcessorResult;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,7 +81,13 @@ import java.util.concurrent.ExecutionException;
  */
 public final class DefaultFilterChain extends ListFacadeFilterChain {
 
-    public enum FILTER_STATE_TYPE {INCOMPLETE, REMAINDER};
+    public enum FILTER_STATE_TYPE {INCOMPLETE, REMAINDER}
+
+    public enum FilterExecution {
+        CONTINUE,
+        REEXECUTE,
+        TERMINATE
+    }
     
     protected final static Attribute<FiltersState> FILTERS_STATE_ATTR =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute("DefaultFilterChain-StoredData");
@@ -255,9 +263,16 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         final int end = ctx.getEndIdx();
 
         try {
+
+            FilterExecution status;
             do {
-                if (!executeChainPart(ctx, executor, ctx.getFilterIdx(), end)) {
+                status = executeChainPart(ctx, executor, ctx.getFilterIdx(), end);
+                if (status == FilterExecution.TERMINATE) {
                     return ProcessorResult.createTerminate();
+                } else if (status == FilterExecution.REEXECUTE) {
+                    final FilterChainContext newContext = newContext(ctx, end);
+                    ctx.suspend();
+                    return execute(newContext);
                 }
             } while (checkRemainder(ctx, executor, ctx.getStartIdx(), end));
         } catch (IOException e) {
@@ -266,7 +281,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 throwChain(ctx, executor, e);
                 ctx.getConnection().close().markForRecycle(true);
             } catch (IOException ioe) {
-                logger.log(Level.FINE, "Exception during reporting the failuer", ioe);
+                logger.log(Level.FINE, "Exception during reporting the failure", ioe);
             }
         } catch (Exception e) {
             try {
@@ -274,24 +289,28 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                 throwChain(ctx, executor, e);
                 ctx.getConnection().close().markForRecycle(true);
             } catch (IOException ioe) {
-                logger.log(Level.FINE, "Exception during reporting the failuer", ioe);
+                logger.log(Level.FINE, "Exception during reporting the failure", ioe);
             }
         }
 
         return ProcessorResult.createCompleted();
     }
-    
+
+
     /**
      * Sequentially lets each {@link Filter} in chain to process {@link IOEvent}.
      * 
      * @param ctx {@link FilterChainContext} processing context
      * @param executor {@link FilterExecutor}, which will call appropriate
      *          filter operation to process {@link IOEvent}.
-     * @return <tt>false</tt> to terminate exectution, or <tt>true</tt> for
-     *         normal exection process
+     * @return TODO: Update
      */
-    protected final boolean executeChainPart(FilterChainContext ctx,
-            FilterExecutor executor, int start, int end) throws IOException {
+    protected final FilterExecution executeChainPart(FilterChainContext ctx,
+                                                     FilterExecutor executor,
+                                                     int start,
+                                                     int end)
+    throws IOException {
+
         final IOEvent ioEvent = ctx.getIoEvent();
         
         final Connection connection = ctx.getConnection();
@@ -333,7 +352,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             final int nextNextActionType = nextNextAction.type();
             
             if (nextNextActionType == SuspendAction.TYPE) { // on suspend - return immediatelly
-                return false;
+                return FilterExecution.TERMINATE;
             }
 
             if (nextNextActionType == InvokeAction.TYPE) { // if we need to execute next filter
@@ -357,6 +376,9 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                                 remainder, null));
                     }
                 }
+            } else if (nextNextActionType == SuspendingStopAction.TYPE) {
+                ctx.suspend();
+                return FilterExecution.REEXECUTE;
             } else {
                 // If the next action is StopAction and there is some data to store for the processed Filter - store it
                 Object messageToStore;
@@ -372,10 +394,10 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
                     filtersState.setState(ioEvent, i,
                             new FilterStateElement(FILTER_STATE_TYPE.INCOMPLETE,
                             messageToStore, appender));
-                    return true;
+                    return FilterExecution.CONTINUE;
                 }
                 
-                return true;
+                return FilterExecution.CONTINUE;
             }
 
             i = executor.getNextFilter(ctx);
@@ -386,7 +408,7 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
             notifyCompleted(ctx, ctx);
         }
 
-        return true;
+        return FilterExecution.CONTINUE;
     }
 
     /**
@@ -499,6 +521,20 @@ public final class DefaultFilterChain extends ListFacadeFilterChain {
         if (future != null) {
             future.result(result);
         }
+    }
+
+
+    private FilterChainContext newContext(FilterChainContext ctx, int end) {
+
+        final Processor p = ctx.getProcessor();
+        final FilterChainContext newContext = (FilterChainContext) p.context();
+        newContext.setIoEvent(IOEvent.READ);
+        newContext.setConnection(ctx.getConnection());
+        newContext.setStartIdx(0);
+        newContext.setFilterIdx(0);
+        newContext.setEndIdx(end);
+        return newContext;
+
     }
 
     private void notifyFailure(FilterChainContext context, Throwable e) {

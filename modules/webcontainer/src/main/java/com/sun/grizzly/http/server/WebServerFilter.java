@@ -36,6 +36,7 @@
 
 package com.sun.grizzly.http.server;
 
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.BaseFilter;
@@ -57,6 +58,8 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 public class WebServerFilter extends BaseFilter {
 
+    private final Attribute<GrizzlyRequest> grizzlyRequestInProcessAttr;
+
     private final ScheduledExecutorService scheduledExecutorService;
     private final GrizzlyAdapter adapter;
 
@@ -72,8 +75,13 @@ public class WebServerFilter extends BaseFilter {
 
 
     public WebServerFilter(GrizzlyWebServer webServer) {
+
         adapter = webServer.getAdapter();
         scheduledExecutorService = webServer.getScheduledExecutorService();
+        this.grizzlyRequestInProcessAttr =
+                Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
+                "WebServerFilter.GrizzlyRequest");
+
     }
 
 
@@ -83,46 +91,81 @@ public class WebServerFilter extends BaseFilter {
     @Override
     public NextAction handleRead(FilterChainContext ctx)
           throws IOException {
-
         final Object message = ctx.getMessage();
 
         if (message instanceof HttpPacket) {
             // Otherwise cast message to a HttpContent
             final HttpContent httpContent = (HttpContent) message;
 
-            HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
-            HttpResponsePacket response = request.getResponse();
-            final GrizzlyRequest grizzlyRequest = GrizzlyRequest.create();
-            grizzlyRequest.initialize(request, ctx);
-            final GrizzlyResponse grizzlyResponse = GrizzlyResponse.create();
-            final SuspendStatus suspendStatus = new SuspendStatus();
+            GrizzlyRequest grizzlyRequest = grizzlyRequestInProcessAttr.get(ctx.getConnection());
 
-            grizzlyResponse.initialize(grizzlyRequest, response, ctx,
-                    scheduledExecutorService, suspendStatus);
+            if (grizzlyRequest == null) {
+                HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
+                HttpResponsePacket response = request.getResponse();
+                grizzlyRequest = GrizzlyRequest.create();
+                grizzlyRequest.initialize(request, httpContent, ctx);
+                final GrizzlyResponse grizzlyResponse = GrizzlyResponse.create();
+                final SuspendStatus suspendStatus = new SuspendStatus();
 
-            try {
-                ctx.setMessage(grizzlyResponse);
-                adapter.doService(grizzlyRequest, grizzlyResponse);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            } finally {
-                if (!suspendStatus.get()) {
-                    afterService(grizzlyRequest, grizzlyResponse);
-                } else {
-                    return ctx.getSuspendAction();
+                grizzlyResponse.initialize(grizzlyRequest, response, ctx,
+                        scheduledExecutorService, suspendStatus);
+                grizzlyRequestInProcessAttr.set(ctx.getConnection(), grizzlyRequest);
+                try {
+                    ctx.setMessage(grizzlyResponse);
+                    if (adapter != null) {
+                        adapter.service(grizzlyRequest, grizzlyResponse);
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    if (!suspendStatus.get()) {
+                        afterService(ctx, grizzlyRequest, grizzlyResponse);
+                    } else {
+                        if (grizzlyRequest.isUsingAsyncStreamReader()) {
+                            return ctx.getSuspendingStopAction();
+                        } else {
+                            return ctx.getSuspendAction();
+                        }
+                    }
+                }
+            } else {
+                if (grizzlyRequest.isUsingAsyncStreamReader()) {
+                    if (!grizzlyRequest.getAsyncStreamReader().isFinished()) {
+
+                        final Buffer content = httpContent.getContent();
+
+                        if (!content.hasRemaining() || !grizzlyRequest.getAsyncStreamReader().append(content)) {
+                            if (!httpContent.isLast()) {
+                                // need more data?
+                                return ctx.getStopAction();
+                            }
+
+                        }
+                        if (httpContent.isLast()) {
+                            grizzlyRequest.getAsyncStreamReader().finished();
+                            // we have enough data? - terminate filter chain execution
+                            final NextAction action = ctx.getSuspendAction();
+                            ctx.recycle();
+                            return action;
+                        }
+                    } 
                 }
             }
         } else { // this code will be run, when we resume after suspend
             final GrizzlyResponse grizzlyResponse = (GrizzlyResponse) message;
             final GrizzlyRequest grizzlyRequest = grizzlyResponse.getRequest();
-            afterService(grizzlyRequest, grizzlyResponse);
+            afterService(ctx, grizzlyRequest, grizzlyResponse);
         }
 
         return ctx.getStopAction();
     }
 
-    private void afterService(GrizzlyRequest grizzlyRequest,
-            final GrizzlyResponse grizzlyResponse) throws IOException {
+    private void afterService(final FilterChainContext ctx,
+                              final GrizzlyRequest grizzlyRequest,
+                              final GrizzlyResponse grizzlyResponse)
+    throws IOException {
+
+        grizzlyRequestInProcessAttr.remove(ctx.getConnection());
         grizzlyResponse.finish();
 
         final HttpRequestPacket request = grizzlyRequest.getRequest();

@@ -65,8 +65,8 @@ public final class FilterChainContext extends Context {
     private static final Logger logger = Grizzly.logger(FilterChainContext.class);
     
     public enum State {
-        RUNNING, SUSPEND;
-    };
+        RUNNING, SUSPEND
+    }
 
     private static final ThreadCache.CachedTypeIndex<FilterChainContext> CACHE_IDX =
             ThreadCache.obtainIndex(FilterChainContext.class, 4);
@@ -100,6 +100,11 @@ public final class FilterChainContext extends Context {
      * Cached {@link NextAction} instance for "Rerun filter action" implementation
      */
     private static final NextAction RERUN_FILTER_ACTION = new RerunFilterAction();
+
+    /**
+     * Cached {@link NextAction} instance for "Suspending stop action" implementaiton
+     */
+    private static final NextAction SUSPENDING_STOP_ACTION = new SuspendingStopAction();
 
     /**
      * Context task state
@@ -188,7 +193,7 @@ public final class FilterChainContext extends Context {
         return filterIdx;
     }
 
-    protected void setFilterIdx(int index) {
+    public void setFilterIdx(int index) {
         this.filterIdx = index;
     }
 
@@ -196,7 +201,7 @@ public final class FilterChainContext extends Context {
         return startIdx;
     }
 
-    protected void setStartIdx(int startIdx) {
+    public void setStartIdx(int startIdx) {
         this.startIdx = startIdx;
     }
 
@@ -204,7 +209,7 @@ public final class FilterChainContext extends Context {
         return endIdx;
     }
 
-    protected void setEndIdx(int endIdx) {
+    public void setEndIdx(int endIdx) {
         this.endIdx = endIdx;
     }
 
@@ -312,6 +317,16 @@ public final class FilterChainContext extends Context {
      */
     public NextAction getStopAction() {
         return STOP_ACTION;
+    }
+
+
+    /**
+     * @return {@link NextAction} implementation, which instructs the {@link FilterChain}
+     * to suspend the current {@link FilterChainContext} and invoke similar logic
+     * as instructed by {@link StopAction} with a clean {@link FilterChainContext}.
+     */
+    public NextAction getSuspendingStopAction() {
+        return SUSPENDING_STOP_ACTION;
     }
 
 
@@ -453,6 +468,9 @@ public final class FilterChainContext extends Context {
 
     @Override
     public void recycle() {
+        if (state == State.SUSPEND) {
+            return;
+        }
         reset();
         ThreadCache.putToCache(CACHE_IDX, this);
     }

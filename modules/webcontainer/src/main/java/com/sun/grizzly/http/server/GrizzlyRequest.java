@@ -57,7 +57,9 @@ package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
+import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
+import com.sun.grizzly.http.server.io.AsyncStreamReader;
 import com.sun.grizzly.http.server.io.InputBuffer;
 import com.sun.grizzly.http.server.io.RequestInputStream;
 import com.sun.grizzly.http.server.io.RequestReader;
@@ -225,13 +227,18 @@ public class GrizzlyRequest{
      */
     protected HttpRequestPacket request;
 
+    protected HttpContent initialRequestContent;
+
 
     protected FilterChainContext ctx;
 
 
-    public void initialize(HttpRequestPacket request, FilterChainContext ctx) {
+    public void initialize(HttpRequestPacket request,
+                           HttpContent initialRequestContent,
+                           FilterChainContext ctx) {
         this.request = request;
         this.ctx = ctx;
+        this.initialRequestContent = initialRequestContent;
         inputBuffer.initialize(request, ctx);
     }
 
@@ -241,6 +248,11 @@ public class GrizzlyRequest{
      */
     public HttpRequestPacket getRequest() {
         return (this.request);
+    }
+
+
+    public HttpContent getInitialRequestContent() {
+        return initialRequestContent;
     }
 
 
@@ -849,7 +861,7 @@ public class GrizzlyRequest{
      */
     public RequestInputStream getInputStream() throws IOException {
 
-        if (usingReader)
+        if (usingReader || isUsingAsyncStreamReader())
             throw new IllegalStateException
                 (sm.getString("request.getInputStream.ise"));
 
@@ -859,6 +871,39 @@ public class GrizzlyRequest{
         }
         return inputStream;
 
+    }
+
+    private AsyncStreamReader streamReader = null;
+
+
+    /**
+     * @return an {@link AsyncStreamReader} in which request data can be
+     *  read in an asynchronous fashion.
+     *
+     * @throws IOException if an I/O error occurs.
+     * @throws IllegalStateException if {@link #getInputStream()} or
+     *  {@link #getReader()} have been invoked before this method has
+     *  been called.
+     */
+    public AsyncStreamReader getAsyncStreamReader() throws IOException {
+
+        if (usingInputStream || usingReader) {
+            throw new IllegalStateException();
+        }
+        if (streamReader == null) {
+            streamReader = new AsyncStreamReader(initialRequestContent, ctx);
+        }
+        return streamReader;
+
+    }
+
+
+    /**
+     * @return <code>true</code> if this this request is using asynchronous
+     *  stream semantics.
+     */
+    public boolean isUsingAsyncStreamReader() {
+        return (streamReader != null);
     }
 
 
@@ -997,7 +1042,7 @@ public class GrizzlyRequest{
      */
     public BufferedReader getReader() throws IOException {
 
-        if (usingInputStream)
+        if (usingInputStream || isUsingAsyncStreamReader())
             throw new IllegalStateException
                 (sm.getString("request.getReader.ise"));
 
