@@ -50,6 +50,7 @@ import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
+import java.io.CharConversionException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -182,7 +183,8 @@ public class WebServerFilter extends BaseFilter {
      *
      * @return 404 HttpContent
      */
-    private static HttpPacket create404(HttpRequestPacket request) {
+    private static HttpPacket create404(HttpRequestPacket request)
+            throws CharConversionException {
         // Build 404 HttpResponsePacket message headers
         final HttpResponsePacket responseHeader = HttpResponsePacket.builder(request).
                 protocol(request.getProtocol()).status(404).
@@ -203,7 +205,8 @@ public class WebServerFilter extends BaseFilter {
      * @param request HttpRequestPacket message header
      * @return requested URL path
      */
-    private static String extractLocalURL(HttpRequestPacket request) {
+    private static String extractLocalURL(HttpRequestPacket request)
+            throws CharConversionException {
         // Get requested URL
         String url = request.getRequestURIRef().getDecodedURI();
 
