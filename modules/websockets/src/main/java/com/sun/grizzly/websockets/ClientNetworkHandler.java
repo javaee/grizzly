@@ -93,7 +93,7 @@ public class ClientNetworkHandler implements NetworkHandler {
             if (key.isConnectable()) {
 //                System.out.println("ClientNetworkHandler.process: key.isConnectable() = " + key.isConnectable());
                 disableOp(SelectionKey.OP_CONNECT);
-                doConnect();
+                doConnect(true);
                 enableOp(SelectionKey.OP_READ);
             } else if (key.isReadable()) {
                 unframe();
@@ -105,9 +105,12 @@ public class ClientNetworkHandler implements NetworkHandler {
 
     }
 
-    protected void doConnect() throws IOException {
+    protected void doConnect(final boolean finishNioConnect) throws IOException {
 //        System.out.println("ClientNetworkHandler.doConnect");
-        channel.finishConnect();
+        if (finishNioConnect) {
+            channel.finishConnect();
+        }
+        
         final boolean isSecure = "wss".equals(url.getProtocol());
 
         final StringBuilder origin = new StringBuilder();

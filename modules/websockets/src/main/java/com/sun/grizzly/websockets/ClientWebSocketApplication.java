@@ -109,8 +109,12 @@ public class ClientWebSocketApplication extends WebSocketApplication {
                 while(!handlers.isEmpty()) {
                     final ClientNetworkHandler handler = handlers.poll();
                     final SocketChannel socketChannel = handler.getChannel();
-                    final SelectionKey key = socketChannel.register(getSelector(), SelectionKey.OP_CONNECT);
-                    key.attach(handler);
+                    if (socketChannel.isConnected()) { // Channel was immediately connected
+                        socketChannel.register(getSelector(), SelectionKey.OP_READ, handler);
+                        handler.doConnect(false);
+                    } else { // Channel we be connected in NIO fashion
+                        socketChannel.register(getSelector(), SelectionKey.OP_CONNECT, handler);
+                    }
                 }
 
                 final int count = selector.select(selectTimeout);
