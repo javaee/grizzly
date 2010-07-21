@@ -44,7 +44,7 @@ import com.sun.grizzly.memory.BuffersBuffer;
 import com.sun.grizzly.memory.ByteBufferWrapper;
 import com.sun.grizzly.memory.DefaultMemoryManager;
 import com.sun.grizzly.memory.MemoryProbe;
-import com.sun.grizzly.threadpool.FixedThreadPool;
+import com.sun.grizzly.threadpool.GrizzlyExecutorService;
 import com.sun.grizzly.threadpool.ThreadPoolConfig;
 import java.util.concurrent.ExecutorService;
 import java.util.logging.Logger;
@@ -361,7 +361,7 @@ public class DefaultMemoryManagerTest extends GrizzlyTestCase {
     private void testInWorkerThread(final Runnable task) throws Exception {
         final FutureImpl<Boolean> future = SafeFutureImpl.<Boolean>create();
 
-        ExecutorService threadPool = new FixedThreadPool(ThreadPoolConfig.DEFAULT);
+        ExecutorService threadPool = GrizzlyExecutorService.createInstance(ThreadPoolConfig.DEFAULT);
         threadPool.execute(new Runnable() {
 
             @Override

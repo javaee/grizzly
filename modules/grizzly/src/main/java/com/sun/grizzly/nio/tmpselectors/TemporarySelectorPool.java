@@ -55,7 +55,7 @@ import java.util.logging.Logger;
 public class TemporarySelectorPool {
     private static Logger logger = Grizzly.logger(TemporarySelectorPool.class);
     
-    public static final int DEFAULT_SELECTORS_COUNT = 20;
+    public static final int DEFAULT_SELECTORS_COUNT = 32;
     
     /**
      * The timeout before we exit.

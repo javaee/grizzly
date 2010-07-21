@@ -88,8 +88,9 @@ public abstract class NIOTransportFactory extends TransportFactory {
         to the number of processing threads */
         int selectorPoolSize = TemporarySelectorPool.DEFAULT_SELECTORS_COUNT;
         if (defaultWorkerThreadPool instanceof AbstractThreadPool) {
-            selectorPoolSize = ((AbstractThreadPool) defaultWorkerThreadPool).
-                    getConfig().getMaxPoolSize();
+                selectorPoolSize = Math.min(
+                       ((AbstractThreadPool) defaultWorkerThreadPool).getConfig().getMaxPoolSize(),
+                       selectorPoolSize);
         }
         defaultTemporarySelectorPool = 
                 new TemporarySelectorPool(selectorPoolSize);

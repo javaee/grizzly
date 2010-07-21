@@ -70,7 +70,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                 Runtime.getRuntime().availableProcessors() * 2;
         int defaultThreadsCount = processorsBasedThreadCount > 5 ? processorsBasedThreadCount : 5;
         DEFAULT_MIN_THREAD_COUNT = defaultThreadsCount;
-        DEFAULT_MAX_THREAD_COUNT = defaultThreadsCount;
+        DEFAULT_MAX_THREAD_COUNT = Integer.MAX_VALUE;
     }
     
     // Max number of tasks thread pool can enqueue
@@ -402,7 +402,8 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
         }
 
         protected void doWork() {
-            final Thread t_ = t;
+            final Thread thread = t;
+            
             while (true) {
                 try {
                     Thread.interrupted();
@@ -413,15 +414,15 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
                     onTaskDequeued(r);
                     Throwable error = null;
                     try {
-                        beforeExecute(t_, r); //inside try. to ensure balance
+                        beforeExecute(thread, r); //inside try. to ensure balance
                         r.run();
                         onTaskCompletedEvent(r);
-                    } catch (Throwable throwable) {
-                        error = throwable;
+                    } catch (Exception e) {
+                        error = e;
                     } finally {
-                        afterExecute(t_, r, error);
+                        afterExecute(thread, r, error);
                     }
-                } catch (Throwable throwable) {
+                } catch (Exception ignore) {
                 }
             }
         }
