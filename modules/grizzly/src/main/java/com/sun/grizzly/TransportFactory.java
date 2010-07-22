@@ -187,7 +187,7 @@ public abstract class TransportFactory {
         if (!isClosed()) {
             isClosed = true;
             if (defaultWorkerThreadPool != null) {
-                defaultWorkerThreadPool.shutdown();
+                defaultWorkerThreadPool.shutdownNow();
                 defaultWorkerThreadPool = null;
             }
         }
