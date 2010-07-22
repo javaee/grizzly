@@ -179,8 +179,9 @@ public class SyncThreadPool extends AbstractThreadPool {
             }
 
             final int idleThreadsNumber = currentPoolSize - activeThreadsCount;
+            final int workerQueueSize = workQueue.size();
 
-            if ((maxQueuedTasks < 0 || workQueue.size() < maxQueuedTasks) &&
+            if ((maxQueuedTasks < 0 || workerQueueSize < maxQueuedTasks) &&
                     workQueue.offer(task)) {
                 onTaskQueued(task);
             } else {
@@ -190,7 +191,8 @@ public class SyncThreadPool extends AbstractThreadPool {
             final boolean isCore = (currentPoolSize < corePoolSize);
             
             if (isCore ||
-                    (currentPoolSize < maxPoolSize && idleThreadsNumber == 0)) {
+                    (currentPoolSize < maxPoolSize &&
+                    idleThreadsNumber < workerQueueSize + 1)) {
                 startWorker(new SyncThreadWorker(isCore));
             } else if (idleThreadsNumber == 0) {
                 onMaxNumberOfThreadsReached();
