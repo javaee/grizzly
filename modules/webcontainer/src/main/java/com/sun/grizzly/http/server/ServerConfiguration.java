@@ -47,21 +47,10 @@ public class ServerConfiguration {
 
     // Configuration Properties
 
-    /**
-     * <p>
-     * The directory from which the <code>GrizzlyWebServer</code> will service
-     * static resources from.  If this value is used, the <code>GrizzlyWebServer</code>
-     * will serve resources from the directory in which the <code>GrizzlyWebServer</code>
-     * was launched.
-     * </p>
-     */
-    public static final String DEFAULT_DOC_ROOT = ".";
-
-
     /*
      * The directory from which static resources will be served from.
      */
-    private String docRoot = DEFAULT_DOC_ROOT;
+    private String docRoot = null;
 
 
     /*
@@ -150,7 +139,10 @@ public class ServerConfiguration {
 
         if (adaptersNum == 1) {
             GrizzlyAdapter adapter = adapters.keySet().iterator().next();
-            adapter.setDocRoot(docRoot);
+            if (adapter.getDocRoot() == null) {
+                adapter.setDocRoot(docRoot);
+            }
+            
             return adapter;
         }
 
@@ -158,7 +150,14 @@ public class ServerConfiguration {
         adapterChain.setDocRoot(docRoot);
 
         for (Map.Entry<GrizzlyAdapter, String[]> adapterRecord : adapters.entrySet()) {
-            adapterChain.addGrizzlyAdapter(adapterRecord.getKey(), adapterRecord.getValue());
+            final GrizzlyAdapter adapter = adapterRecord.getKey();
+            final String[] mappings = adapterRecord.getValue();
+
+            if (adapter.getDocRoot() == null) {
+                adapter.setDocRoot(docRoot);
+            }
+            
+            adapterChain.addGrizzlyAdapter(adapter, mappings);
         }
 
         return adapterChain;

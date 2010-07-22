@@ -249,7 +249,7 @@ public class FileCacheTest {
     @Test
     public void testIfModified() throws Exception {
         final String fileName = "./pom.xml";
-        startWebServer(new GrizzlyAdapter() {
+        startWebServer(new GrizzlyAdapter(".") {
             @Override
             public void service(GrizzlyRequest request, GrizzlyResponse response)
                     throws Exception {
