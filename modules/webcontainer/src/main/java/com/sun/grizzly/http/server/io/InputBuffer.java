@@ -541,10 +541,6 @@ public class InputBuffer {
                     Buffer b = c.getContent();
                     read += b.remaining();
                     buffers.append(c.getContent().toByteBuffer());
-//                    if (c.isLast()) {
-//                        contentRead = true;
-//                        break;
-//                    }
                 }
                 return read;
             } finally {
@@ -603,7 +599,6 @@ public class InputBuffer {
                         if (result == CoderResult.OVERFLOW) {
                             remainder = bytes;
                         }
-//                        contentRead = true;
                         break;
                     }
                     if (result == CoderResult.OVERFLOW) {
