@@ -64,7 +64,6 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
     // ------------------------------------------------------------ Test Methods
 
 
-    @Test(enabled=false)
     public void legacyHttpToHttpsRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "legacy-http-https-redirect.xml",
