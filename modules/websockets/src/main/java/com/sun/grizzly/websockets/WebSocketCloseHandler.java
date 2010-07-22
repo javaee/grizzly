@@ -42,26 +42,26 @@ import java.io.IOException;
 import java.nio.channels.SelectionKey;
 
 public class WebSocketCloseHandler implements ConnectionCloseHandler {
-    private final ServerNetworkHandler handler;
-
-    public WebSocketCloseHandler(ServerNetworkHandler snh) {
-        handler = snh;
-    }
 
     public void locallyClosed(SelectionKey key) {
-        try {
-            key.cancel();
-            handler.getWebSocket().close();
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
+        final Object o = key.attachment();
+        if (o instanceof WebSocketSelectionKeyAttachment) {
+            final WebSocketSelectionKeyAttachment attachment = (WebSocketSelectionKeyAttachment) key.attachment();
+            final ServerNetworkHandler handler = attachment.getHandler();
+            if (!handler.getWebSocket().isConnected()) {
+                key.cancel();
+            }
         }
     }
 
     public void remotlyClosed(SelectionKey key) {
+        System.out.println("WebSocketCloseHandler.remotlyClosed: key = " + key);
+/*
         try {
             handler.getWebSocket().close();
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
+*/
     }
 }

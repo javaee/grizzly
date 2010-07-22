@@ -63,7 +63,6 @@ public class TrackingWebSocket extends ClientWebSocket {
     public void onMessage(DataFrame frame) throws IOException {
         super.onMessage(frame);
         sent.remove(frame.getTextPayload());
-//        System.out.println("TrackingWebSocket.onMessage: frame.getTextPayload() = " + frame.getTextPayload());
         received.countDown();
     }
 

@@ -78,8 +78,6 @@ public class ServerNetworkHandler implements NetworkHandler {
         this(req, resp);
         asyncProcessorTask = async;
         attachment = new WebSocketSelectionKeyAttachment(this, task, async);
-        ((BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler())
-                .setConnectionCloseHandler(new WebSocketCloseHandler(this));
     }
 
     public WebSocket getWebSocket() {

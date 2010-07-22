@@ -124,7 +124,6 @@ public class LifecycleTest {
         final SimpleWebSocketApplication app = new SimpleWebSocketApplication() {
             @Override
             public void onClose(WebSocket socket) throws IOException {
-                System.out.println("LifecycleTest.onClose: socket = " + socket);
                 super.onClose(socket);
                 close.countDown();
             }
@@ -136,44 +135,47 @@ public class LifecycleTest {
 
         final AtomicBoolean received = new AtomicBoolean(false);
         try {
-            System.out.println("\nclient 1 connecting");
-            WebSocket client = newClient(received);
-
-            System.out.println("\nclient 2 connecting");
-            WebSocket client2 = newClient(received);
-
-            System.out.println("\nclosing client 1");
-            client.close();
-            close.await(30, TimeUnit.SECONDS);
-            checkSend(received, client);
-            boolean connected = client2.isConnected();
-            System.out.println("\nclosing client 2");
-            client2.close();
-            Thread.sleep(1000);
-            Assert.assertTrue(connected);
-            Assert.assertFalse(client2.isConnected());
-
-            System.out.println("\nconnecting bad client");
-            BadWebSocketClient badClient = (BadWebSocketClient) newClient(received);
-
-            System.out.println("\nconnecting client 2 again");
-            client2 = newClient(received);
-
-            System.out.println("\nkilling bad client");
-            badClient.killConnection();
-            Thread.sleep(3000);
-            checkSend(received, client2);
-            connected = client2.isConnected();
-            System.out.println("\nclosing client 2");
-            client2.close();
-            Assert.assertTrue(connected);
-
-            Thread.sleep(3000);
+            cleanDisconnect(close, received);
+            dirtyDisconnect(received);
             Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
         } finally {
             thread.stopEndpoint();
         }
 
+    }
+
+    private void dirtyDisconnect(AtomicBoolean received) throws InterruptedException, ExecutionException, IOException {
+        boolean connected;
+
+        BadWebSocketClient badClient = (BadWebSocketClient) newClient(received);
+
+        WebSocket client2 = newClient(received);
+
+        badClient.killConnection();
+        Thread.sleep(3000);
+        checkSend(received, client2);
+        connected = client2.isConnected();
+        client2.close();
+        Assert.assertTrue(connected);
+
+        Thread.sleep(3000);
+    }
+
+    private void cleanDisconnect(CountDownLatch close, AtomicBoolean received)
+            throws InterruptedException, ExecutionException, IOException {
+        WebSocket client = newClient(received);
+
+        WebSocket client2 = newClient(received);
+
+        client.close();
+        close.await(30, TimeUnit.SECONDS);
+//Thread.sleep(100000);
+        checkSend(received, client2);
+        boolean connected = client2.isConnected();
+        client2.close();
+        Thread.sleep(1000);
+        Assert.assertTrue(connected);
+        Assert.assertFalse(client2.isConnected());
     }
 
     private WebSocket newClient(AtomicBoolean received) throws InterruptedException, ExecutionException, IOException {

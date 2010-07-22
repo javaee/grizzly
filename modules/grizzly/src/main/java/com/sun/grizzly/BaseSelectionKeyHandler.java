@@ -89,25 +89,16 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
     }
 
     
-    /**
-     * {@inheritDoc}
-     */
     public SelectorHandler getSelectorHandler() {
         return selectorHandler;
     } 
 
 
-    /**
-     * {@inheritDoc}
-     */
     public void setSelectorHandler(SelectorHandler selectorHandler) {
         this.selectorHandler = selectorHandler;
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
     public void process(SelectionKey key) {
         Object attachment = key.attachment();
         
@@ -119,9 +110,6 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
     public void postProcess(SelectionKey key) {
         Object attachment = key.attachment();
         
@@ -142,9 +130,6 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
     public void register(SelectionKey key, int selectionKeyOps) {
         doRegisterKey(key, selectionKeyOps);
     }
@@ -160,9 +145,6 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
     public void register(SelectableChannel channel, int selectionKeyOps) throws ClosedChannelException {
         if (!channel.isOpen()) {
             return;
@@ -181,9 +163,6 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
     public void register(Iterator<SelectionKey> keyIterator, int selectionKeyOps) {
         SelectionKey key;
         while (keyIterator.hasNext()) {
@@ -202,9 +181,6 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
     }
 
 
-    /**
-     * {@inheritDoc}
-     */
     public void expire(Iterator<SelectionKey> keyIterator) {
         // Do nothing.
     }
@@ -212,7 +188,7 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
 
     /**
      * if SelectionKey is valid, its canceled .
-     * {@link doAfterKeyCancel(SelectionKey key)} is called even if key is invalid.
+     * {@link #doAfterKeyCancel(SelectionKey)} is called even if key is invalid.
      * @param key {@link SelectionKey} to cancel
      */
     public void cancel(SelectionKey key) {
@@ -248,7 +224,7 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
      * Notify a {@link ConnectionCloseHandler} that a remote connection
      * has been closed.
      * 
-     * @param key a {@link Selectionkey}
+     * @param key a {@link SelectionKey}
      */
     public void notifyRemotlyClose(SelectionKey key) {
         for (ConnectionCloseHandler handler : cchSet) {
@@ -260,7 +236,7 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
      * Notify a {@link ConnectionCloseHandler} that a remote connection
      * has been closed.
      *
-     * @param key a {@link Selectionkey}
+     * @param key a {@link SelectionKey}
      */
     public void notifyLocallyClose(SelectionKey key) {
         for (ConnectionCloseHandler handler : cchSet) {
@@ -269,9 +245,6 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
     }
 
     
-    /**
-     * {@inheritDoc}
-     */
     public void close(SelectionKey key) {
         doAfterKeyCancel(key);
     }
@@ -315,24 +288,21 @@ public class BaseSelectionKeyHandler implements SelectionKeyHandler, ConnectionC
     }
 
     /**
-     * Adds the the {@link ConnectionClosedHandler} to a set.
-     * @param cch {@link ConnectionClosedHandler}
+     * Adds the the {@link ConnectionCloseHandler} to a set.
+     * @param cch {@link ConnectionCloseHandler}
      */
     public void setConnectionCloseHandler(ConnectionCloseHandler cch) {
         cchSet.add(cch);
     }
 
     /**
-     * Removes the the {@link ConnectionClosedHandler} from a set.
-     * @param cch {@link ConnectionClosedHandler}
+     * Removes the the {@link ConnectionCloseHandler} from a set.
+     * @param cch {@link ConnectionCloseHandler}
      */
     public void removeConnectionCloseHandler(ConnectionCloseHandler cch) {
         cchSet.remove(cch);
     }
 
-    /**
-     * {@inheritDoc}
-     */
     public void copyTo(Copyable copy) {
         BaseSelectionKeyHandler copyHandler = (BaseSelectionKeyHandler) copy;
         copyHandler.selectorHandler = selectorHandler;

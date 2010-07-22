@@ -36,6 +36,7 @@
 
 package com.sun.grizzly.websockets;
 
+import com.sun.grizzly.BaseSelectionKeyHandler;
 import com.sun.grizzly.arp.AsyncExecutor;
 import com.sun.grizzly.arp.AsyncProcessorTask;
 import com.sun.grizzly.http.ProcessorTask;
@@ -62,6 +63,7 @@ public class WebSocketEngine {
     private static final WebSocketEngine engine = new WebSocketEngine();
     private final Map<String, WebSocketApplication> applications = new HashMap<String, WebSocketApplication>();
     static final int INITIAL_BUFFER_SIZE = 8192;
+    private final WebSocketCloseHandler closeHandler = new WebSocketCloseHandler();
 
     private WebSocketEngine() {
         SecKey.init();
@@ -96,9 +98,11 @@ public class WebSocketEngine {
                 final Response response = request.getResponse();
                 ProcessorTask task = asyncExecutor.getProcessorTask();
                 AsyncProcessorTask asyncTask = (AsyncProcessorTask) asyncExecutor.getAsyncTask();
-                System.out.println("WebSocketEngine.getWebSocket: asyncTask = " + asyncTask);
                 final SelectionKey key = task.getSelectionKey();
                 final ServerNetworkHandler handler = new ServerNetworkHandler(task, asyncTask, request, response);
+                ((BaseSelectionKeyHandler) task.getSelectorHandler().getSelectionKeyHandler())
+                        .setConnectionCloseHandler(closeHandler);
+
                 socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
                 handler.handshake(task.getSSLSupport() != null);
 
@@ -131,8 +135,6 @@ public class WebSocketEngine {
         }
 
         public void onClose(WebSocket socket) throws IOException {
-            System.out.println("WebSocketEngine$KeyWebSocketListener.onClose: socket = " + socket);
-            System.out.println("WebSocketEngine$KeyWebSocketListener.onClose: key = " + key);
             key.cancel();
             key.channel().close();
         }

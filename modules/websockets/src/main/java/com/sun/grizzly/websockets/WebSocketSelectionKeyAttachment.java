@@ -54,21 +54,15 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
         processorTask = task;
         asyncProcessorTask = asyncTask;
         final SelectionKey selectionKey = asyncProcessorTask.getAsyncExecutor().getProcessorTask().getSelectionKey();
-        System.out.println(
-                "WebSocketSelectionKeyAttachment.WebSocketSelectionKeyAttachment: selectionKey = " + selectionKey);
-        System.out.println("WebSocketSelectionKeyAttachment.WebSocketSelectionKeyAttachment: task = " + task);
-        System.out.println("WebSocketSelectionKeyAttachment.WebSocketSelectionKeyAttachment: asyncTask = " + asyncTask);
     }
 
     @Override
     public boolean timedOut(SelectionKey key) {
-        System.out.println("WebSocketSelectionKeyAttachment.timedOut: key = " + key);
         return false;
     }
 
     @Override
     public void handleSelectedKey(SelectionKey key) {
-        System.out.println("WebSocketSelectionKeyAttachment.handleSelectedKey: key = " + key);
         if (key.isReadable()) {
             key.interestOps(key.interestOps() & ~SelectionKey.OP_READ);
             asyncProcessorTask.getThreadPool().execute(this);
@@ -85,11 +79,16 @@ public class WebSocketSelectionKeyAttachment extends SelectedKeyAttachmentLogic 
             WebSocketEngine.logger.log(Level.INFO, e.getMessage(), e);
         }
     }
+
     final void enableRead(ProcessorTask task, SelectionKey key) {
         task.getSelectorHandler().register(key, SelectionKey.OP_READ);
     }
 
-      public SelectionKey getSelectionKey() {
+    public SelectionKey getSelectionKey() {
         return asyncProcessorTask.getAsyncExecutor().getProcessorTask().getSelectionKey();
+    }
+
+    public ServerNetworkHandler getHandler() {
+        return handler;
     }
 }

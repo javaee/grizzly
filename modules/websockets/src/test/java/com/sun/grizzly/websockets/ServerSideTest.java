@@ -134,11 +134,8 @@ public class ServerSideTest {
                         (TrackingWebSocket) app.connect(String.format("ws://localhost:%s/echo", PORT)).get();
                 clients.add(webSocket);
                 webSocket.setName(x);
-                System.out.println("Created client " + x);
             }
             for (TrackingWebSocket socket : clients) {
-                System.out.println("sending with client " + socket.getName());
-
                 socket.send(socket.getName() + ": test message");
                 socket.send(socket.getName() + ": let's try again");
                 socket.send(socket.getName() + ": 3rd time's the charm!");
@@ -146,9 +143,7 @@ public class ServerSideTest {
                 socket.send(socket.getName() + ": now, we're done");
             }
             for (TrackingWebSocket socket : clients) {
-                System.out.printf("waiting for client %s: %s", socket.getName(), new Date());
                 socket.waitOnMessages();
-                System.out.println("done waiting " + new Date());
             }
         } finally {
             thread.stopEndpoint();

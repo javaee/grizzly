@@ -48,7 +48,6 @@ public enum FrameType {
 
         @Override
         public byte[] unframe(NetworkHandler handler) throws IOException {
-//            System.out.println("FrameType.unframe");
             ByteArrayOutputStream raw = new ByteArrayOutputStream();
             byte b;
             handler.get();
