@@ -273,7 +273,8 @@ public class FileCacheTest {
 
         final Future<HttpContent> responseFuture1 = send("localhost", PORT, request1);
         final HttpContent response1 = responseFuture1.get(10, TimeUnit.SECONDS);
-        assertEquals("Cached data mismatch", pattern, response1.getContent().toStringContent());
+        assertEquals("Cached data mismatch. Response=" + response1.getHttpHeader(),
+                pattern, response1.getContent().toStringContent());
 
         final HttpRequestPacket request2 = HttpRequestPacket.builder()
                 .method("GET")
