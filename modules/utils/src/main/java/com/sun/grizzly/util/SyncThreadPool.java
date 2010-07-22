@@ -323,7 +323,16 @@ public class SyncThreadPool extends AbstractThreadPool {
         super.afterExecute(thread,r, t);
         completedTasksCount.incrementAndGet();
     }
-    
+
+    @Override
+    protected void poisonAll() {
+        int size = currentPoolSize;
+        final Queue<Runnable> q = getQueue();
+        while (size-- > 0) {
+            q.offer(poison);
+        }
+    }
+
     @Override
     public String toString() {
         return super.toString()+
@@ -345,7 +354,8 @@ public class SyncThreadPool extends AbstractThreadPool {
                 try {
                     activeThreadsCount--;
 
-                    if (!core && currentPoolSize > maxPoolSize) {
+                    if (!running ||
+                            (!core && currentPoolSize > maxPoolSize)) {
                         // if maxpoolsize becomes lower during runtime we kill of the
                         return null;
                     }
@@ -362,8 +372,8 @@ public class SyncThreadPool extends AbstractThreadPool {
                         localKeepAlive -= (System.currentTimeMillis() - startTime);
                         
                         // Less than 100 millis remainder will consider as keepalive timeout
-                        if (!core &&
-                                (r != null || localKeepAlive < 100)) {
+                        if (!running || (!core &&
+                                (r != null || localKeepAlive < 100))) {
                             break;
                         }
                     }
