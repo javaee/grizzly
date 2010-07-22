@@ -119,6 +119,7 @@ public class SyncThreadPool extends AbstractThreadPool {
             if (isCore
                     || (currentPoolSize < config.getMaxPoolSize() && idleThreadsNumber == 0)) {
                 startWorker(new SyncThreadWorker(isCore));
+                currentPoolSize++;
             } else if (idleThreadsNumber == 0) {
                 onMaxNumberOfThreadsReached();
             } else {
@@ -131,7 +132,6 @@ public class SyncThreadPool extends AbstractThreadPool {
     protected void onWorkerStarted(Worker worker) {
         super.onWorkerStarted(worker);
         synchronized (stateLock) {
-            currentPoolSize++;
             activeThreadsCount++;
         }
     }
