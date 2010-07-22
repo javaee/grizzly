@@ -37,25 +37,29 @@
 package com.sun.grizzly.websockets;
 
 import com.sun.grizzly.http.SelectorThread;
-import com.sun.grizzly.http.servlet.ServletAdapter;
+import com.sun.grizzly.tcp.Adapter;
+import com.sun.grizzly.tcp.StaticResourcesAdapter;
 
 public class TempServer {
     public static void main(String[] args) throws Exception {
-        final SelectorThread thread = sslSelectorThread();
+        final SelectorThread thread = selectorThread();
         thread.start();
     }
 
-    private static SelectorThread simpleSelectorThread() throws Exception {
-        final EchoServlet servlet = new EchoServlet();
-        final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
-        WebSocketEngine.getEngine().register("/echo", app);
-        return WebSocketsTest.createSelectorThread(8080, new ServletAdapter(servlet));
+    private static SelectorThread selectorThread() throws Exception {
+        return WebSocketsTest.createSelectorThread(8080, setUpWSEngine());
     }
 
     private static SelectorThread sslSelectorThread() throws Exception {
+        return WebSocketsTest.createSSLSelectorThread(8080, setUpWSEngine());
+    }
+
+    private static Adapter setUpWSEngine() {
         final EchoServlet servlet = new EchoServlet();
         final SimpleWebSocketApplication app = new SimpleWebSocketApplication();
         WebSocketEngine.getEngine().register("/echo", app);
-        return WebSocketsTest.createSSLSelectorThread(8080, new ServletAdapter(servlet));
+//        final ServletAdapter adapter = new ServletAdapter(servlet);
+        Adapter adapter = new StaticResourcesAdapter("src/test/resources");
+        return adapter;
     }
 }

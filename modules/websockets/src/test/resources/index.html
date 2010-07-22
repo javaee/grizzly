@@ -39,43 +39,31 @@
 
 </head>
 <body>
-    <script type="text/javascript">var count = 0;
-   function sleep(naptime){
-        naptime = naptime * 1000;
-        var sleeping = true;
-        var startingMSeconds = new Date().getTime();
-        while(sleeping){
-            sleeping = new Date().getTime() - startingMSeconds < naptime;
-        }
-    }
-
-    function append(text) {
-        var spanTag = document.createElement("span");
-
-        spanTag.id = "span1";
-
-        spanTag.className ="dynamicSpan";
-
-        spanTag.innerHTML = text;
-        document.body.appendChild(spanTag);
-    }
-    var websocket = new WebSocket('wss://localhost:8080/echo');
-    var start = 0;
-    var end = 0;
-    websocket.onopen = function() {
-        start = new Date().getTime();
-        append("<br/>connected: " + new Date());
-        sleep(3)
-        websocket.close();
-    };
-    websocket.onclose = function() {
-        end = new Date().getTime();
-        append("<br/>closed: " + new Date())
-        append("<br/>elapsed: " + (end - start));
-    };
-    websocket.onmessage = function (evt) {
-    };
-    </script>
     how'd we do?
+    <script type="text/javascript">
+        function append(text) {
+            var spanTag = document.createElement("span");
+
+            spanTag.id = "span1";
+
+            spanTag.className ="dynamicSpan";
+
+            spanTag.innerHTML = text;
+            document.body.appendChild(spanTag);
+        }
+        var websocket = new WebSocket('ws://localhost:8080/echo');
+        var start = 0;
+        var end = 0;
+        websocket.onopen = function() {
+            start = new Date().getTime();
+            append("<br/>connected: " + new Date());
+            setTimeout('websocket.close()', 3000)
+        };
+        websocket.onclose = function() {
+            end = new Date().getTime();
+            append("<br/>closed: " + new Date());
+            append("<br/>elapsed: " + (end - start));
+        };
+    </script>
 </body>
 </html>
