@@ -82,6 +82,7 @@ public class SyncThreadPool extends AbstractThreadPool {
         synchronized (stateLock) {
             while (currentPoolSize < config.getCorePoolSize()) {
                 startWorker(new SyncThreadWorker(true));
+                currentPoolSize++;
             }
         }
     }
