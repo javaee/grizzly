@@ -169,7 +169,6 @@ public class LifecycleTest {
 
         client.close();
         close.await(30, TimeUnit.SECONDS);
-//Thread.sleep(100000);
         checkSend(received, client2);
         boolean connected = client2.isConnected();
         client2.close();
