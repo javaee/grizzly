@@ -207,7 +207,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
 
             if (selectorRunnersCount <= 0) {
-                selectorRunnersCount = Runtime.getRuntime().availableProcessors();
+                selectorRunnersCount = Math.max(1, Runtime.getRuntime().availableProcessors() / 2 * 3);
             }
 
             if (nioChannelDistributor == null) {
@@ -654,85 +654,6 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             throw new IOException(e.getClass() + ": " + text);
         }
     }
-
-//    @Override
-//    public IOEventReg fireIOEvent(Context context) throws IOException {
-//        final IOEvent ioEvent = context.getIoEvent();
-//        final Connection connection = context.getConnection();
-//
-//        try {
-//            if (ioEvent == IOEvent.SERVER_ACCEPT) {
-//                ((TCPNIOServerConnection) connection).onAccept();
-//                return IOEventReg.REGISTER;
-//            } else if (ioEvent == IOEvent.CONNECTED) {
-//                ((TCPNIOConnection) connection).onConnect();
-//            }
-//
-//            if (executeProcessor(context)) {
-//                return IOEventReg.REGISTER;
-//            } else {
-//                return IOEventReg.DEREGISTER;
-//            }
-//        } catch (IOException e) {
-//            logger.log(Level.FINE, "IOException occurred on fireIOEvent()."
-//                    + "connection=" + connection + " event=" + ioEvent);
-//            throw e;
-//        } catch (Exception e) {
-//            String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
-//                    append("connection=").append(connection).
-//                    append(" event=").append(ioEvent).toString();
-//
-//            logger.log(Level.WARNING, text, e);
-//            throw new IOException(e.getClass() + ": " + text);
-//        }
-//    }
-
-
-//    protected boolean executeProcessor(Connection connection,
-//            IOEvent ioEvent, Processor processor) throws IOException {
-//
-//        final Context context = Context.create(processor, connection, ioEvent,
-//                null, null);
-//
-//        if (logger.isLoggable(Level.FINEST)) {
-//            logger.log(Level.FINEST, "executeProcessor connection (" +
-//                    context.getConnection() +
-//                    "). IOEvent=" + context.getIoEvent() +
-//                    " processor=" + context.getProcessor());
-//        }
-//
-//        final ProcessorResult result = context.getProcessor().process(context);
-//        final ProcessorResult.Status status = result.getStatus();
-//
-//        if (status != ProcessorResult.Status.TERMINATE) {
-//             context.recycle();
-//             return status == ProcessorResult.Status.COMPLETED;
-//        }
-//
-//        return false;
-//
-////        return executeProcessor(context);
-//    }
-
-//    protected boolean executeProcessor(Context context) throws IOException {
-//
-//        if (logger.isLoggable(Level.FINEST)) {
-//            logger.log(Level.FINEST, "executeProcessor connection (" +
-//                    context.getConnection() +
-//                    "). IOEvent=" + context.getIoEvent() +
-//                    " processor=" + context.getProcessor());
-//        }
-//
-//        final ProcessorResult result = context.getProcessor().process(context);
-//        final ProcessorResult.Status status = result.getStatus();
-//
-//        if (status != ProcessorResult.Status.TERMINATE) {
-//             context.recycle();
-//             return status == ProcessorResult.Status.COMPLETED;
-//        }
-//
-//        return false;
-//    }
     
     @Override
     public Reader getReader(Connection connection) {
