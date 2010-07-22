@@ -197,7 +197,7 @@ public class SyncThreadPool extends AbstractThreadPool {
                 try {
                     activeThreadsCount--;
 
-                    if (running &&
+                    if (!running ||
                             (!core && currentPoolSize > config.getMaxPoolSize())) {
                         // if maxpoolsize becomes lower during runtime we kill of the
                         return null;
