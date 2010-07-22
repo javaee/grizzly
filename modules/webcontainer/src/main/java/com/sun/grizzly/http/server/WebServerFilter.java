@@ -113,7 +113,7 @@ public class WebServerFilter extends BaseFilter {
                 try {
                     ctx.setMessage(grizzlyResponse);
                     if (adapter != null) {
-                        adapter.service(grizzlyRequest, grizzlyResponse);
+                        adapter.doService(grizzlyRequest, grizzlyResponse);
                     }
                 } catch (Exception e) {
                     throw new RuntimeException(e);
