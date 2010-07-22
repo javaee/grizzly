@@ -83,6 +83,7 @@ public class GrizzlyExecutorServiceTest extends GrizzlyTestCase {
         assertTrue(config3.getQueueLimit() == tasks);
         assertTrue(config3.getCorePoolSize() == coresize);
         assertTrue(config3.getMaxPoolSize() == threads);
+        r.shutdownNow();
        /* long a = r.getCompletedTaskCount();
         assertTrue(a+"!="+tasks,a == tasks);*/
     }
