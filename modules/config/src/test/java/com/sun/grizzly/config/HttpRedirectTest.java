@@ -64,6 +64,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
     // ------------------------------------------------------------ Test Methods
 
 
+    @Test(enabled=false)
     public void legacyHttpToHttpsRedirect() throws IOException {
         doTest(SocketFactory.getDefault(),
                "legacy-http-https-redirect.xml",
@@ -101,7 +102,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
 
 
     public void httpToHttpsDifferentPortRedirect() throws IOException {
-        doTest(SocketFactory.getDefault(),
+        doTest(getSSLSocketFactory(),
                "http-https-redirect-different-port.xml",
                 "localhost",
                 48480,
@@ -110,7 +111,7 @@ public class HttpRedirectTest extends BaseGrizzlyConfigTest {
 
 
     public void httpsToHttpDifferentPortRedirect() throws IOException {
-        doTest(getSSLSocketFactory(),
+        doTest(SocketFactory.getDefault(),
                "https-http-redirect-different-port.xml",
                 "localhost",
                 48480,

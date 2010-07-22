@@ -57,7 +57,7 @@ public class HttpRedirectFilter implements ProtocolFilter,
     private Integer redirectPort;
 
     // default to true to retain compatibility with legacy redirect declarations.
-    private boolean secure = true;
+    private Boolean secure;
 
 
     // --------------------------------------------- Methods from ProtocolFilter
@@ -67,18 +67,25 @@ public class HttpRedirectFilter implements ProtocolFilter,
         final WorkerThread thread = (WorkerThread) Thread.currentThread();
         final SSLEngine sslEngine = thread.getSSLEngine();
 
+        final boolean redirectToSecure;
+        if (secure != null) { // if secure is set - we use it
+            redirectToSecure = secure;
+        } else {  // if secure is not set - use secure settings opposite to the current request
+            redirectToSecure = (sslEngine == null);
+        }
+
         if (sslEngine != null) {
             HttpRedirector.redirectSSL(ctx,
                                        sslEngine,
                                        thread.getByteBuffer(),
                                        thread.getOutputBB(),
                                        redirectPort,
-                                       ((redirectPort != null) && secure));
+                                       redirectToSecure);
         } else {
             HttpRedirector.redirect(ctx,
                                     thread.getByteBuffer(),
                                     redirectPort,
-                                    ((redirectPort != null) || secure));
+                                    redirectToSecure);
 
         }
 
