@@ -101,6 +101,7 @@ public class GrizzlyExecutorServiceTest {
         assertTrue(r.getMaxQueuedTasksCount() == tasks);
         assertTrue(r.getCorePoolSize() == coresize);
         assertTrue(r.getMaximumPoolSize() == threads);
+        r.shutdownNow();
        /* long a = r.getCompletedTaskCount();
         assertTrue(a+"!="+tasks,a == tasks);*/
     }

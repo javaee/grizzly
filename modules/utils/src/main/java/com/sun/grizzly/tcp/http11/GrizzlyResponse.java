@@ -1745,39 +1745,44 @@ public class GrizzlyResponse<A> {
     }
     
     private static class GrizzlyResponseAttachment<A> extends Response.ResponseAttachment{
-        private final GrizzlyResponse gres;
+        private final GrizzlyResponse grizzlyResponse;
         
         public GrizzlyResponseAttachment(long timeout,A attachment,
-                CompletionHandler<? super A> completionHandler, GrizzlyResponse gres){
-            super(timeout, attachment, completionHandler, gres.getResponse());
-            this.gres = gres;
+                CompletionHandler<? super A> completionHandler,
+                GrizzlyResponse grizzlyResponse) {
+            super(timeout, attachment, completionHandler, grizzlyResponse.getResponse());
+            this.grizzlyResponse = grizzlyResponse;
         }
         
         @Override
         public void resume(){
             getCompletionHandler().resumed(getAttachment());
             try{
-                gres.finishResponse();
+                grizzlyResponse.finishResponse();
             } catch (IOException ex){
                 LoggerUtils.getLogger().log(Level.FINEST,"resume",ex);
             }
         }
         
         @Override
-        public void timeout(boolean forceClose){
+        public boolean timeout(){
             // If the buffers are empty, commit the response header
             try{                             
-                getCompletionHandler().cancelled(getAttachment());   
+                cancel();
             } finally {
-                if (forceClose &&!gres.isCommitted()){
+                if (!grizzlyResponse.isCommitted()){
                     try{
-                        gres.finishResponse();
+                        grizzlyResponse.finishResponse();
                     } catch (IOException ex){
                         // Swallow?
                     }
                 }
             }
+
+            return true;
         }
+
+
         
     }
 

@@ -115,7 +115,9 @@ public class KeepAliveThreadAttachment extends ThreadAttachment{
 
     @Override
     public boolean timedOut(SelectionKey selectionKey) {
-        super.timedOut(selectionKey);
+        if (!super.timedOut(selectionKey)) {
+            return false;
+        }
         
         if (keepAliveStats != null && keepAliveCount > 0 && keepAliveStats.isEnabled()) {
             isTimedOut = true;

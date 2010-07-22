@@ -66,7 +66,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.util.Locale;
 import java.nio.channels.SocketChannel;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.logging.Level;
 
 
@@ -100,7 +100,7 @@ public class Response<A> {
     
     // --------------------------------------------------- Suspend/Resume ---- /
     
-    private Semaphore lock = new Semaphore(1);
+    private final ReentrantLock lock = new ReentrantLock();
 
     public final static String SUSPENDED="suspend";
 
@@ -670,7 +670,7 @@ public class Response<A> {
         return contentLength;
     }
 
-    /** 
+    /**
      * Write a chunk of bytes.
      */
     public void doWrite(ByteChunk chunk/*byte buffer[], int pos, int count*/)
@@ -754,18 +754,14 @@ public class Response<A> {
      * by {@link Response#finish()}. Those operations commit the response.
      */
     public void resume(){
-        if (lock.tryAcquire()) {
+        lock.lock();
+        try {
             if (!isSuspended){
                 throw new IllegalStateException("Not Suspended");
             }
-
+            
+            isSuspended = false;
             boolean isReallySuspended = ra.isAttached();
-//            if (Thread.currentThread() instanceof WorkerThread){
-//                WorkerThread wt = (WorkerThread)Thread.currentThread();
-//                // True if the Adapter.service() method have exitted
-//                isReallySuspended = (wt.getAttachment().getAttribute(SUSPENDED) != null);
-//            }
-
             req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);
             if (isReallySuspended){
                 ra.resume();
@@ -773,13 +769,11 @@ public class Response<A> {
             } else {
                 ra.invokeCompletionHandler();
             }
-            
-            isSuspended = false;
+
             ra = null;
-            lock.release();
-        } else {
-            throw new IllegalStateException("Not Suspended");
-        } 
+        } finally {
+            lock.unlock();
+        }
     }
     
     /**
@@ -789,18 +783,19 @@ public class Response<A> {
      * by {@link Response#finish()}. Those operations commit the response.
      */   
     public void cancel(){
-        if (lock.tryAcquire()) {   
+        lock.lock();
+        try {
             if (!isSuspended){
                 throw new IllegalStateException("Not Suspended");
             }
-            req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);  
-            ra.timeout(false);
-            req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
             isSuspended = false;
-            lock.release();
-        } else {
-            throw new IllegalStateException("Not Suspended");
-        }           
+
+            req.action(ActionCode.CANCEL_SUSPENDED_RESPONSE, null);  
+            ra.cancel();
+            req.action(ActionCode.ACTION_FINISH_RESPONSE, null);
+        } finally {
+            lock.unlock();
+        }
     }
         
     /**
@@ -887,7 +882,7 @@ public class Response<A> {
      * @param competionHandler a {@link CompletionHandler}
      * @param ra {@link ResponseAttachment} used to times out idle connection.
      */     
-    public void suspend(long timeout,A attachment,
+    public void suspend(long timeout, A attachment,
             CompletionHandler<? super A> competionHandler, ResponseAttachment<A> ra){
         if (isSuspended){
             throw new IllegalStateException("Already Suspended");
@@ -895,8 +890,10 @@ public class Response<A> {
         isSuspended = true;
 
         if (ra == null){
-            ra = new ResponseAttachment(timeout,attachment, competionHandler,this);
+            ra = new ResponseAttachment(timeout, attachment, competionHandler, this);
         }
+
+        ra.lock = lock;
         if (competionHandler == null){
             competionHandler = new CompletionHandler(){
                 public void resumed(Object attachment) {
@@ -934,6 +931,7 @@ public class Response<A> {
         private volatile CompletionHandler<? super A> completionHandler;
         private final A attachment;
         private final Response response;
+        protected volatile ReentrantLock lock;
         private volatile long idleTimeoutDelay;
         private volatile boolean isAttached;
 
@@ -1008,16 +1006,17 @@ public class Response<A> {
             }
         }
 
-        public boolean onTimeOut(SelectionKey key) {
-//            key.attach(null);
-            SuspendResponseUtils.detach(key);
-            
-            run();
+        public final boolean onTimeOut(SelectionKey key) {
+            lock.lock();
+            try {
+                SuspendResponseUtils.detach(key);
+                if (!timeout()) {
+                    SuspendResponseUtils.attach(key, this);
+                }
+            } finally {
+                lock.unlock();
+            }
             return false;
-        }
-
-        public void run() {
-            timeout(true);
         }
 
         public void onKeySelected(SelectionKey selectionKey) {
@@ -1041,12 +1040,17 @@ public class Response<A> {
             }
         }
 
-        public void timeout(boolean forceClose){
+        /**
+         * Method will be called to notify about async HTTP processing timeout
+         * @return <tt>true</tt>, if async processing has been finished, or <tt>false</tt>
+         * if we should reregister the channel to continue async HTTP request processing
+         */
+        public boolean timeout(){
             // If the buffers are empty, commit the response header
-            try{                             
-                completionHandler.cancelled(attachment);   
+            try {
+                cancel();
             } finally {
-                if (forceClose &&!response.isCommitted()){
+                if (!response.isCommitted()){
                     try{
                         response.sendHeaders();
                         response.flush();
@@ -1056,7 +1060,13 @@ public class Response<A> {
                     }
                 }
             }
-        }        
+
+            return true;
+        }
+
+        public void cancel() {
+            completionHandler.cancelled(attachment);
+        }
     }
     
         
