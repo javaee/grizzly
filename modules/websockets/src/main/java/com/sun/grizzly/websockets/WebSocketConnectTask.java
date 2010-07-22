@@ -71,7 +71,7 @@ public class WebSocketConnectTask extends FutureTask<WebSocket> {
     @Override
     public WebSocket get() throws InterruptedException, ExecutionException {
         try {
-            return get(DEFAULT_TIMEOUT, TimeUnit.SECONDS);
+            return get(DEFAULT_TIMEOUT, TimeUnit.MINUTES);
         } catch (TimeoutException e) {
             throw new InterruptedException(e.getMessage());
         }

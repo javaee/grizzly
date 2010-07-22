@@ -96,6 +96,7 @@ public class WebSocketEngine {
                 final Response response = request.getResponse();
                 ProcessorTask task = asyncExecutor.getProcessorTask();
                 AsyncProcessorTask asyncTask = (AsyncProcessorTask) asyncExecutor.getAsyncTask();
+                System.out.println("WebSocketEngine.getWebSocket: asyncTask = " + asyncTask);
                 final SelectionKey key = task.getSelectionKey();
                 final ServerNetworkHandler handler = new ServerNetworkHandler(task, asyncTask, request, response);
                 socket = (BaseServerWebSocket) app.createSocket(handler, app, new KeyWebSocketListener(key));
@@ -130,6 +131,8 @@ public class WebSocketEngine {
         }
 
         public void onClose(WebSocket socket) throws IOException {
+            System.out.println("WebSocketEngine$KeyWebSocketListener.onClose: socket = " + socket);
+            System.out.println("WebSocketEngine$KeyWebSocketListener.onClose: key = " + key);
             key.cancel();
             key.channel().close();
         }

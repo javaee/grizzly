@@ -61,7 +61,6 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     public ClientNetworkHandler(URL url, ClientWebSocketApplication application) throws IOException {
-//        System.out.println("ClientNetworkHandler.ClientNetworkHandler: this = " + this);
         this.url = url;
         app = application;
         channel = SocketChannel.open();
@@ -87,11 +86,8 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     public void process(SelectionKey key) throws IOException {
-//        System.out.println("ClientNetworkHandler.process: this = " + this);
         if (key.isValid()) {
-//            System.out.println("ClientNetworkHandler.process: key.isValid() = " + key.isValid());
             if (key.isConnectable()) {
-//                System.out.println("ClientNetworkHandler.process: key.isConnectable() = " + key.isConnectable());
                 disableOp(SelectionKey.OP_CONNECT);
                 doConnect(true);
                 enableOp(SelectionKey.OP_READ);
@@ -106,7 +102,6 @@ public class ClientNetworkHandler implements NetworkHandler {
     }
 
     protected void doConnect(final boolean finishNioConnect) throws IOException {
-//        System.out.println("ClientNetworkHandler.doConnect");
         if (finishNioConnect) {
             channel.finishConnect();
         }
@@ -127,7 +122,6 @@ public class ClientNetworkHandler implements NetworkHandler {
         clientHS = new ClientHandShake(isSecure, origin.toString(), url.getHost(),
                 String.valueOf(url.getPort()), path);
         write(clientHS.getBytes());
-//        System.out.println("done ClientNetworkHandler.doConnect");
     }
 
     protected void write(byte[] bytes) throws IOException {

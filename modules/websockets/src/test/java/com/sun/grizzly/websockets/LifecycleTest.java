@@ -44,7 +44,9 @@ import org.testng.annotations.Test;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Test
 public class LifecycleTest {
@@ -96,13 +98,7 @@ public class LifecycleTest {
         final SelectorThread thread =
                 WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new ServletAdapter(servlet));
 
-        ClientWebSocketApplication wsClient = new ClientWebSocketApplication() {
-            @Override
-            public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners)
-                    throws IOException {
-                return new BadWebSocketClient(handler, listeners);
-            }
-        };
+        ClientWebSocketApplication wsClient = new BadClientWebSocketApplication();
         try {
             Assert.assertEquals(app.getWebSockets().size(), 0, "There should be no clients connected");
 
@@ -122,6 +118,78 @@ public class LifecycleTest {
 
     }
 
+    public void multipleClientClosing()
+            throws IOException, InstantiationException, ExecutionException, InterruptedException {
+        final CountDownLatch close = new CountDownLatch(1);
+        final SimpleWebSocketApplication app = new SimpleWebSocketApplication() {
+            @Override
+            public void onClose(WebSocket socket) throws IOException {
+                System.out.println("LifecycleTest.onClose: socket = " + socket);
+                super.onClose(socket);
+                close.countDown();
+            }
+        };
+        WebSocketEngine.getEngine().register("/echo", app);
+
+        final SelectorThread thread =
+                WebSocketsTest.createSelectorThread(WebSocketsTest.PORT, new StaticResourcesAdapter());
+
+        final AtomicBoolean received = new AtomicBoolean(false);
+        try {
+            System.out.println("\nclient 1 connecting");
+            WebSocket client = newClient(received);
+
+            System.out.println("\nclient 2 connecting");
+            WebSocket client2 = newClient(received);
+
+            System.out.println("\nclosing client 1");
+            client.close();
+            close.await(30, TimeUnit.SECONDS);
+            checkSend(received, client);
+            boolean connected = client2.isConnected();
+            System.out.println("\nclosing client 2");
+            client2.close();
+            Thread.sleep(1000);
+            Assert.assertTrue(connected);
+            Assert.assertFalse(client2.isConnected());
+
+            System.out.println("\nconnecting bad client");
+            BadWebSocketClient badClient = (BadWebSocketClient) newClient(received);
+
+            System.out.println("\nconnecting client 2 again");
+            client2 = newClient(received);
+
+            System.out.println("\nkilling bad client");
+            badClient.killConnection();
+            Thread.sleep(3000);
+            checkSend(received, client2);
+            connected = client2.isConnected();
+            System.out.println("\nclosing client 2");
+            client2.close();
+            Assert.assertTrue(connected);
+
+            Thread.sleep(3000);
+            Assert.assertEquals(app.getWebSockets().size(), 0, "There should be 0 clients connected");
+        } finally {
+            thread.stopEndpoint();
+        }
+
+    }
+
+    private WebSocket newClient(AtomicBoolean received) throws InterruptedException, ExecutionException, IOException {
+        WebSocket client = new BadClientWebSocketApplication().connect(ADDRESS).get();
+        client.add(new BadWebSocketListener(received));
+        checkSend(received, client);
+        return client;
+    }
+
+    private void checkSend(AtomicBoolean received, WebSocket client) throws IOException, InterruptedException {
+        received.set(false);
+        client.send("message");
+        Thread.sleep(1000);
+        Assert.assertTrue(received.get(), "Message should come back");
+    }
+
     private static class BadWebSocketClient extends ClientWebSocket {
         public BadWebSocketClient(NetworkHandler handler, WebSocketListener... listeners) {
             super(handler, listeners);
@@ -129,6 +197,35 @@ public class LifecycleTest {
 
         void killConnection() throws IOException {
             ((ClientNetworkHandler) getNetworkHandler()).shutdown();
+        }
+    }
+
+    private static class BadClientWebSocketApplication extends ClientWebSocketApplication {
+        public BadClientWebSocketApplication() throws IOException {
+        }
+
+        @Override
+        public WebSocket createSocket(NetworkHandler handler, WebSocketListener... listeners)
+                throws IOException {
+            return new BadWebSocketClient(handler, listeners);
+        }
+    }
+
+    private static class BadWebSocketListener implements WebSocketListener {
+        private final AtomicBoolean received;
+
+        public BadWebSocketListener(AtomicBoolean received) {
+            this.received = received;
+        }
+
+        public void onClose(WebSocket socket) throws IOException {
+        }
+
+        public void onConnect(WebSocket socket) throws IOException {
+        }
+
+        public void onMessage(WebSocket socket, DataFrame frame) throws IOException {
+            received.set(true);
         }
     }
 }
