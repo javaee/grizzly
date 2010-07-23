@@ -231,8 +231,9 @@ public final class FilterChainContext extends Context {
      *
      * @return message object, associated with the current processing.
      */
-    public Object getMessage() {
-        return message;
+    public <T> T getMessage() {
+        @SuppressWarnings("unchecked") T result = (T) message;
+        return result;
     }
 
     /**
