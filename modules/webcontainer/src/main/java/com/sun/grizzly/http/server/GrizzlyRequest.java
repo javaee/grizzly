@@ -854,9 +854,10 @@ public class GrizzlyRequest{
      * implementation returns a servlet input stream created by
      * <code>createInputStream()</code>.
      *
-     * @param async
+     * @param blocking if <code>true</code>, the <code>GrizzlyInputStream</code>
+     *  will only be usable in blocking mode.
      *
-     * @exception IllegalStateException if <code>getReader()</code> has
+     * @exception IllegalStateException if {@link #getReader(boolean)} has
      *  already been called for this request
      * @exception java.io.IOException if an input/output error occurs
      */
@@ -893,7 +894,7 @@ public class GrizzlyRequest{
      * 
      * @return
      */
-    public InputBuffer getInputBuffer() {
+    InputBuffer getInputBuffer() {
 
         return inputBuffer;
 
@@ -1029,9 +1030,10 @@ public class GrizzlyRequest{
      * default implementation wraps a <code>BufferedReader</code> around the
      * servlet input stream returned by <code>createInputStream()</code>.
      *
-     * @param async
+     * @param blocking if <code>true</code>, the <code>GrizzlyInputStream</code>
+     *  will only be usable in blocking mode.
      * 
-     * @exception IllegalStateException if <code>getInputStream()</code>
+     * @exception IllegalStateException if {@link #getInputStream(boolean)}
      *  has already been called for this request
      * @exception java.io.IOException if an input/output error occurs
      */
