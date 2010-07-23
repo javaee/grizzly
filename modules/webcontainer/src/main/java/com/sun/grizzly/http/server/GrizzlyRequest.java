@@ -59,10 +59,9 @@ import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
-import com.sun.grizzly.http.server.io.AsyncStreamReader;
+import com.sun.grizzly.http.server.io.GrizzlyInputStream;
 import com.sun.grizzly.http.server.io.InputBuffer;
-import com.sun.grizzly.http.server.io.RequestInputStream;
-import com.sun.grizzly.http.server.io.RequestReader;
+import com.sun.grizzly.http.server.io.GrizzlyReader;
 import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.ByteChunk;
 import com.sun.grizzly.http.util.CharChunk;
@@ -352,15 +351,15 @@ public class GrizzlyRequest{
     /**
      * GrizzlyInputStream.
      */
-    protected RequestInputStream inputStream;
-        //new RequestInputStream(inputBuffer);
+    protected GrizzlyInputStream inputStream;
+        //new GrizzlyInputStream(inputBuffer);
 
 
     /**
      * Reader.
      */
-    protected BufferedReader reader;
-            //new BufferedReader(new RequestReader(inputBuffer));
+    protected GrizzlyReader reader;
+            //new BufferedReader(new GrizzlyReader(inputBuffer));
 
 
     /**
@@ -655,7 +654,7 @@ public class GrizzlyRequest{
      */
     public InputStream getStream() {
         if (inputStream == null) {
-            inputStream = new RequestInputStream(inputBuffer);
+            inputStream = new GrizzlyInputStream(inputBuffer);
         }
         return inputStream;
     }
@@ -679,10 +678,10 @@ public class GrizzlyRequest{
      *
      * @exception java.io.IOException if an input/output error occurs
      */
-    public RequestInputStream createInputStream()
+    public GrizzlyInputStream createInputStream()
         throws IOException {
         if (inputStream == null) {
-            inputStream = new RequestInputStream(inputBuffer);
+            inputStream = new GrizzlyInputStream(inputBuffer);
         }
         return inputStream;
     }
@@ -855,55 +854,49 @@ public class GrizzlyRequest{
      * implementation returns a servlet input stream created by
      * <code>createInputStream()</code>.
      *
+     * @param async
+     *
      * @exception IllegalStateException if <code>getReader()</code> has
      *  already been called for this request
      * @exception java.io.IOException if an input/output error occurs
      */
-    public RequestInputStream getInputStream() throws IOException {
+    public GrizzlyInputStream getInputStream(boolean blocking) throws IOException {
 
-        if (usingReader || isUsingAsyncStreamReader())
+        if (usingReader)
             throw new IllegalStateException
                 (sm.getString("request.getInputStream.ise"));
 
         usingInputStream = true;
         if (inputStream == null) {
-            inputStream = new RequestInputStream(inputBuffer);
+            inputBuffer.setAsyncEnabled(!blocking);
+            inputStream = new GrizzlyInputStream(inputBuffer);
         }
         return inputStream;
 
     }
 
-    private AsyncStreamReader streamReader = null;
-
 
     /**
-     * @return an {@link AsyncStreamReader} in which request data can be
-     *  read in an asynchronous fashion.
+     * TODO: Documentation
      *
-     * @throws IOException if an I/O error occurs.
-     * @throws IllegalStateException if {@link #getInputStream()} or
-     *  {@link #getReader()} have been invoked before this method has
-     *  been called.
+     * @return
      */
-    public AsyncStreamReader getAsyncStreamReader() throws IOException {
+    public boolean asyncInput() {
 
-        if (usingInputStream || usingReader) {
-            throw new IllegalStateException();
-        }
-        if (streamReader == null) {
-            streamReader = new AsyncStreamReader(initialRequestContent, ctx);
-        }
-        return streamReader;
-
+        return inputBuffer.isAsyncEnabled();
+        
     }
 
 
     /**
-     * @return <code>true</code> if this this request is using asynchronous
-     *  stream semantics.
+     * TODO: Documentation
+     * 
+     * @return
      */
-    public boolean isUsingAsyncStreamReader() {
-        return (streamReader != null);
+    public InputBuffer getInputBuffer() {
+
+        return inputBuffer;
+
     }
 
 
@@ -1036,13 +1029,15 @@ public class GrizzlyRequest{
      * default implementation wraps a <code>BufferedReader</code> around the
      * servlet input stream returned by <code>createInputStream()</code>.
      *
+     * @param async
+     * 
      * @exception IllegalStateException if <code>getInputStream()</code>
      *  has already been called for this request
      * @exception java.io.IOException if an input/output error occurs
      */
-    public BufferedReader getReader() throws IOException {
+    public GrizzlyReader getReader(boolean blocking) throws IOException {
 
-        if (usingInputStream || isUsingAsyncStreamReader())
+        if (usingInputStream)
             throw new IllegalStateException
                 (sm.getString("request.getReader.ise"));
 
@@ -1050,7 +1045,8 @@ public class GrizzlyRequest{
         //inputBuffer.checkConverter();
         if (reader == null) {
             inputBuffer.processingChars();
-            reader = new BufferedReader(new RequestReader(inputBuffer));
+            inputBuffer.setAsyncEnabled(!blocking);
+            reader = new GrizzlyReader(inputBuffer);
         }
         return reader;
 

@@ -55,9 +55,9 @@ import com.sun.grizzly.http.server.GrizzlyListener;
 import com.sun.grizzly.http.server.GrizzlyRequest;
 import com.sun.grizzly.http.server.GrizzlyResponse;
 import com.sun.grizzly.http.server.GrizzlyWebServer;
-import com.sun.grizzly.http.server.GrizzlyAdapter;
-import com.sun.grizzly.http.server.io.AsyncStreamReader;
-import com.sun.grizzly.http.server.io.DataAvailableHandler;
+import com.sun.grizzly.http.server.io.DataHandler;
+import com.sun.grizzly.http.server.io.GrizzlyInputStream;
+import com.sun.grizzly.http.server.io.GrizzlyReader;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
@@ -76,7 +76,7 @@ import java.util.logging.Logger;
 /**
  * Test case to exercise <code>AsyncStreamReader</code>.
  */
-public class AsyncStreamReaderTest extends TestCase {
+public class AsyncInputSourcesTest extends TestCase {
 
     private static final char[] ALPHA = "abcdefghijklmnopqrstuvwxyz".toCharArray();
     private static final int PORT = 8030;
@@ -85,7 +85,7 @@ public class AsyncStreamReaderTest extends TestCase {
 
 
     /*
-     * <em>POST</em> a message body with a lenght of 5000 bytes.
+     * <em>POST</em> a message body with a length of 5000 bytes.
      */
     public void testBasicAsyncRead() throws Throwable {
 
@@ -159,6 +159,126 @@ public class AsyncStreamReaderTest extends TestCase {
     }
 
     public void testBasicAsyncReadSpecifiedSizeSlowClient() throws Throwable {
+
+        final FutureImpl<String> testResult = SafeFutureImpl.create();
+        final GrizzlyAdapter adapter = new EchoAdapter(testResult, 2000);
+        final String expected = buildString(5000);
+        final HttpPacket request = createRequest("POST", expected);
+        final WriteStrategy strategy = new WriteStrategy() {
+            @Override
+            public void doWrite(FilterChainContext ctx) throws IOException {
+
+                HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+                b.method("POST").protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+                b.contentLength(expected.length());
+                HttpRequestPacket request = b.build();
+                ctx.write(request);
+                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+
+                for (int i = 0, count = (5000 / 1000); i < count; i++) {
+                    int start = 0;
+                    if (i != 0) {
+                        start = i * 1000;
+                    }
+                    int end = start + 1000;
+                    String content = expected.substring(start, end);
+                    Buffer buf = mm.allocate(content.length());
+                    buf.put(content.getBytes());
+                    buf.flip();
+                    HttpContent.Builder cb = request.httpContentBuilder();
+                    cb.content(buf);
+                    HttpContent ct = cb.build();
+                    ctx.write(ct);
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException ie) {
+                        ie.printStackTrace();
+                        testResult.failure(ie);
+                        break;
+                    }
+                }
+            }
+        };
+        doTest(adapter, request, expected, testResult, strategy, 30);
+
+    }
+
+
+    /*
+     * <em>POST</em> a message body with a length of 5000 bytes.
+     */
+    public void testBasicAsyncReadChar() throws Throwable {
+
+        final FutureImpl<String> testResult = SafeFutureImpl.create();
+        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 0);
+        final String expected = buildString(5000);
+        final HttpPacket request = createRequest("POST", expected);
+        doTest(adapter, request, expected, testResult, null, 30);
+
+    }
+
+
+    /*
+     * <em>POST</em> a message body with a length of 5000 bytes.
+     * Adapter calls {@link AsyncStreamReader#
+     */
+    public void testBasicAsyncReadCharSpecifiedSize() throws Throwable {
+
+        final FutureImpl<String> testResult = SafeFutureImpl.create();
+        final GrizzlyAdapter adapter = new CharacterEchoAdapter(testResult, 1000);
+        final String expected = buildString(5000);
+        final HttpPacket request = createRequest("POST", expected);
+        doTest(adapter, request, expected, testResult, null, 10);
+
+    }
+
+
+    public void testBasicAsyncReadCharSlowClient() throws Throwable {
+
+        final FutureImpl<String> testResult = SafeFutureImpl.create();
+        final GrizzlyAdapter adapter = new EchoAdapter(testResult, 0);
+        final String expected = buildString(5000);
+        final HttpPacket request = createRequest("POST", expected);
+        final WriteStrategy strategy = new WriteStrategy() {
+            @Override
+            public void doWrite(FilterChainContext ctx) throws IOException {
+
+                HttpRequestPacket.Builder b = HttpRequestPacket.builder();
+                b.method("POST").protocol(HttpCodecFilter.HTTP_1_1).uri("/path").chunked(false).header("Host", "localhost:" + PORT);
+                b.contentLength(expected.length());
+                HttpRequestPacket request = b.build();
+                ctx.write(request);
+                MemoryManager mm = ctx.getConnection().getTransport().getMemoryManager();
+
+                for (int i = 0, count = (5000 / 1000); i < count; i++) {
+                    int start = 0;
+                    if (i != 0) {
+                        start = i * 1000;
+                    }
+                    int end = start + 1000;
+                    String content = expected.substring(start, end);
+                    Buffer buf = mm.allocate(content.length());
+                    buf.put(content.getBytes());
+                    buf.flip();
+                    HttpContent.Builder cb = request.httpContentBuilder();
+                    cb.content(buf);
+                    HttpContent ct = cb.build();
+                    ctx.write(ct);
+                    try {
+                        Thread.sleep(3000);
+                    } catch (InterruptedException ie) {
+                        ie.printStackTrace();
+                        testResult.failure(ie);
+                        break;
+                    }
+                }
+            }
+        };
+        doTest(adapter, request, expected, testResult, strategy, 30);
+
+    }
+
+    public void testBasicAsyncReadcharSpecifiedSizeSlowClient() throws Throwable {
 
         final FutureImpl<String> testResult = SafeFutureImpl.create();
         final GrizzlyAdapter adapter = new EchoAdapter(testResult, 2000);
@@ -346,7 +466,7 @@ public class AsyncStreamReaderTest extends TestCase {
                 throws Exception {
 
             try {
-                final AsyncStreamReader reader = req.getAsyncStreamReader();
+                final GrizzlyInputStream reader = req.getInputStream(false);
                 int available = reader.available();
                 if (available > 0) {
                     byte[] b = new byte[available];
@@ -357,11 +477,15 @@ public class AsyncStreamReaderTest extends TestCase {
                     return;
                 }
                 final StringBuilder sb = new StringBuilder();
-                reader.notifyAvailable(new DataAvailableHandler() {
+                reader.notifyAvailable(new DataHandler() {
 
                     @Override
                     public void onDataAvailable() {
-                        buffer(reader, sb);
+                        try {
+                            buffer(reader, sb);
+                        } catch (IOException ioe) {
+                            testResult.failure(ioe);
+                        }
                         //reader.notifyAvailable(this, readSize);
                     }
 
@@ -377,11 +501,15 @@ public class AsyncStreamReaderTest extends TestCase {
 
                     @Override
                     public void onAllDataRead() {
-                        buffer(reader, sb);
+                        try {
+                            buffer(reader, sb);
+                        } catch (IOException ioe) {
+                            testResult.failure(ioe);
+                        }
                         try {
                             res.getOutputStream().write(sb.toString().getBytes());
                         } catch (Exception e) {
-                            throw new RuntimeException(e);
+                            testResult.failure(e);
                         }
                         res.resume();
 
@@ -394,7 +522,7 @@ public class AsyncStreamReaderTest extends TestCase {
 
         }
 
-        private static void buffer(AsyncStreamReader reader, StringBuilder sb) {
+        private static void buffer(GrizzlyInputStream reader, StringBuilder sb) throws IOException {
             byte[] b = new byte[reader.available()];
             try {
                 reader.readByteArray(b);
@@ -409,6 +537,105 @@ public class AsyncStreamReaderTest extends TestCase {
         }
 
     } // END EchoAdapter
+
+
+    private static class CharacterEchoAdapter extends GrizzlyAdapter {
+
+        private final FutureImpl<String> testResult;
+        private final int readSize;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        CharacterEchoAdapter(final FutureImpl<String> testResult,
+                             final int readSize) {
+
+            this.testResult = testResult;
+            this.readSize = readSize;
+
+        }
+
+
+        // ----------------------------------------- Methods from GrizzlyAdapter
+
+        @Override
+        public void service(final GrizzlyRequest req,
+                            final GrizzlyResponse res)
+                throws Exception {
+
+            try {
+                final GrizzlyReader reader = req.getReader(false);
+                int available = reader.available();
+                if (available > 0) {
+                    char[] b = new char[available];
+                    reader.readCharArray(b);
+                    res.getWriter().write(b);
+                }
+                if (reader.isFinished()) {
+                    return;
+                }
+                final StringBuilder sb = new StringBuilder();
+                reader.notifyAvailable(new DataHandler() {
+
+                    @Override
+                    public void onDataAvailable() {
+                        try {
+                            buffer(reader, sb);
+                        } catch (IOException ioe) {
+                            testResult.failure(ioe);
+                        }
+                        //reader.notifyAvailable(this, readSize);
+                    }
+
+
+                    @Override
+                    public void onError(Throwable t) {
+
+                        testResult.failure(t);
+                        res.resume();
+
+                    }
+
+
+                    @Override
+                    public void onAllDataRead() {
+                        try {
+                            buffer(reader, sb);
+                        } catch (IOException ioe) {
+                            testResult.failure(ioe);
+                        }
+                        try {
+                            res.getWriter().write(sb.toString());
+                        } catch (Exception e) {
+                            testResult.failure(e);
+                        }
+                        res.resume();
+
+                    }
+                }, readSize);
+                res.suspend();
+            } catch (Throwable t) {
+                testResult.failure(t);
+            }
+
+        }
+
+        private static void buffer(GrizzlyReader reader, StringBuilder sb) throws IOException {
+            char[] c = new char[reader.available()];
+            try {
+                reader.readCharArray(c);
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
+            try {
+                sb.append(new String(c));
+            } catch (Throwable ioe) {
+                throw new RuntimeException(ioe);
+            }
+        }
+
+    } // END CharacterEchoAdapter
 
 
     private static class ClientFilter extends BaseFilter {

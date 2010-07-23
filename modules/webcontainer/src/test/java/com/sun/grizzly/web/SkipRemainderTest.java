@@ -115,7 +115,7 @@ public class SkipRemainderTest {
             @Override
             public void service(GrizzlyRequest req, GrizzlyResponse res)
                     throws Exception {
-                InputStream is = req.getInputStream();
+                InputStream is = req.getInputStream(true);
                 try {
                     for (int i = 0; i < contentSizeHalf; i++) {
                         int c = is.read();

@@ -47,6 +47,7 @@ import com.sun.grizzly.http.util.Utils;
 import com.sun.grizzly.memory.ByteBuffersBuffer;
 
 import java.io.IOException;
+import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 import java.nio.charset.*;
@@ -92,7 +93,7 @@ public class InputBuffer {
      * Composite {@link ByteBuffer} consisting of the bytes from the HTTP
      * message chunks.
      */
-    private ByteBuffersBuffer buffers;
+    private ByteBuffersBuffer compositeBuffer;
 
     /**
      * {@link CharBuffer} containing charset decoded bytes.  This is only
@@ -140,6 +141,26 @@ public class InputBuffer {
      */
     private ByteBuffer remainder;
 
+    /**
+     * TODO: Documentation
+     */
+    private boolean contentRead;
+
+    /**
+     * TODO: Documentation
+     */
+    private DataHandler handler;
+
+    /**
+     * TODO: Documentation
+     */
+    private int requestedSize;
+
+    /**
+     * TODO: Documentation
+     */
+    private boolean asyncEnabled;
+
 
 
     // ------------------------------------------------------------ Constructors
@@ -165,16 +186,14 @@ public class InputBuffer {
         this.request = request;
         this.ctx = ctx;
         connection = ctx.getConnection();
-        buffers = ByteBuffersBuffer.create(connection.getTransport().getMemoryManager());
+        compositeBuffer = ByteBuffersBuffer.create(connection.getTransport().getMemoryManager());
         Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
             HttpContent content = (HttpContent) ctx.getMessage();
-//            if (content.isLast()) {
-//                contentRead = true;
-//            }
             if (content.getContent().hasRemaining()) {
-                buffers.append(content.getContent());
+                compositeBuffer.append(content.getContent());
             }
+            contentRead = content.isLast();
         }
 
     }
@@ -187,7 +206,7 @@ public class InputBuffer {
      */
     public void recycle() {
 
-        buffers.tryDispose();
+        compositeBuffer.tryDispose();
 
         charBuf.clear();
 
@@ -195,13 +214,15 @@ public class InputBuffer {
         decoder = null;
         remainder = null;
         ctx = null;
+        handler = null;
 
         processingChars = false;
-//        contentRead = false;
         closed = false;
+        contentRead = false;
 
         markPos = -1;
         readAheadLimit = -1;
+        requestedSize = -1;
         readCount = 0;
 
         encoding = Constants.DEFAULT_CHARACTER_ENCODING;
@@ -226,8 +247,10 @@ public class InputBuffer {
         if (enc != null) {
             encoding = enc;
         }
-        remainder = buffers.toByteBuffer();
-        charBuf.flip();
+        if (compositeBuffer.remaining() > 0) {
+            remainder = compositeBuffer.toByteBuffer();
+            charBuf.flip();
+        }
 
     }
 
@@ -235,7 +258,9 @@ public class InputBuffer {
     // --------------------------------------------- InputStream-Related Methods
 
 
+
     /**
+     * This method always blocks.
      * @see java.io.InputStream#read()
      */
     public int readByte() throws IOException {
@@ -243,7 +268,7 @@ public class InputBuffer {
         if (closed) {
             throw new IOException();
         }
-        if (buffers.remaining() == 0) {
+        if (compositeBuffer.remaining() == 0) {
             if (fill(1) == -1) {
                 return -1;
             }
@@ -254,7 +279,7 @@ public class InputBuffer {
                 markPos = -1;
             }
         }
-        return buffers.get();
+        return compositeBuffer.get();
 
     }
 
@@ -262,30 +287,36 @@ public class InputBuffer {
     /**
      * @see java.io.InputStream#read(byte[], int, int)
      */
-    public int read(byte b[], int off, int len) throws IOException {
+    public int read(byte b[], int off, int len, boolean block) throws IOException {
 
         if (closed) {
             throw new IOException();
         }
+        if (block && asyncEnabled) {
+            throw new IllegalStateException("Non blocking read request made, however, stream is not configured for async processing");
+        }
         if (len == 0) {
             return 0;
         }
-        if (buffers.remaining() == 0) {
-            if (fill(len) == -1) {
-                return -1;
+        if (block) {
+            if (compositeBuffer.remaining() == 0) {
+                if (fill(len) == -1) {
+                    return -1;
+                }
+            }
+            if (compositeBuffer.remaining() < len) {
+                fill(len);
             }
         }
-        if (buffers.remaining() < len) {
-            fill(len);
-        }
-        int nlen = Math.min(buffers.remaining(), len);
+        int nlen = Math.min(compositeBuffer.remaining(), len);
         if (readAheadLimit != -1) {
             readCount += nlen;
             if (readCount > readAheadLimit) {
                 markPos = -1;
             }
         }
-        buffers.get(b, off, nlen);
+        compositeBuffer.get(b, off, nlen);
+        compositeBuffer.shrink();
         return nlen;
         
     }
@@ -296,7 +327,7 @@ public class InputBuffer {
      */
     public int available() throws IOException {
 
-        return ((closed) ? 0 : buffers.remaining());
+        return ((closed) ? 0 : compositeBuffer.remaining());
 
     }
 
@@ -307,7 +338,7 @@ public class InputBuffer {
     /**
      * @see java.io.Reader#read(java.nio.CharBuffer)
      */
-    public int read(CharBuffer target) throws IOException {
+    public int read(CharBuffer target, boolean block) throws IOException {
 
         if (closed) {
             throw new IOException();
@@ -315,9 +346,14 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        if (charBuf.remaining() == 0) {
-            if (fillChar(target.capacity()) == -1) {
-                return -1;
+        if (block && asyncEnabled) {
+            throw new IllegalStateException("Non blocking read request made, however, stream is not configured for async processing");
+        }
+        if (block) {
+            if (charBuf.remaining() == 0) {
+                if (fillChar(target.capacity(), block) == -1) {
+                    return -1;
+                }
             }
         }
         
@@ -340,7 +376,7 @@ public class InputBuffer {
             throw new IllegalStateException();
         }
         if (charBuf.remaining() == 0) {
-            if (fillChar(1) == -1) {
+            if (fillChar(1, true) == -1) {
                 return -1;
             }
         }
@@ -353,7 +389,8 @@ public class InputBuffer {
     /**
      * @see java.io.Reader#read(char[], int, int)
      */
-    public int read(char cbuf[], int off, int len) throws IOException {
+    public int read(char cbuf[], int off, int len, boolean block)
+    throws IOException {
 
         if (closed) {
             throw new IOException();
@@ -361,11 +398,14 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
+        if (block && asyncEnabled) {
+            throw new IllegalStateException("Non blocking read request made, however, stream is not configured for async processing");
+        }
         if (len == 0) {
             return 0;
         }
         if (charBuf.remaining() == 0) {
-            if (fillChar(len) == -1) {
+            if (fillChar(len, block) == -1) {
                 return -1;
             }
         }
@@ -393,12 +433,22 @@ public class InputBuffer {
     }
 
 
+    public int availableChar() {
+        CharsetDecoder decoder = getDecoder();
+        int remaining = compositeBuffer.remaining();
+        if (remaining == 0) {
+            return 0;
+        }
+        return ((Float.valueOf(remaining / decoder.averageCharsPerByte())).intValue());
+    }
+
+
     // ---------------------------------------------------- Common Input Methods
 
 
     /**
      * <p>
-     * Only supported with binary data.
+     * Not Supported.
      * </p>
      *
      * @see java.io.InputStream#mark(int)
@@ -408,7 +458,7 @@ public class InputBuffer {
         if (processingChars) {
             throw new IllegalStateException();
         }
-        markPos = buffers.position();
+        markPos = compositeBuffer.position();
         if (readAheadLimit > 0) {
             this.readAheadLimit = readAheadLimit;
         }
@@ -457,7 +507,7 @@ public class InputBuffer {
             }
             readCount = 0;
         }
-        buffers.position(markPos);
+        compositeBuffer.position(markPos);
 
     }
 
@@ -468,43 +518,55 @@ public class InputBuffer {
     public void close() throws IOException {
 
         closed = true;
-        buffers.dispose();
+        compositeBuffer.dispose();
 
     }
 
 
     /**
+     * TODO: Documentation
      * @see java.io.InputStream#skip(long)
      * @see java.io.Reader#skip(long)
      */
-    public long skip(long n) throws IOException {
+    public long skip(long n, boolean block) throws IOException {
 
         if (closed) {
             throw new IOException();
+        }
+
+        if (!block) {
+            if (n > compositeBuffer.remaining()) {
+                throw new IllegalStateException("Can not skip more bytes than available");
+            }
         }
 
         if (!processingChars) {
             if (n <= 0) {
                 return 0L;
             }
-            if (buffers.remaining() == 0) {
-                if (fill((int) n) == -1) {
-                    return -1;
+            if (block) {
+                if (compositeBuffer.remaining() == 0) {
+                    if (fill((int) n) == -1) {
+                        return -1;
+                    }
+                }
+                if (compositeBuffer.remaining() < n) {
+                    fill((int) n);
                 }
             }
-            if (buffers.remaining() < n) {
-                fill((int) n);
-            }
-            long nlen = Math.min(buffers.remaining(), n);
-            buffers.position(buffers.position() + (int) nlen);
+            long nlen = Math.min(compositeBuffer.remaining(), n);
+            compositeBuffer.position(compositeBuffer.position() + (int) nlen);
             return nlen;
         } else {
             if (n < 0) {
                 throw new IllegalArgumentException();
             }
+            if (n == 0) {
+                return 0L;
+            }
             if (charBuf.remaining() == 0) {
-                if (fillChar((int) n) == -1) {
-                    return -1;
+                if (fillChar((int) n, block) == -1) {
+                    return 0;
                 }
             }
             long nlen = Math.min(charBuf.remaining(), n);
@@ -515,12 +577,99 @@ public class InputBuffer {
     }
 
 
+    /**
+     * TODO: Documentation
+     */
+    public void finished() {
+        if (!contentRead) {
+            contentRead = true;
+            handler.onAllDataRead();
+        }
+    }
+
+
+    /**
+     * TODO: Documentation
+     * @return
+     */
+    public boolean isFinished() {
+        return contentRead;
+    }
+
+
+    /**
+     * TODO: Documentation
+     *
+     * @param handler
+     */
+    public void notifyAvailable(final DataHandler handler) {
+        notifyAvailable(handler, 0);
+    }
+
+
+    /**
+     * TODO: Documentation
+     *
+     * @param handler
+     * @param size
+     */
+    public void notifyAvailable(final DataHandler handler,
+                                final int size) {
+
+        if (closed) {
+            return;
+        }
+        requestedSize = size;
+        this.handler = handler;
+
+    }
+
+
+    /**
+     * TODO: Documentation
+     *
+     * @param buffer
+     *
+     * @return
+     */
+    public boolean append(final Buffer buffer) {
+
+        if (buffer == null) {
+            return true;
+        }
+
+        if (closed) {
+            buffer.dispose();
+        } else {
+            final int addSize = buffer.remaining();
+            if (addSize > 0) {
+                compositeBuffer.append(buffer);
+                if (compositeBuffer.remaining() > requestedSize) {
+                    handler.onDataAvailable();
+                    return true;
+                }
+            }
+        }
+
+        return false;
+        
+    }
+
+    public boolean isAsyncEnabled() {
+        return asyncEnabled;
+    }
+
+    public void setAsyncEnabled(boolean asyncEnabled) {
+        this.asyncEnabled = asyncEnabled;
+    }
+
+
     // --------------------------------------------------------- Private Methods
 
 
     /**
      * <p>
-     * Used to add additional http message chunk content to {@link #buffers}.
+     * Used to add additional http message chunk content to {@link #compositeBuffer}.
      * </p>
      *
      * @param requestedLen how much content should attempt to be read
@@ -540,7 +689,7 @@ public class InputBuffer {
                     HttpContent c = (HttpContent) rr.getMessage();
                     Buffer b = c.getContent();
                     read += b.remaining();
-                    buffers.append(c.getContent().toByteBuffer());
+                    compositeBuffer.append(c.getContent().toByteBuffer());
                 }
                 return read;
             } finally {
@@ -563,17 +712,26 @@ public class InputBuffer {
      *
      * @throws IOException if an I/O error occurs while reading content
      */
-    private int fillChar(int requestedLen) throws IOException {
+    private int fillChar(int requestedLen, boolean block) throws IOException {
 
-        if (remainder != null && remainder.remaining() > 0) {
+        if ((remainder != null && remainder.remaining() > 0) || !block) {
             CharsetDecoder decoderLocal = getDecoder();
             charBuf.compact();
             int curPos = charBuf.position();
-            CoderResult result = decoderLocal.decode(remainder, charBuf, false);
+            final ByteBuffer bb = ((remainder != null) ? remainder : compositeBuffer.toByteBuffer());
+            CoderResult result = decoderLocal.decode(bb, charBuf, false);
             int read = charBuf.position() - curPos;
             if (result == CoderResult.UNDERFLOW) {
-                remainder = null;
+                if (remainder == null) {
+                    compositeBuffer.position(compositeBuffer.position() + bb.limit());
+                    compositeBuffer.shrink();
+                } else {
+                    compositeBuffer.position(compositeBuffer.remaining());
+                    compositeBuffer.shrink();
+                    remainder = null;
+                }
             }
+
             charBuf.flip();
             return read;
         }
@@ -611,7 +769,7 @@ public class InputBuffer {
             } finally {
                 connection.configureBlocking(false);
             }
-        }
+        } 
         return -1;
 
     }
@@ -632,6 +790,18 @@ public class InputBuffer {
 
         return decoder;
 
+    }
+
+
+    /**
+     * TODO: Documentation
+     *
+     * @param sizeInBytes
+     */
+    private void arraySizeCheck(final int sizeInBytes) throws IOException {
+        if (sizeInBytes > available()) {
+            throw new BufferUnderflowException();
+        }
     }
 
 }

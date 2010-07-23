@@ -1,4 +1,4 @@
-package com.sun.grizzly.http.server.io;/*
+/*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
  * 
  * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
@@ -34,37 +34,56 @@ package com.sun.grizzly.http.server.io;/*
  * holder.
  */
 
-/**
- * <p>
- * This class represents a call-back mechanism that will notify implementations
- * as HTTP request data becomes available to read without blocking.
- * </p>
- *
- * @since 2.0
- */
-public interface DataAvailableHandler {
+package com.sun.grizzly.http.server.io;
 
-    /**
-     * <p>
-     * Invoked when data is available to be read without blocking.
-     * </p>
-     */
-    void onDataAvailable();
-
-    
-    /**
-     * <p>
-     * Invoked when an error occurs processing the request asynchronously.
-     * </p>
-     */
-    void onError(final Throwable t);
+import java.io.IOException;
+import java.io.Writer;
 
 
-    /**
-     * <p>
-     * Invoked when all data for the current request has been read.
-     * </p>
-     */
-    void onAllDataRead();
+public class GrizzlyWriter extends Writer {
 
+    private OutputBuffer outputBuffer;
+
+    // ------------------------------------------------------------ Constructors
+
+
+    public GrizzlyWriter(OutputBuffer outputBuffer) {
+
+        this.outputBuffer = outputBuffer;
+
+    }
+
+
+    // ----------------------------------------------------- Methods from Writer
+
+
+    @Override public void write(int c) throws IOException {
+        outputBuffer.writeChar(c);
+    }
+
+    @Override public void write(char[] cbuf) throws IOException {
+        outputBuffer.write(cbuf);
+    }
+
+    @Override public void write(char[] cbuf, int off, int len)
+          throws IOException {
+        outputBuffer.write(cbuf, off, len);
+    }
+
+    @Override public void write(String str) throws IOException {
+        outputBuffer.write(str);
+    }
+
+    @Override public void write(String str, int off, int len)
+          throws IOException {
+        outputBuffer.write(str, off, len);
+    }
+
+    @Override public void flush() throws IOException {
+        outputBuffer.flush();
+    }
+
+    @Override public void close() throws IOException {
+        outputBuffer.close();
+    }    
 }

@@ -1,8 +1,8 @@
 /*
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS HEADER.
- * 
+ *
  * Copyright 2010 Sun Microsystems, Inc. All rights reserved.
- * 
+ *
  * The contents of this file are subject to the terms of either the GNU
  * General Public License Version 2 only ("GPL") or the Common Development
  * and Distribution License("CDDL") (collectively, the "License").  You
@@ -10,7 +10,7 @@
  * a copy of the License at https://glassfish.dev.java.net/public/CDDL+GPL.html
  * or glassfish/bootstrap/legal/LICENSE.txt.  See the License for the specific
  * language governing permissions and limitations under the License.
- * 
+ *
  * When distributing the software, include this License Header Notice in each
  * file and include the License file at glassfish/bootstrap/legal/LICENSE.txt.
  * Sun designates this particular file as subject to the "Classpath" exception
@@ -19,9 +19,9 @@
  * Header, with the fields enclosed by brackets [] replaced by your own
  * identifying information: "Portions Copyrighted [year]
  * [name of copyright owner]"
- * 
+ *
  * Contributor(s):
- * 
+ *
  * If you wish your version of this file to be governed by only the CDDL or
  * only the GPL Version 2, indicate your decision by adding "[Contributor]
  * elects to include this software in this distribution under the [CDDL or GPL
@@ -36,44 +36,53 @@
 
 package com.sun.grizzly.http.server.io;
 
+
 import java.io.IOException;
-import java.io.OutputStream;
 
-public class ResponseOutputStream extends OutputStream {
-
-
-    private OutputBuffer outputBuffer;
-
-
-    // ------------------------------------------------------------ Constructors
-
-
-    public ResponseOutputStream(OutputBuffer outputBuffer) {
-        this.outputBuffer = outputBuffer;
-    }
+/**
+ * <p>
+ * This interface defines methods to read binary content without blocking.
+ * </p>
+ *
+ * @since 2.0
+ */
+public interface AsyncInputStream extends AsyncInputSource {
 
 
-    // ------------------------------------------------ Methods from OuputStream
+    /**
+     * <p>
+     * Reads the bytes that are available without blocking into the specified
+     * <code>byte array</code>.
+     * </p>
+     *
+     * @param data the <code>byte array</code> to read the bytes into.
+     *
+     * @return the number of bytes actually read.  This may be less than
+     *  the length of the specified <code>byte array</code>.
+     *
+     * @throws IOException if I/O error occurs.
+     */
+    int readByteArray(final byte[] data) throws IOException;
 
 
-    @Override public void write(int b) throws IOException {
-        outputBuffer.writeByte(b);
-    }
+    /**
+     * <p>
+     * Reads the bytes that are available without blocking into the specified
+     * <code>byte array</code>.
+     * </p>
+     * 
+     * @param data the <code>byte array</code> to read the bytes into.
+     * @param offset the start offset in the specified array at which the
+     *  data is written.
+     * @param length the maximum number of bytes to read.
+     *
+     * @return the number of bytes actually read.  This may be less than
+     *  the specified length.
+     *
+     * @throws IOException if an I/O error occurs.
+     */
+    int readByteArray(final byte[] data, final int offset, final int length)
+    throws IOException;
 
-    @Override public void write(byte[] b) throws IOException {
-        outputBuffer.write(b);
-    }
-
-    @Override public void write(byte[] b, int off, int len) throws IOException {
-        outputBuffer.write(b, off, len);
-    }
-
-    @Override public void flush() throws IOException {
-        outputBuffer.flush();
-    }
-
-    @Override public void close() throws IOException {
-        outputBuffer.close();
-    }
     
 }

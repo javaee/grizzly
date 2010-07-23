@@ -121,7 +121,7 @@ public class WebServerFilter extends BaseFilter {
                     if (!suspendStatus.get()) {
                         afterService(ctx, grizzlyRequest, grizzlyResponse);
                     } else {
-                        if (grizzlyRequest.isUsingAsyncStreamReader()) {
+                        if (grizzlyRequest.asyncInput()) {
                             return ctx.getSuspendingStopAction();
                         } else {
                             return ctx.getSuspendAction();
@@ -129,12 +129,12 @@ public class WebServerFilter extends BaseFilter {
                     }
                 }
             } else {
-                if (grizzlyRequest.isUsingAsyncStreamReader()) {
-                    if (!grizzlyRequest.getAsyncStreamReader().isFinished()) {
+                if (grizzlyRequest.asyncInput()) {
+                    if (!grizzlyRequest.getInputBuffer().isFinished()) {
 
                         final Buffer content = httpContent.getContent();
 
-                        if (!content.hasRemaining() || !grizzlyRequest.getAsyncStreamReader().append(content)) {
+                        if (!content.hasRemaining() || !grizzlyRequest.getInputBuffer().append(content)) {
                             if (!httpContent.isLast()) {
                                 // need more data?
                                 return ctx.getStopAction();
@@ -142,7 +142,7 @@ public class WebServerFilter extends BaseFilter {
 
                         }
                         if (httpContent.isLast()) {
-                            grizzlyRequest.getAsyncStreamReader().finished();
+                            grizzlyRequest.getInputBuffer().finished();
                             // we have enough data? - terminate filter chain execution
                             final NextAction action = ctx.getSuspendAction();
                             ctx.recycle();

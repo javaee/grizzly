@@ -36,15 +36,17 @@
 
 package com.sun.grizzly.http.server.io;
 
+import com.sun.grizzly.Buffer;
+
 import java.io.IOException;
-import java.io.Reader;
-import java.nio.CharBuffer;
+import java.io.InputStream;
 
 /**
- * {@link Reader} implementation to be used to read character-based request
- * content.
+ * {@link InputStream} implementation to be used to read binary request content.
+ *
+ * @since 2.0
  */
-public class RequestReader extends Reader {
+public class GrizzlyInputStream extends InputStream implements AsyncInputStream {
 
     private final InputBuffer inputBuffer;
 
@@ -53,85 +55,55 @@ public class RequestReader extends Reader {
 
 
     /**
-     * Constructs a new <code>RequestReader</code> using the specified
+     * Constructs a new <code>GrizzlyInputStream</code> using the specified
      * {@link #inputBuffer}
-     * @param inputBuffer the <code>InputBuffer</code> from which character
-     *  content will be supplied
+     * @param inputBuffer the <code>InputBuffer</code> from which binary content
+     *  will be supplied
      */
-    public RequestReader(InputBuffer inputBuffer) {
+    public GrizzlyInputStream(InputBuffer inputBuffer) {
 
         this.inputBuffer = inputBuffer;
 
     }
 
 
-    // ----------------------------------------------------- Methods from Reader
+    // ------------------------------------------------ Methods from InputStream
 
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public int read(CharBuffer target) throws IOException {
-        return inputBuffer.read(target);
-    }
 
     /**
      * {@inheritDoc}
      */
     @Override public int read() throws IOException {
-        return inputBuffer.readChar();
+        return inputBuffer.readByte();
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public int read(byte[] b) throws IOException {
+        return inputBuffer.read(b, 0, b.length, true);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public int read(char[] cbuf) throws IOException {
-        return inputBuffer.read(cbuf, 0, cbuf.length);
+    @Override public int read(byte[] b, int off, int len) throws IOException {
+        return inputBuffer.read(b, off, len, true);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override public long skip(long n) throws IOException {
-        return inputBuffer.skip(n);
+        return inputBuffer.skip(n, true);
     }
 
     /**
      * {@inheritDoc}
      */
-    @Override public boolean ready() throws IOException {
-        return inputBuffer.ready();
-    }
-
-    /**
-     * This {@link Reader} implementation does not support marking.
-     *
-     * @return <code>false</code>
-     */
-    @Override public boolean markSupported() {
-        return false;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void mark(int readAheadLimit) throws IOException {
-        throw new IOException();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public void reset() throws IOException {
-        throw new IOException();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override public int read(char[] cbuf, int off, int len)
-    throws IOException {
-        return inputBuffer.read(cbuf, off, len);
+    @Override public int available() throws IOException {
+        return inputBuffer.available();
     }
 
     /**
@@ -141,4 +113,71 @@ public class RequestReader extends Reader {
         inputBuffer.close();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override public void mark(int readlimit) {
+        inputBuffer.mark(readlimit);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override public void reset() throws IOException {
+        inputBuffer.reset();
+    }
+
+    /**
+     * This {@link InputStream} implementation supports marking.
+     *
+     * @return <code>true</code>
+     */
+    @Override public boolean markSupported() {
+        return inputBuffer.markSupported();
+    }
+
+
+    // ------------------------------------------- Methods from AsyncInputStream
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int readByteArray(byte[] data) throws IOException {
+        return inputBuffer.read(data, 0, data.length, false);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int readByteArray(byte[] data, int offset, int length) throws IOException {
+        return inputBuffer.read(data, offset, length, false);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyAvailable(DataHandler handler) {
+        inputBuffer.notifyAvailable(handler);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyAvailable(DataHandler handler, int size) {
+        inputBuffer.notifyAvailable(handler, size);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isFinished() {
+        return inputBuffer.isFinished();
+    }
+    
 }

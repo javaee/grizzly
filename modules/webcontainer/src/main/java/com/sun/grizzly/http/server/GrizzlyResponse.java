@@ -59,9 +59,9 @@ import com.sun.grizzly.Connection;
 import com.sun.grizzly.ThreadCache;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.http.server.io.GrizzlyOutputStream;
+import com.sun.grizzly.http.server.io.GrizzlyWriter;
 import com.sun.grizzly.http.server.io.OutputBuffer;
-import com.sun.grizzly.http.server.io.ResponseOutputStream;
-import com.sun.grizzly.http.server.io.ResponseWriter;
 import com.sun.grizzly.http.util.CharChunk;
 import com.sun.grizzly.http.util.Cookie;
 import com.sun.grizzly.http.util.FastHttpDateFormat;
@@ -198,7 +198,7 @@ public class GrizzlyResponse {
     // START OF SJSAS 6231069
     /*protected GrizzlyOutputStream outputStream =
         new GrizzlyOutputStream(outputBuffer);*/
-    protected ResponseOutputStream outputStream;
+    protected GrizzlyOutputStream outputStream;
     // END OF SJSAS 6231069
 
     /**
@@ -526,7 +526,7 @@ public class GrizzlyResponse {
      */
     public OutputStream getStream() {
         if (outputStream == null) {
-            outputStream = new ResponseOutputStream(outputBuffer);
+            outputStream = new GrizzlyOutputStream(outputBuffer);
         }
         return outputStream;
     }
@@ -596,11 +596,11 @@ public class GrizzlyResponse {
      *
      * @exception java.io.IOException if an input/output error occurs
      */
-    public ResponseOutputStream createOutputStream()
+    public GrizzlyOutputStream createOutputStream()
         throws IOException {
         // Probably useless
         if (outputStream == null) {
-            outputStream = new ResponseOutputStream(outputBuffer);
+            outputStream = new GrizzlyOutputStream(outputBuffer);
         }
         return outputStream;
     }
@@ -719,7 +719,7 @@ public class GrizzlyResponse {
      *  already been called for this response
      * @exception java.io.IOException if an input/output error occurs
      */
-    public ResponseOutputStream getOutputStream()
+    public GrizzlyOutputStream getOutputStream()
         throws IOException {
 
         if (usingWriter)
@@ -728,7 +728,7 @@ public class GrizzlyResponse {
 
         usingOutputStream = true;
         if (outputStream == null) {
-            outputStream = new ResponseOutputStream(outputBuffer);
+            outputStream = new GrizzlyOutputStream(outputBuffer);
         }
         return outputStream;
 
@@ -779,7 +779,7 @@ public class GrizzlyResponse {
         //outputBuffer.checkConverter();
         if (writer == null) {
             outputBuffer.processingChars();
-            writer = new PrintWriter(new ResponseWriter(outputBuffer));
+            writer = new PrintWriter(new GrizzlyWriter(outputBuffer));
         }
         return writer;
 
