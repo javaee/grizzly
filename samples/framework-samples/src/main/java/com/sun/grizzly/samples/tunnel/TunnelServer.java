@@ -41,6 +41,7 @@ package com.sun.grizzly.samples.tunnel;
 import com.sun.grizzly.TransportFactory;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.TransportFilter;
+import com.sun.grizzly.nio.transport.TCPNIOConnectorHandler;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -68,7 +69,8 @@ public class TunnelServer {
         // Add TransportFilter, which is responsible
         // for reading and writing data to the connection
         filterChainBuilder.add(new TransportFilter());
-        filterChainBuilder.add(new TunnelFilter(transport,
+        filterChainBuilder.add(new TunnelFilter(
+                new TCPNIOConnectorHandler(transport),
                 REDIRECT_HOST, REDIRECT_PORT));
         
         transport.setProcessor(filterChainBuilder.build());
