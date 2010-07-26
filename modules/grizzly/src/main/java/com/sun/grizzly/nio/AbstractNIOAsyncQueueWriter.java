@@ -78,9 +78,32 @@ public abstract class AbstractNIOAsyncQueueWriter
     
     protected final NIOTransport transport;
 
+    protected volatile int maxQueuedWrites = Integer.MAX_VALUE;
+
     public AbstractNIOAsyncQueueWriter(NIOTransport transport) {
         this.transport = transport;
     }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean canWrite(Connection connection) {
+        final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
+                ((AbstractNIOConnection) connection).getAsyncWriteQueue();
+        return ((connectionQueue.getQueue().size() + 1) <= maxQueuedWrites);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void setMaxQueuedWritesPerConnection(int maxQueuedWrites) {
+        this.maxQueuedWrites = maxQueuedWrites;
+    }
+
 
     /**
      * {@inheritDoc}
@@ -211,6 +234,9 @@ public abstract class AbstractNIOAsyncQueueWriter
                 } else {  // if queue wasn't empty
                     if (isLogFine) {
                         logger.log(Level.FINEST, "AsyncQueueWriter.write queue record. connection=" + connection + " record=" + queueRecord);
+                    }
+                    if ((connectionQueue.getQueue().size() + 1) > maxQueuedWrites) {
+                        throw new PendingWriteQueueLimitExceededException();
                     }
                     connectionQueue.getQueue().offer(queueRecord);
 
@@ -560,4 +586,9 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     protected abstract void onReadyToWrite(Connection connection)
             throws IOException;
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
 }

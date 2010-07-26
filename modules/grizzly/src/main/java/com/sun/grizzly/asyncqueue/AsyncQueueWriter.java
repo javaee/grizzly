@@ -76,11 +76,30 @@ public interface AsyncQueueWriter<L>
      *         result
      * @throws java.io.IOException
      */
-    public <M> Future<WriteResult<M, L>> write(
-            Connection connection, L dstAddress,
-            M message,
-            CompletionHandler<WriteResult<M, L>> completionHandler,
-            Transformer<M, Buffer> transformer,
-            Interceptor<WriteResult> interceptor,
-            MessageCloner<M> cloner) throws IOException;
+    <M> Future<WriteResult<M, L>> write(Connection connection,
+                                        L dstAddress,
+                                        M message,
+                                        CompletionHandler<WriteResult<M, L>> completionHandler,
+                                        Transformer<M, Buffer> transformer,
+                                        Interceptor<WriteResult> interceptor,
+                                        MessageCloner<M> cloner) throws IOException;
+
+    /**
+     * @param connection the {@link Connection} to test whether or not we can
+     *  successfully write
+     * 
+     * @return <code>true</code> if the queue has not exceeded it's maximum
+     *  number of pending writes, otherwise <code>false</code>
+     */
+    boolean canWrite(final Connection connection);
+
+    /**
+     * Configures the maximum number of pending writes that may be queued
+     * for a particular {@link Connection}.
+     *
+     * @param maxQueuedWrites maximum number of pending writes that may be
+     *  queued for a particular {@link Connection}
+     */
+    void setMaxQueuedWritesPerConnection(final int maxQueuedWrites);
+    
 }

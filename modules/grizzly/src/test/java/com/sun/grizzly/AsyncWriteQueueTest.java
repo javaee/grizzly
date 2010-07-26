@@ -36,6 +36,7 @@
 
 package com.sun.grizzly;
 
+import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -52,11 +53,14 @@ import java.util.concurrent.TimeUnit;
 import com.sun.grizzly.filterchain.TransportFilter;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
-import com.sun.grizzly.nio.transport.TCPNIOConnection;
+import com.sun.grizzly.nio.AbstractNIOConnection;
+import com.sun.grizzly.nio.PendingWriteQueueLimitExceededException;
 import com.sun.grizzly.nio.transport.TCPNIOTransport;
 import com.sun.grizzly.streams.StreamReader;
 import com.sun.grizzly.streams.StreamWriter;
 import com.sun.grizzly.utils.EchoFilter;
+
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -100,7 +104,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             transport.start();
 
             Future<Connection> future = transport.connect("localhost", PORT);
-            connection = (TCPNIOConnection) future.get(10, TimeUnit.SECONDS);
+            connection = future.get(10, TimeUnit.SECONDS);
             assertTrue(connection != null);
 
             connection.configureStandalone(true);
@@ -193,6 +197,97 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                 connection.close();
             }
 
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+
+    public void testAsyncWriteQueueLimits() throws Exception {
+
+        Connection connection = null;
+        final int packetSize = 256000;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+        
+
+        TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
+
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.configureStandalone(true);
+
+            final AsyncQueueWriter asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
+            asyncQueueWriter.setMaxQueuedWritesPerConnection(20);
+            final MemoryManager mm = transport.getMemoryManager();
+            final Connection con = connection;
+
+            final AtomicBoolean failed = new AtomicBoolean(false);
+            transport.pause();
+            int i = 0;
+            int loopCount = 0;
+            final AtomicBoolean exceptionThrown = new AtomicBoolean(false);
+            final AtomicInteger exceptionAtLoopCount = new AtomicInteger();
+            while (!failed.get() && loopCount < 4) {
+                final int lc = loopCount;
+                final byte b = (byte) i;
+                byte[] originalMessage = new byte[packetSize];
+                        Arrays.fill(originalMessage, b);
+                        Buffer buffer = MemoryUtils.wrap(mm, originalMessage);
+                        try {
+                            if (asyncQueueWriter.canWrite(con)) {
+                                asyncQueueWriter.write(con, buffer);
+                            } else {
+                                if (loopCount == 3) {
+                                    asyncQueueWriter.write(con, buffer,
+                                            new EmptyCompletionHandler() {
+                                                @Override
+                                                public void failed(Throwable throwable) {
+                                                    if (throwable instanceof PendingWriteQueueLimitExceededException) {
+                                                        exceptionThrown.compareAndSet(false, true);
+                                                        exceptionAtLoopCount.set(lc);
+                                                        assertEquals(20, ((AbstractNIOConnection) con).getAsyncWriteQueue().getQueue().size());
+                                                    }
+                                                    failed.compareAndSet(false, true);
+                                                }
+                                            });
+                                } else {
+                                    loopCount++;
+                                    transport.resume();
+                                    Thread.sleep(5000);
+                                    transport.pause();
+                                }
+                            }
+                        } catch (IOException e) {
+
+                                assertTrue("IOException occurred: " + e.toString(), false);
+
+                        }
+                i++;
+            }
+
+            if (!exceptionThrown.get()) {
+                fail("No Exception thrown when queue write limit exceeded");
+            }
+            if (exceptionAtLoopCount.get() != 3) {
+                fail("Expected exception to occur at 4th iteration of test loop.  Occurred at: " + exceptionAtLoopCount);
+            }
+
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+            if (transport.isPaused()) {
+                transport.resume();
+            }
             transport.stop();
             TransportFactory.getInstance().close();
         }
