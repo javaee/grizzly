@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.nio.transport;
 
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.nio.SelectorRunner;
@@ -177,6 +178,28 @@ public class UDPNIOConnection extends AbstractNIOConnection {
         } catch (IOException e) {
             logger.log(Level.WARNING, "Error setting write buffer size", e);
         }
+    }
+
+    /**
+     * Method will be called, when the connection gets connected.
+     * @throws IOException
+     */
+    protected final void onConnect() throws IOException {
+        notifyProbesConnect(this);
+    }
+    
+    /**
+     * Method will be called, when some data was read on the connection
+     */
+    protected final void onRead(Buffer data, int size) {
+        notifyProbesRead(this, data, size);
+    }
+
+    /**
+     * Method will be called, when some data was written on the connection
+     */
+    protected final void onWrite(Buffer data, int size) {
+        notifyProbesWrite(this, data, size);
     }
 }
     

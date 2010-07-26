@@ -38,7 +38,9 @@
 
 package com.sun.grizzly.nio;
 
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.ConnectionMonitoringProbe;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.Transport;
@@ -62,7 +64,9 @@ import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.impl.ReadyFutureImpl;
+import com.sun.grizzly.utils.ArrayUtils;
 import com.sun.grizzly.utils.LinkedTransferQueue;
+import java.util.Arrays;
 import java.util.Queue;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -103,6 +107,15 @@ public abstract class AbstractNIOConnection implements NIOConnection {
 
     private final Queue<CloseListener> closeListeners =
             new LinkedTransferQueue<CloseListener>();
+
+    /**
+     * Sync object for monitoringProbes access
+     */
+    private final Object monitoringProbesSync = new Object();
+    /**
+     * Connection probes
+     */
+    private volatile ConnectionMonitoringProbe[] monitoringProbes;
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;
@@ -317,6 +330,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
         if (!isClosed.getAndSet(true)) {
             preClose();
             notifyCloseListeners();
+            notifyProbesClose(this);
             return transport.getSelectorHandler().executeInSelectorThread(
                     selectorRunner, new Runnable() {
 
@@ -365,6 +379,150 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     @Override
     public boolean removeCloseListener(CloseListener closeListener) {
         return closeListeners.remove(closeListener);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyConnectionError(Throwable error) {
+        notifyProbesError(this, error);
+    }
+
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addMonitoringProbe(ConnectionMonitoringProbe probe) {
+        synchronized(monitoringProbesSync) {
+            monitoringProbes = ArrayUtils.addUnique(monitoringProbes, probe);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean removeMonitoringProbe(ConnectionMonitoringProbe probe) {
+        synchronized(monitoringProbesSync) {
+            final ConnectionMonitoringProbe[] probes = monitoringProbes;
+            monitoringProbes = ArrayUtils.remove(monitoringProbes, probe);
+
+            return probes != monitoringProbes;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ConnectionMonitoringProbe[] getMonitoringProbes() {
+        final ConnectionMonitoringProbe[] probes = monitoringProbes;
+        if (probes != null) {
+            return Arrays.copyOf(probes, probes.length);
+        }
+
+        return null;
+    }
+
+    /**
+     * Notify registered {@link ConnectionMonitoringProbe}s about the bind event.
+     *
+     * @param connection the <tt>Connection</tt> event occurred on.
+     */
+    protected static void notifyProbesBind(AbstractNIOConnection connection) {
+        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        if (probes != null) {
+            for (ConnectionMonitoringProbe probe : probes) {
+                probe.onBindEvent(connection);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link ConnectionMonitoringProbe}s about the accept event.
+     *
+     * @param connection the <tt>Connection</tt> event occurred on.
+     */
+    protected static void notifyProbesAccept(AbstractNIOConnection connection) {
+        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        if (probes != null) {
+            for (ConnectionMonitoringProbe probe : probes) {
+                probe.onAcceptEvent(connection);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link ConnectionMonitoringProbe}s about the connect event.
+     *
+     * @param connection the <tt>Connection</tt> event occurred on.
+     */
+    protected static void notifyProbesConnect(AbstractNIOConnection connection) {
+        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        if (probes != null) {
+            for (ConnectionMonitoringProbe probe : probes) {
+                probe.onConnectEvent(connection);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link ConnectionMonitoringProbe}s about the read event.
+     */
+    protected static void notifyProbesRead(AbstractNIOConnection connection,
+            Buffer data, int size) {
+        
+        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        if (probes != null) {
+            for (ConnectionMonitoringProbe probe : probes) {
+                probe.onReadEvent(connection, data, size);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link ConnectionMonitoringProbe}s about the write event.
+     */
+    protected static void notifyProbesWrite(AbstractNIOConnection connection,
+            Buffer data, int size) {
+        
+        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        if (probes != null) {
+            for (ConnectionMonitoringProbe probe : probes) {
+                probe.onWriteEvent(connection, data, size);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link ConnectionMonitoringProbe}s about the close event.
+     *
+     * @param connection the <tt>Connection</tt> event occurred on.
+     */
+    protected static void notifyProbesClose(AbstractNIOConnection connection) {
+        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        if (probes != null) {
+            for (ConnectionMonitoringProbe probe : probes) {
+                probe.onCloseEvent(connection);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link ConnectionMonitoringProbe}s about the error.
+     *
+     * @param connection the <tt>Connection</tt> event occurred on.
+     */
+    protected static void notifyProbesError(AbstractNIOConnection connection,
+            Throwable error) {
+        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        if (probes != null) {
+            for (ConnectionMonitoringProbe probe : probes) {
+                probe.onErrorEvent(connection, error);
+            }
+        }
     }
 
     /**

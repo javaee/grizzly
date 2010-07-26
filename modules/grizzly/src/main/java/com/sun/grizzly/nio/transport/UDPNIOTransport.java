@@ -61,10 +61,10 @@ import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.Processor;
 import com.sun.grizzly.ProcessorExecutor;
+import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.Reader;
 import com.sun.grizzly.SocketBinder;
-import com.sun.grizzly.SocketConnectorHandler;
 import com.sun.grizzly.StandaloneProcessor;
 import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
@@ -96,9 +96,8 @@ import java.util.concurrent.TimeUnit;
  * @author Alexey Stashok
  */
 public final class UDPNIOTransport extends AbstractNIOTransport
-        implements SocketBinder, SocketConnectorHandler,
-        AsyncQueueEnabledTransport, FilterChainEnabledTransport,
-        TemporarySelectorsEnabledTransport  {
+        implements SocketBinder, AsyncQueueEnabledTransport,
+        FilterChainEnabledTransport, TemporarySelectorsEnabledTransport  {
     
     private Logger logger = Grizzly.logger(UDPNIOTransport.class);
 
@@ -132,6 +131,12 @@ public final class UDPNIOTransport extends AbstractNIOTransport
     protected TemporarySelectorIO temporarySelectorIO;
     private final Filter transportFilter;
     protected final RegisterChannelCompletionHandler registerChannelCompletionHandler;
+
+    /**
+     * Default {@link TCPNIOConnectorHandler}
+     */
+    private final UDPNIOConnectorHandler connectorHandler =
+            new TransportConnectorHandler();
 
     public UDPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -274,41 +279,89 @@ public final class UDPNIOTransport extends AbstractNIOTransport
      * @throws java.io.IOException
      */
     public GrizzlyFuture<Connection> connect() throws IOException {
-        return connect(null, null, null);
+        return connectorHandler.connect();
     }
 
-    @Override
+    /**
+     * Creates, initializes and connects socket to the specific remote host
+     * and port and returns {@link Connection}, representing socket.
+     *
+     * @param host remote host to connect to.
+     * @param port remote port to connect to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public GrizzlyFuture<Connection> connect(String host, int port)
             throws IOException {
-        return connect(new InetSocketAddress(host, port));
+        return connectorHandler.connect(host, port);
     }
 
-    @Override
+    /**
+     * Creates, initializes and connects socket to the specific
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
-        return connect(remoteAddress, (SocketAddress) null);
+        return connectorHandler.connect(remoteAddress);
     }
 
-    @Override
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress) throws IOException {
-        return connect(remoteAddress, localAddress, null);
-    }
-
-    @Override
+    /**
+     * Creates, initializes and connects socket to the specific
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param completionHandler {@link CompletionHandler}.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
-        return connect(remoteAddress, null, completionHandler);
-
+        return connectorHandler.connect(remoteAddress, completionHandler);
     }
 
-    @Override
+    /**
+     * Creates, initializes socket, binds it to the specific local and remote
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param localAddress local address to bind socket to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
+            SocketAddress localAddress) throws IOException {
+        return connectorHandler.connect(remoteAddress, localAddress);
+    }
+
+    /**
+     * Creates, initializes socket, binds it to the specific local and remote
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param localAddress local address to bind socket to.
+     * @param completionHandler {@link CompletionHandler}.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
-        UDPNIOConnectorHandler connectorHandler = new UDPNIOConnectorHandler(this);
         return connectorHandler.connect(remoteAddress, localAddress,
                 completionHandler);
     }
@@ -404,6 +457,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             startSelectorRunners();
             
             registerServerConnections();
+            
+            notifyProbesStart(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -436,6 +491,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 threadPool = null;
             }
 
+            notifyProbesStop(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -451,6 +507,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                         "Transport is not in START state!");
             }
             state.setState(State.PAUSE);
+            notifyProbesPause(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -466,6 +523,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                         "Transport is not in PAUSE state!");
             }
             state.setState(State.START);
+            notifyProbesResume(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -538,6 +596,10 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         try {
             final Processor conProcessor = connection.obtainProcessor(ioEvent);
 
+            if (ioEvent == IOEvent.CONNECTED) {
+                ((UDPNIOConnection) connection).onConnect();
+            }
+
             if (conProcessor != null) {
                 if (ProcessorExecutor.execute(
                         connection, ioEvent, conProcessor, postProcessor)) {
@@ -562,77 +624,6 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         }
 
     }
-
-//    @Override
-//    public IOEventReg fireIOEvent(Context context) throws IOException {
-//        final IOEvent ioEvent = context.getIoEvent();
-//        final Connection connection = context.getConnection();
-//
-//        try {
-//            if (executeProcessor(context)) {
-//                return IOEventReg.REGISTER;
-//            } else {
-//                return IOEventReg.DEREGISTER;
-//            }
-//        } catch (IOException e) {
-//            logger.log(Level.FINE, "IOException occurred on fireIOEvent()."
-//                    + "connection=" + connection + " event=" + ioEvent);
-//            throw e;
-//        } catch (Exception e) {
-//            String text = new StringBuilder(256).append("Unexpected exception occurred fireIOEvent().").
-//                    append("connection=").append(connection).
-//                    append(" event=").append(ioEvent).toString();
-//
-//            logger.log(Level.WARNING, text, e);
-//            throw new IOException(e.getClass() + ": " + text);
-//        }
-//    }
-
-//    protected boolean executeProcessor(Connection connection,
-//            IOEvent ioEvent, Processor processor) throws IOException {
-//
-//        final Context context = Context.create(processor, connection, ioEvent,
-//                null, null);
-//
-//        if (logger.isLoggable(Level.FINEST)) {
-//            logger.log(Level.FINEST, "executeProcessor connection (" +
-//                    context.getConnection() +
-//                    "). IOEvent=" + context.getIoEvent() +
-//                    " processor=" + context.getProcessor());
-//        }
-//
-//        final ProcessorResult result = context.getProcessor().process(context);
-//        final ProcessorResult.Status status = result.getStatus();
-//
-//        if (status != ProcessorResult.Status.TERMINATE) {
-//             context.recycle();
-//             return status == ProcessorResult.Status.COMPLETED;
-//        }
-//
-//        return false;
-//
-//        //        return executeProcessor(context);
-//    }
-
-//    protected boolean executeProcessor(Context context) throws IOException {
-//
-//        if (logger.isLoggable(Level.FINEST)) {
-//            logger.log(Level.FINEST, "executeProcessor connection (" +
-//                    context.getConnection() +
-//                    "). IOEvent=" + context.getIoEvent() +
-//                    " processor=" + context.getProcessor());
-//        }
-//
-//        final ProcessorResult result = context.getProcessor().process(context);
-//        final ProcessorResult.Status status = result.getStatus();
-//
-//        if (status != ProcessorResult.Status.TERMINATE) {
-////             context.recycle();
-//             return status == ProcessorResult.Status.COMPLETED;
-//        }
-//
-//        return false;
-//    }
 
     @Override
     public Reader getReader(Connection connection) {
@@ -728,6 +719,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             } else {
                 read = readNonConnected(connection, buffer, currentResult);
             }
+
+            connection.onRead(buffer, read);
         } finally {
             if (isAllocate && read <= 0) {
                 buffer.dispose();
@@ -768,6 +761,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                         buffer.toByteBuffer());
             }
         }
+
+        connection.onWrite(buffer, written);
 
         if (currentResult != null) {
             currentResult.setMessage(buffer);
@@ -810,6 +805,25 @@ public final class UDPNIOTransport extends AbstractNIOTransport
                 logger.log(Level.FINE, "Exception happened, when " +
                         "trying to register the channel", e);
             }
+        }
+    }
+
+    /**
+     * Transport default {@link UDPNIOConnectorHandler}.
+     */
+    protected class TransportConnectorHandler extends UDPNIOConnectorHandler {
+        public TransportConnectorHandler() {
+            super(UDPNIOTransport.this);
+        }
+
+        @Override
+        public Processor getProcessor() {
+            return UDPNIOTransport.this.getProcessor();
+        }
+
+        @Override
+        public ProcessorSelector getProcessorSelector() {
+            return UDPNIOTransport.this.getProcessorSelector();
         }
     }
 }

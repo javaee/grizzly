@@ -41,6 +41,8 @@ package com.sun.grizzly;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
+import java.util.Collection;
+import java.util.LinkedList;
 
 /**
  * Abstract class simplifies the implementation of
@@ -53,15 +55,17 @@ public abstract class AbstractSocketConnectorHandler
         implements SocketConnectorHandler {
     
     protected Transport transport;
-    
 
-    protected Processor defaultProcessor;
-    protected ProcessorSelector defaultProcessorSelector;
+    private Processor processor;
+    private ProcessorSelector processorSelector;
+
+    protected final Collection<ConnectionMonitoringProbe> probes =
+            new LinkedList<ConnectionMonitoringProbe>();
 
     public AbstractSocketConnectorHandler(Transport transport) {
         this.transport = transport;
-        defaultProcessor = transport.getProcessor();
-        defaultProcessorSelector = transport.getProcessorSelector();
+        this.processor = transport.getProcessor();
+        this.processorSelector = transport.getProcessorSelector();
     }
     
     @Override
@@ -97,22 +101,37 @@ public abstract class AbstractSocketConnectorHandler
 
     @Override
     public Processor getProcessor() {
-        return defaultProcessor;
+        return processor;
     }
 
     @Override
-    public void setProcessor(Processor defaultProcessor) {
-        this.defaultProcessor = defaultProcessor;
+    public void setProcessor(Processor processor) {
+        this.processor = processor;
     }
 
     @Override
     public ProcessorSelector getProcessorSelector() {
-        return defaultProcessorSelector;
+        return processorSelector;
     }
 
     @Override
-    public void setProcessorSelector(ProcessorSelector defaultProcessorSelector) {
-        this.defaultProcessorSelector = defaultProcessorSelector;
+    public void setProcessorSelector(ProcessorSelector processorSelector) {
+        this.processorSelector = processorSelector;
+    }
+
+    @Override
+    public void addMonitoringProbe(ConnectionMonitoringProbe probe) {
+        probes.add(probe);
+    }
+
+    @Override
+    public boolean removeMonitoringProbe(ConnectionMonitoringProbe probe) {
+        return probes.remove(probe);
+    }
+
+    @Override
+    public ConnectionMonitoringProbe[] getMonitoringProbes() {
+        return probes.toArray(new ConnectionMonitoringProbe[0]);
     }
 
     /**

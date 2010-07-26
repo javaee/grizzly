@@ -42,9 +42,9 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
-import com.sun.grizzly.utils.ExceptionHandler;
+import com.sun.grizzly.utils.ArrayUtils;
 import com.sun.grizzly.utils.StateHolder;
-import com.sun.grizzly.utils.LinkedTransferQueue;
+import java.util.Arrays;
 
 /**
  * Abstract {@link Transport}.
@@ -68,7 +68,7 @@ public abstract class AbstractTransport implements Transport {
     /**
      * Transport state controller
      */
-    protected StateHolder<State> state;
+    protected final StateHolder<State> state;
 
     /**
      * Transport default Processor
@@ -111,14 +111,27 @@ public abstract class AbstractTransport implements Transport {
     protected int writeBufferSize;
 
     /**
-     * Transport ExceptionHandler list
+     * Sync object for Transport monitoringProbes access
      */
-    protected LinkedTransferQueue<ExceptionHandler> exceptionHandlers;
+    private final Object monitoringProbesSync = new Object();
+    /**
+     * Transport probes
+     */
+    protected volatile TransportMonitoringProbe[] monitoringProbes;
+
+    /**
+     * Sync object for Connection monitoringProbes access
+     */
+    private final Object connectionMonitoringProbesSync = new Object();
+    /**
+     * Connection probes
+     */
+    protected volatile ConnectionMonitoringProbe[] connectionMonitoringProbes;
     
+
     public AbstractTransport(String name) {
         this.name = name;
         state = new StateHolder<State>(State.STOP);
-        exceptionHandlers = new LinkedTransferQueue<ExceptionHandler>();
     }
     
     /**
@@ -327,39 +340,85 @@ public abstract class AbstractTransport implements Transport {
     }
     
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void addExceptionHandler(ExceptionHandler handler) {
-        exceptionHandlers.add(handler);
-    }
-    
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void removeExceptionHandler(ExceptionHandler handler) {
-        exceptionHandlers.remove(handler);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void notifyException(Severity severity, Throwable throwable) {
-        if (exceptionHandlers == null || exceptionHandlers.isEmpty()) return;
-        for(ExceptionHandler exceptionHandler : exceptionHandlers) {
-            exceptionHandler.notifyException(severity, throwable);
-        }
-    }
-
-    /**
      * Close the connection, managed by Transport
      * 
      * @param connection
      * @throws java.io.IOException
      */
     protected abstract void closeConnection(Connection connection) throws IOException;
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addConnectionMonitoringProbe(ConnectionMonitoringProbe probe) {
+        synchronized(connectionMonitoringProbesSync) {
+            connectionMonitoringProbes =
+                    ArrayUtils.addUnique(connectionMonitoringProbes, probe);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean removeConnectionMonitoringProbe(ConnectionMonitoringProbe probe) {
+        synchronized(connectionMonitoringProbesSync) {
+            final ConnectionMonitoringProbe[] probes = connectionMonitoringProbes;
+            connectionMonitoringProbes = ArrayUtils.remove(connectionMonitoringProbes, probe);
+
+            return probes != connectionMonitoringProbes;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ConnectionMonitoringProbe[] getConnectionMonitoringProbes() {
+        final ConnectionMonitoringProbe[] probes = connectionMonitoringProbes;
+        if (probes != null) {
+            return Arrays.copyOf(probes, probes.length);
+        }
+
+        return null;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void addTransportMonitoringProbe(TransportMonitoringProbe probe) {
+        synchronized(monitoringProbesSync) {
+            monitoringProbes = ArrayUtils.addUnique(monitoringProbes, probe);
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean removeTransportMonitoringProbe(TransportMonitoringProbe probe) {
+        synchronized(monitoringProbesSync) {
+            final TransportMonitoringProbe[] probes = monitoringProbes;
+            monitoringProbes = ArrayUtils.remove(monitoringProbes, probe);
+
+            return probes != monitoringProbes;
+        }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TransportMonitoringProbe[] getTransportMonitoringProbes() {
+        final TransportMonitoringProbe[] probes = monitoringProbes;
+        if (probes != null) {
+            return Arrays.copyOf(probes, probes.length);
+        }
+
+        return null;
+    }
 
     /**
      * Starts the transport

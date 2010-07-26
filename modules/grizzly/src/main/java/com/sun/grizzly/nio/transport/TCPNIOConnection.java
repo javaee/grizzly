@@ -38,6 +38,7 @@
 
 package com.sun.grizzly.nio.transport;
 
+import com.sun.grizzly.Buffer;
 import com.sun.grizzly.nio.AbstractNIOConnection;
 import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.nio.SelectorRunner;
@@ -140,7 +141,11 @@ public class TCPNIOConnection extends AbstractNIOConnection {
         this.connectHandler = connectHandler;
     }
 
-    protected void onConnect() throws IOException {
+    /**
+     * Method will be called, when the connection gets connected.
+     * @throws IOException
+     */
+    protected final void onConnect() throws IOException {
         final Callable<Connection> localConnectHandler = connectHandler;
         
         if (localConnectHandler != null) {
@@ -154,6 +159,22 @@ public class TCPNIOConnection extends AbstractNIOConnection {
                 throw new IOException("Connect exception", e);
             }
         }
+
+        notifyProbesConnect(this);
+    }
+
+    /**
+     * Method will be called, when some data was read on the connection
+     */
+    protected final void onRead(Buffer data, int size) {
+        notifyProbesRead(this, data, size);
+    }
+
+    /**
+     * Method will be called, when some data was written on the connection
+     */
+    protected final void onWrite(Buffer data, int size) {
+        notifyProbesWrite(this, data, size);
     }
 }
     

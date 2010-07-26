@@ -40,7 +40,6 @@ package com.sun.grizzly;
 
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
-import com.sun.grizzly.utils.ExceptionHandler;
 import com.sun.grizzly.utils.StateHolder;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
@@ -53,7 +52,7 @@ import java.util.concurrent.ExecutorService;
  *
  * @author Alexey Stashok
  */
-public interface Transport extends ExceptionHandler {
+public interface Transport {
     public enum State {STARTING, START, PAUSE, STOPPING, STOP};
 
     public enum IOEventReg {REGISTER, DEREGISTER};
@@ -319,32 +318,7 @@ public interface Transport extends ExceptionHandler {
      * its {@link Connection}s to store custom {@link Attribute}s.
      */
     public void setAttributeBuilder(AttributeBuilder attributeBuilder);
-    
-    /**
-     * Add {@link ExceptionHandler} to handle errors, occurred during the
-     * {@link Transport} execution.
-     * 
-     * @param handler {@link ExceptionHandler} to be added.
-     */
-    public void addExceptionHandler(ExceptionHandler handler);
-    
-    /**
-     * Remove {@link ExceptionHandler} from the list of {@link Transport}
-     * {@link ExceptionHandler}s.
-     *
-     * @param handler {@link ExceptionHandler} to be removed.
-     */
-    public void removeExceptionHandler(ExceptionHandler handler);
 
-    /**
-     * Notify about error, occurred during {@link Transport} execution.
-     * 
-     * @param severity the error severity.
-     * @param throwable the error description.
-     */
-    @Override
-    public void notifyException(Severity severity, Throwable throwable);
-    
     /**
      * Starts the transport
      * 
@@ -382,14 +356,6 @@ public interface Transport extends ExceptionHandler {
     public IOEventReg fireIOEvent(IOEvent ioEvent, Connection connection,
             PostProcessor postProcessor) throws IOException;
 
-//    /**
-//     * Fires the {@link IOEvent} on the {@link Connection} according to the
-//     * passed {@link Context}
-//     *
-//     * @param context I/O event processing context
-//     */
-//    public IOEventReg fireIOEvent(Context context) throws IOException;
-
     /**
      * Returns <tt>true</tt>, if this <tt>Transport</tt> is in stopped state,
      *         <tt>false</tt> otherwise.
@@ -403,4 +369,61 @@ public interface Transport extends ExceptionHandler {
     public Reader getReader(Connection connection);
 
     public Writer getWriter(Connection connection);
+
+    /**
+     * Add the {@link ConnectionMonitoringProbe}, which will be notified about
+     * <tt>Connection</tt> lifecycle events.
+     *
+     * @param probe the {@link ConnectionMonitoringProbe}.
+     */
+    public void addConnectionMonitoringProbe(ConnectionMonitoringProbe probe);
+
+    /**
+     * Remove the {@link ConnectionMonitoringProbe}.
+     *
+     * @param probe the {@link ConnectionMonitoringProbe}.
+     */
+    public boolean removeConnectionMonitoringProbe(ConnectionMonitoringProbe probe);
+
+    /**
+     * Get the {@link ConnectionMonitoringProbe}s, which are registered on the <tt>Transport</tt> connections.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addConnectionMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} and
+     * {@link #removeConnectionMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} instead.
+     *
+     * @return the {@link ConnectionMonitoringProbe}s, which are registered on the <tt>Transport</tt>'s connections.
+     */
+    public ConnectionMonitoringProbe[] getConnectionMonitoringProbes();
+
+    /**
+     * Add the {@link TransportMonitoringProbe}, which will be notified about
+     * <tt>Transport</tt> lifecycle events.
+     *
+     * @param probe the {@link TransportMonitoringProbe}.
+     */
+    public void addTransportMonitoringProbe(TransportMonitoringProbe probe);
+
+    /**
+     * Remove the {@link TransportMonitoringProbe}.
+     *
+     * @param probe the {@link TransportMonitoringProbe}.
+     */
+    public boolean removeTransportMonitoringProbe(TransportMonitoringProbe probe);
+
+    /**
+     * Get the {@link TransportMonitoringProbe}s, which are registered on the <tt>Transport</tt>.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addTransportMonitoringProbe(com.sun.grizzly.TransportMonitoringProbe)} and
+     * {@link #removeTransportMonitoringProbe(com.sun.grizzly.TransportMonitoringProbe)} instead.
+     *
+     * @return the {@link TransportMonitoringProbe}s, which are registered on the <tt>Transport</tt>.
+     */
+    public TransportMonitoringProbe[] getTransportMonitoringProbes();
+
+    /**
+     * Method gets invoked, when error occur during the <tt>Transport</tt> lifecycle.
+     *
+     * @param error {@link Throwable}.
+     */
+    public void notifyTransportError(Throwable error);
 }

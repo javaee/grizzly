@@ -59,7 +59,7 @@ public interface ThreadPoolMonitoringProbe {
      * @param threadPoolName the name of the {@link ExtendedThreadPool} being monitored
      * @param thread the thread that has been allocated
      */
-    public void threadAllocatedEvent(String threadPoolName, Thread thread);
+    public void onThreadAllocateEvent(String threadPoolName, Thread thread);
 
     /**
      * <p>
@@ -71,7 +71,7 @@ public interface ThreadPoolMonitoringProbe {
      * @param thread the thread that is no longer being managed by the
      *  {@link ExtendedThreadPool}
      */
-    public void threadReleasedEvent(String threadPoolName, Thread thread);
+    public void onThreadReleaseEvent(String threadPoolName, Thread thread);
 
     /**
      * <p>
@@ -85,7 +85,7 @@ public interface ThreadPoolMonitoringProbe {
      * @param maxNumberOfThreads the maximum number of threads allowed in the
      *  {@link ExtendedThreadPool}
      */
-    public void maxNumberOfThreadsReachedEvent(String threadPoolName, int maxNumberOfThreads);
+    public void onMaxNumberOfThreadsEvent(String threadPoolName, int maxNumberOfThreads);
 
     /**
      * <p>
@@ -94,7 +94,7 @@ public interface ThreadPoolMonitoringProbe {
      *
      * @param task a unit of work to be processed
      */
-    public void onTaskQueuedEvent(Runnable task);
+    public void onTaskQueueEvent(Runnable task);
 
     /**
      * <p>
@@ -103,7 +103,7 @@ public interface ThreadPoolMonitoringProbe {
      *
      * @param task a unit of work that is about to be processed.
      */
-    public void onTaskDequeuedEvent(Runnable task);
+    public void onTaskDequeueEvent(Runnable task);
 
     /**
      * <p>
@@ -112,7 +112,7 @@ public interface ThreadPoolMonitoringProbe {
      *
      * @param task the unit of work that has completed processing
      */
-    public void onTaskCompletedEvent(Runnable task);
+    public void onTaskCompleteEvent(Runnable task);
 
     /**
      * <p>

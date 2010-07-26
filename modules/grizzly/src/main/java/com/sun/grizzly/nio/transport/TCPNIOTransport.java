@@ -38,6 +38,7 @@
 package com.sun.grizzly.nio.transport;
 
 import com.sun.grizzly.CompletionHandler;
+import com.sun.grizzly.ProcessorSelector;
 import com.sun.grizzly.asyncqueue.AsyncQueueIO;
 import com.sun.grizzly.nio.RegisterChannelResult;
 import com.sun.grizzly.nio.RoundRobinConnectionDistributor;
@@ -75,7 +76,6 @@ import com.sun.grizzly.PostProcessor;
 import com.sun.grizzly.ProcessorExecutor;
 import com.sun.grizzly.Reader;
 import com.sun.grizzly.SocketBinder;
-import com.sun.grizzly.SocketConnectorHandler;
 import com.sun.grizzly.StandaloneProcessor;
 import com.sun.grizzly.StandaloneProcessorSelector;
 import com.sun.grizzly.WriteResult;
@@ -99,8 +99,7 @@ import java.util.concurrent.TimeUnit;
  * @author Jean-Francois Arcand
  */
 public final class TCPNIOTransport extends AbstractNIOTransport implements
-        SocketBinder, SocketConnectorHandler,
-        AsyncQueueEnabledTransport, FilterChainEnabledTransport,
+        SocketBinder, AsyncQueueEnabledTransport, FilterChainEnabledTransport,
         TemporarySelectorsEnabledTransport {
 
     private static Logger logger = Grizzly.logger(TCPNIOTransport.class);
@@ -157,6 +156,12 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     
     private Filter defaultTransportFilter;
     protected final RegisterChannelCompletionHandler selectorRegistrationHandler;
+
+    /**
+     * Default {@link TCPNIOConnectorHandler}
+     */
+    private final TCPNIOConnectorHandler connectorHandler =
+            new TransportConnectorHandler();
     
     public TCPNIOTransport() {
         this(DEFAULT_TRANSPORT_NAME);
@@ -240,6 +245,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             startSelectorRunners();
 
             listenServerConnections();
+
+            notifyProbesStart(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -248,13 +255,18 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
     private void listenServerConnections() {
         for (TCPNIOServerConnection serverConnection : serverConnections) {
             try {
-                serverConnection.listen();
+                listenServerConnection(serverConnection);
             } catch (Exception e) {
                 logger.log(Level.WARNING,
                         "Exception occurred when starting server connection: " +
                         serverConnection, e);
             }
         }
+    }
+
+    private void listenServerConnection(TCPNIOServerConnection serverConnection)
+            throws IOException {
+        serverConnection.listen();
     }
 
     @Override
@@ -272,6 +284,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 threadPool = null;
             }
 
+            notifyProbesStop(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -287,6 +300,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                         "Transport is not in START state!");
             }
             state.setState(State.PAUSE);
+            notifyProbesPause(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -302,6 +316,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                         "Transport is not in PAUSE state!");
             }
             state.setState(State.START);
+            notifyProbesResume(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
         }
@@ -366,7 +381,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             serverSocketChannel.configureBlocking(false);
 
             if (!isStopped()) {
-                serverConnection.listen();
+                listenServerConnection(serverConnection);
             }
 
             return serverConnection;
@@ -420,42 +435,89 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         }
     }
 
-    @Override
+    /**
+     * Creates, initializes and connects socket to the specific remote host
+     * and port and returns {@link Connection}, representing socket.
+     *
+     * @param host remote host to connect to.
+     * @param port remote port to connect to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public GrizzlyFuture<Connection> connect(String host, int port)
             throws IOException {
-        return connect(new InetSocketAddress(host, port));
+        return connectorHandler.connect(host, port);
     }
 
-    @Override
+    /**
+     * Creates, initializes and connects socket to the specific
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress)
             throws IOException {
-        return connect(remoteAddress, (SocketAddress) null);
+        return connectorHandler.connect(remoteAddress);
     }
 
-    @Override
-    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
-            SocketAddress localAddress) throws IOException {
-        return connect(remoteAddress, localAddress, null);
-    }
-
-    @Override
+    /**
+     * Creates, initializes and connects socket to the specific
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param completionHandler {@link CompletionHandler}.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
-        return connect(remoteAddress, null, completionHandler);
-
+        return connectorHandler.connect(remoteAddress, completionHandler);
     }
 
-    @Override
+    /**
+     * Creates, initializes socket, binds it to the specific local and remote
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param localAddress local address to bind socket to.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
+    public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
+            SocketAddress localAddress) throws IOException {
+        return connectorHandler.connect(remoteAddress, localAddress);
+    }
+
+    /**
+     * Creates, initializes socket, binds it to the specific local and remote
+     * {@link SocketAddress} and returns {@link Connection}, representing socket.
+     *
+     * @param remoteAddress remote address to connect to.
+     * @param localAddress local address to bind socket to.
+     * @param completionHandler {@link CompletionHandler}.
+     * @return {@link Future} of connect operation, which could be used to get
+     * resulting {@link Connection}.
+     *
+     * @throws java.io.IOException
+     */
     public GrizzlyFuture<Connection> connect(SocketAddress remoteAddress,
             SocketAddress localAddress,
             CompletionHandler<Connection> completionHandler)
             throws IOException {
-        TCPNIOConnectorHandler connectorHandler = new TCPNIOConnectorHandler(this);
         return connectorHandler.connect(remoteAddress, localAddress,
                 completionHandler);
     }
-
 
     @Override
     protected void closeConnection(Connection connection) throws IOException {
@@ -696,7 +758,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 } else {
                     read = socketChannel.read(byteBuffer);
                 }
-                
+
+                tcpConnection.onRead(buffer, read);
             } catch (Exception e) {
                 if (logger.isLoggable(Level.FINE)) {
                     logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (allocated) read exception", e);
@@ -743,6 +806,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                     }
                 }
 
+                tcpConnection.onRead(buffer, read);
+                
                 if (logger.isLoggable(Level.FINE)) {
                     logger.log(Level.FINE, "TCPNIOConnection (" + connection + ") (nonallocated) read " + read + " bytes");
                 }
@@ -831,6 +896,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
             }
         }
 
+        tcpConnection.onWrite(buffer, written);
+
         if (written >= 0) {
             if (currentResult != null) {
                 currentResult.setMessage(buffer);
@@ -846,7 +913,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         return written;
     }
 
-    private void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
+    private static void resetByteBuffers(final ByteBuffer[] byteBuffers, int processed) {
         int index = 0;
         while(processed > 0) {
             final ByteBuffer byteBuffer = byteBuffers[index++];
@@ -876,6 +943,25 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
                 logger.log(Level.FINE, "Exception happened, when " +
                         "trying to register the channel", e);
             }
+        }
+    }
+
+    /**
+     * Transport default {@link TCPNIOConnectorHandler}.
+     */
+    protected class TransportConnectorHandler extends TCPNIOConnectorHandler {
+        public TransportConnectorHandler() {
+            super(TCPNIOTransport.this);
+        }
+
+        @Override
+        public Processor getProcessor() {
+            return TCPNIOTransport.this.getProcessor();
+        }
+
+        @Override
+        public ProcessorSelector getProcessorSelector() {
+            return TCPNIOTransport.this.getProcessorSelector();
         }
     }
 }

@@ -263,7 +263,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected void onTaskCompletedEvent(Runnable task) {
         final ThreadPoolMonitoringProbe probe = config.getMonitoringProbe();
         if (probe != null) {
-            probe.onTaskCompletedEvent(task);
+            probe.onTaskCompleteEvent(task);
         }
     }
 
@@ -278,7 +278,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected void onWorkerStarted(Worker worker) {
         final ThreadPoolMonitoringProbe probe = config.getMonitoringProbe();
         if (probe != null) {
-            probe.threadAllocatedEvent(config.getPoolName(), worker.t);
+            probe.onThreadAllocateEvent(config.getPoolName(), worker.t);
         }
     }
 
@@ -297,7 +297,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
 
         final ThreadPoolMonitoringProbe probe = config.getMonitoringProbe();
         if (probe != null) {
-            probe.threadReleasedEvent(config.getPoolName(), worker.t);
+            probe.onThreadReleaseEvent(config.getPoolName(), worker.t);
         }
     }
 
@@ -309,7 +309,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected void onMaxNumberOfThreadsReached() {
         final ThreadPoolMonitoringProbe probe = config.getMonitoringProbe();
         if (probe != null) {
-            probe.maxNumberOfThreadsReachedEvent(config.getPoolName(),
+            probe.onMaxNumberOfThreadsEvent(config.getPoolName(),
                     config.getMaxPoolSize());
         }
     }
@@ -323,7 +323,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected void onTaskQueued(Runnable task) {
         final ThreadPoolMonitoringProbe probe = config.getMonitoringProbe();
         if (probe != null) {
-            probe.onTaskQueuedEvent(task);
+            probe.onTaskQueueEvent(task);
         }
     }
 
@@ -336,7 +336,7 @@ public abstract class AbstractThreadPool extends AbstractExecutorService
     protected void onTaskDequeued(Runnable task) {
         final ThreadPoolMonitoringProbe probe = config.getMonitoringProbe();
         if (probe != null) {
-            probe.onTaskDequeuedEvent(task);
+            probe.onTaskDequeueEvent(task);
         }
     }
 

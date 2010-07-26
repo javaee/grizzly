@@ -61,7 +61,7 @@ import com.sun.grizzly.nio.RegisterChannelResult;
  * 
  * @author Alexey Stashok
  */
-public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
+public class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler {
     
     protected static final int DEFAULT_CONNECTION_TIMEOUT = 30000;
     
@@ -131,8 +131,8 @@ public final class UDPNIOConnectorHandler extends AbstractSocketConnectorHandler
             datagramChannel.connect(remoteAddress);
         }
         
-        newConnection.setProcessor(defaultProcessor);
-        newConnection.setProcessorSelector(defaultProcessorSelector);
+        newConnection.setProcessor(getProcessor());
+        newConnection.setProcessorSelector(getProcessorSelector());
 
         // if connected immediately - register channel on selector with OP_READ
         // interest

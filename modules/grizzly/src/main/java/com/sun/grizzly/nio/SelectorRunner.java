@@ -44,7 +44,6 @@ import com.sun.grizzly.IOEvent;
 import com.sun.grizzly.Strategy;
 import com.sun.grizzly.Transport.State;
 import com.sun.grizzly.threadpool.WorkerThread;
-import com.sun.grizzly.utils.ExceptionHandler.Severity;
 import com.sun.grizzly.utils.StateHolder;
 import java.io.IOException;
 import java.nio.channels.CancelledKeyException;
@@ -308,14 +307,14 @@ public final class SelectorRunner implements Runnable {
             
             notifyConnectionException(key,
                     "Selector was unexpectedly closed", e,
-                    Severity.TRANSPORT, Level.SEVERE, Level.FINE);
+                    Level.SEVERE, Level.FINE);
         } catch (Exception e) {
             notifyConnectionException(key,
                     "doSelect exception", e,
-                    Severity.UNKNOWN, Level.SEVERE, Level.FINE);
+                    Level.SEVERE, Level.FINE);
         } catch (Throwable t) {
             logger.log(Level.SEVERE,"doSelect exception", t);
-            transport.notifyException(Severity.FATAL, t);
+            transport.notifyTransportError(t);
         }
 
         return true;
@@ -335,10 +334,10 @@ public final class SelectorRunner implements Runnable {
                 
             } catch (IOException e) {
                 keyReadyOps = 0;
-                notifyConnectionException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Severity.CONNECTION, Level.WARNING, Level.FINE);
+                notifyConnectionException(key, "Unexpected IOException. Channel " + key.channel() + " will be closed.", e, Level.WARNING, Level.FINE);
             } catch (CancelledKeyException e) {
                 keyReadyOps = 0;
-                notifyConnectionException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Severity.CONNECTION, Level.FINE, Level.FINE);
+                notifyConnectionException(key, "Unexpected CancelledKeyException. Channel " + key.channel() + " will be closed.", e, Level.FINE, Level.FINE);
             }
         }
         return true;
@@ -398,12 +397,11 @@ public final class SelectorRunner implements Runnable {
      * @param key {@link SelectionKey}, which was processed, when the {@link Exception} occured
      * @param description error description
      * @param e {@link Exception} occured
-     * @param severity {@link Severity} of occured problem
      * @param runLogLevel logger {@link Level} to use, if transport is in running state
      * @param stoppedLogLevel logger {@link Level} to use, if transport is not in running state
      */
     private void notifyConnectionException(SelectionKey key, String description, 
-            Exception e, Severity severity, Level runLogLevel,
+            Exception e, Level runLogLevel,
             Level stoppedLogLevel) {
         if (isRunning()) {
             logger.log(runLogLevel, description, e);
@@ -417,7 +415,7 @@ public final class SelectorRunner implements Runnable {
                 }
             }
 
-            transport.notifyException(severity, e);
+            transport.notifyTransportError(e);
         } else {
             logger.log(stoppedLogLevel, description, e);
         }

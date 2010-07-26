@@ -123,8 +123,8 @@ public class TCPNIOConnectorHandler extends AbstractSocketConnectorHandler {
 
         preConfigure(newConnection);
 
-        newConnection.setProcessor(defaultProcessor);
-        newConnection.setProcessorSelector(defaultProcessorSelector);
+        newConnection.setProcessor(getProcessor());
+        newConnection.setProcessorSelector(getProcessorSelector());
 
         try {
             boolean isConnected = socketChannel.connect(remoteAddress);

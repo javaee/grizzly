@@ -157,4 +157,29 @@ public interface SocketConnectorHandler {
      * occuring on connection phase.
      */
     public void setProcessorSelector(ProcessorSelector defaultProcessorSelector);
+
+    /**
+     * Add the {@link ConnectionMonitoringProbe}, which will be notified about
+     * <tt>Connection</tt> lifecycle events.
+     *
+     * @param probe the {@link ConnectionMonitoringProbe}.
+     */
+    public void addMonitoringProbe(ConnectionMonitoringProbe probe);
+
+    /**
+     * Remove the {@link ConnectionMonitoringProbe}.
+     *
+     * @param probe the {@link ConnectionMonitoringProbe}.
+     */
+    public boolean removeMonitoringProbe(ConnectionMonitoringProbe probe);
+
+    /**
+     * Get the {@link ConnectionMonitoringProbe}, which are registered on the <tt>Connection</tt>.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} instead.
+     *
+     * @return the {@link ConnectionMonitoringProbe}, which are registered on the <tt>Connection</tt>.
+     */
+    public ConnectionMonitoringProbe[] getMonitoringProbes();
 }

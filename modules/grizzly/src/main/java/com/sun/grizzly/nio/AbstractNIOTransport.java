@@ -40,6 +40,7 @@ package com.sun.grizzly.nio;
 
 import com.sun.grizzly.AbstractTransport;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.TransportMonitoringProbe;
 import java.io.IOException;
 import java.nio.channels.Selector;
 
@@ -139,8 +140,87 @@ public abstract class AbstractNIOTransport extends AbstractTransport
         this.nioChannelDistributor = nioChannelDistributor;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void notifyTransportError(Throwable error) {
+        notifyProbesError(this, error);
+    }
+
     protected SelectorRunner[] getSelectorRunners() {
         return selectorRunners;
+    }
+
+    /**
+     * Notify registered {@link TransportMonitoringProbe}s about the error.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesError(AbstractNIOTransport transport,
+            Throwable error) {
+        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+        if (probes != null) {
+            for (TransportMonitoringProbe probe : probes) {
+                probe.onErrorEvent(transport, error);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportMonitoringProbe}s about the start event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesStart(AbstractNIOTransport transport) {
+        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+        if (probes != null) {
+            for (TransportMonitoringProbe probe : probes) {
+                probe.onStartEvent(transport);
+            }
+        }
+    }
+    
+    /**
+     * Notify registered {@link TransportMonitoringProbe}s about the stop event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesStop(AbstractNIOTransport transport) {
+        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+        if (probes != null) {
+            for (TransportMonitoringProbe probe : probes) {
+                probe.onStopEvent(transport);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportMonitoringProbe}s about the pause event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesPause(AbstractNIOTransport transport) {
+        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+        if (probes != null) {
+            for (TransportMonitoringProbe probe : probes) {
+                probe.onPauseEvent(transport);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link TransportMonitoringProbe}s about the resume event.
+     *
+     * @param transport the <tt>Transport</tt> event occurred on.
+     */
+    protected static void notifyProbesResume(AbstractNIOTransport transport) {
+        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+        if (probes != null) {
+            for (TransportMonitoringProbe probe : probes) {
+                probe.onResumeEvent(transport);
+            }
+        }
     }
 
     @Override

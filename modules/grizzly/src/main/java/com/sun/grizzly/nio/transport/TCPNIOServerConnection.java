@@ -87,6 +87,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
         } catch (Exception e) {
             throw new IOException("Error registering server channel key", e);
         }
+
+        notifyProbesBind(this);
     }
 
     @Override
@@ -239,6 +241,8 @@ public final class TCPNIOServerConnection extends TCPNIOConnection {
                 acceptListener = null;
             }
         }
+
+        notifyProbesAccept(this);
     }
 
     protected final class RegisterAcceptedChannelCompletionHandler

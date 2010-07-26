@@ -227,6 +227,31 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
     public void setWriteTimeout(long timeout, TimeUnit timeUnit);
 
     /**
+     * Add the {@link ConnectionMonitoringProbe}, which will be notified about
+     * <tt>Connection</tt> lifecycle events.
+     * 
+     * @param probe the {@link ConnectionMonitoringProbe}.
+     */
+    public void addMonitoringProbe(ConnectionMonitoringProbe probe);
+
+    /**
+     * Remove the {@link ConnectionMonitoringProbe}.
+     *
+     * @param probe the {@link ConnectionMonitoringProbe}.
+     */
+    public boolean removeMonitoringProbe(ConnectionMonitoringProbe probe);
+
+    /**
+     * Get the {@link ConnectionMonitoringProbe}, which are registered on the <tt>Connection</tt>.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.ConnectionMonitoringProbe)} instead.
+     * 
+     * @return the {@link ConnectionMonitoringProbe}, which are registered on the <tt>Connection</tt>.
+     */
+    public ConnectionMonitoringProbe[] getMonitoringProbes();
+    
+    /**
      * Add the {@link CloseListener}, which will be notified once <tt>Connection</tt>
      * will be closed.
      * 
@@ -241,6 +266,13 @@ public interface Connection<L> extends Readable<L>, Writable<L>, Closeable,
      */
     public boolean removeCloseListener(CloseListener closeListener);
     
+    /**
+     * Method gets invoked, when error occur during the <tt>Connection</tt> lifecycle.
+     *
+     * @param error {@link Throwable}.
+     */
+    public void notifyConnectionError(Throwable error);
+        
     /**
      * The listener, which is used to be notified, when <tt>Connection</tt> gets closed.
      */
