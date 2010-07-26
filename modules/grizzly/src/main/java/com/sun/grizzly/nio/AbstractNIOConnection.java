@@ -115,7 +115,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     /**
      * Connection probes
      */
-    private volatile ConnectionMonitoringProbe[] monitoringProbes;
+    protected volatile ConnectionMonitoringProbe[] monitoringProbes;
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;

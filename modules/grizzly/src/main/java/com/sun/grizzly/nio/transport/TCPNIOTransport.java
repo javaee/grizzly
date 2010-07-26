@@ -552,6 +552,7 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
         connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
         connection.setProcessorSelector(processorSelector);
+        connection.setMonitoringProbes(connectionMonitoringProbes);
         
         return connection;
     }
