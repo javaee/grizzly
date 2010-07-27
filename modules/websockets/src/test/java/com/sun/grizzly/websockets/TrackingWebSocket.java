@@ -62,8 +62,9 @@ public class TrackingWebSocket extends ClientWebSocket {
     @Override
     public void onMessage(DataFrame frame) throws IOException {
         super.onMessage(frame);
-        sent.remove(frame.getTextPayload());
-        received.countDown();
+        if(sent.remove(frame.getTextPayload()) != null) {
+            received.countDown();
+        }
     }
 
     @Override

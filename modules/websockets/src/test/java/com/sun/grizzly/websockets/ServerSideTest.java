@@ -122,10 +122,10 @@ public class ServerSideTest {
         }
     }
 
-	 @Test(enabled=false)
+    @Test
     public void multipleClients() throws IOException, InstantiationException, ExecutionException, InterruptedException {
         final SelectorThread thread = createSelectorThread(PORT, new ServletAdapter(new EchoServlet()));
-        TrackingWebSocketClientApplication app = new TrackingWebSocketClientApplication(5);
+        TrackingWebSocketClientApplication app = new TrackingWebSocketClientApplication(5*ITERATIONS);
 
         List<TrackingWebSocket> clients = new ArrayList<TrackingWebSocket>();
         try {
@@ -135,15 +135,21 @@ public class ServerSideTest {
                 clients.add(webSocket);
                 webSocket.setName(x);
             }
-            for (TrackingWebSocket socket : clients) {
-                socket.send(socket.getName() + ": test message");
-                socket.send(socket.getName() + ": let's try again");
-                socket.send(socket.getName() + ": 3rd time's the charm!");
-                socket.send(socket.getName() + ": ok.  just one more");
-                socket.send(socket.getName() + ": now, we're done");
+            String[] messages = {
+                    "test message",
+                    "let's try again",
+                    "3rd time's the charm!",
+                    "ok.  just one more",
+                    "now, we're done"};
+            for (int count = 0; count < ITERATIONS; count++) {
+                for (String message : messages) {
+                    for (TrackingWebSocket socket : clients) {
+                        socket.send(String.format("%s: count %s: %s", socket.getName(), count, message));
+                    }
+                }
             }
             for (TrackingWebSocket socket : clients) {
-                socket.waitOnMessages();
+                Assert.assertTrue(socket.waitOnMessages());
             }
         } finally {
             thread.stopEndpoint();
