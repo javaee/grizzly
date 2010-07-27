@@ -149,7 +149,7 @@ public class ServerSideTest {
                 }
             }
             for (TrackingWebSocket socket : clients) {
-                Assert.assertTrue(socket.waitOnMessages());
+                Assert.assertTrue(socket.waitOnMessages(), "All messages should come back: " + socket.getReceived());
             }
         } finally {
             thread.stopEndpoint();

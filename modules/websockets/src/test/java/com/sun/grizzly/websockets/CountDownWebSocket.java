@@ -72,7 +72,6 @@ public class CountDownWebSocket extends ClientWebSocket {
                     Thread.sleep(100);
                 }
 
-
                 return countDown.get() == 0;
             }
         });
