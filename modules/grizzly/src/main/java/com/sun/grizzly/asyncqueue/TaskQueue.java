@@ -49,11 +49,11 @@ import java.util.Queue;
  * @author Alexey Stashok
  */
 public abstract class TaskQueue<E> {
-    public static final <E> TaskQueue<E> createSafeTaskQueue() {
+    public static <E> TaskQueue<E> createSafeTaskQueue() {
         return new SafeTaskQueue<E>();
     }
     
-    public static final <E> TaskQueue<E> createUnSafeTaskQueue() {
+    public static <E> TaskQueue<E> createUnSafeTaskQueue() {
         return new UnSafeTaskQueue<E>();
     }
 
@@ -116,7 +116,7 @@ public abstract class TaskQueue<E> {
     }
     
     /**
-     * The queue of tasks, which will be processed asynchrounously
+     * The queue of tasks, which will be processed asynchronously
      */
     protected final Queue<E> queue;
 
@@ -137,8 +137,8 @@ public abstract class TaskQueue<E> {
     public abstract AtomicReference<E> getCurrentElementAtomic();
     
     /**
-     * Get the queue of tasks, which will be processed asynchrounously
-     * @return the queue of tasks, which will be processed asynchrounously
+     * Get the queue of tasks, which will be processed asynchronously
+     * @return the queue of tasks, which will be processed asynchronously
      */
     public Queue<E> getQueue() {
         return queue;
