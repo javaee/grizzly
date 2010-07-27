@@ -44,7 +44,7 @@ import java.io.InputStream;
  *
  * @since 2.0
  */
-public class GrizzlyInputStream extends InputStream implements AsyncInputStream {
+public class GrizzlyInputStream extends InputStream implements NioInputSource {
 
     private final InputBuffer inputBuffer;
 
@@ -80,14 +80,14 @@ public class GrizzlyInputStream extends InputStream implements AsyncInputStream 
      * {@inheritDoc}
      */
     @Override public int read(byte[] b) throws IOException {
-        return inputBuffer.read(b, 0, b.length, true);
+        return inputBuffer.read(b, 0, b.length);
     }
 
     /**
      * {@inheritDoc}
      */
     @Override public int read(byte[] b, int off, int len) throws IOException {
-        return inputBuffer.read(b, off, len, true);
+        return inputBuffer.read(b, off, len);
     }
 
     /**
@@ -135,24 +135,8 @@ public class GrizzlyInputStream extends InputStream implements AsyncInputStream 
     }
 
 
-    // ------------------------------------------- Methods from AsyncInputStream
+    // --------------------------------------------- Methods from NioInputSource
 
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int readByteArray(byte[] data) throws IOException {
-        return inputBuffer.read(data, 0, data.length, false);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int readByteArray(byte[] data, int offset, int length) throws IOException {
-        return inputBuffer.read(data, offset, length, false);
-    }
 
     /**
      * {@inheritDoc}
@@ -176,6 +160,30 @@ public class GrizzlyInputStream extends InputStream implements AsyncInputStream 
     @Override
     public boolean isFinished() {
         return inputBuffer.isFinished();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int readyData() {
+        return inputBuffer.available();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isReady() {
+        return (inputBuffer.available() > 0);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Buffer getBuffer() {
+        return inputBuffer.getBuffer();
     }
     
 }

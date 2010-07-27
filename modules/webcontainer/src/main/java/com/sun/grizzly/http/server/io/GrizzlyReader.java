@@ -36,6 +36,8 @@
 
 package com.sun.grizzly.http.server.io;
 
+import com.sun.grizzly.Buffer;
+
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.CharBuffer;
@@ -44,7 +46,7 @@ import java.nio.CharBuffer;
  * {@link Reader} implementation to be used to read character-based request
  * content.
  */
-public class GrizzlyReader extends Reader implements AsyncReader {
+public class GrizzlyReader extends Reader implements NioInputSource {
 
     private final InputBuffer inputBuffer;
 
@@ -72,7 +74,7 @@ public class GrizzlyReader extends Reader implements AsyncReader {
      * {@inheritDoc}
      */
     @Override public int read(CharBuffer target) throws IOException {
-        return inputBuffer.read(target, true);
+        return inputBuffer.read(target);
     }
 
     /**
@@ -86,7 +88,7 @@ public class GrizzlyReader extends Reader implements AsyncReader {
      * {@inheritDoc}
      */
     @Override public int read(char[] cbuf) throws IOException {
-        return inputBuffer.read(cbuf, 0, cbuf.length, true);
+        return inputBuffer.read(cbuf, 0, cbuf.length);
     }
 
     /**
@@ -131,7 +133,7 @@ public class GrizzlyReader extends Reader implements AsyncReader {
      */
     @Override public int read(char[] cbuf, int off, int len)
     throws IOException {
-        return inputBuffer.read(cbuf, off, len, true);
+        return inputBuffer.read(cbuf, off, len);
     }
 
     /**
@@ -142,24 +144,8 @@ public class GrizzlyReader extends Reader implements AsyncReader {
     }
 
 
-    // ------------------------------------------------ Methods from AsyncReader
+    // --------------------------------------------- Methods from NioInputSource
 
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int readCharArray(char[] data) throws IOException {
-        return inputBuffer.read(data, 0, data.length, false);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int readCharArray(char[] data, int offset, int len) throws IOException {
-        return inputBuffer.read(data, offset, len, false);
-    }
 
     /**
      * {@inheritDoc}
@@ -178,15 +164,6 @@ public class GrizzlyReader extends Reader implements AsyncReader {
         inputBuffer.notifyAvailable(handler, size);
     }
 
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public int available() {
-        return inputBuffer.availableChar();
-    }
-
     /**
      * {@inheritDoc}
      */
@@ -195,4 +172,27 @@ public class GrizzlyReader extends Reader implements AsyncReader {
         return inputBuffer.isFinished();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int readyData() {
+        return inputBuffer.availableChar();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isReady() {
+        return (inputBuffer.availableChar() > 0);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Buffer getBuffer() {
+        return inputBuffer.getBuffer();
+    }
 }

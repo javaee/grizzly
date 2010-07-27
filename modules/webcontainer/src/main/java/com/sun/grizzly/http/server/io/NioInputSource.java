@@ -36,17 +36,19 @@
 
 package com.sun.grizzly.http.server.io;
 
+import com.sun.grizzly.Buffer;
+
 
 /**
  * <p>
  * This interface defines methods to allow an {@link java.io.InputStream} or
- * {@link java.io.Reader} to notify the developer when data is ready to be
- * read without blocking.
+ * {@link java.io.Reader} to notify the developer <em>when</em> and <em>how much</em>
+ * data is ready to be read without blocking.
  * </p>
  *
  * @since 2.0
  */
-public interface AsyncInputSource {
+public interface NioInputSource {
 
 
     /**
@@ -91,4 +93,37 @@ public interface AsyncInputSource {
      *  has been read, otherwise returns <code>false</code>.
      */
     boolean isFinished();
+
+
+    /**
+     * @return the number of bytes (or characters) that may be obtained
+     *  without blocking.
+     */
+    int readyData();
+
+
+    /**
+     * @return <code>true</code> if data can be obtained without blocking,
+     *  otherwise returns <code>false</code>.
+     */
+    boolean isReady();
+
+
+    /**
+     * <p>
+     * Returns the underlying {@link Buffer} that backs this
+     *  <code>NioInputSource</code>.
+     * </p>
+     *
+     * <p>
+     * It should be noted that for character-based <code>NioInputSource</code>s,
+     * the {@link Buffer} is the raw bytes.  Any required character conversion
+     * would have to be applied manually.
+     * </p>
+     *
+     * @return the underlying {@link Buffer} that backs this
+     *  <code>NioInputSource</code>.
+     */
+    Buffer getBuffer();
+
 }

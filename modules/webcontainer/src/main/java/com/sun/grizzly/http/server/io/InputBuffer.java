@@ -287,27 +287,24 @@ public class InputBuffer {
     /**
      * @see java.io.InputStream#read(byte[], int, int)
      */
-    public int read(byte b[], int off, int len, boolean block) throws IOException {
+    public int read(byte b[], int off, int len) throws IOException {
 
         if (closed) {
             throw new IOException();
         }
-        if (block && asyncEnabled) {
-            throw new IllegalStateException("Non blocking read request made, however, stream is not configured for async processing");
-        }
+
         if (len == 0) {
             return 0;
         }
-        if (block) {
-            if (compositeBuffer.remaining() == 0) {
-                if (fill(len) == -1) {
-                    return -1;
-                }
+        if (!asyncEnabled && compositeBuffer.remaining() == 0) {
+            if (fill(len) == -1) {
+                return -1;
             }
             if (compositeBuffer.remaining() < len) {
                 fill(len);
             }
         }
+
         int nlen = Math.min(compositeBuffer.remaining(), len);
         if (readAheadLimit != -1) {
             readCount += nlen;
@@ -325,10 +322,15 @@ public class InputBuffer {
     /**
      * @see java.io.InputStream#available()
      */
-    public int available() throws IOException {
+    public int available() {
 
         return ((closed) ? 0 : compositeBuffer.remaining());
 
+    }
+
+
+    public Buffer getBuffer() {
+        return compositeBuffer;
     }
 
 
@@ -338,7 +340,7 @@ public class InputBuffer {
     /**
      * @see java.io.Reader#read(java.nio.CharBuffer)
      */
-    public int read(CharBuffer target, boolean block) throws IOException {
+    public int read(CharBuffer target) throws IOException {
 
         if (closed) {
             throw new IOException();
@@ -346,17 +348,13 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        if (block && asyncEnabled) {
-            throw new IllegalStateException("Non blocking read request made, however, stream is not configured for async processing");
-        }
-        if (block) {
-            if (charBuf.remaining() == 0) {
-                if (fillChar(target.capacity(), block) == -1) {
-                    return -1;
-                }
+        
+        if (charBuf.remaining() == 0) {
+            if (fillChar(target.capacity(), !asyncEnabled) == -1) {
+                return -1;
             }
         }
-        
+
         int pos = target.position();
         charBuf.read(target);
         return (target.position() - pos);
@@ -389,7 +387,7 @@ public class InputBuffer {
     /**
      * @see java.io.Reader#read(char[], int, int)
      */
-    public int read(char cbuf[], int off, int len, boolean block)
+    public int read(char cbuf[], int off, int len)
     throws IOException {
 
         if (closed) {
@@ -398,14 +396,12 @@ public class InputBuffer {
         if (!processingChars) {
             throw new IllegalStateException();
         }
-        if (block && asyncEnabled) {
-            throw new IllegalStateException("Non blocking read request made, however, stream is not configured for async processing");
-        }
+
         if (len == 0) {
             return 0;
         }
         if (charBuf.remaining() == 0) {
-            if (fillChar(len, block) == -1) {
+            if (fillChar(len, !asyncEnabled) == -1) {
                 return -1;
             }
         }

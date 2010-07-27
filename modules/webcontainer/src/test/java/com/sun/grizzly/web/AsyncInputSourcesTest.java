@@ -467,10 +467,10 @@ public class AsyncInputSourcesTest extends TestCase {
 
             try {
                 final GrizzlyInputStream reader = req.getInputStream(false);
-                int available = reader.available();
+                int available = reader.readyData();
                 if (available > 0) {
                     byte[] b = new byte[available];
-                    reader.readByteArray(b);
+                    reader.read(b);
                     res.getOutputStream().write(b);
                 }
                 if (reader.isFinished()) {
@@ -523,9 +523,9 @@ public class AsyncInputSourcesTest extends TestCase {
         }
 
         private static void buffer(GrizzlyInputStream reader, StringBuilder sb) throws IOException {
-            byte[] b = new byte[reader.available()];
+            byte[] b = new byte[reader.readyData()];
             try {
-                reader.readByteArray(b);
+                reader.read(b);
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             }
@@ -566,10 +566,10 @@ public class AsyncInputSourcesTest extends TestCase {
 
             try {
                 final GrizzlyReader reader = req.getReader(false);
-                int available = reader.available();
+                int available = reader.readyData();
                 if (available > 0) {
                     char[] b = new char[available];
-                    reader.readCharArray(b);
+                    reader.read(b);
                     res.getWriter().write(b);
                 }
                 if (reader.isFinished()) {
@@ -622,9 +622,9 @@ public class AsyncInputSourcesTest extends TestCase {
         }
 
         private static void buffer(GrizzlyReader reader, StringBuilder sb) throws IOException {
-            char[] c = new char[reader.available()];
+            char[] c = new char[reader.readyData()];
             try {
-                reader.readCharArray(c);
+                reader.read(c);
             } catch (IOException ioe) {
                 throw new RuntimeException(ioe);
             }
