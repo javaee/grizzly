@@ -36,8 +36,6 @@
 
 package com.sun.grizzly.http.server.io;
 
-import com.sun.grizzly.Buffer;
-
 import java.io.IOException;
 import java.io.InputStream;
 

@@ -44,7 +44,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.util.Constants;
 import com.sun.grizzly.http.util.Utils;
-import com.sun.grizzly.memory.ByteBuffersBuffer;
+import com.sun.grizzly.memory.BuffersBuffer;
 
 import java.io.IOException;
 import java.nio.BufferUnderflowException;
@@ -90,10 +90,10 @@ public class InputBuffer {
     private boolean closed;
 
     /**
-     * Composite {@link ByteBuffer} consisting of the bytes from the HTTP
+     * Composite {@link Buffer} consisting of the bytes from the HTTP
      * message chunks.
      */
-    private ByteBuffersBuffer compositeBuffer;
+    private BuffersBuffer compositeBuffer;
 
     /**
      * {@link CharBuffer} containing charset decoded bytes.  This is only
@@ -186,7 +186,7 @@ public class InputBuffer {
         this.request = request;
         this.ctx = ctx;
         connection = ctx.getConnection();
-        compositeBuffer = ByteBuffersBuffer.create(connection.getTransport().getMemoryManager());
+        compositeBuffer = BuffersBuffer.create(connection.getTransport().getMemoryManager());
         Object message = ctx.getMessage();
         if (message instanceof HttpContent) {
             HttpContent content = (HttpContent) ctx.getMessage();
@@ -434,12 +434,13 @@ public class InputBuffer {
 
 
     public int availableChar() {
-        CharsetDecoder decoder = getDecoder();
         int remaining = compositeBuffer.remaining();
         if (remaining == 0) {
             return 0;
         }
-        return ((Float.valueOf(remaining / decoder.averageCharsPerByte())).intValue());
+
+        final CharsetDecoder decoderLocal = getDecoder();
+        return ((Float.valueOf(remaining / decoderLocal.averageCharsPerByte())).intValue());
     }
 
 
@@ -689,7 +690,7 @@ public class InputBuffer {
                     HttpContent c = (HttpContent) rr.getMessage();
                     Buffer b = c.getContent();
                     read += b.remaining();
-                    compositeBuffer.append(c.getContent().toByteBuffer());
+                    compositeBuffer.append(c.getContent());
                 }
                 return read;
             } finally {
@@ -714,8 +715,8 @@ public class InputBuffer {
      */
     private int fillChar(int requestedLen, boolean block) throws IOException {
 
-        if ((remainder != null && remainder.remaining() > 0) || !block) {
-            CharsetDecoder decoderLocal = getDecoder();
+        if ((remainder != null && remainder.hasRemaining()) || !block) {
+            final CharsetDecoder decoderLocal = getDecoder();
             charBuf.compact();
             int curPos = charBuf.position();
             final ByteBuffer bb = ((remainder != null) ? remainder : compositeBuffer.toByteBuffer());
