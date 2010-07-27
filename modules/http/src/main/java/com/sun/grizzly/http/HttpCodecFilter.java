@@ -52,6 +52,7 @@ import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.ssl.SSLFilter;
+import com.sun.grizzly.utils.ArrayUtils;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -218,25 +219,12 @@ public abstract class HttpCodecFilter extends BaseFilter {
      * </p>
      *
      * @param transferEncoding the {@link TransferEncoding} to add
-     * @return index of the added {@link TransferEncoding}. If the {@link TransferEncoding}
-     * was already registered - it will be replaced with the new one on the original position.
      */
-    public int addTransferEncoding(TransferEncoding transferEncoding) {
+    public void addTransferEncoding(TransferEncoding transferEncoding) {
         if (transferEncoding == null) throw new IllegalArgumentException("Could not be null");
 
         synchronized (transferEncodingSync) {
-            final int index = indexOf(transferEncodings, transferEncoding);
-            if (index != -1) {
-                TransferEncoding[] encodings = Arrays.copyOf(
-                        transferEncodings, transferEncodings.length + 1);
-                encodings[transferEncodings.length] = transferEncoding;
-                transferEncodings = encodings;
-
-                return encodings.length - 1;
-            }
-
-            transferEncodings[index] = transferEncoding;
-            return index;
+            transferEncodings = ArrayUtils.addUnique(transferEncodings, transferEncoding);
         }
     }
 
@@ -254,25 +242,10 @@ public abstract class HttpCodecFilter extends BaseFilter {
         if (transferEncoding == null) throw new IllegalArgumentException("Could not be null");
 
         synchronized (transferEncodingSync) {
-            final int idx = indexOf(transferEncodings, transferEncoding);
-            if (idx != -1) {
-                TransferEncoding[] encodings =
-                        new TransferEncoding[transferEncodings.length - 1];
-                if (idx > 0) {
-                    System.arraycopy(transferEncodings, 0, encodings, 0, idx);
-                }
+            final TransferEncoding[] oldEncodings = transferEncodings;
+            transferEncodings = ArrayUtils.remove(oldEncodings, transferEncoding);
 
-                final int bytesToCopy2 = transferEncodings.length - idx - 1;
-                if (bytesToCopy2 > 0) {
-                    System.arraycopy(transferEncodings, idx + 1, encodings, idx, bytesToCopy2);
-                }
-
-                transferEncodings = encodings;
-
-                return true;
-            }
-
-            return false;
+            return transferEncodings != oldEncodings;
         }
     }
 
@@ -295,25 +268,12 @@ public abstract class HttpCodecFilter extends BaseFilter {
      * </p>
      *
      * @param contentEncoding the {@link ContentEncoding} to add
-     * @return index of the added {@link ContentEncoding}. If the {@link ContentEncoding}
-     * was already registered - it will be replaced with the new one on the original position.
      */
-    public int addContentEncoding(ContentEncoding contentEncoding) {
+    public void addContentEncoding(ContentEncoding contentEncoding) {
         if (contentEncoding == null) throw new IllegalArgumentException("Could not be null");
 
         synchronized (contentEncodingSync) {
-            int index;
-            if ((index = indexOf(contentEncodings, contentEncoding)) == -1) {
-                ContentEncoding[] encodings = Arrays.copyOf(
-                        contentEncodings, contentEncodings.length + 1);
-                encodings[contentEncodings.length] = contentEncoding;
-                contentEncodings = encodings;
-
-                return encodings.length - 1;
-            }
-
-            contentEncodings[index] = contentEncoding;
-            return index;
+            contentEncodings = ArrayUtils.addUnique(contentEncodings, contentEncoding);
         }
     }
 
@@ -332,25 +292,10 @@ public abstract class HttpCodecFilter extends BaseFilter {
         if (contentEncoding == null) throw new IllegalArgumentException("Could not be null");
         
         synchronized (contentEncodingSync) {
-            final int idx = indexOf(contentEncodings, contentEncoding);
-            if (idx != -1) {
-                ContentEncoding[] encodings =
-                        new ContentEncoding[contentEncodings.length - 1];
-                if (idx > 0) {
-                    System.arraycopy(contentEncodings, 0, encodings, 0, idx);
-                }
+            final ContentEncoding[] oldEncodings = contentEncodings;
+            contentEncodings = ArrayUtils.remove(oldEncodings, contentEncoding);
 
-                final int bytesToCopy2 = contentEncodings.length - idx - 1;
-                if (bytesToCopy2 > 0) {
-                    System.arraycopy(contentEncodings, idx + 1, encodings, idx, bytesToCopy2);
-                }
-
-                contentEncodings = encodings;
-
-                return true;
-            }
-
-            return false;
+            return contentEncodings != oldEncodings;
         }
     }
     
