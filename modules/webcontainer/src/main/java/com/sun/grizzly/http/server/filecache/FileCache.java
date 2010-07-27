@@ -47,17 +47,20 @@ import com.sun.grizzly.http.util.BufferChunk;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.memory.MemoryUtils;
+import com.sun.grizzly.utils.ArrayUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.Arrays;
 import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -68,42 +71,19 @@ import java.util.logging.Logger;
  * @author Scott Oaks
  */
 public class FileCache {
+    public enum CacheType {
+        HEAP, MAPPED
+    }
 
     private static final Logger logger = Grizzly.logger(FileCache.class);
     
     /**
      * A {@link ByteBuffer} cache of static pages.
      */
-    private final ConcurrentHashMap<FileCacheKey, FileCacheEntry> fileCache =
+    private final ConcurrentHashMap<FileCacheKey, FileCacheEntry> fileCacheMap =
             new ConcurrentHashMap<FileCacheKey, FileCacheEntry>();
     
-    private final FileCacheEntry NULL_CACHE_ENTRY = new FileCacheEntry();
-    /**
-     * A connection: close of {@link ByteBuffer}
-     */
-    protected final static ByteBuffer connectionCloseBB =
-            ByteBuffer.wrap("Connection: close\r\n\r\n".getBytes());
-    /**
-     * A connection: keep-alive of {@link ByteBuffer}
-     */
-    protected final static ByteBuffer connectionKaBB =
-            ByteBuffer.wrap("Connection: keep-alive\r\n\r\n".getBytes());
-    /**
-     * HTTP end line.
-     */
-    private final static String NEWLINE = "\r\n";
-    /**
-     * HTTP OK header
-     */
-    public final static String OK = "HTTP/1.1 200 OK" + NEWLINE;
-    /**
-     * The port associated with this cache.
-     */
-//    private int port = 8080;
-    /**
-     * FileCacheEntry cache
-     */
-//    private Queue<FileCacheEntry> cacheManager;
+    private final FileCacheEntry NULL_CACHE_ENTRY = new FileCacheEntry(this);
     /**
      * Timeout before remove the static resource from the cache.
      */
@@ -111,7 +91,7 @@ public class FileCache {
     /**
      * The maximum entries in the {@link FileCache}
      */
-    private int maxCacheEntries = 1024;
+    private volatile int maxCacheEntries = 1024;
     /**
      * The maximum size of a cached resources.
      */
@@ -123,75 +103,23 @@ public class FileCache {
     /**
      * The maximum memory mapped bytes
      */
-    private long maxLargeFileCacheSize = Long.MAX_VALUE;
+    private volatile long maxLargeFileCacheSize = Long.MAX_VALUE;
     /**
      * The maximum cached bytes
      */
-    private long maxSmallFileCacheSize = 1048576;
+    private volatile long maxSmallFileCacheSize = 1048576;
     /**
      * The current cache size in bytes
      */
-    private long mappedMemorySize = 0;
+    private AtomicLong mappedMemorySize = new AtomicLong();
     /**
      * The current cache size in bytes
      */
-    private long heapSize = 0;
+    private AtomicLong heapSize = new AtomicLong();
     /**
      * Is the file cache enabled.
      */
     private boolean isEnabled = true;
-    /**
-     * Is the large FileCache enabled.
-     */
-    private boolean isLargeFileCacheEnabled = true;
-    /**
-     * Is monitoring enabled.
-     */
-    private boolean isMonitoringEnabled = false;
-    /**
-     * The number of current open cache entries
-     */
-    private int openCacheEntries = 0;
-    /**
-     * The number of max current open cache entries
-     */
-    private int maxOpenCacheEntries = 0;
-    /**
-     * Max heap space used for cache
-     */
-    private long maxHeapCacheSize = 0;
-    /**
-     * Max mapped memory used for cache
-     */
-    private long maxMappedMemory = 0;
-    /**
-     * Number of cache lookup hits
-     */
-    private int countHits = 0;
-    /**
-     * Number of cache lookup misses
-     */
-    private int countMisses = 0;
-    /**
-     * Number of hits on cached file info
-     */
-    private int countCacheHits;
-    /**
-     * Number of misses on cached file info
-     */
-    private int countCacheMisses;
-    /**
-     * Number of hits on cached file info
-     */
-    private int countMappedHits;
-    /**
-     * Number of misses on cached file info
-     */
-    private int countMappedMisses;
-    /**
-     * The Header ByteBuffer default size.
-     */
-    private int headerBBSize = 4096;
     /**
      * Status code (304) indicating that a conditional GET operation
      * found that the resource was available and not modified.
@@ -206,6 +134,15 @@ public class FileCache {
 
     private final MemoryManager memoryManager;
     private final ScheduledExecutorService scheduledExecutorService;
+
+    /**
+     * Sync object for monitoringProbes access
+     */
+    private final Object monitoringProbesSync = new Object();
+    /**
+     * Connection probes
+     */
+    protected volatile FileCacheMonitoringProbe[] monitoringProbes;
 
     public FileCache(MemoryManager memoryManager,
             ScheduledExecutorService scheduledExecutorService) {
@@ -228,32 +165,28 @@ public class FileCache {
         final MimeHeaders headers = response.getHeaders();
 
         final FileCacheKey key = new FileCacheKey(host, requestURI);
-        if (requestURI == null || fileCache.putIfAbsent(key, NULL_CACHE_ENTRY) != null) {
+        if (requestURI == null || fileCacheMap.putIfAbsent(key, NULL_CACHE_ENTRY) != null) {
             //@TODO return key and entry to the thread cache object pool
             return;
         }
 
         // cache is full.
-        if (fileCache.size() > maxCacheEntries) {
-            fileCache.remove(key);
+        if (fileCacheMap.size() > maxCacheEntries) {
+            fileCacheMap.remove(key);
             //@TODO return key and entry to the thread cache object pool
             return;
         }
 
-        final ByteBuffer bb = mapFile(cacheFile);
+        final FileCacheEntry entry = mapFile(cacheFile);
 
         // Always put the answer into the map. If it's null, then
         // we know that it doesn't fit into the cache, so there's no
         // reason to go through this code again.
-        if (bb == null) {
+        if (entry == null) {
             return;
         }
 
-        final long cacheFileSize = cacheFile.length();
-        final FileCacheEntry entry = new FileCacheEntry();
-
         entry.key = key;
-        entry.bb = bb;
         entry.requestURI = requestURI;
 
         String lastModified = headers.getHeader("Last-Modified");
@@ -261,35 +194,18 @@ public class FileCache {
                 ? String.valueOf(cacheFile.lastModified()) : lastModified);
         entry.contentType = headers.getHeader("Content-type");
         entry.xPoweredBy = headers.getHeader("X-Powered-By");
-        entry.isInHeap = (cacheFileSize < minEntrySize);
         entry.date = headers.getHeader("Date");
         entry.Etag = headers.getHeader("Etag");
         entry.contentLength = response.getContentLength();
-        entry.fileSize = cacheFileSize;
         entry.host = host;
 
-        incOpenCacheEntries();
-        if (isMonitoringEnabled) {
-
-            if (openCacheEntries > maxOpenCacheEntries) {
-                maxOpenCacheEntries = openCacheEntries;
-            }
-
-            if (heapSize > maxHeapCacheSize) {
-                maxHeapCacheSize = heapSize;
-            }
-
-            if (mappedMemorySize > maxMappedMemory) {
-                maxMappedMemory = mappedMemorySize;
-            }
-        }
+        fileCacheMap.put(key, entry);
+        
+        notifyProbesEntryAdded(this, entry);
 
         if (secondsMaxAge > 0) {
-            entry.future = scheduledExecutorService.schedule(entry,
-                    secondsMaxAge, TimeUnit.SECONDS);
+            scheduledExecutorService.schedule(entry, secondsMaxAge, TimeUnit.SECONDS);
         }
-
-        fileCache.put(key, entry);
     }
 
 
@@ -302,15 +218,17 @@ public class FileCache {
         final String host = request.getHeader("Host");
 
         final FileCacheKey key = new FileCacheKey(host, requestURI);
-        final FileCacheEntry entry = fileCache.get(key);
+        final FileCacheEntry entry = fileCacheMap.get(key);
 
         try {
-            recalcCacheStatsIfMonitoring(entry);
-
             if (entry != null && entry != NULL_CACHE_ENTRY) {
+                notifyProbesEntryHit(this, entry);
                 return makeResponse(entry, request);
+            } else {
+                notifyProbesEntryMissed(this, host, requestURI);
             }
         } catch (Exception e) {
+            notifyProbesError(this, e);
             // If an unexpected exception occurs, try to serve the page
             // as if it wasn't in a cache.
             logger.log(Level.WARNING, "File Cache exception", e);
@@ -319,83 +237,92 @@ public class FileCache {
         return null;
     }
 
+    final ConcurrentHashMap<FileCacheKey, FileCacheEntry> getFileCacheMap() {
+        return fileCacheMap;
+    }
+
+    protected void remove(FileCacheEntry entry) {
+        fileCacheMap.remove(entry.key);
+
+        if (entry.type == FileCache.CacheType.MAPPED) {
+            subMappedMemorySize(entry.bb.remaining());
+        } else {
+            subHeapSize(entry.bb.remaining());
+        }
+
+        notifyProbesEntryRemoved(this, entry);
+    }
+
     /**
      * Map the file to a {@link ByteBuffer}
-     * @return the {@link ByteBuffer}
+     * @return the preinitialized {@link FileCacheEntry}
      */
-    private ByteBuffer mapFile(File file) {
+    private FileCacheEntry mapFile(File file) {
+        final CacheType type;
+        final long size;
+        final ByteBuffer bb;
+        
         FileChannel fileChannel = null;
         FileInputStream stream = null;
         try {
             stream = new FileInputStream(file);
             fileChannel = stream.getChannel();
 
-            long size = fileChannel.size();
+            size = fileChannel.size();
 
             if (size > maxEntrySize) {
                 return null;
             }
 
             if (size > minEntrySize) {
-                addMappedMemorySize(size);
+                if (addMappedMemorySize(size) > maxLargeFileCacheSize) {
+                    // Cache full
+                    subMappedMemorySize(size);
+                    return null;
+                }
+                
+                type = CacheType.MAPPED;
             } else {
-                addHeapSize(size);
+                if (addHeapSize(size) > maxSmallFileCacheSize) {
+                    // Cache full
+                    subHeapSize(size);
+                    return null;
+                }
+
+                type = CacheType.HEAP;
             }
 
-            // Cache full
-            if (mappedMemorySize > maxLargeFileCacheSize) {
-                subMappedMemorySize(size);
-                return null;
-            } else if (heapSize > maxSmallFileCacheSize) {
-                subHeapSize(size);
-                return null;
-            }
+            bb = fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, size);
 
-            ByteBuffer bb =
-                    fileChannel.map(FileChannel.MapMode.READ_ONLY, 0, size);
-
-            if (size < minEntrySize) {
+            if (type == CacheType.HEAP) {
                 ((MappedByteBuffer) bb).load();
-            }
-            return bb;
-        } catch (IOException ioe) {
+            }            
+        } catch (Exception e) {
+            notifyProbesError(this, e);
             return null;
         } finally {
             if (stream != null) {
                 try {
                     stream.close();
                 } catch (IOException ignored) {
+                    notifyProbesError(this, ignored);
                 }
             }
             if (fileChannel != null) {
                 try {
                     fileChannel.close();
                 } catch (IOException ignored) {
+                    notifyProbesError(this, ignored);
                 }
             }
         }
-    }
 
-    protected void recalcCacheStatsIfMonitoring(final FileCacheEntry entry) {
-        if (isMonitoringEnabled) {
-            recalcCacheStats(entry);
-        }
-    }
+        final FileCacheEntry entry = new FileCacheEntry(this);
+        entry.type = type;
+        entry.fileSize = size;
+        entry.bb = bb;
 
-    protected final void recalcCacheStats(final FileCacheEntry entry) {
-//        if (entry != null && entry.bb != null && entry.bb != nullByteBuffer) {
-        if (entry != null) {
-            if (entry.isInHeap) {
-                countInfoHit();
-            } else {
-                countContentHit();
-            }
-
-            countHit();
-
-        } else {
-            countMiss();
-        }
+        return entry;
     }
 
     // -------------------------------------------------- Static cache -------/
@@ -453,7 +380,7 @@ public class FileCache {
      * @return current cache entries
      */
     public long getCountEntries() {
-        return fileCache.size();
+        return fileCacheMap.size();
     }
 
     /**
@@ -464,158 +391,39 @@ public class FileCache {
         return maxCacheEntries;
     }
 
-    protected void incOpenCacheEntries() {
-        openCacheEntries++;
+    protected final long addHeapSize(long size) {
+        return heapSize.addAndGet(size);
     }
 
-    protected void decOpenCacheEntries() {
-        openCacheEntries--;
-    }
-
-    /**
-     * The number of current open cache entries
-     * @return open cache entries
-     */
-    public long getCountOpenEntries() {
-        return openCacheEntries;
-    }
-
-    /**
-     * Return the maximum number of open cache entries
-     * @return maximum open cache entries
-     */
-    public long getMaxOpenEntries() {
-        return maxOpenCacheEntries;
-    }
-
-    protected void addHeapSize(long size) {
-        heapSize += size;
-    }
-
-    protected void subHeapSize(long size) {
-        heapSize -= size;
+    protected final long subHeapSize(long size) {
+        return heapSize.addAndGet(-size);
     }
 
     /**
      * Return the heap space used for cache
      * @return heap size
      */
-    public long getSizeHeapCache() {
-        return heapSize;
+    public long getHeapCacheSize() {
+        return heapSize.get();
     }
 
-    /**
-     * Return the maximum heap space used for cache
-     * @return maximum heap size
-     */
-    public long getMaxHeapCacheSize() {
-        return maxHeapCacheSize;
+    protected final long addMappedMemorySize(long size) {
+        return mappedMemorySize.addAndGet(size);
     }
 
-    protected void addMappedMemorySize(long size) {
-        mappedMemorySize += size;
-    }
-
-    protected void subMappedMemorySize(long size) {
-        mappedMemorySize -= size;
+    protected final long subMappedMemorySize(long size) {
+        return mappedMemorySize.addAndGet(-size);
     }
 
     /**
      * Return the size of Mapped memory used for caching
      * @return Mapped memory size
      */
-    public long getSizeMmapCache() {
-        return mappedMemorySize;
-    }
-
-    /**
-     * Return the Maximum Memory Map size to be used for caching
-     * @return maximum Memory Map size
-     */
-    public long getMaxMmapCacheSize() {
-        return maxMappedMemory;
-    }
-
-    protected void countHit() {
-        countHits++;
-    }
-
-    /**
-     * Return the Number of cache lookup hits
-     * @return cache hits
-     */
-    public long getCountHits() {
-        return countHits;
-    }
-
-    protected void countMiss() {
-        countMisses++;
-    }
-
-    /**
-     * Return the Number of cache lookup misses
-     * @return cache misses
-     */
-    public long getCountMisses() {
-        return countMisses;
-    }
-
-    protected void countInfoHit() {
-        countCacheHits++;
-    }
-
-    /**
-     * The Number of hits on cached file info
-     * @return hits on cached file info
-     */
-    public long getCountInfoHits() {
-        return countCacheHits;
-    }
-
-    protected void countInfoMiss() {
-        countCacheMisses++;
-    }
-
-    /**
-     * Return the number of misses on cached file info
-     * @return misses on cache file info
-     */
-    public long getCountInfoMisses() {
-        return countCacheMisses;
-    }
-
-    protected void countContentHit() {
-        countMappedHits++;
-    }
-
-    /**
-     * Return the Number of hits on cached file content
-     * @return hits on cache file content
-     */
-    public long getCountContentHits() {
-        return countMappedHits;
-    }
-
-    protected void countContentMiss() {
-        countMappedMisses++;
-    }
-
-    /**
-     * Return the Number of misses on cached file content
-     * @return missed on cached file content
-     */
-    public int getCountContentMisses() {
-        return countMappedMisses;
+    public long getMappedCacheSize() {
+        return mappedMemorySize.get();
     }
 
     // ---------------------------------------------------- Properties ----- //
-    /**
-     * Turn monitoring on/off
-     */
-    public void setIsMonitoringEnabled(boolean isMe) {
-        isMonitoringEnabled = isMe;
-    }
-
     /**
      * The timeout in seconds before remove a {@link FileCacheEntry}
      * from the {@link FileCache}
@@ -709,34 +517,6 @@ public class FileCache {
     }
 
     /**
-     * Is the large file cache support enabled.
-     */
-    public void setLargeFileCacheEnabled(boolean isLargeEnabled) {
-        this.isLargeFileCacheEnabled = isLargeEnabled;
-    }
-
-    /**
-     * Is the large file cache support enabled.
-     */
-    public boolean getLargeFileCacheEnabled() {
-        return isLargeFileCacheEnabled;
-    }
-
-    /**
-     * Retunr the header size buffer.
-     */
-    public int getHeaderBBSize() {
-        return headerBBSize;
-    }
-
-    /**
-     * Set the size of the header ByteBuffer.
-     */
-    public void setHeaderBBSize(int headerBBSize) {
-        this.headerBBSize = headerBBSize;
-    }
-
-    /**
      * Check if the conditions specified in the optional If headers are
      * satisfied.
      *
@@ -782,6 +562,7 @@ public class FileCache {
                 }
             }
         } catch (IllegalArgumentException illegalArgument) {
+            notifyProbesError(this, illegalArgument);
             return true;
         }
         return true;
@@ -868,6 +649,7 @@ public class FileCache {
                 }
             }
         } catch (IllegalArgumentException illegalArgument) {
+            notifyProbesError(this, illegalArgument);
             return true;
         }
         return true;
@@ -934,40 +716,125 @@ public class FileCache {
             }
         }
         return true;
-
     }
 
-    public final class FileCacheEntry implements Runnable {
-        public FileCacheKey key;
+    /**
+     * Add the {@link FileCacheMonitoringProbe}, which will be notified about
+     * <tt>FileCache</tt> lifecycle events.
+     *
+     * @param probe the {@link FileCacheMonitoringProbe}.
+     */
+    public void addMonitoringProbe(FileCacheMonitoringProbe probe) {
+        synchronized(monitoringProbesSync) {
+            monitoringProbes = ArrayUtils.addUnique(monitoringProbes, probe);
+        }
+    }
 
-        public String host;
-        public String requestURI;
-        public String lastModified = "";
-        public String contentType;
-        public ByteBuffer bb;
-        public String xPoweredBy;
-        public boolean isInHeap = false;
-        public String date;
-        public String Etag;
-        public Future future;
-        public long contentLength = -1;
-        public long fileSize = -1;
-        public String keepAlive;
+    /**
+     * Remove the {@link FileCacheMonitoringProbe}.
+     *
+     * @param probe the {@link FileCacheMonitoringProbe}.
+     */
+    public boolean removeMonitoringProbe(FileCacheMonitoringProbe probe) {
+        synchronized(monitoringProbesSync) {
+            final FileCacheMonitoringProbe[] probes = monitoringProbes;
+            monitoringProbes = ArrayUtils.remove(monitoringProbes, probe);
 
-        @Override
-        public void run() {
-            fileCache.remove(key);
+            return probes != monitoringProbes;
+        }
+    }
 
-            if (!isInHeap) {
-                subMappedMemorySize(bb.limit());
-            } else {
-                subHeapSize(bb.limit());
+    /**
+     * Get the {@link FileCacheMonitoringProbe}, which are registered on the <tt>FileCache</tt>.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.server.filecache.FileCacheMonitoringProbe)}and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.http.server.filecache.FileCacheMonitoringProbe)} instead.
+     *
+     * @return the {@link FileCacheMonitoringProbe}, which are registered on the <tt>FileCache</tt>.
+     */
+    public FileCacheMonitoringProbe[] getMonitoringProbes() {
+        final FileCacheMonitoringProbe[] probes = monitoringProbes;
+        if (probes != null) {
+            return Arrays.copyOf(probes, probes.length);
+        }
+
+        return null;
+    }
+
+    /**
+     * Notify registered {@link FileCacheMonitoringProbe}s about the "entry added" event.
+     *
+     * @param fileCache the <tt>FileCache</tt> event occurred on.
+     * @param entry entry been added
+     */
+    protected static void notifyProbesEntryAdded(FileCache fileCache, FileCacheEntry entry) {
+        final FileCacheMonitoringProbe[] probes = fileCache.monitoringProbes;
+        if (probes != null) {
+            for (FileCacheMonitoringProbe probe : probes) {
+                probe.onEntryAddedEvent(fileCache, entry);
             }
+        }
+    }
 
-            decOpenCacheEntries();
+    /**
+     * Notify registered {@link FileCacheMonitoringProbe}s about the "entry removed" event.
+     *
+     * @param fileCache the <tt>FileCache</tt> event occurred on.
+     * @param entry entry been removed
+     */
+    protected static void notifyProbesEntryRemoved(FileCache fileCache, FileCacheEntry entry) {
+        final FileCacheMonitoringProbe[] probes = fileCache.monitoringProbes;
+        if (probes != null) {
+            for (FileCacheMonitoringProbe probe : probes) {
+                probe.onEntryRemovedEvent(fileCache, entry);
+            }
+        }
+    }
 
-            if (future != null) {
-                future.cancel(false);
+    /**
+     * Notify registered {@link FileCacheMonitoringProbe}s about the "entry hitted" event.
+     *
+     * @param fileCache the <tt>FileCache</tt> event occurred on.
+     * @param entry entry been hitted.
+     */
+    protected static void notifyProbesEntryHit(FileCache fileCache, FileCacheEntry entry) {
+        final FileCacheMonitoringProbe[] probes = fileCache.monitoringProbes;
+        if (probes != null) {
+            for (FileCacheMonitoringProbe probe : probes) {
+                probe.onEntryHitEvent(fileCache, entry);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link FileCacheMonitoringProbe}s about the "entry missed" event.
+     *
+     * @param fileCache the <tt>FileCache</tt> event occurred on.
+     * @param host requested HTTP "Host" parameter.
+     * @param requestURI requested HTTP request URL.
+     */
+    protected static void notifyProbesEntryMissed(FileCache fileCache,
+            String host, String requestURI) {
+        
+        final FileCacheMonitoringProbe[] probes = fileCache.monitoringProbes;
+        if (probes != null) {
+            for (FileCacheMonitoringProbe probe : probes) {
+                probe.onEntryMissedEvent(fileCache, host, requestURI);
+            }
+        }
+    }
+
+    /**
+     * Notify registered {@link FileCacheMonitoringProbe}s about the error.
+     *
+     * @param fileCache the <tt>FileCache</tt> event occurred on.
+     */
+    protected static void notifyProbesError(FileCache fileCache,
+            Throwable error) {
+        final FileCacheMonitoringProbe[] probes = fileCache.monitoringProbes;
+        if (probes != null) {
+            for (FileCacheMonitoringProbe probe : probes) {
+                probe.onErrorEvent(fileCache, error);
             }
         }
     }

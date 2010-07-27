@@ -39,42 +39,51 @@
 package com.sun.grizzly.http.server.filecache;
 
 /**
- * The entry key in the file cache map.
- * 
+ * Monitoring probe providing callbacks that may be invoked by Grizzly {@link FileCache}.
+ *
  * @author Alexey Stashok
+ *
+ * @since 2.0
  */
-public class FileCacheKey {
-    private final String host;
-    private final String uri;
+public interface FileCacheMonitoringProbe {
+    /**
+     * Method will be called, when file cache entry gets added.
+     *
+     * @param fileCache {@link FileCache}, the event belongs to.
+     * @param entry {@link FileCacheEntry} been added.
+     */
+    public void onEntryAddedEvent(FileCache fileCache, FileCacheEntry entry);
 
-    public FileCacheKey(String host, String uri) {
-        this.host = host;
-        this.uri = uri;
-    }
+    /**
+     * Method will be called, when file cache entry gets removed.
+     *
+     * @param fileCache {@link FileCache}, the event belongs to.
+     * @param entry {@link FileCacheEntry} been removed.
+     */
+    public void onEntryRemovedEvent(FileCache fileCache, FileCacheEntry entry);
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final FileCacheKey other = (FileCacheKey) obj;
-        if ((this.host == null) ? (other.host != null) : !this.host.equals(other.host)) {
-            return false;
-        }
-        if ((this.uri == null) ? (other.uri != null) : !this.uri.equals(other.uri)) {
-            return false;
-        }
-        return true;
-    }
+    /**
+     * Method will be called, when file cache entry gets hitted.
+     *
+     * @param fileCache {@link FileCache}, the event belongs to.
+     * @param entry {@link FileCacheEntry} been hitted.
+     */
+    public void onEntryHitEvent(FileCache fileCache, FileCacheEntry entry);
 
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 23 * hash + (this.host != null ? this.host.hashCode() : 0);
-        hash = 23 * hash + (this.uri != null ? this.uri.hashCode() : 0);
-        return hash;
-    }
+    /**
+     * Method will be called, when file cache entry is missed for some resource.
+     *
+     * @param fileCache {@link FileCache}, the event belongs to.
+     * @param host the requested HTTP "Host" header.
+     * @param requestURI the requested HTTP URL.
+     */
+    public void onEntryMissedEvent(FileCache fileCache, String host, String requestURI);
+
+    /**
+     * Method will be called, when error occurs on the {@link FileCache}.
+     *
+     * @param fileCache {@link FileCache}, the event belongs to.
+     * @param error error
+     */
+    public void onErrorEvent(FileCache fileCache, Throwable error);
 }

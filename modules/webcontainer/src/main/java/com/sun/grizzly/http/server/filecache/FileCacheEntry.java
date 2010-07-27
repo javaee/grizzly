@@ -35,46 +35,39 @@
  * holder.
  *
  */
-
 package com.sun.grizzly.http.server.filecache;
 
+import java.nio.ByteBuffer;
+
 /**
- * The entry key in the file cache map.
- * 
+ * The entry value in the file cache map.
+ *
  * @author Alexey Stashok
  */
-public class FileCacheKey {
-    private final String host;
-    private final String uri;
+public final class FileCacheEntry implements Runnable {
 
-    public FileCacheKey(String host, String uri) {
-        this.host = host;
-        this.uri = uri;
+    public FileCacheKey key;
+    public String host;
+    public String requestURI;
+    public String lastModified = "";
+    public String contentType;
+    public ByteBuffer bb;
+    public String xPoweredBy;
+    public FileCache.CacheType type;
+    public String date;
+    public String Etag;
+    public long contentLength = -1;
+    public long fileSize = -1;
+    public String keepAlive;
+    
+    private final FileCache fileCache;
+
+    public FileCacheEntry(FileCache fileCache) {
+        this.fileCache = fileCache;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final FileCacheKey other = (FileCacheKey) obj;
-        if ((this.host == null) ? (other.host != null) : !this.host.equals(other.host)) {
-            return false;
-        }
-        if ((this.uri == null) ? (other.uri != null) : !this.uri.equals(other.uri)) {
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 3;
-        hash = 23 * hash + (this.host != null ? this.host.hashCode() : 0);
-        hash = 23 * hash + (this.uri != null ? this.uri.hashCode() : 0);
-        return hash;
+    public void run() {
+        fileCache.remove(this);
     }
 }
