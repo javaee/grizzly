@@ -182,7 +182,9 @@ public class TCPNIOConnection extends AbstractNIOConnection {
      * Set the monitoringProbes array directly.
      * @param monitoringProbes
      */
-    void setMonitoringProbes(ConnectionMonitoringProbe[] monitoringProbes) {
+    void setMonitoringProbes(final ConnectionMonitoringProbe[] monitoringProbes) {
+        if (monitoringProbes == null) return;
+        
         this.monitoringProbes.add(monitoringProbes);
     }
 }
