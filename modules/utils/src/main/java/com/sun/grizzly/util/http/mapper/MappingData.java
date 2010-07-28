@@ -81,15 +81,15 @@ public class MappingData {
         context = null;
         wrapper = null;
         servletName = null;
-        pathInfo.recycle();
-        requestPath.recycle();
-        wrapperPath.recycle();
-        contextPath.recycle();
-        redirectPath.recycle();
         jspWildCard = false;
         // START GlassFish 1024
         isDefaultContext = false;
-    // END GlassFish 1024
+        // END GlassFish 1024
+        contextPath.recycle();
+        requestPath.recycle();
+        wrapperPath.recycle();
+        pathInfo.recycle();
+        redirectPath.recycle();
     }
 
     @Override
