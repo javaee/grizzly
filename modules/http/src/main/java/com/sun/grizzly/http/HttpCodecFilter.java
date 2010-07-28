@@ -52,7 +52,7 @@ import com.sun.grizzly.memory.MemoryManager;
 import com.sun.grizzly.http.util.MimeHeaders;
 import com.sun.grizzly.memory.BufferUtils;
 import com.sun.grizzly.ssl.SSLFilter;
-import com.sun.grizzly.utils.ArrayUtils;
+import com.sun.grizzly.utils.ArraySet;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -83,14 +83,21 @@ public abstract class HttpCodecFilter extends BaseFilter {
 
     public static final int DEFAULT_MAX_HTTP_PACKET_HEADER_SIZE = 8192;
 
-    private volatile TransferEncoding[] transferEncodings;
+    private final ArraySet<TransferEncoding> transferEncodings =
+            new ArraySet<TransferEncoding>();
     
-    private final Object transferEncodingSync = new Object();
+    protected final ArraySet<ContentEncoding> contentEncodings =
+            new ArraySet<ContentEncoding>();
+
+    protected final ArraySet<HttpMonitoringProbe> monitoringProbes =
+            new ArraySet<HttpMonitoringProbe>();
     
-    protected volatile ContentEncoding[] contentEncodings;
-
-    private final Object contentEncodingSync = new Object();
-
+    /**
+     * flag, which indicates whether this <tt>HttpCodecFilter</tt> is dealing with
+     * the secured HTTP packets. For this filter flag means nothing, it's just
+     * a value, which is getting set to a {@link HttpRequestPacket} or
+     * {@link HttpResponsePacket}.
+     */
     protected volatile boolean isSecure;
     private final boolean isSecureSet;
 
@@ -175,8 +182,8 @@ public abstract class HttpCodecFilter extends BaseFilter {
         }
 
         this.maxHeadersSize = maxHeadersSize;
-        transferEncodings = new TransferEncoding[] {
-            new FixedLengthTransferEncoding(), new ChunkedTransferEncoding(maxHeadersSize)};
+        transferEncodings.add(new FixedLengthTransferEncoding(),
+                new ChunkedTransferEncoding(maxHeadersSize));
     }
 
     /**
@@ -208,9 +215,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
      * @return registered {@link TransferEncoding}s.
      */
     public TransferEncoding[] getTransferEncodings() {
-        synchronized (transferEncodingSync) {
-            return Arrays.copyOf(transferEncodings, transferEncodings.length);
-        }
+        return transferEncodings.obtainArrayCopy(TransferEncoding.class);
     }
     
     /**
@@ -221,11 +226,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
      * @param transferEncoding the {@link TransferEncoding} to add
      */
     public void addTransferEncoding(TransferEncoding transferEncoding) {
-        if (transferEncoding == null) throw new IllegalArgumentException("Could not be null");
-
-        synchronized (transferEncodingSync) {
-            transferEncodings = ArrayUtils.addUnique(transferEncodings, transferEncoding);
-        }
+        transferEncodings.add(transferEncoding);
     }
 
     /**
@@ -239,14 +240,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
      *  present
      */
     public boolean removeTransferEncoding(TransferEncoding transferEncoding) {
-        if (transferEncoding == null) throw new IllegalArgumentException("Could not be null");
-
-        synchronized (transferEncodingSync) {
-            final TransferEncoding[] oldEncodings = transferEncodings;
-            transferEncodings = ArrayUtils.remove(oldEncodings, transferEncoding);
-
-            return transferEncodings != oldEncodings;
-        }
+        return transferEncodings.remove(transferEncoding);
     }
 
     /**
@@ -257,9 +251,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
      * @return registered {@link ContentEncoding}s.
      */
     public ContentEncoding[] getContentEncodings() {
-        synchronized (contentEncodingSync) {
-            return Arrays.copyOf(contentEncodings, contentEncodings.length);
-        }
+        return contentEncodings.obtainArrayCopy(ContentEncoding.class);
     }
 
     /**
@@ -270,11 +262,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
      * @param contentEncoding the {@link ContentEncoding} to add
      */
     public void addContentEncoding(ContentEncoding contentEncoding) {
-        if (contentEncoding == null) throw new IllegalArgumentException("Could not be null");
-
-        synchronized (contentEncodingSync) {
-            contentEncodings = ArrayUtils.addUnique(contentEncodings, contentEncoding);
-        }
+        contentEncodings.add(contentEncoding);
     }
 
 
@@ -289,14 +277,7 @@ public abstract class HttpCodecFilter extends BaseFilter {
      *  present
      */
     public boolean removeContentEncoding(ContentEncoding contentEncoding) {
-        if (contentEncoding == null) throw new IllegalArgumentException("Could not be null");
-        
-        synchronized (contentEncodingSync) {
-            final ContentEncoding[] oldEncodings = contentEncodings;
-            contentEncodings = ArrayUtils.remove(oldEncodings, contentEncoding);
-
-            return contentEncodings != oldEncodings;
-        }
+        return contentEncodings.remove(contentEncoding);
     }
     
     /**
@@ -318,132 +299,162 @@ public abstract class HttpCodecFilter extends BaseFilter {
      */
     public final NextAction handleRead(FilterChainContext ctx,
             HttpPacketParsing httpPacket) throws IOException {
-        
+
         // Get the input buffer
         Buffer input = (Buffer) ctx.getMessage();
 
         // Get the Connection
         final Connection connection = ctx.getConnection();
 
-        // Check if HTTP header has been parsed
-        final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
+        HttpProbeNotificator.notifyDataReceived(this, connection, input);
 
-        if (!wasHeaderParsed) {
-            // if header wasn't parsed - parse
-            if (!decodeHttpPacket(httpPacket, input)) {
-                // if there is not enough data to parse the HTTP header - stop
-                // filterchain processing
-                return ctx.getStopAction(input);
-            } else {
-                // if headers get parsed - set the flag
-                httpPacket.setHeaderParsed(true);
-                // recycle header parsing state
-                httpPacket.getHeaderParsingState().recycle();
+        try {
+            // Check if HTTP header has been parsed
+            final boolean wasHeaderParsed = httpPacket.isHeaderParsed();
 
-                if (onHttpHeaderParsed((HttpHeader) httpPacket,ctx)) {
-                    onHttpError((HttpHeader) httpPacket,ctx);
-                    return ctx.getStopAction();
-                }
+            if (!wasHeaderParsed) {
+                // if header wasn't parsed - parse
+                if (!decodeHttpPacket(httpPacket, input)) {
+                    // if there is not enough data to parse the HTTP header - stop
+                    // filterchain processing
+                    return ctx.getStopAction(input);
+                } else {
+                    // if headers get parsed - set the flag
+                    httpPacket.setHeaderParsed(true);
+                    // recycle header parsing state
+                    httpPacket.getHeaderParsingState().recycle();
 
-                input = input.slice();
-                
-                setTransferEncodingOnParsing((HttpHeader) httpPacket);
-                setContentEncodingsOnParsing((HttpHeader) httpPacket);
-            }
-        }
+                    if (onHttpHeaderParsed((HttpHeader) httpPacket, ctx)) {
+                        onHttpError((HttpHeader) httpPacket, ctx);
 
-        final HttpHeader httpHeader = (HttpHeader) httpPacket;
-        final TransferEncoding transferEncoding = httpHeader.getTransferEncoding();
+                        HttpProbeNotificator.notifyProbesError(this, connection, null);
 
-        // Check if appropriate HTTP content encoder was found
-        if (transferEncoding != null) {
-
-            final ParsingResult result = parseWithTransferEncoding(ctx.getConnection(), httpHeader, input);
-
-            final HttpContent httpContent = result.getHttpContent();
-            final Buffer remainderBuffer = result.getRemainderBuffer();
-
-            result.recycle();
-
-            boolean isLast = false;
-            
-            if (httpContent != null) {
-                if (httpContent.isLast()) {
-                    isLast = true;
-                    onHttpPacketParsed(httpHeader, ctx);
-                    // we don't expect any content anymore
-                    httpHeader.setExpectContent(false);
-                }
-
-                // if consumer set "skip-content" flag - we don't interested in decoding the content - just skip it
-                if (httpHeader.isSkipRemainder()) {
-                    if (remainderBuffer != null) { // if there is a remainder - rerun this filter
-                        ctx.setMessage(remainderBuffer);
-                        return ctx.getRerunFilterAction();
-                    } else { // if no remainder - just stop
                         return ctx.getStopAction();
+                    }
+
+                    input = input.slice();
+
+                    setTransferEncodingOnParsing((HttpHeader) httpPacket);
+                    setContentEncodingsOnParsing((HttpHeader) httpPacket);
+
+                    HttpProbeNotificator.notifyHeaderParse(this, connection,
+                            (HttpHeader) httpPacket);
+                }
+            }
+
+            final HttpHeader httpHeader = (HttpHeader) httpPacket;
+            final TransferEncoding transferEncoding = httpHeader.getTransferEncoding();
+
+            // Check if appropriate HTTP content encoder was found
+            if (transferEncoding != null) {
+
+                final ParsingResult result = parseWithTransferEncoding(ctx.getConnection(), httpHeader, input);
+
+                final HttpContent httpContent = result.getHttpContent();
+                final Buffer remainderBuffer = result.getRemainderBuffer();
+
+                result.recycle();
+
+                boolean isLast = false;
+
+                if (httpContent != null) {
+                    if (httpContent.isLast()) {
+                        isLast = true;
+                        onHttpPacketParsed(httpHeader, ctx);
+                        // we don't expect any content anymore
+                        httpHeader.setExpectContent(false);
+                    }
+
+                    // if consumer set "skip-content" flag - we don't interested in decoding the content - just skip it
+                    if (httpHeader.isSkipRemainder()) {
+                        if (remainderBuffer != null) { // if there is a remainder - rerun this filter
+                            ctx.setMessage(remainderBuffer);
+                            return ctx.getRerunFilterAction();
+                        } else { // if no remainder - just stop
+                            return ctx.getStopAction();
+                        }
+                    }
+
+                    final HttpContent decodedContent = decodeContent(connection, httpContent);
+                    if (decodedContent != null) {
+                        HttpProbeNotificator.notifyContentChunkParse(this,
+                                connection, decodedContent);
+
+                        ctx.setMessage(decodedContent);
+
+                        // Instruct filterchain to continue the processing.
+                        return ctx.getInvokeAction(remainderBuffer);
+                    } else if (remainderBuffer != null && remainderBuffer.hasRemaining()) {
+                        final HttpContent emptyContent =
+                                HttpContent.builder(httpHeader).last(isLast).build();
+
+                        HttpProbeNotificator.notifyContentChunkParse(this,
+                                connection, emptyContent);
+
+                        // Instruct filterchain to continue the processing.
+                        ctx.setMessage(emptyContent);
+                        return ctx.getInvokeAction(remainderBuffer);
                     }
                 }
 
-                final HttpContent decodedContent = decodeContent(connection, httpContent);
+                if (!wasHeaderParsed || isLast) {
+                    final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
+
+                    HttpProbeNotificator.notifyContentChunkParse(this,
+                            connection, emptyContent);
+
+                    ctx.setMessage(emptyContent);
+                    return ctx.getInvokeAction(remainderBuffer);
+                } else {
+                    return ctx.getStopAction(remainderBuffer);
+                }
+
+
+            } else if (!httpHeader.isChunked() && httpHeader.getContentLength() < 0) {
+                // Transfer-encoding is unknown and there is no content-length header
+
+                // Build HttpContent message on top of existing content chunk and parsed Http message header
+                final HttpContent.Builder builder = httpHeader.httpContentBuilder();
+                final HttpContent message = builder.content(input).build();
+
+                final HttpContent decodedContent = decodeContent(connection, message);
                 if (decodedContent != null) {
+                    HttpProbeNotificator.notifyContentChunkParse(this,
+                            connection, decodedContent);
+
                     ctx.setMessage(decodedContent);
 
                     // Instruct filterchain to continue the processing.
-                    return ctx.getInvokeAction(remainderBuffer);
-                } else if (remainderBuffer != null && remainderBuffer.hasRemaining()) {
-                    // Instruct filterchain to continue the processing.
-                    ctx.setMessage(
-                            HttpContent.builder(httpHeader).last(isLast).build());
-                    return ctx.getInvokeAction(remainderBuffer);
+                    return ctx.getInvokeAction();
+                }
+
+                if (!wasHeaderParsed) { // If HTTP header was just parsed
+
+                    // check if we expect any content
+                    final boolean isLast = !httpHeader.isExpectContent();
+                    if (isLast) { // if not - call onHttpPacketParsed
+                        onHttpPacketParsed(httpHeader, ctx);
+                    }
+
+                    final HttpContent emptyContent = HttpContent.builder(httpHeader).last(isLast).build();
+
+                    HttpProbeNotificator.notifyContentChunkParse(this,
+                            connection, emptyContent);
+
+                    ctx.setMessage(emptyContent);
+                    return ctx.getInvokeAction();
+                } else {
+                    return ctx.getStopAction();
                 }
             }
 
-            if (!wasHeaderParsed || isLast) {
-                ctx.setMessage(
-                        HttpContent.builder(httpHeader)
-                        .last(isLast)
-                        .build());
-                return ctx.getInvokeAction(remainderBuffer);
-            } else {
-                return ctx.getStopAction(remainderBuffer);
-            }
+            throw new IllegalStateException(
+                    "Error parsing HTTP packet: " + httpHeader);
 
-
-        } else if (!httpHeader.isChunked() && httpHeader.getContentLength() < 0) {
-            // Transfer-encoding is unknown and there is no content-length header
-            
-            // Build HttpContent message on top of existing content chunk and parsed Http message header
-            final HttpContent.Builder builder = httpHeader.httpContentBuilder();
-            final HttpContent message = builder.content(input).build();
-
-            final HttpContent decodedContent = decodeContent(connection, message);
-            if (decodedContent != null) {
-                ctx.setMessage(decodedContent);
-
-                // Instruct filterchain to continue the processing.
-                return ctx.getInvokeAction();
-            }
-
-            if (!wasHeaderParsed) { // If HTTP header was just parsed
-
-                // check if we expect any content
-                final boolean isLast = !httpHeader.isExpectContent();
-                if (isLast) { // if not - call onHttpPacketParsed
-                    onHttpPacketParsed(httpHeader, ctx);
-                }
-
-                ctx.setMessage(
-                        HttpContent.builder(httpHeader)
-                        .last(isLast)
-                        .build());
-                return ctx.getInvokeAction();
-            } else {
-                return ctx.getStopAction();
-            }
+        } catch (RuntimeException re) {
+            HttpProbeNotificator.notifyProbesError(this, connection, re);
+            throw re;
         }
-
-        throw new IllegalStateException("Error parsing HTTP packet: " + httpHeader);
     }
 
     /**
@@ -469,16 +480,23 @@ public abstract class HttpCodecFilter extends BaseFilter {
             // Get Connection
             final Connection connection = ctx.getConnection();
 
-            // transform HttpPacket into Buffer
-        final Buffer output = encodeHttpPacket(connection, input);
+            try {
+                // transform HttpPacket into Buffer
+                final Buffer output = encodeHttpPacket(connection, input);
 
-            if (output != null) {
-                ctx.setMessage(output);
-                // Invoke next filter in the chain.
-                return ctx.getInvokeAction();
+                if (output != null) {
+                    HttpProbeNotificator.notifyDataSent(this, connection, output);
+
+                    ctx.setMessage(output);
+                    // Invoke next filter in the chain.
+                    return ctx.getInvokeAction();
+                }
+
+                return ctx.getStopAction();
+            } catch (RuntimeException re) {
+                HttpProbeNotificator.notifyProbesError(this, connection, re);
+                throw re;
             }
-
-            return ctx.getStopAction();
         }
 
         return ctx.getInvokeAction();
@@ -552,11 +570,17 @@ public abstract class HttpCodecFilter extends BaseFilter {
             encodedBuffer.allowBufferDispose(true);
             
             httpHeader.setCommitted(true);
+
+            HttpProbeNotificator.notifyHeaderSerialize(this, connection, httpHeader);
         }
 
-        final HttpContent encodedHttpContent;
-        if (!isHeader &&
-                (encodedHttpContent = encodeContent(connection, httpContent)) != null) {
+        
+        if (!isHeader) {
+            final HttpContent encodedHttpContent;
+
+            HttpProbeNotificator.notifyContentChunkSerialize(this, connection, httpContent);
+            
+            if ((encodedHttpContent = encodeContent(connection, httpContent)) == null) return encodedBuffer;
             
             final TransferEncoding contentEncoder = httpHeader.getTransferEncoding();
 
@@ -1088,7 +1112,9 @@ public abstract class HttpCodecFilter extends BaseFilter {
     }
 
     final void setTransferEncodingOnParsing(HttpHeader httpHeader) {
-        final TransferEncoding[] encodings = transferEncodings;
+        final TransferEncoding[] encodings = transferEncodings.getArray();
+        if (encodings == null) return;
+
         for (TransferEncoding encoding : encodings) {
             if (encoding.wantDecode(httpHeader)) {
                 httpHeader.setTransferEncoding(encoding);
@@ -1100,7 +1126,9 @@ public abstract class HttpCodecFilter extends BaseFilter {
     final void setTransferEncodingOnSerializing(HttpHeader httpHeader,
             HttpContent httpContent) {
 
-        final TransferEncoding[] encodings = transferEncodings;
+        final TransferEncoding[] encodings = transferEncodings.getArray();
+        if (encodings == null) return;
+        
         for (TransferEncoding encoding : encodings) {
             if (encoding.wantEncode(httpHeader)) {
                 encoding.prepareSerialize(httpHeader, httpContent);
@@ -1126,7 +1154,11 @@ public abstract class HttpCodecFilter extends BaseFilter {
 
         final int encodingsNum = encodings.size();
         for (int i = 0; i < encodingsNum; i++) {
+            final ContentEncoding encoding = encodings.get(i);
 
+            HttpProbeNotificator.notifyContentEncodingParse(this, connection,
+                    httpHeader, httpContent.getContent(), encoding);
+            
             // Check if there is a remainder buffer left from the last decoding
             final Buffer oldRemainder = parsingState.removeContentDecodingRemainder(i);
             if (oldRemainder != null) {
@@ -1137,7 +1169,6 @@ public abstract class HttpCodecFilter extends BaseFilter {
             }
 
             // Decode
-            final ContentEncoding encoding = encodings.get(i);
             final ParsingResult result = encoding.decode(connection, httpContent);
 
             // Check if there is remainder left after decoding
@@ -1172,6 +1203,10 @@ public abstract class HttpCodecFilter extends BaseFilter {
         for (int i = 0; i < encodingsNum; i++) {
             // Encode
             final ContentEncoding encoding = encodings.get(i);
+
+            HttpProbeNotificator.notifyContentEncodingSerialize(this, connection,
+                    httpHeader, httpContent.getContent(), encoding);
+            
             final HttpContent encodedContent = encoding.encode(connection, httpContent);
 
             if (encodedContent == null) {
@@ -1215,7 +1250,9 @@ public abstract class HttpCodecFilter extends BaseFilter {
 
         final boolean isSomeEncodingApplied = bc != null && bc.size() > 0;
 
-        final ContentEncoding[] encodingsLibrary = contentEncodings;
+        final ContentEncoding[] encodingsLibrary = contentEncodings.getArray();
+        if (encodingsLibrary == null) return;
+
         final List<ContentEncoding> httpPacketEncoders = httpHeader.getContentEncodings(true);
         
         for (ContentEncoding encoding : encodingsLibrary) {
@@ -1233,11 +1270,13 @@ public abstract class HttpCodecFilter extends BaseFilter {
     
     private ContentEncoding lookupContentEncoding(BufferChunk bc,
             int startIdx, int endIdx) {
-        final ContentEncoding[] encodings = contentEncodings;
+        final ContentEncoding[] encodings = contentEncodings.getArray();
 
-        for (ContentEncoding encoding : encodings) {
-            if (lookupAlias(encoding, bc, startIdx, endIdx)) {
-                return encoding;
+        if (encodings != null) {
+            for (ContentEncoding encoding : encodings) {
+                if (lookupAlias(encoding, bc, startIdx, endIdx)) {
+                    return encoding;
+                }
             }
         }
 
@@ -1248,6 +1287,10 @@ public abstract class HttpCodecFilter extends BaseFilter {
     private ParsingResult parseWithTransferEncoding(Connection connection,
             HttpHeader httpHeader, Buffer input) {
         final TransferEncoding encoding = httpHeader.getTransferEncoding();
+
+        HttpProbeNotificator.notifyTransferEncodingParse(this, connection,
+                httpHeader, input, encoding);
+        
         return encoding.parsePacket(connection, httpHeader, input);
     }
 
@@ -1255,6 +1298,10 @@ public abstract class HttpCodecFilter extends BaseFilter {
                                    HttpContent httpContent,
                                    TransferEncoding encoding) {
         if (encoding != null) {
+            HttpProbeNotificator.notifyTransferEncodingParse(this, connection,
+                    httpContent.getHttpHeader(), httpContent.getContent(),
+                    encoding);
+            
             return encoding.serializePacket(connection, httpContent);
         } else {
             // if no explicit TransferEncoding is available, then
@@ -1353,6 +1400,37 @@ public abstract class HttpCodecFilter extends BaseFilter {
         }
     }
 
+    /**
+     * Add the {@link HttpMonitoringProbe}, which will be notified about
+     * <tt>HttpCodecFilter</tt> lifecycle events.
+     *
+     * @param probe the {@link HttpMonitoringProbe}.
+     */
+    public void addMonitoringProbe(HttpMonitoringProbe probe) {
+        monitoringProbes.add(probe);
+    }
+
+    /**
+     * Remove the {@link HttpMonitoringProbe}.
+     *
+     * @param probe the {@link HttpMonitoringProbe}.
+     */
+    public boolean removeMonitoringProbe(HttpMonitoringProbe probe) {
+        return monitoringProbes.remove(probe);
+    }
+
+    /**
+     * Get the {@link HttpMonitoringProbe}, which are registered on the <tt>HttpCodecFilter</tt>.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.HttpMonitoringProbe)}and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.http.HttpMonitoringProbe)} instead.
+     *
+     * @return the {@link HttpMonitoringProbe}, which are registered on the <tt>HttpCodecFilter</tt>.
+     */
+    public HttpMonitoringProbe[] getMonitoringProbes() {
+        return monitoringProbes.obtainArrayCopy(HttpMonitoringProbe.class);
+    }
+    
     protected static final class ContentParsingState {
         public boolean isLastChunk;
         public int chunkContentStart = -1;

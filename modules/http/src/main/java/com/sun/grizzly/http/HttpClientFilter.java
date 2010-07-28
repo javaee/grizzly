@@ -96,7 +96,7 @@ public class HttpClientFilter extends HttpCodecFilter {
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpServerFilter.httpRequest");
         
-        contentEncodings = new ContentEncoding[] {new GZipContentEncoding()};
+        contentEncodings.add(new GZipContentEncoding());
     }
 
     /**

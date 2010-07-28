@@ -122,7 +122,7 @@ public class HttpServerFilter extends HttpCodecFilter {
         this.httpRequestInProcessAttr =
                 Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
                 "HttpServerFilter.httpRequest");
-        contentEncodings = new ContentEncoding[]{
+        contentEncodings.add(
                     new GZipContentEncoding(GZipContentEncoding.DEFAULT_IN_BUFFER_SIZE,
                     GZipContentEncoding.DEFAULT_OUT_BUFFER_SIZE,
                     new EncodingFilter() {
@@ -142,7 +142,7 @@ public class HttpServerFilter extends HttpCodecFilter {
                             return false;
                         }
                     })
-                };
+                );
     }
     
     // ----------------------------------------------------------- Configuration
@@ -225,7 +225,6 @@ public class HttpServerFilter extends HttpCodecFilter {
         final HttpContent errorHttpResponse = customizeErrorResponse(request.getResponse());
         Buffer resBuf = encodeHttpPacket(ctx.getConnection(), errorHttpResponse);
         ctx.write(resBuf);
-
     }
 
     @Override
