@@ -554,7 +554,7 @@ public final class UDPNIOTransport extends AbstractNIOTransport
         connection.configureStandalone(isStandalone);
         connection.setProcessor(processor);
         connection.setProcessorSelector(processorSelector);
-        connection.setMonitoringProbes(connectionMonitoringProbes.getArray());
+        connection.setMonitoringProbes(connectionMonitoringProbes);
         return connection;
     }
 

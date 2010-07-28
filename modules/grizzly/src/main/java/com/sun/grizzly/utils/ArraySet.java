@@ -39,6 +39,7 @@
 package com.sun.grizzly.utils;
 
 import java.lang.reflect.Array;
+import java.util.Arrays;
 
 /**
  * The thread safe set implementation, which uses array to hold its elements.
@@ -86,6 +87,41 @@ public class ArraySet<T> {
         }
     }
 
+    /**
+     * Add all the elements from the source <tt>ArraySet</tt>.
+     *
+     * @param element(s) the elements to add.
+     * @return <tt>true</tt>, if at least one element was added to the set and,
+     * as result, the size of the set was increased, or <tt>false</tt>, all
+     * element(s) was/were present in the set and, as the result, the set values
+     * were just reset.
+     */
+    public final boolean add(ArraySet<T> source) {
+        final T[] sourceArraySet = source.getArray();
+        
+        if (sourceArraySet == null) return false;
+        
+        synchronized(sync) {
+            if (array == null) {
+                array = Arrays.copyOf(sourceArraySet, sourceArraySet.length);
+                return true;
+            }
+
+            boolean result = false;
+
+            for (int i = 0; i < sourceArraySet.length; i++) {
+                final T element = sourceArraySet[i];
+                
+                final T[] oldArray = array;
+                array = ArrayUtils.addUnique(array, element);
+
+                result |= (oldArray != array);
+            }
+
+            return result;
+        }
+    }
+    
     /**
      * Remove element(s) from the set.
      *
