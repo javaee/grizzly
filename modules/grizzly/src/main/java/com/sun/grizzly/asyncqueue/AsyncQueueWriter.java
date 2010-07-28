@@ -52,6 +52,7 @@ import com.sun.grizzly.Writer;
  * The {@link AsyncQueue}, which implements asynchronous write queue.
  *
  * @author Alexey Stashok
+ * @author Ryan Lubke
  */
 public interface AsyncQueueWriter<L> 
         extends Writer<L>, AsyncQueue {

@@ -65,6 +65,7 @@ import java.util.logging.Level;
  * The {@link AsyncQueueWriter} implementation, based on the Java NIO
  * 
  * @author Alexey Stashok
+ * @author Ryan Lubke
  */
 public abstract class AbstractNIOAsyncQueueWriter
         extends AbstractWriter<SocketAddress>
@@ -92,7 +93,7 @@ public abstract class AbstractNIOAsyncQueueWriter
     public boolean canWrite(Connection connection) {
         final TaskQueue<AsyncWriteQueueRecord> connectionQueue =
                 ((AbstractNIOConnection) connection).getAsyncWriteQueue();
-        return ((connectionQueue.getQueue().size() + 1) <= maxQueuedWrites);
+        return ((connectionQueue.size() + 1) <= maxQueuedWrites);
     }
 
 
@@ -192,6 +193,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                             logger.log(Level.FINEST, "AsyncQueueWriter.write peek, onReadyToWrite. connection=" + connection);
                         }
                         if (queue.remove(nextRecord)) {
+                            connectionQueue.releasePlace();
                             onReadyToWrite(connection);
                         }
                     }
@@ -199,6 +201,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                     if (isLogFine) {
                         logger.log(Level.FINEST, "AsyncQueueWriter.write onReadyToWrite. connection=" + connection);
                     }
+                    connectionQueue.releasePlace();
+                    
                     onReadyToWrite(connection);
                 }
 
@@ -235,7 +239,8 @@ public abstract class AbstractNIOAsyncQueueWriter
                     if (isLogFine) {
                         logger.log(Level.FINEST, "AsyncQueueWriter.write queue record. connection=" + connection + " record=" + queueRecord);
                     }
-                    if ((connectionQueue.getQueue().size() + 1) > maxQueuedWrites) {
+                    if (connectionQueue.reservePlace() > maxQueuedWrites) {
+                        connectionQueue.releasePlace();
                         throw new PendingWriteQueueLimitExceededException();
                     }
                     connectionQueue.getQueue().offer(queueRecord);
@@ -246,12 +251,16 @@ public abstract class AbstractNIOAsyncQueueWriter
                         }
                         
                         if (queue.remove(queueRecord)) {
+                            connectionQueue.releasePlace();
+                            
                             onReadyToWrite(connection);
                         }
                     }
 
                     // Check whether connection is still open
                     if (!connection.isOpen() && queue.remove(queueRecord)) {
+                        connectionQueue.releasePlace();
+                        
                         if (isLogFine) {
                             logger.log(Level.FINEST, "AsyncQueueWriter.write connection is closed. connection=" + connection + " record=" + queueRecord);
                         }
@@ -346,9 +355,13 @@ public abstract class AbstractNIOAsyncQueueWriter
                             if (!queue.remove(queueRecord)) { // if the record was picked up by another thread
                                 break;
                             }
+
+                            connectionQueue.releasePlace();
                         } else { // If there are no elements - return
                             break;
                         }
+                    } else {
+                        connectionQueue.releasePlace();
                     }
                 } else { // if there is still some data in current message
                     if (isLogFine) {

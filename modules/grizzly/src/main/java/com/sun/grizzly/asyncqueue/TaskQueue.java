@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Class represents common implementation of asynchronous processing queue.
@@ -63,6 +64,7 @@ public abstract class TaskQueue<E> {
      */
     public final static class SafeTaskQueue<E> extends TaskQueue<E> {
         final AtomicReference<E> currentElement;
+        final AtomicInteger size = new AtomicInteger();
         
         protected SafeTaskQueue() {
             super(new LinkedTransferQueue<E>());
@@ -78,6 +80,21 @@ public abstract class TaskQueue<E> {
         public AtomicReference<E> getCurrentElementAtomic() {
             return currentElement;
         }
+
+        @Override
+        public int reservePlace() {
+            return size.incrementAndGet();
+        }
+
+        @Override
+        public int releasePlace() {
+            return size.decrementAndGet();
+        }
+
+        @Override
+        public int size() {
+            return size.get();
+        }
     }
 
     /**
@@ -86,6 +103,9 @@ public abstract class TaskQueue<E> {
      */
     public final static class UnSafeTaskQueue<E> extends TaskQueue<E> {
         private E currentElement;
+
+        private int size;
+        
         /**
          * Locker object, which could be used by a queue processors
          */
@@ -113,6 +133,21 @@ public abstract class TaskQueue<E> {
         public ReentrantLock getQueuedActionLock() {
             return queuedActionLock;
         }
+
+        @Override
+        public int reservePlace() {
+            return ++size;
+        }
+
+        @Override
+        public int releasePlace() {
+            return --size;
+        }
+
+        @Override
+        public int size() {
+            return size;
+        }
     }
     
     /**
@@ -123,6 +158,27 @@ public abstract class TaskQueue<E> {
     protected TaskQueue(Queue<E> queue) {
         this.queue = queue;
     }
+
+    /**
+     * Reserves place in the queue.
+     *
+     * @return the new queue size.
+     */
+    public abstract int reservePlace();
+
+    /**
+     * Releases place in the queue.
+     *
+     * @return the new queue size.
+     */
+    public abstract int releasePlace();
+
+    /**
+     * Returns the queue size.
+     * 
+     * @return the queue size.
+     */
+    public abstract int size();
 
     /**
      * Get the current processing task

@@ -40,7 +40,6 @@ package com.sun.grizzly.asyncqueue;
 
 import java.io.IOException;
 import com.sun.grizzly.Connection;
-import com.sun.grizzly.Processor;
 
 /**
  * Common interface for {@link AsyncQueue} processors.
