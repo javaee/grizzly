@@ -183,6 +183,7 @@ public class ArraySet<T> {
     /**
      * Get the copy of the underlying array. If the underlying array is
      * <tt>null</tt> - then empty array will be returned.
+     * @param clazz type of the array elements.
      *
      * @return the copy of the underlying array. If the underlying array is
      * <tt>null</tt> - then empty array will be returned.
