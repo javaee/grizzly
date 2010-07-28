@@ -39,6 +39,10 @@
 package com.sun.grizzly.utils;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.GenericDeclaration;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 import java.util.Arrays;
 
 /**
@@ -160,5 +164,33 @@ public class ArraySet<T> {
      */
     public final T[] getArray() {
         return array;
+    }
+
+    /**
+     * Get the copy of the underlying array. If the underlying array is 
+     * <tt>null</tt> - then <tt>null</tt> will be returned.
+     * 
+     * @return the copy of the underlying array. If the underlying array is
+     * <tt>null</tt> - then <tt>null</tt> will be returned.
+     */
+    public final T[] getArrayCopy() {
+        final T[] localArray = array;
+        if (localArray == null) return null;
+
+        return Arrays.copyOf(localArray, localArray.length);
+    }
+
+    /**
+     * Get the copy of the underlying array. If the underlying array is
+     * <tt>null</tt> - then empty array will be returned.
+     *
+     * @return the copy of the underlying array. If the underlying array is
+     * <tt>null</tt> - then empty array will be returned.
+     */
+    public final T[] obtainArrayCopy(Class<T> clazz) {
+        final T[] localArray = array;
+        if (localArray == null) return (T[]) Array.newInstance(clazz, 0);
+
+        return Arrays.copyOf(localArray, localArray.length);
     }
 }

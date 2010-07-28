@@ -742,12 +742,7 @@ public class FileCache {
      * @return the {@link FileCacheMonitoringProbe}, which are registered on the <tt>FileCache</tt>.
      */
     public FileCacheMonitoringProbe[] getMonitoringProbes() {
-        final FileCacheMonitoringProbe[] probes = monitoringProbes.getArray();
-        if (probes != null) {
-            return Arrays.copyOf(probes, probes.length);
-        }
-
-        return null;
+        return monitoringProbes.obtainArrayCopy(FileCacheMonitoringProbe.class);
     }
 
     /**

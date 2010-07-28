@@ -363,13 +363,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public ConnectionMonitoringProbe[] getConnectionMonitoringProbes() {
-        final ConnectionMonitoringProbe[] probes =
-                connectionMonitoringProbes.getArray();
-        if (probes != null) {
-            return Arrays.copyOf(probes, probes.length);
-        }
-
-        return null;
+        return connectionMonitoringProbes.obtainArrayCopy(ConnectionMonitoringProbe.class);
     }
 
     /**
@@ -393,13 +387,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public TransportMonitoringProbe[] getTransportMonitoringProbes() {
-        final TransportMonitoringProbe[] probes =
-                transportMonitoringProbes.getArray();
-        if (probes != null) {
-            return Arrays.copyOf(probes, probes.length);
-        }
-
-        return null;
+        return transportMonitoringProbes.obtainArrayCopy(TransportMonitoringProbe.class);
     }
 
     /**

@@ -408,12 +408,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      */
     @Override
     public ConnectionMonitoringProbe[] getMonitoringProbes() {
-        final ConnectionMonitoringProbe[] probes = monitoringProbes.getArray();
-        if (probes != null) {
-            return Arrays.copyOf(probes, probes.length);
-        }
-
-        return null;
+        return monitoringProbes.obtainArrayCopy(ConnectionMonitoringProbe.class);
     }
 
     /**
