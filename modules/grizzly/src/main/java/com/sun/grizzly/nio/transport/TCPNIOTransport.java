@@ -246,6 +246,8 @@ public final class TCPNIOTransport extends AbstractNIOTransport implements
 
             listenServerConnections();
 
+            state.setState(State.START);
+
             notifyProbesStart(this);
         } finally {
             state.getStateLocker().writeLock().unlock();

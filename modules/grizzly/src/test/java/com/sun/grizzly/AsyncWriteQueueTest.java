@@ -231,7 +231,9 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             final Connection con = connection;
 
             final AtomicBoolean failed = new AtomicBoolean(false);
+
             transport.pause();
+            
             int i = 0;
             int loopCount = 0;
             final AtomicBoolean exceptionThrown = new AtomicBoolean(false);

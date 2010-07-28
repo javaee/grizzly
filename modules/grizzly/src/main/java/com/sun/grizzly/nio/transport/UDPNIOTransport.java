@@ -458,6 +458,8 @@ public final class UDPNIOTransport extends AbstractNIOTransport
             
             registerServerConnections();
             
+            state.setState(State.START);
+
             notifyProbesStart(this);
         } finally {
             state.getStateLocker().writeLock().unlock();
