@@ -179,7 +179,7 @@ public class SSLConfigHolder {
 
     public SSLEngine createSSLEngine() {
         final SSLEngine sslEngine = sslContext.createSSLEngine();
-        
+
         if (logger.isLoggable(Level.FINE)) {
             logger.log(Level.FINE, "newSSLEngine: " + sslEngine);
         }
@@ -191,92 +191,95 @@ public class SSLConfigHolder {
         if (enabledProtocols != null){
             sslEngine.setEnabledProtocols(enabledProtocols);
         }
-        
+
         sslEngine.setUseClientMode(clientMode);
         sslEngine.setWantClientAuth(wantClientAuth);
         sslEngine.setNeedClientAuth(needClientAuth);
-        
+
         return sslEngine;
     }
-    
+
     /**
      * Configures the SSL properties on the given PECoyoteConnector from the SSL config of the given HTTP listener.
      */
     public boolean configureSSL() {
         final List<String> tmpSSLArtifactsList = new LinkedList<String>();
-        if (ssl != null) {
-            // client-auth
-            if (Boolean.parseBoolean(ssl.getClientAuthEnabled())) {
-                needClientAuth = true;
-            }
-            // ssl protocol variants
-            if (Boolean.parseBoolean(ssl.getSsl2Enabled())) {
-                tmpSSLArtifactsList.add("SSLv2");
-            }
-            if (Boolean.parseBoolean(ssl.getSsl3Enabled())) {
-                tmpSSLArtifactsList.add("SSLv3");
-            }
-            if (Boolean.parseBoolean(ssl.getTlsEnabled())) {
-                tmpSSLArtifactsList.add("TLSv1");
-            }
-            if (Boolean.parseBoolean(ssl.getSsl3Enabled()) ||
-                Boolean.parseBoolean(ssl.getTlsEnabled())) {
-                tmpSSLArtifactsList.add("SSLv2Hello");
-            }
-            if (tmpSSLArtifactsList.isEmpty()) {
-                logEmptyWarning(ssl, "WEB0307: All SSL protocol variants disabled for network-listener {0}," +
-                        " using SSL implementation specific defaults");
-            } else {
-                final String[] protocols = new String[tmpSSLArtifactsList.size()];
-                tmpSSLArtifactsList.toArray(protocols);
-                enabledProtocols = protocols;
-            }
-            String auth = ssl.getClientAuth();
-            if (auth != null) {
-                if ("want".equalsIgnoreCase(auth.trim())) {
-                    wantClientAuth = true;
-                } else if ("need".equalsIgnoreCase(auth.trim())) {
-                    needClientAuth = true;
-                }
-            }
-            
-            tmpSSLArtifactsList.clear();
-            // ssl3-tls-ciphers
-            final String ssl3Ciphers = ssl.getSsl3TlsCiphers();
-            if (ssl3Ciphers != null && ssl3Ciphers.length() > 0) {
-                final String[] ssl3CiphersArray = ssl3Ciphers.split(",");
-                for (final String cipher : ssl3CiphersArray) {
-                    tmpSSLArtifactsList.add(cipher.trim());
-                }
-            }
-            // ssl2-tls-ciphers
-            final String ssl2Ciphers = ssl.getSsl2Ciphers();
-            if (ssl2Ciphers != null && ssl2Ciphers.length() > 0) {
-                final String[] ssl2CiphersArray = ssl2Ciphers.split(",");
-                for (final String cipher : ssl2CiphersArray) {
-                    tmpSSLArtifactsList.add(cipher.trim());
-                }
-            }
-
-            final String[] ciphers = getJSSECiphers(tmpSSLArtifactsList);
-            if (ciphers == null || ciphers.length == 0) {
-                logEmptyWarning(ssl, "WEB0308: All SSL cipher suites disabled for network-listener(s) {0}." +
-                        "  Using SSL implementation specific defaults");
-            } else {
-                enabledCipherSuites = ciphers;
-            }
-        }
 
         try {
             initializeSSL();
+
+            if (ssl != null) {
+                // client-auth
+                if (Boolean.parseBoolean(ssl.getClientAuthEnabled())) {
+                    needClientAuth = true;
+                }
+                // ssl protocol variants
+                if (Boolean.parseBoolean(ssl.getSsl2Enabled())) {
+                    tmpSSLArtifactsList.add("SSLv2");
+                }
+                if (Boolean.parseBoolean(ssl.getSsl3Enabled())) {
+                    tmpSSLArtifactsList.add("SSLv3");
+                }
+                if (Boolean.parseBoolean(ssl.getTlsEnabled())) {
+                    tmpSSLArtifactsList.add("TLSv1");
+                }
+                if (Boolean.parseBoolean(ssl.getSsl3Enabled())
+                        || Boolean.parseBoolean(ssl.getTlsEnabled())) {
+                    tmpSSLArtifactsList.add("SSLv2Hello");
+                }
+                if (tmpSSLArtifactsList.isEmpty()) {
+                    logEmptyWarning(ssl, "WEB0307: All SSL protocol variants disabled for network-listener {0},"
+                            + " using SSL implementation specific defaults");
+                } else {
+                    final String[] protocols = new String[tmpSSLArtifactsList.size()];
+                    tmpSSLArtifactsList.toArray(protocols);
+                    enabledProtocols = protocols;
+                }
+                String auth = ssl.getClientAuth();
+                if (auth != null) {
+                    if ("want".equalsIgnoreCase(auth.trim())) {
+                        wantClientAuth = true;
+                    } else if ("need".equalsIgnoreCase(auth.trim())) {
+                        needClientAuth = true;
+                    }
+                }
+
+                tmpSSLArtifactsList.clear();
+                // ssl3-tls-ciphers
+                final String ssl3Ciphers = ssl.getSsl3TlsCiphers();
+                if (ssl3Ciphers != null && ssl3Ciphers.length() > 0) {
+                    final String[] ssl3CiphersArray = ssl3Ciphers.split(",");
+                    for (final String cipher : ssl3CiphersArray) {
+                        tmpSSLArtifactsList.add(cipher.trim());
+                    }
+                }
+                // ssl2-tls-ciphers
+                final String ssl2Ciphers = ssl.getSsl2Ciphers();
+                if (ssl2Ciphers != null && ssl2Ciphers.length() > 0) {
+                    final String[] ssl2CiphersArray = ssl2Ciphers.split(",");
+                    for (final String cipher : ssl2CiphersArray) {
+                        tmpSSLArtifactsList.add(cipher.trim());
+                    }
+                }
+
+                final String[] ciphers = getJSSECiphers(tmpSSLArtifactsList);
+                if (ciphers == null || ciphers.length == 0) {
+                    logEmptyWarning(ssl, "WEB0308: All SSL cipher suites disabled for network-listener(s) {0}."
+                            + "  Using SSL implementation specific defaults");
+                } else {
+                    enabledCipherSuites = ciphers;
+                }
+            }
+
             return true;
         } catch (Exception e) {
             if (logger.isLoggable(Level.WARNING)) {
                 logger.log(Level.WARNING,
-                           LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
-                           e);
+                        LogMessages.WARNING_GRIZZLY_CONFIG_SSL_GENERAL_CONFIG_ERROR(),
+                        e);
             }
         }
+
         return false;
     }
 
@@ -326,14 +329,17 @@ public class SSLConfigHolder {
         // cert nick name
         serverSF.setAttribute("keyAlias", ssl != null ? ssl.getCertNickname() : null);
         serverSF.init();
+
         sslContext = serverSF.getSSLContext();
+        
+        CipherInfo.updateCiphers(sslContext);
     }
 
 
     public static boolean isAllowLazyInit(final Ssl ssl) {
         return ssl == null || Boolean.parseBoolean(ssl.getAllowLazyInit());
     }
-    
+
     private static void setAttribute(final ServerSocketFactory serverSF, final String name, final String value,
         final String property, final String defaultValue) {
         serverSF.setAttribute(name, value == null ?
@@ -539,14 +545,6 @@ public class SSLConfigHolder {
                 ciphers.put(nonStdName,
                         new CipherInfo(nonStdName, stdName, (short) (SSL3 | TLS)));
             }
-
-            SSLServerSocketFactory factory =
-                    (SSLServerSocketFactory) SSLServerSocketFactory.getDefault();
-            String[] supportedCiphers = factory.getDefaultCipherSuites();
-            for (int i = 0, len = supportedCiphers.length; i < len; i++) {
-                String s = supportedCiphers[i];
-                ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
-            }
         }
 
         /**
@@ -562,6 +560,14 @@ public class SSLConfigHolder {
             this.protocolVersion = protocolVersion;
         }
 
+        public static void updateCiphers(final SSLContext sslContext) {
+            SSLServerSocketFactory factory = sslContext.getServerSocketFactory();
+            String[] supportedCiphers = factory.getDefaultCipherSuites();
+            for (int i = 0, len = supportedCiphers.length; i < len; i++) {
+                String s = supportedCiphers[i];
+                ciphers.put(s, new CipherInfo(s, s, (short) (SSL3 | TLS)));
+            }
+        }
         public static CipherInfo getCipherInfo(final String configName) {
             return ciphers.get(configName);
         }
