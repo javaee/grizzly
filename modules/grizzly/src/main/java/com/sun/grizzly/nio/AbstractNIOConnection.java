@@ -64,7 +64,7 @@ import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.asyncqueue.AsyncWriteQueueRecord;
 import com.sun.grizzly.attributes.IndexedAttributeHolder;
 import com.sun.grizzly.impl.ReadyFutureImpl;
-import com.sun.grizzly.utils.ArrayUtils;
+import com.sun.grizzly.utils.ArraySet;
 import com.sun.grizzly.utils.LinkedTransferQueue;
 import java.util.Arrays;
 import java.util.Queue;
@@ -109,13 +109,10 @@ public abstract class AbstractNIOConnection implements NIOConnection {
             new LinkedTransferQueue<CloseListener>();
 
     /**
-     * Sync object for monitoringProbes access
-     */
-    private final Object monitoringProbesSync = new Object();
-    /**
      * Connection probes
      */
-    protected volatile ConnectionMonitoringProbe[] monitoringProbes;
+    protected final ArraySet<ConnectionMonitoringProbe> monitoringProbes =
+            new ArraySet<ConnectionMonitoringProbe>();
 
     public AbstractNIOConnection(NIOTransport transport) {
         this.transport = transport;
@@ -395,9 +392,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      */
     @Override
     public void addMonitoringProbe(ConnectionMonitoringProbe probe) {
-        synchronized(monitoringProbesSync) {
-            monitoringProbes = ArrayUtils.addUnique(monitoringProbes, probe);
-        }
+        monitoringProbes.add(probe);
     }
 
     /**
@@ -405,12 +400,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      */
     @Override
     public boolean removeMonitoringProbe(ConnectionMonitoringProbe probe) {
-        synchronized(monitoringProbesSync) {
-            final ConnectionMonitoringProbe[] probes = monitoringProbes;
-            monitoringProbes = ArrayUtils.remove(monitoringProbes, probe);
-
-            return probes != monitoringProbes;
-        }
+        return monitoringProbes.remove(probe);
     }
 
     /**
@@ -418,7 +408,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      */
     @Override
     public ConnectionMonitoringProbe[] getMonitoringProbes() {
-        final ConnectionMonitoringProbe[] probes = monitoringProbes;
+        final ConnectionMonitoringProbe[] probes = monitoringProbes.getArray();
         if (probes != null) {
             return Arrays.copyOf(probes, probes.length);
         }
@@ -432,7 +422,7 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      * @param connection the <tt>Connection</tt> event occurred on.
      */
     protected static void notifyProbesBind(AbstractNIOConnection connection) {
-        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes.getArray();
         if (probes != null) {
             for (ConnectionMonitoringProbe probe : probes) {
                 probe.onBindEvent(connection);
@@ -446,7 +436,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      * @param connection the <tt>Connection</tt> event occurred on.
      */
     protected static void notifyProbesAccept(AbstractNIOConnection connection) {
-        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        final ConnectionMonitoringProbe[] probes =
+                connection.monitoringProbes.getArray();
         if (probes != null) {
             for (ConnectionMonitoringProbe probe : probes) {
                 probe.onAcceptEvent(connection);
@@ -460,7 +451,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      * @param connection the <tt>Connection</tt> event occurred on.
      */
     protected static void notifyProbesConnect(AbstractNIOConnection connection) {
-        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        final ConnectionMonitoringProbe[] probes =
+                connection.monitoringProbes.getArray();
         if (probes != null) {
             for (ConnectionMonitoringProbe probe : probes) {
                 probe.onConnectEvent(connection);
@@ -474,7 +466,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     protected static void notifyProbesRead(AbstractNIOConnection connection,
             Buffer data, int size) {
         
-        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        final ConnectionMonitoringProbe[] probes =
+                connection.monitoringProbes.getArray();
         if (probes != null) {
             for (ConnectionMonitoringProbe probe : probes) {
                 probe.onReadEvent(connection, data, size);
@@ -488,7 +481,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
     protected static void notifyProbesWrite(AbstractNIOConnection connection,
             Buffer data, int size) {
         
-        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        final ConnectionMonitoringProbe[] probes =
+                connection.monitoringProbes.getArray();
         if (probes != null) {
             for (ConnectionMonitoringProbe probe : probes) {
                 probe.onWriteEvent(connection, data, size);
@@ -502,7 +496,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      * @param connection the <tt>Connection</tt> event occurred on.
      */
     protected static void notifyProbesClose(AbstractNIOConnection connection) {
-        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        final ConnectionMonitoringProbe[] probes =
+                connection.monitoringProbes.getArray();
         if (probes != null) {
             for (ConnectionMonitoringProbe probe : probes) {
                 probe.onCloseEvent(connection);
@@ -517,7 +512,8 @@ public abstract class AbstractNIOConnection implements NIOConnection {
      */
     protected static void notifyProbesError(AbstractNIOConnection connection,
             Throwable error) {
-        final ConnectionMonitoringProbe[] probes = connection.monitoringProbes;
+        final ConnectionMonitoringProbe[] probes =
+                connection.monitoringProbes.getArray();
         if (probes != null) {
             for (ConnectionMonitoringProbe probe : probes) {
                 probe.onErrorEvent(connection, error);

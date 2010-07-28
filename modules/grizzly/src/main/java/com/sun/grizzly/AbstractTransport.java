@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import com.sun.grizzly.attributes.AttributeBuilder;
 import com.sun.grizzly.memory.MemoryManager;
+import com.sun.grizzly.utils.ArraySet;
 import com.sun.grizzly.utils.ArrayUtils;
 import com.sun.grizzly.utils.StateHolder;
 import java.util.Arrays;
@@ -111,22 +112,16 @@ public abstract class AbstractTransport implements Transport {
     protected int writeBufferSize;
 
     /**
-     * Sync object for Transport monitoringProbes access
-     */
-    private final Object monitoringProbesSync = new Object();
-    /**
      * Transport probes
      */
-    protected volatile TransportMonitoringProbe[] monitoringProbes;
+    protected final ArraySet<TransportMonitoringProbe> transportMonitoringProbes =
+            new ArraySet<TransportMonitoringProbe>();
 
-    /**
-     * Sync object for Connection monitoringProbes access
-     */
-    private final Object connectionMonitoringProbesSync = new Object();
     /**
      * Connection probes
      */
-    protected volatile ConnectionMonitoringProbe[] connectionMonitoringProbes;
+    protected final ArraySet<ConnectionMonitoringProbe> connectionMonitoringProbes =
+            new ArraySet<ConnectionMonitoringProbe>();
     
 
     public AbstractTransport(String name) {
@@ -352,10 +347,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public void addConnectionMonitoringProbe(ConnectionMonitoringProbe probe) {
-        synchronized(connectionMonitoringProbesSync) {
-            connectionMonitoringProbes =
-                    ArrayUtils.addUnique(connectionMonitoringProbes, probe);
-        }
+        connectionMonitoringProbes.add(probe);
     }
 
     /**
@@ -363,12 +355,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public boolean removeConnectionMonitoringProbe(ConnectionMonitoringProbe probe) {
-        synchronized(connectionMonitoringProbesSync) {
-            final ConnectionMonitoringProbe[] probes = connectionMonitoringProbes;
-            connectionMonitoringProbes = ArrayUtils.remove(connectionMonitoringProbes, probe);
-
-            return probes != connectionMonitoringProbes;
-        }
+        return connectionMonitoringProbes.remove(probe);
     }
 
     /**
@@ -376,7 +363,8 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public ConnectionMonitoringProbe[] getConnectionMonitoringProbes() {
-        final ConnectionMonitoringProbe[] probes = connectionMonitoringProbes;
+        final ConnectionMonitoringProbe[] probes =
+                connectionMonitoringProbes.getArray();
         if (probes != null) {
             return Arrays.copyOf(probes, probes.length);
         }
@@ -389,9 +377,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public void addTransportMonitoringProbe(TransportMonitoringProbe probe) {
-        synchronized(monitoringProbesSync) {
-            monitoringProbes = ArrayUtils.addUnique(monitoringProbes, probe);
-        }
+        transportMonitoringProbes.add(probe);
     }
 
     /**
@@ -399,12 +385,7 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public boolean removeTransportMonitoringProbe(TransportMonitoringProbe probe) {
-        synchronized(monitoringProbesSync) {
-            final TransportMonitoringProbe[] probes = monitoringProbes;
-            monitoringProbes = ArrayUtils.remove(monitoringProbes, probe);
-
-            return probes != monitoringProbes;
-        }
+        return transportMonitoringProbes.remove(probe);
     }
 
     /**
@@ -412,7 +393,8 @@ public abstract class AbstractTransport implements Transport {
      */
     @Override
     public TransportMonitoringProbe[] getTransportMonitoringProbes() {
-        final TransportMonitoringProbe[] probes = monitoringProbes;
+        final TransportMonitoringProbe[] probes =
+                transportMonitoringProbes.getArray();
         if (probes != null) {
             return Arrays.copyOf(probes, probes.length);
         }

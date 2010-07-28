@@ -157,9 +157,10 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
-    protected static void notifyProbesError(AbstractNIOTransport transport,
-            Throwable error) {
-        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+    protected static void notifyProbesError(final AbstractNIOTransport transport,
+            final Throwable error) {
+        final TransportMonitoringProbe[] probes =
+                transport.transportMonitoringProbes.getArray();
         if (probes != null) {
             for (TransportMonitoringProbe probe : probes) {
                 probe.onErrorEvent(transport, error);
@@ -172,8 +173,9 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
-    protected static void notifyProbesStart(AbstractNIOTransport transport) {
-        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+    protected static void notifyProbesStart(final AbstractNIOTransport transport) {
+        final TransportMonitoringProbe[] probes =
+                transport.transportMonitoringProbes.getArray();
         if (probes != null) {
             for (TransportMonitoringProbe probe : probes) {
                 probe.onStartEvent(transport);
@@ -186,8 +188,9 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
-    protected static void notifyProbesStop(AbstractNIOTransport transport) {
-        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+    protected static void notifyProbesStop(final AbstractNIOTransport transport) {
+        final TransportMonitoringProbe[] probes =
+                transport.transportMonitoringProbes.getArray();
         if (probes != null) {
             for (TransportMonitoringProbe probe : probes) {
                 probe.onStopEvent(transport);
@@ -200,8 +203,9 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
-    protected static void notifyProbesPause(AbstractNIOTransport transport) {
-        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+    protected static void notifyProbesPause(final AbstractNIOTransport transport) {
+        final TransportMonitoringProbe[] probes =
+                transport.transportMonitoringProbes.getArray();
         if (probes != null) {
             for (TransportMonitoringProbe probe : probes) {
                 probe.onPauseEvent(transport);
@@ -214,8 +218,9 @@ public abstract class AbstractNIOTransport extends AbstractTransport
      *
      * @param transport the <tt>Transport</tt> event occurred on.
      */
-    protected static void notifyProbesResume(AbstractNIOTransport transport) {
-        final TransportMonitoringProbe[] probes = transport.monitoringProbes;
+    protected static void notifyProbesResume(final AbstractNIOTransport transport) {
+        final TransportMonitoringProbe[] probes =
+                transport.transportMonitoringProbes.getArray();
         if (probes != null) {
             for (TransportMonitoringProbe probe : probes) {
                 probe.onResumeEvent(transport);

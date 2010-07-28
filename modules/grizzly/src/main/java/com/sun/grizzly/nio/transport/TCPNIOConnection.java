@@ -183,7 +183,7 @@ public class TCPNIOConnection extends AbstractNIOConnection {
      * @param monitoringProbes
      */
     void setMonitoringProbes(ConnectionMonitoringProbe[] monitoringProbes) {
-        this.monitoringProbes = monitoringProbes;
+        this.monitoringProbes.add(monitoringProbes);
     }
 }
     
