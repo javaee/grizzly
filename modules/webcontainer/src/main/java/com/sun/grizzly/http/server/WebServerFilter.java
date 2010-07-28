@@ -63,9 +63,6 @@ public class WebServerFilter extends BaseFilter {
     private final ScheduledExecutorService scheduledExecutorService;
     private final GrizzlyAdapter adapter;
 
-
-    private KeepAliveStats keepAliveStats = null;
-
     private static Attribute<Integer> keepAliveCounterAttr =
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             "connection-keepalive-counter", 0);
