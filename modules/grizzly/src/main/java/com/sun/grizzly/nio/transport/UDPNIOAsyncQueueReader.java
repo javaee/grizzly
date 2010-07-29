@@ -48,7 +48,6 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.asyncqueue.AsyncQueueReader;
 import com.sun.grizzly.asyncqueue.AsyncReadQueueRecord;
 import com.sun.grizzly.impl.SafeFutureImpl;
@@ -75,13 +74,12 @@ public final class UDPNIOAsyncQueueReader extends AbstractNIOAsyncQueueReader {
     protected void addRecord(Connection connection,
             Buffer buffer,
             CompletionHandler completionHandler,
-            Transformer transformer,
             Interceptor<ReadResult> interceptor) {
         
         final AsyncReadQueueRecord record = AsyncReadQueueRecord.create(
                 buffer, SafeFutureImpl.create(),
                 ReadResult.create(connection),
-                completionHandler, transformer, interceptor);
+                completionHandler, interceptor);
         ((UDPNIOConnection) connection).getAsyncReadQueue().getQueue().add(record);
     }
 

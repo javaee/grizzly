@@ -75,7 +75,7 @@ public final class DefaultStreamReader extends AbstractStreamReader {
             final Transport transport = connection.getTransport();
             final Reader reader = transport.getReader(connection);
 
-            reader.read(connection, null, null, null,
+            reader.read(connection, null, null,
                     new Interceptor() {
 
                         @Override

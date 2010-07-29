@@ -53,7 +53,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
     @Override
     public final GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection)
             throws IOException {
-        return read(connection, null, null, null, null);
+        return read(connection, null, null, null);
     }
 
     /**
@@ -62,7 +62,7 @@ public abstract class AbstractReader<L> implements Reader<L> {
     @Override
     public final GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection,
             Buffer buffer) throws IOException {
-        return read(connection, buffer, null, null, null);
+        return read(connection, buffer, null, null);
     }
 
     /**
@@ -72,13 +72,6 @@ public abstract class AbstractReader<L> implements Reader<L> {
     public final GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection, Buffer buffer,
             CompletionHandler<ReadResult<Buffer, L>> completionHandler)
             throws IOException {
-        return read(connection, buffer, completionHandler, null, null);
-    }
-
-    @Override
-    public <M> GrizzlyFuture<ReadResult<M, L>> read(Connection connection, M message,
-            CompletionHandler<ReadResult<M, L>> completionHandler,
-            Transformer<Buffer, M> transformer) throws IOException {
-        return read(connection, message, completionHandler, transformer, null);
+        return read(connection, buffer, completionHandler, null);
     }
 }

@@ -54,7 +54,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     @Override
     public final GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             Buffer buffer) throws IOException {
-        return write(connection, null, buffer, null, null, null);
+        return write(connection, null, buffer, null, null);
     }
 
     /**
@@ -65,32 +65,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
             Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException {
-        return write(connection, null, buffer, completionHandler, null, null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
-            M message,
-            CompletionHandler<WriteResult<M, L>> completionHandler,
-            Transformer<M, Buffer> transformer) throws IOException {
-        return write(connection, null, message, completionHandler,
-                transformer, null);
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
-            M message,
-            CompletionHandler<WriteResult<M, L>> completionHandler,
-            Transformer<M, Buffer> transformer,
-            Interceptor<WriteResult> interceptor) throws IOException {
-        return write(connection, null, message, completionHandler, transformer,
-                interceptor);
+        return write(connection, null, buffer, completionHandler, null);
     }
 
     /**
@@ -99,7 +74,7 @@ public abstract class AbstractWriter<L> implements Writer<L> {
     @Override
     public final GrizzlyFuture<WriteResult<Buffer, L>> write(Connection connection,
             L dstAddress, Buffer buffer) throws IOException {
-        return write(connection, dstAddress, buffer, null, null, null);
+        return write(connection, dstAddress, buffer, null, null);
     }
 
     /**
@@ -110,19 +85,6 @@ public abstract class AbstractWriter<L> implements Writer<L> {
             L dstAddress, Buffer buffer,
             CompletionHandler<WriteResult<Buffer, L>> completionHandler)
             throws IOException {
-        return write(connection, dstAddress, buffer, completionHandler, null, null);
+        return write(connection, dstAddress, buffer, completionHandler, null);
     }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public final <M> GrizzlyFuture<WriteResult<M, L>> write(Connection connection,
-            L dstAddress, M message,
-            CompletionHandler<WriteResult<M, L>> completionHandler,
-            Transformer<M, Buffer> transformer) throws IOException {
-        return write(connection, dstAddress, message, completionHandler,
-                transformer, null);
-    }
-
 }

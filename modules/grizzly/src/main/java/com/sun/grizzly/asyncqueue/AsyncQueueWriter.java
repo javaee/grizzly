@@ -43,10 +43,12 @@ import java.util.concurrent.Future;
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
+import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.Transformer;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.Writer;
+import java.net.SocketAddress;
 
 /**
  * The {@link AsyncQueue}, which implements asynchronous write queue.
@@ -77,22 +79,28 @@ public interface AsyncQueueWriter<L>
      *         result
      * @throws java.io.IOException
      */
-    <M> Future<WriteResult<M, L>> write(Connection connection,
-                                        L dstAddress,
-                                        M message,
-                                        CompletionHandler<WriteResult<M, L>> completionHandler,
-                                        Transformer<M, Buffer> transformer,
-                                        Interceptor<WriteResult> interceptor,
-                                        MessageCloner<M> cloner) throws IOException;
+//     <M> Future<WriteResult<M, L>> write(Connection connection,
+//                                        L dstAddress,
+//                                        M message,
+//                                        CompletionHandler<WriteResult<M, L>> completionHandler,
+//                                        Transformer<M, Buffer> transformer,
+//                                        Interceptor<WriteResult> interceptor,
+//                                        MessageCloner<M> cloner) throws IOException;
+    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, Buffer buffer,
+            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
+            MessageCloner<Buffer> cloner)
+            throws IOException;
 
     /**
      * @param connection the {@link Connection} to test whether or not we can
      *  successfully write
-     * 
+     * @param size number of bytes we plan to write
      * @return <code>true</code> if the queue has not exceeded it's maximum
      *  number of pending writes, otherwise <code>false</code>
      */
-    boolean canWrite(final Connection connection);
+    boolean canWrite(final Connection connection, int size);
 
     /**
      * Configures the maximum number of pending writes that may be queued
@@ -101,6 +109,6 @@ public interface AsyncQueueWriter<L>
      * @param maxQueuedWrites maximum number of pending writes that may be
      *  queued for a particular {@link Connection}
      */
-    void setMaxQueuedWritesPerConnection(final int maxQueuedWrites);
+    void setMaxPendingBytesPerConnection(final int maxQueuedWrites);
     
 }

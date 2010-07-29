@@ -92,16 +92,14 @@ public abstract class TemporarySelectorWriter
      * {@inheritDoc}
      */
     @Override
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress, M message,
-            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            Transformer<M, Buffer> transformer,
-            Interceptor<WriteResult> interceptor) throws IOException {
-        
-        return write(connection, dstAddress, message, completionHandler,
-                transformer, interceptor, timeoutMillis, TimeUnit.MILLISECONDS);
+    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, Buffer buffer,
+            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor)
+            throws IOException {
+        return write(connection, dstAddress, buffer, completionHandler,
+                interceptor, timeoutMillis, TimeUnit.MILLISECONDS);
     }
-
 
     /**
      * Method writes the <tt>message</tt> to the specific address.
@@ -116,11 +114,10 @@ public abstract class TemporarySelectorWriter
      *         result
      * @throws java.io.IOException
      */
-    public <M> GrizzlyFuture<WriteResult<M, SocketAddress>> write(
-            Connection connection, SocketAddress dstAddress, M message,
-            CompletionHandler<WriteResult<M, SocketAddress>> completionHandler,
-            Transformer<M, Buffer> transformer,
-            Interceptor<WriteResult> interceptor,
+    public GrizzlyFuture<WriteResult<Buffer, SocketAddress>> write(
+            Connection connection, SocketAddress dstAddress, Buffer message,
+            CompletionHandler<WriteResult<Buffer, SocketAddress>> completionHandler,
+            Interceptor<WriteResult<Buffer, SocketAddress>> interceptor,
             long timeout, TimeUnit timeunit) throws IOException {
 
         if (message == null) {
@@ -135,16 +132,11 @@ public abstract class TemporarySelectorWriter
         final WriteResult writeResult =
                 WriteResult.create(connection, message, dstAddress, 0);
 
-        if (transformer == null) {
-            write0(connection, dstAddress, (Buffer) message, writeResult,
-                    timeout, timeunit);
-        } else {
-            writeWithTransformer(connection, dstAddress, transformer,
-                    writeResult, message, timeout, timeunit);
-        }
+        write0(connection, dstAddress, (Buffer) message, writeResult,
+                timeout, timeunit);
 
-        final GrizzlyFuture<WriteResult<M, SocketAddress>> writeFuture =
-                ReadyFutureImpl.<WriteResult<M, SocketAddress>>create(writeResult);
+        final GrizzlyFuture<WriteResult<Buffer, SocketAddress>> writeFuture =
+                ReadyFutureImpl.<WriteResult<Buffer, SocketAddress>>create(writeResult);
         
         if (completionHandler != null) {
             completionHandler.completed(writeResult);

@@ -39,7 +39,6 @@ package com.sun.grizzly.asyncqueue;
 
 import com.sun.grizzly.Buffer;
 import com.sun.grizzly.Interceptor;
-import com.sun.grizzly.Transformer;
 import java.util.concurrent.Future;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Grizzly;
@@ -59,8 +58,7 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     public static final AsyncWriteQueueRecord create(Object message,
             Future future,
             WriteResult currentResult, CompletionHandler completionHandler,
-            Transformer transformer,
-            Interceptor<WriteResult> interceptor, Object dstAddress,
+            Interceptor interceptor, Object dstAddress,
             Buffer outputBuffer,
             boolean isCloned) {
 
@@ -70,14 +68,14 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
         if (asyncWriteQueueRecord != null) {
             asyncWriteQueueRecord.isRecycled = false;
             asyncWriteQueueRecord.set(message, future, currentResult,
-                    completionHandler, transformer, interceptor, dstAddress,
+                    completionHandler, interceptor, dstAddress,
                     outputBuffer, isCloned);
             
             return asyncWriteQueueRecord;
         }
 
         return new AsyncWriteQueueRecord(message, future, currentResult,
-                completionHandler, transformer, interceptor, dstAddress,
+                completionHandler, interceptor, dstAddress,
                 outputBuffer, isCloned);
     }
     
@@ -87,12 +85,11 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
 
     private AsyncWriteQueueRecord(Object message, Future future,
             WriteResult currentResult, CompletionHandler completionHandler,
-            Transformer transformer,
-            Interceptor<WriteResult> interceptor, Object dstAddress,
+            Interceptor interceptor, Object dstAddress,
             Buffer outputBuffer,
             boolean isCloned) {
 
-        super(message, future, currentResult, completionHandler, transformer,
+        super(message, future, currentResult, completionHandler,
                 interceptor);
         this.dstAddress = dstAddress;
         this.outputBuffer = outputBuffer;
@@ -101,12 +98,10 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
 
     protected void set(Object message, Future future,
             WriteResult currentResult, CompletionHandler completionHandler,
-            Transformer transformer,
-            Interceptor<WriteResult> interceptor, Object dstAddress,
+            Interceptor interceptor, Object dstAddress,
             Buffer outputBuffer,
             boolean isCloned) {
-        super.set(message, future, currentResult, completionHandler, transformer,
-                interceptor);
+        super.set(message, future, currentResult, completionHandler, interceptor);
 
         this.dstAddress = dstAddress;
         this.outputBuffer = outputBuffer;
@@ -139,7 +134,7 @@ public final class AsyncWriteQueueRecord extends AsyncQueueRecord<WriteResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null, null, null, null, false);
+        set(null, null, null, null, null, null, null, false);
     }
 
     @Override

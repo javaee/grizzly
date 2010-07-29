@@ -66,8 +66,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
- * @author oleksiys
+ * AsyncWriteQueue tests.
+ * 
+ * @author Alexey Stashok
+ * @author Ryan Lubke
  */
 public class AsyncWriteQueueTest extends GrizzlyTestCase {
     public static final int PORT = 7781;
@@ -207,6 +209,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
 
         Connection connection = null;
         final int packetSize = 256000;
+        final int queueLimit = packetSize * 2 + 1;
 
         FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
         filterChainBuilder.add(new TransportFilter());
@@ -226,7 +229,7 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             connection.configureStandalone(true);
 
             final AsyncQueueWriter asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
-            asyncQueueWriter.setMaxQueuedWritesPerConnection(20);
+            asyncQueueWriter.setMaxPendingBytesPerConnection(queueLimit);
             final MemoryManager mm = transport.getMemoryManager();
             final Connection con = connection;
 
@@ -242,37 +245,38 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
                 final int lc = loopCount;
                 final byte b = (byte) i;
                 byte[] originalMessage = new byte[packetSize];
-                        Arrays.fill(originalMessage, b);
-                        Buffer buffer = MemoryUtils.wrap(mm, originalMessage);
-                        try {
-                            if (asyncQueueWriter.canWrite(con)) {
-                                asyncQueueWriter.write(con, buffer);
-                            } else {
-                                if (loopCount == 3) {
-                                    asyncQueueWriter.write(con, buffer,
-                                            new EmptyCompletionHandler() {
-                                                @Override
-                                                public void failed(Throwable throwable) {
-                                                    if (throwable instanceof PendingWriteQueueLimitExceededException) {
-                                                        exceptionThrown.compareAndSet(false, true);
-                                                        exceptionAtLoopCount.set(lc);
-                                                        assertEquals(20, ((AbstractNIOConnection) con).getAsyncWriteQueue().getQueue().size());
-                                                    }
-                                                    failed.compareAndSet(false, true);
-                                                }
-                                            });
-                                } else {
-                                    loopCount++;
-                                    transport.resume();
-                                    Thread.sleep(5000);
-                                    transport.pause();
-                                }
-                            }
-                        } catch (IOException e) {
+                Arrays.fill(originalMessage, b);
+                Buffer buffer = MemoryUtils.wrap(mm, originalMessage);
+                try {
+                    if (asyncQueueWriter.canWrite(con, buffer.remaining())) {
+                        asyncQueueWriter.write(con, buffer);
+                    } else {
+                        if (loopCount == 3) {
+                            asyncQueueWriter.write(con, buffer,
+                                    new EmptyCompletionHandler() {
 
-                                assertTrue("IOException occurred: " + e.toString(), false);
-
+                                        @Override
+                                        public void failed(Throwable throwable) {
+                                            if (throwable instanceof PendingWriteQueueLimitExceededException) {
+                                                exceptionThrown.compareAndSet(false, true);
+                                                exceptionAtLoopCount.set(lc);
+                                                assertTrue(((AbstractNIOConnection) con).getAsyncWriteQueue().spaceInBytes() + packetSize > queueLimit);
+                                            }
+                                            failed.compareAndSet(false, true);
+                                        }
+                                    });
+                        } else {
+                            loopCount++;
+                            transport.resume();
+                            Thread.sleep(5000);
+                            transport.pause();
                         }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    assertTrue("IOException occurred: " + e.toString(), false);
+
+                }
                 i++;
             }
 

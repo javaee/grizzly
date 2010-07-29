@@ -64,7 +64,7 @@ public abstract class TaskQueue<E> {
      */
     public final static class SafeTaskQueue<E> extends TaskQueue<E> {
         final AtomicReference<E> currentElement;
-        final AtomicInteger size = new AtomicInteger();
+        final AtomicInteger spaceInBytes = new AtomicInteger();
         
         protected SafeTaskQueue() {
             super(new LinkedTransferQueue<E>());
@@ -82,18 +82,18 @@ public abstract class TaskQueue<E> {
         }
 
         @Override
-        public int reservePlace() {
-            return size.incrementAndGet();
+        public int reserveSpace(int amount) {
+            return spaceInBytes.addAndGet(amount);
         }
 
         @Override
-        public int releasePlace() {
-            return size.decrementAndGet();
+        public int releaseSpace(int amount) {
+            return spaceInBytes.addAndGet(-amount);
         }
 
         @Override
-        public int size() {
-            return size.get();
+        public int spaceInBytes() {
+            return spaceInBytes.get();
         }
     }
 
@@ -104,7 +104,7 @@ public abstract class TaskQueue<E> {
     public final static class UnSafeTaskQueue<E> extends TaskQueue<E> {
         private E currentElement;
 
-        private int size;
+        private int spaceInBytes;
         
         /**
          * Locker object, which could be used by a queue processors
@@ -135,18 +135,20 @@ public abstract class TaskQueue<E> {
         }
 
         @Override
-        public int reservePlace() {
-            return ++size;
+        public int reserveSpace(int amount) {
+            spaceInBytes += amount;
+            return spaceInBytes;
         }
 
         @Override
-        public int releasePlace() {
-            return --size;
+        public int releaseSpace(int amount) {
+            spaceInBytes -= amount;
+            return spaceInBytes;
         }
 
         @Override
-        public int size() {
-            return size;
+        public int spaceInBytes() {
+            return spaceInBytes;
         }
     }
     
@@ -160,25 +162,25 @@ public abstract class TaskQueue<E> {
     }
 
     /**
-     * Reserves place in the queue.
+     * Reserves memory space in the queue.
      *
-     * @return the new queue size.
+     * @return the new memory (in bytes) consumed by the queue.
      */
-    public abstract int reservePlace();
+    public abstract int reserveSpace(int amount);
 
     /**
-     * Releases place in the queue.
+     * Releases memory space in the queue.
      *
-     * @return the new queue size.
+     * @return the new memory (in bytes) consumed by the queue.
      */
-    public abstract int releasePlace();
+    public abstract int releaseSpace(int amount);
 
     /**
-     * Returns the queue size.
+     * Returns the number of queued bytes.
      * 
-     * @return the queue size.
+     * @return the number of queued bytes.
      */
-    public abstract int size();
+    public abstract int spaceInBytes();
 
     /**
      * Get the current processing task

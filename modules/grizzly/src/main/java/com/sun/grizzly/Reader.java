@@ -99,22 +99,6 @@ public interface Reader<L> {
      * @param message the Message to which data will be read
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when read will be completed
-     * @return {@link Future}, using which it's possible to check the result
-     * @throws java.io.IOException
-     */
-    public <M> GrizzlyFuture<ReadResult<M, L>> read(Connection connection,
-            M message,
-            CompletionHandler<ReadResult<M, L>> completionHandler,
-            Transformer<Buffer, M> transformer)
-            throws IOException;
-
-    /**
-     * Method reads data to the <tt>buffer</tt>.
-     *
-     * @param connection the {@link Connection} to read from
-     * @param message the Message to which data will be read
-     * @param completionHandler {@link CompletionHandler},
-     *        which will get notified, when read will be completed
      * @param interceptor {@link Interceptor}, which will be able to intercept
      *        control each time new portion of a data was read to a
      *        <tt>buffer</tt>.
@@ -123,10 +107,9 @@ public interface Reader<L> {
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public <M> GrizzlyFuture<ReadResult<M, L>> read(Connection connection,
-            M message,
-            CompletionHandler<ReadResult<M, L>> completionHandler,
-            Transformer<Buffer, M> transformer,
+    public GrizzlyFuture<ReadResult<Buffer, L>> read(Connection connection,
+            Buffer buffer,
+            CompletionHandler<ReadResult<Buffer, L>> completionHandler,
             Interceptor<ReadResult> interceptor)
             throws IOException;
 }

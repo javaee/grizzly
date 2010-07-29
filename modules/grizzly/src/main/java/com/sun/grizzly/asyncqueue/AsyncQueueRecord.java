@@ -43,7 +43,6 @@ import com.sun.grizzly.Interceptor;
 import java.util.concurrent.Future;
 import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Grizzly;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.utils.DebugPoint;
 
 /**
@@ -57,7 +56,6 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     protected Future future;
     protected R currentResult;
     protected CompletionHandler completionHandler;
-    protected Transformer transformer;
     protected Interceptor<R> interceptor;
 
     protected boolean isRecycled = false;
@@ -65,15 +63,15 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     
     public AsyncQueueRecord(Object originalMessage, Future future,
             R currentResult, CompletionHandler completionHandler,
-            Transformer transformer, Interceptor<R> interceptor) {
+            Interceptor<R> interceptor) {
 
         set(originalMessage, future, currentResult, completionHandler,
-                transformer, interceptor);
+                interceptor);
     }
 
     protected final void set(Object originalMessage, Future future,
             R currentResult, CompletionHandler completionHandler,
-            Transformer transformer, Interceptor<R> interceptor) {
+            Interceptor<R> interceptor) {
 
         checkRecycled();
         this.originalMessage = originalMessage;
@@ -81,7 +79,6 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
         this.future = future;
         this.currentResult = currentResult;
         this.completionHandler = completionHandler;
-        this.transformer = transformer;
         this.interceptor = interceptor;
     }
 
@@ -118,11 +115,6 @@ public abstract class AsyncQueueRecord<R> implements Cacheable {
     public final CompletionHandler getCompletionHandler() {
         checkRecycled();
         return completionHandler;
-    }
-
-    public final Transformer getTransformer() {
-        checkRecycled();
-        return transformer;
     }
 
     public final Interceptor<R> getInterceptor() {

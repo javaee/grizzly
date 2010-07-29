@@ -44,7 +44,6 @@ import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.Interceptor;
 import com.sun.grizzly.ReadResult;
 import com.sun.grizzly.ThreadCache;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.utils.DebugPoint;
 import java.util.concurrent.Future;
 
@@ -60,7 +59,6 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     public static final AsyncReadQueueRecord create(Object message,
             Future future,
             ReadResult currentResult, CompletionHandler completionHandler,
-            Transformer transformer,
             Interceptor<ReadResult> interceptor) {
 
         final AsyncReadQueueRecord asyncReadQueueRecord =
@@ -69,22 +67,21 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
         if (asyncReadQueueRecord != null) {
             asyncReadQueueRecord.isRecycled = false;
             asyncReadQueueRecord.set(message, future, currentResult,
-                    completionHandler, transformer, interceptor);
+                    completionHandler, interceptor);
             return asyncReadQueueRecord;
         }
 
         return new AsyncReadQueueRecord(message, future, currentResult,
-                completionHandler, transformer, interceptor);
+                completionHandler, interceptor);
     }
 
     private Buffer remainderBuffer;
     
     private AsyncReadQueueRecord(Object message, Future future,
             ReadResult currentResult, CompletionHandler completionHandler,
-            Transformer transformer, Interceptor<ReadResult> interceptor) {
+            Interceptor<ReadResult> interceptor) {
         
-        super(message, future, currentResult, completionHandler, transformer,
-                interceptor);
+        super(message, future, currentResult, completionHandler, interceptor);
     }
 
     public Buffer getRemainderBuffer() {
@@ -98,7 +95,7 @@ public final class AsyncReadQueueRecord extends AsyncQueueRecord<ReadResult> {
     }
 
     protected final void reset() {
-        set(null, null, null, null, null, null);
+        set(null, null, null, null, null);
         remainderBuffer = null;
     }
 

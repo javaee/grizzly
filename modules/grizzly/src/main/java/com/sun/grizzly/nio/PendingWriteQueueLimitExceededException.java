@@ -53,4 +53,7 @@ public final class PendingWriteQueueLimitExceededException extends IOException {
         super();
     }
 
+    public PendingWriteQueueLimitExceededException(String message) {
+        super(message);
+    }
 }

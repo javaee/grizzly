@@ -93,13 +93,12 @@ public abstract class TemporarySelectorReader
     }
 
     @Override
-    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
-            Connection connection, M message,
-            CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
-            Transformer<Buffer, M> transformer,
+    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read(
+            Connection connection, Buffer message,
+            CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
             Interceptor<ReadResult> interceptor) throws IOException {
         return read(connection, message, completionHandler,
-                transformer, interceptor,
+                interceptor,
                 timeoutMillis, TimeUnit.MILLISECONDS);
     }
 
@@ -119,10 +118,9 @@ public abstract class TemporarySelectorReader
      * @return {@link Future}, using which it's possible to check the result
      * @throws java.io.IOException
      */
-    public <M> GrizzlyFuture<ReadResult<M, SocketAddress>> read(
-            final Connection connection, final M message,
-            final CompletionHandler<ReadResult<M, SocketAddress>> completionHandler,
-            final Transformer<Buffer, M> transformer,
+    public GrizzlyFuture<ReadResult<Buffer, SocketAddress>> read(
+            final Connection connection, final Buffer message,
+            final CompletionHandler<ReadResult<Buffer, SocketAddress>> completionHandler,
             final Interceptor<ReadResult> interceptor,
             final long timeout, final TimeUnit timeunit) throws IOException {
 
@@ -131,22 +129,13 @@ public abstract class TemporarySelectorReader
                     "Connection should be NIOConnection and cannot be null.");
         }
 
-        final ReadResult<M, SocketAddress> currentResult =
-                ReadResult.<M, SocketAddress>create(connection, message, null, 0);
+        final ReadResult<Buffer, SocketAddress> currentResult =
+                ReadResult.<Buffer, SocketAddress>create(connection, message, null, 0);
 
-        final int readBytes;
-        if (transformer == null) {
-            readBytes = readWithoutTransformer(connection, interceptor,
-                    currentResult, (Buffer) message, timeout, timeunit);
-        } else {
-            readBytes = readWithTransformer(connection, transformer,
-                    interceptor, currentResult, message, timeout, timeunit);
-        }
+        final int readBytes = readWithoutTransformer(connection, interceptor,
+                currentResult, (Buffer) message, timeout, timeunit);
 
         if (readBytes > 0) {
-            if (transformer != null) {
-                transformer.release(connection);
-            }
 
             if (completionHandler != null) {
                 completionHandler.completed(currentResult);
@@ -156,9 +145,9 @@ public abstract class TemporarySelectorReader
                 interceptor.intercept(timeoutMillis, connection, currentResult);
             }
 
-            return ReadyFutureImpl.<ReadResult<M, SocketAddress>>create(currentResult);
+            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(currentResult);
         } else {
-            return ReadyFutureImpl.<ReadResult<M, SocketAddress>>create(new TimeoutException());
+            return ReadyFutureImpl.<ReadResult<Buffer, SocketAddress>>create(new TimeoutException());
         }
     }
 
