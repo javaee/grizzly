@@ -134,7 +134,7 @@ public class FileCache {
     private final ScheduledExecutorService scheduledExecutorService;
 
     /**
-     * Connection probes
+     * File cache probes
      */
     protected final ArraySet<FileCacheMonitoringProbe> monitoringProbes =
             new ArraySet<FileCacheMonitoringProbe>();

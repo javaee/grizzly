@@ -37,6 +37,7 @@
 package com.sun.grizzly.http.server;
 
 import com.sun.grizzly.Buffer;
+import com.sun.grizzly.Connection;
 import com.sun.grizzly.Grizzly;
 import com.sun.grizzly.attributes.Attribute;
 import com.sun.grizzly.filterchain.BaseFilter;
@@ -46,6 +47,7 @@ import com.sun.grizzly.http.HttpContent;
 import com.sun.grizzly.http.HttpPacket;
 import com.sun.grizzly.http.HttpRequestPacket;
 import com.sun.grizzly.http.HttpResponsePacket;
+import com.sun.grizzly.utils.ArraySet;
 
 import java.io.IOException;
 import java.util.concurrent.ScheduledExecutorService;
@@ -54,7 +56,6 @@ import java.util.concurrent.ScheduledExecutorService;
  * TODO:
  *   JMX
  *   Statistics
- *   Interceptor support (necessary for FileCache?)
  */
 public class WebServerFilter extends BaseFilter {
 
@@ -67,6 +68,11 @@ public class WebServerFilter extends BaseFilter {
             Grizzly.DEFAULT_ATTRIBUTE_BUILDER.createAttribute(
             "connection-keepalive-counter", 0);
     
+    /**
+     * Web server probes
+     */
+    protected final ArraySet<WebServerMonitoringProbe> monitoringProbes =
+            new ArraySet<WebServerMonitoringProbe>();
 
     // ------------------------------------------------------------ Constructors
 
@@ -89,24 +95,29 @@ public class WebServerFilter extends BaseFilter {
     public NextAction handleRead(FilterChainContext ctx)
           throws IOException {
         final Object message = ctx.getMessage();
+        final Connection connection = ctx.getConnection();
 
         if (message instanceof HttpPacket) {
             // Otherwise cast message to a HttpContent
             final HttpContent httpContent = (HttpContent) message;
 
-            GrizzlyRequest grizzlyRequest = grizzlyRequestInProcessAttr.get(ctx.getConnection());
+            GrizzlyRequest grizzlyRequest = grizzlyRequestInProcessAttr.get(connection);
 
             if (grizzlyRequest == null) {
                 HttpRequestPacket request = (HttpRequestPacket) httpContent.getHttpHeader();
                 HttpResponsePacket response = request.getResponse();
                 grizzlyRequest = GrizzlyRequest.create();
-                grizzlyRequest.initialize(request, httpContent, ctx);
+                grizzlyRequest.initialize(request, httpContent, ctx, this);
                 final GrizzlyResponse grizzlyResponse = GrizzlyResponse.create();
                 final SuspendStatus suspendStatus = new SuspendStatus();
 
                 grizzlyResponse.initialize(grizzlyRequest, response, ctx,
                         scheduledExecutorService, suspendStatus);
-                grizzlyRequestInProcessAttr.set(ctx.getConnection(), grizzlyRequest);
+                grizzlyRequestInProcessAttr.set(connection, grizzlyRequest);
+
+                WebServerProbeNotificator.notifyRequestReceived(this, connection,
+                        grizzlyRequest);
+
                 try {
                     ctx.setMessage(grizzlyResponse);
                     if (adapter != null) {
@@ -116,7 +127,7 @@ public class WebServerFilter extends BaseFilter {
                     throw new RuntimeException(e);
                 } finally {
                     if (!suspendStatus.get()) {
-                        afterService(ctx, grizzlyRequest, grizzlyResponse);
+                        afterService(connection, grizzlyRequest, grizzlyResponse);
                     } else {
                         if (grizzlyRequest.asyncInput()) {
                             return ctx.getSuspendingStopAction();
@@ -151,18 +162,18 @@ public class WebServerFilter extends BaseFilter {
         } else { // this code will be run, when we resume after suspend
             final GrizzlyResponse grizzlyResponse = (GrizzlyResponse) message;
             final GrizzlyRequest grizzlyRequest = grizzlyResponse.getRequest();
-            afterService(ctx, grizzlyRequest, grizzlyResponse);
+            afterService(connection, grizzlyRequest, grizzlyResponse);
         }
 
         return ctx.getStopAction();
     }
 
-    private void afterService(final FilterChainContext ctx,
+    private void afterService(final Connection connection,
                               final GrizzlyRequest grizzlyRequest,
                               final GrizzlyResponse grizzlyResponse)
     throws IOException {
 
-        grizzlyRequestInProcessAttr.remove(ctx.getConnection());
+        grizzlyRequestInProcessAttr.remove(connection);
         grizzlyResponse.finish();
 
         final HttpRequestPacket request = grizzlyRequest.getRequest();
@@ -172,8 +183,41 @@ public class WebServerFilter extends BaseFilter {
             request.setSkipRemainder(true);
         }
 
+        WebServerProbeNotificator.notifyRequestCompleted(this, connection,
+                grizzlyResponse);
+        
         grizzlyRequest.recycle(!isExpectContent);
         grizzlyResponse.recycle(!isExpectContent);
     }
 
+    /**
+     * Add the {@link WebServerMonitoringProbe}, which will be notified about
+     * <tt>WebServerFilter</tt> lifecycle events.
+     *
+     * @param probe the {@link WebServerMonitoringProbe}.
+     */
+    public void addMonitoringProbe(WebServerMonitoringProbe probe) {
+        monitoringProbes.add(probe);
+    }
+
+    /**
+     * Remove the {@link WebServerMonitoringProbe}.
+     *
+     * @param probe the {@link WebServerMonitoringProbe}.
+     */
+    public boolean removeMonitoringProbe(WebServerMonitoringProbe probe) {
+        return monitoringProbes.remove(probe);
+    }
+
+    /**
+     * Get the {@link WebServerMonitoringProbe}, which are registered on the <tt>WebServerFilter</tt>.
+     * Please note, it's not appropriate to modify the returned array's content.
+     * Please use {@link #addMonitoringProbe(com.sun.grizzly.http.server.WebServerMonitoringProbe)} and
+     * {@link #removeMonitoringProbe(com.sun.grizzly.http.server.WebServerMonitoringProbe)} instead.
+     *
+     * @return the {@link WebServerMonitoringProbe}, which are registered on the <tt>WebServerFilter</tt>.
+     */
+    public WebServerMonitoringProbe[] getMonitoringProbes() {
+        return monitoringProbes.obtainArrayCopy(WebServerMonitoringProbe.class);
+    }    
 }

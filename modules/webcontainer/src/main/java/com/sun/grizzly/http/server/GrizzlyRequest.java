@@ -80,7 +80,6 @@ import com.sun.grizzly.util.res.StringManager;
 import java.io.CharConversionException;
 
 import javax.security.auth.Subject;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -112,7 +111,7 @@ import java.util.concurrent.TimeUnit;
  * @version $Revision: 1.2 $ $Date: 2007/03/14 02:15:42 $
  */
 
-public class GrizzlyRequest{
+public class GrizzlyRequest {
 
 
     private static final ThreadCache.CachedTypeIndex<GrizzlyRequest> CACHE_IDX =
@@ -231,12 +230,15 @@ public class GrizzlyRequest{
 
     protected FilterChainContext ctx;
 
+    protected WebServerFilter webServerFilter;
 
     public void initialize(HttpRequestPacket request,
                            HttpContent initialRequestContent,
-                           FilterChainContext ctx) {
+                           FilterChainContext ctx,
+                           WebServerFilter webServerFilter) {
         this.request = request;
         this.ctx = ctx;
+        this.webServerFilter = webServerFilter;
         this.initialRequestContent = initialRequestContent;
         inputBuffer.initialize(request, ctx);
     }
@@ -579,6 +581,7 @@ public class GrizzlyRequest{
         
         request = null;
         ctx = null;
+        webServerFilter = null;
 
         attributes.clear();
         cookies = null;

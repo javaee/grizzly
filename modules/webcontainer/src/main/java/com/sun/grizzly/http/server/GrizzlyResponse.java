@@ -296,7 +296,7 @@ public class GrizzlyResponse {
      * Return the Request with which this Response is associated.
      */
     public GrizzlyRequest getRequest() {
-        return (this.request);
+        return request;
     }
 
 
@@ -304,7 +304,7 @@ public class GrizzlyResponse {
      * Get the Coyote response.
      */
     public HttpResponsePacket getResponse() {
-        return (response);
+        return response;
     }
 
 
@@ -1681,7 +1681,7 @@ public class GrizzlyResponse {
     /**
      * Is the file cache enabled?
      */
-    public boolean isCacheEnabled(){
+    public boolean isCacheEnabled() {
         return cacheEnabled;
     }
 
@@ -1689,7 +1689,7 @@ public class GrizzlyResponse {
     /**
      * Enable/disable the cache
      */
-    public void enableCache(boolean cacheEnabled){
+    public void enableCache(boolean cacheEnabled) {
         this.cacheEnabled = cacheEnabled;
         // TODO re-enable
         //outputBuffer.enableCache(cacheEnabled);
@@ -1708,7 +1708,7 @@ public class GrizzlyResponse {
      * Enabled or Disable response chunking.
      * @param chunkingDisabled
      */
-    public void setChunkingDisabled(boolean chunkingDisabled){
+    public void setChunkingDisabled(boolean chunkingDisabled) {
     //    if (outputBuffer != null){
     //        outputBuffer.setChunkingDisabled(chunkingDisabled);
     //    }
@@ -1718,7 +1718,7 @@ public class GrizzlyResponse {
     /**
      * Is chunking enabled?
      */
-    public boolean getChunkingDisabled(){
+    public boolean getChunkingDisabled() {
     //    if (outputBuffer != null){
     //        outputBuffer.getChunkingDisabled();
     //    }
@@ -1732,7 +1732,7 @@ public class GrizzlyResponse {
      * @return <tt>true<//tt> if that {@link com.sun.grizzly.http.server.GrizzlyResponse#suspend()} has been
      * invoked and set to <tt>true</tt>
      */
-    public boolean isSuspended(){
+    public boolean isSuspended() {
         checkResponse();
         
         synchronized(suspendSync) {
@@ -1745,7 +1745,7 @@ public class GrizzlyResponse {
      * tell the underlying container to avoid recycling objects associated with
      * the current instance, and also to avoid commiting response.
      */
-    public void suspend(){
+    public void suspend() {
         suspend(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
     }
 
@@ -1762,7 +1762,7 @@ public class GrizzlyResponse {
      * times out will throw an {@link IllegalStateException}.
      *
      */
-    public void suspend(long timeout, TimeUnit timeunit){
+    public void suspend(long timeout, TimeUnit timeunit) {
         suspend(timeout, timeunit, null);
     }
 
@@ -1787,7 +1787,7 @@ public class GrizzlyResponse {
      * times out will throw an {@link IllegalStateException}.
      * @param competionHandler a {@link com.sun.grizzly.CompletionHandler}
      */
-    public void suspend(long timeout, TimeUnit timeunit, CompletionHandler competionHandler){
+    public void suspend(long timeout, TimeUnit timeunit, CompletionHandler competionHandler) {
         checkResponse();
 
         synchronized(suspendSync) {
@@ -1801,7 +1801,12 @@ public class GrizzlyResponse {
                     suspendedRunnable, timeout, timeunit);
             suspendedRunnable.scheduledFuture = scheduledFuture;
 
-            ctx.getConnection().addCloseListener(suspendedRunnable);
+            final Connection connection = ctx.getConnection();
+
+            WebServerProbeNotificator.notifyRequestSuspended(
+                    request.webServerFilter, connection, request);
+            
+            connection.addCloseListener(suspendedRunnable);
             
             suspendStatus.set();
             
@@ -1815,14 +1820,15 @@ public class GrizzlyResponse {
      * will first be invoked, then the {@link com.sun.grizzly.http.server.GrizzlyResponse#finish()}.
      * Those operations commit the response.
      */
-    public void resume(){
+    public void resume() {
         checkResponse();
         synchronized(suspendSync) {
             if (!isSuspended || suspendedRunnable.isResuming) {
                 throw new IllegalStateException("Not Suspended");
             }
+            final Connection connection = ctx.getConnection();
 
-            ctx.getConnection().removeCloseListener(suspendedRunnable);
+            connection.removeCloseListener(suspendedRunnable);
 
             final Future future = suspendedRunnable.scheduledFuture;
             final CompletionHandler completionHandler = suspendedRunnable.completionHandler;
@@ -1839,6 +1845,9 @@ public class GrizzlyResponse {
             suspendedRunnable.reset();
 
             isSuspended = false;
+
+            WebServerProbeNotificator.notifyRequestResumed(request.webServerFilter,
+                    connection, request);
 
             ctx.resume();
         }
@@ -1857,8 +1866,9 @@ public class GrizzlyResponse {
             if (!isSuspended || suspendedRunnable.isResuming) {
                 throw new IllegalStateException("Not Suspended");
             }
+            final Connection connection = ctx.getConnection();
 
-            ctx.getConnection().removeCloseListener(suspendedRunnable);
+            connection.removeCloseListener(suspendedRunnable);
 
             final Future future = suspendedRunnable.scheduledFuture;
             final CompletionHandler completionHandler = suspendedRunnable.completionHandler;
@@ -1875,6 +1885,9 @@ public class GrizzlyResponse {
             isSuspended = false;
 
             suspendedRunnable.reset();
+
+            WebServerProbeNotificator.notifyRequestCancelled(
+                    request.webServerFilter, connection, request);
 
             ctx.resume();
         }
@@ -1901,6 +1914,10 @@ public class GrizzlyResponse {
         public void run() {
             synchronized (suspendSync) {
                 scheduledFuture = null;
+
+                WebServerProbeNotificator.notifyRequestTimeout(
+                        request.webServerFilter, ctx.getConnection(), request);
+
                 cancel();
             }
         }
