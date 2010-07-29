@@ -107,6 +107,9 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
     @DuckTyped
     Protocol findHttpProtocol();
 
+    @DuckTyped
+    String findHttpProtocolName();
+
     /**
      * Reference to a protocol
      */
@@ -144,6 +147,15 @@ public interface NetworkListener extends ConfigBeanProxy, Injectable, PropertyBa
 
         public static Protocol findHttpProtocol(NetworkListener listener) {
             return findHttpProtocol(new HashSet<String>(), findProtocol(listener));
+        }
+
+        public static String findHttpProtocolName(NetworkListener listener) {
+            final Protocol httpProtocol = findHttpProtocol(listener);
+            if (httpProtocol != null) {
+                return httpProtocol.getName();
+            }
+
+            return null;
         }
 
         private static Protocol findHttpProtocol(Set<String> tray, Protocol protocol) {
