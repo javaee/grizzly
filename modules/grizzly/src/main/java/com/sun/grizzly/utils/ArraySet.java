@@ -190,4 +190,11 @@ public class ArraySet<T> {
 
         return Arrays.copyOf(localArray, localArray.length);
     }
+
+    /**
+     * Remove all the set elements.
+     */
+    public void clear() {
+        array = null;
+    }
 }
