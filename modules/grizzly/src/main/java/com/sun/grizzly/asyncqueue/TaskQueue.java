@@ -38,6 +38,9 @@
 package com.sun.grizzly.asyncqueue;
 
 import com.sun.grizzly.utils.LinkedTransferQueue;
+
+import java.util.Iterator;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.LinkedList;
@@ -50,6 +53,28 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Alexey Stashok
  */
 public abstract class TaskQueue<E> {
+
+    /**
+     * The queue of tasks, which will be processed asynchronously
+     */
+    protected final Queue<E> queue;
+
+
+    protected final Queue<QueueMonitor> monitorQueue;
+
+
+    // ------------------------------------------------------------ Constructors
+
+
+    protected TaskQueue(Queue<E> queue) {
+        this.queue = queue;
+        monitorQueue = new ConcurrentLinkedQueue<QueueMonitor>();
+    }
+
+
+    // ---------------------------------------------------------- Public Methods
+
+
     public static <E> TaskQueue<E> createSafeTaskQueue() {
         return new SafeTaskQueue<E>();
     }
@@ -58,6 +83,76 @@ public abstract class TaskQueue<E> {
         return new UnSafeTaskQueue<E>();
     }
 
+
+    /**
+     * Reserves memory space in the queue.
+     *
+     * @return the new memory (in bytes) consumed by the queue.
+     */
+    public abstract int reserveSpace(int amount);
+
+    /**
+     * Releases memory space in the queue.
+     *
+     * @return the new memory (in bytes) consumed by the queue.
+     */
+    public abstract int releaseSpace(int amount, boolean notify);
+
+    /**
+     * Returns the number of queued bytes.
+     * 
+     * @return the number of queued bytes.
+     */
+    public abstract int spaceInBytes();
+
+    /**
+     * Get the current processing task
+     * @return the current processing task
+     */
+    public abstract E getCurrentElement();
+
+    /**
+     * Get the wrapped current processing task, to perform atomic operations.
+     * @return the wrapped current processing task, to perform atomic operations.
+     */
+    public abstract AtomicReference<E> getCurrentElementAtomic();
+    
+    /**
+     * Get the queue of tasks, which will be processed asynchronously
+     * @return the queue of tasks, which will be processed asynchronously
+     */
+    public Queue<E> getQueue() {
+        return queue;
+    }
+
+
+    public void addQueueMonitor(final QueueMonitor monitor) {
+        monitorQueue.offer(monitor);
+    }
+
+
+    // ------------------------------------------------------- Protected Methods
+
+
+    protected void doNotify() {
+
+        if (!monitorQueue.isEmpty()) {
+            for (Iterator<QueueMonitor> i = monitorQueue.iterator(); i.hasNext();) {
+                final QueueMonitor m = i.next();
+                if (m.shouldNotify()) {
+                    m.onNotify();
+                    i.remove();
+                }
+
+            }
+        }
+
+    }
+
+
+    //----------------------------------------------------------- Nested Classes
+
+
     /**
      * Thread safe <tt>AsyncQueue</tt> implementation.
      * @param <E> queue element type.
@@ -65,7 +160,7 @@ public abstract class TaskQueue<E> {
     public final static class SafeTaskQueue<E> extends TaskQueue<E> {
         final AtomicReference<E> currentElement;
         final AtomicInteger spaceInBytes = new AtomicInteger();
-        
+
         protected SafeTaskQueue() {
             super(new LinkedTransferQueue<E>());
             currentElement = new AtomicReference<E>();
@@ -87,15 +182,21 @@ public abstract class TaskQueue<E> {
         }
 
         @Override
-        public int releaseSpace(int amount) {
-            return spaceInBytes.addAndGet(-amount);
+        public int releaseSpace(int amount, boolean notify) {
+            final int space = spaceInBytes.addAndGet(-amount);
+            if (notify) {
+                doNotify();
+            }
+            return space;
         }
 
         @Override
         public int spaceInBytes() {
             return spaceInBytes.get();
         }
-    }
+
+    } // END SafeTaskQueue
+
 
     /**
      * Non thread safe <tt>AsyncQueue</tt> implementation.
@@ -105,7 +206,7 @@ public abstract class TaskQueue<E> {
         private E currentElement;
 
         private int spaceInBytes;
-        
+
         /**
          * Locker object, which could be used by a queue processors
          */
@@ -141,8 +242,11 @@ public abstract class TaskQueue<E> {
         }
 
         @Override
-        public int releaseSpace(int amount) {
+        public int releaseSpace(int amount, boolean notify) {
             spaceInBytes -= amount;
+            if (notify) {
+                doNotify();
+            }
             return spaceInBytes;
         }
 
@@ -150,55 +254,29 @@ public abstract class TaskQueue<E> {
         public int spaceInBytes() {
             return spaceInBytes;
         }
-    }
-    
-    /**
-     * The queue of tasks, which will be processed asynchronously
-     */
-    protected final Queue<E> queue;
 
-    protected TaskQueue(Queue<E> queue) {
-        this.queue = queue;
-    }
+    } // END UnsafeTaskQueue
+
 
     /**
-     * Reserves memory space in the queue.
-     *
-     * @return the new memory (in bytes) consumed by the queue.
+     * Notification mechanism which is current invoked when {@link TaskQueue#releaseSpace(int, boolean)}
+     * is called.
      */
-    public abstract int reserveSpace(int amount);
+    public interface QueueMonitor {
 
-    /**
-     * Releases memory space in the queue.
-     *
-     * @return the new memory (in bytes) consumed by the queue.
-     */
-    public abstract int releaseSpace(int amount);
+        /**
+         * Action(s) to perform when the current queue space meets the conditions
+         * mandated by {@link #shouldNotify()}.
+         */
+        void onNotify();
 
-    /**
-     * Returns the number of queued bytes.
-     * 
-     * @return the number of queued bytes.
-     */
-    public abstract int spaceInBytes();
+        /**
+         * @return <code>true</code> if {@link #onNotify()} should be invoked on
+         *  this <code>QueueMonitor</code> at the point in time <code>shouldNotify</code>
+         *  was called, otherwise returns <code>false</code>
+         */
+        boolean shouldNotify();
 
-    /**
-     * Get the current processing task
-     * @return the current processing task
-     */
-    public abstract E getCurrentElement();
 
-    /**
-     * Get the wrapped current processing task, to perform atomic operations.
-     * @return the wrapped current processing task, to perform atomic operations.
-     */
-    public abstract AtomicReference<E> getCurrentElementAtomic();
-    
-    /**
-     * Get the queue of tasks, which will be processed asynchronously
-     * @return the queue of tasks, which will be processed asynchronously
-     */
-    public Queue<E> getQueue() {
-        return queue;
-    }
+    } // END QueueMonitor
 }

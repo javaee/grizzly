@@ -45,7 +45,6 @@ import com.sun.grizzly.CompletionHandler;
 import com.sun.grizzly.Connection;
 import com.sun.grizzly.GrizzlyFuture;
 import com.sun.grizzly.Interceptor;
-import com.sun.grizzly.Transformer;
 import com.sun.grizzly.WriteResult;
 import com.sun.grizzly.Writer;
 import java.net.SocketAddress;
@@ -64,7 +63,7 @@ public interface AsyncQueueWriter<L>
      * @param connection the {@link Connection} to write to
      * @param dstAddress the destination address the <tt>message</tt> will be
      *        sent to
-     * @param message the message from which the data will be written
+     * @param buffer the Buffer from which the data will be written
      * @param completionHandler {@link CompletionHandler},
      *        which will get notified, when write will be completed
      * @param interceptor {@link Interceptor}, which will be able to intercept
@@ -103,12 +102,20 @@ public interface AsyncQueueWriter<L>
     boolean canWrite(final Connection connection, int size);
 
     /**
-     * Configures the maximum number of pending writes that may be queued
+     * Configures the maximum number of bytes pending to be written
      * for a particular {@link Connection}.
      *
      * @param maxQueuedWrites maximum number of pending writes that may be
      *  queued for a particular {@link Connection}
      */
     void setMaxPendingBytesPerConnection(final int maxQueuedWrites);
+
+
+    /**
+     * @return the maximum number of bytes that may be pending to be written
+     *  to a particular {@link Connection}.
+     */
+    int getMaxPendingBytesPerConnection();
+    
     
 }

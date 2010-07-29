@@ -56,6 +56,7 @@ import com.sun.grizzly.asyncqueue.MessageCloner;
 import com.sun.grizzly.impl.FutureImpl;
 import com.sun.grizzly.impl.ReadyFutureImpl;
 import com.sun.grizzly.impl.SafeFutureImpl;
+
 import java.util.Queue;
 import java.util.logging.Level;
 
@@ -99,8 +100,16 @@ public abstract class AbstractNIOAsyncQueueWriter
      * {@inheritDoc}
      */
     @Override
-    public void setMaxPendingBytesPerConnection(int maxPendingBytes) {
+    public void setMaxPendingBytesPerConnection(final int maxPendingBytes) {
         this.maxPendingBytes = maxPendingBytes;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public int getMaxPendingBytesPerConnection() {
+        return maxPendingBytes;
     }
 
     @Override
@@ -159,9 +168,9 @@ public abstract class AbstractNIOAsyncQueueWriter
         try {
             if (isLocked) {
                 final int bytesWritten = doWrite(connection, queueRecord);
-                connectionQueue.releaseSpace(bytesWritten);
+                connectionQueue.releaseSpace(bytesWritten, true);
             } else if (pendingBytes > maxPendingBytes && bufferSize > 0) {
-                connectionQueue.releaseSpace(bufferSize);
+                connectionQueue.releaseSpace(bufferSize, false);
                 throw new PendingWriteQueueLimitExceededException(
                         "Max queued data limit exceeded: " +
                         pendingBytes + ">" + maxPendingBytes);
@@ -307,7 +316,7 @@ public abstract class AbstractNIOAsyncQueueWriter
                 }
                 
                 final int bytesWritten = doWrite(connection, queueRecord);
-                connectionQueue.releaseSpace(bytesWritten);
+                connectionQueue.releaseSpace(bytesWritten, true);
 
                 // check if buffer was completely written
                 if (isFinished(connection, queueRecord)) {
@@ -508,9 +517,6 @@ public abstract class AbstractNIOAsyncQueueWriter
 
     protected abstract void onReadyToWrite(Connection connection)
             throws IOException;
-
-
-    // ---------------------------------------------------------- Nested Classes
 
 
 }

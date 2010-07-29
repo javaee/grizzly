@@ -37,6 +37,7 @@
 package com.sun.grizzly;
 
 import com.sun.grizzly.asyncqueue.AsyncQueueWriter;
+import com.sun.grizzly.asyncqueue.TaskQueue;
 import com.sun.grizzly.filterchain.FilterChainBuilder;
 import com.sun.grizzly.filterchain.FilterChainContext;
 import com.sun.grizzly.filterchain.NextAction;
@@ -298,4 +299,124 @@ public class AsyncWriteQueueTest extends GrizzlyTestCase {
             TransportFactory.getInstance().close();
         }
     }
+
+
+    public void testQueueNotification() throws Exception {
+
+        Connection connection = null;
+        final int packetSize = 256000;
+
+        FilterChainBuilder filterChainBuilder = FilterChainBuilder.stateless();
+        filterChainBuilder.add(new TransportFilter());
+
+
+        final TCPNIOTransport transport = TransportFactory.getInstance().createTCPTransport();
+        transport.setProcessor(filterChainBuilder.build());
+
+
+        try {
+            transport.bind(PORT);
+            transport.start();
+
+            Future<Connection> future = transport.connect("localhost", PORT);
+            connection = future.get(10, TimeUnit.SECONDS);
+            assertTrue(connection != null);
+            connection.configureStandalone(true);
+
+            final AsyncQueueWriter asyncQueueWriter = transport.getAsyncQueueIO().getWriter();
+            asyncQueueWriter.setMaxPendingBytesPerConnection(256000 * 10);
+            System.out.println("Max Space: " + asyncQueueWriter.getMaxPendingBytesPerConnection());
+            final MemoryManager mm = transport.getMemoryManager();
+            final Connection con = connection;
+
+            transport.pause();
+            final TaskQueue tqueue = ((AbstractNIOConnection) connection).getAsyncWriteQueue();
+
+            do {
+                byte[] originalMessage = new byte[packetSize];
+                Arrays.fill(originalMessage, (byte) 1);
+                Buffer buffer = MemoryUtils.wrap(mm, originalMessage);
+                try {
+                    if (asyncQueueWriter.canWrite(con, 256000)) {
+                        asyncQueueWriter.write(con, buffer);
+                    }
+                } catch (IOException e) {
+                    assertTrue("IOException occurred: " + e.toString(), false);
+                }
+            } while (asyncQueueWriter.canWrite(con, 256000));  // fill the buffer
+
+            // out of space.  Add a monitor to be notified when space is available
+            tqueue.addQueueMonitor(new WriteQueueFreeSpaceMonitor(con, 256000 * 4));
+
+            transport.resume(); // resume the transport so bytes start draining from the queue
+
+            long start = 0;
+            try {
+                System.out.println("Waiting for free space notification.  Max wait time is 10000ms.");
+                start = System.currentTimeMillis();
+                Thread.sleep(10000);  // should be interrupted before time completes
+                fail("Thread not interrupted within 10 seconds.");
+            } catch (InterruptedException ie) {
+                long result = (System.currentTimeMillis() - start);
+                System.out.println("Notified in " + result + "ms");
+            }
+            assertTrue((asyncQueueWriter.getMaxPendingBytesPerConnection() - tqueue.spaceInBytes()) >= (256000 * 4)); 
+            System.out.println("Queue Space: " + tqueue.spaceInBytes());
+
+        } finally {
+            if (connection != null) {
+                connection.close();
+            }
+            if (transport.isPaused()) {
+                transport.resume();
+            }
+            transport.stop();
+            TransportFactory.getInstance().close();
+        }
+    }
+
+
+    // ---------------------------------------------------------- Nested Classes
+
+
+    private static class WriteQueueFreeSpaceMonitor implements TaskQueue.QueueMonitor {
+
+        private final TaskQueue writeQueue;
+        private final int freeSpaceAvailable;
+        private final int maxSpace;
+        private final Transport transport;
+        private final Thread current;
+
+
+        // -------------------------------------------------------- Constructors
+
+
+        public WriteQueueFreeSpaceMonitor(final Connection c,
+                                          final int freeSpaceAvailable) {
+            this.freeSpaceAvailable = freeSpaceAvailable;
+            writeQueue = ((AbstractNIOConnection) c).getAsyncWriteQueue();
+            transport = c.getTransport();
+            maxSpace = (((TCPNIOTransport) transport).getAsyncQueueIO().getWriter().getMaxPendingBytesPerConnection());
+            current = Thread.currentThread();
+        }
+
+
+        // -------------------------------------- Methods from QueueMonitor
+
+        @Override
+        public boolean shouldNotify() {
+            return ((maxSpace - writeQueue.spaceInBytes()) > freeSpaceAvailable);
+        }
+
+        @Override
+        public void onNotify() {
+            try {
+                transport.pause(); // prevent more writes
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+            current.interrupt(); // wake up the test thread
+        }
+
+    } // END WriteQueueFreeSpaceMonitor
 }
