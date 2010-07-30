@@ -38,6 +38,7 @@ package com.sun.grizzly.config.dom;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
 import org.jvnet.hk2.component.Injectable;
@@ -136,6 +137,7 @@ public interface Http extends ConfigBeanProxy, Injectable, PropertyBag {
      * Gets the value of the fileCache property.
      */
     @Element
+    @NotNull
     FileCache getFileCache();
 
     void setFileCache(FileCache value);
